@@ -15,11 +15,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         when(assign.operator) {
             "-" -> {
-                val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
+                val a2 = AsmAssignment(assign.source, assign.targets, assign.memsizer, assign.position)
                 assignmentAsmGen.inplaceNegate(a2, false, scope)
             }
             "~", "not" -> {
-                val a2 = AsmAssignment(assign.source, assign.target, assign.memsizer, assign.position)
+                val a2 = AsmAssignment(assign.source, assign.targets, assign.memsizer, assign.position)
                 assignmentAsmGen.inplaceInvert(a2, scope)
             }
             "+" -> { /* is a nop */ }
@@ -234,7 +234,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 // TODO: more optimized code for VARIABLE, REGISTER, MEMORY, ARRAY, EXPRESSION in the case of split-word arrays
                                 val scope = target.origAstTarget?.definingISub()
                                 val regTarget = AsmAssignTarget.fromRegisters(RegisterOrPair.R0, false, target.position, scope, asmgen)
-                                val assignToReg = AsmAssignment(value, regTarget, program.memsizer, target.position)
+                                val assignToReg = AsmAssignment(value, listOf(regTarget), program.memsizer, target.position)
                                 assignmentAsmGen.translateNormalAssignment(assignToReg, scope)
                                 inplacemodificationSplitWordWithR0(target.asmVarname, index, operator)
                             }
@@ -510,6 +510,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -590,8 +591,10 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
         fun assignValueToA() {
             val assignValue = AsmAssignment(value,
-                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.UBYTE),
-                    address.definingISub(), Position.DUMMY, register = RegisterOrPair.A),
+                listOf(
+                    AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.UBYTE),
+                    address.definingISub(), Position.DUMMY, register = RegisterOrPair.A)
+                ),
                 program.memsizer, Position.DUMMY)
             assignmentAsmGen.translateNormalAssignment(assignValue, address.definingISub())   // calculate value into A
         }

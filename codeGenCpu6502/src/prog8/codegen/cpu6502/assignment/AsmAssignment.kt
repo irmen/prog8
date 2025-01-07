@@ -10,7 +10,8 @@ internal enum class TargetStorageKind {
     VARIABLE,
     ARRAY,
     MEMORY,
-    REGISTER
+    REGISTER,
+    VOID       // assign nothing - used in multi-value assigns for void placeholders
 }
 
 internal enum class SourceStorageKind {
@@ -49,6 +50,15 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     companion object {
+        fun fromAstAssignmentMulti(targets: List<PtAssignTarget>, definingSub: IPtSubroutine?, asmgen: AsmGen6502Internal): List<AsmAssignTarget> {
+            return targets.map {
+                if(it.void)
+                    AsmAssignTarget(TargetStorageKind.VOID, asmgen, DataType.forDt(BaseDataType.UNDEFINED), null, it.position)
+                else
+                    fromAstAssignment(it, definingSub, asmgen)
+            }
+        }
+
         fun fromAstAssignment(target: PtAssignTarget, definingSub: IPtSubroutine?, asmgen: AsmGen6502Internal): AsmAssignTarget {
             with(target) {
                 when {
@@ -130,9 +140,8 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             TargetStorageKind.MEMORY -> {
                 left isSameAs memory!!
             }
-            TargetStorageKind.REGISTER -> {
-                false
-            }
+            TargetStorageKind.REGISTER -> false
+            TargetStorageKind.VOID -> false
         }
 }
 
@@ -229,27 +238,32 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
 
 
 internal sealed class AsmAssignmentBase(val source: AsmAssignSource,
-                                        val target: AsmAssignTarget,
+                                        val targets: List<AsmAssignTarget>,
                                         val memsizer: IMemSizer,
                                         val position: Position) {
     init {
-        if(target.register !in arrayOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
-            require(!source.datatype.isUndefined) { "must not be placeholder/undefined datatype at $position" }
-        if(!source.datatype.isArray && !target.datatype.isArray)
-            require(memsizer.memorySize(source.datatype, null) <= memsizer.memorySize(target.datatype, null)) {
-                "source dt size must be less or equal to target dt size at $position srcdt=${source.datatype} targetdt=${target.datatype}"
-            }
+        targets.forEach { target ->
+            if (target.register !in arrayOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
+                require(!source.datatype.isUndefined) { "must not be placeholder/undefined datatype at $position" }
+            if (!source.datatype.isArray && !target.datatype.isArray)
+                require(memsizer.memorySize(source.datatype, null) <= memsizer.memorySize(target.datatype, null)) {
+                    "source dt size must be less or equal to target dt size at $position srcdt=${source.datatype} targetdt=${target.datatype}"
+                }
+        }
     }
+
+    val target: AsmAssignTarget
+        get() = targets.single()
 }
 
 internal class AsmAssignment(source: AsmAssignSource,
-                             target: AsmAssignTarget,
+                             targets: List<AsmAssignTarget>,
                              memsizer: IMemSizer,
-                             position: Position): AsmAssignmentBase(source, target, memsizer, position)
+                             position: Position): AsmAssignmentBase(source, targets, memsizer, position)
 
 internal class AsmAugmentedAssignment(source: AsmAssignSource,
                                       val operator: String,
                                       target: AsmAssignTarget,
                                       memsizer: IMemSizer,
-                                      position: Position): AsmAssignmentBase(source, target, memsizer, position)
+                                      position: Position): AsmAssignmentBase(source, listOf(target), memsizer, position)
 

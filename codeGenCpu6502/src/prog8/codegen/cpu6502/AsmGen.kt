@@ -731,7 +731,7 @@ class AsmGen6502Internal (
                 translateNormalAssignment(
                     AsmAssignment(
                         AsmAssignSource(SourceStorageKind.REGISTER, program, this, target.datatype, register=RegisterOrPair.AY),
-                        target, program.memsizer, value.position
+                            listOf(target), program.memsizer, value.position
                     ), value.definingISub()
                 )
             }

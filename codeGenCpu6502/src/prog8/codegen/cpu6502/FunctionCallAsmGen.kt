@@ -333,7 +333,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 } else {
                     AsmAssignSource.fromAstSource(value, program, asmgen).adjustSignedUnsigned(target)
                 }
-                asmgen.translateNormalAssignment(AsmAssignment(src, target, program.memsizer, target.position), scope)
+                asmgen.translateNormalAssignment(AsmAssignment(src, listOf(target), program.memsizer, target.position), scope)
             }
             return RegisterOrStatusflag(register, null)
         }

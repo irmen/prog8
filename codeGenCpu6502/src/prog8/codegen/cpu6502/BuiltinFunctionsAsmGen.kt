@@ -380,7 +380,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         addressOf.parent = fcall
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.forDt(BaseDataType.UWORD), expression = addressOf)
         val target = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, null, asmgen)
-        val assign = AsmAssignment(src, target, program.memsizer, fcall.position)
+        val assign = AsmAssignment(src, listOf(target), program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign, fcall.definingISub())
     }
 
@@ -1334,7 +1334,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         }
                     }
                     val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(conv.dt), null, value.position, variableAsmName = varname)
-                    val assign = AsmAssignment(src, tgt, program.memsizer, value.position)
+                    val assign = AsmAssignment(src, listOf(tgt), program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign, scope)
                 }
                 conv.reg != null -> {
@@ -1352,7 +1352,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         }
                     }
                     val tgt = AsmAssignTarget.fromRegisters(conv.reg!!, false, value.position, null, asmgen)
-                    val assign = AsmAssignment(src, tgt, program.memsizer, value.position)
+                    val assign = AsmAssignment(src, listOf(tgt), program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign, scope)
                 }
                 else -> throw AssemblyError("callconv")

@@ -24,7 +24,7 @@ internal class AssignmentAsmGen(
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
         val pos = if(assignment.position !== Position.DUMMY) assignment.position else if(assignment.target.position !== Position.DUMMY) assignment.target.position else assignment.value.position
-        val assign = AsmAssignment(source, target, program.memsizer, pos)
+        val assign = AsmAssignment(source, listOf(target), program.memsizer, pos)
         translateNormalAssignment(assign, assignment.definingISub())
     }
 
@@ -39,8 +39,6 @@ internal class AssignmentAsmGen(
     fun translateMultiAssign(assignment: PtAssignment) {
         val values = assignment.value as? PtFunctionCall
             ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
-
-        // TODO use assignExpression() for all of this ??
 
         val extsub = asmgen.symbolTable.lookup(values.name) as? StExtSub
         if(extsub!=null) {
@@ -66,7 +64,11 @@ internal class AssignmentAsmGen(
         } else {
             val sub = asmgen.symbolTable.lookup(values.name) as? StSub
             if(sub!=null) {
-                TODO("multi-value returns ; asignment")
+                val scope = assignment.definingISub()
+                val source = AsmAssignSource.fromAstSource(assignment.children.last() as PtExpression, program, asmgen)
+                val targets = AsmAssignTarget.fromAstAssignmentMulti(assignment.children.dropLast(1).map { it as PtAssignTarget }, scope, asmgen)
+                val asmassign = AsmAssignment(source, targets, program.memsizer, assignment.position)
+                assignExpression(asmassign, scope)
             }
             else throw AssemblyError("expected extsub or normal sub")
         }
@@ -600,7 +602,7 @@ internal class AssignmentAsmGen(
                             translateNormalAssignment(
                                 AsmAssignment(
                                     AsmAssignSource.fromAstSource(value.value, program, asmgen),
-                                    assign.target, program.memsizer, assign.position
+                                    assign.targets, program.memsizer, assign.position
                                 ), scope
                             )
                             when (value.operator) {
@@ -620,7 +622,7 @@ internal class AssignmentAsmGen(
                             "-", "~" -> {
                                 val assignTempvar = AsmAssignment(
                                     AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
-                                    AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar),
+                                    listOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar)),
                                     program.memsizer, assign.position)
                                 if(value.operator=="-")
                                     inplaceNegate(assignTempvar, true, scope)
@@ -630,7 +632,7 @@ internal class AssignmentAsmGen(
                             "not" -> {
                                 val assignTempvar = AsmAssignment(
                                     AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
-                                    AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar),
+                                    listOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar)),
                                     program.memsizer, assign.position)
                                 inplaceInvert(assignTempvar, scope)
                             }
@@ -670,8 +672,11 @@ internal class AssignmentAsmGen(
         } else {
             val register = if(assign.source.datatype.isByteOrBool) RegisterOrPair.A else RegisterOrPair.AY
             val assignToRegister = AsmAssignment(assign.source,
-                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, assign.target.datatype, assign.target.scope, assign.target.position,
-                    register = register, origAstTarget = assign.target.origAstTarget), program.memsizer, assign.position)
+                listOf(
+                    AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, assign.target.datatype, assign.target.scope, assign.target.position,
+                        register = register, origAstTarget = assign.target.origAstTarget)
+                ),
+                program.memsizer, assign.position)
             asmgen.translateNormalAssignment(assignToRegister, scope)
             val signed = assign.target.datatype.isSigned
             val targetDt = assign.target.datatype
@@ -911,6 +916,7 @@ internal class AssignmentAsmGen(
                     assignTrue.add(PtNumber.fromBoolean(true, assign.position))
                 }
                 TargetStorageKind.REGISTER -> { /* handled earlier */ return true }
+                TargetStorageKind.VOID -> { /* do nothing */ return true }
             }
         }
         ifPart.add(assignTrue)
@@ -2094,7 +2100,7 @@ $endLabel""")
                         // optimization to assign boolean expression to integer target (just assign the 0 or 1 directly)
                         val assignDirect = AsmAssignment(
                             AsmAssignSource.fromAstSource(value, program, asmgen),
-                            target,
+                            listOf(target),
                             program.memsizer,
                             target.position
                         )
@@ -2271,7 +2277,7 @@ $endLabel""")
         lsb.parent = value.parent
         lsb.add(value)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.forDt(BaseDataType.UBYTE), expression = lsb)
-        val assign = AsmAssignment(src, target, program.memsizer, value.position)
+        val assign = AsmAssignment(src, listOf(target), program.memsizer, value.position)
         translateNormalAssignment(assign, value.definingISub())
     }
 
@@ -2676,6 +2682,7 @@ $endLabel""")
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -2818,6 +2825,7 @@ $endLabel""")
                     }
                 }
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -2851,6 +2859,7 @@ $endLabel""")
                 else if (target.register!! != RegisterOrPair.FAC1)
                     throw AssemblyError("can't assign Fac1 float to another register")
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -2887,6 +2896,7 @@ $endLabel""")
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -2923,6 +2933,7 @@ $endLabel""")
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -2966,6 +2977,7 @@ $endLabel""")
                     else -> throw AssemblyError("weird register")
                 }
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -3345,6 +3357,7 @@ $endLabel""")
                     }
                 }
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -3568,6 +3581,7 @@ $endLabel""")
                 }
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -3608,6 +3622,7 @@ $endLabel""")
                         else -> throw AssemblyError("invalid register for word value")
                     }
                 }
+                TargetStorageKind.VOID -> { /* do nothing */ }
             }
 
             return
@@ -3663,6 +3678,7 @@ $endLabel""")
                     else -> throw AssemblyError("invalid register for word value")
                 }
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -3704,6 +3720,7 @@ $endLabel""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
+                TargetStorageKind.VOID -> { /* do nothing */ }
             }
 
             return
@@ -3748,6 +3765,7 @@ $endLabel""")
                 }
                 else -> throw AssemblyError("weird register")
             }
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -3790,6 +3808,7 @@ $endLabel""")
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
+                TargetStorageKind.VOID -> { /* do nothing */ }
             }
         } else {
             // non-zero value
@@ -3827,6 +3846,7 @@ $endLabel""")
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
+                TargetStorageKind.VOID -> { /* do nothing */ }
             }
         }
     }
@@ -3864,6 +3884,7 @@ $endLabel""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
+                TargetStorageKind.VOID -> { /* do nothing */ }
             }
         } else if (identifier != null) {
             when(target.kind) {
@@ -3898,6 +3919,7 @@ $endLabel""")
                         else -> throw AssemblyError("weird register")
                     }
                 }
+                TargetStorageKind.VOID -> { /* do nothing */ }
             }
         }
     }
@@ -4004,7 +4026,7 @@ $endLabel""")
     internal fun assignExpressionToRegister(expr: PtExpression, register: RegisterOrPair, signed: Boolean) {
         val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
         val tgt = AsmAssignTarget.fromRegisters(register, signed, expr.position, null, asmgen)
-        val assign = AsmAssignment(src, tgt, program.memsizer, expr.position)
+        val assign = AsmAssignment(src, listOf(tgt), program.memsizer, expr.position)
         translateNormalAssignment(assign, expr.definingISub())
     }
 
@@ -4014,7 +4036,7 @@ $endLabel""")
         } else {
             val src = AsmAssignSource.fromAstSource(expr, program, asmgen)
             val tgt = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, dt, expr.definingISub(), expr.position, variableAsmName = asmVarName)
-            val assign = AsmAssignment(src, tgt, program.memsizer, expr.position)
+            val assign = AsmAssignment(src, listOf(tgt), program.memsizer, expr.position)
             translateNormalAssignment(assign, expr.definingISub())
         }
     }
@@ -4022,7 +4044,7 @@ $endLabel""")
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean, scope: IPtSubroutine?, pos: Position) {
         val tgt = AsmAssignTarget.fromRegisters(register, signed, pos, null, asmgen)
         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, tgt, program.memsizer, Position.DUMMY)
+        val assign = AsmAssignment(src, listOf(tgt), program.memsizer, Position.DUMMY)
         translateNormalAssignment(assign, scope)
     }
 
@@ -4082,6 +4104,7 @@ $endLabel""")
                         val invertOperator = if(assign.target.datatype.isBool) "not" else "~"
                         assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign(invertOperator, assign), scope)
                     }
+                    TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
             targetDt.isUnsignedWord -> {
@@ -4153,6 +4176,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
+                    TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
             datatype.isSignedWord -> {
@@ -4211,6 +4235,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
+                    TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
             datatype.isFloat -> {
@@ -4242,6 +4267,6 @@ $endLabel""")
         prefix.add(assign.source.array)
         prefix.parent = assign.target.origAstTarget ?: program
         val prefixSrc = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, assign.source.datatype, expression=prefix)
-        return AsmAssignment(prefixSrc, assign.target, assign.memsizer, assign.position)
+        return AsmAssignment(prefixSrc, assign.targets, assign.memsizer, assign.position)
     }
 }
