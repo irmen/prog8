@@ -1,7 +1,8 @@
 TODO
 ====
 
-- implement the TODO("multi-value   occurences in both codegens, to handle multi-value subroutine return values
+- implement IR support for the TODO("multi-value   occurences in both codegens, to handle multi-value subroutine return values. Fix the unittest too.
+- document new multi-value return feature  (only bool/byte/word types supported, call convention)
 
 - rename "intermediate AST" into "simplified AST" (docs + classes in code)
 

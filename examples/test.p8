@@ -1,20 +1,57 @@
+%import textio
 %option no_sysinit
 %zeropage basicsafe
 
+
 main {
     sub start() {
-        cx16.r0 = single()
+        uword a
+        ubyte b
+        bool c
+        a=9999
+        b=255
+        c=false
+        a, b, c = multi()
+        txt.print_uw(a)
+        txt.spc()
+        txt.print_uw(b)
+        txt.spc()
+        txt.print_bool(c)
+        txt.nl()
+        a=9999
+        b=255
+        c=false
+        a, void, c = multi()
+        txt.print_uw(a)
+        txt.spc()
+        txt.print_uw(b)
+        txt.spc()
+        txt.print_bool(c)
+        txt.nl()
+        a=9999
+        b=255
+        c=false
+        void, b, c = multi()
+        txt.print_uw(a)
+        txt.spc()
+        txt.print_uw(b)
+        txt.spc()
+        txt.print_bool(c)
+        txt.nl()
+        a=9999
+        b=255
+        c=false
         void multi()
-        cx16.r0,void = multi()
-        cx16.r0,cx16.r1 = multi()
+        txt.print_uw(a)
+        txt.spc()
+        txt.print_uw(b)
+        txt.spc()
+        txt.print_bool(c)
+        txt.nl()
+
     }
 
-    sub single() -> uword {
-        return 42+cx16.r0L
-    }
-
-    sub multi() -> uword, uword {
-        defer cx16.r0++
-        return 42+cx16.r0L, 99
+    sub multi() -> uword, ubyte, bool {
+        return 12345, 66, true
     }
 }

@@ -459,194 +459,9 @@ internal class AssignmentAsmGen(
             is PtArrayIndexer -> throw AssemblyError("source kind should have been array")
             is PtMemoryByte -> throw AssemblyError("source kind should have been memory")
             is PtTypeCast -> assignTypeCastedValue(assign.target, value.type, value.value, value)
-            is PtFunctionCall -> {
-                val symbol = asmgen.symbolTable.lookup(value.name)
-                val sub = symbol!!.astNode as IPtSubroutine
-                asmgen.translateFunctionCall(value)
-                if(sub is PtSub && sub.returns.size>1) {
-                    TODO("multi-value returns ;  handle functioncall result")
-                } else {
-                    val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
-                    when {
-                        returnValue.second.isString -> {
-                            val targetDt = assign.target.datatype
-                            when {
-                                targetDt.isUnsignedWord -> {
-                                    // assign the address of the string result value
-                                    assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                }
-                                targetDt.isString || targetDt.isUnsignedByteArray || targetDt.isByteArray -> {
-                                    throw AssemblyError("stringvalue assignment should have been replaced by a call to strcpy")
-                                }
-                                else -> throw AssemblyError("weird target dt")
-                            }
-                        }
-                        returnValue.second.isFloat -> {
-                            // float result from function sits in FAC1
-                            assignFAC1float(assign.target)
-                        }
-                        else -> {
-                            // do NOT restore X register before assigning the result values first
-                            when (returnValue.first.registerOrPair) {
-                                RegisterOrPair.A -> assignRegisterByte(assign.target, CpuRegister.A, returnValue.second.isSigned, true)
-                                RegisterOrPair.X -> assignRegisterByte(assign.target, CpuRegister.X, returnValue.second.isSigned, true)
-                                RegisterOrPair.Y -> assignRegisterByte(assign.target, CpuRegister.Y, returnValue.second.isSigned, true)
-                                RegisterOrPair.AX -> assignVirtualRegister(assign.target, RegisterOrPair.AX)
-                                RegisterOrPair.AY -> assignVirtualRegister(assign.target, RegisterOrPair.AY)
-                                RegisterOrPair.XY -> assignVirtualRegister(assign.target, RegisterOrPair.XY)
-                                RegisterOrPair.R0 -> assignVirtualRegister(assign.target, RegisterOrPair.R0)
-                                RegisterOrPair.R1 -> assignVirtualRegister(assign.target, RegisterOrPair.R1)
-                                RegisterOrPair.R2 -> assignVirtualRegister(assign.target, RegisterOrPair.R2)
-                                RegisterOrPair.R3 -> assignVirtualRegister(assign.target, RegisterOrPair.R3)
-                                RegisterOrPair.R4 -> assignVirtualRegister(assign.target, RegisterOrPair.R4)
-                                RegisterOrPair.R5 -> assignVirtualRegister(assign.target, RegisterOrPair.R5)
-                                RegisterOrPair.R6 -> assignVirtualRegister(assign.target, RegisterOrPair.R6)
-                                RegisterOrPair.R7 -> assignVirtualRegister(assign.target, RegisterOrPair.R7)
-                                RegisterOrPair.R8 -> assignVirtualRegister(assign.target, RegisterOrPair.R8)
-                                RegisterOrPair.R9 -> assignVirtualRegister(assign.target, RegisterOrPair.R9)
-                                RegisterOrPair.R10 -> assignVirtualRegister(assign.target, RegisterOrPair.R10)
-                                RegisterOrPair.R11 -> assignVirtualRegister(assign.target, RegisterOrPair.R11)
-                                RegisterOrPair.R12 -> assignVirtualRegister(assign.target, RegisterOrPair.R12)
-                                RegisterOrPair.R13 -> assignVirtualRegister(assign.target, RegisterOrPair.R13)
-                                RegisterOrPair.R14 -> assignVirtualRegister(assign.target, RegisterOrPair.R14)
-                                RegisterOrPair.R15 -> assignVirtualRegister(assign.target, RegisterOrPair.R15)
-                                else -> {
-                                    val sflag = returnValue.first.statusflag
-                                    if(sflag!=null)
-                                        assignStatusFlagByte(assign.target, sflag)
-                                    else
-                                        throw AssemblyError("should be just one register byte result value")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            is PtBuiltinFunctionCall -> {
-                val returnDt = asmgen.translateBuiltinFunctionCallExpression(value, assign.target.register)
-                if(assign.target.register==null) {
-                    // still need to assign the result to the target variable/etc.
-                    when {
-                        returnDt?.isByteOrBool==true -> assignRegisterByte(assign.target, CpuRegister.A, returnDt.isSigned, false)            // function's byte result is in A
-                        returnDt?.isWord==true -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)    // function's word result is in AY
-                        returnDt==BaseDataType.STR -> {
-                            val targetDt = assign.target.datatype
-                            when {
-                                targetDt.isString -> {
-                                    asmgen.out("""
-                                        tax
-                                        lda  #<${assign.target.asmVarname}
-                                        sta  P8ZP_SCRATCH_W1
-                                        lda  #>${assign.target.asmVarname}
-                                        sta  P8ZP_SCRATCH_W1+1
-                                        txa
-                                        jsr  prog8_lib.strcpy""")
-                                }
-                                targetDt.isUnsignedWord -> assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                                else -> throw AssemblyError("str return value type mismatch with target")
-                            }
-                        }
-                        returnDt==BaseDataType.FLOAT -> {
-                            // float result from function sits in FAC1
-                            assignFAC1float(assign.target)
-                        }
-                        else -> throw AssemblyError("weird result type")
-                    }
-                }
-            }
-            is PtPrefix -> {
-                if(assign.target.array==null) {
-                    if(assign.source.datatype isAssignableTo assign.target.datatype || (assign.source.datatype.isBool && assign.target.datatype.isByte)) {
-                        if(assign.source.datatype.isIntegerOrBool) {
-                            val signed = assign.source.datatype.isSigned
-                            if(assign.source.datatype.isByteOrBool) {
-                                assignExpressionToRegister(value.value, RegisterOrPair.A, signed)
-                                when(value.operator) {
-                                    "+" -> {}
-                                    "-" -> {
-                                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
-                                            asmgen.out("  eor  #255 |  ina")
-                                        else
-                                            asmgen.out("  eor  #255 |  clc |  adc  #1")
-                                    }
-                                    "~" -> asmgen.out("  eor  #255")
-                                    "not" -> asmgen.out("  eor  #1")
-                                    else -> throw AssemblyError("invalid prefix operator")
-                                }
-                                assignRegisterByte(assign.target, CpuRegister.A, signed, false)
-                            } else {
-                                assignExpressionToRegister(value.value, RegisterOrPair.AY, signed)
-                                when(value.operator) {
-                                    "+" -> {}
-                                    "-" -> {
-                                        asmgen.out("""
-                                            sec
-                                            eor  #255
-                                            adc  #0
-                                            tax
-                                            tya
-                                            eor  #255
-                                            adc  #0
-                                            tay
-                                            txa""")
-                                    }
-                                    "~" -> asmgen.out("  tax |  tya |  eor  #255 |  tay |  txa |  eor  #255")
-                                    "not" -> throw AssemblyError("not shouldn't exist for an integer")
-                                    else -> throw AssemblyError("invalid prefix operator")
-                                }
-                                assignRegisterpairWord(assign.target, RegisterOrPair.AY)
-                            }
-                        } else {
-                            // First assign the value to the target then apply the operator in place on the target.
-                            // This saves a temporary variable
-                            translateNormalAssignment(
-                                AsmAssignment(
-                                    AsmAssignSource.fromAstSource(value.value, program, asmgen),
-                                    assign.targets, program.memsizer, assign.position
-                                ), scope
-                            )
-                            when (value.operator) {
-                                "+" -> {}
-                                "-" -> inplaceNegate(assign, true, scope)
-                                "~" -> inplaceInvert(assign, scope)
-                                "not" -> inplaceInvert(assign, scope)
-                                else -> throw AssemblyError("invalid prefix operator")
-                            }
-                        }
-                    } else {
-                        // use a temporary variable
-                        val tempvar = if(value.type.isByteOrBool) "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_W1"
-                        assignExpressionToVariable(value.value, tempvar, value.type)
-                        when (value.operator) {
-                            "+" -> {}
-                            "-", "~" -> {
-                                val assignTempvar = AsmAssignment(
-                                    AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
-                                    listOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar)),
-                                    program.memsizer, assign.position)
-                                if(value.operator=="-")
-                                    inplaceNegate(assignTempvar, true, scope)
-                                else
-                                    inplaceInvert(assignTempvar, scope)
-                            }
-                            "not" -> {
-                                val assignTempvar = AsmAssignment(
-                                    AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
-                                    listOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar)),
-                                    program.memsizer, assign.position)
-                                inplaceInvert(assignTempvar, scope)
-                            }
-                            else -> throw AssemblyError("invalid prefix operator")
-                        }
-                        if(value.type.isByteOrBool)
-                            assignVariableByte(assign.target, tempvar)
-                        else
-                            assignVariableWord(assign.target, tempvar, value.type)
-                    }
-                } else {
-                    assignPrefixedExpressionToArrayElt(assign, scope)
-                }
-            }
+            is PtFunctionCall -> assignFunctionCall(assign, value)
+            is PtBuiltinFunctionCall -> assignBuiltinFunctionCall(assign.target, value)
+            is PtPrefix -> assignPrefixExpr(assign, value, scope)
             is PtContainmentCheck -> {
                 containmentCheckIntoA(value)
                 assignRegisterByte(assign.target, CpuRegister.A, false, true)
@@ -660,6 +475,203 @@ internal class AssignmentAsmGen(
             }
             is PtIfExpression -> asmgen.assignIfExpression(assign.target, value)
             else -> throw AssemblyError("weird assignment value type $value")
+        }
+    }
+
+    private fun assignPrefixExpr(assign: AsmAssignment, value: PtPrefix, scope: IPtSubroutine?) {
+        if(assign.target.array==null) {
+            if(assign.source.datatype isAssignableTo assign.target.datatype || (assign.source.datatype.isBool && assign.target.datatype.isByte)) {
+                if(assign.source.datatype.isIntegerOrBool) {
+                    val signed = assign.source.datatype.isSigned
+                    if(assign.source.datatype.isByteOrBool) {
+                        assignExpressionToRegister(value.value, RegisterOrPair.A, signed)
+                        when(value.operator) {
+                            "+" -> {}
+                            "-" -> {
+                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                    asmgen.out("  eor  #255 |  ina")
+                                else
+                                    asmgen.out("  eor  #255 |  clc |  adc  #1")
+                            }
+                            "~" -> asmgen.out("  eor  #255")
+                            "not" -> asmgen.out("  eor  #1")
+                            else -> throw AssemblyError("invalid prefix operator")
+                        }
+                        assignRegisterByte(assign.target, CpuRegister.A, signed, false)
+                    } else {
+                        assignExpressionToRegister(value.value, RegisterOrPair.AY, signed)
+                        when(value.operator) {
+                            "+" -> {}
+                            "-" -> {
+                                asmgen.out("""
+                                            sec
+                                            eor  #255
+                                            adc  #0
+                                            tax
+                                            tya
+                                            eor  #255
+                                            adc  #0
+                                            tay
+                                            txa""")
+                            }
+                            "~" -> asmgen.out("  tax |  tya |  eor  #255 |  tay |  txa |  eor  #255")
+                            "not" -> throw AssemblyError("not shouldn't exist for an integer")
+                            else -> throw AssemblyError("invalid prefix operator")
+                        }
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AY)
+                    }
+                } else {
+                    // First assign the value to the target then apply the operator in place on the target.
+                    // This saves a temporary variable
+                    translateNormalAssignment(
+                        AsmAssignment(
+                            AsmAssignSource.fromAstSource(value.value, program, asmgen),
+                            assign.targets, program.memsizer, assign.position
+                        ), scope
+                    )
+                    when (value.operator) {
+                        "+" -> {}
+                        "-" -> inplaceNegate(assign, true, scope)
+                        "~" -> inplaceInvert(assign, scope)
+                        "not" -> inplaceInvert(assign, scope)
+                        else -> throw AssemblyError("invalid prefix operator")
+                    }
+                }
+            } else {
+                // use a temporary variable
+                val tempvar = if(value.type.isByteOrBool) "P8ZP_SCRATCH_B1" else "P8ZP_SCRATCH_W1"
+                assignExpressionToVariable(value.value, tempvar, value.type)
+                when (value.operator) {
+                    "+" -> {}
+                    "-", "~" -> {
+                        val assignTempvar = AsmAssignment(
+                            AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
+                            listOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar)),
+                            program.memsizer, assign.position)
+                        if(value.operator=="-")
+                            inplaceNegate(assignTempvar, true, scope)
+                        else
+                            inplaceInvert(assignTempvar, scope)
+                    }
+                    "not" -> {
+                        val assignTempvar = AsmAssignment(
+                            AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, value.type, variableAsmName = tempvar),
+                            listOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, value.type, scope, assign.position, variableAsmName = tempvar)),
+                            program.memsizer, assign.position)
+                        inplaceInvert(assignTempvar, scope)
+                    }
+                    else -> throw AssemblyError("invalid prefix operator")
+                }
+                if(value.type.isByteOrBool)
+                    assignVariableByte(assign.target, tempvar)
+                else
+                    assignVariableWord(assign.target, tempvar, value.type)
+            }
+        } else {
+            assignPrefixedExpressionToArrayElt(assign, scope)
+        }
+    }
+
+    private fun assignBuiltinFunctionCall(target: AsmAssignTarget, value: PtBuiltinFunctionCall) {
+        val returnDt = asmgen.translateBuiltinFunctionCallExpression(value, target.register)
+        if(target.register==null) {
+            // still need to assign the result to the target variable/etc.
+            when {
+                returnDt?.isByteOrBool==true -> assignRegisterByte(target, CpuRegister.A, returnDt.isSigned, false)            // function's byte result is in A
+                returnDt?.isWord==true -> assignRegisterpairWord(target, RegisterOrPair.AY)    // function's word result is in AY
+                returnDt==BaseDataType.STR -> {
+                    val targetDt = target.datatype
+                    when {
+                        targetDt.isString -> {
+                            asmgen.out("""
+                                        tax
+                                        lda  #<${target.asmVarname}
+                                        sta  P8ZP_SCRATCH_W1
+                                        lda  #>${target.asmVarname}
+                                        sta  P8ZP_SCRATCH_W1+1
+                                        txa
+                                        jsr  prog8_lib.strcpy""")
+                        }
+                        targetDt.isUnsignedWord -> assignRegisterpairWord(target, RegisterOrPair.AY)
+                        else -> throw AssemblyError("str return value type mismatch with target")
+                    }
+                }
+                returnDt==BaseDataType.FLOAT -> {
+                    // float result from function sits in FAC1
+                    assignFAC1float(target)
+                }
+                else -> throw AssemblyError("weird result type")
+            }
+        }
+    }
+
+    private fun assignFunctionCall(assign: AsmAssignment, value: PtFunctionCall) {
+        val symbol = asmgen.symbolTable.lookup(value.name)
+        val sub = symbol!!.astNode as IPtSubroutine
+        asmgen.translateFunctionCall(value)
+        if(sub is PtSub && sub.returns.size>1) {
+            // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+            val registersReverseOrder = Cx16VirtualRegisters.reversed()
+            assign.targets.zip(registersReverseOrder).forEach { (target, register) ->
+                if(target.kind!=TargetStorageKind.VOID)
+                    assignVirtualRegister(target, register)
+            }
+        } else {
+            val target = assign.target
+            val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
+            when {
+                returnValue.second.isString -> {
+                    val targetDt = target.datatype
+                    when {
+                        targetDt.isUnsignedWord -> {
+                            // assign the address of the string result value
+                            assignRegisterpairWord(target, RegisterOrPair.AY)
+                        }
+                        targetDt.isString || targetDt.isUnsignedByteArray || targetDt.isByteArray -> {
+                            throw AssemblyError("stringvalue assignment should have been replaced by a call to strcpy")
+                        }
+                        else -> throw AssemblyError("weird target dt")
+                    }
+                }
+                returnValue.second.isFloat -> {
+                    // float result from function sits in FAC1
+                    assignFAC1float(target)
+                }
+                else -> {
+                    // do NOT restore X register before assigning the result values first
+                    when (returnValue.first.registerOrPair) {
+                        RegisterOrPair.A -> assignRegisterByte(target, CpuRegister.A, returnValue.second.isSigned, true)
+                        RegisterOrPair.X -> assignRegisterByte(target, CpuRegister.X, returnValue.second.isSigned, true)
+                        RegisterOrPair.Y -> assignRegisterByte(target, CpuRegister.Y, returnValue.second.isSigned, true)
+                        RegisterOrPair.AX -> assignVirtualRegister(target, RegisterOrPair.AX)
+                        RegisterOrPair.AY -> assignVirtualRegister(target, RegisterOrPair.AY)
+                        RegisterOrPair.XY -> assignVirtualRegister(target, RegisterOrPair.XY)
+                        RegisterOrPair.R0 -> assignVirtualRegister(target, RegisterOrPair.R0)
+                        RegisterOrPair.R1 -> assignVirtualRegister(target, RegisterOrPair.R1)
+                        RegisterOrPair.R2 -> assignVirtualRegister(target, RegisterOrPair.R2)
+                        RegisterOrPair.R3 -> assignVirtualRegister(target, RegisterOrPair.R3)
+                        RegisterOrPair.R4 -> assignVirtualRegister(target, RegisterOrPair.R4)
+                        RegisterOrPair.R5 -> assignVirtualRegister(target, RegisterOrPair.R5)
+                        RegisterOrPair.R6 -> assignVirtualRegister(target, RegisterOrPair.R6)
+                        RegisterOrPair.R7 -> assignVirtualRegister(target, RegisterOrPair.R7)
+                        RegisterOrPair.R8 -> assignVirtualRegister(target, RegisterOrPair.R8)
+                        RegisterOrPair.R9 -> assignVirtualRegister(target, RegisterOrPair.R9)
+                        RegisterOrPair.R10 -> assignVirtualRegister(target, RegisterOrPair.R10)
+                        RegisterOrPair.R11 -> assignVirtualRegister(target, RegisterOrPair.R11)
+                        RegisterOrPair.R12 -> assignVirtualRegister(target, RegisterOrPair.R12)
+                        RegisterOrPair.R13 -> assignVirtualRegister(target, RegisterOrPair.R13)
+                        RegisterOrPair.R14 -> assignVirtualRegister(target, RegisterOrPair.R14)
+                        RegisterOrPair.R15 -> assignVirtualRegister(target, RegisterOrPair.R15)
+                        else -> {
+                            val sflag = returnValue.first.statusflag
+                            if(sflag!=null)
+                                assignStatusFlagByte(target, sflag)
+                            else
+                                throw AssemblyError("should be just one register byte result value")
+                        }
+                    }
+                }
+            }
         }
     }
 

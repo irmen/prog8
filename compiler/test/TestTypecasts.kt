@@ -885,8 +885,8 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "17:16: type ubyte of return value doesn't match subroutine's return type byte"
-        errors.errors[1] shouldContain "20:16: type uword of return value doesn't match subroutine's return type word"
+        errors.errors[0] shouldContain "17:16: return value's type ubyte doesn't match subroutine's return type byte"
+        errors.errors[1] shouldContain "20:16: return value's type uword doesn't match subroutine's return type word"
     }
 
     test("if-expression adjusts different value types to common type") {

@@ -1067,7 +1067,11 @@ $repeatLabel""")
             }
         }
         else if(ret.children.size>1) {
-            TODO("multi-value return ; choose call convention: everything on stack?")
+            // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+            val registersReverseOrder = Cx16VirtualRegisters.reversed()
+            ret.children.zip(registersReverseOrder).forEach { (value, register) ->
+                assignExpressionToRegister(value as PtExpression, register)
+            }
         }
         out("  rts")
     }

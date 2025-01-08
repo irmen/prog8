@@ -243,9 +243,7 @@ internal sealed class AsmAssignmentBase(val source: AsmAssignSource,
                                         val position: Position) {
     init {
         targets.forEach { target ->
-            if (target.register !in arrayOf(RegisterOrPair.XY, RegisterOrPair.AX, RegisterOrPair.AY))
-                require(!source.datatype.isUndefined) { "must not be placeholder/undefined datatype at $position" }
-            if (!source.datatype.isArray && !target.datatype.isArray)
+            if (!source.datatype.isArray && !source.datatype.isUndefined && !target.datatype.isArray && !target.datatype.isUndefined)
                 require(memsizer.memorySize(source.datatype, null) <= memsizer.memorySize(target.datatype, null)) {
                     "source dt size must be less or equal to target dt size at $position srcdt=${source.datatype} targetdt=${target.datatype}"
                 }

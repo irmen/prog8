@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
@@ -288,5 +289,26 @@ class TestSubroutines: FunSpec({
         stmts.last() shouldBe instanceOf<Subroutine>()
         stmts.dropLast(1).last() shouldBe instanceOf<Return>()  // this prevents the fallthrough
         stmts.dropLast(2).last() shouldBe instanceOf<IFunctionCall>()
+    }
+
+    test("multi-value returns from regular (non-asmsub) subroutines") {
+        val src= """
+main {
+    sub start() {
+        uword a
+        ubyte b
+        bool c
+        a, b, c = multi()
+        a, void, c = multi()
+        void, b, c = multi()
+        void multi()
+    }
+
+    sub multi() -> uword, ubyte, bool {
+        return 12345, 66, true
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = true).shouldNotBeNull()
+        // compileText(VMTarget(), false, src, writeAssembly = true).shouldNotBeNull()  TODO("multi-value return ; unittest")
     }
 })

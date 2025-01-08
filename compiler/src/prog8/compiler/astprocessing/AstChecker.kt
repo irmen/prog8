@@ -136,7 +136,7 @@ internal class AstChecker(private val program: Program,
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
                     } else {
-                        errors.err("type $valueDt of return value doesn't match subroutine's return type ${expectedDt}", actual.position)
+                        errors.err("return value's type $valueDt doesn't match subroutine's return type ${expectedDt}", actual.position)
                     }
                 }
             }
@@ -1557,6 +1557,18 @@ internal class AstChecker(private val program: Program,
                         }
                     }
                 }
+            }
+
+            if(target.returntypes.size>1) {
+                if (DataType.forDt(BaseDataType.FLOAT) in target.returntypes) {
+                    errors.err("floats cannot be used as part of a multi-value result", target.position)
+                }
+            }
+            if(target.returntypes.size>16) {
+                errors.err("cannot have more than 16 return values", target.position)
+            }
+            if(target.returntypes.size>3) {
+                errors.info("a large number of return values incurs a substantial value copying overhead", target.position)
             }
         }
 
