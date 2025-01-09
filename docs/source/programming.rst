@@ -778,8 +778,8 @@ for normal assignments (``aa = aa + xx``).
 It is possible to "chain" assignments: ``x = y = z = 42``, this is just a shorthand
 for the three individual assignments with the same value 42.
 
-Only for certain subroutines that return multiple values it is possible to write a "multi assign" statement
-with comma separated assignment targets, that assigns those multiple values to different targets in one statement.
+For subroutines that return multiple values, you should write a "multi assign" statement
+with comma separated assignment targets, to assigns those multiple values.
 Details can be found here: :ref:`multiassign`.
 
 
@@ -1130,10 +1130,11 @@ Otherwise the compiler will warn you about discarding the result of the call.
 
 Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
-Normal subroutines can only return zero or one return values.
-However, the special ``asmsub`` routines (implemented in assembly code) or ``extsub`` routines
-(referencing an external routine in ROM or elsewhere in RAM) can return more than one return value.
-For example a status in the carry bit and a number in A, or a 16-bit value in A/Y registers and some more values in R0 and R1.
+Subroutines can return more than one value.
+For example, ``asmsub`` routines (implemented in assembly code) or ``extsub`` routines
+(referencing an external routine in ROM or elsewhere in RAM) can return multiple values spread
+across different registers, and even the CPU's status register flags for boolean values.
+Normal subroutines can also return multiple values (restricted to booleans, bytes and word values).
 In all of these cases, you have to "multi assign" all return values of the subroutine call to something.
 You simply write the assignment targets as a comma separated list,
 where the element's order corresponds to the order of the return values declared in the subroutine's signature.
@@ -1147,13 +1148,19 @@ So for instance::
 
     asmsub multisub() -> uword @AY, bool @Pc, ubyte @X { ... }
 
-.. sidebar:: Using just one of the values
+.. sidebar:: usage of cx16.r0-cx16.r15
 
-    Sometimes it is easier to just have a single return value in the subroutine's signagure (even though it
-    actually may return multiple values): this avoids having to put ``void`` for all other values.
-    It also allows it to be called in expressions such as if-statements again.
-    Examples of these second 'convenience' definition are library routines such as ``cbm.STOP2`` and ``cbm.GETIN2``,
-    that only return a single value where the "official" versions ``STOP`` and ``GETIN`` always return multiple values.
+    Subroutines with multiple return values use the "virtual registers" to return those.
+    Using those virtual registers during the calculation of the values in the return statement should be avoided.
+    Otherwise you risk overwriting an earlier return value in the sequence.
+
+
+**Using just one of the values:**
+Sometimes it is easier to just have a single return value in a subroutine's signagure (even though it
+actually may return multiple values): this avoids having to put ``void`` for all other values if you aren't really interested in those.
+It also allows it to be called in expressions such as if-statements again.
+Examples of these second 'convenience' definition are library routines such as ``cbm.STOP2`` and ``cbm.GETIN2``,
+that only return a single value where the "official" versions ``STOP`` and ``GETIN`` always return multiple values.
 
 **Skipping values:** Instead of using ``void`` to ignore the result of a subroutine call altogether,
 you can also use it as a placeholder name in a multi-assignment. This skips assignment of the return value in that place.

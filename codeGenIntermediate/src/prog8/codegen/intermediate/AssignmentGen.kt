@@ -17,14 +17,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
             val result = mutableListOf<IRCodeChunkBase>()
             val funcCall = expressionEval.translate(values)
-            require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
-            if (funcCall.multipleResultFpRegs.isNotEmpty())
-                TODO("deal with (multiple?) FP return registers")
             val assignmentTargets = assignment.children.dropLast(1)
             addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
 
             val extsub = codeGen.symbolTable.lookup(values.name) as? StExtSub
             if(extsub!=null) {
+                require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
+                if (funcCall.multipleResultFpRegs.isNotEmpty())
+                    TODO("deal with (multiple?) FP return registers")
                 if (extsub.returns.size == assignmentTargets.size) {
                     // Targets and values match. Assign all the things. Skip 'void' targets.
                     extsub.returns.zip(assignmentTargets).zip(funcCall.multipleResultRegs).forEach {
@@ -41,7 +41,17 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             } else {
                 val normalsub = codeGen.symbolTable.lookup(values.name) as? StSub
                 if (normalsub != null) {
-                    TODO()
+                    // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+                    val registersReverseOrder = Cx16VirtualRegisters.reversed()
+                    normalsub.returns.zip(assignmentTargets).zip(registersReverseOrder).forEach {
+                        val target = it.first.second as PtAssignTarget
+                        if(!target.void) {
+                            val assignSingle = PtAssignment(assignment.position)
+                            assignSingle.add(target)
+                            assignSingle.add(PtIdentifier("cx16.${it.second.toString().lowercase()}", it.first.first, assignment.position))
+                            result += translateRegularAssign(assignSingle)
+                        }
+                    }
                 }
                 else throw AssemblyError("expected extsub or normal sub")
             }

@@ -30,7 +30,7 @@ internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, D
                     return listOf(Pair(register, returntype))
                 }
                 else -> {
-                    // TODO for multi-value results, put the first one in register(s) and only the rest elsewhere (like stack)???
+                    // TODO for multi-value results, put the first one in register(s) and only the rest in the virtual registers?
                     throw AssemblyError("multi-value returns from a normal subroutine are not put into registers, this routine shouldn't have been called in this scenario")
                 }
             }

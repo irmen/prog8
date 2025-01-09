@@ -12,6 +12,7 @@ import prog8.ast.statements.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.C64Target
+import prog8.code.target.VMTarget
 import prog8.compiler.astprocessing.hasRtsInAsm
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -309,6 +310,6 @@ main {
     }
 }"""
         compileText(C64Target(), false, src, writeAssembly = true).shouldNotBeNull()
-        // compileText(VMTarget(), false, src, writeAssembly = true).shouldNotBeNull()  TODO("multi-value return ; unittest")
+        compileText(VMTarget(), false, src, writeAssembly = true).shouldNotBeNull()
     }
 })

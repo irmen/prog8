@@ -1,9 +1,7 @@
 TODO
 ====
 
-- implement IR support for the TODO("multi-value   occurences in both codegens, to handle multi-value subroutine return values. Fix the unittest too.
-- document new multi-value return feature  (only bool/byte/word types supported, call convention)
-
+- change library routines that now return 1 value + say, another in R0,  to just return 2 values now that this is supported for normal subroutines too.
 - rename "intermediate AST" into "simplified AST" (docs + classes in code)
 
 - add paypal donation button as well?
@@ -29,7 +27,6 @@ Future Things and Ideas
   Maybe propose a patch to 64tass itself that will treat .proc as .block ?
   Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
 
-- Allow normal subroutines to return multiple values as well (just as asmsubs already can)
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
@@ -82,6 +79,7 @@ Libraries
 Optimizations
 -------------
 
+- Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest

@@ -1759,8 +1759,19 @@ class IRCodeGen(
     private fun translate(ret: PtReturn): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         if(ret.children.size>1) {
-            TODO("multi-value return")
+            // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+            val registersReverseOrder = Cx16VirtualRegisters.reversed()
+            for ((value, register) in ret.children.zip(registersReverseOrder)) {
+                val tr = expressionEval.translateExpression(value as PtExpression)
+                addToResult(result, tr, tr.resultReg, -1)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.STOREM, tr.dt, reg1=tr.resultReg, labelSymbol = "cx16.${register.toString().lowercase()}")
+                    it += IRInstruction(Opcode.RETURN)
+                }
+            }
+            return result
         }
+
         val value = ret.children.singleOrNull()
         if(value==null) {
             addInstr(result, IRInstruction(Opcode.RETURN), null)

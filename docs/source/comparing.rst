@@ -66,7 +66,7 @@ Subroutines
 - There is no call stack for subroutine arguments: subroutine parameters are overwritten when called again. Thus recursion is not easily possible, but you can do it with manual stack manipulations.
   There are a couple of example programs that show how to solve this in different ways, among which are fractal-tree.p8, maze.p8 and queens.p8
 - There is no function overloading (except for a couple of builtin functions).
-- Some subroutine types can return multiple return values, and you can multi-assign those in a single statement.
+- Subroutines can return multiple return values, and you can multi-assign those in a single statement.
 - Because every declared variable allocates some memory, it might be beneficial to share the same variables over different subroutines
   instead of defining the same sort of variables in every subroutine.
   This reduces the memory needed for variables. A convenient way to do this is by using nested subroutines - these can easily access the

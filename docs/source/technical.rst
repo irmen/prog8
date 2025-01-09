@@ -151,6 +151,14 @@ Regular subroutines
   - A word value will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
   - A float value will be put in the ``FAC1`` float 'register'.
 
+- In case of *multiple* return values:
+
+  - for an ``asmsub`` or ``extsub`` the subroutine's signature specifies the output registers that contain the values explicitly,
+    just as for a single return value.
+  - for regular subroutines, the compiler will use the "virtual registers" cx16.r0-cx16.r15, from r15 down to r0, for the
+    result values left to right.  This may change in a future compiler version.
+
+
 **Builtin functions can be different:**
 some builtin functions are special and won't exactly follow these rules.
 

@@ -645,7 +645,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name,
                     fcallArgs = FunctionCallArgs(argRegisters, returnRegSpecs)), null)
                 return if(fcall.void)
-                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)       // TODO void?
+                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)       // TODO datatype void?
                 else if(returnRegSpecs.size==1) {
                     val returnRegSpec = returnRegSpecs.single()
                     if (fcall.type.isFloat)
@@ -653,7 +653,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else
                         ExpressionCodeResult(result, returnRegSpec.dt, returnRegSpec.registerNum, -1)
                 } else {
-                    TODO("multi-value return ; expression result")
+                    // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+                    // so the actual result of the expression here is 'void' (doesn't use IR virtual registers at all)
+                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 }
             }
             is StExtSub -> {

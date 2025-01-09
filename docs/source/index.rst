@@ -107,6 +107,7 @@ Features
 - Encode strings and characters into petscii or screencodes or even other encodings, as desired (C64/Cx16)
 - Automatic ROM/RAM bank switching on certain compiler targets when calling routines in other banks
 - Identifiers can contain Unicode Letters, so ``knäckebröd``, ``приблизительно``, ``見せしめ`` and ``π`` are all valid identifiers.
+- Subroutines can return more than one result value
 - Advanced code optimizations to make the resulting program smaller and faster
 - Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 to R15 as defined on the Commander X16. You can look at them as general purpose global variables. These are also available on the other compilation targets!
