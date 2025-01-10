@@ -175,6 +175,14 @@ sprites {
         return mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word
     }
 
+    sub getxy(ubyte spritenum) -> word, word {
+        sprite_reg = VERA_SPRITEREGS + 2 + spritenum*$0008
+        cx16.r0s = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word
+        sprite_reg += 2
+        cx16.r1s = mkword(cx16.vpeek(1, sprite_reg+1), cx16.vpeek(1, sprite_reg)) as word
+        return cx16.r0s, cx16.r1s
+    }
+
     sub hide(ubyte spritenum) {
         cx16.vpoke_and(1, VERA_SPRITEREGS + 6 + spritenum*$0008, %11110011)
     }

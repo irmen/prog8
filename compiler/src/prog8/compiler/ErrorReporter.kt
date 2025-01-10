@@ -36,7 +36,13 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
 
         // For undefined symbol errors, remove all other errors and warnings on the same source line,
         // because those are very likely caused by the unknown symbol. This reduces error clutter.
-        val undefinedSymbolErrors = messages.filter { it.severity == MessageSeverity.ERROR && it.message.contains("undefined symbol") }
+        val undefinedSymbolErrors = messages
+            .asSequence()
+            .filter { it.severity == MessageSeverity.ERROR && it.message.contains("undefined symbol") }
+            .map { it to (it.position.file to it.position.line)}
+            .groupBy { it.second }
+            .map { it.value.first().first }
+
         for(e in undefinedSymbolErrors) {
             messages.removeIf {
                 it !== e
