@@ -14,7 +14,7 @@ import prog8.code.ast.PtProgram
 import prog8.code.ast.printAst
 import prog8.code.ast.verifyFinalAstBeforeAsmGen
 import prog8.code.core.*
-import prog8.code.optimize.optimizeIntermediateAst
+import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
@@ -128,22 +128,22 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     println("*********** COMPILER AST END *************\n")
                 }
 
-                val intermediateAst = IntermediateAstMaker(program, args.errors).transform()
+                val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
                 val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                 val symbolTable = stMaker.make()
 
-                postprocessIntermediateAst(intermediateAst, symbolTable, args.errors)
+                postprocessSimplifiedAst(intermediateAst, symbolTable, args.errors)
                 args.errors.report()
 
                 if(compilationOptions.optimize) {
-                    optimizeIntermediateAst(intermediateAst, compilationOptions, symbolTable, args.errors)
+                    optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable, args.errors)
                     args.errors.report()
                 }
 
                 if(args.printAst2) {
-                    println("\n*********** INTERMEDIATE AST *************")
+                    println("\n*********** SIMPLIFIED AST *************")
                     printAst(intermediateAst, true, ::println)
-                    println("*********** INTERMEDIATE AST END *************\n")
+                    println("*********** SIMPLIFIED AST END *************\n")
                 }
 
                 verifyFinalAstBeforeAsmGen(intermediateAst, compilationOptions, symbolTable, args.errors)
@@ -161,7 +161,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     println("*********** COMPILER AST END *************\n")
                 }
                 if(args.printAst2) {
-                    System.err.println("There is no intermediate Ast available if assembly generation is disabled.")
+                    System.err.println("There is no simplified Ast available if assembly generation is disabled.")
                 }
             }
         }
@@ -184,11 +184,11 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         }
         if (args.printAst2) {
             if(ast==null)
-                println("There is no intermediate AST available because of compilation errors.")
+                println("There is no simplified AST available because of compilation errors.")
             else {
-                println("\n*********** INTERMEDIATE AST *************")
+                println("\n*********** SIMPLIFIED AST *************")
                 printAst(ast, true, ::println)
-                println("*********** INTERMEDIATE AST END *************\n")
+                println("*********** SIMPLIFIED AST END *************\n")
             }
         }
         if(!ac.message.isNullOrEmpty()) {

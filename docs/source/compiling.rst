@@ -204,7 +204,7 @@ One or more .p8 module files
     Prints the "compiler AST" (the internal representation of the program) after all processing steps.
 
 ``-printast2``
-    Prints the "intermediate AST" which is the reduced representation of the program.
+    Prints the "simplified AST" which is the reduced representation of the program.
     This is what is used in the code generators, to generate the executable code from.
 
 ``-quietasm``

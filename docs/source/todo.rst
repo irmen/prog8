@@ -2,7 +2,6 @@ TODO
 ====
 
 - change library routines that now return 1 value + say, another in R0,  to just return 2 values now that this is supported for normal subroutines too.
-- rename "intermediate AST" into "simplified AST" (docs + classes in code)
 
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?

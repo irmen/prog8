@@ -228,7 +228,7 @@ Some notes and references into the compiler's source code modules:
    syntax nodes closely representing the Prog8 program structure. (``compilerAst`` module)
 #. For code generation, a much simpler AST has been defined that replaces the *Compiler AST*.
    Most notably, node type information is now baked in. (``codeCore`` module, Pt- classes)
-#. An *Intermediate Representation* has been defined that is generated from the intermediate AST. This IR
+#. An *Intermediate Representation* has been defined that is generated from the simplified AST. This IR
    is more or less a machine code language for a virtual machine - and indeed this is what the built-in
    prog8 VM will execute if you use the 'virtual' compilation target and use ``-emu`` to launch the VM.
    (``intermediate`` and ``codeGenIntermediate`` modules, and ``virtualmachine`` module for the VM related stuff)

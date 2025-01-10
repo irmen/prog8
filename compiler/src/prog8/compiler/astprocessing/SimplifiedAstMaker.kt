@@ -22,7 +22,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class IntermediateAstMaker(private val program: Program, private val errors: IErrorReporter) {
+class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,
@@ -535,7 +535,7 @@ class IntermediateAstMaker(private val program: Program, private val errors: IEr
 
     private fun transformSub(srcSub: Subroutine): PtSub {
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl }
-        // if a sub returns 'str', replace with uword.  Intermediate AST and I.R. don't contain 'str' datatype anymore.
+        // if a sub returns 'str', replace with uword.  Simplified AST and I.R. don't contain 'str' datatype anymore.
         var returnTypes = srcSub.returntypes.map {
             if(it.isString) DataType.forDt(BaseDataType.UWORD) else it
         }

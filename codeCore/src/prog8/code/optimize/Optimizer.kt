@@ -6,7 +6,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 
 
-fun optimizeIntermediateAst(program: PtProgram, options: CompilationOptions, st: SymbolTable, errors: IErrorReporter) {
+fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: SymbolTable, errors: IErrorReporter) {
     if (!options.optimize)
         return
     while (errors.noErrors() && optimizeAssignTargets(program, st) > 0) {

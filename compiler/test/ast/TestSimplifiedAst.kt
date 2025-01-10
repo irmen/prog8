@@ -8,7 +8,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
 
-class TestIntermediateAst: FunSpec({
+class TestSimplifiedAst: FunSpec({
 
     test("isSame on binaryExpressions") {
         val expr1 = PtBinaryExpression("/", DataType.forDt(BaseDataType.UBYTE), Position.DUMMY)

@@ -5,7 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 
 
-internal fun postprocessIntermediateAst(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
+internal fun postprocessSimplifiedAst(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
     processDefers(program, st, errors)
 }
 
