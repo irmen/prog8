@@ -15,9 +15,8 @@ import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.code.target.c64.C64Zeropage
-import prog8.code.target.cx16.CX16Zeropage
-import prog8tests.helpers.DummyCompilationTarget
+import prog8.code.target.zp.C64Zeropage
+import prog8.code.target.zp.CX16Zeropage
 import prog8tests.helpers.ErrorReporterForTests
 
 
@@ -51,7 +50,7 @@ class TestAbstractZeropage: FunSpec({
                 CompilationOptions.AllZeropageAllowed,
                 floats = false,
                 noSysInit = false,
-                compTarget = DummyCompilationTarget,
+                compTarget = C64Target(),
                 loadAddress = 999u,
                 memtopAddress = 0xffffu
             )

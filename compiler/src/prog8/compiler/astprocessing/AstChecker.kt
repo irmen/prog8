@@ -286,7 +286,7 @@ internal class AstChecker(private val program: Program,
             if (addr > 65535u)
                 errors.err("block address must be valid integer 0..\$ffff", block.position)
             if(compilerOptions.loadAddress!=0u) {
-                val gapsize = compilerOptions.compTarget.machine.STARTUP_CODE_RESERVED_SIZE
+                val gapsize = compilerOptions.compTarget.STARTUP_CODE_RESERVED_SIZE
                 if (addr < compilerOptions.loadAddress + gapsize)
                     errors.err("block address must be at least program load address + $gapsize (to allow for startup logic)", block.position)
             }
@@ -1867,7 +1867,7 @@ internal class AstChecker(private val program: Program,
 
                     // check if the floating point values are all within range
                     val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
-                    if(doubles.any { it < compilerOptions.compTarget.machine.FLOAT_MAX_NEGATIVE || it > compilerOptions.compTarget.machine.FLOAT_MAX_POSITIVE })
+                    if(doubles.any { it < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE || it > compilerOptions.compTarget.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true
                 }
@@ -1886,7 +1886,7 @@ internal class AstChecker(private val program: Program,
         when {
             targetDt.isFloat -> {
                 val number=value.number
-                if (number > compilerOptions.compTarget.machine.FLOAT_MAX_POSITIVE || number < compilerOptions.compTarget.machine.FLOAT_MAX_NEGATIVE)
+                if (number > compilerOptions.compTarget.FLOAT_MAX_POSITIVE || number < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE)
                     return err("value '$number' out of range")
             }
             targetDt.isUnsignedByte -> {

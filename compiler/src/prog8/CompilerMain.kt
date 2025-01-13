@@ -6,8 +6,8 @@ import prog8.code.core.CbmPrgLauncherType
 import prog8.code.source.ImportFileSystem
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName
-import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.ErrorReporter
@@ -303,9 +303,9 @@ private fun compileMain(args: Array<String>): Boolean {
             if(startEmulator1==true || startEmulator2==true) {
                 if (compilationResult.compilationOptions.launcher != CbmPrgLauncherType.NONE || compilationTarget=="atari" || compilationTarget=="neo") {
                     if (startEmulator1 == true)
-                        compilationResult.compilationOptions.compTarget.machine.launchEmulator(1, programNameInPath)
+                        compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath)
                     else if (startEmulator2 == true)
-                        compilationResult.compilationOptions.compTarget.machine.launchEmulator(2, programNameInPath)
+                        compilationResult.compilationOptions.compTarget.launchEmulator(2, programNameInPath)
                 } else {
                     println("\nCan't start emulator because program has no launcher type.")
                 }
@@ -319,7 +319,7 @@ private fun compileMain(args: Array<String>): Boolean {
 fun convertFloatToBytes(number: String, target: String) {
     val tgt = getCompilationTargetByName(target)
     val dbl = number.toDouble()
-    val bytes = tgt.machine.convertFloatToBytes(dbl)
+    val bytes = tgt.convertFloatToBytes(dbl)
     print("$dbl in bytes on '$target': ")
     println(bytes.joinToString(","))
 }
@@ -327,7 +327,7 @@ fun convertFloatToBytes(number: String, target: String) {
 fun convertBytesToFloat(bytelist: String, target: String) {
     val tgt = getCompilationTargetByName(target)
     val bytes = bytelist.split(',').map { it.trim().toUByte() }
-    val number = tgt.machine.convertBytesToFloat(bytes)
+    val number = tgt.convertBytesToFloat(bytes)
     println("floating point value on '$target': $number")
 }
 
@@ -348,6 +348,6 @@ private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
 
 fun runVm(irFilename: String) {
     val irFile = Path(irFilename)
-    val vmdef = VirtualMachineDefinition()
+    val vmdef = VMTarget()
     vmdef.launchEmulator(0, irFile)
 }

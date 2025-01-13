@@ -1,9 +1,8 @@
-package prog8.code.target.cbm
+package prog8.code.target
 
 import prog8.code.core.InternalCompilerException
 import kotlin.math.absoluteValue
 import kotlin.math.pow
-
 
 data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, val b4: UByte) {
 

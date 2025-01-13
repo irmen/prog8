@@ -118,7 +118,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             if (args.writeAssembly) {
 
                 // re-initialize memory areas with final compilationOptions
-                compilationOptions.compTarget.machine.initializeMemoryAreas(compilationOptions)
+                compilationOptions.compTarget.initializeMemoryAreas(compilationOptions)
                 program.processAstBeforeAsmGeneration(compilationOptions, args.errors)
                 args.errors.report()
 
@@ -235,24 +235,24 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
         when(options.output) {
             OutputType.RAW -> {
                 if(options.compTarget.name==Neo6502Target.NAME)
-                    loadAddress = options.compTarget.machine.PROGRAM_LOAD_ADDRESS
+                    loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
                 // for all other targets, RAW has no predefined load address.
             }
             OutputType.PRG -> {
                 if(options.launcher==CbmPrgLauncherType.BASIC) {
-                    loadAddress = options.compTarget.machine.PROGRAM_LOAD_ADDRESS
+                    loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
                 }
             }
             OutputType.XEX -> {
                 if(options.launcher!=CbmPrgLauncherType.NONE)
                     throw AssemblyError("atari xex output can't contain BASIC launcher")
-                loadAddress = options.compTarget.machine.PROGRAM_LOAD_ADDRESS
+                loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
             }
         }
     }
 
     if(options.output==OutputType.PRG && options.launcher==CbmPrgLauncherType.BASIC) {
-        val expected = options.compTarget.machine.PROGRAM_LOAD_ADDRESS
+        val expected = options.compTarget.PROGRAM_LOAD_ADDRESS
         if(loadAddress!=expected) {
             errors.err("BASIC output must have load address ${expected.toHex()}", specifiedAddress?.second ?: program.toplevelModule.position)
         }
@@ -265,7 +265,7 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
 
     options.loadAddress = loadAddress
 
-    options.memtopAddress = program.toplevelModule.memtopAddress?.first ?: options.compTarget.machine.PROGRAM_MEMTOP_ADDRESS
+    options.memtopAddress = program.toplevelModule.memtopAddress?.first ?: options.compTarget.PROGRAM_MEMTOP_ADDRESS
 
     if(loadAddress>options.memtopAddress) {
         errors.warn("program load address ${loadAddress.toHex()} is beyond default memtop address ${options.memtopAddress.toHex()}. " +
@@ -510,12 +510,12 @@ private fun createAssemblyAndAssemble(program: PtProgram,
 
     val asmgen = if(compilerOptions.experimentalCodegen)
         prog8.codegen.experimental.ExperiCodeGen()
-    else if (compilerOptions.compTarget.machine.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
+    else if (compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
         prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1)
     else if (compilerOptions.compTarget.name == VMTarget.NAME)
         VmCodeGen()
     else
-        throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.machine.cpu}")
+        throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
 
     // need to make a new symboltable here to capture possible changes made by optimization steps performed earlier!
     val stMaker = SymbolTableMaker(program, compilerOptions)

@@ -1,4 +1,4 @@
-package prog8.code.target.neo6502
+package prog8.code.target.zp
 
 import prog8.code.core.*
 

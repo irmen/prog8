@@ -14,7 +14,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                                  private val errors: IErrorReporter
 ) {
 
-    private val zeropage = options.compTarget.machine.zeropage
+    private val zeropage = options.compTarget.zeropage
     internal val globalFloatConsts = mutableMapOf<Double, String>()     // all float values in the entire program (value -> varname)
     internal val zeropageVars: Map<String, MemoryAllocator.VarAllocation>
 

@@ -2,6 +2,12 @@
 %zeropage basicsafe
 %option no_sysinit
 
+
+; NOTE: This is a small example of the Kernal's AUDIO routines.
+;       There is also the "psg" library module that implements some Vera PSG routines
+;       of its own, but that's not used here at all. See the "cx16/bdmusic" example for that.
+
+
 main {
     sub start() {
         txt.print("\n\nsimple demonstration of the audio kernal routines.\n")

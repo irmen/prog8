@@ -9,7 +9,7 @@ import io.kotest.matchers.string.shouldContain
 import prog8.code.core.InternalCompilerException
 import prog8.code.core.toHex
 import prog8.code.target.C64Target
-import prog8.code.target.cbm.Mflpt5
+import prog8.code.target.Mflpt5
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 

@@ -1,11 +1,9 @@
-package prog8.code.target
+package prog8.code.target.encodings
 
 import com.github.michaelbull.result.fold
 import prog8.code.core.Encoding
 import prog8.code.core.IStringEncoding
 import prog8.code.core.InternalCompilerException
-import prog8.code.target.encodings.*
-
 
 object Encoder: IStringEncoding {
     override val defaultEncoding: Encoding = Encoding.ISO

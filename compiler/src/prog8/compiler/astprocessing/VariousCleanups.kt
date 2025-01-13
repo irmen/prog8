@@ -165,7 +165,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
         // remove duplicated assignments, but not if it's a memory mapped IO register
         val isIO = try {
-            assignment.target.isIOAddress(options.compTarget.machine)
+            assignment.target.isIOAddress(options.compTarget)
         } catch (_: FatalAstException) {
             false
         }

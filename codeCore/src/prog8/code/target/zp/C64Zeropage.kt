@@ -1,4 +1,4 @@
-package prog8.code.target.c64
+package prog8.code.target.zp
 
 import prog8.code.core.*
 

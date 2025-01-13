@@ -219,7 +219,7 @@ class AsmGen6502Internal (
     internal val optimizedByteMultiplications = arrayOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
     internal val optimizedWordMultiplications = arrayOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     internal val loopEndLabels = ArrayDeque<String>()
-    private val zeropage = options.compTarget.machine.zeropage
+    private val zeropage = options.compTarget.zeropage
     private val allocator = VariableAllocator(symbolTable, options, errors)
     private val assembly = mutableListOf<String>()
     private val breakpointLabels = mutableListOf<String>()
@@ -251,7 +251,7 @@ class AsmGen6502Internal (
                 }
             }
             if(options.optimize) {
-                while(optimizeAssembly(asmLines, options.compTarget.machine, symbolTable)>0) {
+                while(optimizeAssembly(asmLines, options.compTarget, symbolTable)>0) {
                     // optimize the assembly source code
                 }
                 output.writeLines(asmLines)
@@ -328,7 +328,7 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun isTargetCpu(cpu: CpuType) = options.compTarget.machine.cpu == cpu
+    internal fun isTargetCpu(cpu: CpuType) = options.compTarget.cpu == cpu
 
     private var lastSourceLineNumber: Int = -1
 
@@ -640,7 +640,7 @@ class AsmGen6502Internal (
                 }
             }
             expr.type.isFloat -> {
-                require(options.compTarget.machine.FLOAT_MEM_SIZE == 5) {"invalid float size ${expr.position}"}
+                require(options.compTarget.FLOAT_MEM_SIZE == 5) {"invalid float size ${expr.position}"}
                 assignExpressionToRegister(expr.index, RegisterOrPair.A, false)
                 out("""
                     sta  P8ZP_SCRATCH_REG

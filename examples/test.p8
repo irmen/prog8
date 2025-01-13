@@ -1,3 +1,4 @@
+%import floats
 %import sprites
 %option no_sysinit
 %zeropage basicsafe
@@ -18,15 +19,16 @@ main {
             sprites.pos(1, x, y)
         }
 
+        float fz
         cx16.r0L = single()
-        cx16.r0L, cx16.r1L = multi()
+        cx16.r0L, fz = multi()
     }
 
     sub single() -> ubyte {
         return xx
     }
 
-    sub multi() -> ubyte, ubyte {
-        return xx, yy
+    sub multi() -> ubyte, float {
+        return xx, 3.33
     }
 }

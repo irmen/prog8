@@ -3,10 +3,9 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import prog8.code.core.*
+import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
-import prog8.code.target.c64.C64MachineDefinition
-import prog8.code.target.cx16.CX16MachineDefinition
-import prog8.code.target.virtual.VirtualMachineDefinition
 import prog8.intermediate.*
 import prog8.vm.VirtualMachine
 import prog8.vm.VmRunner
@@ -24,7 +23,7 @@ class TestVm: FunSpec( {
             floats = true,
             noSysInit = false,
             compTarget = target,
-            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS,
+            loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu
         )
     }
@@ -125,12 +124,12 @@ class TestVm: FunSpec( {
     }
 
     test("vm machine float bits") {
-        val cx16machine = CX16MachineDefinition()
+        val cx16machine = Cx16Target()
         cx16machine.getFloatAsmBytes(Math.PI) shouldBe "\$82, \$49, \$0f, \$da, \$a2"
-        val c64machine = C64MachineDefinition()
+        val c64machine = C64Target()
         c64machine.getFloatAsmBytes(Math.PI) shouldBe "\$82, \$49, \$0f, \$da, \$a2"
 
-        val vm = VirtualMachineDefinition()
+        val vm = VMTarget()
         vm.getFloatAsmBytes(Math.PI) shouldBe "\$40, \$09, \$21, \$fb, \$54, \$44, \$2d, \$18"
     }
 })

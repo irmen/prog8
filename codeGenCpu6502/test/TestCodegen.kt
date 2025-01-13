@@ -27,7 +27,7 @@ class TestCodegen: FunSpec({
             floats = true,
             noSysInit = false,
             compTarget = target,
-            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS,
+            loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu
         )
     }

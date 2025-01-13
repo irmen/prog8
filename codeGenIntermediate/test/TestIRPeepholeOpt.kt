@@ -22,7 +22,7 @@ class TestIRPeepholeOpt: FunSpec({
             floats = false,
             noSysInit = true,
             compTarget = target,
-            loadAddress = target.machine.PROGRAM_LOAD_ADDRESS,
+            loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu
         )
         val prog = IRProgram("test", IRSymbolTable(), options, target)

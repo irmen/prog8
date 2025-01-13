@@ -1,8 +1,8 @@
 package prog8.vm
 
 import prog8.code.core.toHex
-import prog8.code.target.virtual.IVirtualMachineRunner
-import prog8.code.target.virtual.VirtualMachineDefinition
+import prog8.code.target.IVirtualMachineRunner
+import prog8.code.target.VMTarget
 import prog8.intermediate.*
 import java.awt.Color
 import java.awt.Toolkit
@@ -43,7 +43,7 @@ class VirtualMachine(irProgram: IRProgram) {
     private var fileOutputStream: OutputStream? = null
     private var fileInputStream: InputStream? = null
     val memory = Memory()
-    val machinedef = VirtualMachineDefinition()
+    val machine = VMTarget()
     val program: List<IRCodeChunk>
     val artificialLabelAddresses: Map<Int, IRCodeChunk>
     val registers = Registers()

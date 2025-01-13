@@ -10,6 +10,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 - Kotlin: can we use inline value classes in certain spots?
 - allow multi-value variable initialization (var a,b,c  = 1,2,3)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
@@ -78,6 +79,7 @@ Optimizations
 -------------
 
 - Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.
+  Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest

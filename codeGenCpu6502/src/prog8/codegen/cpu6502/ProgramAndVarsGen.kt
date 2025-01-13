@@ -39,7 +39,7 @@ internal class ProgramAndVarsGen(
             // the global list of all floating point constants for the whole program
             asmgen.out("; global float constants")
             for (flt in allocator.globalFloatConsts) {
-                val floatFill = compTarget.machine.getFloatAsmBytes(flt.key)
+                val floatFill = compTarget.getFloatAsmBytes(flt.key)
                 val floatvalue = flt.key
                 asmgen.out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
             }
@@ -52,7 +52,7 @@ internal class ProgramAndVarsGen(
 
     private fun header() {
         val ourName = this.javaClass.name
-        val cpu = when(compTarget.machine.cpu) {
+        val cpu = when(compTarget.cpu) {
             CpuType.CPU6502 -> "6502"
             CpuType.CPU65c02 -> "w65c02"
             else -> "unsupported"
@@ -102,8 +102,8 @@ internal class ProgramAndVarsGen(
             OutputType.PRG -> {
                 when(options.launcher) {
                     CbmPrgLauncherType.BASIC -> {
-                        if (options.loadAddress != options.compTarget.machine.PROGRAM_LOAD_ADDRESS) {
-                            errors.err("BASIC output must have load address ${options.compTarget.machine.PROGRAM_LOAD_ADDRESS.toHex()}", program.position)
+                        if (options.loadAddress != options.compTarget.PROGRAM_LOAD_ADDRESS) {
+                            errors.err("BASIC output must have load address ${options.compTarget.PROGRAM_LOAD_ADDRESS.toHex()}", program.position)
                         }
                         asmgen.out("; ---- basic program with sys call ----")
                         asmgen.out("* = ${options.loadAddress.toHex()}")
@@ -203,7 +203,7 @@ internal class ProgramAndVarsGen(
                         BaseDataType.UBYTE -> asmgen.out("$name    .byte  ?")
                         BaseDataType.WORD  -> asmgen.out("$name    .sint  ?")
                         BaseDataType.UWORD -> asmgen.out("$name    .word  ?")
-                        BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+                        BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
                         else -> throw AssemblyError("weird dt for extravar $dt")
                     }
                 }
@@ -219,49 +219,49 @@ internal class ProgramAndVarsGen(
         var relocatedBssEnd = 0u
 
         if(options.varsGolden) {
-            if(options.compTarget.machine.BSSGOLDENRAM_START == 0u ||
-                options.compTarget.machine.BSSGOLDENRAM_END == 0u ||
-                options.compTarget.machine.BSSGOLDENRAM_END <= options.compTarget.machine.BSSGOLDENRAM_START) {
+            if(options.compTarget.BSSGOLDENRAM_START == 0u ||
+                options.compTarget.BSSGOLDENRAM_END == 0u ||
+                options.compTarget.BSSGOLDENRAM_END <= options.compTarget.BSSGOLDENRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
             }
             relocateBssVars = true
-            relocatedBssStart = options.compTarget.machine.BSSGOLDENRAM_START
-            relocatedBssEnd = options.compTarget.machine.BSSGOLDENRAM_END
+            relocatedBssStart = options.compTarget.BSSGOLDENRAM_START
+            relocatedBssEnd = options.compTarget.BSSGOLDENRAM_END
         }
         else if(options.varsHighBank!=null) {
-            if(options.compTarget.machine.BSSHIGHRAM_START == 0u ||
-                options.compTarget.machine.BSSHIGHRAM_END == 0u ||
-                options.compTarget.machine.BSSHIGHRAM_END <= options.compTarget.machine.BSSHIGHRAM_START) {
+            if(options.compTarget.BSSHIGHRAM_START == 0u ||
+                options.compTarget.BSSHIGHRAM_END == 0u ||
+                options.compTarget.BSSHIGHRAM_END <= options.compTarget.BSSHIGHRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
             }
             if(options.slabsHighBank!=null && options.varsHighBank!=options.slabsHighBank)
                 throw AssemblyError("slabs and vars high bank must be the same")
             relocateBssVars = true
-            relocatedBssStart = options.compTarget.machine.BSSHIGHRAM_START
-            relocatedBssEnd = options.compTarget.machine.BSSHIGHRAM_END
+            relocatedBssStart = options.compTarget.BSSHIGHRAM_START
+            relocatedBssEnd = options.compTarget.BSSHIGHRAM_END
         }
 
         if(options.slabsGolden) {
-            if(options.compTarget.machine.BSSGOLDENRAM_START == 0u ||
-                options.compTarget.machine.BSSGOLDENRAM_END == 0u ||
-                options.compTarget.machine.BSSGOLDENRAM_END <= options.compTarget.machine.BSSGOLDENRAM_START) {
+            if(options.compTarget.BSSGOLDENRAM_START == 0u ||
+                options.compTarget.BSSGOLDENRAM_END == 0u ||
+                options.compTarget.BSSGOLDENRAM_END <= options.compTarget.BSSGOLDENRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the golden ram area properly defined or it is simply not available")
             }
             relocateBssSlabs = true
-            relocatedBssStart = options.compTarget.machine.BSSGOLDENRAM_START
-            relocatedBssEnd = options.compTarget.machine.BSSGOLDENRAM_END
+            relocatedBssStart = options.compTarget.BSSGOLDENRAM_START
+            relocatedBssEnd = options.compTarget.BSSGOLDENRAM_END
         }
         else if(options.slabsHighBank!=null) {
-            if(options.compTarget.machine.BSSHIGHRAM_START == 0u ||
-                options.compTarget.machine.BSSHIGHRAM_END == 0u ||
-                options.compTarget.machine.BSSHIGHRAM_END <= options.compTarget.machine.BSSHIGHRAM_START) {
+            if(options.compTarget.BSSHIGHRAM_START == 0u ||
+                options.compTarget.BSSHIGHRAM_END == 0u ||
+                options.compTarget.BSSHIGHRAM_END <= options.compTarget.BSSHIGHRAM_START) {
                 throw AssemblyError("current compilation target hasn't got the high ram area properly defined or it is simply not available")
             }
             if(options.varsHighBank!=null && options.varsHighBank!=options.slabsHighBank)
                 throw AssemblyError("slabs and vars high bank must be the same")
             relocateBssSlabs = true
-            relocatedBssStart = options.compTarget.machine.BSSHIGHRAM_START
-            relocatedBssEnd = options.compTarget.machine.BSSHIGHRAM_END
+            relocatedBssStart = options.compTarget.BSSHIGHRAM_START
+            relocatedBssEnd = options.compTarget.BSSHIGHRAM_END
         }
 
         asmgen.out("; bss sections")
@@ -465,14 +465,14 @@ internal class ProgramAndVarsGen(
             else when(dt) {
                 BaseDataType.UBYTE -> asmgen.out("$name    .byte  ?")
                 BaseDataType.UWORD -> asmgen.out("$name    .word  ?")
-                BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+                BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
                 else -> throw AssemblyError("weird dt for extravar $dt")
             }
         }
         if(asmGenInfo.usedFloatEvalResultVar1)
-            asmgen.out("$subroutineFloatEvalResultVar1    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+            asmgen.out("$subroutineFloatEvalResultVar1    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
         if(asmGenInfo.usedFloatEvalResultVar2)
-            asmgen.out("$subroutineFloatEvalResultVar2    .fill  ${options.compTarget.machine.FLOAT_MEM_SIZE}")
+            asmgen.out("$subroutineFloatEvalResultVar2    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
         asmgen.out("  .send BSS")
 
         // normal statically allocated variables
@@ -650,7 +650,7 @@ internal class ProgramAndVarsGen(
             dt.isSignedByte -> asmgen.out("${variable.name}\t.char  ?")
             dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ?")
             dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  ?")
-            dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.machine.FLOAT_MEM_SIZE}")
+            dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.FLOAT_MEM_SIZE}")
             dt.isSplitWordArray -> {
                 alignVar(variable.align)
                 val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!) / 2
@@ -692,7 +692,7 @@ internal class ProgramAndVarsGen(
                 if(initialValue==0) {
                     asmgen.out("${variable.name}\t.byte  0,0,0,0,0  ; float")
                 } else {
-                    val floatFill = compTarget.machine.getFloatAsmBytes(initialValue)
+                    val floatFill = compTarget.getFloatAsmBytes(initialValue)
                     asmgen.out("${variable.name}\t.byte  $floatFill  ; float $initialValue")
                 }
             }
@@ -767,7 +767,7 @@ internal class ProgramAndVarsGen(
             dt.isFloatArray -> {
                 val array = value ?: zeroFilledArray(orNumberOfZeros!!)
                 val floatFills = array.map {
-                    compTarget.machine.getFloatAsmBytes(it.number!!)
+                    compTarget.getFloatAsmBytes(it.number!!)
                 }
                 asmgen.out(varname)
                 for (f in array.zip(floatFills))

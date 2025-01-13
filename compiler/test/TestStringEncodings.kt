@@ -18,7 +18,7 @@ import prog8.code.core.Position
 import prog8.code.core.unescape
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.code.target.Encoder
+import prog8.code.target.encodings.Encoder
 import prog8.code.target.encodings.AtasciiEncoding
 import prog8.code.target.encodings.IsoEncoding
 import prog8.code.target.encodings.PetsciiEncoding

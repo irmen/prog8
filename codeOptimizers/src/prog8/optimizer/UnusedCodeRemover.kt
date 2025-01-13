@@ -298,7 +298,7 @@ class UnusedCodeRemover(private val program: Program,
                         else -> {}
                     }
                 } else {
-                    if (assign1.target.isSameAs(assign2.target, program) && !assign1.target.isIOAddress(compTarget.machine))  {
+                    if (assign1.target.isSameAs(assign2.target, program) && !assign1.target.isIOAddress(compTarget))  {
                         if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(assign2.target.identifier!!.nameInSource))
                             // only remove the second assignment if its value is a simple expression!
                             when(assign2.value) {

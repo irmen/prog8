@@ -4,13 +4,13 @@ import prog8.code.StConstant
 import prog8.code.StMemVar
 import prog8.code.SymbolTable
 import prog8.code.ast.PtLabel
-import prog8.code.core.IMachineDefinition
+import prog8.code.core.ICompilationTarget
 
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 
-internal fun optimizeAssembly(lines: MutableList<String>, machine: IMachineDefinition, symbolTable: SymbolTable): Int {
+internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationTarget, symbolTable: SymbolTable): Int {
 
     var numberOfOptimizations = 0
 
@@ -123,7 +123,7 @@ private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
 
 private fun optimizeSameAssignments(
     linesByFourteen: Sequence<List<IndexedValue<String>>>,
-    machine: IMachineDefinition,
+    machine: ICompilationTarget,
     symbolTable: SymbolTable
 ): List<Modification> {
 
@@ -386,7 +386,7 @@ This gets generated after certain if conditions, and only the branch instruction
 
 private fun optimizeStoreLoadSame(
     linesByFour: Sequence<List<IndexedValue<String>>>,
-    machine: IMachineDefinition,
+    machine: ICompilationTarget,
     symbolTable: SymbolTable
 ): List<Modification> {
     val mods = mutableListOf<Modification>()

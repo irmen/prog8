@@ -218,7 +218,7 @@ class VmProgramLoader {
                             }
                             dt.isFloatArray -> {
                                 memory.setFloat(addr, 0.0)
-                                addr += program.options.compTarget.machine.FLOAT_MEM_SIZE
+                                addr += program.options.compTarget.FLOAT_MEM_SIZE
                             }
                             else -> throw IRParseException("invalid dt")
                         }
@@ -330,7 +330,7 @@ class VmProgramLoader {
                         { memory.setFloat(address, it) },
                         { throw IRParseException("didn't expect bool") }
                     )
-                    address += program.options.compTarget.machine.FLOAT_MEM_SIZE
+                    address += program.options.compTarget.FLOAT_MEM_SIZE
                 }
             }
 

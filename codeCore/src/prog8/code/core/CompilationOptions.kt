@@ -34,7 +34,7 @@ class CompilationOptions(val output: OutputType,
                          var symbolDefs: Map<String, String> = emptyMap()
 ) {
     init {
-        compTarget.machine.initializeMemoryAreas(this)
+        compTarget.initializeMemoryAreas(this)
     }
 
     companion object {

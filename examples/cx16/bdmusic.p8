@@ -4,6 +4,46 @@
 
 main {
 
+    sub start() {
+        txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
+        void cbm.CHRIN()
+        txt.clear_screen()
+
+        psg.silent()
+        psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
+        psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
+
+        cx16.enable_irq_handlers(true)
+        cx16.set_vsync_irq_handler(&psg.envelopes_irq)
+
+        repeat {
+            uword note
+            for note in notes {
+                ubyte note0 = lsb(note)
+                ubyte note1 = msb(note)
+                psg.freq(0, vera_freqs[note0])
+                psg.freq(1, vera_freqs[note1])
+                psg.envelope(0, 63, 255, 0, 6)
+                psg.envelope(1, 63, 255, 0, 6)
+                print_notes(note0, note1)
+                sys.wait(10)
+            }
+        }
+
+        psg.silent()
+        cx16.disable_irq_handlers()
+    }
+
+    sub print_notes(ubyte n1, ubyte n2) {
+        txt.nl()
+        txt.plot(n1, txt.DEFAULT_HEIGHT-1)
+        txt.color(7)
+        txt.chrout('Q')
+        txt.plot(n2, txt.DEFAULT_HEIGHT-1)
+        txt.color(4)
+        txt.chrout('Q')
+    }
+
     sub explosion() {
         ; this subroutine is not used but it is an example of how to make a sound effect using the psg library!
         psg.silent()
@@ -51,46 +91,6 @@ main {
         psg.silent()
     }
 
-
-    sub start() {
-        txt.print("will play the music from boulderdash,\nmade in 1984 by peter liepa.\npress enter to start: ")
-        void cbm.CHRIN()
-        txt.clear_screen()
-
-        psg.silent()
-        psg.voice(0, psg.LEFT, 63, psg.TRIANGLE, 0)
-        psg.voice(1, psg.RIGHT, 63, psg.TRIANGLE, 0)
-
-        cx16.enable_irq_handlers(true)
-        cx16.set_vsync_irq_handler(&psg.envelopes_irq)
-
-        repeat {
-            uword note
-            for note in notes {
-                ubyte note0 = lsb(note)
-                ubyte note1 = msb(note)
-                psg.freq(0, vera_freqs[note0])
-                psg.freq(1, vera_freqs[note1])
-                psg.envelope(0, 63, 255, 0, 6)
-                psg.envelope(1, 63, 255, 0, 6)
-                print_notes(note0, note1)
-                sys.wait(10)
-            }
-        }
-
-        psg.silent()
-        cx16.disable_irq_handlers()
-    }
-
-    sub print_notes(ubyte n1, ubyte n2) {
-        txt.nl()
-        txt.plot(n1, txt.DEFAULT_HEIGHT-1)
-        txt.color(7)
-        txt.chrout('Q')
-        txt.plot(n2, txt.DEFAULT_HEIGHT-1)
-        txt.color(4)
-        txt.chrout('Q')
-    }
 
 
     ; details about the boulderdash music can be found here:

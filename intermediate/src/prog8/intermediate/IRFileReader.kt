@@ -89,7 +89,7 @@ class IRFileReader {
         var zeropage = ZeropageType.FULL
         val zpReserved = mutableListOf<UIntRange>()
         val zpAllowed = mutableListOf<UIntRange>()
-        var loadAddress = target.machine.PROGRAM_LOAD_ADDRESS
+        var loadAddress = target.PROGRAM_LOAD_ADDRESS
         var optimize = true
         var outputDir = Path("")
 

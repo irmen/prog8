@@ -39,49 +39,49 @@ class TestMemory: FunSpec({
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         var assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = NumericLiteral.optimalInteger(0x1000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = NumericLiteral.optimalInteger(0x9fff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = NumericLiteral.optimalInteger(0xa000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = NumericLiteral.optimalInteger(0xc000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = NumericLiteral.optimalInteger(0xcfff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = NumericLiteral.optimalInteger(0xeeee, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = NumericLiteral.optimalInteger(0xffff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
     }
 
     test("assign target in mapped IO space C64") {
@@ -90,25 +90,25 @@ class TestMemory: FunSpec({
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         var assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
 
         memexpr = NumericLiteral.optimalInteger(0x0001, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
 
         memexpr = NumericLiteral.optimalInteger(0xd000, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
 
         memexpr = NumericLiteral.optimalInteger(0xdfff, Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
     }
 
     fun createTestProgramForMemoryRefViaVar(address: UInt, vartype: VarDeclType): AssignTarget {
@@ -123,17 +123,17 @@ class TestMemory: FunSpec({
 
     test("identifier mapped to IO memory on C64") {
         var target = createTestProgramForMemoryRefViaVar(0x1000u, VarDeclType.VAR)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
         target = createTestProgramForMemoryRefViaVar(0xd020u, VarDeclType.VAR)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
         target = createTestProgramForMemoryRefViaVar(0x1000u, VarDeclType.CONST)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
         target = createTestProgramForMemoryRefViaVar(0xd020u, VarDeclType.CONST)
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
         target = createTestProgramForMemoryRefViaVar(0x1000u, VarDeclType.MEMORY)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
         target = createTestProgramForMemoryRefViaVar(0xd020u, VarDeclType.MEMORY)
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
     }
 
     test("memory expression mapped to IO memory on C64") {
@@ -141,13 +141,13 @@ class TestMemory: FunSpec({
         var target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         var assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
 
         memexpr = PrefixExpression("+", NumericLiteral.optimalInteger(0xd020, Position.DUMMY), Position.DUMMY)
         target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
         assign = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
         wrapWithProgram(listOf(assign))
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
     }
 
     test("regular variable not in mapped IO ram on C64") {
@@ -159,7 +159,7 @@ class TestMemory: FunSpec({
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
     }
 
     test("memory mapped variable not in mapped IO ram on C64") {
@@ -172,7 +172,7 @@ class TestMemory: FunSpec({
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
     }
 
     test("memory mapped variable in mapped IO ram on C64") {
@@ -185,7 +185,7 @@ class TestMemory: FunSpec({
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
     }
 
     test("array not in mapped IO ram") {
@@ -198,7 +198,7 @@ class TestMemory: FunSpec({
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
     }
 
     test("memory mapped array not in mapped IO ram") {
@@ -212,7 +212,7 @@ class TestMemory: FunSpec({
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
-        target.isIOAddress(c64target.machine) shouldBe false
+        target.isIOAddress(c64target) shouldBe false
     }
 
     test("memory mapped array in mapped IO ram") {
@@ -226,7 +226,7 @@ class TestMemory: FunSpec({
         val module = Module(mutableListOf(subroutine), Position.DUMMY, SourceCode.Generated("test"))
         Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             .addModule(module)
-        target.isIOAddress(c64target.machine) shouldBe true
+        target.isIOAddress(c64target) shouldBe true
     }
 
 
@@ -263,11 +263,11 @@ class TestMemory: FunSpec({
             target.memorySize(BaseDataType.BOOL) shouldBe 1
             target.memorySize(BaseDataType.BYTE) shouldBe 1
             target.memorySize(BaseDataType.WORD) shouldBe 2
-            target.memorySize(BaseDataType.FLOAT) shouldBe target.machine.FLOAT_MEM_SIZE
+            target.memorySize(BaseDataType.FLOAT) shouldBe target.FLOAT_MEM_SIZE
 
             target.memorySize(DataType.forDt(BaseDataType.BOOL), null) shouldBe 1
             target.memorySize(DataType.forDt(BaseDataType.WORD), null) shouldBe 2
-            target.memorySize(DataType.forDt(BaseDataType.FLOAT), null) shouldBe target.machine.FLOAT_MEM_SIZE
+            target.memorySize(DataType.forDt(BaseDataType.FLOAT), null) shouldBe target.FLOAT_MEM_SIZE
 
             target.memorySize(DataType.forDt(BaseDataType.STR), null) shouldBe 2
             target.memorySize(DataType.forDt(BaseDataType.STR), 50) shouldBe 50
@@ -279,13 +279,13 @@ class TestMemory: FunSpec({
             target.memorySize(DataType.arrayFor(BaseDataType.BYTE), 10) shouldBe 10
             target.memorySize(DataType.arrayFor(BaseDataType.WORD), 10) shouldBe 20
             target.memorySize(DataType.arrayFor(BaseDataType.WORD), 10) shouldBe 20
-            target.memorySize(DataType.arrayFor(BaseDataType.FLOAT), 10) shouldBe 10*target.machine.FLOAT_MEM_SIZE
+            target.memorySize(DataType.arrayFor(BaseDataType.FLOAT), 10) shouldBe 10*target.FLOAT_MEM_SIZE
             target.memorySize(DataType.arrayFor(BaseDataType.WORD, true), 10) shouldBe 20
             target.memorySize(DataType.arrayFor(BaseDataType.UWORD, true), 10) shouldBe 20
 
             target.memorySize(DataType.forDt(BaseDataType.BOOL), 10) shouldBe 10
             target.memorySize(DataType.forDt(BaseDataType.UWORD), 10) shouldBe 20
-            target.memorySize(DataType.forDt(BaseDataType.FLOAT), 10) shouldBe 10*target.machine.FLOAT_MEM_SIZE
+            target.memorySize(DataType.forDt(BaseDataType.FLOAT), 10) shouldBe 10*target.FLOAT_MEM_SIZE
         }
     }
 })

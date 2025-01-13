@@ -365,7 +365,7 @@ object SysCalls {
                 while(length>0u) {
                     if(vm.memory.getFloat(array)==value)
                         return returnValue(callspec.returns.single(), 1u, vm)
-                    array += vm.machinedef.FLOAT_MEM_SIZE
+                    array += vm.machine.FLOAT_MEM_SIZE
                     length--
                 }
                 returnValue(callspec.returns.single(), 0u, vm)
