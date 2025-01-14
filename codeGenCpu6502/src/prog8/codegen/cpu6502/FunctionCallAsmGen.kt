@@ -15,12 +15,16 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // just ignore any result values from the function call.
     }
 
-    internal fun optimizeIntArgsViaCpuRegisters(params: List<PtSubroutineParameter>) =
-        when(params.size) {
-            1 -> params[0].type.isIntegerOrBool
-            2 -> params[0].type.isByteOrBool && params[1].type.isByteOrBool
+    internal fun optimizeIntArgsViaCpuRegisters(params: List<PtSubroutineParameter>): Boolean {
+        // When the parameter(s) are passed via an explicit register or register pair,
+        // we consider them NOT to be optimized into (possibly different) CPU registers.
+        // Just load them in whatever the register spec says.
+        return when (params.size) {
+            1 -> params[0].type.isIntegerOrBool && params[0].register == null
+            2 -> params[0].type.isByteOrBool && params[1].type.isByteOrBool && params[0].register == null && params[1].register == null
             else -> false
         }
+    }
 
     internal fun translateFunctionCall(call: PtFunctionCall) {
         // Output only the code to set up the parameters and perform the actual call

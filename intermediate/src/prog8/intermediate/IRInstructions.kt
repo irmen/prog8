@@ -1030,6 +1030,8 @@ data class IRInstruction(
     }
 
     private fun determineReg2Type(): IRDataType? {
+        if(opcode==Opcode.LOADX || opcode==Opcode.LOADIX || opcode==Opcode.STOREX || opcode==Opcode.STOREIX)
+            return IRDataType.BYTE
         if(opcode==Opcode.LOADI || opcode==Opcode.STOREI)
             return IRDataType.WORD
         if(opcode==Opcode.MSIG || opcode==Opcode.LSIG)

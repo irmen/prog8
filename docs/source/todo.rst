@@ -14,8 +14,9 @@ Future Things and Ideas
 - Kotlin: can we use inline value classes in certain spots?
 - allow multi-value variable initialization (var a,b,c  = 1,2,3)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
-- Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine AND there is separate setup logic going on before calling it.
-  Make up our mind! Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
+- Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine (see translateSubroutine function)
+  AND there is separate setup logic going on before calling it. Make up our mind!
+  Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
   Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
   Need to add some way to generate a stable jump table at a given address.
   Need library to not call init_system AND init_system_phase2 not either.
