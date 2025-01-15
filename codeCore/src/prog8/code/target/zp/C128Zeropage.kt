@@ -11,7 +11,7 @@ import prog8.code.core.ZeropageType
 class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
 
     override val SCRATCH_B1 = 0x74u      // temp storage for a single byte
-    override val SCRATCH_REG = 0x75u     // temp storage for a register, must be B1+1
+    override val SCRATCH_REG = 0x75u     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0xfbu      // temp storage 1 for a word  $fb+$fc
     override val SCRATCH_W2 = 0xfdu      // temp storage 2 for a word  $fd+$fe
 
@@ -70,9 +70,5 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         removeReservedFromFreePool()
         retainAllowed()
-    }
-
-    override fun allocateCx16VirtualRegisters() {
-        TODO("Not known if C128 can put the virtual regs in ZP")
     }
 }

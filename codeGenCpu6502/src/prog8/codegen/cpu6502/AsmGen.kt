@@ -428,7 +428,7 @@ class AsmGen6502Internal (
             }
             is PtVariable, is PtMemMapped -> {
                 val sourceName = asmVariableName(pointervar)
-                if (isTargetCpu(CpuType.CPU65c02)) {
+                if (isTargetCpu(CpuType.CPU65C02)) {
                     return if (allocator.isZpVar((target as PtNamedNode).scopedName)) {
                         // pointervar is already in the zero page, no need to copy
                         out("  lda  ($sourceName)")
@@ -465,7 +465,7 @@ class AsmGen6502Internal (
 
     internal fun storeAIntoPointerVar(pointervar: PtIdentifier) {
         val sourceName = asmVariableName(pointervar)
-        if (isTargetCpu(CpuType.CPU65c02)) {
+        if (isTargetCpu(CpuType.CPU65C02)) {
             if (allocator.isZpVar(pointervar.name)) {
                 // pointervar is already in the zero page, no need to copy
                 out("  sta  ($sourceName)")
@@ -494,7 +494,7 @@ class AsmGen6502Internal (
     }
 
     internal fun storeAIntoZpPointerVar(zpPointerVar: String, keepY: Boolean) {
-        if (isTargetCpu(CpuType.CPU65c02))
+        if (isTargetCpu(CpuType.CPU65C02))
             out("  sta  ($zpPointerVar)")
         else {
             if(keepY)
@@ -505,7 +505,7 @@ class AsmGen6502Internal (
     }
 
     internal fun loadAFromZpPointerVar(zpPointerVar: String, keepY: Boolean) {
-        if (isTargetCpu(CpuType.CPU65c02))
+        if (isTargetCpu(CpuType.CPU65C02))
             out("  lda  ($zpPointerVar)")
         else {
             if(keepY)
@@ -524,7 +524,7 @@ class AsmGen6502Internal (
         when (register) {
             CpuRegister.A -> out("  pha")
             CpuRegister.X -> {
-                if (isTargetCpu(CpuType.CPU65c02)) out("  phx")
+                if (isTargetCpu(CpuType.CPU65C02)) out("  phx")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  txa |  pha  |  lda  P8ZP_SCRATCH_REG")
@@ -533,7 +533,7 @@ class AsmGen6502Internal (
                 }
             }
             CpuRegister.Y -> {
-                if (isTargetCpu(CpuType.CPU65c02)) out("  phy")
+                if (isTargetCpu(CpuType.CPU65C02)) out("  phy")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  tya |  pha  |  lda  P8ZP_SCRATCH_REG")
@@ -552,7 +552,7 @@ class AsmGen6502Internal (
                 out("  pla")
             }
             CpuRegister.X -> {
-                if (isTargetCpu(CpuType.CPU65c02)) out("  plx")
+                if (isTargetCpu(CpuType.CPU65C02)) out("  plx")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  pla |  tax |  lda  P8ZP_SCRATCH_REG")
@@ -561,7 +561,7 @@ class AsmGen6502Internal (
                 }
             }
             CpuRegister.Y -> {
-                if (isTargetCpu(CpuType.CPU65c02)) out("  ply")
+                if (isTargetCpu(CpuType.CPU65C02)) out("  ply")
                 else {
                     if(keepA)
                         out("  sta  P8ZP_SCRATCH_REG |  pla |  tay |  lda  P8ZP_SCRATCH_REG")
@@ -820,7 +820,7 @@ class AsmGen6502Internal (
     private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {
         require(iterations in 257..65536) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createRepeatCounterVar(BaseDataType.UWORD, isTargetCpu(CpuType.CPU65c02), stmt)
+        val counterVar = createRepeatCounterVar(BaseDataType.UWORD, isTargetCpu(CpuType.CPU65C02), stmt)
         val loopcount = if(iterations==65536) 0 else if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
         out("""
             ldy  #>$loopcount
@@ -862,7 +862,7 @@ $repeatLabel""")
     private fun repeatByteCount(count: Int, stmt: PtRepeatLoop) {
         require(count in 2..256) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
-        if(isTargetCpu(CpuType.CPU65c02)) {
+        if(isTargetCpu(CpuType.CPU65C02)) {
             val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, true, stmt)
             out("  lda  #${count and 255} |  sta  $counterVar")
             out(repeatLabel)
@@ -880,7 +880,7 @@ $repeatLabel""")
     private fun repeatCountInY(stmt: PtRepeatLoop, endLabel: String) {
         val repeatLabel = makeLabel("repeat")
         out("  cpy  #0")
-        if(isTargetCpu(CpuType.CPU65c02)) {
+        if(isTargetCpu(CpuType.CPU65C02)) {
             val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, true, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
             out(repeatLabel)
@@ -1139,7 +1139,7 @@ $repeatLabel""")
         // sign extend signed byte in a var to a full word in that variable
         when(valueDt) {
             BaseDataType.UBYTE -> {
-                if(isTargetCpu(CpuType.CPU65c02))
+                if(isTargetCpu(CpuType.CPU65C02))
                     out("  stz  $asmvar+1")
                 else
                     out("  lda  #0 |  sta  $asmvar+1")
@@ -1162,7 +1162,7 @@ $repeatLabel""")
         if(indirect) {
             out("  jmp  ($asmLabel)")
         } else {
-            if (isTargetCpu(CpuType.CPU65c02))
+            if (isTargetCpu(CpuType.CPU65C02))
                 out("  bra  $asmLabel")     // note: 64tass will convert this automatically to a jmp if the relative distance is too large
             else
                 out("  jmp  $asmLabel")
@@ -1412,7 +1412,7 @@ $repeatLabel""")
 
         fun assignViaExprEval() {
             assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-            if (isTargetCpu(CpuType.CPU65c02)) {
+            if (isTargetCpu(CpuType.CPU65C02)) {
                 out("  lda  (P8ZP_SCRATCH_W2)")
             } else {
                 out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W2),y")
@@ -1445,7 +1445,7 @@ $repeatLabel""")
             out("  pha")
         } else if(dt.isWord) {
             assignExpressionToRegister(value, RegisterOrPair.AY, signed)
-            if (isTargetCpu(CpuType.CPU65c02))
+            if (isTargetCpu(CpuType.CPU65C02))
                 out("  pha |  phy")
             else
                 out("  pha |  tya |  pha")
@@ -1550,7 +1550,7 @@ $repeatLabel""")
     }
 
     internal fun immediateAndInplace(name: String, value: Int) {
-        if(isTargetCpu(CpuType.CPU65c02)) {
+        if(isTargetCpu(CpuType.CPU65C02)) {
             out(" lda  #${value xor 255} |  trb  $name")     // reset bit
         } else  {
             out(" lda  $name |  and  #$value |  sta  $name")
@@ -1558,7 +1558,7 @@ $repeatLabel""")
     }
 
     internal fun immediateOrInplace(name: String, value: Int) {
-        if(isTargetCpu(CpuType.CPU65c02)) {
+        if(isTargetCpu(CpuType.CPU65C02)) {
             out(" lda  #$value |  tsb  $name")       // set bit
         } else  {
             out(" lda  $name |  ora  #$value |  sta  $name")

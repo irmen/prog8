@@ -9,6 +9,7 @@ import java.nio.file.Path
 class Neo6502Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
     override val name = NAME
     override val defaultEncoding = Encoding.ISO
+    override val libraryPath = null
 
     companion object {
         const val NAME = "neo"
@@ -16,7 +17,8 @@ class Neo6502Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer b
     }
 
 
-    override val cpu = CpuType.CPU65c02
+    override val cpu = CpuType.CPU65C02
+    override val programType = ProgramType.NEORAW
 
     override val FLOAT_MAX_POSITIVE = 9.999999999e97
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97

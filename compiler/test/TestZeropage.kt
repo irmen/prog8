@@ -34,9 +34,6 @@ class TestAbstractZeropage: FunSpec({
             removeReservedFromFreePool()
             retainAllowed()
         }
-
-        override fun allocateCx16VirtualRegisters() {
-        }
     }
 
 

@@ -1,13 +1,9 @@
 package prog8.compiler
 
 import com.github.michaelbull.result.onFailure
-import prog8.ast.AstException
-import prog8.ast.IBuiltinFunctions
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
-import prog8.ast.printProgram
-import prog8.ast.printSymbols
 import prog8.ast.statements.Directive
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
@@ -15,6 +11,7 @@ import prog8.code.ast.printAst
 import prog8.code.ast.verifyFinalAstBeforeAsmGen
 import prog8.code.core.*
 import prog8.code.optimize.optimizeSimplifiedAst
+import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.*
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
@@ -22,6 +19,7 @@ import prog8.optimizer.*
 import prog8.parser.ParseError
 import java.nio.file.Path
 import kotlin.io.path.Path
+import kotlin.io.path.isReadable
 import kotlin.io.path.nameWithoutExtension
 import kotlin.math.round
 import kotlin.system.exitProcess
@@ -61,15 +59,22 @@ class CompilerArguments(val filepath: Path,
 
 fun compileProgram(args: CompilerArguments): CompilationResult? {
 
-    val compTarget = getCompilationTargetByName(args.compilationTarget)
     var compilationOptions: CompilationOptions
     var ast: PtProgram? = null
     var resultingProgram: Program? = null
     var importedFiles: List<Path>
 
+    val targetConfigFile = expandTilde(Path(args.compilationTarget))
+    val compTarget = if(targetConfigFile.isReadable()) {
+        ConfigFileTarget.fromConfigFile(targetConfigFile)
+    } else {
+        getCompilationTargetByName(args.compilationTarget)
+    }
+
     try {
         val totalTime = measureTimeMillis {
-            val (program, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.sourceDirs)
+            val sourceDirs = if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) + args.sourceDirs else args.sourceDirs
+            val (program, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, sourceDirs)
             compilationOptions = options
 
             with(compilationOptions) {
@@ -510,7 +515,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
 
     val asmgen = if(compilerOptions.experimentalCodegen)
         prog8.codegen.experimental.ExperiCodeGen()
-    else if (compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65c02))
+    else if (compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02))
         prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1)
     else if (compilerOptions.compTarget.name == VMTarget.NAME)
         VmCodeGen()

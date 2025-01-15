@@ -58,6 +58,7 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
         is VMTarget -> searchIn.add(0, assumeDirectory(examplesDir, "vm"))
         is C128Target -> searchIn.add(0, assumeDirectory(examplesDir, "c128"))
         is AtariTarget -> searchIn.add(0, assumeDirectory(examplesDir, "atari"))
+        is Neo6502Target -> searchIn.add(0, assumeDirectory(examplesDir, "neo"))
     }
     val filepath = searchIn.asSequence()
         .map { it.resolve("$source.p8") }

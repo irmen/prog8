@@ -10,6 +10,7 @@ import java.nio.file.Path
 class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
     override val name = NAME
     override val defaultEncoding = Encoding.ATASCII
+    override val libraryPath = null
 
     companion object {
         const val NAME = "atari"
@@ -17,6 +18,7 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by 
     }
 
     override val cpu = CpuType.CPU6502
+    override val programType = ProgramType.ATARIXEX
 
     override val FLOAT_MAX_POSITIVE = 9.999999999e97
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97

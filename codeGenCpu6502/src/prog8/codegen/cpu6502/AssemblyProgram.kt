@@ -25,8 +25,8 @@ internal class AssemblyProgram(
 
         val assemblerCommand: List<String>
 
-        when (compTarget.name) {
-            in arrayOf("c64", "c128", "cx16", "pet32") -> {
+        when(compTarget.programType) {
+            ProgramType.CBMPRG -> {
                 // CBM machines .prg generation.
 
                 // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
@@ -64,7 +64,7 @@ internal class AssemblyProgram(
                 assemblerCommand = command
 
             }
-            "atari" -> {
+            ProgramType.ATARIXEX -> {
                 // Atari800XL .xex generation.
 
                 // TODO are these options okay for atari?
@@ -100,7 +100,7 @@ internal class AssemblyProgram(
                 command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
             }
-            "neo" -> {
+            ProgramType.NEORAW -> {
                 // Neo6502 raw program generation.
 
                 if(options.output!=OutputType.RAW || options.loadAddress!=0x0800u || options.launcher!=CbmPrgLauncherType.NONE) {
@@ -135,7 +135,7 @@ internal class AssemblyProgram(
                 command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
             }
-            else -> throw AssemblyError("invalid compilation target")
+            else -> throw AssemblyError("invalid program type")
         }
 
         val proc = ProcessBuilder(assemblerCommand).inheritIO().start()

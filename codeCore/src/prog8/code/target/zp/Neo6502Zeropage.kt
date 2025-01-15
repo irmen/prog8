@@ -5,7 +5,7 @@ import prog8.code.core.*
 class Neo6502Zeropage(options: CompilationOptions) : Zeropage(options) {
 
     override val SCRATCH_B1 = 0xfau      // temp storage for a single byte
-    override val SCRATCH_REG = 0xfbu     // temp storage for a register, must be B1+1
+    override val SCRATCH_REG = 0xfbu     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0xfcu      // temp storage 1 for a word  $fc+$fd
     override val SCRATCH_W2 = 0xfeu      // temp storage 2 for a word  $fe+$ff
 
@@ -32,7 +32,7 @@ class Neo6502Zeropage(options: CompilationOptions) : Zeropage(options) {
         retainAllowed()
     }
 
-    override fun allocateCx16VirtualRegisters() {
+    private fun allocateCx16VirtualRegisters() {
         // Note: the 16 virtual registers R0-R15 are not regular allocated variables, they're *memory mapped* elsewhere to fixed addresses.
         // However, to be able for the compiler to "see" them as zeropage variables, we have to register them here as well.
         // This is important because the compiler sometimes treats ZP variables more efficiently (for example if it's a pointer)

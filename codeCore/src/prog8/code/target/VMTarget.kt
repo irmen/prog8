@@ -10,6 +10,7 @@ import kotlin.io.path.readText
 class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
     override val name = NAME
     override val defaultEncoding = Encoding.ISO
+    override val libraryPath = null
 
     companion object {
         const val NAME = "virtual"
@@ -17,6 +18,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
     }
 
     override val cpu = CpuType.VIRTUAL
+    override val programType = ProgramType.VIRTUALIR
 
     override val FLOAT_MAX_POSITIVE = Double.MAX_VALUE.toDouble()
     override val FLOAT_MAX_NEGATIVE = -Double.MAX_VALUE.toDouble()
@@ -123,6 +125,4 @@ private class VirtualZeropage(options: CompilationOptions): Zeropage(options) {
         get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
     override val SCRATCH_W2: UInt
         get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
-
-    override fun allocateCx16VirtualRegisters() { /* there is no actual zero page in this target to allocate thing in */ }
 }

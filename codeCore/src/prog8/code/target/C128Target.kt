@@ -7,6 +7,7 @@ import prog8.code.core.GoldenRam
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IMemSizer
 import prog8.code.core.IStringEncoding
+import prog8.code.core.ProgramType
 import prog8.code.core.Zeropage
 import prog8.code.target.zp.C128Zeropage
 import prog8.code.target.encodings.Encoder
@@ -16,6 +17,7 @@ import java.nio.file.Path
 class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(Mflpt5.FLOAT_MEM_SIZE) {
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII
+    override val libraryPath = null
 
     companion object {
         const val NAME = "c128"
@@ -23,6 +25,7 @@ class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
 
 
     override val cpu = CpuType.CPU6502
+    override val programType = ProgramType.CBMPRG
 
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE

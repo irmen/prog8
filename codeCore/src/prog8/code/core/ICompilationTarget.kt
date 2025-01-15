@@ -4,8 +4,15 @@ import java.nio.file.Path
 
 enum class CpuType {
     CPU6502,
-    CPU65c02,
+    CPU65C02,
     VIRTUAL
+}
+
+enum class ProgramType {
+    CBMPRG,
+    ATARIXEX,
+    NEORAW,
+    VIRTUALIR
 }
 
 interface ICompilationTarget: IStringEncoding, IMemSizer {
@@ -23,8 +30,10 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val BSSGOLDENRAM_END: UInt
 
     val cpu: CpuType
+    val programType: ProgramType
     var zeropage: Zeropage
     var golden: GoldenRam
+    val libraryPath: Path?
 
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)
     fun getFloatAsmBytes(num: Number): String

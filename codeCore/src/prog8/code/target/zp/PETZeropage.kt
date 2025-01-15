@@ -11,7 +11,7 @@ import prog8.code.core.ZeropageType
 class PETZeropage(options: CompilationOptions) : Zeropage(options) {
 
     override val SCRATCH_B1 = 0xb3u      // temp storage for a single byte
-    override val SCRATCH_REG = 0xb4u     // temp storage for a register, must be B1+1
+    override val SCRATCH_REG = 0xb4u     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0xb6u      // temp storage 1 for a word
     override val SCRATCH_W2 = 0xb8u      // temp storage 2 for a word
 
@@ -51,9 +51,5 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
 
         removeReservedFromFreePool()
         retainAllowed()
-    }
-
-    override fun allocateCx16VirtualRegisters() {
-        TODO("Not known if PET can put the virtual regs in ZP")
     }
 }

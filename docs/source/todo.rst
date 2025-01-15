@@ -1,6 +1,8 @@
 TODO
 ====
 
+- Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 
@@ -10,7 +12,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 - Kotlin: can we use inline value classes in certain spots?
 - allow multi-value variable initialization (var a,b,c  = 1,2,3)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions

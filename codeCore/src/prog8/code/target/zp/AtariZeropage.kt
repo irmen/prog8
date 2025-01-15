@@ -8,7 +8,7 @@ import prog8.code.core.ZeropageType
 class AtariZeropage(options: CompilationOptions) : Zeropage(options) {
 
     override val SCRATCH_B1 = 0xcbu      // temp storage for a single byte
-    override val SCRATCH_REG = 0xccu     // temp storage for a register, must be B1+1
+    override val SCRATCH_REG = 0xccu     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0xcdu      // temp storage 1 for a word  $cd+$ce
     override val SCRATCH_W2 = 0xcfu      // temp storage 2 for a word  $cf+$d0        TODO is $d0 okay to use?
 
@@ -49,9 +49,5 @@ class AtariZeropage(options: CompilationOptions) : Zeropage(options) {
 
         removeReservedFromFreePool()
         retainAllowed()
-    }
-
-    override fun allocateCx16VirtualRegisters() {
-        TODO("Not known if atari can put the virtual regs in ZP")
     }
 }

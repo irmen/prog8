@@ -488,7 +488,7 @@ internal class AssignmentAsmGen(
                         when(value.operator) {
                             "+" -> {}
                             "-" -> {
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                     asmgen.out("  eor  #255 |  ina")
                                 else
                                     asmgen.out("  eor  #255 |  clc |  adc  #1")
@@ -769,7 +769,7 @@ internal class AssignmentAsmGen(
                             assignRegisterByte(assign.target, CpuRegister.A, false, false)
                             return true
                         }
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                             val ptrvar = right.address as? PtIdentifier
                             if (ptrvar != null && asmgen.isZpVar(ptrvar)) {
                                 asmgen.out("""
@@ -815,7 +815,7 @@ internal class AssignmentAsmGen(
                             assignRegisterByte(assign.target, CpuRegister.A, false, false)
                             return true
                         }
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                             val ptrvar = right.address as? PtIdentifier
                             if (ptrvar != null && asmgen.isZpVar(ptrvar)) {
                                 asmgen.out("""
@@ -890,7 +890,7 @@ internal class AssignmentAsmGen(
             when(assign.target.kind) {
                 TargetStorageKind.VARIABLE -> {
                     if(assign.target.datatype.isWord) {
-                        assignTrue = if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                        assignTrue = if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                             PtInlineAssembly("""  
   lda  #1
   sta  ${assign.target.asmVarname}
@@ -1290,7 +1290,7 @@ internal class AssignmentAsmGen(
                 }
                 is PtNumber -> {
                     assignExpressionToRegister(left, RegisterOrPair.A, dt.isSigned)
-                    if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                    if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65C02)) {
                         if (expr.operator == "+")
                             asmgen.out("  inc  a")
                         else
@@ -1438,7 +1438,7 @@ internal class AssignmentAsmGen(
                 }
                 is PtNumber -> {
                     assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
-                    if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                    if(right.number==1.0 && asmgen.isTargetCpu(CpuType.CPU65C02)) {
                         if(expr.operator=="+") {
                             asmgen.out("""
                                 inc  a
@@ -2340,7 +2340,7 @@ $endLabel""")
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
                     BaseDataType.UWORD, BaseDataType.WORD -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
@@ -2363,7 +2363,7 @@ $endLabel""")
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
                     BaseDataType.UWORD -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
@@ -2483,7 +2483,7 @@ $endLabel""")
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
                     BaseDataType.UWORD, BaseDataType.WORD -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
@@ -2512,7 +2512,7 @@ $endLabel""")
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
                     BaseDataType.UWORD -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
@@ -2739,7 +2739,7 @@ $endLabel""")
             TargetStorageKind.VARIABLE -> {
                 if(sourceDt.isUnsignedByte || sourceDt.isBool) {
                     asmgen.out("  lda  $sourceName |  sta  ${target.asmVarname}")
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  stz  ${target.asmVarname}+1")
                     else
                         asmgen.out("  lda  #0 |  sta  ${target.asmVarname}+1")
@@ -2814,7 +2814,7 @@ $endLabel""")
                         RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
                         in Cx16VirtualRegisters -> {
                             asmgen.out("  lda  $sourceName |  sta  cx16.${target.register.toString().lowercase()}")
-                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                 asmgen.out("  stz  cx16.${target.register.toString().lowercase()}+1")
                             else
                                 asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().lowercase()}+1")
@@ -3082,7 +3082,7 @@ $endLabel""")
         when(wordtarget.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("  lda  $sourceName |  sta  ${wordtarget.asmVarname}")
-                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
                     asmgen.out("  stz  ${wordtarget.asmVarname}+1")
                 else
                     asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
@@ -3092,7 +3092,7 @@ $endLabel""")
                     if (wordtarget.constArrayIndexValue!=null) {
                         val scaledIdx = wordtarget.constArrayIndexValue!!
                         asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}_lsb+$scaledIdx")
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  ${wordtarget.asmVarname}_msb+$scaledIdx")
                         else
                             asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}_msb+$scaledIdx")
@@ -3109,7 +3109,7 @@ $endLabel""")
                     if (wordtarget.constArrayIndexValue!=null) {
                         val scaledIdx = wordtarget.constArrayIndexValue!! * 2u
                         asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}+$scaledIdx")
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  ${wordtarget.asmVarname}+$scaledIdx+1")
                         else
                             asmgen.out("  lda  #0  | sta  ${wordtarget.asmVarname}+$scaledIdx+1")
@@ -3132,7 +3132,7 @@ $endLabel""")
                     RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
                     in Cx16VirtualRegisters -> {
                         val regname = wordtarget.register.name.lowercase()
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  stz  cx16.$regname+1")
                         else
                             asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
@@ -3157,7 +3157,7 @@ $endLabel""")
                 lda  #0
 +               sta  $vreg+1""")
         } else {
-            if(asmgen.isTargetCpu(CpuType.CPU65c02))
+            if(asmgen.isTargetCpu(CpuType.CPU65C02))
                 asmgen.out("  stz  $vreg+1")
             else
                 asmgen.out("  lda  #0 |  sta  $vreg+1")
@@ -3177,7 +3177,7 @@ $endLabel""")
                         asmgen.signExtendAYlsb(if(target.datatype.isSigned) BaseDataType.BYTE else BaseDataType.UBYTE)
                         asmgen.out("  sty  ${target.asmVarname}+1")
                     } else {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  ${target.asmVarname}+1")
                         else
                             asmgen.out("  lda  #0 |  sta  ${target.asmVarname}+1")
@@ -3450,7 +3450,7 @@ $endLabel""")
                     }
                     else {
                         if (regs !in Cx16VirtualRegisters) {
-                            if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                            if (asmgen.isTargetCpu(CpuType.CPU65C02)) {
                                 when (regs) {
                                     RegisterOrPair.AX -> asmgen.out("  pha |  phx")
                                     RegisterOrPair.AY -> asmgen.out("  pha |  phy")
@@ -3502,7 +3502,7 @@ $endLabel""")
                     }
                     else {
                         if (regs !in Cx16VirtualRegisters) {
-                            if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                            if (asmgen.isTargetCpu(CpuType.CPU65C02)) {
                                 when (regs) {
                                     RegisterOrPair.AX -> asmgen.out("  pha |  phx")
                                     RegisterOrPair.AY -> asmgen.out("  pha |  phy")
@@ -3598,7 +3598,7 @@ $endLabel""")
     }
 
     private fun assignConstantWord(target: AsmAssignTarget, word: Int) {
-        if(word==0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
+        if(word==0 && asmgen.isTargetCpu(CpuType.CPU65C02)) {
             // optimize setting zero value for this processor
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
@@ -3695,7 +3695,7 @@ $endLabel""")
     }
 
     internal fun assignConstantByte(target: AsmAssignTarget, byte: Int) {
-        if(byte==0 && asmgen.isTargetCpu(CpuType.CPU65c02)) {
+        if(byte==0 && asmgen.isTargetCpu(CpuType.CPU65C02)) {
             // optimize setting zero value for this cpu
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
@@ -3769,7 +3769,7 @@ $endLabel""")
                 in Cx16VirtualRegisters -> {
                     asmgen.out("  lda  #${byte.toHex()} |  sta  cx16.${target.register.toString().lowercase()}")
                     if(target.datatype.isWord) {
-                        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if (asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  cx16.${target.register.toString().lowercase()}+1\n")
                         else
                             asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().lowercase()}+1\n")
@@ -3786,7 +3786,7 @@ $endLabel""")
             // optimized case for float zero
             when(target.kind) {
                 TargetStorageKind.VARIABLE -> {
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("""
                             stz  ${target.asmVarname}
                             stz  ${target.asmVarname}+1
@@ -3941,7 +3941,7 @@ $endLabel""")
             when(wordtarget.kind) {
                 TargetStorageKind.VARIABLE -> {
                     asmgen.out("  lda  ${address.toHex()} |  sta  ${wordtarget.asmVarname}")
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  stz  ${wordtarget.asmVarname}+1")
                     else
                         asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
@@ -3956,7 +3956,7 @@ $endLabel""")
                     RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldy  ${address.toHex()}")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("  lda  ${address.toHex()} |  sta  cx16.${wordtarget.register.toString().lowercase()}")
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  cx16.${wordtarget.register.toString().lowercase()}+1")
                         else
                             asmgen.out("  lda  #0 |  sta  cx16.${wordtarget.register.toString().lowercase()}+1")
@@ -3970,7 +3970,7 @@ $endLabel""")
                 TargetStorageKind.VARIABLE -> {
                     asmgen.loadByteFromPointerIntoA(identifier)
                     asmgen.out(" sta  ${wordtarget.asmVarname}")
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  stz  ${wordtarget.asmVarname}+1")
                     else
                         asmgen.out("  lda  #0 |  sta  ${wordtarget.asmVarname}+1")
@@ -3988,7 +3988,7 @@ $endLabel""")
                         RegisterOrPair.XY -> asmgen.out("  tax |  ldy  #0")
                         in Cx16VirtualRegisters -> {
                             asmgen.out("  sta  cx16.${wordtarget.register.toString().lowercase()}")
-                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                 asmgen.out("  stz  cx16.${wordtarget.register.toString().lowercase()}+1")
                             else
                                 asmgen.out("  lda  #0 |  sta  cx16.${wordtarget.register.toString().lowercase()}+1")
@@ -4090,7 +4090,7 @@ $endLabel""")
                             }
                             else -> {
                                 asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                                if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                                     asmgen.out("""
                                         lda  (P8ZP_SCRATCH_W2)
                                         eor  #$eorValue""")
@@ -4160,7 +4160,7 @@ $endLabel""")
             datatype.isSignedByte -> {
                 when (target.kind) {
                     TargetStorageKind.VARIABLE -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("""
                                 lda  ${target.asmVarname}
                                 eor  #255
@@ -4176,7 +4176,7 @@ $endLabel""")
                     TargetStorageKind.REGISTER -> {
                         when(target.register!!) {
                             RegisterOrPair.A -> {
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                     asmgen.out("  eor  #255 |  ina")
                                 else
                                     asmgen.out("  eor  #255 |  clc |  adc  #1")

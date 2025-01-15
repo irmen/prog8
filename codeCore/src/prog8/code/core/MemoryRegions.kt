@@ -22,7 +22,7 @@ abstract class MemoryAllocator(protected val options: CompilationOptions) {
 abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 
     abstract val SCRATCH_B1 : UInt      // temp storage for a single byte
-    abstract val SCRATCH_REG : UInt     // temp storage for a register, must be B1+1
+    abstract val SCRATCH_REG : UInt     // temp storage for a register byte, must be B1+1
     abstract val SCRATCH_W1 : UInt      // temp storage 1 for a word  $fb+$fc
     abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word  $fb+$fc
 
@@ -133,8 +133,6 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
         require(size>0)
         return free.containsAll((address until address+size.toUInt()).toList())
     }
-
-    abstract fun allocateCx16VirtualRegisters()
 }
 
 

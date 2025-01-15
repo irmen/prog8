@@ -139,7 +139,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcRsave() {
-        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+        if (asmgen.isTargetCpu(CpuType.CPU65C02))
             asmgen.out("""
                 php
                 pha
@@ -159,7 +159,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcRrestore() {
-        if (asmgen.isTargetCpu(CpuType.CPU65c02))
+        if (asmgen.isTargetCpu(CpuType.CPU65C02))
             asmgen.out("""
                 plx
                 ply
@@ -781,7 +781,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                    if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                    if (asmgen.isTargetCpu(CpuType.CPU65C02)) {
                         asmgen.out("""
                             sta  ($varname)
                             txa
@@ -847,7 +847,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val varname = asmgen.asmVariableName(addrExpr)
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
-                    if (asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                    if (asmgen.isTargetCpu(CpuType.CPU65C02)) {
                         asmgen.out("""
                             ldy  #1
                             lda  ($varname),y
@@ -1115,7 +1115,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+1 |  ldy  #0")
                 in Cx16VirtualRegisters -> {
                     val regname = resultRegister.name.lowercase()
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  lda  $sourceName+1 |  sta  cx16.$regname |  stz  cx16.$regname+1")
                     else
                         asmgen.out("  lda  $sourceName+1 |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
@@ -1215,7 +1215,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
                 in Cx16VirtualRegisters -> {
                     val regname = resultRegister.name.lowercase()
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  stz  cx16.$regname+1")
                     else
                         asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")

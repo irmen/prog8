@@ -508,7 +508,6 @@ mul_word_9	.proc
 		tay
 		lda  P8ZP_SCRATCH_W1
 		rts
-		rts
 		.pend
 
 mul_byte_10	.proc

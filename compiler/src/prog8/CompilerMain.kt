@@ -3,7 +3,7 @@ package prog8
 import kotlinx.cli.*
 import prog8.ast.AstException
 import prog8.code.core.CbmPrgLauncherType
-import prog8.code.source.ImportFileSystem
+import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -19,6 +19,7 @@ import java.nio.file.StandardWatchEventKinds
 import java.nio.file.WatchKey
 import java.time.LocalDateTime
 import kotlin.io.path.Path
+import kotlin.io.path.isReadable
 import kotlin.system.exitProcess
 
 
@@ -96,7 +97,7 @@ private fun compileMain(args: Array<String>): Boolean {
         return false
     }
 
-    val srcdirs = sourceDirs.map { ImportFileSystem.expandTilde(it) }.toMutableList()
+    val srcdirs = sourceDirs.map { expandTilde(it) }.toMutableList()
     if(sourceDirs.firstOrNull()!=".")
         srcdirs.add(0, ".")
 
@@ -107,8 +108,11 @@ private fun compileMain(args: Array<String>): Boolean {
         }
 
         if (compilationTarget !in CompilationTargets) {
-            System.err.println("Invalid compilation target: $compilationTarget")
-            return false
+            val configfile = expandTilde(Path(compilationTarget!!))
+            if(!configfile.isReadable()) {
+                System.err.println("Invalid compilation target: $compilationTarget")
+                return false
+            }
         }
     }
 

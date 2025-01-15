@@ -173,7 +173,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         asmgen.assignExpressionToRegister(memory.address, RegisterOrPair.AY, false)
                         asmgen.saveRegisterStack(CpuRegister.A, true)
                         asmgen.saveRegisterStack(CpuRegister.Y, true)
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A_65c02")
                         else
                             asmgen.out("  jsr  prog8_lib.read_byte_from_address_in_AY_into_A")
@@ -216,7 +216,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                         asmgen.restoreRegisterStack(CpuRegister.Y, false)
                         asmgen.restoreRegisterStack(CpuRegister.A, false)
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  jsr  prog8_lib.write_byte_X_to_address_in_AY_65c02")
                         else
                             asmgen.out("  jsr  prog8_lib.write_byte_X_to_address_in_AY")
@@ -775,7 +775,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         when(operator) {
             "+" -> {
                 if(number==1) {
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                         asmgen.out("""
                             inc  a
                             bne  +
@@ -813,7 +813,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "-" -> {
                 if(number==1) {
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                         asmgen.out("""
                             cmp  #0
                             bne  +
@@ -1091,7 +1091,7 @@ $shortcutLabel:""")
             }
         }
 
-        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+        if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
             if(operator=="&" && value is PtPrefix && value.operator=="~") {
                 // M &= ~A  -->  use TRB 65c02 instruction for that
                 asmgen.assignExpressionToRegister(value.value, RegisterOrPair.A, dt.isSigned)
@@ -1129,7 +1129,7 @@ $shortcutLabel:""")
     private fun inplacemodificationByteWithVariable(name: String, signed: Boolean, operator: String, otherName: String) {
         // note: no logical and/or shortcut here, not worth it due to simple right operand
 
-        if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+        if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
             if(operator=="|") {
                 // M |= A  -->  use TSB 65c02 instruction for that
                 asmgen.out("  lda  $otherName |  tsb  $name")
@@ -1144,7 +1144,7 @@ $shortcutLabel:""")
 
     private fun inplacemodificationRegisterAwithVariable(operator: String, variable: String, signed: Boolean) {
         if(operator in "+-" && variable in arrayOf("#1", "#$1", "#$01", "#%1", "#%00000001")) {
-            if(asmgen.isTargetCpu(CpuType.CPU65c02)) {
+            if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                 if(operator=="+")
                     asmgen.out("  inc  a")
                 else
@@ -1521,7 +1521,7 @@ $shortcutLabel:""")
             }
             "<<" -> {
                 if(value>=8) {
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  stz  $name")
                     else
                         asmgen.out("  lda  #0 |  sta  $name")
@@ -1532,7 +1532,7 @@ $shortcutLabel:""")
                 if(value>0) {
                     if (dt.isUnsignedByte) {
                         if(value>=8) {
-                            if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                            if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                 asmgen.out("  stz  $name")
                             else
                                 asmgen.out("  lda  #0 |  sta  $name")
@@ -1714,7 +1714,7 @@ $shortcutLabel:""")
                 asmgen.translateDirectMemReadExpressionToRegA(memread)
                 asmgen.out("  and  $name  |  sta  $name")
                 if(dt.isWord) {
-                    if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  stz  $name+1")
                     else
                         asmgen.out("  lda  #0 |  sta  $name+1")
@@ -1890,14 +1890,14 @@ $shortcutLabel:""")
             "<<" -> {
                 when {
                     value>=16 -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $lsb |  stz  $msb")
                         else
                             asmgen.out("  lda  #0 |  sta  $lsb |  sta  $msb")
                     }
                     value==8 -> {
                         asmgen.out("  lda  $lsb |  sta  $msb")
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $lsb")
                         else
                             asmgen.out("  lda  #0 |  sta  $lsb")
@@ -1930,14 +1930,14 @@ $shortcutLabel:""")
                     if(dt.isUnsignedWord) {
                         when {
                             value>=16 -> {
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                     asmgen.out("  stz  $lsb |  stz  $msb")
                                 else
                                     asmgen.out("  lda  #0 |  sta  $lsb |  sta  $msb")
                             }
                             value==8 -> {
                                 asmgen.out("  lda  $msb |  sta  $lsb")
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                     asmgen.out("  stz  $msb")
                                 else
                                     asmgen.out("  lda  #0 |  sta  $msb")
@@ -1986,25 +1986,25 @@ $shortcutLabel:""")
             "&" -> {
                 when {
                     value == 0 -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $lsb |  stz  $msb")
                         else
                             asmgen.out("  lda  #0 |  sta  $lsb |  sta  $msb")
                     }
                     value == 0x00ff -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $msb")
                         else
                             asmgen.out("  lda  #0 |  sta  $msb")
                     }
                     value == 0xff00 -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $lsb")
                         else
                             asmgen.out("  lda  #0 |  sta  $lsb")
                     }
                     value and 255 == 0 -> {
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $lsb")
                         else
                             asmgen.out("  lda  #0 |  sta  $lsb")
@@ -2012,7 +2012,7 @@ $shortcutLabel:""")
                     }
                     value < 0x0100 -> {
                         asmgen.immediateAndInplace(lsb, value)
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $msb")
                         else
                             asmgen.out("  lda  #0 |  sta  $msb")
@@ -2297,7 +2297,7 @@ $shortcutLabel:""")
                             // cx16 verafx hardware muls
                             if(valueDt.isUnsignedByte) {
                                 asmgen.out("  lda  $otherName |  sta  cx16.r1")
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                     asmgen.out("  stz  cx16.r1+1")
                                 else
                                     asmgen.out("  lda  #0 |  sta  cx16.r1+1")
@@ -2317,7 +2317,7 @@ $shortcutLabel:""")
                         } else {
                             if(valueDt.isUnsignedByte) {
                                 asmgen.out("  lda  $otherName |  sta  prog8_math.multiply_words.multiplier")
-                                if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                                if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                     asmgen.out("  stz  prog8_math.multiply_words.multiplier+1")
                                 else
                                     asmgen.out("  lda  #0 |  sta  prog8_math.multiply_words.multiplier+1")
@@ -2410,7 +2410,7 @@ $shortcutLabel:""")
                     }
                     "&" -> {
                         asmgen.out("  lda  $otherName |  and  $name |  sta  $name")
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $name+1")
                         else
                             asmgen.out("  lda  #0 |  sta  $name+1")
@@ -2826,7 +2826,7 @@ $shortcutLabel:""")
                     "&" -> {
                         asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                         asmgen.out("  and  $name |  sta  $name")
-                        if(asmgen.isTargetCpu(CpuType.CPU65c02))
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  stz  $name+1")
                         else
                             asmgen.out("  lda  #0 |  sta  $name+1")
