@@ -29,14 +29,12 @@ class UnusedCodeRemover(private val program: Program,
             val subroutines = it.statements.filterIsInstance<Subroutine>()
             val push = subroutines.single { it.name == "push" }
             val pushw = subroutines.single { it.name == "pushw" }
-            val pushret = subroutines.single { it.name == "push_returnaddress" }
             val pop = subroutines.single { it.name == "pop" }
             val popw = subroutines.single { it.name == "popw" }
             neverRemoveSubroutines.add(push)
             neverRemoveSubroutines.add(pushw)
             neverRemoveSubroutines.add(pop)
             neverRemoveSubroutines.add(popw)
-            neverRemoveSubroutines.add(pushret)
         }
 
         program.allBlocks.singleOrNull { it.name=="floats" } ?.let {

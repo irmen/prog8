@@ -68,14 +68,14 @@ class ConfigFileTarget(
                 return emptyList()
             val result = mutableListOf<UIntRange>()
             val ranges = rangesStr.split(",").map { it.trim() }
-            for(rangeStr in ranges) {
-                if ('-' in rangeStr) {
-                    val (fromStr, toStr) = rangeStr.split("-")
+            for(r in ranges) {
+                if ('-' in r) {
+                    val (fromStr, toStr) = r.split("-")
                     val from = parseInt(fromStr.trim())
                     val to = parseInt(toStr.trim())
                     result.add(from..to)
                 } else {
-                    val address = parseInt(rangesStr)
+                    val address = parseInt(r)
                     result.add(address..address)
                 }
             }

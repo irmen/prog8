@@ -1,9 +1,9 @@
 %option no_symbol_prefixing, ignore_unused
 
+; Tiny syslib for minimalistic programs that can run on a X16
 
 sys {
-    extsub $ff00 = CHAROUT(ubyte character @A)
-
+    extsub $FFD2 = CHROUT(ubyte character @ A)           ; output a character
 
     ; these push/pop routines are always required by the compiler:
 
@@ -16,19 +16,8 @@ sys {
     inline asmsub pushw(uword value @AY) {
         %asm {{
             pha
-            phy
-        }}
-    }
-
-    inline asmsub push_returnaddress(uword address @XY) {
-        %asm {{
-            ; push like JSR would:  address-1,  MSB first then LSB
-            cpx  #0
-            bne  +
-            dey
-+           dex
-            phy
-            phx
+            tya
+            pha
         }}
     }
 
@@ -40,19 +29,25 @@ sys {
 
     inline asmsub popw() -> uword @AY {
         %asm {{
-            ply
+            pla
+            tay
             pla
         }}
     }
 
-    asmsub  reset_system()  {
-        ; Soft-reset the system back to initial power-on status
-        ; TODO
+    asmsub reset_system() {
+        ; Soft-reset the system back to initial power-on Basic prompt.
+        ; We do this via the SMC so that a true reset is performed that also resets the Vera fully.
+        ; (note: this is an asmsub on purpose! don't change into a normal sub)
         %asm {{
             sei
-            jmp  *
+            ldx  #$42
+            ldy  #2
+            lda  #0
+            jmp  $fec9    ; i2c_write_byte
         }}
     }
+
 }
 
 
@@ -192,5 +187,4 @@ cx16 {
     &byte r13sH = $001d
     &byte r14sH = $001f
     &byte r15sH = $0021
-
 }

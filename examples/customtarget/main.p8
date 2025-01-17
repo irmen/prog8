@@ -1,10 +1,13 @@
 %import syslib
+%zeropage basicsafe
 
 main {
     sub start() {
-        for cx16.r0L in "Hello, world!\n" {
-            sys.CHAROUT(cx16.r0L)
+        ubyte char
+
+        sys.CHROUT(14)  ; lowercase
+        for char in "\nHello, World!\n" {
+            sys.CHROUT(char)
         }
     }
 }
-
