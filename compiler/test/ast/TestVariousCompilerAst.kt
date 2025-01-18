@@ -346,21 +346,17 @@ main {
     sub start() {
         ubyte @shared x,y,z
         ubyte @shared k,l,m = 42
-        uword @shared r,s,t = sys.progend()
     }
 }"""
             val result = compileText(Cx16Target(), optimize=true, src, writeAssembly=false)!!
             val st = result.compilerAst.entrypoint.statements
-            st.size shouldBe 18
+            st.size shouldBe 12
             st[0] shouldBe instanceOf<VarDecl>()    // x
             st[2] shouldBe instanceOf<VarDecl>()    // y
             st[4] shouldBe instanceOf<VarDecl>()    // z
             st[6] shouldBe instanceOf<VarDecl>()    // k
             st[8] shouldBe instanceOf<VarDecl>()    // l
             st[10] shouldBe instanceOf<VarDecl>()    // m
-            st[12] shouldBe instanceOf<VarDecl>()    // r
-            st[14] shouldBe instanceOf<VarDecl>()    // s
-            st[16] shouldBe instanceOf<VarDecl>()    // t
             val valX = (st[1] as Assignment).value
             (valX as NumericLiteral).number shouldBe 0.0
             val valY = (st[3] as Assignment).value
@@ -373,12 +369,6 @@ main {
             (valL as NumericLiteral).number shouldBe 42.0
             val valM = (st[11] as Assignment).value
             (valM as NumericLiteral).number shouldBe 42.0
-            val valR = (st[13] as Assignment).value
-            (valR as FunctionCallExpression).target.nameInSource shouldBe listOf("sys", "progend")
-            val valS = (st[15] as Assignment).value
-            (valS as IdentifierReference).nameInSource shouldBe listOf("r")
-            val valT = (st[17] as Assignment).value
-            (valT as IdentifierReference).nameInSource shouldBe listOf("r")
         }
 
         test("various multi var decl symbol lookups") {
@@ -986,6 +976,49 @@ main {
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain "loop variable can only loop over"
         errors.errors[1] shouldContain "undefined symbol"
+    }
+
+    test("multi vardecl with immediate initialization from multi-return value functioncall") {
+        val src="""
+main {
+    sub start() {
+        ubyte @shared x,y,z = multi()
+    }
+    sub multi() -> ubyte, ubyte, ubyte {
+        return 1,2,3
+    }
+}"""
+        val result1 = compileText(VMTarget(), optimize=true, src, writeAssembly=true)!!
+        val st1 = result1.codegenAst!!.entrypoint()!!.children
+        st1.size shouldBe 8
+        (st1[0] as PtVariable).name shouldBe "main.start.x"
+        (st1[1] as PtVariable).name shouldBe "main.start.y"
+        (st1[2] as PtVariable).name shouldBe "main.start.z"
+        (st1[3] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
+        (st1[4] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
+        (st1[5] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
+        (st1[3] as PtAssignment).target.identifier!!.name shouldBe "main.start.x"
+        (st1[4] as PtAssignment).target.identifier!!.name shouldBe "main.start.y"
+        (st1[5] as PtAssignment).target.identifier!!.name shouldBe "main.start.z"
+        st1[6].children.size shouldBe 4
+        st1[6].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("main.start.x", "main.start.y", "main.start.z")
+        ((st1[6] as PtAssignment).value as PtFunctionCall).name shouldBe "main.multi"
+
+        val result2 = compileText(Cx16Target(), optimize=true, src, writeAssembly=true)!!
+        val st2 = result2.codegenAst!!.entrypoint()!!.children
+        st2.size shouldBe 8
+        (st2[0] as PtVariable).name shouldBe "p8v_x"
+        (st2[1] as PtVariable).name shouldBe "p8v_y"
+        (st2[2] as PtVariable).name shouldBe "p8v_z"
+        (st2[3] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
+        (st2[4] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
+        (st2[5] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
+        (st2[3] as PtAssignment).target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_x"
+        (st2[4] as PtAssignment).target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_y"
+        (st2[5] as PtAssignment).target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_z"
+        st2[6].children.size shouldBe 4
+        st2[6].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("p8b_main.p8s_start.p8v_x", "p8b_main.p8s_start.p8v_y", "p8b_main.p8s_start.p8v_z")
+        ((st2[6] as PtAssignment).value as PtFunctionCall).name shouldBe "p8b_main.p8s_multi"
     }
 }
 

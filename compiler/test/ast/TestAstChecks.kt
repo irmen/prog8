@@ -444,4 +444,20 @@ main {
         errors.errors[2] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
         errors.errors[3] shouldContain  "can't assign returnvalue #2 to corresponding target; bool vs ubyte"
     }
+
+    test("multi assigns with too few result values from the function") {
+        val src="""
+main {
+    sub start() {
+        ubyte @shared x,y,z
+        x,y,z = sys.progend()
+        ubyte @shared k,l,m = sys.progend()
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), optimize=true, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "too few values: expected 3 got 1"
+        errors.errors[1] shouldContain "too few values: expected 3 got 1"
+    }
 })

@@ -139,6 +139,26 @@ You can align on word, 64 bytes, and page boundaries::
     ubyte[] @alignpage lookup = [11, 22, 33, 44, ...]
 
 
+Initializing a variable
+^^^^^^^^^^^^^^^^^^^^^^^
+
+You can specify an initialization value in the variable declaration.
+This will then be used to initialize the variable with at the start of the subroutine, instead of the default value 0.
+The provided value doesn't have to be a constant; it can be any expression.
+It is a shorter notation for declaring the variables and then assigning the values to them in separate assignment statment(s).
+
+There are a few special situations:
+
+initializing an array: ``ubyte[3] array = [11,22,33]``
+    The initiazation value has to be a range value or an array literal (remember you can use '[4] * 3' and such).
+    Ofcourse the size of the range or the number of values in the array has to match the declared array size.
+
+initializing a multi variable declaration: ``ubyte a,b,c = multi()``
+    The initialization value can be a single constant value which will then be assigned to each of the variables.
+    It can also be a subroutine call to a subroutine returning multiple result values, which will then be put
+    into the declared variables in order.  Ofcourse the number of values has to match the number of variables.
+
+
 Data Types
 ----------
 

@@ -84,9 +84,16 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
         if(decl.names.size>1) {
 
             val fcallTarget = (decl.value as? IFunctionCall)?.target?.targetSubroutine(program)
-            if(fcallTarget!=null && fcallTarget.returntypes.size>1) {
-                errors.err("ambiguous multi-variable initialization. Use separate variable declaration and assignment(s) instead.", decl.value!!.position)
-                return noModifications
+            if(fcallTarget!=null) {
+                // ubyte a,b,c = multi() --> ubyte a,b,c / a,b,c = multi()
+                val modifications = mutableListOf<IAstModification>()
+                val variables = decl.names.map {
+                    AssignTarget(IdentifierReference(listOf(it), decl.position), null, null, null, false, decl.position)
+                }
+                val multiassignFuncCall = Assignment(AssignTarget(null, null, null, variables, false, decl.position), decl.value!!, AssignmentOrigin.VARINIT, decl.position)
+                decl.value = null
+                modifications += IAstModification.InsertAfter(decl, multiassignFuncCall, parent as IStatementContainer)
+                return modifications
             }
 
             // note: the desugaring of a multi-variable vardecl has to be done here

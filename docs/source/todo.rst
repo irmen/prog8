@@ -13,7 +13,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - Kotlin: can we use inline value classes in certain spots?
-- allow multi-value variable initialization (var a,b,c  = 1,2,3)
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine (see translateSubroutine function)
@@ -81,6 +80,7 @@ Libraries
 Optimizations
 -------------
 
+- Look if the =0 variable initializations can be reduced further.  (most notably for multi-value variable initialization)
 - Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.
   Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"

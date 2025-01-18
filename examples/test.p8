@@ -1,40 +1,29 @@
 %import textio
 %option no_sysinit
 %zeropage basicsafe
+%import math
 
 
 main {
     sub start() {
-        const ubyte x = 88
-        const ubyte z = 99
+        ubyte x = math.rnd()
+        ubyte a,b = multi1()
+        ubyte c,d = 99
 
-        x=20
-        x,z = multi1()
-;        ubyte p,q,r,s
-;        p,q = multi1()
-;        r,s = multi2()
-;        ubyte a,b = multi1()
-;        ubyte c,d = multi2()
-;
-;        txt.print_ub(p)
-;        txt.spc()
-;        txt.print_ub(q)
-;        txt.spc()
-;        txt.print_ub(r)
-;        txt.spc()
-;        txt.print_ub(s)
-;        txt.nl()
-;
-;        txt.print_ub(a)
-;        txt.spc()
-;        txt.print_ub(b)
-;        txt.spc()
-;        txt.print_ub(c)
-;        txt.spc()
-;        txt.print_ub(d)
-;        txt.nl()
+        x++
+        txt.print_ub(a)
+        txt.spc()
+        txt.print_ub(b)
+        txt.spc()
+        txt.print_ub(c)
+        txt.spc()
+        txt.print_ub(d)
+        txt.nl()
     }
 
+    sub single() -> ubyte {
+        return cx16.r0L+cx16.r1L
+    }
     asmsub multi1() -> ubyte @A, ubyte @Y {
         %asm {{
             lda  #1
