@@ -148,9 +148,13 @@ class UnusedCodeRemover(private val program: Program,
             if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm) {
                 val usages = callgraph.usages(decl)
                 if (usages.isEmpty()) {
-                    if("ignore_unused" !in decl.definingBlock.options())
-                        errors.info("removing unused variable '${decl.name}'", decl.position)
-                    return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
+                    if(decl.names.size>1) {
+                        errors.info("unused variable '${decl.name}'", decl.position)
+                    } else {
+                        if ("ignore_unused" !in decl.definingBlock.options())
+                            errors.info("removing unused variable '${decl.name}'", decl.position)
+                        return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
+                    }
                 }
                 else {
                     if(usages.size==1) {
@@ -159,13 +163,17 @@ class UnusedCodeRemover(private val program: Program,
                             val assignment = singleUse.parent as? Assignment
                             if(assignment!=null && assignment.origin==AssignmentOrigin.VARINIT) {
                                 if(assignment.value.isSimple) {
-                                    // remove the vardecl
-                                    if("ignore_unused" !in decl.definingBlock.options())
-                                        errors.info("removing unused variable '${decl.name}'", decl.position)
-                                    return listOf(
-                                        IAstModification.Remove(decl, parent as IStatementContainer),
-                                        IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
-                                    )
+                                    if(decl.names.size>1) {
+                                        errors.info("unused variable '${decl.name}'", decl.position)
+                                    } else {
+                                        // remove the vardecl
+                                        if("ignore_unused" !in decl.definingBlock.options())
+                                            errors.info("removing unused variable '${decl.name}'", decl.position)
+                                        return listOf(
+                                            IAstModification.Remove(decl, parent as IStatementContainer),
+                                            IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
+                                        )
+                                    }
                                 } else if(assignment.value is IFunctionCall) {
                                     // replace the unused variable's initializer function call by a void
                                     // but only if the vardecl immediately precedes it!

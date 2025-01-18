@@ -680,6 +680,14 @@ data class AssignTarget(var identifier: IdentifierReference?,
         }
     }
 
+    fun targetIdentifiers(): List<IdentifierReference> {
+        val result = mutableListOf<IdentifierReference>()
+        if(multi!=null)
+            multi.mapNotNullTo(result) { it.identifier }
+        if(identifier!=null)
+            result += identifier!!
+        return result
+    }
 }
 
 class Jump(var target: Expression, override val position: Position) : Statement() {

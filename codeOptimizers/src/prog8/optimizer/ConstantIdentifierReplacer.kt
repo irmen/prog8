@@ -21,7 +21,12 @@ class VarConstantValueTypeAdjuster(
     private val errors: IErrorReporter
 ) : AstWalker() {
 
-    private val callGraph by lazy { CallGraph(program) }
+    private lateinit var callGraph : CallGraph
+
+    override fun before(program: Program) : Iterable<IAstModification> {
+        callGraph = CallGraph(program)
+        return noModifications
+    }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 
@@ -56,15 +61,32 @@ class VarConstantValueTypeAdjuster(
                             || it.parent is AddressOf
                             || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
                 }
-            val singleAssignment =
-                writes.singleOrNull()?.parent?.parent as? Assignment ?: writes.singleOrNull()?.parent as? Assignment
+
+            var singleAssignment: Assignment? = null
+            val singleWrite=writes.singleOrNull()
+            if(singleWrite!=null) {
+                singleAssignment = singleWrite.parent as? Assignment
+                if(singleAssignment==null) {
+                    singleAssignment = singleWrite.parent.parent as? Assignment
+                    if(singleAssignment==null) {
+                        // we could be part of a multi-assign
+                        if(singleWrite.parent is AssignTarget && singleWrite.parent.parent is AssignTarget)
+                            singleAssignment = singleWrite.parent.parent.parent as? Assignment
+                    }
+                }
+            }
+
             if (singleAssignment == null) {
                 if (writes.isEmpty()) {
                     if(reads.isEmpty()) {
-                        // variable is never used AT ALL so we just remove it altogether
-                        if("ignore_unused" !in decl.definingBlock.options())
-                            errors.info("removing unused variable '${decl.name}'", decl.position)
-                        return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
+                        if(decl.names.size>1) {
+                            errors.info("unused variable '${decl.name}'", decl.position)
+                        } else {
+                            // variable is never used AT ALL so we just remove it altogether
+                            if ("ignore_unused" !in decl.definingBlock.options())
+                                errors.info("removing unused variable '${decl.name}'", decl.position)
+                            return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
+                        }
                     }
                     val declValue = decl.value?.constValue(program)
                     if (declValue != null) {
@@ -80,15 +102,20 @@ class VarConstantValueTypeAdjuster(
             } else {
                 if (singleAssignment.origin == AssignmentOrigin.VARINIT && singleAssignment.value.constValue(program) != null) {
                     if(reads.isEmpty()) {
-                        // variable is never used AT ALL so we just remove it altogether, including the single assignment
-                        if("ignore_unused" !in decl.definingBlock.options())
-                            errors.info("removing unused variable '${decl.name}'", decl.position)
-                        return listOf(
-                            IAstModification.Remove(decl, parent as IStatementContainer),
-                            IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
-                        )
+                        if(decl.names.size>1) {
+                            errors.info("unused variable '${decl.name}'", decl.position)
+                        } else {
+                            // variable is never used AT ALL so we just remove it altogether, including the single assignment
+                            if("ignore_unused" !in decl.definingBlock.options())
+                                errors.info("removing unused variable '${decl.name}'", decl.position)
+                            return listOf(
+                                IAstModification.Remove(decl, parent as IStatementContainer),
+                                IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                            )
+                        }
                     }
-                    // variable only has a single write, and it is the initialization value, so it can be replaced with a constant, IF the value is a constant
+
+                    // variable only has a single write, and it is the initialization value, so it can be replaced with a constant, but only IF the value is a constant
                     errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
                     val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.splitwordarray, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
                     return listOf(

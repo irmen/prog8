@@ -562,31 +562,27 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignment: Assignment) {
-        fun checkType(target: AssignTarget, value: Expression, augmentable: Boolean) {
-            val targetDt = target.inferType(program)
-            val valueDt = value.inferType(program)
+        if(assignment.target.multi==null) {
+            val targetDt = assignment.target.inferType(program)
+            val valueDt = assignment.value.inferType(program)
             if(valueDt.isKnown && !(valueDt isAssignableTo targetDt) && !targetDt.isIterable) {
                 if(!(valueDt issimpletype  BaseDataType.STR && targetDt issimpletype BaseDataType.UWORD)) {
                     if(targetDt.isUnknown) {
-                        if(target.identifier?.targetStatement(program)!=null)
-                            errors.err("target datatype is unknown", target.position)
+                        if(assignment.target.identifier?.targetStatement(program)!=null)
+                            errors.err("target datatype is unknown", assignment.target.position)
                         // otherwise, another error about missing symbol is already reported.
                     }
                 }
             }
 
-            if(value is TypecastExpression) {
-                if(augmentable && targetDt issimpletype BaseDataType.FLOAT)
-                    errors.err("typecasting a float value in-place makes no sense", value.position)
+            if(assignment.value is TypecastExpression) {
+                if(assignment.isAugmentable && targetDt issimpletype BaseDataType.FLOAT)
+                    errors.err("typecasting a float value in-place makes no sense", assignment.value.position)
             }
 
-            val numvalue = value.constValue(program)
+            val numvalue = assignment.value.constValue(program)
             if(numvalue!=null && targetDt.isKnown)
                 checkValueTypeAndRange(targetDt.getOrUndef(), numvalue)
-        }
-
-        if(assignment.target.multi==null) {
-            checkType(assignment.target, assignment.value, assignment.isAugmentable)
         }
 
         if(assignment.target.void && assignment.target.multi?.isNotEmpty()!=true) {
@@ -652,8 +648,8 @@ internal class AstChecker(private val program: Program,
             return      // sub-target of a multi-assign is tested elsewhere
 
         val assignment = assignTarget.parent as Statement
-        val targetIdentifier = assignTarget.identifier
-        if (targetIdentifier != null) {
+
+        for(targetIdentifier in assignTarget.targetIdentifiers()) {
             val targetName = targetIdentifier.nameInSource
             when (val targetSymbol = assignment.definingScope.lookup(targetName)) {
                 null -> {

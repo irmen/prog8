@@ -5,49 +5,46 @@
 
 main {
     sub start() {
-;        uword @shared uw1 = 1001
-;        uword @shared uw2 = 1001
-;        ubyte @shared ub = 42
-;        ubyte @shared index = 2
+        const ubyte x = 88
+        const ubyte z = 99
+
+        x=20
+        x,z = multi1()
+;        ubyte p,q,r,s
+;        p,q = multi1()
+;        r,s = multi2()
+;        ubyte a,b = multi1()
+;        ubyte c,d = multi2()
 ;
-;        uword[] array1 = [999,1000,1001]
-;        uword[] @nosplit array2 = [999,1000,1001]
+;        txt.print_ub(p)
+;        txt.spc()
+;        txt.print_ub(q)
+;        txt.spc()
+;        txt.print_ub(r)
+;        txt.spc()
+;        txt.print_ub(s)
+;        txt.nl()
+;
+;        txt.print_ub(a)
+;        txt.spc()
+;        txt.print_ub(b)
+;        txt.spc()
+;        txt.print_ub(c)
+;        txt.spc()
+;        txt.print_ub(d)
+;        txt.nl()
+    }
 
-;        func2(array1[index], ub)      ; args via subroutine variables  (R1, R2)
-;        func2(uw2, ub)                ; args via subroutine variables  (R1, R2)
-;        func1(1001)                   ; arg via AY? or R1?
-;        func1(array1[index])          ; arg via AY? or R1?
-;        func1(array2[index])          ; arg via AY? or R1?
-
-        main.func1.arg1 = 9999
+    asmsub multi1() -> ubyte @A, ubyte @Y {
         %asm {{
-            lda  #0
-            ldy  #0
-            jsr  p8s_func1
-        }}
-        cx16.r3 = 8888
-        %asm {{
-            lda  #0
-            ldy  #0
-            jsr  p8s_func1
+            lda  #1
+            ldy  #2
+            rts
         }}
     }
 
-;    sub func2(uword arg1 @R1, ubyte arg2 @R2) {   ; expected args via variables  R1+R2
-;        txt.print_uw(arg1)
-;        txt.chrout('=')
-;        txt.print_uw(cx16.r1)
-;        txt.spc()
-;        txt.print_ub(arg2)
-;        txt.chrout('=')
-;        txt.print_ub(cx16.r2L)
-;        txt.nl()
-;    }
-
-    sub func1(uword arg1 @R3) {   ; expected arg1 via R3,  not via cpu regs AY
-        txt.print_uw(arg1)
-        txt.chrout('=')
-        txt.print_uw(cx16.r3)
-        txt.nl()
+    sub multi2() -> ubyte, ubyte {
+        cx16.r0++
+        return 3,4
     }
 }
