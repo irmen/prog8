@@ -18,14 +18,14 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val calls = mutableMapOf<Subroutine, Set<Subroutine>>().withDefault { setOf() }
     val calledBy = mutableMapOf<Subroutine, Set<Node>>().withDefault { setOf() }
     val notCalledButReferenced = mutableSetOf<Subroutine>()
-    private val allIdentifiersAndTargets = mutableMapOf<IdentifierReference, Statement>()
+    private val allIdentifiersAndTargets = mutableListOf<Pair<IdentifierReference, Statement>>()
     private val allAssemblyNodes = mutableListOf<InlineAssembly>()
 
     init {
         visit(program)
     }
 
-    val allIdentifiers: Map<IdentifierReference, Statement> = allIdentifiersAndTargets
+    val allIdentifiers: List<Pair<IdentifierReference, Statement>> = allIdentifiersAndTargets
 
     private val usedSubroutines: Set<Subroutine> by lazy {
         calledBy.keys + program.entrypoint + notCalledButReferenced
@@ -36,7 +36,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val used = mutableSetOf<Block>()
 
         allIdentifiersAndTargets.forEach {
-            val target = it.value.definingBlock
+            val target = it.second.definingBlock
             used.add(target)
         }
 
@@ -108,7 +108,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     override fun visit(identifier: IdentifierReference) {
         val target = identifier.targetStatement(program)
         if(target!=null)
-            allIdentifiersAndTargets[identifier] = target
+            allIdentifiersAndTargets.add(identifier to target)
 
         // if it's a scoped identifier, the subroutines in the name are also referenced!
         val scope = identifier.definingScope
@@ -196,7 +196,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         val assemblyBlocks = allAssemblyNodes.filter {
             decl.name in it.names || "p8v_" + decl.name in it.names
         }
-        return allIdentifiersAndTargets.filter { decl===it.value }.map{ it.key } + assemblyBlocks
+        return allIdentifiersAndTargets.filter { decl===it.second }.map{ it.first } + assemblyBlocks
     }
 
     private val prefixes = listOf("p8b_", "p8v_", "p8s_", "p8c_", "p8l_", "p8_", "")

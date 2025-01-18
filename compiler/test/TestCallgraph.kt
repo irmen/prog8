@@ -117,11 +117,12 @@ class TestCallgraph: FunSpec({
         val result = compileText(C64Target(), false, sourcecode)!!
         val graph = CallGraph(result.compilerAst)
         graph.allIdentifiers.size shouldBeGreaterThanOrEqual 5
-        val empties = graph.allIdentifiers.keys.filter { it.nameInSource==listOf("empty") }
+        val empties = graph.allIdentifiers.filter { it.first.nameInSource==listOf("empty") }
+        println(graph.allIdentifiers)
         empties.size shouldBe 3
-        empties[0].position.line shouldBe 4
-        empties[1].position.line shouldBe 5
-        empties[2].position.line shouldBe 6
+        empties[0].first.position.line shouldBe 4
+        empties[1].first.position.line shouldBe 5
+        empties[2].first.position.line shouldBe 6
     }
 
     test("checking block and subroutine names usage in assembly code") {
