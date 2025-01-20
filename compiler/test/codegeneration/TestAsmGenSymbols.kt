@@ -19,6 +19,7 @@ import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.codegen.cpu6502.AsmGen6502Internal
+import prog8.compiler.astprocessing.AstChecker
 import prog8.compiler.astprocessing.SimplifiedAstMaker
 import prog8tests.helpers.*
 
@@ -31,7 +32,7 @@ class TestAsmGenSymbols: StringSpec({
     uword var_outside
 
     sub start () {
-        uword localvar = 1234
+        uword localvar
         uword tgt
 
     locallabel:
@@ -48,7 +49,7 @@ class TestAsmGenSymbols: StringSpec({
 
          */
         val varInSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.UWORD), ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, "localvar", emptyList(), NumericLiteral.optimalInteger(1234, Position.DUMMY), false, 0u, false, Position.DUMMY)
+            SplitWish.DONTCARE, null, "localvar", emptyList(), null, false, 0u, false, Position.DUMMY)
         val var2InSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.UWORD), ZeropageWish.DONTCARE,
             SplitWish.DONTCARE, null, "tgt", emptyList(), null, false, 0u, false, Position.DUMMY)
         val labelInSub = Label("locallabel", Position.DUMMY)
@@ -79,6 +80,9 @@ class TestAsmGenSymbols: StringSpec({
     fun createTestAsmGen6502(program: Program): AsmGen6502Internal {
         val errors = ErrorReporterForTests()
         val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), CompilationOptions.AllZeropageAllowed, false, true, C64Target(), 999u, 0xffffu)
+        val astchecker = AstChecker(program, errors, options)
+        astchecker.visit(program)
+        errors.report()
         val ptProgram = SimplifiedAstMaker(program, errors).transform()
         val st = SymbolTableMaker(ptProgram, options).make()
         return AsmGen6502Internal(ptProgram, st, options, errors, 0)

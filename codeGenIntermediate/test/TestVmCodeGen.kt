@@ -51,7 +51,7 @@ class TestVmCodeGen: FunSpec({
             DataType.forDt(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
-            PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY),
+            null,
             null,
             Position.DUMMY
         ))
@@ -78,7 +78,7 @@ class TestVmCodeGen: FunSpec({
             DataType.forDt(BaseDataType.WORD),
             ZeropageWish.DONTCARE,
             0u,
-            PtNumber(BaseDataType.WORD, 1.0, Position.DUMMY),
+            null,
             null,
             Position.DUMMY
         ))

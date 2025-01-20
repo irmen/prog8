@@ -5,12 +5,15 @@
 
 
 main {
+
+    ubyte @nozp @shared staticvar=51
+
     sub start() {
         ubyte x = math.rnd()
         ubyte a,b = multi1()
-        ubyte c,d = 99
+        ubyte c,d = multi2()
 
-        x++
+        x=irmen
         txt.print_ub(a)
         txt.spc()
         txt.print_ub(b)

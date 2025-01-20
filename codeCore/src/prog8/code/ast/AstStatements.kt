@@ -149,6 +149,18 @@ class PtVariable(
     position: Position
 ) : PtNamedNode(name, position), IPtVariable {
     init {
+
+        if(value!=null) {
+            require(value is PtArray || value is PtString) { "variable initializer value must only be array or string" }
+            // NOTE: the 6502 code generator expects numerical variables to not have an initialization value,
+            // because that is done via assignment statements. There are no "inline" variables with a given value.
+            // All variables are put into zeropage or into the BSS section and initialized afterwards during program
+            // startup or at the start of the subroutine.
+            // The IR codegen however is different it has a special section <VARIABLESWITHINIT> for all variables
+            // that have a non-zero initialization value, regardless of the datatype. It removes the initialization
+            // assignment and puts the value back into the variable (but only in the symboltable).
+        }
+
         value?.let {it.parent=this}
     }
 }

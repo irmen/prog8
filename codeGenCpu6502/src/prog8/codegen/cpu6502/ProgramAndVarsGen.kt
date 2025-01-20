@@ -674,28 +674,34 @@ internal class ProgramAndVarsGen(
     }
 
     private fun staticVariable2asm(variable: StStaticVariable) {
-        val initialValue: Number =
-            if(variable.initializationNumericValue!=null) {
-                if(variable.dt.isFloat)
-                    variable.initializationNumericValue!!
-                else
-                    variable.initializationNumericValue!!.toInt()
-            } else 0
+        if(!variable.dt.isArray && !variable.dt.isString) {
+            throw AssemblyError("static variables with an initialization value can only be an array or a string, not ${variable.dt} (${variable.name} ${variable.astNode?.position}")
+            // because numeric variables are in the BSS section and get initialized via assignment statements
+        }
+
+//        val initialValue: Number =
+//            if(variable.initializationNumericValue!=null) {
+//                if(variable.dt.isFloat)
+//                    variable.initializationNumericValue!!
+//                else
+//                    variable.initializationNumericValue!!.toInt()
+//            } else 0
+//
 
         val dt=variable.dt
         when {
-            dt.isBool || dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
-            dt.isSignedByte -> asmgen.out("${variable.name}\t.char  $initialValue")
-            dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
-            dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  $initialValue")
-            dt.isFloat -> {
-                if(initialValue==0) {
-                    asmgen.out("${variable.name}\t.byte  0,0,0,0,0  ; float")
-                } else {
-                    val floatFill = compTarget.getFloatAsmBytes(initialValue)
-                    asmgen.out("${variable.name}\t.byte  $floatFill  ; float $initialValue")
-                }
-            }
+//            dt.isBool || dt.isUnsignedByte -> asmgen.out("${variable.name}\t.byte  ${initialValue.toHex()}")
+//            dt.isSignedByte -> asmgen.out("${variable.name}\t.char  $initialValue")
+//            dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
+//            dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  $initialValue")
+//            dt.isFloat -> {
+//                if(initialValue==0) {
+//                    asmgen.out("${variable.name}\t.byte  0,0,0,0,0  ; float")
+//                } else {
+//                    val floatFill = compTarget.getFloatAsmBytes(initialValue)
+//                    asmgen.out("${variable.name}\t.byte  $floatFill  ; float $initialValue")
+//                }
+//            }
             dt.isString -> {
                 throw AssemblyError("all string vars should have been interned into prog")
             }
