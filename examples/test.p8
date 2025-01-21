@@ -9,6 +9,9 @@ main {
     ubyte @nozp @shared staticvar=51
 
     sub start() {
+
+        str shouldbestringarray = ["a", "b", "c"]
+
         ubyte x = math.rnd()
         ubyte a,b = multi1()
         ubyte c,d = multi2()

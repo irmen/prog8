@@ -23,6 +23,7 @@ enum class BaseDataType {
             this.isWord -> other.isByteOrBool
             this == LONG -> other.isByteOrBool || other.isWord
             this == STR && other == UWORD || this == UWORD && other == STR -> false
+            this.isArray && other.isArray -> false
             this.isArray -> other != FLOAT
             this == STR -> other != FLOAT
             else -> true
@@ -31,6 +32,7 @@ enum class BaseDataType {
     fun equalsSize(other: BaseDataType) =
         when {
             this == other -> true
+            this.isArray && other.isArray -> true
             this.isByteOrBool -> other.isByteOrBool
             this.isWord -> other.isWord
             this == STR && other== UWORD || this== UWORD && other== STR -> true
@@ -183,14 +185,8 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             BaseDataType.UNDEFINED -> false
         }
 
-    fun largerSizeThan(other: DataType): Boolean {
-        if(isArray) throw IllegalArgumentException("cannot compare size of array types")
-        return base.largerSizeThan(other.base)
-    }
-    fun equalsSize(other: DataType): Boolean {
-        if(isArray) throw IllegalArgumentException("cannot compare size of array types")
-        return base.equalsSize(other.base)
-    }
+    fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
+    fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
 
     val isUndefined = base == BaseDataType.UNDEFINED
     val isByte = base.isByte
