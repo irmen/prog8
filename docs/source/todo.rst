@@ -1,6 +1,13 @@
 TODO
 ====
 
+- Look if the =0 variable initializations can be reduced further.  (most notably for multi-value variable initialization).
+    See canSkipInitializationWith0()?
+    Remove it if there is another normal assignment after the initialization assignment,
+    that does not use the variable itself somewhere in the value, and the value doesn't contain a functioncall.
+    Set the "initializer" boolean to true on the first assignment that remains.
+
+
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 
 - add paypal donation button as well?
@@ -70,6 +77,7 @@ Libraries
 ---------
 - Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
+- add even more general raster irq routines to build some sort of "copper list" , like Oscar64 has?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 - fix the problems in atari target, and flesh out its libraries.
@@ -80,7 +88,7 @@ Libraries
 Optimizations
 -------------
 
-- Look if the =0 variable initializations can be reduced further.  (most notably for multi-value variable initialization)
+- Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
 - Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.
   Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"

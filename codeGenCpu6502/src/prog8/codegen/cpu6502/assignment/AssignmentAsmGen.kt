@@ -21,6 +21,8 @@ internal class AssignmentAsmGen(
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
 
     fun translate(assignment: PtAssignment) {
+//        if(assignment.isVarInitializer)
+//            println("VARINIT ${assignment.target}  ${assignment.value}")
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
         val source = AsmAssignSource.fromAstSource(assignment.value, program, asmgen).adjustSignedUnsigned(target)
         val pos = if(assignment.position !== Position.DUMMY) assignment.position else if(assignment.target.position !== Position.DUMMY) assignment.target.position else assignment.value.position

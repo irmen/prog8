@@ -59,7 +59,7 @@ sealed interface IPtAssignment {
         get() = children.size>2
 }
 
-class PtAssignment(position: Position) : PtNode(position), IPtAssignment
+class PtAssignment(position: Position, val isVarInitializer: Boolean=false) : PtNode(position), IPtAssignment
 
 class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment
 

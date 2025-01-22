@@ -600,7 +600,7 @@ _setup_raster_irq
 		ora  #%10000000
 		sta  c64.SCROLY     ; set most significant bit of raster position
 +		lda  #%00000001
-		sta  c64.IREQMASK   ;enable raster interrupt signals from vic
+		sta  c64.IREQMASK   ; enable raster interrupt signals from vic
 		rts
 	}}
 }

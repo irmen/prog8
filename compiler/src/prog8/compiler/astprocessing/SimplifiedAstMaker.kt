@@ -164,7 +164,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         }
 
-        val assign = PtAssignment(srcAssign.position)
+        val assign = PtAssignment(srcAssign.position, srcAssign.origin==AssignmentOrigin.VARINIT)
         val multi = srcAssign.target.multi
         if(multi==null) {
             assign.add(transform(srcAssign.target))

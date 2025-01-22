@@ -1764,11 +1764,9 @@ class IRCodeGen(
             for ((value, register) in ret.children.zip(registersReverseOrder)) {
                 val tr = expressionEval.translateExpression(value as PtExpression)
                 addToResult(result, tr, tr.resultReg, -1)
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.STOREM, tr.dt, reg1=tr.resultReg, labelSymbol = "cx16.${register.toString().lowercase()}")
-                    it += IRInstruction(Opcode.RETURN)
-                }
+                addInstr(result, IRInstruction(Opcode.STOREM, tr.dt, reg1=tr.resultReg, labelSymbol = "cx16.${register.toString().lowercase()}"), null)
             }
+            addInstr(result, IRInstruction(Opcode.RETURN), null)
             return result
         }
 

@@ -557,6 +557,7 @@ const ubyte  EXTAPI_led_update = $0B
 const ubyte  EXTAPI_mouse_set_position = $0C
 const ubyte  EXTAPI_scnsiz = $0D
 const ubyte  EXTAPI_kbd_leds = $0E
+const ubyte  EXTAPI_memory_decompress_from_func = $0F
 
 ; extapi16 call numbers
 const ubyte  EXTAPI16_test = $00

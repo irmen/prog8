@@ -71,7 +71,7 @@ CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction at 'location' (label/memory address)
 jumpi       reg1                      - continue running at memory address in reg1  (indirect jump)
-preparecall numparams                 - indicator that the next instructions are the param setup and function call/syscall with <numparams> parameters
+preparecall numparams                 - indicator that the next instructions are the param setup and function call/syscall with <numparams> parameters, does nothing by itself
 calli       reg1                      - calls a subroutine (without arguments and without return valus) at memory addres in reg1 (indirect jsr)
 call   label(argument register list) [: resultreg.type]
                                       - calls a subroutine with the given arguments and return value (optional).
@@ -109,21 +109,21 @@ bstvs                         address   - branch to location if Status bit Overf
 bgt         reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (unsigned)
 blt         reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (unsigned)
 bgtr        reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (unsigned)
-'bltr'      reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (unsigned) ==> use bgtr with swapped operands
+'bltr'      reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (unsigned) ==> this opcode doesn't exist: use bgtr with swapped operands
 bge         reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (unsigned)
 ble         reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (unsigned)
 bger        reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (unsigned)
-'bler'      reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (unsigned) ==> use bger with swapped operands
+'bler'      reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (unsigned) ==> this opcode doesn't exist: use bger with swapped operands
 
 (signed comparison branches:)
 bgts        reg1, value,      address   - jump to location in program given by location, if reg1 > immediate value (signed)
 blts        reg1, value,      address   - jump to location in program given by location, if reg1 < immediate value (signed)
 bgtsr       reg1, reg2,       address   - jump to location in program given by location, if reg1 > reg2 (signed)
-'bltsr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (signed) ==> use bgtsr with swapped operands
+'bltsr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 < reg2 (signed) ==> this opcode doesn't exist: use bgtsr with swapped operands
 bges        reg1, value,      address   - jump to location in program given by location, if reg1 >= immediate value (signed)
 bles        reg1, value,      address   - jump to location in program given by location, if reg1 <= immediate value (signed)
 bgesr       reg1, reg2,       address   - jump to location in program given by location, if reg1 >= reg2 (signed)
-'blesr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed) ==> use bgesr with swapped operands
+'blesr'     reg1, reg2,       address   - jump to location in program given by location, if reg1 <= reg2 (signed) ==> this opcode doesn't exist: use bgesr with swapped operands
 
 
 ARITHMETIC
@@ -194,13 +194,13 @@ lsrm                     address             - shift memory right by 1 bits + se
 asrm                     address             - shift memory right by 1 bits (signed) + set Carry to shifted bit
 lslm                     address             - shift memory left by 1 bits + set Carry to shifted bit
 ror         reg1                             - rotate reg1 right by 1 bits, not using carry  + set Carry to shifted bit
-roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit
+roxr        reg1                             - rotate reg1 right by 1 bits, using carry  + set Carry to shifted bit  (maps to 6502 CPU instruction ror)
 rol         reg1                             - rotate reg1 left by 1 bits, not using carry  + set Carry to shifted bit
-roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit
+roxl        reg1                             - rotate reg1 left by 1 bits, using carry,  + set Carry to shifted bit  (maps to 6502 CPU instruction rol)
 rorm                     address             - rotate memory right by 1 bits, not using carry  + set Carry to shifted bit
-roxrm                    address             - rotate memory right by 1 bits, using carry  + set Carry to shifted bit
+roxrm                    address             - rotate memory right by 1 bits, using carry  + set Carry to shifted bit    (maps to 6502 CPU instruction ror)
 rolm                     address             - rotate memory left by 1 bits, not using carry  + set Carry to shifted bit
-roxlm                    address             - rotate memory left by 1 bits, using carry,  + set Carry to shifted bit
+roxlm                    address             - rotate memory left by 1 bits, using carry,  + set Carry to shifted bit    (maps to 6502 CPU instruction rol)
 bit                      address             - test bits in byte value at address, this is a special instruction available on other systems to optimize testing and branching on bits 7 and 6
 
 
@@ -483,7 +483,7 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.OR,
     Opcode.XORM,
     Opcode.XORR,
-    Opcode.XOR,
+    Opcode.XOR
 )
 
 val OpcodesThatDependOnCarry = arrayOf(
@@ -494,7 +494,7 @@ val OpcodesThatDependOnCarry = arrayOf(
     Opcode.ROXL,
     Opcode.ROXLM,
     Opcode.ROXR,
-    Opcode.ROXRM,
+    Opcode.ROXRM
 )
 
 val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry

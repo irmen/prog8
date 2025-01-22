@@ -46,7 +46,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     normalsub.returns.zip(assignmentTargets).zip(registersReverseOrder).forEach {
                         val target = it.first.second as PtAssignTarget
                         if(!target.void) {
-                            val assignSingle = PtAssignment(assignment.position)
+                            val assignSingle = PtAssignment(assignment.position, assignment.isVarInitializer)
                             assignSingle.add(target)
                             assignSingle.add(PtIdentifier("cx16.${it.second.toString().lowercase()}", it.first.first, assignment.position))
                             result += translateRegularAssign(assignSingle)
