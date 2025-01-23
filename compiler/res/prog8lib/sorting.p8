@@ -20,12 +20,10 @@ sorting {
             dey
 +           dec  P8ZP_SCRATCH_W2
             sty  P8ZP_SCRATCH_W2+1
-            ldy  #0     ; pos
+            ldy  #1     ; pos
 _loop
             cpy  #0     ; modified
             beq  _done
-            cpy  #0
-            beq  +
             lda  (P8ZP_SCRATCH_W1),y
             cmp  (P8ZP_SCRATCH_W2),y
             bcs  +
@@ -36,7 +34,7 @@ _loop
             txa
             sta  (P8ZP_SCRATCH_W2),y
             dey
-            jmp  _loop
+            bne  _loop
 +           iny
             bne  _loop
 _done
@@ -48,11 +46,9 @@ _done
     prog8 source code for the above routine:
 
     sub gnomesort_ub(uword @requirezp values, ubyte num_elements) {
-        ubyte @zp pos
+        ubyte @zp pos=1
         while pos != num_elements {
-            if pos==0
-                pos++
-            else if values[pos]>=values[pos-1]
+            if values[pos]>=values[pos-1]
                 pos++
             else {
                 ; swap elements
@@ -60,6 +56,8 @@ _done
                 values[pos-1] = values[pos]
                 values[pos] = cx16.r0L
                 pos--
+                if_z
+                    pos++
             }
         }
     }
@@ -67,22 +65,22 @@ _done
 
     sub gnomesort_uw(uword values, ubyte num_elements) {
         ; TODO optimize this more, rewrite in asm?
-        uword @zp pos
-        cx16.r2 = num_elements*$0002
-        while pos != cx16.r2 {
-            uword @requirezp ptr = values+pos
-            if pos==0
-                pos += 2
+        ubyte @zp pos = 1
+        uword @requirezp ptr = values+2
+        while pos != num_elements {
+            cx16.r0 = peekw(ptr-2)
+            cx16.r1 = peekw(ptr)
+            if cx16.r0<=cx16.r1 {
+                pos++
+                ptr+=2
+            }
             else {
-                cx16.r0 = peekw(ptr-2)
-                cx16.r1 = peekw(ptr)
-                if cx16.r0<=cx16.r1
-                    pos += 2
-                else {
-                    ; swap elements
-                    pokew(ptr-2, cx16.r1)
-                    pokew(ptr, cx16.r0)
-                    pos -= 2
+                ; swap elements
+                pokew(ptr-2, cx16.r1)
+                pokew(ptr, cx16.r0)
+                if pos>1 {
+                    pos--
+                    ptr-=2
                 }
             }
         }
