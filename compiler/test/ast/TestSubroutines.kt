@@ -145,11 +145,11 @@ main {
         val result = compileText(Cx16Target(), false, src, errors, true)!!
         errors.errors.size shouldBe 0
         val start = result.codegenAst!!.entrypoint()!!
-        start.children.size shouldBe 9
-        val a1_1 = start.children[4] as PtAssignment
-        val a1_2 = start.children[5] as PtAssignment
-        val a1_3 = start.children[6] as PtAssignment
-        val a1_4 = start.children[7] as PtAssignment
+        start.children.size shouldBe 8
+        val a1_1 = start.children[3] as PtAssignment
+        val a1_2 = start.children[4] as PtAssignment
+        val a1_3 = start.children[5] as PtAssignment
+        val a1_4 = start.children[6] as PtAssignment
         a1_1.multiTarget shouldBe true
         a1_2.multiTarget shouldBe true
         a1_3.multiTarget shouldBe true

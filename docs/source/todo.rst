@@ -1,13 +1,6 @@
 TODO
 ====
 
-- Look if the =0 variable initializations can be reduced further.  (most notably for multi-value variable initialization).
-    See canSkipInitializationWith0()?
-    Remove it if there is another normal assignment after the initialization assignment,
-    that does not use the variable itself somewhere in the value, and the value doesn't contain a functioncall.
-    Set the "initializer" boolean to true on the first assignment that remains.
-
-
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 
 - add paypal donation button as well?

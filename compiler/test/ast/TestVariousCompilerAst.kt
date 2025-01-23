@@ -990,35 +990,23 @@ main {
 }"""
         val result1 = compileText(VMTarget(), optimize=true, src, writeAssembly=true)!!
         val st1 = result1.codegenAst!!.entrypoint()!!.children
-        st1.size shouldBe 8
+        st1.size shouldBe 5
         (st1[0] as PtVariable).name shouldBe "main.start.x"
         (st1[1] as PtVariable).name shouldBe "main.start.y"
         (st1[2] as PtVariable).name shouldBe "main.start.z"
-        (st1[3] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
-        (st1[4] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
-        (st1[5] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
-        (st1[3] as PtAssignment).target.identifier!!.name shouldBe "main.start.x"
-        (st1[4] as PtAssignment).target.identifier!!.name shouldBe "main.start.y"
-        (st1[5] as PtAssignment).target.identifier!!.name shouldBe "main.start.z"
-        st1[6].children.size shouldBe 4
-        st1[6].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("main.start.x", "main.start.y", "main.start.z")
-        ((st1[6] as PtAssignment).value as PtFunctionCall).name shouldBe "main.multi"
+        st1[3].children.size shouldBe 4
+        st1[3].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("main.start.x", "main.start.y", "main.start.z")
+        ((st1[3] as PtAssignment).value as PtFunctionCall).name shouldBe "main.multi"
 
         val result2 = compileText(Cx16Target(), optimize=true, src, writeAssembly=true)!!
         val st2 = result2.codegenAst!!.entrypoint()!!.children
-        st2.size shouldBe 8
+        st2.size shouldBe 5
         (st2[0] as PtVariable).name shouldBe "p8v_x"
         (st2[1] as PtVariable).name shouldBe "p8v_y"
         (st2[2] as PtVariable).name shouldBe "p8v_z"
-        (st2[3] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
-        (st2[4] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
-        (st2[5] as PtAssignment).value shouldBe PtNumber(BaseDataType.UBYTE, 0.0, Position.DUMMY)
-        (st2[3] as PtAssignment).target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_x"
-        (st2[4] as PtAssignment).target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_y"
-        (st2[5] as PtAssignment).target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_z"
-        st2[6].children.size shouldBe 4
-        st2[6].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("p8b_main.p8s_start.p8v_x", "p8b_main.p8s_start.p8v_y", "p8b_main.p8s_start.p8v_z")
-        ((st2[6] as PtAssignment).value as PtFunctionCall).name shouldBe "p8b_main.p8s_multi"
+        st2[3].children.size shouldBe 4
+        st2[3].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("p8b_main.p8s_start.p8v_x", "p8b_main.p8s_start.p8v_y", "p8b_main.p8s_start.p8v_z")
+        ((st2[3] as PtAssignment).value as PtFunctionCall).name shouldBe "p8b_main.p8s_multi"
     }
 }
 

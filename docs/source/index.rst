@@ -205,6 +205,7 @@ download a recent emulator version for the CommanderX16, such as `x16emu <https:
 (preferred, this is the official emulator. If required, source code is `here <https://github.com/X16Community/x16-emulator/>`_.
 There is also `Box16 <https://github.com/indigodarkwolf/box16>`_ which has powerful debugging features.
 For the Atari target, it assumes the "atari800" or "altirra" emulator.
+For the Neo6502, it assumes "neo" is the emulator program.
 If multiple options are listed above, you can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.
 
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.

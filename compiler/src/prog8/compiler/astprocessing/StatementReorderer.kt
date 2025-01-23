@@ -116,17 +116,26 @@ internal class StatementReorderer(
 
     private fun canSkipInitializationWith0(decl: VarDecl): Boolean {
         // if there is an assignment to the variable below it (regular assign, or For loop),
-        // and there is nothing important in between,
-        // we can skip the initialization.
+        // and there is nothing important in between, we can skip the initialization.
         val statements = (decl.parent as? IStatementContainer)?.statements ?: return false
         val following = statements.asSequence().dropWhile { it!==decl }.drop(1)
         for(stmt in following) {
             when(stmt) {
                 is Assignment -> {
                     if (!stmt.isAugmentable) {
-                        val assignTgt = stmt.target.identifier?.targetVarDecl(program)
-                        if (assignTgt == decl)
-                            return true
+                        var assignTargets = stmt.target.multi?.mapNotNull { it.identifier?.targetVarDecl(program) }
+                        if(assignTargets!=null) {
+                            if(decl in assignTargets) {
+                                stmt.origin = AssignmentOrigin.VARINIT
+                                return true
+                            }
+                        } else {
+                            val assignTgt = stmt.target.identifier?.targetVarDecl(program)
+                            if (assignTgt == decl) {
+                                stmt.origin = AssignmentOrigin.VARINIT
+                                return true
+                            }
+                        }
                     }
                     return false
                 }
@@ -138,8 +147,10 @@ internal class StatementReorderer(
                         if (assignTgt == decl)
                             return true
                         if(chained.nested is Assignment) {
-                            if ((chained.nested as Assignment).target.identifier?.targetVarDecl(program) == decl)
+                            if ((chained.nested as Assignment).target.identifier?.targetVarDecl(program) == decl) {
+                                (chained.nested as Assignment).origin = AssignmentOrigin.VARINIT
                                 return true
+                            }
                         }
                         chained = chained.nested as? ChainedAssignment
                     }

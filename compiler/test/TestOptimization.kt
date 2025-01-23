@@ -244,6 +244,7 @@ other {
                     usedvar_only_written++
                     ubyte usedvar                       ; and this one remains too
                     usedvar = msb(usedvar)
+                    unused_but_shared = usedvar
                 }
             }
         """

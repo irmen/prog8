@@ -367,11 +367,7 @@ Gradle error when building the compiler yourself
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you get a gradle build error containing the line "No matching toolchains found for requested specification"
 somewhere, it means that the Gradle build tool can't locate the correct version of the JDK to use.
-The file "gradle.properties" contains a line like this: ``javaVersion=11``.
-You can do one of two things to fix the build error:
-
-- install a JDK with that version,
-- or change the version number to match the JDK version that *is* installed on your system (must be >= 11)
+You will need a JDK for Java version 11 or higher to build the compiler.
 
 Strange assembler errors
 ^^^^^^^^^^^^^^^^^^^^^^^^
