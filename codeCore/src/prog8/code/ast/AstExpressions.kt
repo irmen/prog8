@@ -379,6 +379,16 @@ class PtString(val value: String, val encoding: Encoding, position: Position) : 
 class PtTypeCast(type: BaseDataType, position: Position) : PtExpression(DataType.forDt(type), position) {
     val value: PtExpression
         get() = children.single() as PtExpression
+
+    fun copy(): PtTypeCast {
+        val copy = PtTypeCast(type.base, position)
+        if(children[0] is PtIdentifier) {
+            copy.add((children[0] as PtIdentifier).copy())
+        } else {
+            TODO("cannot copy node ${children[0]}")
+        }
+        return copy
+    }
 }
 
 

@@ -1,9 +1,6 @@
 TODO
 ====
 
-- word+byte*2 -> word +byte +byte,  word-byte*2 -> word-byte-byte   (check that it gets properly word-extended!)
-- optimize pokew and peekw to no longer do a jsr
-
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 
 - add paypal donation button as well?
@@ -71,7 +68,7 @@ IR/VM
 
 Libraries
 ---------
-- Sorting module gnomesort_uw could be optimized more, rewrite in asm? Shellshort seems consistently faster even if most of the words are already sorted.
+- Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
 - add even more general raster irq routines to build some sort of "copper list" , like Oscar64 has?
 - pet32 target: make syslib more complete (missing kernal routines)?
