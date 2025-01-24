@@ -58,6 +58,11 @@ internal class AssemblyProgram(
                         println("\nCreating raw binary for target ${compTarget.name}.")
                         binFile
                     }
+                    OutputType.LIBRARY -> {
+                        command.add("--nostart")
+                        println("\nCreating binary library file for target ${compTarget.name}.")
+                        binFile
+                    }
                     else -> throw AssemblyError("invalid output type")
                 }
                 command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))

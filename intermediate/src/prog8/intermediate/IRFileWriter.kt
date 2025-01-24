@@ -222,6 +222,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             xml.writeCharacters("zpAllowed=${range.first},${range.last}\n")
         }
         xml.writeCharacters("loadAddress=${irProgram.options.loadAddress.toHex()}\n")
+        xml.writeCharacters("memtop=${irProgram.options.memtopAddress.toHex()}\n")
         xml.writeCharacters("optimize=${irProgram.options.optimize}\n")
         xml.writeCharacters("outputDir=${irProgram.options.outputDir.absolute()}\n")
         // other options not yet useful here?

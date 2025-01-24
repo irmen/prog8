@@ -87,93 +87,107 @@ internal class ProgramAndVarsGen(
             }
         }
 
-        when(options.output) {
-            OutputType.RAW -> {
-                asmgen.out("; ---- raw assembler program ----")
-                asmgen.out("* = ${options.loadAddress.toHex()}")
-                asmgen.out("prog8_program_start\t; start of program label")
-                asmgen.out("  cld")
-                asmgen.out("  tsx  ; save stackpointer for sys.exit()")
-                asmgen.out("  stx  prog8_lib.orig_stackpointer")
-                if(!options.noSysInit)
-                    asmgen.out("  jsr  p8_sys_startup.init_system")
-                asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
-            }
-            OutputType.PRG -> {
-                when(options.launcher) {
-                    CbmPrgLauncherType.BASIC -> {
-                        if (options.loadAddress != options.compTarget.PROGRAM_LOAD_ADDRESS) {
-                            errors.err("BASIC output must have load address ${options.compTarget.PROGRAM_LOAD_ADDRESS.toHex()}", program.position)
+        if(options.output == OutputType.LIBRARY) {
+
+            asmgen.out("; ---- library assembler program ----")
+            asmgen.out("* = ${options.loadAddress.toHex()}")
+            asmgen.out("    jmp  p8b_main.p8s_start")           // TODO still needed otherwise 64tass removes all .procs
+
+        } else {
+
+            when (options.output) {
+                OutputType.LIBRARY -> { }
+                OutputType.RAW -> {
+                    asmgen.out("; ---- raw assembler program ----")
+                    asmgen.out("* = ${options.loadAddress.toHex()}")
+                    asmgen.out("prog8_program_start\t; start of program label")
+                    asmgen.out("  cld")
+                    asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                    asmgen.out("  stx  prog8_lib.orig_stackpointer")
+                    if (!options.noSysInit)
+                        asmgen.out("  jsr  p8_sys_startup.init_system")
+                    asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
+                }
+                OutputType.PRG -> {
+                    when (options.launcher) {
+                        CbmPrgLauncherType.BASIC -> {
+                            if (options.loadAddress != options.compTarget.PROGRAM_LOAD_ADDRESS) {
+                                errors.err(
+                                    "BASIC output must have load address ${options.compTarget.PROGRAM_LOAD_ADDRESS.toHex()}",
+                                    program.position
+                                )
+                            }
+                            asmgen.out("; ---- basic program with sys call ----")
+                            asmgen.out("* = ${options.loadAddress.toHex()}")
+                            asmgen.out("prog8_program_start\t; start of program label")
+                            val year = LocalDate.now().year
+                            asmgen.out("  .word  (+), $year")
+                            asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
+                            asmgen.out("+\t.word  0")
+                            asmgen.out("prog8_entrypoint")
+                            asmgen.out("  cld")
+                            asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                            asmgen.out("  stx  prog8_lib.orig_stackpointer")
+                            if (!options.noSysInit)
+                                asmgen.out("  jsr  p8_sys_startup.init_system")
+                            asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
                         }
-                        asmgen.out("; ---- basic program with sys call ----")
-                        asmgen.out("* = ${options.loadAddress.toHex()}")
-                        asmgen.out("prog8_program_start\t; start of program label")
-                        val year = LocalDate.now().year
-                        asmgen.out("  .word  (+), $year")
-                        asmgen.out("  .null  $9e, format(' %d ', prog8_entrypoint), $3a, $8f, ' prog8'")
-                        asmgen.out("+\t.word  0")
-                        asmgen.out("prog8_entrypoint")
-                        asmgen.out("  cld")
-                        asmgen.out("  tsx  ; save stackpointer for sys.exit()")
-                        asmgen.out("  stx  prog8_lib.orig_stackpointer")
-                        if(!options.noSysInit)
-                            asmgen.out("  jsr  p8_sys_startup.init_system")
-                        asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
-                    }
-                    CbmPrgLauncherType.NONE -> {
-                        // this is the same as RAW
-                        asmgen.out("; ---- program without basic sys call ----")
-                        asmgen.out("* = ${options.loadAddress.toHex()}")
-                        asmgen.out("prog8_program_start\t; start of program label")
-                        asmgen.out("  cld")
-                        asmgen.out("  tsx  ; save stackpointer for sys.exit()")
-                        asmgen.out("  stx  prog8_lib.orig_stackpointer")
-                        if(!options.noSysInit)
-                            asmgen.out("  jsr  p8_sys_startup.init_system")
-                        asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
+
+                        CbmPrgLauncherType.NONE -> {
+                            // this is the same as RAW
+                            asmgen.out("; ---- program without basic sys call ----")
+                            asmgen.out("* = ${options.loadAddress.toHex()}")
+                            asmgen.out("prog8_program_start\t; start of program label")
+                            asmgen.out("  cld")
+                            asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                            asmgen.out("  stx  prog8_lib.orig_stackpointer")
+                            if (!options.noSysInit)
+                                asmgen.out("  jsr  p8_sys_startup.init_system")
+                            asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
+                        }
                     }
                 }
+                OutputType.XEX -> {
+                    asmgen.out("; ---- atari xex program ----")
+                    asmgen.out("* = ${options.loadAddress.toHex()}")
+                    asmgen.out("prog8_program_start\t; start of program label")
+                    asmgen.out("  cld")
+                    asmgen.out("  tsx  ; save stackpointer for sys.exit()")
+                    asmgen.out("  stx  prog8_lib.orig_stackpointer")
+                    if (!options.noSysInit)
+                        asmgen.out("  jsr  p8_sys_startup.init_system")
+                    asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
+                }
             }
-            OutputType.XEX -> {
-                asmgen.out("; ---- atari xex program ----")
-                asmgen.out("* = ${options.loadAddress.toHex()}")
-                asmgen.out("prog8_program_start\t; start of program label")
-                asmgen.out("  cld")
-                asmgen.out("  tsx  ; save stackpointer for sys.exit()")
-                asmgen.out("  stx  prog8_lib.orig_stackpointer")
-                if(!options.noSysInit)
-                    asmgen.out("  jsr  p8_sys_startup.init_system")
-                asmgen.out("  jsr  p8_sys_startup.init_system_phase2")
-            }
-        }
 
-        if(options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
-            asmgen.out("""
-                ; zeropage is clobbered so we need to reset the machine at exit
-                lda  #>sys.reset_system
-                pha
-                lda  #<sys.reset_system
-                pha""")
-        }
+            if (options.zeropage !in arrayOf(ZeropageType.BASICSAFE, ZeropageType.DONTUSE)) {
+                asmgen.out("""
+                    ; zeropage is clobbered so we need to reset the machine at exit
+                    lda  #>sys.reset_system
+                    pha
+                    lda  #<sys.reset_system
+                    pha""")
+            }
 
-        when(compTarget.name) {
-            "cx16" -> {
-                if(options.floats)
-                    asmgen.out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
-                asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
-            }
-            "c64" -> {
-                asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
-            }
-            "c128" -> {
-                asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
-            }
-            else -> {
-                asmgen.out("  jsr  p8b_main.p8s_start")
-                asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
+            when (compTarget.name) {
+                "cx16" -> {
+                    if (options.floats)
+                        asmgen.out("  lda  #4 |  sta  $01")    // to use floats, make sure Basic rom is banked in
+                    asmgen.out("  jsr  p8b_main.p8s_start")
+                    asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
+                }
+                "c64" -> {
+                    asmgen.out("  jsr  p8b_main.p8s_start")
+                    asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
+                }
+                "c128" -> {
+                    asmgen.out("  jsr  p8b_main.p8s_start")
+                    asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
+                }
+                else -> {
+                    asmgen.out("  jsr  p8b_main.p8s_start")
+                    asmgen.out("  jmp  p8_sys_startup.cleanup_at_exit")
+                }
             }
         }
     }

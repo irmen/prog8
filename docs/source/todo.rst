@@ -1,6 +1,19 @@
 TODO
 ====
 
+- added %output library, which preselects a bunch of options required to build a library file (rather than an executable program):
+    %launcher none
+    %option no_sysinit
+    %zeropage dontuse
+    You still have to set %address and %memtop yourself to tell prog8 where the library is meant to be placed in memory
+    TODO: it's now a raw binary file, should it include the 2-byte PRG header for easy loading from basic as well perhaps?
+
+- Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine (see translateSubroutine function)
+  AND there is separate setup logic going on before calling it. Make up our mind!
+  Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
+  Need to add some way to generate a stable jump table at a given address.
+  Library must not include prog8_program_start stuff either.  Must not require 'start' entrypoint either? Although they need some initialization entry point?
+
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 
 - add paypal donation button as well?
@@ -15,13 +28,6 @@ Future Things and Ideas
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
-- Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine (see translateSubroutine function)
-  AND there is separate setup logic going on before calling it. Make up our mind!
-  Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
-  Add a -library $xxxx command line option (and/or some directive) to preselect every setting that is required to make a library at $xxxx rather than a normal loadable and runnable program?
-  Need to add some way to generate a stable jump table at a given address.
-  Need library to not call init_system AND init_system_phase2 not either.
-  Library must not include prog8_program_start stuff either.  Must not require 'start' entrypoint either? Although they need some initialization entry point?
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
   But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)

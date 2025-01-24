@@ -90,6 +90,7 @@ class IRFileReader {
         val zpReserved = mutableListOf<UIntRange>()
         val zpAllowed = mutableListOf<UIntRange>()
         var loadAddress = target.PROGRAM_LOAD_ADDRESS
+        var memtop = target.PROGRAM_MEMTOP_ADDRESS
         var optimize = true
         var outputDir = Path("")
 
@@ -102,6 +103,7 @@ class IRFileReader {
                     "launcher" -> launcher = CbmPrgLauncherType.valueOf(value)
                     "zeropage" -> zeropage = ZeropageType.valueOf(value)
                     "loadAddress" -> loadAddress = parseIRValue(value).toUInt()
+                    "memtop" -> memtop = parseIRValue(value).toUInt()
                     "zpReserved" -> {
                         val (zpstart, zpend) = value.split(',')
                         zpReserved.add(UIntRange(zpstart.toUInt(), zpend.toUInt()))
@@ -127,7 +129,7 @@ class IRFileReader {
             false,
             target,
             loadAddress,
-            0xffffu,
+            memtop,
             outputDir = outputDir,
             optimize = optimize
         )

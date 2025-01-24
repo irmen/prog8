@@ -317,7 +317,8 @@ val CpuRegisters = arrayOf(
 enum class OutputType {
     RAW,
     PRG,
-    XEX
+    XEX,
+    LIBRARY
 }
 
 enum class CbmPrgLauncherType {

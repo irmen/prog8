@@ -253,6 +253,15 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
                     throw AssemblyError("atari xex output can't contain BASIC launcher")
                 loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
             }
+            OutputType.LIBRARY -> {
+                if(options.launcher!=CbmPrgLauncherType.NONE)
+                    throw AssemblyError("library output can't contain BASIC launcher")
+                if(options.zeropage!=ZeropageType.DONTUSE)
+                    throw AssemblyError("library output can't use zeropage")
+                if(options.noSysInit==false)
+                    throw AssemblyError("library output can't have sysinit")
+                // LIBRARY has no predefined load address.
+            }
         }
     }
 
@@ -264,7 +273,7 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
     }
 
     if(loadAddress==null) {
-        errors.err("load address must be specified with the specifid output/launcher options", program.toplevelModule.position)
+        errors.err("load address must be specified for the selected output/launcher options", program.toplevelModule.position)
         return
     }
 
@@ -334,10 +343,19 @@ fun parseMainModule(filepath: Path,
             importer.importImplicitLibraryModule("verafx")
     }
 
-    if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
-        errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
-    if(compilerOptions.launcher == CbmPrgLauncherType.BASIC && compTarget.name== AtariTarget.NAME)
-        errors.err("atari target cannot use CBM BASIC launcher, use NONE", program.toplevelModule.position)
+    if(compilerOptions.output==OutputType.LIBRARY) {
+        if(compilerOptions.launcher != CbmPrgLauncherType.NONE)
+            errors.err("library must not use a launcher", program.toplevelModule.position)
+        if(compilerOptions.zeropage != ZeropageType.DONTUSE)
+            errors.err("library cannot use zeropage", program.toplevelModule.position)
+        if(compilerOptions.noSysInit == false)
+            errors.err("library cannot use sysinit", program.toplevelModule.position)
+    } else {
+        if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
+            errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
+        if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compTarget.name == AtariTarget.NAME)
+            errors.err("atari target cannot use CBM BASIC launcher, use NONE", program.toplevelModule.position)
+    }
 
     errors.report()
 
@@ -354,8 +372,8 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
             as? Directive)?.args?.single()?.name?.uppercase()
     val allOptions = program.modules.flatMap { it.options() }.toSet()
     val floatsEnabled = "enable_floats" in allOptions
-    val noSysInit = "no_sysinit" in allOptions
-    val zpType: ZeropageType =
+    var noSysInit = "no_sysinit" in allOptions
+    var zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
         else
@@ -395,7 +413,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
             OutputType.PRG
         }
     }
-    val launcherType = if (launcherTypeStr == null) {
+    var launcherType = if (launcherTypeStr == null) {
         when(compTarget) {
             is AtariTarget -> CbmPrgLauncherType.NONE
             else -> CbmPrgLauncherType.BASIC
@@ -407,6 +425,12 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
             // set default value; actual check and error handling of invalid option is handled in the AstChecker later
             CbmPrgLauncherType.BASIC
         }
+    }
+
+    if(outputType == OutputType.LIBRARY) {
+        launcherType = CbmPrgLauncherType.NONE
+        zpType = ZeropageType.DONTUSE
+        noSysInit = true
     }
 
     return CompilationOptions(
