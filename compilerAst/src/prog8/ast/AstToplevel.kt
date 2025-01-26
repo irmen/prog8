@@ -341,7 +341,7 @@ open class Module(final override val statements: MutableList<Statement>,
             program.encoding.defaultEncoding
     }
 
-    val isLibrary get() = source.isFromResources
+    val isLibrary get() = source.isFromLibrary
 }
 
 

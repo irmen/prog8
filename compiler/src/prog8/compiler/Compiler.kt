@@ -73,8 +73,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
     try {
         val totalTime = measureTimeMillis {
-            val sourceDirs = if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) + args.sourceDirs else args.sourceDirs
-            val (program, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, sourceDirs)
+            val libraryDirs =  if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()
+            val (program, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.sourceDirs, libraryDirs)
             compilationOptions = options
 
             with(compilationOptions) {
@@ -319,12 +319,13 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
 fun parseMainModule(filepath: Path,
                     errors: IErrorReporter,
                     compTarget: ICompilationTarget,
-                    sourceDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
+                    sourceDirs: List<String>,
+                    libraryDirs: List<String>): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = program
 
-    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs)
+    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs)
     val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onFailure { throw it }
     errors.report()

@@ -21,9 +21,11 @@ import kotlin.io.path.exists
 class ModuleImporter(private val program: Program,
                      private val compilationTargetName: String,
                      val errors: IErrorReporter,
-                     sourceDirs: List<String>) {
+                     sourceDirs: List<String>,
+                     libraryDirs: List<String>) {
 
     private val sourcePaths: List<Path> = sourceDirs.map { Path(it).absolute().normalize() }.toSortedSet().toList()
+    private val libraryPaths: List<Path> = libraryDirs.map { Path(it).absolute().normalize() }.toSortedSet().toList()
 
     fun importMainModule(filePath: Path): Result<Module, NoSuchFileException> {
         val searchIn = (listOf(Path("").absolute()) + sourcePaths).toSortedSet()
@@ -33,7 +35,7 @@ class ModuleImporter(private val program: Program,
             if(programPath.exists()) {
                 println("Compiling program ${Path("").absolute().relativize(programPath)}")
                 println("Compiler target: $compilationTargetName")
-                val source = ImportFileSystem.getFile(programPath)
+                val source = ImportFileSystem.getFile(programPath, false)
                 return Ok(importModule(source))
             }
         }
@@ -131,17 +133,25 @@ class ModuleImporter(private val program: Program,
 
     private fun getModuleFromFile(name: String, importingModule: Module?): Result<SourceCode, NoSuchFileException> {
         val fileName = "$name.p8"
-        val locations =
-            if (importingModule == null) { // <=> imported from library module
+
+        val normalLocations =
+            if (importingModule == null) {
                 sourcePaths
             } else {
                 val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).absolute().normalize()
                 listOf(pathFromImportingModule) + sourcePaths
             }
 
-        locations.forEach {
+        libraryPaths.forEach {
             try {
-                return Ok(ImportFileSystem.getFile(it.resolve(fileName)))
+                return Ok(ImportFileSystem.getFile(it.resolve(fileName), true))
+            } catch (_: NoSuchFileException) {
+            }
+        }
+
+        normalLocations.forEach {
+            try {
+                return Ok(ImportFileSystem.getFile(it.resolve(fileName), false))
             } catch (_: NoSuchFileException) {
             }
         }

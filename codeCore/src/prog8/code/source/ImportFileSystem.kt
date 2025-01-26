@@ -21,12 +21,12 @@ object ImportFileSystem {
 
     fun expandTilde(path: Path): Path = Path(expandTilde(path.toString()))
 
-    fun getFile(path: Path): SourceCode {
+    fun getFile(path: Path, isLibrary: Boolean=false): SourceCode {
         val normalized = path.absolute().normalize()
         val cached = cache[normalized.toString()]
         if (cached != null)
             return cached
-        val file = SourceCode.File(normalized)
+        val file = SourceCode.File(normalized, isLibrary)
         cache[normalized.toString()] = file
         return file
     }

@@ -29,7 +29,7 @@ class TestModuleImporter: FunSpec({
     }
 
     fun makeImporter(errors: IErrorReporter? = null, searchIn: Iterable<String>) =
-        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(false), searchIn.toList())
+        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(false), searchIn.toList(), emptyList())
 
     fun makeImporter(errors: IErrorReporter?, vararg searchIn: String): ModuleImporter {
         return makeImporter(errors, searchIn.asList())

@@ -767,9 +767,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         } else {
             val sib = Path(source.origin).resolveSibling(filename)
             if (sib.isRegularFile())
-                Ok(ImportFileSystem.getFile(sib).text)
+                Ok(ImportFileSystem.getFile(sib, source.isFromLibrary).text)
             else
-                Ok(ImportFileSystem.getFile(Path(filename)).text)
+                Ok(ImportFileSystem.getFile(Path(filename), source.isFromLibrary).text)
         }
     }
 

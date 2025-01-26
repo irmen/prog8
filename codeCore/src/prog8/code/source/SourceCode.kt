@@ -23,6 +23,11 @@ sealed class SourceCode {
     abstract val isFromFilesystem: Boolean
 
     /**
+     * Whether this [SourceCode] instance was created from a library module file
+     */
+    abstract val isFromLibrary: Boolean
+
+    /**
      * The logical name of the source code unit. Usually the module's name.
      */
     abstract val name: String
@@ -76,6 +81,7 @@ sealed class SourceCode {
         override val text = origText.replace("\\R".toRegex(), "\n")      // normalize line endings
         override val isFromResources = false
         override val isFromFilesystem = false
+        override val isFromLibrary = false
         override val origin = "$STRINGSOURCEPREFIX${System.identityHashCode(text).toString(16)}"
         override val name = "<unnamed-text>"
     }
@@ -89,7 +95,7 @@ sealed class SourceCode {
      * @throws NoSuchFileException if the file does not exist
      * @throws FileSystemException if the file cannot be read
      */
-    internal class File(path: Path): SourceCode() {
+    internal class File(path: Path, override val isFromLibrary: Boolean): SourceCode() {
         override val text: String
         override val origin: String
         override val name: String
@@ -120,6 +126,7 @@ sealed class SourceCode {
 
         override val isFromResources = true
         override val isFromFilesystem = false
+        override val isFromLibrary = true
         override val origin = "$LIBRARYFILEPREFIX$normalized"
         override val text: String
         override val name: String
@@ -146,6 +153,7 @@ sealed class SourceCode {
     class Generated(override val name: String) : SourceCode() {
         override val isFromResources: Boolean = false
         override val isFromFilesystem: Boolean = false
+        override val isFromLibrary: Boolean = false
         override val origin: String = name
         override val text: String = "<generated code node, no text representation>"
     }
