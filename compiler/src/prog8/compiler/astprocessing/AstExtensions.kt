@@ -171,15 +171,17 @@ internal fun Program.moveMainBlockAsFirst(target: ICompilationTarget) {
         // the program startup and cleanup machinery needs to be located in system ram
         // so in an attempt to not be pushed into ROM space at the end of the program,
         // this moves that block to the beginning of the program as much as possible.
-        val startupBlock = this.allBlocks.single { it.name == "p8_sys_startup" }
-        val mainBlockIdx = module.statements.indexOf(block)
-        (startupBlock.parent as IStatementContainer).remove(startupBlock)
-        if (block.address == null) {
-            module.statements.add(mainBlockIdx, startupBlock)
-        } else {
-            module.statements.add(mainBlockIdx + 1, startupBlock)
+        val startupBlock = this.allBlocks.singleOrNull { it.name == "p8_sys_startup" }
+        if(startupBlock!=null) {
+            val mainBlockIdx = module.statements.indexOf(block)
+            (startupBlock.parent as IStatementContainer).remove(startupBlock)
+            if (block.address == null) {
+                module.statements.add(mainBlockIdx, startupBlock)
+            } else {
+                module.statements.add(mainBlockIdx + 1, startupBlock)
+            }
+            startupBlock.parent = module
         }
-        startupBlock.parent = module
     }
 }
 

@@ -91,7 +91,10 @@ internal class ProgramAndVarsGen(
 
             asmgen.out("; ---- library assembler program ----")
             asmgen.out("* = ${options.loadAddress.toHex()}")
-            asmgen.out("    jmp  p8b_main.p8s_start")           // TODO still needed otherwise 64tass removes all .procs
+            asmgen.out("    jmp  p8b_main.p8s_start")
+            // note: the jmp above has 2 effects:
+            // 1. it prevents 64tass from stripping away all procs as unused code
+            // 2. it functions as the first entrypoint of the library, required anyway, to run the variable initialization/bss clear bootstrap code.
 
         } else {
 

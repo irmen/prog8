@@ -59,7 +59,7 @@ internal class AssemblyProgram(
                         binFile
                     }
                     OutputType.LIBRARY -> {
-                        command.add("--nostart")
+                        command.add("--cbm-prg")       // include the 2-byte PRG header on library .bins, so they can be easily loaded on the correct memory address even on C64
                         println("\nCreating binary library file for target ${compTarget.name}.")
                         binFile
                     }

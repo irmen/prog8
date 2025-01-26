@@ -1563,7 +1563,7 @@ internal class AstChecker(private val program: Program,
             if(target.returntypes.size>16) {
                 errors.err("cannot have more than 16 return values", target.position)
             }
-            if(target.returntypes.size>3) {
+            if(!target.isAsmSubroutine && target.returntypes.size>3) {
                 errors.info("a large number of return values incurs a substantial value copying overhead", target.position)
             }
         }

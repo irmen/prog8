@@ -19,7 +19,7 @@ import prog8.optimizer.*
 import prog8.parser.ParseError
 import java.nio.file.Path
 import kotlin.io.path.Path
-import kotlin.io.path.isReadable
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
 import kotlin.math.round
 import kotlin.system.exitProcess
@@ -65,7 +65,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     var importedFiles: List<Path>
 
     val targetConfigFile = expandTilde(Path(args.compilationTarget))
-    val compTarget = if(targetConfigFile.isReadable()) {
+    val compTarget = if(targetConfigFile.isRegularFile()) {
         ConfigFileTarget.fromConfigFile(targetConfigFile)
     } else {
         getCompilationTargetByName(args.compilationTarget)
