@@ -1,13 +1,6 @@
 TODO
 ====
 
-- added %output library, which preselects a bunch of options required to build a library file (rather than an executable program):
-    %launcher none
-    %option no_sysinit
-    %zeropage dontuse
-    You still have to set %address and %memtop yourself to tell prog8 where the library is meant to be placed in memory.
-    Result is a .bin file including the 2-byte PRG header that allows you to load it with ,8,1 from basic even on the C64.
-
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 
 - add paypal donation button as well?
