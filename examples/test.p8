@@ -14,14 +14,12 @@ main {
         ;       btw, $4c = opcode for JMP.
         $4c00, &library.func1,
         $4c00, &library.func2,
-        $4c00, &library.func3,
     ]
 
     sub start() {
         ; has to be here for initialization
         txt.print("lib initialized\n")
     }
-
 }
 
 
@@ -32,9 +30,5 @@ library {
 
     sub func2() {
         txt.print("lib func 2\n")
-    }
-
-    sub func3() {
-        txt.print("lib func 3\n")
     }
 }

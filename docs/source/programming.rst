@@ -418,6 +418,8 @@ Directives
 
 	- type ``raw`` : no header at all, just the raw machine code data
 	- type ``prg`` : C64 program (with load address header)
+	- type ``xex`` : Atari xex program
+	- type ``library`` : loadable library file (with CBM style load address header) See :ref:`loadable_library`.
 
 
 .. data:: %zeropage <style>

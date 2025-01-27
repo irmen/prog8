@@ -5,14 +5,8 @@ TODO
     %launcher none
     %option no_sysinit
     %zeropage dontuse
-    You still have to set %address and %memtop yourself to tell prog8 where the library is meant to be placed in memory
-    TODO: it's now a raw binary file, should it include the 2-byte PRG header for easy loading from basic as well perhaps?
-
-- Compiling Libraries: improve ability to create library files in prog8; for instance there's still stuff injected into the start of the start() routine (see translateSubroutine function)
-  AND there is separate setup logic going on before calling it. Make up our mind!
-  Maybe all setup does need to be put into start() ? because the program cannot function correctly when the variables aren't initialized properly bss is not cleared etc. etc.
-  Need to add some way to generate a stable jump table at a given address.
-  Library must not include prog8_program_start stuff either.  Must not require 'start' entrypoint either? Although they need some initialization entry point?
+    You still have to set %address and %memtop yourself to tell prog8 where the library is meant to be placed in memory.
+    Result is a .bin file including the 2-byte PRG header that allows you to load it with ,8,1 from basic even on the C64.
 
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
 

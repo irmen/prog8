@@ -220,6 +220,7 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     compiling.rst
     programming.rst
     variables.rst
+    binlibrary.rst
     libraries.rst
     targetsystem.rst
     technical.rst
