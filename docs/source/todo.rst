@@ -14,6 +14,8 @@ Future Things and Ideas
 
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
+- for creating libraries, something like %jmptable( block.func1, block.func2, ... ) could be useful to create a compact jump table, and possibly generating extsub definitions as well. Problem: directives cannot span multiple lines atm.
+- improve support for romable code (see github issue 149)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?

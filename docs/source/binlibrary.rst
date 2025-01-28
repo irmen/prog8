@@ -15,6 +15,9 @@ An example of a library file loaded in BASIC on the Commander X16:
 .. image:: _static/x16library.png
     :align: center
 
+(On the Commodore-64 and such, it works identically but you have to type the SYS addresses in decimal notation)
+
+
 Requirements
 ^^^^^^^^^^^^
 
@@ -86,14 +89,21 @@ But the users of the library are none the wiser and it just seems as if it is pa
 Loading and using the library
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Assuming the load address of the library is $A000:
+Assuming the load address of the library is $A000 (40960):
 
-**From BASIC**::
+**From BASIC**  (the example is from the Commander X16)::
 
     LOAD "LIBRARY.BIN",8,1
     SYS $A000 : REM TO INITIALIZE VARIABLES, REQUIRED!
     SYS $A004 : REM CALL FIRST ROUTINE
     SYS $A008 : REM CALL SECOND ROUTINE, ETC.
+
+For the Commodore 64 and such this works the same but you'll have to type the SYS addresses as decimal numbers.
+The Commander X16 also has the BLOAD command to load binary data files, where you have to specify the memory
+location where the file has to be loaded to. But for Prog8 library files you don't have to do that, just use LOAD;
+the correct address is in the header of the library file. Loading the library to a different memory address
+is not possible, because it will only work on the address it was compiled for (it's not possible to create
+position independent code on the 6502).
 
 **From Prog8**::
 
@@ -113,6 +123,48 @@ Assuming the load address of the library is $A000:
             }
         }
     }
+
+**From C**::
+
+    #include <cbm.h>
+
+    int main() {
+        void (*lib_init)(void) = (void (*)()) 0xa000;
+        void (*lib_func1)(void) = (void (*)()) 0xa004;
+        void (*lib_func2)(void) = (void (*)()) 0xa008;
+        cbm_load("library.bin", 8, 0);
+        lib_init();
+        lib_func1();
+        lib_func2();
+        return 0;
+    }
+
+**From Assembly**::
+
+    ; add error handling as desired.
+        ldy  #>libname
+        ldx  #<libname
+        lda  #11
+        jsr  $ffbd      ; SETNAM
+        ldy  #1
+        ldx  #8
+        lda  #1
+        jsr  $ffba      ; SETLFS
+        lda  #0
+        ldx  #0
+        ldy  #0
+        jsr  $ffd5      ; LOAD
+        lda  #13
+        jsr  $ffd2      ; CHROUT
+
+        jsr  $A000      ; library init
+        jsr  $A004      ; lib func 1
+        jsr  $A008      ; lib func 2
+
+        rts
+
+        libname:
+            .text  "library.bin"
 
 
 Example library code

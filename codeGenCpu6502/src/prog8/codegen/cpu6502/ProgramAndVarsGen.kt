@@ -91,6 +91,7 @@ internal class ProgramAndVarsGen(
 
             asmgen.out("; ---- library assembler program ----")
             asmgen.out("* = ${options.loadAddress.toHex()}")
+            asmgen.out("prog8_program_start\t; start of program label")
             asmgen.out("    jmp  p8b_main.p8s_start")
             // note: the jmp above has 2 effects:
             // 1. it prevents 64tass from stripping away all procs as unused code
