@@ -2,6 +2,7 @@ TODO
 ====
 
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
+- Should there be some form of "CUSTOM" launchertype where the startup assembly code can also be configured in the target.properties?
 
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?

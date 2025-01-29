@@ -26,6 +26,32 @@ This chapter explains some relevant system details of the c64 and cx16 machines.
     it is often possible to compile the *exact same program* for
     different machines (just change the compilation target flag)!
 
+.. note::
+    When you specify a file name as target, prog8 will try to read the target
+    machine's configuration and properties from that configuration file instead.
+    See :ref:`customizable_target` for details about this.
+
+
+.. _customizable_target:
+
+Customizable targets
+====================
+
+You can also specify a file name instead of one of the built in target machine names, when using the ``-target`` option.
+In this case the compiler will not use one of the builtin machines configurations, but read it from the configuration file.
+This allows you to define and change your own target machine configuration, and maybe allow Prog8 to generate
+programs for new machines or existing ones it doesn't yet know about.
+
+The configuration file should be a "targetname.properties" file, which is basically a text file containing "key=value" lines.
+The "targetname" filename base part will be taken as the name of the configured compilation target.
+The contents of the file is pretty extensive and it's easier to just look at some examples that are already included:
+`target configuration examples <https://github.com/irmen/prog8/tree/master/examples/customtarget/>`_ .
+
+Most of the things discussed in the :ref:`portingguide` can and must be configured properly in the target configuration file.
+You also need to create some essential ``syslib`` library module for the configured target, because the Prog8
+compiler won't have a built in library that can be used this time. The customtarget examples also show how to build
+the essentials.
+
 
 Memory Model
 ============

@@ -20,7 +20,7 @@ They targeted CPUs are the `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6
 They are from the late 1970's and early 1980's and was used in many home computers from that era,
 such as the `Commodore 64 <https://en.wikipedia.org/wiki/Commodore_64>`_.
 
-You can compile programs for various machines:
+You can compile programs for various machines that are built in into the compiler:
 
 * Commander X16  (with 65c02 cpu, 65816 cpu specifics are currently not supported by prog8 itself)
 * Commodore 64
@@ -28,6 +28,7 @@ You can compile programs for various machines:
 * Commodore PET (limited support)
 * Atari 800 XL (very limited support)
 * Neo6502 (very imited support)
+* any other 65(C)02 target machine or setup can be configured to a great extent in a user written configuration file.
 
 Some language features are mentioned below, and you can also read :ref:`comparingprog8` if you
 want to quickly read about how Prog8 compares to well-known other languages.
