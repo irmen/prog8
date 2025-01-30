@@ -34,7 +34,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     var zeropage: Zeropage
     var golden: GoldenRam
     val libraryPath: Path?
-    val customLauncher: List<String>?
+    val customLauncher: List<String>
 
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)
     fun getFloatAsmBytes(num: Number): String

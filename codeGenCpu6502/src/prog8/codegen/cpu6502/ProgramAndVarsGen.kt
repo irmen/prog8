@@ -87,7 +87,7 @@ internal class ProgramAndVarsGen(
             }
         }
 
-        if(options.compTarget.customLauncher?.isNotEmpty()==true) {
+        if(options.compTarget.customLauncher.isNotEmpty()) {
             asmgen.out("; ---- custom launcher assembler program ----")
             asmgen.out("* = ${options.loadAddress.toHex()}")
             asmgen.out("prog8_program_start\t; start of program label")

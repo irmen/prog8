@@ -45,14 +45,19 @@ programs for new machines or existing ones it doesn't yet know about.
 The configuration file should be a "properties" file (Java's ubiquitous configuration file format), which is basically a text file containing "key=value" lines.
 The contents of the file is pretty extensive and it's easier to just look at some examples that are already included:
 `target configuration examples <https://github.com/irmen/prog8/tree/master/examples/customtarget/>`_ .
+The filename base part (the part before any suffix) of the target configuration file will be taken as the name of the compilation target.
+If it matches one of the existing built-in compilation targets, the internal library files for that target will also be searched,
+if the user supplied library location doesn't contain a replacement library file for anything that might get imported.
+The path you need to provide for the ``library`` variable can be relative (to the current working directory where you launch the compiler from)
+and you can use a tilde ``~`` in it like in a shell path, to refer to a user's home directory.
+Note that library modules not unique to a specific compilation target (for example, `buffers`, `sorting` or `strings`) will
+be picked up from the internal library files just fine as was always the case. You can still provide custom versions of them
+in your own library folder ofcourse, like you already could with using the ``-srcdirs`` compiler flag.
 
 Most of the things discussed in the :ref:`portingguide` can and must be configured properly in the target configuration file.
 You also need to create some essential ``syslib`` library module for the configured target if its name does not match
 one of the built in targets. This is because the compiler won't have a built in library that can be used this time.
 The customtarget examples also show how to build the essentials.
-The filename base part (the part before any suffix) of the target configuration file will be taken as the name of the compilation target.
-If it matches one of the existing built-in compilation targets, the internal library files for that target will still be used,
-if the user supplied library location doesn't contain a replacement library file for anything that might get imported.
 
 The target configuration file also allows you to override the entire launcher assembly fragment that the compiler
 usually puts at the start of the program (immediately after the setting of the program counter/load address and

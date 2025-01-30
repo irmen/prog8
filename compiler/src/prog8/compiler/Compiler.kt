@@ -265,7 +265,7 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
         }
     }
 
-    if(options.output==OutputType.PRG && options.launcher==CbmPrgLauncherType.BASIC) {
+    if(options.output==OutputType.PRG && options.launcher==CbmPrgLauncherType.BASIC && options.compTarget.customLauncher.isEmpty()) {
         val expected = options.compTarget.PROGRAM_LOAD_ADDRESS
         if(loadAddress!=expected) {
             errors.err("BASIC output must have load address ${expected.toHex()}", specifiedAddress?.second ?: program.toplevelModule.position)

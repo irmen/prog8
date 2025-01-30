@@ -11,7 +11,7 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null
-    override val customLauncher = null
+    override val customLauncher: List<String> = emptyList()
 
     companion object {
         const val NAME = "c64"

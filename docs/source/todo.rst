@@ -1,7 +1,7 @@
 TODO
 ====
 
-- Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
+- Make neo
 
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?

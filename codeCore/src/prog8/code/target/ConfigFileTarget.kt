@@ -26,7 +26,7 @@ class ConfigFileTarget(
     override val BSSGOLDENRAM_START: UInt,
     override val BSSGOLDENRAM_END: UInt,
     override val libraryPath: Path,
-    override val customLauncher: List<String>?,
+    override val customLauncher: List<String>,
     val ioAddresses: List<UIntRange>,
     val zpScratchB1: UInt,
     val zpScratchReg: UInt,
@@ -106,7 +106,7 @@ class ConfigFileTarget(
             val customLauncher =
                 if(customLauncherStr?.isNotBlank()==true)
                     (customLauncherStr+"\n").lines().map { it.trimEnd() }
-                else null
+                else emptyList()
 
             return ConfigFileTarget(
                 configfile.nameWithoutExtension,
