@@ -2,7 +2,6 @@ TODO
 ====
 
 - Make some of the target machine config externally configurable (for 1 new target, the existing ones should stay as they are for the time being)
-- Should there be some form of "CUSTOM" launchertype where the startup assembly code can also be configured in the target.properties?
 
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
@@ -64,6 +63,8 @@ IR/VM
 
 Libraries
 ---------
+- cx16 diskio (and fileselector example):  provide a way to list only files and only directories (or both), using ``@$:*=p``` / ``@$:*=d``` DOS filtering
+- make fileselector into a loadable library?
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
 - add even more general raster irq routines to build some sort of "copper list" , like Oscar64 has?

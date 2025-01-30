@@ -115,7 +115,7 @@ class ConfigFileTarget(
                 ProgramType.valueOf(props.getString("program")),
                 props.getInteger("load_address"),
                 props.getInteger("memtop"),
-                props.getInteger("startup_reserved"),
+                0u,         // used only in a very specific error condition check in a certain scenario...
                 props.getInteger("bss_highram_start"),
                 props.getInteger("bss_highram_end"),
                 props.getInteger("bss_goldenram_start"),
