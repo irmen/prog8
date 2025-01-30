@@ -10,6 +10,7 @@ class Neo6502Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer b
     override val name = NAME
     override val defaultEncoding = Encoding.ISO
     override val libraryPath = null
+    override val customLauncher = null
 
     companion object {
         const val NAME = "neo"

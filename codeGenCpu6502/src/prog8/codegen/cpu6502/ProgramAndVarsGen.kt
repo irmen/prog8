@@ -87,6 +87,16 @@ internal class ProgramAndVarsGen(
             }
         }
 
+        if(options.compTarget.customLauncher?.isNotEmpty()==true) {
+            asmgen.out("; ---- custom launcher assembler program ----")
+            asmgen.out("* = ${options.loadAddress.toHex()}")
+            asmgen.out("prog8_program_start\t; start of program label")
+            for(line in options.compTarget.customLauncher) {
+                asmgen.out(line)
+            }
+            return
+        }
+
         if(options.output == OutputType.LIBRARY) {
 
             asmgen.out("; ---- library assembler program ----")

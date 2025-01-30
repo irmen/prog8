@@ -18,6 +18,7 @@ class PETTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null
+    override val customLauncher = null
 
     companion object {
         const val NAME = "pet32"

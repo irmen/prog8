@@ -26,6 +26,7 @@ class ConfigFileTarget(
     override val BSSGOLDENRAM_START: UInt,
     override val BSSGOLDENRAM_END: UInt,
     override val libraryPath: Path,
+    override val customLauncher: List<String>?,
     val ioAddresses: List<UIntRange>,
     val zpScratchB1: UInt,
     val zpScratchReg: UInt,
@@ -101,6 +102,12 @@ class ConfigFileTarget(
             if(!libraryPath.isDirectory())
                 throw IOException("invalid library path: $libraryPath")
 
+            val customLauncherStr = props.getProperty("custom_launcher", null)
+            val customLauncher =
+                if(customLauncherStr?.isNotBlank()==true)
+                    (customLauncherStr+"\n").lines().map { it.trimEnd() }
+                else null
+
             return ConfigFileTarget(
                 configfile.nameWithoutExtension,
                 Encoding.entries.first { it.prefix==props.getString("encoding") },
@@ -114,6 +121,7 @@ class ConfigFileTarget(
                 props.getInteger("bss_goldenram_start"),
                 props.getInteger("bss_goldenram_end"),
                 libraryPath,
+                customLauncher,
                 ioAddresses,
                 props.getInteger("zp_scratch_b1"),
                 props.getInteger("zp_scratch_reg"),

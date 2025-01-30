@@ -18,6 +18,7 @@ class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null
+    override val customLauncher = null
 
     companion object {
         const val NAME = "c128"
