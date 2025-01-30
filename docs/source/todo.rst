@@ -63,7 +63,7 @@ IR/VM
 
 Libraries
 ---------
-- cx16 diskio (and fileselector example):  provide a way to list only files and only directories (or both), using "@$:*=p" / "@$:*=d" DOS filtering
+- cx16 diskio (and fileselector example):  provide a way to list only files and only directories (or both), using ``@$:*=p``` / ``@$:*=d``` DOS filtering
 - make fileselector into a loadable library?
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
