@@ -9,9 +9,9 @@
 ; Functions in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
 ; Depends a lot on diskio routines, and uses the drive set in the diskio.drivenumber variable (usually just 8)
 
-; should case folding be done in diskio already? -> no, it doesn't know if you are in iso mode or not.
-; TODO use "@$:=p" instead of filtering manually for only dirs use @$:=d   , but that needs a change in diskio...
-; TODO is there a way to detect if iso charset mode is active (not really, except read the kernal variable...)
+; Q: should case folding be done in diskio already? A: no, it doesn't know if you are in iso mode or not.
+
+; TODO use "@$:*=p" instead of filtering manually for only dirs use @$:*=d   , but that needs a change in diskio...
 ; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
 
