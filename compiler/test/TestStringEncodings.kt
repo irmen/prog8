@@ -20,6 +20,7 @@ import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.encodings.Encoder
 import prog8.code.target.encodings.AtasciiEncoding
+import prog8.code.target.encodings.C64osEncoding
 import prog8.code.target.encodings.IsoEncoding
 import prog8.code.target.encodings.PetsciiEncoding
 import prog8tests.helpers.ErrorReporterForTests
@@ -248,6 +249,19 @@ class TestStringEncodings: FunSpec({
             shouldThrow<CharConversionException> {
                 CharLiteral.create('ガ', Encoding.KATAKANA, Position.DUMMY)
             }
+        }
+    }
+
+    context("c64os") {
+        test("test c64os special characters") {
+            C64osEncoding.encode("\\") shouldBe Ok(listOf<UByte>(0x1Cu))
+            C64osEncoding.encode("^") shouldBe Ok(listOf<UByte>(0x1Eu))
+            C64osEncoding.encode("_") shouldBe Ok(listOf<UByte>(0x1Fu))
+            C64osEncoding.encode("`") shouldBe Ok(listOf<UByte>(0x40u))
+            C64osEncoding.encode("{") shouldBe Ok(listOf<UByte>(0x5Bu))
+            C64osEncoding.encode("|") shouldBe Ok(listOf<UByte>(0x5Cu))
+            C64osEncoding.encode("}") shouldBe Ok(listOf<UByte>(0x5Du))
+            C64osEncoding.encode("~") shouldBe Ok(listOf<UByte>(0x5Eu))
         }
     }
 

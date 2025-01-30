@@ -18,6 +18,7 @@ object Encoder: IStringEncoding {
             Encoding.ISO16 -> IsoEasternEncoding.encode(str)
             Encoding.CP437 -> Cp437Encoding.encode(str)
             Encoding.KATAKANA -> KatakanaEncoding.encode(str)
+            Encoding.C64OS -> C64osEncoding.encode(str)
             else -> throw InternalCompilerException("unsupported encoding $encoding")
         }
         return coded.fold(
@@ -35,6 +36,7 @@ object Encoder: IStringEncoding {
             Encoding.ISO16 -> IsoEasternEncoding.decode(bytes)
             Encoding.CP437 -> Cp437Encoding.decode(bytes)
             Encoding.KATAKANA -> KatakanaEncoding.decode(bytes)
+            Encoding.C64OS -> C64osEncoding.decode(bytes)
             else -> throw InternalCompilerException("unsupported encoding $encoding")
         }
         return decoded.fold(
