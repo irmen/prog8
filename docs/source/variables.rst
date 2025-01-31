@@ -414,6 +414,7 @@ change it for the whole file at once. Here are examples of the possible encoding
     - ``atascii:"I am Atari!"``         string in "atascii" encoding (Atari 8-bit)
     - ``cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"``     string in "cp437" encoding (IBM PC codepage 437)
     - ``kata:"ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ｡ # が # ガ"``  string in "kata" encoding (Katakana)
+    - ``c64os:"^Hello_World! \\ ~{_}~"`` string in "c64os" encoding (C64 OS)
 
 So what follows below is a string literal that will be encoded into memory bytes using the iso encoding.
 It can be correctly displayed on the screen only if a iso-8859-15 charset has been activated first
