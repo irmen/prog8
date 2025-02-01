@@ -12,6 +12,7 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by 
     override val defaultEncoding = Encoding.ATASCII
     override val libraryPath = null
     override val customLauncher: List<String> = emptyList()
+    override val additionalAssemblerOptions = null
 
     companion object {
         const val NAME = "atari"

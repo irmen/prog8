@@ -12,6 +12,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
     override val defaultEncoding = Encoding.ISO
     override val libraryPath = null
     override val customLauncher: List<String> = emptyList()
+    override val additionalAssemblerOptions = null
 
     companion object {
         const val NAME = "virtual"

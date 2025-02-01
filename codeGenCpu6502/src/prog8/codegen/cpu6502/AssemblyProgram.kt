@@ -29,11 +29,8 @@ internal class AssemblyProgram(
             ProgramType.CBMPRG -> {
                 // CBM machines .prg generation.
 
-                // add "-Wlong-branch"  to see warnings about conversion of branch instructions to jumps (default = do this silently)
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", // "-Wno-strict-bool", "-Werror",
-                    "--dump-labels", "--vice-labels", "--labels=$viceMonListFile"
-                )
+                    "-Wall", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -44,7 +41,7 @@ internal class AssemblyProgram(
                     command.add("--quiet")
 
                 if(options.asmListfile) {
-                    command.addAll(listOf("--list=$listFile", "--no-monitor"))
+                    command.add("--list=$listFile")
                 }
 
                 val outFile = when (options.output) {
@@ -65,6 +62,7 @@ internal class AssemblyProgram(
                     }
                     else -> throw AssemblyError("invalid output type")
                 }
+
                 command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
 
@@ -73,10 +71,7 @@ internal class AssemblyProgram(
                 // Atari800XL .xex generation.
 
                 // TODO are these options okay for atari?
-                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", // "-Werror", "-Wno-strict-bool"
-                    "--no-monitor"
-                )
+                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -113,10 +108,7 @@ internal class AssemblyProgram(
                 }
 
                 // TODO are these options okay for neo?
-                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch",
-                    "-Wall", // "-Werror", "-Wno-strict-bool"
-                    "--no-monitor"
-                )
+                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -142,6 +134,9 @@ internal class AssemblyProgram(
             }
             else -> throw AssemblyError("invalid program type")
         }
+
+        if(options.compTarget.additionalAssemblerOptions!=null)
+            assemblerCommand.add(options.compTarget.additionalAssemblerOptions!!)
 
         val proc = ProcessBuilder(assemblerCommand).inheritIO().start()
         val result = proc.waitFor()

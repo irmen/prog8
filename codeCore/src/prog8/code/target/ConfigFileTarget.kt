@@ -27,6 +27,7 @@ class ConfigFileTarget(
     override val BSSGOLDENRAM_END: UInt,
     override val libraryPath: Path,
     override val customLauncher: List<String>,
+    override val additionalAssemblerOptions: String?,
     val ioAddresses: List<UIntRange>,
     val zpScratchB1: UInt,
     val zpScratchReg: UInt,
@@ -107,6 +108,8 @@ class ConfigFileTarget(
                 if(customLauncherStr?.isNotBlank()==true)
                     (customLauncherStr+"\n").lines().map { it.trimEnd() }
                 else emptyList()
+            val assemblerOptionsStr = props.getProperty("assembler_options", "").trim()
+            val assemblerOptions = if(assemblerOptionsStr.isBlank()) null else assemblerOptionsStr
 
             return ConfigFileTarget(
                 configfile.nameWithoutExtension,
@@ -122,6 +125,7 @@ class ConfigFileTarget(
                 props.getInteger("bss_goldenram_end"),
                 libraryPath,
                 customLauncher,
+                assemblerOptions,
                 ioAddresses,
                 props.getInteger("zp_scratch_b1"),
                 props.getInteger("zp_scratch_reg"),
