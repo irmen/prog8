@@ -1,7 +1,6 @@
 TODO
 ====
 
-- cx16 diskio (and fileselector example):  provide a way to list only files and only directories (or both), using ``@$:*=p``` / ``@$:*=d``` DOS filtering
 - make fileselector example into a loadable library?
 
 - for creating libraries, something like %jmptable( block.func1, block.func2, ... ) could be useful to create a compact jump table, and possibly generating extsub definitions as well. Problem: directives cannot span multiple lines atm.

@@ -1,3 +1,39 @@
+%import textio
+%import diskio
+%zeropage basicsafe
+%option no_sysinit
+
+main {
+    sub start() {
+        txt.lowercase()
+
+        diskio.lf_start_list_dirs(0)
+        while diskio.lf_next_entry() {
+            txt.print(diskio.list_filetype)
+            txt.spc()
+            txt.spc()
+            txt.print(diskio.list_filename)
+            txt.nl()
+        }
+        diskio.lf_end_list()
+
+        txt.nl()
+        txt.nl()
+        diskio.lf_start_list_files(0)
+        while diskio.lf_next_entry() {
+            txt.print(diskio.list_filetype)
+            txt.spc()
+            txt.spc()
+            txt.print(diskio.list_filename)
+            txt.nl()
+        }
+        diskio.lf_end_list()
+    }
+}
+
+
+/*
+
 %address  $A000
 %memtop   $C000
 %output   library
@@ -32,3 +68,4 @@ library {
         txt.print("lib func 2\n")
     }
 }
+*/

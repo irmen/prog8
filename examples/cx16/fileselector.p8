@@ -11,7 +11,6 @@
 
 ; Q: should case folding be done in diskio already? A: no, it doesn't know if you are in iso mode or not.
 
-; TODO use "@$:*=p" instead of filtering manually for only dirs use @$:*=d   , but that needs a change in diskio...
 ; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
 
@@ -19,7 +18,7 @@
 main {
     sub start() {
         ; some configuration, optional
-        fileselector.configure_settings(%00000011, 2)
+        fileselector.configure_settings(3, 2)
         fileselector.configure_appearance(10, 10, 20, $b3, $d0)
 
         ; show all files, using just the * wildcard
@@ -37,6 +36,7 @@ main {
         }
     }
 }
+
 
 fileselector {
     %option ignore_unused
@@ -59,9 +59,11 @@ fileselector {
 
 
     sub configure_settings(ubyte show_types, ubyte rambank) {
-        ; show_types is a bit mask , bit 0 = show files, bit 1 = show dirs
+        ; show_types is a bit mask , bit 0 = include files in list, bit 1 = include dirs in list,   0 (or 3)=show everything.
         buffer_rambank = rambank
         show_what = show_types
+        if_z
+            show_what = 3
         set_characters(false)
     }
 
@@ -112,7 +114,7 @@ fileselector {
         txt.column(dialog_topx)
         footerline()
 
-        ubyte num_files = get_filenames(pattern, filenamesbuffer, filenamesbuf_size)    ; use Hiram bank to store the files
+        ubyte num_files = get_names(pattern, filenamesbuffer, filenamesbuf_size)    ; use Hiram bank to store the files
         ubyte selected_line
         ubyte top_index
         uword filename_ptrs
@@ -360,6 +362,7 @@ fileselector {
 
     sub set_characters(bool iso_chars) {
         if iso_chars {
+            ; iso characters that kinda draw a pleasant box
             chr_topleft = iso:'í'
             chr_topright = iso:'ì'
             chr_botleft = iso:'`'
@@ -392,11 +395,19 @@ fileselector {
         }
     }
 
-    sub get_filenames(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
+    sub get_names(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         filenames_buffer[0]=0
-        if diskio.lf_start_list(pattern_ptr) {
+        bool list_ok
+
+        when show_what {
+            1 -> list_ok = diskio.lf_start_list_files(pattern_ptr)
+            2 -> list_ok = diskio.lf_start_list_dirs(pattern_ptr)
+            else -> list_ok = diskio.lf_start_list(pattern_ptr)
+        }
+
+        if list_ok {
             while diskio.lf_next_entry() {
                 bool is_dir = diskio.list_filetype=="dir"
                 if is_dir and show_what & 2 == 0
