@@ -1,7 +1,12 @@
 TODO
 ====
 
-- Make neo
+- cx16 diskio (and fileselector example):  provide a way to list only files and only directories (or both), using ``@$:*=p``` / ``@$:*=d``` DOS filtering
+- make fileselector example into a loadable library?
+
+- for creating libraries, something like %jmptable( block.func1, block.func2, ... ) could be useful to create a compact jump table, and possibly generating extsub definitions as well. Problem: directives cannot span multiple lines atm.
+
+- Make neo and atari targets external via configs? They are very bare bones atm so easier to contribute to if they're configurable externally? What about the pet32 target
 
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
@@ -14,7 +19,6 @@ Future Things and Ideas
 
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
-- for creating libraries, something like %jmptable( block.func1, block.func2, ... ) could be useful to create a compact jump table, and possibly generating extsub definitions as well. Problem: directives cannot span multiple lines atm.
 - improve support for romable code (see github issue 149)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
@@ -63,8 +67,6 @@ IR/VM
 
 Libraries
 ---------
-- cx16 diskio (and fileselector example):  provide a way to list only files and only directories (or both), using ``@$:*=p``` / ``@$:*=d``` DOS filtering
-- make fileselector into a loadable library?
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
 - add even more general raster irq routines to build some sort of "copper list" , like Oscar64 has?

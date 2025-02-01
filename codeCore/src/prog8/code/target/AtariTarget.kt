@@ -62,7 +62,7 @@ class AtariTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by 
         // TODO monlist?
 
         println("\nStarting Atari800XL emulator $emulatorName...")
-        val processb = ProcessBuilder(cmdline).inheritIO()
+        val processb = ProcessBuilder(cmdline)      // no inheritIO because the emulator destroys the terminal configuration somehow
         val process: Process = processb.start()
         process.waitFor()
     }

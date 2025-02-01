@@ -70,8 +70,7 @@ internal class AssemblyProgram(
             ProgramType.ATARIXEX -> {
                 // Atari800XL .xex generation.
 
-                // TODO are these options okay for atari?
-                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
+                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -107,8 +106,7 @@ internal class AssemblyProgram(
                     throw AssemblyError("invalid program compilation options. Neo6502 requires %output raw, %launcher none, %address $0800")
                 }
 
-                // TODO are these options okay for neo?
-                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
+                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
