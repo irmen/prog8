@@ -7,6 +7,12 @@ main {
     sub start() {
         txt.lowercase()
 
+        diskio.directory_dirs()
+        txt.nl()
+
+        diskio.directory_files()
+        txt.nl()
+
         diskio.lf_start_list_dirs(0)
         while diskio.lf_next_entry() {
             txt.print(diskio.list_filetype)

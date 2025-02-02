@@ -27,6 +27,7 @@ diskio {
         ; -- Prints the directory contents to the screen. Returns success.
 
         cbm.SETNAM(1, "$")
+internal_dir:
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         ubyte status = 1
         void cbm.OPEN()          ; open 12,8,0,"$"
@@ -80,6 +81,19 @@ io_error:
 
         return true
     }
+
+    sub directory_dirs() -> bool {
+        ; -- Prints all entries on the disk to the screen, but only directories.  Returns success.
+        cbm.SETNAM(5, "$:*=c")      ; on C64 (1581 diskdrive) the type for directories is CBM
+        goto diskio.directory.internal_dir
+    }
+
+    sub directory_files() -> bool {
+        ; -- Prints all entries on the disk to the screen, but only actual files.  Returns success.
+        cbm.SETNAM(5, "$:*=p")
+        goto diskio.directory.internal_dir
+    }
+
 
     sub diskname() -> uword {
         ; -- Returns pointer to disk name string or 0 if failure.
@@ -170,12 +184,14 @@ io_error:
     sub lf_start_list(uword pattern_ptr) -> bool {
         ; -- start an iterative file listing with optional pattern matching.
         ;    note: only a single iteration loop can be active at a time!
+        cbm.SETNAM(1, "$")
+
+start_list_internal:
         lf_end_list()
         list_pattern = pattern_ptr
         list_skip_disk_name = true
         iteration_in_progress = true
 
-        cbm.SETNAM(1, "$")
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         void cbm.OPEN()          ; open 12,8,0,"$"
         if_cs
@@ -193,6 +209,22 @@ io_error:
         cbm.CLOSE(READ_IO_CHANNEL)
         lf_end_list()
         return false
+    }
+
+    sub lf_start_list_dirs(uword pattern_ptr) -> bool {
+        ; -- start an iterative directory contents listing with optional pattern matching.
+        ;    this version it only returns directory entries!
+        ;    note: only a single iteration loop can be active at a time!
+        cbm.SETNAM(5, "$:*=c")  ; on C64 (1581 diskdrive) the type for directories is CBM
+        goto diskio.lf_start_list.start_list_internal
+    }
+
+    sub lf_start_list_files(uword pattern_ptr) -> bool {
+        ; -- start an iterative directory contents listing with optional pattern matching.
+        ;    this version only returns actual file entries!
+        ;    note: only a single iteration loop can be active at a time!
+        cbm.SETNAM(5, "$:*=p")
+        goto diskio.lf_start_list.start_list_internal
     }
 
     sub lf_next_entry() -> bool {

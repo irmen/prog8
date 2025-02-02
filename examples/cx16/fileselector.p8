@@ -9,8 +9,6 @@
 ; Functions in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
 ; Depends a lot on diskio routines, and uses the drive set in the diskio.drivenumber variable (usually just 8)
 
-; Q: should case folding be done in diskio already? A: no, it doesn't know if you are in iso mode or not.
-
 ; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
 
@@ -76,10 +74,13 @@ fileselector {
     }
 
     sub select(str pattern) -> uword {
-        ubyte old_bank = cx16.getrambank()
-        cx16.rambank(buffer_rambank)
-        defer cx16.rambank(old_bank)
+        sys.push(cx16.getrambank())
+        cx16.r0 = internal_select(pattern)
+        cx16.rambank(sys.pop())
+        return cx16.r0
+    }
 
+    sub internal_select(str pattern) -> uword {
         num_visible_files = 0
         diskio.list_filename[0] = 0
         name_ptr = diskio.diskname()
@@ -243,7 +244,8 @@ fileselector {
                     while @(name_ptr)!=0
                         name_ptr++
                 } else {
-                    ; case-folding to avoid petscii shifted characters coming out as symbols  TODO should diskio do this already?
+                    ; case-folding to avoid petscii shifted characters coming out as symbols
+                    ; Q: should diskio do this already? A: no, diskio doesn't know or care about the current charset mode
                     name_ptr += strings.lower(name_ptr)
                 }
                 name_ptr++
