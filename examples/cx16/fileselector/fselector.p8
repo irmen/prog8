@@ -1,8 +1,11 @@
 %import diskio
-%import textio
 %import strings
-%zeropage basicsafe
-%option no_sysinit
+%import namesorting
+%output library
+%address $A000
+%memtop  $C000
+
+; LOADABLE LIBRARY VERSION
 
 ; A "TUI" for an interactive file selector, that scrolls the selection list if it doesn't fit on the screen.
 ; Returns the name of the selected file.  If it is a directory instead, the name will start and end with a slash '/'.
@@ -12,43 +15,38 @@
 ; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
 
-
 main {
+    ; Create a jump table as first thing in the library.
+    uword[] @shared @nosplit jumptable = [
+        ; NOTE: the compiler has inserted a single JMP instruction at the start
+        ; of the 'main' block, that jumps to the start() routine.
+        ; This is convenient because the rest of the jump table simply follows it,
+        ; making the first jump neatly be the required initialization routine
+        ; for the library (initializing variables and BSS region).
+        ; Btw, $4c = opcode for JMP.
+        $4c00, &fileselector.configure_types,
+        $4c00, &fileselector.configure_appearance,
+        $4c00, &fileselector.select,
+    ]
+
     sub start() {
-        ; some configuration, optional
-        fileselector.configure_settings(3, 2)
-        fileselector.configure_appearance(10, 10, 20, $b3, $d0)
-
-        ; show all files, using just the * wildcard
-        uword chosen = fileselector.select("*")
-
-        txt.nl()
-        txt.nl()
-        if chosen!=0 {
-            txt.print("chosen: ")
-            txt.print(chosen)
-            txt.nl()
-        } else {
-            txt.print("nothing chosen or error!\n")
-            txt.print(diskio.status())
-        }
+        ; has to remain here for initialization
     }
 }
 
-
 fileselector {
-    %option ignore_unused
+    ; these buffer sizes are chosen to fill up the rest of the hiram bank after the fileselector code
+    const uword filenamesbuf_size = $eb0
+    const ubyte max_num_files = 128
 
-    const uword filenamesbuffer = $a000      ; use a HIRAM bank
-    const uword filenamesbuf_size = $1e00    ; leaves room for a 256 entry string pointer table at $be00-$bfff
-    const uword filename_ptrs_start = $be00  ; array of 256 string pointers for each of the names in the buffer. ends with $0000.
+    uword @shared filenamesbuffer = memory("filenames_buffer", filenamesbuf_size, 0)
+    uword @shared filename_pointers = memory("filenames_pointers", max_num_files*2, 0)
 
     ubyte dialog_topx = 10
     ubyte dialog_topy = 10
     ubyte max_lines = 20
     ubyte colors_normal = $b3
     ubyte colors_selected = $d0
-    ubyte buffer_rambank = 1    ; default hiram bank to use for the data buffers
     ubyte show_what = 3         ; dirs and files
     ubyte chr_topleft, chr_topright, chr_botleft, chr_botright, chr_horiz_top, chr_horiz_other, chr_vert, chr_jointleft, chr_jointright
 
@@ -56,16 +54,15 @@ fileselector {
     uword name_ptr
 
 
-    sub configure_settings(ubyte show_types, ubyte rambank) {
+    sub configure_types(ubyte show_types) {
         ; show_types is a bit mask , bit 0 = include files in list, bit 1 = include dirs in list,   0 (or 3)=show everything.
-        buffer_rambank = rambank
         show_what = show_types
         if_z
             show_what = 3
         set_characters(false)
     }
 
-    sub configure_appearance(ubyte column, ubyte row, ubyte max_entries, ubyte normal, ubyte selected) {
+    sub configure_appearance(ubyte column @R0, ubyte row @R1, ubyte max_entries @R2, ubyte normal @R3, ubyte selected @R4) {
         dialog_topx = column
         dialog_topy = row
         max_lines = max_entries
@@ -74,13 +71,6 @@ fileselector {
     }
 
     sub select(str pattern) -> uword {
-        sys.push(cx16.getrambank())
-        cx16.r0 = internal_select(pattern)
-        cx16.rambank(sys.pop())
-        return cx16.r0
-    }
-
-    sub internal_select(str pattern) -> uword {
         num_visible_files = 0
         diskio.list_filename[0] = 0
         name_ptr = diskio.diskname()
@@ -120,9 +110,12 @@ fileselector {
         ubyte top_index
         uword filename_ptrs
 
+        if num_files>max_num_files
+            return 0
+
         construct_name_ptr_array()
         ; sort alphabetically
-        sorting.shellsort_pointers(filename_ptrs_start, num_files)
+        sorting.shellsort_pointers(filename_pointers, num_files)
         num_visible_files = min(max_lines, num_files)
 
         ; initial display
@@ -155,7 +148,7 @@ fileselector {
                 txt.column(dialog_topx)
                 txt.chrout(chr_vert)
                 txt.spc()
-                print_filename(peekw(filename_ptrs_start+selected_line*$0002))
+                print_filename(peekw(filename_pointers+selected_line*$0002))
                 txt.column(dialog_topx+31)
                 txt.chrout(chr_vert)
                 txt.nl()
@@ -184,7 +177,7 @@ fileselector {
                 3, 27 -> return 0      ; STOP and ESC  aborts
                 '\n',' ' -> {
                     if num_files>0 {
-                        void strings.copy(peekw(filename_ptrs_start + (top_index+selected_line)*$0002), &diskio.list_filename)
+                        void strings.copy(peekw(filename_pointers + (top_index+selected_line)*$0002), &diskio.list_filename)
                         return diskio.list_filename
                     }
                     return 0
@@ -235,7 +228,7 @@ fileselector {
         ubyte x,y
 
         sub construct_name_ptr_array() {
-            filename_ptrs = filename_ptrs_start
+            filename_ptrs = filename_pointers
             name_ptr = filenamesbuffer
             repeat num_files {
                 pokew(filename_ptrs, name_ptr)
@@ -271,7 +264,7 @@ fileselector {
                 scroll_txt_up(dialog_topx+2, dialog_topy+6, 28, max_lines, sc:' ')
                 ; print new name at the bottom of the list
                 txt.plot(dialog_topx+2, dialog_topy+6+max_lines-1)
-                print_filename(peekw(filename_ptrs_start + (top_index+ selected_line)*$0002))
+                print_filename(peekw(filename_pointers + (top_index+ selected_line)*$0002))
             }
         }
 
@@ -282,7 +275,7 @@ fileselector {
                 scroll_txt_down(dialog_topx+2, dialog_topy+6, 28, max_lines, sc:' ')
                 ; print new name at the top of the list
                 txt.plot(dialog_topx+2, dialog_topy+6)
-                print_filename(peekw(filename_ptrs_start + top_index * $0002))
+                print_filename(peekw(filename_pointers + top_index * $0002))
             }
         }
 
@@ -442,54 +435,4 @@ fileselector {
         return files_found
     }
 
-}
-
-
-sorting {
-    ; note: cannot use the sorting library module because that relies on zeropage to be directly available (@requirezp pointer)
-    ;       and this code is meant to be able to being used without zeropage as well (except for R0-R15).
-
-    sub shellsort_pointers(uword stringpointers_array, ubyte num_elements) {
-        ; Comparefunc must be a routine that accepts 2 pointers in R0 and R1, and must return with Carry=1 if R0<=R1, otherwise Carry=0.
-        ; One such function, to compare strings, is provided as 'string_comparator' below.
-        cx16.r2 = stringpointers_array      ; need zeropage pointer
-        num_elements--
-        ubyte gap
-        for gap in [132, 57, 23, 10, 4, 1] {
-            ubyte i
-            for i in gap to num_elements {
-                cx16.r1 = peekw(cx16.r2+i*$0002)
-                ubyte @zp j = i
-                ubyte @zp k = j-gap
-                while j>=gap {
-                    cx16.r0 = peekw(cx16.r2+k*2)
-                    if string_comparator(cx16.r0, cx16.r1)
-                        break
-                    pokew(cx16.r2+j*2, cx16.r0)
-                    j = k
-                    k -= gap
-                }
-                pokew(cx16.r2+j*2, cx16.r1)
-            }
-        }
-
-        asmsub string_comparator(uword string1 @R0, uword string2 @R1) -> bool @Pc {
-            ; R0 and R1 are the two strings, must return Carry=1 when R0<=R1, else Carry=0
-            %asm {{
-                lda  cx16.r1L
-                ldy  cx16.r1H
-                sta  P8ZP_SCRATCH_W2
-                sty  P8ZP_SCRATCH_W2+1
-                lda  cx16.r0L
-                ldy  cx16.r0H
-                jsr  prog8_lib.strcmp_mem
-                cmp  #1
-                bne  +
-                clc
-                rts
-+               sec
-                rts
-            }}
-        }
-    }
 }
