@@ -3,8 +3,10 @@ package prog8.codegen.cpu6502
 import prog8.code.ast.PtLabel
 import prog8.code.core.*
 import prog8.code.target.AtariTarget
+import prog8.code.target.C128Target
 import prog8.code.target.C64Target
 import prog8.code.target.Neo6502Target
+import prog8.code.target.PETTarget
 import java.nio.file.Path
 
 
@@ -56,8 +58,13 @@ internal class AssemblyProgram(
                         binFile
                     }
                     OutputType.LIBRARY -> {
-                        command.add("--cbm-prg")       // include the 2-byte PRG header on library .bins, so they can be easily loaded on the correct memory address even on C64
-                        println("\nCreating binary library file for target ${compTarget.name}.")
+                        if(compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME)) {
+                            println("\nCreating binary library file with header for target ${compTarget.name}.")
+                            command.add("--cbm-prg")
+                        } else {
+                            println("\nCreating binary library file without header for target ${compTarget.name}.")
+                            command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
+                        }
                         binFile
                     }
                     else -> throw AssemblyError("invalid output type")

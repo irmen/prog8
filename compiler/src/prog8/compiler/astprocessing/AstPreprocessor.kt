@@ -275,7 +275,8 @@ class AstPreprocessor(val program: Program,
             if(targetStatement is Subroutine) {
                 for(arg in call.args.zip(targetStatement.parameters)) {
                     if(arg.first.inferType(program).isBytes && arg.second.type.isString) {
-                        errors.err("cannot use byte value for string parameter", arg.first.position)
+                        if((arg.first as? NumericLiteral)?.number!=0.0)
+                            errors.err("cannot use byte value for string parameter", arg.first.position)
                     }
                 }
             }

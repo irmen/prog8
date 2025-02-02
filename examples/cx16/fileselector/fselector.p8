@@ -36,7 +36,7 @@ main {
 
 fileselector {
     ; these buffer sizes are chosen to fill up the rest of the hiram bank after the fileselector code
-    const uword filenamesbuf_size = $eb0
+    const uword filenamesbuf_size = $ea0
     const ubyte max_num_files = 128
 
     uword @shared filenamesbuffer = memory("filenames_buffer", filenamesbuf_size, 0)
@@ -71,6 +71,10 @@ fileselector {
     }
 
     sub select(str pattern) -> uword {
+        str defaultpattern="*"
+        if pattern==0
+            pattern = &defaultpattern
+
         num_visible_files = 0
         diskio.list_filename[0] = 0
         name_ptr = diskio.diskname()

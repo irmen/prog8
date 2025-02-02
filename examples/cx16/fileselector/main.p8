@@ -5,7 +5,7 @@
 
 main {
     sub start() {
-        if diskio.load("fselector.bin", 0) != 0 {
+        if diskio.load_raw("fselector-a000.bin", $a000) != 0 {
             fselector.init()
             ;; fselector.config_types(fselector.TYPE_ALL)
             uword filename = fselector.select("*")
@@ -30,6 +30,6 @@ fselector {
     ; configure the position and appearance of the dialog
     extsub $a008 = config_appearance(ubyte column @R0, ubyte row @R1, ubyte max_entries @R2, ubyte normalcolors @R3, ubyte selectedcolors @R4) clobbers(A)
 
-    ; show the file selector dialog. Normal pattern would be "*" to include everything.
+    ; show the file selector dialog. Normal pattern would be "*" to include everything.  Returns the selected entry name, or 0 if error or nothing selected.
     extsub $a00c = select(str pattern @AY) clobbers(X) -> uword @AY
 }

@@ -48,20 +48,21 @@ Binary output and loaded into a fixed memory address
     it is not ran like a normal program.
     Also, because it is not possible to create position independent code with prog8,
     a fixed load address has to be decided on and the library must be compiled
-    with that address as the load address. For convenience (and compatibility with older CBM
-    target machines such as the C64 and C128) it's easiest if the resulting library
-    program includes a PRG load header: 2 bytes at the start of the library that contain
-    the load address. This allows BASIC to load the library via a simple ``LOAD "LIB.BIN",8,1`` for example.
+    with that address as the load address.
 
 
 ``%output library``
 ^^^^^^^^^^^^^^^^^^^
-Most (but not all) of the above requirements can be fulfilled by setting various directives in your
+Most of the above requirements can be fulfilled by setting various directives in your
 source code such as %launcher, %zeropage and so on. But there is a single directive that does it correctly for you in one go
 (and makes sure there won't be any initialization code left at all): ``%output library``
 
 Together with ``%address`` and possibly ``%memtop`` -to tell the compiler what the load address of the library should be-
 it will create a "library.bin" file that fulfills the requirements of a loadable binary library program as listed above.
+
+For older CBM targets (C64, C128 and PET) the library file will have a load address header,
+because these targets require a header to easily load files. For the other targets such as the Commander X16,
+the library will be a headerless binary file that can then be loaded given the correct load address.
 
 The entrypoint (= the start subroutine) that must be called to initialize the variables,
 will be the very first thing at the beginning of the library.
@@ -89,21 +90,16 @@ But the users of the library are none the wiser and it just seems as if it is pa
 Loading and using the library
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Assuming the load address of the library is $A000 (40960):
+These examples below assume the target is the Commander X16.
+Assuming the load address of the library is $A000:
 
-**From BASIC**  (the example is from the Commander X16)::
+**From BASIC**::
 
-    LOAD "LIBRARY.BIN",8,1
+    BLOAD "LIBRARY.BIN",8,1,$A000
     SYS $A000 : REM TO INITIALIZE VARIABLES, REQUIRED!
     SYS $A004 : REM CALL FIRST ROUTINE
     SYS $A008 : REM CALL SECOND ROUTINE, ETC.
 
-For the Commodore 64 and such this works the same but you'll have to type the SYS addresses as decimal numbers.
-The Commander X16 also has the BLOAD command to load binary data files, where you have to specify the memory
-location where the file has to be loaded to. But for Prog8 library files you don't have to do that, just use LOAD;
-the correct address is in the header of the library file. Loading the library to a different memory address
-is not possible, because it will only work on the address it was compiled for (it's not possible to create
-position independent code on the 6502).
 
 **From Prog8**::
 
@@ -116,10 +112,12 @@ position independent code on the 6502).
         extsub $A008 = lib_func2() clobbers(A,X,Y)
 
         sub start() {
-            if diskio.load("library.bin", 0) != 0 {
+            if diskio.load_raw("library.bin", $a000) != 0 {
                 lib_init()
                 lib_func1()
                 lib_func2()
+
+                repeat { }
             }
         }
     }
@@ -132,7 +130,11 @@ position independent code on the 6502).
         void (*lib_init)(void) = (void (*)()) 0xa000;
         void (*lib_func1)(void) = (void (*)()) 0xa004;
         void (*lib_func2)(void) = (void (*)()) 0xa008;
-        cbm_load("library.bin", 8, 0);
+
+	    cbm_k_setlfs(0, 8, 2);
+	    cbm_k_setnam("library.bin");
+	    cbm_k_load(0, 0xa000);
+
         lib_init();
         lib_func1();
         lib_func2();
@@ -146,13 +148,13 @@ position independent code on the 6502).
         ldx  #<libname
         lda  #11
         jsr  $ffbd      ; SETNAM
-        ldy  #1
+        lda  #0
         ldx  #8
-        lda  #1
+        ldy  #2         ; load address override
         jsr  $ffba      ; SETLFS
         lda  #0
-        ldx  #0
-        ldy  #0
+        ldx  #<$a000
+        ldy  #>$a000
         jsr  $ffd5      ; LOAD
         lda  #13
         jsr  $ffd2      ; CHROUT
