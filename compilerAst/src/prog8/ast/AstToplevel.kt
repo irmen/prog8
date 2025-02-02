@@ -328,7 +328,7 @@ open class Module(final override val statements: MutableList<Statement>,
 
     override fun toString() = "Module(name=$name, pos=$position, lib=${isLibrary})"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
-    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
+    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.string!!}.toSet()
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -336,7 +336,7 @@ open class Module(final override val statements: MutableList<Statement>,
     val textEncoding: Encoding by lazy {
         val encoding = (statements.singleOrNull { it is Directive && it.directive == "%encoding" } as? Directive)
         if(encoding!=null)
-            Encoding.entries.first { it.prefix==encoding.args[0].name }
+            Encoding.entries.first { it.prefix==encoding.args[0].string }
         else
             program.encoding.defaultEncoding
     }

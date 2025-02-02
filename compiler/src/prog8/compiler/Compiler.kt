@@ -367,10 +367,10 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
     val toplevelModule = program.toplevelModule
     val outputDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%output" } as? Directive)
     val launcherDirective = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%launcher" } as? Directive)
-    val outputTypeStr = outputDirective?.args?.single()?.name?.uppercase()
-    val launcherTypeStr = launcherDirective?.args?.single()?.name?.uppercase()
+    val outputTypeStr = outputDirective?.args?.single()?.string?.uppercase()
+    val launcherTypeStr = launcherDirective?.args?.single()?.string?.uppercase()
     val zpoption: String? = (toplevelModule.statements.singleOrNull { it is Directive && it.directive == "%zeropage" }
-            as? Directive)?.args?.single()?.name?.uppercase()
+            as? Directive)?.args?.single()?.string?.uppercase()
     val allOptions = program.modules.flatMap { it.options() }.toSet()
     val floatsEnabled = "enable_floats" in allOptions
     var noSysInit = "no_sysinit" in allOptions

@@ -107,8 +107,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         for(arg in directive.args) {
             when {
                 arg.int!=null -> output(arg.int.toString())
-                arg.name!=null -> output(arg.name)
-                arg.str!=null -> output("\"${arg.str}\"")
+                arg.string!=null -> output(arg.string)
             }
             if(arg!==directive.args.last())
                 output(",")

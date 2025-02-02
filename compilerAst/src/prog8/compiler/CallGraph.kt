@@ -56,7 +56,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     override fun visit(directive: Directive) {
         val thisModule = directive.definingModule
         if (directive.directive == "%import") {
-            val importedModule = program.modules.singleOrNull { it.name == directive.args[0].name }     // the module may no longer exist at all due to optimizations
+            val importedModule = program.modules.singleOrNull { it.name == directive.args[0].string }     // the module may no longer exist at all due to optimizations
             if(importedModule!=null) {
                 imports[thisModule] = imports.getValue(thisModule) + importedModule
                 importedBy[importedModule] = importedBy.getValue(importedModule) + thisModule

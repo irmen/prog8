@@ -955,24 +955,24 @@ internal class AstChecker(private val program: Program,
             "%output" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
-                if(directive.args.size!=1 || directive.args[0].name !in OutputType.entries.map {it.name.lowercase()})
+                if(directive.args.size!=1 || directive.args[0].string !in OutputType.entries.map {it.name.lowercase()})
                     err("invalid output directive type")
             }
             "%launcher" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
-                if(directive.args.size!=1 || directive.args[0].name !in CbmPrgLauncherType.entries.map{it.name.lowercase()})
+                if(directive.args.size!=1 || directive.args[0].string !in CbmPrgLauncherType.entries.map{it.name.lowercase()})
                     err("invalid launcher directive type")
             }
             "%zeropage" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
                 if(directive.args.size!=1 ||
-                        directive.args[0].name != "basicsafe" &&
-                        directive.args[0].name != "floatsafe" &&
-                        directive.args[0].name != "kernalsafe" &&
-                        directive.args[0].name != "dontuse" &&
-                        directive.args[0].name != "full")
+                        directive.args[0].string != "basicsafe" &&
+                        directive.args[0].string != "floatsafe" &&
+                        directive.args[0].string != "kernalsafe" &&
+                        directive.args[0].string != "dontuse" &&
+                        directive.args[0].string != "full")
                     err("invalid zp type, expected basicsafe, floatsafe, kernalsafe, dontuse, or full")
             }
             "%zpreserved", "%zpallowed" -> {
@@ -998,9 +998,9 @@ internal class AstChecker(private val program: Program,
             "%import" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
-                if(directive.args.size!=1 || directive.args[0].name==null)
+                if(directive.args.size!=1 || directive.args[0].string==null)
                     err("invalid import directive, expected module name argument")
-                if(directive.args[0].name == (directive.parent as? Module)?.name)
+                if(directive.args[0].string == (directive.parent as? Module)?.name)
                     err("invalid import directive, cannot import itself")
             }
             "%breakpoint" -> {
@@ -1012,44 +1012,44 @@ internal class AstChecker(private val program: Program,
             "%asminclude" -> {
                 if(directive.parent !is INameScope || directive.parent is Module)
                     err("this directive can't be used here")
-                if(directive.args.size!=1 || directive.args[0].str==null)
+                if(directive.args.size!=1 || directive.args[0].string==null)
                     err("invalid asminclude directive, expected argument: \"filename\"")
-                checkFileExists(directive, directive.args[0].str!!)
+                checkFileExists(directive, directive.args[0].string!!)
             }
             "%asmbinary" -> {
                 if(directive.parent !is INameScope || directive.parent is Module)
                     err("this directive can't be used here")
                 val errormsg = "invalid asmbinary directive, expected arguments: \"filename\" [, offset [, length ] ]"
                 if(directive.args.isEmpty()) err(errormsg)
-                else if(directive.args[0].str==null) err(errormsg)
+                else if(directive.args[0].string==null) err(errormsg)
                 else if(directive.args.size>=2 && directive.args[1].int==null) err(errormsg)
                 else if(directive.args.size==3 && directive.args[2].int==null) err(errormsg)
                 else if(directive.args.size>3) err(errormsg)
-                else checkFileExists(directive, directive.args[0].str!!)
+                else checkFileExists(directive, directive.args[0].string!!)
             }
             "%option" -> {
                 if(directive.parent !is Block && directive.parent !is Module)
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.name in arrayOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")}.any { !it })
+                else if(directive.args.map{it.string in arrayOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.parent is Block) {
-                    if(directive.args.any {it.name !in arrayOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")})
+                    if(directive.args.any {it.string !in arrayOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")})
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
-                    if(directive.args.any {it.name !in arrayOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused")})
+                    if(directive.args.any {it.string !in arrayOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused")})
                         err("using an option that is not valid for modules")
                 }
-                if(directive.args.any { it.name=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)
+                if(directive.args.any { it.string=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)
                     err("verafx option is only valid on cx16 target")
             }
             "%encoding" -> {
                 if(directive.parent !is Module)
                     err("this directive may only occur at module level")
                 val allowedEncodings = Encoding.entries.map {it.prefix}
-                if(directive.args.size!=1 || directive.args[0].name !in allowedEncodings)
+                if(directive.args.size!=1 || directive.args[0].string !in allowedEncodings)
                     err("invalid encoding directive, expected one of $allowedEncodings")
             }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)

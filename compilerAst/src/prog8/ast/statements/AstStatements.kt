@@ -94,7 +94,7 @@ class Block(override val name: String,
     override fun toString() = "Block(name=$name, address=$address, ${statements.size} statements)"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
 
-    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.name!!}.toSet()
+    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.string!!}.toSet()
 }
 
 // note: a Directive is not strictly always Statement (in module scope, it's a Module Element rather)
@@ -132,14 +132,14 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 }
 
-data class DirectiveArg(val str: String?, val name: String?, val int: UInt?, override val position: Position) : Node {
+data class DirectiveArg(val string: String?, val int: UInt?, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
-    override fun copy() = DirectiveArg(str, name, int, position)
+    override fun copy() = DirectiveArg(string, int, position)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 }
 

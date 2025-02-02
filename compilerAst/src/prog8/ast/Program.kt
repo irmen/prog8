@@ -25,7 +25,7 @@ class Program(val name: String,
         // insert a container module for all interned strings later
         val internedStringsModule = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated(internedStringsModuleName))
         val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
-        val directive = Directive("%option", listOf(DirectiveArg(null,"no_symbol_prefixing", null, Position.DUMMY)), Position.DUMMY)
+        val directive = Directive("%option", listOf(DirectiveArg("no_symbol_prefixing", null, Position.DUMMY)), Position.DUMMY)
         block.statements.add(directive)
         directive.linkParents(block)
         internedStringsModule.statements.add(block)

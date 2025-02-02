@@ -46,7 +46,7 @@ class ModuleImporter(private val program: Program,
 
     fun importImplicitLibraryModule(name: String): Module? {
         val import = Directive("%import", listOf(
-                DirectiveArg("", name, 42u, position = Position("<<<implicit-import>>>", 0, 0, 0))
+                DirectiveArg(name, 42u, position = Position("<<<implicit-import>>>", 0, 0, 0))
         ), Position("<<<implicit-import>>>", 0, 0, 0))
         return executeImportDirective(import, null)
     }
@@ -75,9 +75,7 @@ class ModuleImporter(private val program: Program,
     private fun executeImportDirective(import: Directive, importingModule: Module?): Module? {
         if(import.directive!="%import" || import.args.size!=1)
             throw SyntaxError("invalid import directive", import.position)
-        if(!import.args[0].str.isNullOrEmpty() || import.args[0].name==null)
-            throw SyntaxError("%import requires unquoted module name", import.position)
-        val moduleName = import.args[0].name!!
+        val moduleName = import.args[0].string!!
         if("$moduleName.p8" == import.position.file)
             throw SyntaxError("cannot import self", import.position)
 
