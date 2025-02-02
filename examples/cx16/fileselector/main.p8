@@ -7,11 +7,17 @@ main {
     sub start() {
         if diskio.load_raw("fselector-a000.bin", $a000) != 0 {
             fselector.init()
-            ;; fselector.config_types(fselector.TYPE_ALL)
+            fselector.config(8, fselector.TYPE_ALL)
             uword filename = fselector.select("*")
-            txt.print("\n\n\n\n\nselected: ")
-            txt.print(filename)
-            txt.nl()
+            txt.print("\n\n\n\n\n")
+
+            if filename!=0 {
+                txt.print("selected: ")
+                txt.print(filename)
+                txt.nl()
+            } else {
+                txt.print("nothing selected or error.\n")
+            }
         }
     }
 }
@@ -25,7 +31,7 @@ fselector {
     extsub $a000 = init() clobbers(A)
 
     ; what entry types should be displayed (default=all)
-    extsub $a004 = config_types(ubyte types @A) clobbers(A)
+    extsub $a004 = config(ubyte drivenumber @A, ubyte types @Y) clobbers(A)
 
     ; configure the position and appearance of the dialog
     extsub $a008 = config_appearance(ubyte column @R0, ubyte row @R1, ubyte max_entries @R2, ubyte normalcolors @R3, ubyte selectedcolors @R4) clobbers(A)

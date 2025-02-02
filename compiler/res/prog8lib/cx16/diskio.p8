@@ -612,12 +612,11 @@ return_status:
         @(messageptr) = 0
 
 done:
-        cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(15)
+        cbm.CLRCHN()        ; restore default i/o devices
         return list_filename
 
 io_error:
-        cbm.CLOSE(15)
         list_filename = "io error"
         goto done
     }

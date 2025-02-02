@@ -9,8 +9,7 @@
 
 ; A "TUI" for an interactive file selector, that scrolls the selection list if it doesn't fit on the screen.
 ; Returns the name of the selected file.  If it is a directory instead, the name will start and end with a slash '/'.
-; Functions in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
-; Depends a lot on diskio routines, and uses the drive set in the diskio.drivenumber variable (usually just 8)
+; Works in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
 
 ; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
@@ -24,7 +23,7 @@ main {
         ; making the first jump neatly be the required initialization routine
         ; for the library (initializing variables and BSS region).
         ; Btw, $4c = opcode for JMP.
-        $4c00, &fileselector.configure_types,
+        $4c00, &fileselector.configure,
         $4c00, &fileselector.configure_appearance,
         $4c00, &fileselector.select,
     ]
@@ -36,7 +35,7 @@ main {
 
 fileselector {
     ; these buffer sizes are chosen to fill up the rest of the hiram bank after the fileselector code
-    const uword filenamesbuf_size = $ea0
+    const uword filenamesbuf_size = $e90
     const ubyte max_num_files = 128
 
     uword @shared filenamesbuffer = memory("filenames_buffer", filenamesbuf_size, 0)
@@ -54,8 +53,9 @@ fileselector {
     uword name_ptr
 
 
-    sub configure_types(ubyte show_types) {
+    sub configure(ubyte drivenumber, ubyte show_types) {
         ; show_types is a bit mask , bit 0 = include files in list, bit 1 = include dirs in list,   0 (or 3)=show everything.
+        diskio.drivenumber = drivenumber
         show_what = show_types
         if_z
             show_what = 3

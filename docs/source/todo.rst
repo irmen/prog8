@@ -1,6 +1,8 @@
 TODO
 ====
 
+- diskio diskname / fileselector hangs or crashes on X16 when using drive 9 instead of 8
+
 - for creating libraries, something like %jmptable( block.func1, block.func2, ... ) could be useful to create a compact jump table, and possibly generating extsub definitions as well. Problem: directives cannot span multiple lines atm.
 
 - Make neo and atari targets external via configs? They are very bare bones atm so easier to contribute to if they're configurable externally? What about the pet32 target

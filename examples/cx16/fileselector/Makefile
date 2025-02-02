@@ -1,6 +1,6 @@
 .PHONY:  all clean zip run
 
-all: main.prg fselector.bin standalone.prg
+all: main.prg fselector-a000.bin standalone.prg
 
 clean:
 	rm -f main.asm main.vice* main.prg fselector.asm fselector.vice* fselector*.bin standalone.asm standalone.vice* standalone.prg

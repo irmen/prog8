@@ -4,7 +4,6 @@
 %zeropage basicsafe
 
 ; A "TUI" for an interactive file selector, that scrolls the selection list if it doesn't fit on the screen.
-; Depends a lot on diskio routines, and uses the drive set in the diskio.drivenumber variable (usually just 8)
 
 ; TODO sort entries alphabetically? Or not, because C64/C128 directories tend to be not very large.
 
@@ -12,7 +11,7 @@
 main {
     sub start() {
 
-        ;; fileselector.configure(1, 5, 5)
+        ;; fileselector.configure(1, 5, 5, 8)
         uword chosen = fileselector.select("*")
         txt.nl()
         if chosen!=0 {
@@ -39,10 +38,11 @@ fileselector {
     uword name_ptr
     ubyte num_visible_files
 
-    sub configure(ubyte column, ubyte row, ubyte max_entries) {
+    sub configure(ubyte column, ubyte row, ubyte max_entries, ubyte drivenumber) {
         dialog_topx = column
         dialog_topy = row
         max_lines = max_entries
+        diskio.drivenumber = drivenumber
     }
 
     sub select(str pattern) -> uword {
