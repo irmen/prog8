@@ -6,7 +6,7 @@ conv {
 
 ; ----- number conversions to decimal strings ----
 
-    str  @shared string_out = "????????????????"       ; result buffer for the string conversion routines
+    ubyte[16]  @shared string_out       ; result buffer for the string conversion routines
 
     asmsub str_ub0(ubyte value @A) clobbers(X) -> str @AY {
         ; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)
@@ -402,7 +402,9 @@ _digit
 +		iny
 		bne  _parse
 		; never reached
-_negative	.byte  0
+		.section BSS
+_negative	.byte  ?
+		.send BSS
         ; !notreached!
 	}}
 }
@@ -699,12 +701,14 @@ ShiftedBcdTab
     .byte $30,$31,$32,$33,$34,$38,$39,$3A,$3B,$3C
     .byte $40,$41,$42,$43,$44,$48,$49,$4A,$4B,$4C
 
-decTenThousands   	.byte  0
-decThousands    	.byte  0
-decHundreds		.byte  0
-decTens			.byte  0
-decOnes   		.byte  0
-			.byte  0		; zero-terminate the decimal output string
+    .section BSS
+decTenThousands   	.byte  ?
+decThousands    	.byte  ?
+decHundreds		.byte  ?
+decTens			.byte  ?
+decOnes   		.byte  ?
+			.byte  ?		; zero-terminate the decimal output string, set to 0 by bss init mechanisms
+    .send BSS
 		; !notreached!
     }}
 }
@@ -756,7 +760,9 @@ asmsub  internal_uword2hex  (uword value @AY) clobbers(A,Y)  {
 		sta  output+2
 		sty  output+3
 		rts
-output		.text  "0000", $00      ; 0-terminated output buffer (to make printing easier)
+		.section BSS
+output		.fill 5      ; 0-terminated output buffer (to make printing easier)
+		.send BSS
 		; !notreached!
 	}}
 }
