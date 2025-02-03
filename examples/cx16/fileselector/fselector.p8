@@ -11,6 +11,9 @@
 ; Returns the name of the selected file.  If it is a directory instead, the name will start and end with a slash '/'.
 ; Works in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
 
+; ZERO PAGE LOCATIONS USED: R0-R4 ($02-$0b), $7a-$7f   (can be checked with -dumpvars)
+
+
 ; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
 

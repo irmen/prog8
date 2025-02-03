@@ -272,33 +272,15 @@ class AsmGen6502Internal (
 
     private fun dumpVariables() {
         println("---- VARIABLES DUMP ----")
-        if(allocator.globalFloatConsts.isNotEmpty()) {
-            println("Floats:")
-            allocator.globalFloatConsts.forEach { (value, name) ->
-                println("  $name = $value")
-            }
-        }
-        if(symbolTable.allMemorySlabs.isNotEmpty()) {
-            println("Memory slabs:")
-            symbolTable.allMemorySlabs.sortedBy { it.name }.forEach { slab ->
-                println("  ${slab.name}  ${slab.size}  align ${slab.align}")
-            }
-        }
-        if(symbolTable.allMemMappedVariables.isNotEmpty()) {
-            println("Memory mapped:")
-            symbolTable.allMemMappedVariables
-                .sortedWith( compareBy( {it.address}, {it.scopedName} ))
-                .forEach { mvar ->
-                    println("  ${'$'}${mvar.address.toString(16).padStart(4, '0')}\t${mvar.dt}\t${mvar.scopedName}")
-                }
-        }
         if(allocator.zeropageVars.isNotEmpty()) {
             println("ZeroPage:")
-            allocator.zeropageVars
-                .asSequence()
-                .sortedWith( compareBy( {it.value.address}, {it.key} ))
-                .forEach { (name, alloc) ->
-                    println("  ${'$'}${alloc.address.toString(16).padStart(2, '0')}\t${alloc.dt}\t$name")
+            val allvars = allocator.zeropageVars.map { (name, alloc) -> Triple(name, alloc.address, alloc.dt) } + symbolTable.allMemMappedVariables.map { Triple(it.name, it.address, it.dt) }
+            allvars
+                .filter { it.second in 0u..255u }
+                .distinct()
+                .sortedWith( compareBy( {it.second}, {it.first} ))
+                .forEach {
+                    println("  $${it.second.toString(16).padStart(2, '0')}\t${it.third}\t${it.first}")
                 }
         }
         if(symbolTable.allVariables.isNotEmpty()) {
@@ -308,6 +290,26 @@ class AsmGen6502Internal (
                 .sortedBy { it.scopedName }.forEach {
                     println("  ${it.dt}\t${it.scopedName}\t")
                 }
+        }
+        if(allocator.globalFloatConsts.isNotEmpty()) {
+            println("Floats:")
+            allocator.globalFloatConsts.forEach { (value, name) ->
+                println("  $name = $value")
+            }
+        }
+        if(symbolTable.allMemMappedVariables.isNotEmpty()) {
+            println("Memory mapped:")
+            symbolTable.allMemMappedVariables
+                .sortedWith( compareBy( {it.address}, {it.scopedName} ))
+                .forEach { mvar ->
+                    println("  $${mvar.address.toString(16).padStart(4, '0')}\t${mvar.dt}\t${mvar.scopedName}")
+                }
+        }
+        if(symbolTable.allMemorySlabs.isNotEmpty()) {
+            println("Memory slabs:")
+            symbolTable.allMemorySlabs.sortedBy { it.name }.forEach { slab ->
+                println("  ${slab.name}  ${slab.size}  align ${slab.align}")
+            }
         }
         println("---- VARIABLES DUMP END ----")
     }

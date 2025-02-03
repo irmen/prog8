@@ -73,6 +73,8 @@ psg {
     sub pulse_width(ubyte voice_num, ubyte pw) {
         ; -- Modifies the pulse width of this voice (when waveform=PULSE)
         ;    voice_num = 0-15, pw = 0-63  where 0=narrow, 63=50%cycle so square wave.
+        ;    When Waveform is TRIANGLE or SAWTOOTH, it sets the XOR mode parameter instead.
+        ;    (see the Vera reference manual for the exact description of this)
         cx16.vpoke_mask(1, $f9c3 + voice_num * 4, %11000000, pw)
     }
 
