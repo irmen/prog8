@@ -23,6 +23,8 @@ main {
 }
 
 fselector {
+    ; The library uses/modifies ZERO PAGE LOCATIONS: R0-R5,R15 ($02-$0d and $20-$21)
+
     const ubyte TYPE_ALL = 0
     const ubyte TYPE_FILES = 1
     const ubyte TYPE_DIRS = 2

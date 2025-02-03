@@ -11,7 +11,7 @@
 ; Returns the name of the selected file.  If it is a directory instead, the name will start and end with a slash '/'.
 ; Works in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
 
-; ZERO PAGE LOCATIONS USED: R0-R4 ($02-$0b), $7a-$7f   (can be checked with -dumpvars)
+; ZERO PAGE LOCATIONS USED: R0-R5,R15 ($02-$0d and $20-$21), $7a-$7f are used but are saved and restored.  (can be checked with -dumpvars)
 
 
 ; TODO joystick control? mouse control?
@@ -38,7 +38,7 @@ main {
 
 fileselector {
     ; these buffer sizes are chosen to fill up the rest of the hiram bank after the fileselector code
-    const uword filenamesbuf_size = $e90
+    const uword filenamesbuf_size = $e40
     const ubyte max_num_files = 128
 
     uword @shared filenamesbuffer = memory("filenames_buffer", filenamesbuf_size, 0)
@@ -58,6 +58,7 @@ fileselector {
 
     sub configure(ubyte drivenumber, ubyte show_types) {
         ; show_types is a bit mask , bit 0 = include files in list, bit 1 = include dirs in list,   0 (or 3)=show everything.
+        ; note: ZP is not used here.
         diskio.drivenumber = drivenumber
         show_what = show_types
         if_z
@@ -66,6 +67,7 @@ fileselector {
     }
 
     sub configure_appearance(ubyte column @R0, ubyte row @R1, ubyte max_entries @R2, ubyte normal @R3, ubyte selected @R4) {
+        ; note: ZP is not used here.
         dialog_topx = column
         dialog_topy = row
         max_lines = max_entries
@@ -74,6 +76,13 @@ fileselector {
     }
 
     sub select(str pattern) -> uword {
+        sys.save_prog8_internals()
+        cx16.r0 = internal_select(pattern)
+        sys.restore_prog8_internals()
+        return cx16.r0
+    }
+
+    sub internal_select(str pattern) -> uword {
         str defaultpattern="*"
         if pattern==0
             pattern = &defaultpattern
@@ -106,7 +115,8 @@ fileselector {
         txt.nl()
         txt.column(dialog_topx)
         txt.chrout(chr_vert)
-        txt.print("   scanning directory...      ")
+        txt.print("   scanning directory...")
+        spaces(6)
         txt.chrout(chr_vert)
         txt.nl()
         txt.column(dialog_topx)
@@ -141,7 +151,8 @@ fileselector {
         txt.nl()
         txt.column(dialog_topx)
         txt.chrout(chr_vert)
-        txt.print(" esc/stop to abort            ")
+        txt.print(" esc/stop to abort")
+        spaces(12)
         txt.chrout(chr_vert)
         txt.nl()
         txt.column(dialog_topx)
@@ -326,7 +337,7 @@ fileselector {
                 else
                     txt.print("(down)")
             else
-                txt.print("      ")
+                spaces(6)
             txt.spc()
             txt.chrout(chr_vert)
             txt.nl()
@@ -362,6 +373,16 @@ fileselector {
         }
     }
 
+    asmsub spaces(ubyte amount @Y) clobbers(A, Y) {
+        %asm {{
+            lda  #' '
+-           jsr  cbm.CHROUT
+            dey
+            bne  -
+            rts
+        }}
+    }
+
     sub set_characters(bool iso_chars) {
         if iso_chars {
             ; iso characters that kinda draw a pleasant box
@@ -391,7 +412,7 @@ fileselector {
         startrow += dialog_topy
         repeat numlines {
             txt.plot(dialog_topx+1, startrow)
-            repeat 30  txt.chrout(' ')
+            spaces(30)
             txt.nl()
             startrow++
         }
