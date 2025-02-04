@@ -1,7 +1,8 @@
 TODO
 ====
 
-- diskio diskname / fileselector hangs or crashes on X16 when using drive 9 instead of 8
+- diskio has a problem when running certain code when a not-connected drive number is selected, and when that is run in a hiram bank
+  (this is not a prog8 problem, see https://discord.com/channels/547559626024157184/629863245934755860/1336805196634001438)
 
 - for creating libraries, something like %jmptable( block.func1, block.func2, ... ) could be useful to create a compact jump table, and possibly generating extsub definitions as well. Problem: directives cannot span multiple lines atm.
 

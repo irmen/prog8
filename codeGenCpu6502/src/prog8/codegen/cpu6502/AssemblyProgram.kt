@@ -32,7 +32,7 @@ internal class AssemblyProgram(
                 // CBM machines .prg generation.
 
                 val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
-                    "-Wall", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -77,7 +77,7 @@ internal class AssemblyProgram(
             ProgramType.ATARIXEX -> {
                 // Atari800XL .xex generation.
 
-                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
+                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "-Wno-implied-reg", "--no-monitor")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -113,7 +113,7 @@ internal class AssemblyProgram(
                     throw AssemblyError("invalid program compilation options. Neo6502 requires %output raw, %launcher none, %address $0800")
                 }
 
-                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "--no-monitor")
+                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "-Wno-implied-reg", "--no-monitor")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
