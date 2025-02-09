@@ -131,20 +131,12 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     if (varsGolden==true) {
-        if (compilationTarget != Cx16Target.NAME) {
-            System.err.println("Golden Ram is only available on the Commander X16 target.")
-            return false
-        }
         if (varsHighBank!=null || slabsHighBank!=null) {
             System.err.println("Either use varsgolden or varshigh (and slabsgolden or slabshigh), not both or mixed.")
             return false
         }
     }
     if (slabsGolden==true) {
-        if (compilationTarget != Cx16Target.NAME) {
-            System.err.println("Golden Ram is only available on the Commander X16 target.")
-            return false
-        }
         if (varsHighBank!=null || slabsHighBank!=null) {
             System.err.println("Either use golden or high ram, not both.")
             return false

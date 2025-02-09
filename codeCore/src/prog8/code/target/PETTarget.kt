@@ -75,7 +75,7 @@ class PETTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = PETZeropage(compilerOptions)
-        // there's no golden ram.
+        golden = GoldenRam(compilerOptions, UIntRange.EMPTY)
     }
 
 }

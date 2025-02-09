@@ -71,6 +71,13 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         getCompilationTargetByName(args.compilationTarget)
     }
 
+    if(args.varsGolden || args.slabsGolden) {
+        if(compTarget.BSSGOLDENRAM_END-compTarget.BSSGOLDENRAM_START==0u) {
+            System.err.println("The current compilation target doesn't support Golden Ram.")
+            return null
+        }
+    }
+
     try {
         val totalTime = measureTimeMillis {
             val libraryDirs =  if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()

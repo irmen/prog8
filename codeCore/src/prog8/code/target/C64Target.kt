@@ -34,7 +34,7 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
 
     override val BSSHIGHRAM_START = 0xc000u
     override val BSSHIGHRAM_END = 0xcfdfu
-    override val BSSGOLDENRAM_START = 0u
+    override val BSSGOLDENRAM_START = 0u        // no golden ram on C64
     override val BSSGOLDENRAM_END = 0u
 
     override lateinit var zeropage: Zeropage
@@ -80,7 +80,7 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = C64Zeropage(compilerOptions)
-        golden = GoldenRam(compilerOptions, 0xc000u until 0xd000u)
+        golden = GoldenRam(compilerOptions, UIntRange.EMPTY)
     }
 
 }

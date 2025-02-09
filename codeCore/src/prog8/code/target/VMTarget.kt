@@ -84,6 +84,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = VirtualZeropage(compilerOptions)
+        golden = GoldenRam(compilerOptions, UIntRange.EMPTY)
     }
 
     override fun memorySize(dt: DataType, numElements: Int?): Int {

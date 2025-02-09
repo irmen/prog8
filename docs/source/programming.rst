@@ -374,6 +374,14 @@ Directives
         jmp  lib.routine2
         ...
 
+    This is usually put at the top of the main block so that it ends up at the beginning
+    of the library file. *Note:* the compiler may still insert the required bootstrapping
+    code in front of it, which in the case of a library, is the JMP to the start routine
+    which also does some variable initialization and BSS area clearing. So the first JMP
+    in the jumptable will then end up at offset 3 in the resulting binary. You could consider
+    the JMP start that prog8 inserts as the implicit first entry of the jump table.
+    Check the generated assembly code to see exactly what's up.
+
 .. data:: %launcher <type>
 
 	Level: module.

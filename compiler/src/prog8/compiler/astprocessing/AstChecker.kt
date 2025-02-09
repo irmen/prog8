@@ -1053,6 +1053,8 @@ internal class AstChecker(private val program: Program,
                     err("invalid encoding directive, expected one of $allowedEncodings")
             }
             "%jmptable" -> {
+                if(directive.parent !is Block)
+                    err("this directive may only occur in a block")
                 for(arg in directive.args) {
                     val target = directive.definingScope.lookup(arg.string!!.split('.'))
                     if(target==null)

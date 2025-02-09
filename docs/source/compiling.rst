@@ -239,7 +239,7 @@ One or more .p8 module files
 ``-varsgolden``
     Like ``-varshigh``, but places the variables in the $0400-$07FF "golden ram" area instead.
     Because this is in normal system memory, there are no bank switching issues.
-    This mode is only available on the Commander X16.
+    This mode is only available on the Commander X16, and possibly on custom configured targets.
 
 ``-varshigh <rambank>``
     Places uninitialized non-zeropage variables in a separate memory area, instead of inside the program itself.
