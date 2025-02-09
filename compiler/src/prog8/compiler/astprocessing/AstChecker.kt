@@ -1052,6 +1052,15 @@ internal class AstChecker(private val program: Program,
                 if(directive.args.size!=1 || directive.args[0].string !in allowedEncodings)
                     err("invalid encoding directive, expected one of $allowedEncodings")
             }
+            "%jmptable" -> {
+                for(arg in directive.args) {
+                    val target = directive.definingScope.lookup(arg.string!!.split('.'))
+                    if(target==null)
+                        errors.err("undefined symbol: ${arg.string}", arg.position)
+                    else if (target !is Subroutine)
+                        errors.err("jmptable entry can only be a subroutine: ${arg.string}", arg.position)
+                }
+            }
             else -> throw SyntaxError("invalid directive ${directive.directive}", directive.position)
         }
         super.visit(directive)

@@ -137,9 +137,11 @@ unconditionaljump :  'goto'  expression ;
 
 directive :
 	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%memtop' | '%import' |
-                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' | '%align' )
-        (directivearg? | directivearg (',' directivearg)*)
+                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' | '%align' | '%jmptable' )
+        (directivenamelist | (directivearg? | directivearg (',' directivearg)*))
         ;
+
+directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','? EOL?')' ;
 
 directivearg : stringliteral | identifier | integerliteral ;
 

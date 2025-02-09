@@ -606,6 +606,7 @@ class AsmGen6502Internal (
             is PtBlock -> throw AssemblyError("block should have been handled elsewhere")
             is PtDefer -> throw AssemblyError("defer should have been transformed")
             is PtNodeGroup -> stmt.children.forEach { translate(it) }
+            is PtJmpTable -> translate(stmt)
             is PtNop -> {}
             else -> throw AssemblyError("missing asm translation for $stmt")
         }
@@ -980,6 +981,14 @@ $repeatLabel""")
 
     private fun translate(stmt: PtLabel) {
         out(stmt.name)
+    }
+
+    private fun translate(stmt: PtJmpTable) {
+        out("  ; jumptable")
+        for(name in stmt.children) {
+            out("  jmp  ${asmSymbolName((name as PtIdentifier).name)}")
+        }
+        out("  ; end jumptable")
     }
 
     private fun translate(stmt: PtConditionalBranch) {

@@ -1854,6 +1854,14 @@ class IRCodeGen(
                 is PtLabel -> {
                     irBlock += IRCodeChunk(child.name, null)
                 }
+                is PtJmpTable -> {
+                    irBlock += IRCodeChunk(null, null).also {
+                        for(addr in child.children) {
+                            addr as PtIdentifier
+                            it += IRInstruction(Opcode.JUMP, labelSymbol = addr.name)
+                        }
+                    }
+                }
                 else -> TODO("weird block child node $child")
             }
         }

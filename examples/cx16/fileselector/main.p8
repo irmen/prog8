@@ -33,11 +33,11 @@ fselector {
     extsub $a000 = init() clobbers(A)
 
     ; what entry types should be displayed (default=all)
-    extsub $a004 = config(ubyte drivenumber @A, ubyte types @Y) clobbers(A)
+    extsub $a003 = config(ubyte drivenumber @A, ubyte types @Y) clobbers(A)
 
     ; configure the position and appearance of the dialog
-    extsub $a008 = config_appearance(ubyte column @R0, ubyte row @R1, ubyte max_entries @R2, ubyte normalcolors @R3, ubyte selectedcolors @R4) clobbers(A)
+    extsub $a006 = config_appearance(ubyte column @R0, ubyte row @R1, ubyte max_entries @R2, ubyte normalcolors @R3, ubyte selectedcolors @R4) clobbers(A)
 
     ; show the file selector dialog. Normal pattern would be "*" to include everything.  Returns the selected entry name, or 0 if error or nothing selected.
-    extsub $a00c = select(str pattern @AY) clobbers(X) -> uword @AY
+    extsub $a009 = select(str pattern @AY) clobbers(X) -> uword @AY
 }

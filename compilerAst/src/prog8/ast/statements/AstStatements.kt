@@ -111,6 +111,7 @@ data class Directive(val directive: String, val args: List<DirectiveArg>, overri
 //            "%breakpoint",
 //            "%encoding",
 //            "%import",
+//            "%jmptable",
 //            "%launcher",
 //            "%option",
 //            "%output",

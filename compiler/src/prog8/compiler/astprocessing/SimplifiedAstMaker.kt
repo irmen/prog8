@@ -211,11 +211,22 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 }
             }
         }
+
+
         val (vardecls, statements) = srcBlock.statements.partition { it is VarDecl }
         val src = srcBlock.definingModule.source
         val block = PtBlock(srcBlock.name, srcBlock.isInLibrary, src,
             PtBlock.Options(srcBlock.address, forceOutput, noSymbolPrefixing, veraFxMuls, ignoreUnused),
             srcBlock.position)
+
+        for(directive in directives.filter { it.directive == "%jmptable" }) {
+            val table = PtJmpTable(directive.position)
+            directive.args.forEach {
+                table.add(PtIdentifier(it.string!!, DataType.forDt(BaseDataType.UNDEFINED), it.position))
+            }
+            block.add(table)
+        }
+
         makeScopeVarsDecls(vardecls).forEach { block.add(it) }
         for (stmt in statements)
             block.add(transformStatement(stmt))

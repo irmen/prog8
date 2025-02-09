@@ -406,11 +406,7 @@ class IRBlock(
     operator fun plusAssign(sub: IRAsmSubroutine) { children += sub }
     operator fun plusAssign(asm: IRInlineAsmChunk) { children += asm }
     operator fun plusAssign(binary: IRInlineBinaryChunk) { children += binary }
-    operator fun plusAssign(irCodeChunk: IRCodeChunk) {
-        // this is for a separate label in the block scope. (random code statements are not allowed)
-        require(irCodeChunk.isEmpty() && irCodeChunk.label!=null)
-        children += irCodeChunk
-    }
+    operator fun plusAssign(irCodeChunk: IRCodeChunk) { children += irCodeChunk }
 
     fun isEmpty(): Boolean = children.isEmpty() || children.all { it.isEmpty() }
     fun isNotEmpty(): Boolean = !isEmpty()

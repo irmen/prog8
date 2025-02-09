@@ -193,3 +193,6 @@ class PtWhenChoice(val isElse: Boolean, position: Position) : PtNode(position) {
 
 
 class PtDefer(position: Position): PtNode(position), IPtStatementContainer
+
+
+class PtJmpTable(position: Position) : PtNode(position)     // contains only PtIdentifier nodes

@@ -362,6 +362,18 @@ Directives
 	You can import modules one at a time, and importing a module more than once has no effect.
 
 
+.. data:: %jmptable ( lib.routine1, lib.routine2, ... )
+
+    Level: block.
+    This builds a compact "jump table" meant to be used in libraries.
+    You can put the elements of the table on different lines if you wish.
+    It outputs a sequence of JMP machine code instructions jumping to each
+    of the given subroutines in the jmptable list::
+
+        jmp  lib.routine1
+        jmp  lib.routine2
+        ...
+
 .. data:: %launcher <type>
 
 	Level: module.

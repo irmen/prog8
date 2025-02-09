@@ -12,7 +12,7 @@
       <option name="HAS_STRING_ESCAPES" value="true" />
     </options>
     <keywords keywords="&amp;;&amp;&lt;;&amp;&gt;;-&gt;;@;alias;and;as;asmsub;break;clobbers;continue;do;downto;else;extsub;false;for;goto;if;if_cc;if_cs;if_eq;if_mi;if_ne;if_neg;if_nz;if_pl;if_pos;if_vc;if_vs;if_z;in;inline;not;or;repeat;return;step;sub;to;true;unroll;until;when;while;xor;~" ignore_case="false" />
-    <keywords2 keywords="%address;%align;%asm;%asmbinary;%asminclude;%breakpoint;%encoding;%import;%ir;%launcher;%memtop;%option;%output;%zeropage;%zpallowed;%zpreserved;@align64;@alignpage;@alignword;@bank;@dirty;@nosplit;@nozp;@requirezp;@shared;@split;@zp;atascii:;c64os:;cp437:;default:;iso16:;iso5:;iso:;kata:;petscii:;sc:" />
+    <keywords2 keywords="%address;%align;%asm;%asmbinary;%asminclude;%breakpoint;%encoding;%import;%ir;%jmptable;%launcher;%memtop;%option;%output;%zeropage;%zpallowed;%zpreserved;@align64;@alignpage;@alignword;@bank;@dirty;@nosplit;@nozp;@requirezp;@shared;@split;@zp;atascii:;c64os:;cp437:;default:;iso16:;iso5:;iso:;kata:;petscii:;sc:" />
     <keywords3 keywords="bool;byte;const;float;long;str;ubyte;uword;void;word" />
     <keywords4 keywords="abs;bmx;call;callfar;callfar2;cbm;clamp;cmp;conv;cx16;defer;divmod;floats;len;lsb;lsw;math;max;memory;min;mkword;msb;msw;peek;peekf;peekw;poke;pokef;pokew;psg;rol;rol2;ror;ror2;rrestore;rrestorex;rsave;rsavex;setlsb;setmsb;sgn;sizeof;sqrt;strings;sys;txt;verafx" />
   </highlighting>

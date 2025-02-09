@@ -440,8 +440,14 @@ private fun DatatypeContext.toAst(): BaseDataType {
 private fun ArrayindexContext.toAst() : ArrayIndex =
         ArrayIndex(expression().toAst(), toPosition())
 
-internal fun DirectiveContext.toAst() : Directive =
-        Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
+internal fun DirectiveContext.toAst() : Directive {
+    if(directivenamelist() != null) {
+        val identifiers = directivenamelist().scoped_identifier().map { DirectiveArg(it.text, null, it.toPosition()) }
+        return Directive(directivename.text, identifiers, toPosition())
+    }
+    else
+        return Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
+}
 
 private fun DirectiveargContext.toAst() : DirectiveArg {
     val str = stringliteral()
