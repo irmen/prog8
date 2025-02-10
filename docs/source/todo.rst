@@ -1,6 +1,15 @@
 TODO
 ====
 
+- fix string concatenation error
+    uword totalseconds = 3636
+    uword minutes
+    uword seconds
+    divmod(totalseconds, 60 as uword, minutes, seconds)
+    str minString = conv.str_uw(minutes)
+    str secString = conv.str_uw(seconds)
+    txt.print(minString + ":" + secString)
+
 - Make neo and atari targets external via configs? They are very bare bones atm so easier to contribute to if they're configurable externally? What about the pet32 target
 
 - add paypal donation button as well?
@@ -12,6 +21,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Look at github PR for improved romability
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - improve support for romable code (see github issue 149)

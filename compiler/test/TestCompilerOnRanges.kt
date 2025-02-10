@@ -435,4 +435,19 @@ main{
         """
         compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("range types changed from byte to words if needed by outer containment check") {
+        val src= """
+main {
+    sub start() {
+        bool @shared z1 = cx16.r0 in 1 to 135
+        bool @shared z2 = cx16.r0 in $0001 to 135
+        bool @shared z4 = cx16.r0s in 1 to 135
+        bool @shared z6 = cx16.r0s in 1 to (135 as word)
+        bool @shared z3 = cx16.r0 in 1 to (135 as word)
+        bool @shared z5 = cx16.r0s in $0001 to 135
+    }
+}"""
+        compileText(Cx16Target(), true, src) shouldNotBe null
+    }
 })

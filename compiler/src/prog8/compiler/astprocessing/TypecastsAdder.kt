@@ -440,12 +440,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         parent: Node
     ): List<IAstModification> {
 
-        if(!varDt.isUndefined) {
-            if(fromDt==varDt && toDt==varDt) {
-                return noModifications
-            } else if(fromDt==toDt && fromDt.isAssignableTo(varDt)) {
-                return noModifications
-            }
+        if(!varDt.isUndefined && fromDt==varDt && toDt==varDt) {
+            return noModifications
         }
 
         if(fromConst!=null) {
@@ -488,6 +484,45 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         }
 
         val modifications = mutableListOf<IAstModification>()
+
+        if(!varDt.isUndefined) {
+            // adjust from value
+            if (fromDt!=varDt) {
+                if (!fromDt.isUndefined && !fromDt.isAssignableTo(varDt)) {
+                    if(fromConst!=null) {
+                        val cast = fromConst.cast(varDt.base, true)
+                        if(cast.isValid)
+                            modifications += IAstModification.ReplaceNode(range.to, cast.valueOrZero(), range)
+                        else
+                            errors.err("incompatible range value type", range.from.position)
+                    } else {
+                        errors.err("incompatible range value type", range.from.position)
+                    }
+                } else if(fromConst!=null) {
+                    modifications += IAstModification.ReplaceNode(range.from, NumericLiteral(varDt.base, fromConst.number, fromConst.position), range)
+                }
+            }
+
+            // adjust to value
+            if (toDt!=varDt) {
+                if (!toDt.isUndefined && !toDt.isAssignableTo(varDt)) {
+                    if(toConst!=null) {
+                        val cast = toConst.cast(varDt.base, true)
+                        if(cast.isValid)
+                            modifications += IAstModification.ReplaceNode(range.to, cast.valueOrZero(), range)
+                        else
+                            errors.err("incompatible range value type", range.to.position)
+                    } else {
+                        errors.err("incompatible range value type", range.to.position)
+                    }
+                } else if(toConst!=null) {
+                    modifications += IAstModification.ReplaceNode(range.to, NumericLiteral(varDt.base, toConst.number, toConst.position), range)
+                }
+            }
+            if(modifications.isNotEmpty())
+                return modifications
+        }
+
         val (commonDt, toChange) = BinaryExpression.commonDatatype(fromDt, toDt, range.from, range.to)
         if(toChange!=null)
             addTypecastOrCastedValueModification(modifications, toChange, commonDt.base, range)
