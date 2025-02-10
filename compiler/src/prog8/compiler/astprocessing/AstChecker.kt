@@ -820,11 +820,28 @@ internal class AstChecker(private val program: Program,
                     val eltDt = decl.datatype.elementType()
                     if(!(iDt istype eltDt))
                         valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
-                } else {
+                } else if(!decl.datatype.isString) {
                     if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool))
                         valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 }
             }
+        }
+
+        if(decl.datatype.isString) {
+            if(decl.value==null) {
+                // complain about uninitialized str, but only if it's a regular variable
+                val parameter = (decl.parent as? Subroutine)?.parameters?.singleOrNull{ it.name==decl.name }
+                if(parameter==null)
+                    err("string var must be initialized with a string literal")
+            }
+
+            if(decl.value !is StringLiteral) {
+                if(decl.type==VarDeclType.MEMORY)
+                    err("strings can't be memory mapped")
+                else
+                    valueerr("string var must be initialized with a string literal")
+            }
+            return
         }
 
         // array length limits and constant lenghts
@@ -881,22 +898,6 @@ internal class AstChecker(private val program: Program,
 
             if(decl.datatype.isSplitWordArray && decl.type==VarDeclType.MEMORY)
                 err("memory mapped word arrays cannot be split, should have @nosplit")
-        }
-
-        if(decl.datatype.isString) {
-            if(decl.value==null) {
-                // complain about uninitialized str, but only if it's a regular variable
-                val parameter = (decl.parent as? Subroutine)?.parameters?.singleOrNull{ it.name==decl.name }
-                if(parameter==null)
-                    err("string var must be initialized with a string literal")
-            }
-
-            if(decl.value !is StringLiteral) {
-                if(decl.type==VarDeclType.MEMORY)
-                    err("strings can't be memory mapped")
-                else
-                    valueerr("string var must be initialized with a string literal")
-            }
         }
 
         if(decl.datatype.isSplitWordArray) {

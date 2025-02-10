@@ -460,4 +460,25 @@ main {
         errors.errors[0] shouldContain "too few values: expected 3 got 1"
         errors.errors[1] shouldContain "too few values: expected 3 got 1"
     }
+
+    test("correct errors for wrong string initialization value") {
+        val src="""
+main {
+
+    sub start() {
+        str minString1 = 1234
+        str minString2 = func()
+    }
+
+    sub func() -> str {
+        return "zz"
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "type of value uword doesn't match target str"
+        errors.errors[1] shouldContain "string var must be initialized with a string literal"
+        errors.errors[2] shouldContain "string var must be initialized with a string literal"
+    }
 })
