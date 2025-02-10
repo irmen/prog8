@@ -1,11 +1,16 @@
+%import textio
+%zeropage basicsafe
+
 main {
 
     sub start() {
-        str minString1 = 1234
-        str minString2 = func()
+        func($11,$22,$33,$44)
     }
 
-    sub func() -> str {
-        return "zz"
+    sub func(ubyte arg1, ubyte arg2 @R1, ubyte arg3 @R2, ubyte arg4) {
+        txt.print_ubhex(arg1, false)
+        txt.print_ubhex(arg2, false)
+        txt.print_ubhex(arg3, false)
+        txt.print_ubhex(arg4, false)
     }
 }

@@ -135,15 +135,16 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 useCpuRegistersForArgs(call.args, sub)
             } else {
                 // arguments via variables
-                val (normalParams, registerParams) = sub.parameters.withIndex().partition { it.value.register == null }
+                val paramValues = sub.parameters.zip(call.args)
+                val (normalParams, registerParams) = paramValues.partition { it.first.register == null }
                 if (normalParams.isNotEmpty()) {
-                    for (arg in normalParams.zip(call.args))
-                        argumentViaVariable(sub, arg.first.value, arg.second)
+                    for (p in normalParams)
+                        argumentViaVariable(sub, p.first, p.second)
                 }
                 if (registerParams.isNotEmpty()) {
                     // the R0-R15 'registers' are not really registers. They're just special variables.
-                    for (arg in registerParams.zip(call.args))
-                        argumentViaVariable(sub, arg.first.value, arg.second)
+                    for (p in registerParams)
+                        argumentViaVariable(sub, p.first, p.second)
                 }
             }
             asmgen.out("  jsr  $subAsmName")
