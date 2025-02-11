@@ -7,12 +7,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
-import prog8.code.ast.PtAssignment
-import prog8.code.ast.PtBinaryExpression
-import prog8.code.ast.PtFunctionCall
-import prog8.code.ast.PtIfElse
-import prog8.code.ast.PtPrefix
-import prog8.code.ast.PtVariable
+import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.target.*
@@ -386,7 +381,6 @@ main {
         compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
         compileText(C128Target(), false, text, writeAssembly = true) shouldNotBe null
         compileText(PETTarget(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(AtariTarget(), false, text, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
     }
 

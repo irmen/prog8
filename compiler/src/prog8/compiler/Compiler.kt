@@ -421,12 +421,9 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
             OutputType.PRG
         }
     }
-    var launcherType = if (launcherTypeStr == null) {
-        when(compTarget) {
-            is AtariTarget -> CbmPrgLauncherType.NONE
-            else -> CbmPrgLauncherType.BASIC
-        }
-    } else {
+    var launcherType = if (launcherTypeStr == null)
+        CbmPrgLauncherType.BASIC
+    else {
         try {
             CbmPrgLauncherType.valueOf(launcherTypeStr)
         } catch (_: IllegalArgumentException) {

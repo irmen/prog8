@@ -1,5 +1,6 @@
 %import textio
 %zeropage basicsafe
+%launcher none
 
 ; hello world test for Atari 8-bit
 

@@ -14,6 +14,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Improve compilation target configurability: the program type (CBMPRG, ATARIXEX etc) is still hardcoded into the compiler (AssemblyProgram.kt)
 - Look at github PR for improved romability
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

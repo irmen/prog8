@@ -7,7 +7,7 @@ neo {
     &uword  RESET_VEC       = $FFFC     ; 6502 reset vector, determined by the kernal if banked in
     &uword  IRQ_VEC         = $FFFE     ; 6502 interrupt vector, determined by the kernal if banked in
 
-    %asminclude "library:neo/neo6502.asm"
+    %asminclude "neo6502.asm"
 }
 
 sys {
