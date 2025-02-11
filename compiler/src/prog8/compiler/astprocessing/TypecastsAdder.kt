@@ -492,7 +492,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(fromConst!=null) {
                         val cast = fromConst.cast(varDt.base, true)
                         if(cast.isValid)
-                            modifications += IAstModification.ReplaceNode(range.to, cast.valueOrZero(), range)
+                            modifications += IAstModification.ReplaceNode(range.from, cast.valueOrZero(), range)
                         else
                             errors.err("incompatible range value type", range.from.position)
                     } else {

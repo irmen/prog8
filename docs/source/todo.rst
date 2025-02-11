@@ -3,6 +3,8 @@ TODO
 
 - Make neo and atari targets external via configs? They are very bare bones atm so easier to contribute to if they're configurable externally? What about the pet32 target
 
+- add Adiee5's NES target and example to the docs somewhere https://github.com/adiee5/prog8-nes-target
+
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
 

@@ -170,14 +170,14 @@ class IRFileReader {
                 val arrayspec = match.groups["arrayspec"]?.value ?: ""
                 val name = match.groups["name"]!!.value
                 val zpwish = match.groups["zp"]!!.value
-                val split = match.groups["split"]?.value ?: ""
+                match.groups["split"]?.value ?: ""
                 val alignment = match.groups["align"]?.value ?: ""
                 if('.' !in name)
                     throw IRParseException("unscoped name: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val isSplit = if(split.isBlank()) false else split.toBoolean()
+                // val isSplit = if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align.toInt(), null)
                 variables.add(newVar)
@@ -242,7 +242,7 @@ class IRFileReader {
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val isSplit = if(split.isBlank()) false else split.toBoolean()
+                if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 var initNumeric: Double? = null
                 var initArray: StArray? = null

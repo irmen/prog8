@@ -7,7 +7,6 @@ import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtAddressOf
