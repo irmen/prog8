@@ -17,12 +17,10 @@ help:
 
 symboldumps:
 	mkdir -p source/_static/symboldumps
-	prog8c -target atari import-all-atari.p8 -dumpsymbols > source/_static/symboldumps/skeletons-atari.txt
 	prog8c -target c64 import-all-c64.p8 -dumpsymbols > source/_static/symboldumps/skeletons-c64.txt
 	prog8c -target c128 import-all-c128.p8 -dumpsymbols > source/_static/symboldumps/skeletons-c128.txt
 	prog8c -target cx16 import-all-cx16.p8 -dumpsymbols > source/_static/symboldumps/skeletons-cx16.txt
 	prog8c -target pet32 import-all-pet32.p8 -dumpsymbols > source/_static/symboldumps/skeletons-pet32.txt
-	prog8c -target neo import-all-neo.p8 -dumpsymbols > source/_static/symboldumps/skeletons-neo.txt
 	prog8c -target virtual import-all-virtual.p8 -dumpsymbols > source/_static/symboldumps/skeletons-virtual.txt
 
 

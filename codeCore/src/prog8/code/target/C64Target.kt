@@ -91,8 +91,6 @@ val CompilationTargets = listOf(
     C128Target.NAME,
     Cx16Target.NAME,
     PETTarget.NAME,
-    AtariTarget.NAME,
-    Neo6502Target.NAME,
     VMTarget.NAME
 )
 
@@ -101,8 +99,6 @@ fun getCompilationTargetByName(name: String) = when(name.lowercase()) {
     C128Target.NAME -> C128Target()
     Cx16Target.NAME -> Cx16Target()
     PETTarget.NAME -> PETTarget()
-    AtariTarget.NAME -> AtariTarget()
     VMTarget.NAME -> VMTarget()
-    Neo6502Target.NAME -> Neo6502Target()
     else -> throw IllegalArgumentException("invalid compilation target")
 }

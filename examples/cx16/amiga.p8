@@ -11,7 +11,7 @@ main {
         gfx_hires.graphics_mode()             ; select 640*480 mode, 4 colors
         mouse.set_pointer_image()
         cx16.mouse_config(-1, 640/8, 240/8)
-        palette.set_rgb([$aaa, $000, $fff, $68c], 4, 0)    ; set Amiga's workbench 2.0 gray, black, white, lightblue colors
+        palette.set_rgb_nosplit([$aaa, $000, $fff, $68c], 4, 0)    ; set Amiga's workbench 2.0 gray, black, white, lightblue colors
 
         cx16.VERA_DC_VSCALE = 64        ; have the vertical resolution so it is 640*240 - more or less Amiga's default non interlaced mode
         gfx_hires.text_charset(1)

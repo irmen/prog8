@@ -14,7 +14,10 @@ import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
-import prog8.code.target.*
+import prog8.code.target.C128Target
+import prog8.code.target.C64Target
+import prog8.code.target.PETTarget
+import prog8.code.target.VMTarget
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
@@ -253,7 +256,7 @@ class TestMemory: FunSpec({
     }
 
     context("memsizer") {
-        withData(VMTarget(), AtariTarget(), C64Target(), PETTarget(), AtariTarget(), C128Target(), Neo6502Target()) { target ->
+        withData(VMTarget(), C64Target(), PETTarget(), C128Target()) { target ->
             shouldThrow<IllegalArgumentException> {
                 target.memorySize(BaseDataType.UNDEFINED)
             }

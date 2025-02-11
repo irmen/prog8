@@ -2,10 +2,8 @@ package prog8.codegen.cpu6502
 
 import prog8.code.ast.PtLabel
 import prog8.code.core.*
-import prog8.code.target.AtariTarget
 import prog8.code.target.C128Target
 import prog8.code.target.C64Target
-import prog8.code.target.Neo6502Target
 import prog8.code.target.PETTarget
 import java.nio.file.Path
 
@@ -21,7 +19,6 @@ internal class AssemblyProgram(
     private val binFile = outputDir.resolve("$name.bin")
     private val viceMonListFile = outputDir.resolve(C64Target.viceMonListName(name))
     private val listFile = outputDir.resolve("$name.list")
-    private val targetWithoutBreakpointsForEmulator = arrayOf(AtariTarget.NAME, Neo6502Target.NAME)
 
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
 
@@ -145,7 +142,7 @@ internal class AssemblyProgram(
 
         val proc = ProcessBuilder(assemblerCommand).inheritIO().start()
         val result = proc.waitFor()
-        if (result == 0 && compTarget.name !in targetWithoutBreakpointsForEmulator) {
+        if (result == 0) {
             removeGeneratedLabelsFromMonlist()
             generateBreakpointList()
         }

@@ -1,9 +1,9 @@
 TODO
 ====
 
-- Make neo and atari targets external via configs? They are very bare bones atm so easier to contribute to if they're configurable externally? What about the pet32 target
+- (WIP) Make neo and atari targets external via configs? They are very bare bones atm so easier to contribute to if they're configurable externally? What about the pet32 target
 
-- add Adiee5's NES target and example to the docs somewhere https://github.com/adiee5/prog8-nes-target
+- add Adiee5's NES target and example to the docs (or the custom targets examples) somewhere https://github.com/adiee5/prog8-nes-target
 
 - add paypal donation button as well?
 - announce prog8 on the 6502.org site?
@@ -14,7 +14,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Improve compilation target configurability: the program type (CBMPRG, ATARIXEX etc) is still hardcoded into the compiler (AssemblyProgram.kt)
+- Improve compilation target configurability: the program type (CBMPRG, ATARIXEX etc) is still hardcoded into the compiler (AssemblyProgram.kt) + emulator binary
 - Look at github PR for improved romability
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
@@ -67,11 +67,11 @@ IR/VM
 Libraries
 ---------
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
+- See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - Add split-word array sorting routines to sorting module?
 - add even more general raster irq routines to build some sort of "copper list" , like Oscar64 has?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
-- fix the problems in atari target, and flesh out its libraries.
 - c128 target: make syslib more complete (missing kernal routines)?
 - VM: implement the last diskio support (file listings)
 

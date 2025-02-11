@@ -231,7 +231,7 @@ One or more .p8 module files
 ``-target <compilation target>``
     Sets the target output of the compiler. This option is required.
     ``c64`` = Commodore 64, ``c128`` = Commodore 128, ``cx16`` = Commander X16, ``pet32`` - Commodore PET model 4032,
-    ``atari`` = Atari 800 XL, ``neo`` = Neo6502, ``virtual`` = builtin virtual machine.
+    ``virtual`` = builtin virtual machine.
     You can also specify a file name as target, prog8 will when try to read the target
     machine's configuration and properties from that configuration file instead of using one of the built-in targets.
     See :ref:`customizable_target` for details about this.

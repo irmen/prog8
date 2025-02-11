@@ -12,7 +12,10 @@ import prog8.code.ast.verifyFinalAstBeforeAsmGen
 import prog8.code.core.*
 import prog8.code.optimize.optimizeSimplifiedAst
 import prog8.code.source.ImportFileSystem.expandTilde
-import prog8.code.target.*
+import prog8.code.target.ConfigFileTarget
+import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
+import prog8.code.target.getCompilationTargetByName
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
 import prog8.optimizer.*
@@ -245,11 +248,6 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
     }
     else {
         when(options.output) {
-            OutputType.RAW -> {
-                if(options.compTarget.name==Neo6502Target.NAME)
-                    loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
-                // for all other targets, RAW has no predefined load address.
-            }
             OutputType.PRG -> {
                 if(options.launcher==CbmPrgLauncherType.BASIC) {
                     loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
@@ -269,6 +267,8 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
                     throw AssemblyError("library output can't have sysinit")
                 // LIBRARY has no predefined load address.
             }
+
+            OutputType.RAW -> { }
         }
     }
 
@@ -361,8 +361,6 @@ fun parseMainModule(filepath: Path,
     } else {
         if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
             errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
-        if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compTarget.name == AtariTarget.NAME)
-            errors.err("atari target cannot use CBM BASIC launcher, use NONE", program.toplevelModule.position)
     }
 
     errors.report()
@@ -409,10 +407,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         .toList()
 
     val outputType = if (outputTypeStr == null) {
-        if(compTarget is AtariTarget)
-            OutputType.XEX
-        else
-            OutputType.PRG
+        OutputType.PRG
     } else {
         try {
             OutputType.valueOf(outputTypeStr)
