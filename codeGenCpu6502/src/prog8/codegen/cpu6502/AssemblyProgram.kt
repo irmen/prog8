@@ -24,11 +24,11 @@ internal class AssemblyProgram(
 
         val assemblerCommand: List<String>
 
-        when(compTarget.programType) {
-            ProgramType.CBMPRG -> {
+        when(options.output) {
+            OutputType.PRG -> {
                 // CBM machines .prg generation.
 
-                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
+                val command = mutableListOf("64tass", "--cbm-prg", "--ascii", "--case-sensitive", "--long-branch",
                     "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
 
                 if(options.warnSymbolShadowing)
@@ -43,38 +43,15 @@ internal class AssemblyProgram(
                     command.add("--list=$listFile")
                 }
 
-                val outFile = when (options.output) {
-                    OutputType.PRG -> {
-                        command.add("--cbm-prg")
-                        println("\nCreating prg for target ${compTarget.name}.")
-                        prgFile
-                    }
-                    OutputType.RAW -> {
-                        command.add("--nostart")
-                        println("\nCreating raw binary for target ${compTarget.name}.")
-                        binFile
-                    }
-                    OutputType.LIBRARY -> {
-                        if(compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME)) {
-                            println("\nCreating binary library file with header for target ${compTarget.name}.")
-                            command.add("--cbm-prg")
-                        } else {
-                            println("\nCreating binary library file without header for target ${compTarget.name}.")
-                            command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
-                        }
-                        binFile
-                    }
-                    else -> throw AssemblyError("invalid output type")
-                }
-
-                command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
+                command.addAll(listOf("--output", prgFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
-
+                println("\nCreating prg for target ${compTarget.name}.")
             }
-            ProgramType.ATARIXEX -> {
+            OutputType.XEX -> {
                 // Atari800XL .xex generation.
 
-                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "-Wno-implied-reg", "--no-monitor")
+                val command = mutableListOf("64tass", "--atari-xex", "--case-sensitive", "--long-branch",
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -87,30 +64,14 @@ internal class AssemblyProgram(
                 if(options.asmListfile)
                     command.add("--list=$listFile")
 
-                val outFile = when (options.output) {
-                    OutputType.XEX -> {
-                        command.add("--atari-xex")
-                        println("\nCreating xex for target ${compTarget.name}.")
-                        xexFile
-                    }
-                    OutputType.RAW -> {
-                        command.add("--nostart")
-                        println("\nCreating raw binary for target ${compTarget.name}.")
-                        binFile
-                    }
-                    else -> throw AssemblyError("invalid output type")
-                }
-                command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
+                command.addAll(listOf("--output", xexFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
+                println("\nCreating xex for target ${compTarget.name}.")
             }
-            ProgramType.NEORAW -> {
-                // Neo6502 raw program generation.
-
-                if(options.output!=OutputType.RAW || options.loadAddress!=0x0800u || options.launcher!=CbmPrgLauncherType.NONE) {
-                    throw AssemblyError("invalid program compilation options. Neo6502 requires %output raw, %launcher none, %address $0800")
-                }
-
-                val command = mutableListOf("64tass", "--case-sensitive", "--long-branch", "-Wall", "-Wno-implied-reg", "--no-monitor")
+            OutputType.RAW -> {
+                // Neo6502/headerless raw program generation.
+                val command = mutableListOf("64tass", "--nostart", "--case-sensitive", "--long-branch",
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
 
                 if(options.warnSymbolShadowing)
                     command.add("-Wshadow")
@@ -123,18 +84,38 @@ internal class AssemblyProgram(
                 if(options.asmListfile)
                     command.add("--list=$listFile")
 
-                val outFile = when (options.output) {
-                    OutputType.RAW -> {
-                        command.add("--nostart")
-                        println("\nCreating raw binary for target ${compTarget.name}.")
-                        binFile
-                    }
-                    else -> throw AssemblyError("invalid output type, need 'raw'")
+                command.addAll(listOf("--output", binFile.toString(), assemblyFile.toString()))
+                assemblerCommand = command
+                println("\nCreating raw binary for target ${compTarget.name}.")
+            }
+            OutputType.LIBRARY -> {
+                // CBM machines library (.bin) generation (with or without 2 byte load address header depending on the compilation target machine)
+
+                val command = mutableListOf("64tass", "--ascii", "--case-sensitive", "--long-branch",
+                    "-Wall", "-Wno-implied-reg", "--no-monitor", "--dump-labels", "--vice-labels", "--labels=$viceMonListFile")
+
+                if(options.warnSymbolShadowing)
+                    command.add("-Wshadow")
+                else
+                    command.add("-Wno-shadow")
+
+                if(options.asmQuiet)
+                    command.add("--quiet")
+
+                if(options.asmListfile)
+                    command.add("--list=$listFile")
+
+                if(compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME)) {
+                    println("\nCreating binary library file with header for target ${compTarget.name}.")
+                    command.add("--cbm-prg")
+                } else {
+                    println("\nCreating binary library file without header for target ${compTarget.name}.")
+                    command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
                 }
-                command.addAll(listOf("--output", outFile.toString(), assemblyFile.toString()))
+
+                command.addAll(listOf("--output", binFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
             }
-            else -> throw AssemblyError("invalid program type")
         }
 
         if(options.compTarget.additionalAssemblerOptions!=null)

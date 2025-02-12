@@ -1,20 +1,16 @@
 TODO
 ====
 
-- (WIP) Make neo and atari targets external via configs? They are very bare bones atm so easier to contribute to if they're configurable externally? What about the pet32 target
-
-- add Adiee5's NES target and example to the docs (or the custom targets examples) somewhere https://github.com/adiee5/prog8-nes-target
-
-- add paypal donation button as well?
-- announce prog8 on the 6502.org site?
-
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Improve compilation target configurability: the program type (CBMPRG, ATARIXEX etc) is still hardcoded into the compiler (AssemblyProgram.kt) + emulator binary
+- Improve compilation target configurability: emulator binary/cmdline?
+    neo6502 emulator: "neo hello.bin@800 cold"
+    atari emulators: "atari800 -xl -xl-rev 2 -nobasic -run hello.xex >/dev/null 2>/dev/null"  or second one: "Altirra64.exe hello.xex"
+
 - Look at github PR for improved romability
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

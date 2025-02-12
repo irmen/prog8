@@ -995,12 +995,12 @@ sys (part of syslib)
     system when the program is running.
     The following return values are currently defined:
 
+    - 7 = Neo6502
     - 8 = Atari 8 bits
     - 16 = Commander X16
     - 64 = Commodore 64
     - 128 = Commodore 128
     - 255 = Virtual machine
-
 
 ``exit (returncode)``
     Immediately stops the program and exits it, with the returncode in the A register.

@@ -1,4 +1,7 @@
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/H2H6S0FFF)
+
+PayPal: [![PayPal](https://www.paypalobjects.com/en_US/i/btn/btn_donate_LG.gif)](https://paypal.me/irmendejong)
+
 [![Documentation](https://readthedocs.org/projects/prog8/badge/?version=latest)](https://prog8.readthedocs.io/)
 
 Prog8 - Structured Programming Language for 8-bit 6502/65c02 microprocessors
@@ -14,7 +17,7 @@ which aims to provide many conveniences over raw assembly code (even when using 
 
 This project was created over the last couple of years by dedicating thousands of hours of my free time to it, to make it the best I possibly can.
 If you like Prog8, and think it's worth a nice cup of hot coffee or a delicious pizza, 
-you can help me out a little bit over at [ko-fi.com/irmen](https://ko-fi.com/irmen). 
+you can help me out a little bit over at [ko-fi.com/irmen](https://ko-fi.com/irmen) or [PayPal](https://paypal.me/irmendejong)
 
 
 Documentation

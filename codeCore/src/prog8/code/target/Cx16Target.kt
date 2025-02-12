@@ -1,14 +1,6 @@
 package prog8.code.target
 
-import prog8.code.core.CompilationOptions
-import prog8.code.core.CpuType
-import prog8.code.core.Encoding
-import prog8.code.core.GoldenRam
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IMemSizer
-import prog8.code.core.IStringEncoding
-import prog8.code.core.ProgramType
-import prog8.code.core.Zeropage
+import prog8.code.core.*
 import prog8.code.target.encodings.Encoder
 import prog8.code.target.zp.CX16Zeropage
 import java.nio.file.Path
@@ -27,7 +19,6 @@ class Cx16Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
 
 
     override val cpu = CpuType.CPU65C02
-    override val programType = ProgramType.CBMPRG
 
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE

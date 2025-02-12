@@ -243,45 +243,18 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 internal fun determineProgramLoadAddress(program: Program, options: CompilationOptions, errors: IErrorReporter) {
     val specifiedAddress = program.toplevelModule.loadAddress
     var loadAddress: UInt? = null
-    if(specifiedAddress!=null) {
+    if(specifiedAddress!=null)
         loadAddress = specifiedAddress.first
-    }
-    else {
-        when(options.output) {
-            OutputType.PRG -> {
-                if(options.launcher==CbmPrgLauncherType.BASIC) {
-                    loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
-                }
-            }
-            OutputType.XEX -> {
-                if(options.launcher!=CbmPrgLauncherType.NONE)
-                    throw AssemblyError("atari xex output can't contain BASIC launcher")
-                loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
-            }
-            OutputType.LIBRARY -> {
-                if(options.launcher!=CbmPrgLauncherType.NONE)
-                    throw AssemblyError("library output can't contain BASIC launcher")
-                if(options.zeropage!=ZeropageType.DONTUSE)
-                    throw AssemblyError("library output can't use zeropage")
-                if(options.noSysInit==false)
-                    throw AssemblyError("library output can't have sysinit")
-                // LIBRARY has no predefined load address.
-            }
+    else
+        loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
 
-            OutputType.RAW -> { }
-        }
-    }
+
 
     if(options.output==OutputType.PRG && options.launcher==CbmPrgLauncherType.BASIC && options.compTarget.customLauncher.isEmpty()) {
         val expected = options.compTarget.PROGRAM_LOAD_ADDRESS
         if(loadAddress!=expected) {
             errors.err("BASIC output must have load address ${expected.toHex()}", specifiedAddress?.second ?: program.toplevelModule.position)
         }
-    }
-
-    if(loadAddress==null) {
-        errors.err("load address must be specified for the selected output/launcher options", program.toplevelModule.position)
-        return
     }
 
     options.loadAddress = loadAddress

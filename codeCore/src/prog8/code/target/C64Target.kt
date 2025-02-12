@@ -22,7 +22,6 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
 
 
     override val cpu = CpuType.CPU6502
-    override val programType = ProgramType.CBMPRG
 
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE

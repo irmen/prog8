@@ -26,9 +26,8 @@ You can compile programs for various machines that are built in into the compile
 * Commodore 64
 * Commodore 128 (limited support)
 * Commodore PET (limited support)
-* Atari 800 XL (very limited support)
-* Neo6502 (very imited support)
 * any other 65(C)02 target machine or setup can be configured to a great extent in a user written configuration file.
+  There are some examples included for the Atari 800 XL, NEO6502 and such.
 
 Some language features are mentioned below, and you can also read :ref:`comparingprog8` if you
 want to quickly read about how Prog8 compares to well-known other languages.
@@ -57,7 +56,7 @@ Want to buy me a coffee or a pizza perhaps?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This project was created over the last couple of years by dedicating thousands of hours of my free time to it, to make it the best I possibly can.
 If you like Prog8, and think it's worth a nice cup of hot coffee or a delicious pizza,
-you can help me out a little bit over at https://ko-fi.com/irmen .
+you can help me out a little bit over at https://ko-fi.com/irmen or https://paypal.me/irmendejong .
 
 
 .. image:: _static/cube3d.png

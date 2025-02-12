@@ -20,7 +20,6 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
     }
 
     override val cpu = CpuType.VIRTUAL
-    override val programType = ProgramType.VIRTUALIR
 
     override val FLOAT_MAX_POSITIVE = Double.MAX_VALUE.toDouble()
     override val FLOAT_MAX_NEGATIVE = -Double.MAX_VALUE.toDouble()

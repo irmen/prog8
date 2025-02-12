@@ -17,7 +17,6 @@ class ConfigFileTarget(
     override val name: String,
     override val defaultEncoding: Encoding,
     override val cpu: CpuType,
-    override val programType: ProgramType,
     override val PROGRAM_LOAD_ADDRESS: UInt,
     override val PROGRAM_MEMTOP_ADDRESS: UInt,
     override val STARTUP_CODE_RESERVED_SIZE: UInt,
@@ -103,7 +102,7 @@ class ConfigFileTarget(
             if(!libraryPath.isDirectory())
                 throw IOException("invalid library path: $libraryPath")
 
-            val customLauncherStr = props.getProperty("custom_launcher", null)
+            val customLauncherStr = props.getProperty("custom_launcher_code", null)
             val customLauncher =
                 if(customLauncherStr?.isNotBlank()==true)
                     (customLauncherStr+"\n").lines().map { it.trimEnd() }
@@ -115,7 +114,6 @@ class ConfigFileTarget(
                 configfile.nameWithoutExtension,
                 Encoding.entries.first { it.prefix==props.getString("encoding") },
                 cpuType,
-                ProgramType.valueOf(props.getString("program")),
                 props.getInteger("load_address"),
                 props.getInteger("memtop"),
                 0u,         // used only in a very specific error condition check in a certain scenario...

@@ -8,13 +8,6 @@ enum class CpuType {
     VIRTUAL
 }
 
-enum class ProgramType {
-    CBMPRG,
-    ATARIXEX,
-    NEORAW,
-    VIRTUALIR
-}
-
 interface ICompilationTarget: IStringEncoding, IMemSizer {
     val name: String
 
@@ -30,7 +23,6 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val BSSGOLDENRAM_END: UInt
 
     val cpu: CpuType
-    val programType: ProgramType
     var zeropage: Zeropage
     var golden: GoldenRam
     val libraryPath: Path?

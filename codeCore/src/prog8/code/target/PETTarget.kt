@@ -1,14 +1,6 @@
 package prog8.code.target
 
-import prog8.code.core.CompilationOptions
-import prog8.code.core.CpuType
-import prog8.code.core.Encoding
-import prog8.code.core.GoldenRam
-import prog8.code.core.ICompilationTarget
-import prog8.code.core.IMemSizer
-import prog8.code.core.IStringEncoding
-import prog8.code.core.ProgramType
-import prog8.code.core.Zeropage
+import prog8.code.core.*
 import prog8.code.target.encodings.Encoder
 import prog8.code.target.zp.PETZeropage
 import java.nio.file.Path
@@ -26,7 +18,6 @@ class PETTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
     }
 
     override val cpu = CpuType.CPU6502
-    override val programType = ProgramType.CBMPRG
 
     override val FLOAT_MAX_POSITIVE = Mflpt5.FLOAT_MAX_POSITIVE
     override val FLOAT_MAX_NEGATIVE = Mflpt5.FLOAT_MAX_NEGATIVE
