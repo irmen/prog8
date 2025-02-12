@@ -6,15 +6,15 @@ clean:
 	rm -f *.prg *.PRG *.xex *.bin *.asm *.vice-*
 
 main-c64.prg: src/main.p8 targetconfigs/tinyc64.properties
-	prog8c -target targetconfigs/tinyc64.properties src/main.p8 -sourcelines
+	prog8c -target targetconfigs/tinyc64.properties src/main.p8
 	mv main.prg $@
 
 main-cx16.prg: src/main.p8 targetconfigs/tinycx16.properties
-	prog8c -target targetconfigs/tinycx16.properties src/main.p8 -sourcelines
+	prog8c -target targetconfigs/tinycx16.properties src/main.p8
 	mv main.prg $@
 
 main-pet.prg: src/main.p8 targetconfigs/tinypet.properties
-	prog8c -target targetconfigs/tinypet.properties src/main.p8 -sourcelines
+	prog8c -target targetconfigs/tinypet.properties src/main.p8
 	mv main.prg $@
 
 atari-hello.xex: src/atari-hello.p8

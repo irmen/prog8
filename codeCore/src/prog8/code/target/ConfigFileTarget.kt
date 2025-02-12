@@ -148,7 +148,9 @@ class ConfigFileTarget(
     override fun getFloatAsmBytes(num: Number) = TODO("floats")
     override fun convertFloatToBytes(num: Double): List<UByte> = TODO("floats")
     override fun convertBytesToFloat(bytes: List<UByte>): Double = TODO("floats")
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) = TODO("emulator")
+    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
+        throw IllegalArgumentException("Custom compiler target cannot automatically launch an emulator. Do this manually.")
+    }
 
     override fun isIOAddress(address: UInt): Boolean = ioAddresses.any { address in it }
 

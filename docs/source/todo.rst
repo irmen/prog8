@@ -7,14 +7,9 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Improve compilation target configurability: emulator binary/cmdline?
-    neo6502 emulator: "neo hello.bin@800 cold"
-    atari emulators: "atari800 -xl -xl-rev 2 -nobasic -run hello.xex >/dev/null 2>/dev/null"  or second one: "Altirra64.exe hello.xex"
-
-- Look at github PR for improved romability
+- Look at github PR for improved romability (see github issue 149)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
-- improve support for romable code (see github issue 149)
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
   Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
@@ -75,7 +70,7 @@ Libraries
 Optimizations
 -------------
 
-- can we optimize const uword in expressions that is actually small enough for ubyte?  Like  const uword x=128     if var>x ...
+- can we optimize const uword in expressions that is actually small enough for ubyte?  Like  const uword x=128     if bytevar>x ...
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
 - Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.
   Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.

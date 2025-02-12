@@ -218,10 +218,9 @@ One or more .p8 module files
     put memory() slabs in high memory area instead of at the end of the program.
     On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.
 
-``-sourcelines``
-    Also include the original prog8 source code lines as comments in the generated assembly code file,
-    mixed in between the actual generated assembly code.
-    This can be useful for debugging purposes to see what assembly was generated for what prog8 source code.
+``-nosourcelines``
+    Do not include the original prog8 source code lines as comments in the generated assembly code file,
+    mixed in between the actual generated assembly code. The default behavior is to include the sourcel lines.
 
 ``-srcdirs <pathlist>``
     Specify a list of extra paths (separated with ':'), to search in for imported modules.

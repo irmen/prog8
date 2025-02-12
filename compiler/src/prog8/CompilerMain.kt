@@ -2,7 +2,6 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
-import prog8.code.core.CbmPrgLauncherType
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
@@ -67,7 +66,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
     val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.")
-    val includeSourcelines by cli.option(ArgType.Boolean, fullName = "sourcelines", description = "include original Prog8 source lines in generated asm code")
+    val dontIncludeSourcelines by cli.option(ArgType.Boolean, fullName = "nosourcelines", description = "do not include original Prog8 source lines in generated asm code")
     val dontSplitWordArrays by cli.option(ArgType.Boolean, fullName = "dontsplitarrays", description = "don't store any word array as split lsb/msb in memory, as if all of those have @nosplit")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of ${CompilationTargets.joinToString(",")} or a custom target properties file) (required)")
@@ -172,7 +171,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
-                    includeSourcelines == true,
+                    dontIncludeSourcelines != true,
                     experimentalCodegen == true,
                     dumpVariables == true,
                     dumpSymbols == true,
@@ -255,7 +254,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     warnSymbolShadowing == true,
                     quietAssembler == true,
                     asmListfile == true,
-                    includeSourcelines == true,
+                    dontIncludeSourcelines != true,
                     experimentalCodegen == true,
                     dumpVariables == true,
                     dumpSymbols==true,
@@ -296,16 +295,10 @@ private fun compileMain(args: Array<String>): Boolean {
 
             val programNameInPath = outputPath.resolve(compilationResult.compilerAst.name)
 
-            if(startEmulator1==true || startEmulator2==true) {
-                if (compilationResult.compilationOptions.launcher != CbmPrgLauncherType.NONE || compilationTarget=="atari" || compilationTarget=="neo") {
-                    if (startEmulator1 == true)
-                        compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath)
-                    else if (startEmulator2 == true)
-                        compilationResult.compilationOptions.compTarget.launchEmulator(2, programNameInPath)
-                } else {
-                    println("\nCan't start emulator because program has no launcher type.")
-                }
-            }
+            if (startEmulator1 == true)
+                compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath)
+            else if (startEmulator2 == true)
+                compilationResult.compilationOptions.compTarget.launchEmulator(2, programNameInPath)
         }
     }
 
