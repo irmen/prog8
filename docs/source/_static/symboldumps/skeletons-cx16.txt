@@ -1,5 +1,5 @@
 
-Prog8 compiler v11.0.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v11.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -188,6 +188,8 @@ diskio  {
     curdir  () -> uword 
     delete  (uword filenameptr) 
     directory  () -> bool 
+    directory_dirs  () -> bool 
+    directory_files  () -> bool 
     diskname  () -> uword 
     exists  (str filename) -> bool 
     f_close  () 
@@ -211,6 +213,8 @@ diskio  {
     lf_end_list  () 
     lf_next_entry  () -> bool 
     lf_start_list  (uword pattern_ptr) -> bool 
+    lf_start_list_dirs  (uword pattern_ptr) -> bool 
+    lf_start_list_files  (uword pattern_ptr) -> bool 
     list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     load  (uword filenameptr, uword address_override) -> uword 
     load_raw  (uword filenameptr, uword startaddress) -> uword 
@@ -522,7 +526,9 @@ monogfx  {
     const uword  charset_addr 
     const ubyte  charset_bank 
     uword  height 
+    bool  lores_mode 
     ubyte  mode 
+    uword[] @shared  times40 
     uword  width 
     circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
     clear_screen  (bool draw) 
@@ -538,7 +544,7 @@ monogfx  {
     pget  (uword xx, uword yy) -> bool 
     plot  (uword xx, uword yy, bool draw) 
     position  (uword xx, uword yy) 
-    position2  (uword xx, uword yy, bool also_port_1) 
+    position2  (uword xx, uword yy) 
     rect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
     safe_circle  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
     safe_disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
@@ -620,6 +626,7 @@ sprites  {
     get_data_ptr  (ubyte spritenum @A) -> ubyte @R1, uword @R0 
     get_data_ptr_internal  (ubyte spritenum) 
     getx  (ubyte spritenum) -> word 
+    getxy  (ubyte spritenum) -> word, word 
     gety  (ubyte spritenum) -> word 
     hide  (ubyte spritenum) 
     init  (ubyte spritenum, ubyte databank, uword dataaddr, ubyte width_flag, ubyte height_flag, ubyte colors_flag, ubyte palette_offset) 
@@ -773,6 +780,7 @@ cx16  {
     const ubyte  EXTAPI_joystick_ps2_keycodes 
     const ubyte  EXTAPI_kbd_leds 
     const ubyte  EXTAPI_led_update 
+    const ubyte  EXTAPI_memory_decompress_from_func 
     const ubyte  EXTAPI_mouse_set_position 
     const ubyte  EXTAPI_mouse_sprite_offset 
     const ubyte  EXTAPI_pfkey 
@@ -1053,6 +1061,7 @@ cx16  {
     entropy_get  () -> ubyte @A, ubyte @X, ubyte @Y  = $fecf
     extapi  (ubyte callnumber @A) -> clobbers (A,X,Y)  = $feab
     fetch  (ubyte zp_startaddr @A, ubyte bank @X, ubyte index @Y) -> clobbers (X) -> ubyte @A  = $ff74
+    get_charset  () -> ubyte @A 
     get_chrin_keyhandler  () -> ubyte @R0, uword @R1 
     get_program_args  (uword buffer @R0, ubyte buf_size @R1, bool binary @Pc) 
     get_screen_mode  () -> ubyte @A, ubyte @X, ubyte @Y 
@@ -1258,7 +1267,7 @@ txt  {
     cp437  () 
     fill_screen  (ubyte character @A, ubyte color @Y) -> clobbers (A,X) 
     get_column  () -> ubyte @Y 
-    get_cursor  (uword colptr, uword rowptr) 
+    get_cursor  () -> ubyte @X, ubyte @Y 
     get_row  () -> ubyte @X 
     getchr  (ubyte col @A, ubyte row @Y) -> ubyte @A 
     getclr  (ubyte col @A, ubyte row @Y) -> ubyte @A 
