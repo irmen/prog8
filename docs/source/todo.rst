@@ -58,8 +58,8 @@ IR/VM
 Libraries
 ---------
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
-- See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - Add split-word array sorting routines to sorting module?
+- See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - add even more general raster irq routines to build some sort of "copper list" , like Oscar64 has?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
