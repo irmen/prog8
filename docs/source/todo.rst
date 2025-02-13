@@ -70,7 +70,6 @@ Libraries
 Optimizations
 -------------
 
-- can we optimize const uword in expressions that is actually small enough for ubyte?  Like  const uword x=128     if bytevar>x ...
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
 - Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.
   Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.

@@ -47,7 +47,7 @@ irq {
         next_irq_line += BAR_Y_OFFSET
         anim1 += 7
         anim2 += 4
-        if next_irq_line > 480 {
+        if next_irq_line > 479 {
             av1++
             av2 += 2
             anim1 = av1

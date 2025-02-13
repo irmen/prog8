@@ -206,6 +206,34 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+
+        if(expr.operator in ComparisonOperators) {
+            if((expr.right as? NumericLiteral)?.number?.toInt() in -128..255 && expr.right.inferType(program).isWords) {
+                val cast = expr.left as? TypecastExpression
+                if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
+                    val small = (expr.right as NumericLiteral).cast(cast.expression.inferType(program).getOrUndef().base, true)
+                    if(small.isValid) {
+                        return listOf(
+                            IAstModification.ReplaceNode(expr.left, cast.expression, expr),
+                            IAstModification.ReplaceNode(expr.right, small.valueOrZero(), expr)
+                        )
+                    }
+                }
+            }
+            else if((expr.left as? NumericLiteral)?.number?.toInt() in -128..255 && expr.left.inferType(program).isWords) {
+                val cast = expr.right as? TypecastExpression
+                if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
+                    val small = (expr.left as NumericLiteral).cast(cast.expression.inferType(program).getOrUndef().base, true)
+                    if(small.isValid) {
+                        return listOf(
+                            IAstModification.ReplaceNode(expr.right, cast.expression, expr),
+                            IAstModification.ReplaceNode(expr.left, small.valueOrZero(), expr)
+                        )
+                    }
+                }
+            }
+        }
+
         // try to replace a multi-comparison expression (if x==1 | x==2 | x==3 ... ) by a simple containment check.
         // but only if the containment check is the top-level expression.
         if(parent is BinaryExpression)
