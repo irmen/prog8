@@ -1276,17 +1276,6 @@ internal class AstChecker(private val program: Program,
                 // str+str  and  str*number have already been const evaluated before we get here.
                 errors.err("no computational or logical expressions with strings or arrays are possible", expr.position)
             }
-        } else {
-            if(expr.left is TypecastExpression && expr.right is NumericLiteral && !(expr.right.inferType(program) issimpletype BaseDataType.FLOAT)) {
-                val origLeftDt = (expr.left as TypecastExpression).expression.inferType(program).getOrUndef()
-                if(rightDt.largerSizeThan(origLeftDt) && !(expr.right as NumericLiteral).cast(origLeftDt.base, true).isValid)
-                    errors.err("operands are not the same type", expr.right.position)
-            }
-            if(expr.right is TypecastExpression && expr.left is NumericLiteral && !(expr.left.inferType(program) issimpletype BaseDataType.FLOAT)) {
-                val origRightDt = (expr.right as TypecastExpression).expression.inferType(program).getOrUndef()
-                if(leftDt.largerSizeThan(origRightDt) && !(expr.left as NumericLiteral).cast(origRightDt.base, true).isValid)
-                    errors.err("operands are not the same type", expr.right.position)
-            }
         }
 
         if(leftDt.isBool || rightDt.isBool ||

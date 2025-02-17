@@ -954,4 +954,17 @@ main {
         (v4.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v4.right as NumericLiteral).number shouldBe 5
     }
+
+    test("allow comparisons against constant values with different type") {
+        val src = """
+main {
+    sub start() {
+        const uword MAX_CAVE_WIDTH = 440             ; word here to avoid having to cast to word all the time
+
+        if cx16.r0L > MAX_CAVE_WIDTH
+            return
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = false) shouldNotBe null
+    }
 })
