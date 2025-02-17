@@ -32,16 +32,12 @@ internal fun IPtSubroutine.returnsWhatWhere(): List<Pair<RegisterOrStatusflag, D
                     return listOf(Pair(register, returntype))
                 }
                 else -> {
-                    val others = returns.zip(Cx16VirtualRegisters.reversed())
+                    // for multi-value results, put the first one in A or AY cpu register(s) and the rest in the virtual registers starting from R15 and counting down
+                    val first = cpuRegisterFor(returns.first()) to returns.first()
+                    val others = returns.drop(1)
+                        .zip(Cx16VirtualRegisters.reversed())
                         .map { (type, reg) -> RegisterOrStatusflag(reg, null) to type }
-                    return others
-
-                    // TODO for multi-value results, put the first one in A or AY cpu register(s) and the rest in the virtual registers starting from R15 and counting down
-//                    val first = cpuRegisterFor(returns.first()) to returns.first()
-//                    val others = returns.drop(1)
-//                        .zip(Cx16VirtualRegisters.reversed())
-//                        .map { (type, reg) -> RegisterOrStatusflag(reg, null) to type }
-//                    return listOf(first) + others
+                    return listOf(first) + others
                 }
             }
         }

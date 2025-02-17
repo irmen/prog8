@@ -610,11 +610,13 @@ internal class AssignmentAsmGen(
         val sub = symbol!!.astNode as IPtSubroutine
         asmgen.translateFunctionCall(value)
         if(sub is PtSub && sub.returns.size>1) {
-            // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
-            val registersReverseOrder = Cx16VirtualRegisters.reversed()
-            assign.targets.zip(registersReverseOrder).forEach { (target, register) ->
-                if(target.kind!=TargetStorageKind.VOID)
-                    assignVirtualRegister(target, register)
+            // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
+            // (this allows unencumbered use of many Rx registers if you don't return that many values)
+            val returnRegs = sub.returnsWhatWhere()
+            assign.targets.zip(returnRegs).forEach { target ->
+                if(target.first.kind != TargetStorageKind.VOID) {
+                    asmgen.assignRegister(target.second.first.registerOrPair!!, target.first)
+                }
             }
         } else {
             val target = assign.target

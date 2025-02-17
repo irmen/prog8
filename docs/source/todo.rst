@@ -1,6 +1,8 @@
 TODO
 ====
 
+- IR: Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.  see TODO("fix A/AY for first value")
+
 ...
 
 
@@ -71,8 +73,7 @@ Optimizations
 -------------
 
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
-- Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.
-  Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.
+- Multi-value returns of normal subroutines: Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest

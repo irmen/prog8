@@ -1079,15 +1079,10 @@ $repeatLabel""")
             }
         }
         else if(ret.children.size>1) {
+            // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
+            // (this allows unencumbered use of many Rx registers if you don't return that many values)
+            // to avoid register clobbering, assign the first return value last in row.
             val assigns = ret.children.zip(returnRegs).map { it.first to it.second }
-            assigns.forEach {
-                val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, it.second.second, null, it.first.position, register = it.second.first.registerOrPair!!)
-                assignExpressionTo(it.first as PtExpression, tgt)
-            }
-
-            // TODO: note: multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
-            // TODO: to avoid register clobbering, assign the first return value last in row.
-/*
             assigns.drop(1).forEach {
                 val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, it.second.second, null, it.first.position, register = it.second.first.registerOrPair!!)
                 assignExpressionTo(it.first as PtExpression, tgt)
@@ -1095,7 +1090,6 @@ $repeatLabel""")
             assigns.first().also {
                 assignExpressionToRegister(it.first as PtExpression, it.second.first.registerOrPair!!)
             }
-*/
         }
         out("  rts")
     }

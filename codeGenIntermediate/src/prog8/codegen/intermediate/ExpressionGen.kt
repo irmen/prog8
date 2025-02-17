@@ -653,7 +653,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else
                         ExpressionCodeResult(result, returnRegSpec.dt, returnRegSpec.registerNum, -1)
                 } else {
-                    // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+                    // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
                     // so the actual result of the expression here is 'void' (doesn't use IR virtual registers at all)
                     ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 }

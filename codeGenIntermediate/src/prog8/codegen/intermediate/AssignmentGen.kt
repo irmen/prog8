@@ -41,7 +41,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             } else {
                 val normalsub = codeGen.symbolTable.lookup(values.name) as? StSub
                 if (normalsub != null) {
-                    // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+                    // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
+                    // (this allows unencumbered use of many Rx registers if you don't return that many values)
+                    TODO("fix A/AY for first value")
                     val registersReverseOrder = Cx16VirtualRegisters.reversed()
                     normalsub.returns.zip(assignmentTargets).zip(registersReverseOrder).forEach {
                         val target = it.first.second as PtAssignTarget
