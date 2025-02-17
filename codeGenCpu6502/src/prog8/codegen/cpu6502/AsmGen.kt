@@ -727,7 +727,7 @@ class AsmGen6502Internal (
                 }
 
                 assignExpressionToRegister(value, RegisterOrPair.A)
-                assignRegister(RegisterOrPair.A, target)
+                assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, target.datatype.isSigned, false)
             }
             target.datatype.isWord || target.datatype.isPassByRef -> {
                 assignExpressionToRegister(value, RegisterOrPair.AY)
@@ -1063,26 +1063,39 @@ $repeatLabel""")
 
     private fun translate(ret: PtReturn) {
         val returnvalue = ret.children.singleOrNull()
+        val sub = ret.definingSub()!!
+        val returnRegs = sub.returnsWhatWhere()
+
         if(returnvalue!=null) {
-            val sub = ret.definingSub()!!
-            val returnReg = sub.returnsWhatWhere().single()
             if (sub.returns.single().isNumericOrBool==true) {
-                assignExpressionToRegister(returnvalue as PtExpression, returnReg.first.registerOrPair!!)
+                assignExpressionToRegister(returnvalue as PtExpression, returnRegs.single().first.registerOrPair!!)
             }
             else {
                 // all else take its address and assign that also to AY register pair
                 val addrofValue = PtAddressOf(returnvalue.position)
                 addrofValue.add(returnvalue as PtIdentifier)
                 addrofValue.parent = ret.parent
-                assignmentAsmGen.assignExpressionToRegister(addrofValue, returnReg.first.registerOrPair!!, false)
+                assignmentAsmGen.assignExpressionToRegister(addrofValue, returnRegs.single().first.registerOrPair!!, false)
             }
         }
         else if(ret.children.size>1) {
-            // multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
-            val registersReverseOrder = Cx16VirtualRegisters.reversed()
-            ret.children.zip(registersReverseOrder).forEach { (value, register) ->
-                assignExpressionToRegister(value as PtExpression, register)
+            val assigns = ret.children.zip(returnRegs).map { it.first to it.second }
+            assigns.forEach {
+                val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, it.second.second, null, it.first.position, register = it.second.first.registerOrPair!!)
+                assignExpressionTo(it.first as PtExpression, tgt)
             }
+
+            // TODO: note: multi-value returns are passed throug cx16.R15 down to R0 (allows unencumbered use of many Rx registers if you don't return that many values)
+            // TODO: to avoid register clobbering, assign the first return value last in row.
+/*
+            assigns.drop(1).forEach {
+                val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, it.second.second, null, it.first.position, register = it.second.first.registerOrPair!!)
+                assignExpressionTo(it.first as PtExpression, tgt)
+            }
+            assigns.first().also {
+                assignExpressionToRegister(it.first as PtExpression, it.second.first.registerOrPair!!)
+            }
+*/
         }
         out("  rts")
     }
