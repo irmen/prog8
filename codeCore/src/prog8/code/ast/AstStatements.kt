@@ -6,6 +6,41 @@ import prog8.code.core.*
 sealed interface IPtSubroutine {
     val name: String
     val scopedName: String
+
+    fun returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
+        when(this) {
+            is PtAsmSub -> {
+                return returns
+            }
+            is PtSub -> {
+                // for non-asm subroutines, determine the return registers based on the type of the return values
+
+                fun cpuRegisterFor(returntype: DataType): RegisterOrStatusflag = when {
+                    returntype.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
+                    returntype.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+                    returntype.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
+                    else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+                }
+
+                when(returns.size) {
+                    0 -> return emptyList()
+                    1 -> {
+                        val returntype = returns.single()
+                        val register = cpuRegisterFor(returntype)
+                        return listOf(Pair(register, returntype))
+                    }
+                    else -> {
+                        // for multi-value results, put the first one in A or AY cpu register(s) and the rest in the virtual registers starting from R15 and counting down
+                        val first = cpuRegisterFor(returns.first()) to returns.first()
+                        val others = returns.drop(1)
+                            .zip(Cx16VirtualRegisters.reversed())
+                            .map { (type, reg) -> RegisterOrStatusflag(reg, null) to type }
+                        return listOf(first) + others
+                    }
+                }
+            }
+        }
+    }
 }
 
 class PtAsmSub(

@@ -43,15 +43,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if (normalsub != null) {
                     // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
                     // (this allows unencumbered use of many Rx registers if you don't return that many values)
-                    TODO("fix A/AY for first value")
-                    val registersReverseOrder = Cx16VirtualRegisters.reversed()
-                    normalsub.returns.zip(assignmentTargets).zip(registersReverseOrder).forEach {
+                    val returnregs = (normalsub.astNode!! as IPtSubroutine).returnsWhatWhere()
+                    normalsub.returns.zip(assignmentTargets).zip(returnregs).forEach {
                         val target = it.first.second as PtAssignTarget
                         if(!target.void) {
-                            val assignSingle = PtAssignment(assignment.position, assignment.isVarInitializer)
-                            assignSingle.add(target)
-                            assignSingle.add(PtIdentifier("cx16.${it.second.toString().lowercase()}", it.first.first, assignment.position))
-                            result += translateRegularAssign(assignSingle)
+                            val reg = it.second.first
+                            val regnum = codeGen.registers.next(irType(it.second.second))
+                            val p = StExtSubParameter(reg, it.second.second)
+                            result += assignCpuRegister(p, regnum, target)
                         }
                     }
                 }
@@ -76,7 +75,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             RegisterOrPair.AX -> IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum)
             RegisterOrPair.AY -> IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
             RegisterOrPair.XY -> IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
-            in Cx16VirtualRegisters -> IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}")
+            in Cx16VirtualRegisters -> IRInstruction(Opcode.LOADM, irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}")
             null -> {
                 TODO("assign CPU status flag ${returns.register.statusflag!!}")
             }

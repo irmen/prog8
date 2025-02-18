@@ -671,25 +671,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else
                         argRegisters.add(FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(paramDt, tr.resultReg, parameter.register)))
                     result += tr.chunks
-                    when(parameter.register.registerOrPair) {
-                        RegisterOrPair.A -> addInstr(result, IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1=tr.resultReg), null)
-                        RegisterOrPair.X -> addInstr(result, IRInstruction(Opcode.STOREHX, IRDataType.BYTE, reg1=tr.resultReg), null)
-                        RegisterOrPair.Y -> addInstr(result, IRInstruction(Opcode.STOREHY, IRDataType.BYTE, reg1=tr.resultReg), null)
-                        RegisterOrPair.AX -> addInstr(result, IRInstruction(Opcode.STOREHAX, IRDataType.WORD, reg1=tr.resultReg), null)
-                        RegisterOrPair.AY -> addInstr(result, IRInstruction(Opcode.STOREHAY, IRDataType.WORD, reg1=tr.resultReg), null)
-                        RegisterOrPair.XY -> addInstr(result, IRInstruction(Opcode.STOREHXY, IRDataType.WORD, reg1=tr.resultReg), null)
-                        RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
-                        RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
-                        in Cx16VirtualRegisters -> {
-                            addInstr(result, IRInstruction(Opcode.STOREM, paramDt, reg1=tr.resultReg, labelSymbol = "cx16.${parameter.register.registerOrPair.toString().lowercase()}"), null)
-                        }
-                        null -> when(parameter.register.statusflag) {
-                            // TODO: do the statusflag argument as last
-                            Statusflag.Pc -> addInstr(result, IRInstruction(Opcode.LSR, paramDt, reg1=tr.resultReg), null)
-                            else -> throw AssemblyError("weird statusflag as param")
-                        }
-                        else -> throw AssemblyError("unsupported register arg")
-                    }
+                    result += codeGen.setCpuRegister(parameter.register, paramDt, tr.resultReg, tr.resultFpReg)
                 }
 
                 if(callTarget.returns.size>1)

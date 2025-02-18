@@ -1761,12 +1761,18 @@ class IRCodeGen(
         if(ret.children.size>1) {
             // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
             // (this allows unencumbered use of many Rx registers if you don't return that many values)
-            TODO("fix A/AY for first value")
-            val registersReverseOrder = Cx16VirtualRegisters.reversed()
-            for ((value, register) in ret.children.zip(registersReverseOrder)) {
+            // make sure to assign the first value as the last in the sequence, to avoid clobbering the AY registers afterwards
+            val returnRegs = ret.definingISub()!!.returnsWhatWhere()
+            val values = ret.children.zip(returnRegs)
+            for ((value, register) in values.drop(1)) {
                 val tr = expressionEval.translateExpression(value as PtExpression)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.STOREM, tr.dt, reg1=tr.resultReg, labelSymbol = "cx16.${register.toString().lowercase()}"), null)
+                result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
+            }
+            values.first().also { (value, register) ->
+                val tr = expressionEval.translateExpression(value as PtExpression)
+                addToResult(result, tr, tr.resultReg, -1)
+                result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
             }
             addInstr(result, IRInstruction(Opcode.RETURN), null)
             return result
@@ -1915,4 +1921,28 @@ class IRCodeGen(
     }
 
     fun registerTypes(): Map<Int, IRDataType> = registers.getTypes()
+
+    fun setCpuRegister(registerOrFlag: RegisterOrStatusflag, paramDt: IRDataType, resultReg: Int, resultFpReg: Int): IRCodeChunk {
+        val chunk = IRCodeChunk(null, null)
+        when(registerOrFlag.registerOrPair) {
+            RegisterOrPair.A -> chunk += IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1=resultReg)
+            RegisterOrPair.X -> chunk += IRInstruction(Opcode.STOREHX, IRDataType.BYTE, reg1=resultReg)
+            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.STOREHY, IRDataType.BYTE, reg1=resultReg)
+            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.STOREHAX, IRDataType.WORD, reg1=resultReg)
+            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.STOREHAY, IRDataType.WORD, reg1=resultReg)
+            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.STOREHXY, IRDataType.WORD, reg1=resultReg)
+            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = resultFpReg)
+            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = resultFpReg)
+            in Cx16VirtualRegisters -> {
+                chunk += IRInstruction(Opcode.STOREM, paramDt, reg1=resultReg, labelSymbol = "cx16.${registerOrFlag.registerOrPair.toString().lowercase()}")
+            }
+            null -> when(registerOrFlag.statusflag) {
+                // TODO: do the statusflag argument as last
+                Statusflag.Pc -> chunk += IRInstruction(Opcode.LSR, paramDt, reg1=resultReg)
+                else -> throw AssemblyError("weird statusflag as param")
+            }
+            else -> throw AssemblyError("unsupported register arg")
+        }
+        return chunk
+    }
 }

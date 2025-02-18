@@ -57,6 +57,10 @@ class VirtualMachine(irProgram: IRProgram) {
     var statusZero = false
     var statusNegative = false
     var statusOverflow = false
+    var hardwareRegisterA: UByte = 0u
+    var hardwareRegisterX: UByte = 0u
+    var hardwareRegisterY: UByte = 0u
+
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
     internal var mul16LastUpper = 0u
@@ -184,14 +188,14 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADI -> InsLOADI(ins)
             Opcode.LOADIX -> InsLOADIX(ins)
             Opcode.LOADR -> InsLOADR(ins)
-            Opcode.LOADHA,
-            Opcode.LOADHX,
-            Opcode.LOADHY,
-            Opcode.LOADHAX,
-            Opcode.LOADHAY,
-            Opcode.LOADHXY,
-            Opcode.LOADHFACZERO,
-            Opcode.LOADHFACONE -> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
+            Opcode.LOADHA -> InsLOADHA(ins)
+            Opcode.LOADHX -> InsLOADHX(ins)
+            Opcode.LOADHY -> InsLOADHY(ins)
+            Opcode.LOADHAX -> InsLOADHAX(ins)
+            Opcode.LOADHAY -> InsLOADHAY(ins)
+            Opcode.LOADHXY -> InsLOADHXY(ins)
+            Opcode.LOADHFACZERO -> TODO("read cpu reg FAC0")
+            Opcode.LOADHFACONE -> TODO("read cpu reg FAC1")
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREIX -> InsSTOREIX(ins)
@@ -199,14 +203,14 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
-            Opcode.STOREHA,
-            Opcode.STOREHX,
-            Opcode.STOREHY,
-            Opcode.STOREHAX,
-            Opcode.STOREHAY,
-            Opcode.STOREHXY,
-            Opcode.STOREHFACZERO,
-            Opcode.STOREHFACONE-> throw IllegalArgumentException("VM cannot access actual CPU hardware register")
+            Opcode.STOREHA -> InsSTOREHA(ins)
+            Opcode.STOREHX -> InsSTOREHX(ins)
+            Opcode.STOREHY -> InsSTOREHY(ins)
+            Opcode.STOREHAX -> InsSTOREHAX(ins)
+            Opcode.STOREHAY -> InsSTOREHAY(ins)
+            Opcode.STOREHXY -> InsSTOREHXY(ins)
+            Opcode.STOREHFACZERO -> TODO("store cpu reg FAC0")
+            Opcode.STOREHFACONE-> TODO("store cpu reg FAC1")
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.PREPARECALL -> nextPc()
@@ -2319,6 +2323,72 @@ class VirtualMachine(irProgram: IRProgram) {
             else
                 0u
         registers.setUB(i.reg1!!, result.toUByte())
+        nextPc()
+    }
+
+    private fun InsLOADHA(i: IRInstruction) {
+        registers.setUB(i.reg1!!, hardwareRegisterA)
+        nextPc()
+    }
+
+    private fun InsLOADHX(i: IRInstruction) {
+        registers.setUB(i.reg1!!, hardwareRegisterX)
+        nextPc()
+    }
+
+    private fun InsLOADHY(i: IRInstruction) {
+        registers.setUB(i.reg1!!, hardwareRegisterY)
+        nextPc()
+    }
+
+    private fun InsLOADHAX(i: IRInstruction) {
+        registers.setUW(i.reg1!!, ((hardwareRegisterX.toUInt() shl 8) + hardwareRegisterA).toUShort())
+        nextPc()
+    }
+
+    private fun InsLOADHAY(i: IRInstruction) {
+        registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterA).toUShort())
+        nextPc()
+    }
+
+    private fun InsLOADHXY(i: IRInstruction) {
+        registers.setUW(i.reg1!!, ((hardwareRegisterY.toUInt() shl 8) + hardwareRegisterX).toUShort())
+        nextPc()
+    }
+
+    private fun InsSTOREHA(i: IRInstruction) {
+        hardwareRegisterA = registers.getUB(i.reg1!!)
+        nextPc()
+    }
+
+    private fun InsSTOREHX(i: IRInstruction) {
+        hardwareRegisterX = registers.getUB(i.reg1!!)
+        nextPc()
+    }
+
+    private fun InsSTOREHY(i: IRInstruction) {
+        hardwareRegisterY = registers.getUB(i.reg1!!)
+        nextPc()
+    }
+
+    private fun InsSTOREHAX(i: IRInstruction) {
+        val word = registers.getUW(i.reg1!!).toUInt()
+        hardwareRegisterA = (word and 255u).toUByte()
+        hardwareRegisterX = (word shr 8).toUByte()
+        nextPc()
+    }
+
+    private fun InsSTOREHAY(i: IRInstruction) {
+        val word = registers.getUW(i.reg1!!).toUInt()
+        hardwareRegisterA = (word and 255u).toUByte()
+        hardwareRegisterY = (word shr 8).toUByte()
+        nextPc()
+    }
+
+    private fun InsSTOREHXY(i: IRInstruction) {
+        val word = registers.getUW(i.reg1!!).toUInt()
+        hardwareRegisterX = (word and 255u).toUByte()
+        hardwareRegisterY = (word shr 8).toUByte()
         nextPc()
     }
 

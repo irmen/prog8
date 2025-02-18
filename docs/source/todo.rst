@@ -1,7 +1,9 @@
 TODO
 ====
 
-- IR: Multi-value returns of normal subroutines: use cpu register A or AY for the first one and only start using virtual registers for the rest.  see TODO("fix A/AY for first value")
+- IR: call main.two():r4.w,r5.w    the registers mentioned after the call are wrong/unused  in case of multi-value returns. Better to clear this to avoid confusion? (they ARE correct for single value returns!)
+
+- update docs about call convention for multi-value results (first is in A or AY, then R15...R0)
 
 ...
 
@@ -38,6 +40,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- Split the simplified AST and Symboltable from codeCore. VirtualMachine and Intermediate should not need those. (maybe others too?)
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg

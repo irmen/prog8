@@ -687,8 +687,8 @@ class AsmGen6502Internal (
             RegisterOrPair.Y -> assignmentAsmGen.assignRegisterByte(target, reg.asCpuRegister(), target.datatype.isSigned, true)
             RegisterOrPair.AX,
             RegisterOrPair.AY,
-            RegisterOrPair.XY,
-            in Cx16VirtualRegisters -> assignmentAsmGen.assignRegisterpairWord(target, reg)
+            RegisterOrPair.XY -> assignmentAsmGen.assignRegisterpairWord(target, reg)
+            in Cx16VirtualRegisters -> assignmentAsmGen.assignVirtualRegister(target, reg)
             RegisterOrPair.FAC1 -> assignmentAsmGen.assignFAC1float(target)
             RegisterOrPair.FAC2 -> assignmentAsmGen.assignFAC2float(target)
             else -> throw AssemblyError("invalid register")

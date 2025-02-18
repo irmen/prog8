@@ -3,7 +3,6 @@ package prog8.codegen.cpu6502.assignment
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
-import prog8.codegen.cpu6502.returnsWhatWhere
 
 
 internal enum class TargetStorageKind {

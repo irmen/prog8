@@ -9,7 +9,6 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
-import prog8.codegen.cpu6502.returnsWhatWhere
 
 
 internal class AssignmentAsmGen(
@@ -702,7 +701,10 @@ internal class AssignmentAsmGen(
         }
     }
 
-    private fun assignVirtualRegister(target: AsmAssignTarget, register: RegisterOrPair) {
+    internal fun assignVirtualRegister(target: AsmAssignTarget, register: RegisterOrPair) {
+        // Note: while the virtual register R0-R15 can hold a word value,
+        // the actual datatype that gets assigned is determined by the assignment target.
+        // This can be a single byte!
         when {
             target.datatype.isByteOrBool -> {
                 if(register in Cx16VirtualRegisters) {
