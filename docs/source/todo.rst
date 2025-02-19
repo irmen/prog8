@@ -1,10 +1,6 @@
 TODO
 ====
 
-- IR: call main.two():r4.w,r5.w    the registers mentioned after the call are wrong/unused  in case of multi-value returns. Better to clear this to avoid confusion? (they ARE correct for single value returns!)
-
-- update docs about call convention for multi-value results (first is in A or AY, then R15...R0)
-
 ...
 
 

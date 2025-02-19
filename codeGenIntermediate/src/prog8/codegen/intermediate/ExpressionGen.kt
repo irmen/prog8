@@ -635,7 +635,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                 }
                 // return value(s)
-                val returnRegSpecs = if(fcall.void) emptyList() else {
+                // TODO: for current implemenation of the call convention in case of multiple return values,
+                // a list of Ir virtual registers to hold the results is NOT correct (they're loaded into AY + R15..R0 instead!)
+                // So we use an empty list to avoid confusion here.   This may change in a future version.
+                val returnRegSpecs = if(fcall.void || callTarget.returns.size>1) emptyList() else {
                     callTarget.returns.map {
                         val returnIrType = irType(it)
                         FunctionCallArgs.RegSpec(returnIrType, codeGen.registers.next(returnIrType), null)

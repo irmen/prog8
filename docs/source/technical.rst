@@ -155,8 +155,9 @@ Regular subroutines
 
   - for an ``asmsub`` or ``extsub`` the subroutine's signature specifies the output registers that contain the values explicitly,
     just as for a single return value.
-  - for regular subroutines, the compiler will use the "virtual registers" cx16.r0-cx16.r15, from r15 down to r0, for the
-    result values left to right.  This may change in a future compiler version.
+  - for regular subroutines, the compiler will return the first of the return values via the cpu register ``A``` (or ``A + Y``` if it's a word value),
+    just like for subroutines that only return a single value.
+    The remainder of the return values are returned via the "virtual registers" cx16.r16-cx16.r0 (using R15 first and counting down to R0).
 
 
 **Builtin functions can be different:**

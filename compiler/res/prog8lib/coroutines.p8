@@ -33,6 +33,7 @@
 ; - call killall() to kill all tasks.
 ; - IMPORTANT:  if you add the same subroutine multiple times, IT CANNOT DEPEND ON ANY LOCAL VARIABLES OR R0-R15 TO KEEP STATE. NOT EVEN REPEAT LOOP COUNTERS.
 ;   Those are all shared in the different tasks! You HAVE to use a mechanism around the userdata value (pointer?) to keep separate state elsewhere!
+; - IMPORTANT:  ``defer`` cannot be used inside a coroutine that is reused for multiple tasks!!!
 
 coroutines {
     %option ignore_unused

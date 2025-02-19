@@ -15,6 +15,7 @@
 %import b_queens
 %import b_textelite
 %import b_maze
+%import b_sprites
 
 %zeropage basicsafe
 %option no_sysinit
@@ -29,7 +30,7 @@ main {
     sub start() {
         ubyte benchmark_number
 
-        void cx16.set_screen_mode(3)
+        cx16.set_screen_mode(3)
         txt.color2(1, 6)
         txt.clear_screen()
 
@@ -74,10 +75,14 @@ main {
         benchmark_score[benchmark_number]  = textelite.bench(120)
         benchmark_number++
 
+        announce_benchmark("sprites-coroutines-defer")
+        benchmark_score[benchmark_number]  = animsprites.benchmark(300)
+        benchmark_number++
+
         benchmark_names[benchmark_number] = 0
         benchmark_score[benchmark_number] = 0
 
-        void cx16.set_screen_mode(3)
+        cx16.set_screen_mode(3)
         txt.uppercase()
         txt.color2(1, 6)
         uword final_score
@@ -99,7 +104,7 @@ main {
 
         sub announce_benchmark(str name) {
             benchmark_names[benchmark_number] = name
-            void cx16.set_screen_mode(3)
+            cx16.set_screen_mode(3)
             txt.uppercase()
             txt.color2(1, 6)
             txt.clear_screen()

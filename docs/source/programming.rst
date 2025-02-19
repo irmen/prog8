@@ -1170,9 +1170,9 @@ So for instance::
 
     asmsub multisub() -> uword @AY, bool @Pc, ubyte @X { ... }
 
-.. sidebar:: usage of cx16.r0-cx16.r15
+.. sidebar:: register usage
 
-    Subroutines with multiple return values use the "virtual registers" to return those.
+    Subroutines with multiple return values use cpu registers A, Y, and the R0-R15 "virtual registers" to return those.
     Using those virtual registers during the calculation of the values in the return statement should be avoided.
     Otherwise you risk overwriting an earlier return value in the sequence.
 

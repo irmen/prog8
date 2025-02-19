@@ -12,7 +12,7 @@ circles {
 
     sub draw(bool use_kernal, uword max_time) -> uword {
         if use_kernal
-            void cx16.set_screen_mode(128)
+            cx16.set_screen_mode(128)
         else
             gfx_lores.graphics_mode()
 
@@ -33,7 +33,7 @@ circles {
         }
 
         if use_kernal
-            void cx16.set_screen_mode(3)
+            cx16.set_screen_mode(3)
         else {
             gfx_lores.text_mode()
         }
