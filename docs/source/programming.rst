@@ -429,6 +429,7 @@ Directives
     - ``ignore_unused`` (block or module) suppress warnings about unused variables and subroutines. Instead, these will be silently stripped.
       This option is useful in library modules that contain many more routines beside the ones that you actually use.
     - ``verafxmuls`` (block, cx16 target only) uses Vera FX hardware word multiplication on the CommanderX16 for all word multiplications in this block. Warning: this may interfere with IRQs and other Vera operations, so use this only when you know what you're doing. It's safer to explicitly use ``verafx.muls()``.
+    - ``romable`` (module) *WORK-IN-PROGRESS/EXPERIMENTAL* make sure that the generated code is suitable for running in ROM (so no self-modifying code and such)
 
 
 .. data:: %output <type>

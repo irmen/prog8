@@ -19,6 +19,7 @@ class TestGoldenRam: FunSpec({
         CompilationOptions.AllZeropageAllowed,
         floats = true,
         noSysInit = false,
+        romable = false,
         compTarget = VMTarget(),
         loadAddress = 999u,
         memtopAddress = 0xffffu

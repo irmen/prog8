@@ -965,6 +965,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
                     asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
                     asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                    asmgen.romableWarning("self-modifying code (access pointer)", pointervar.position)  // TODO
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     asmgen.out("  clc |  adc  #$value")
@@ -976,6 +977,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
                     asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
                     asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                    asmgen.romableWarning("self-modifying code (access pointer)", pointervar.position)  // TODO
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     asmgen.out("  sec |  sbc  #$value")

@@ -111,6 +111,7 @@ internal class ForLoopsAsmGen(
 $modifiedLabel          cmp  #0         ; modified 
                         beq  $endLabel
                         $incdec  $varname""")
+                    asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
                     asmgen.jmp(loopLabel)
                     asmgen.out(endLabel)
 
@@ -159,6 +160,7 @@ $modifiedLabel          cmp  #0         ; modified
 $modifiedLabel              cmp  #0    ; modified
                             bmi  $loopLabel
                             beq  $loopLabel""")
+                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
                     } else {
                         asmgen.out("""
                             lda  $varname
@@ -167,6 +169,7 @@ $modifiedLabel              cmp  #0    ; modified
                             sta  $varname
 $modifiedLabel              cmp  #0     ; modified
                             bpl  $loopLabel""")
+                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
                     }
                     asmgen.out(endLabel)
                 }
@@ -223,6 +226,7 @@ $modifiedLabel  cmp  #0    ; modified
                 lda  $varname
 $modifiedLabel2 cmp  #0    ; modified 
                 beq  $endLabel""")
+                    asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
                     if(stepsize==1) {
                         asmgen.out("""
 +               inc  $varname
@@ -266,6 +270,7 @@ $modifiedLabel2 lda  #0     ; modified
                 bcc  $endLabel
                 bcs  $loopLabel
 $endLabel""")
+                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
                     } else {
                         asmgen.out("""
                 lda  $varname
@@ -283,6 +288,7 @@ $modifiedLabel  lda  #0   ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
+                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
                     }
                 }
                 else {
@@ -313,6 +319,7 @@ $modifiedLabel  sbc  #0    ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
+                    asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
                 }
             }
             else -> throw AssemblyError("range expression can only be byte or word")
@@ -391,6 +398,7 @@ $endLabel""")
 $loopLabel          lda  ${65535.toHex()}       ; modified
                     beq  $endLabel
                     sta  ${asmgen.asmVariableName(stmt.variable)}""")
+                asmgen.romableWarning("self-modifying code (forloop over iterable)", stmt.position)  // TODO
                 asmgen.translate(stmt.statements)
                 asmgen.out("""
                     inc  $loopLabel+1

@@ -22,6 +22,7 @@ class TestVm: FunSpec( {
             zpAllowed = CompilationOptions.AllZeropageAllowed,
             floats = true,
             noSysInit = false,
+            romable = false,
             compTarget = target,
             loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu

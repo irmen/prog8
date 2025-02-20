@@ -92,6 +92,7 @@ class IRFileReader {
         var loadAddress = target.PROGRAM_LOAD_ADDRESS
         var memtop = target.PROGRAM_MEMTOP_ADDRESS
         var optimize = true
+        var romable = false
         var outputDir = Path("")
 
         if(text.isNotBlank()) {
@@ -114,6 +115,7 @@ class IRFileReader {
                     }
                     "outputDir" -> outputDir = Path(value)
                     "optimize" -> optimize = value.toBoolean()
+                    "romable" -> romable = value.toBoolean()
                     else -> throw IRParseException("illegal OPTION $name")
                 }
             }
@@ -125,8 +127,9 @@ class IRFileReader {
             zeropage,
             zpReserved,
             zpAllowed,
-            false,
-            false,
+            false,  // TODO always false?
+            false,  // TODO always false?
+            romable,
             target,
             loadAddress,
             memtop,

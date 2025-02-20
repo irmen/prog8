@@ -352,6 +352,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
     val allOptions = program.modules.flatMap { it.options() }.toSet()
     val floatsEnabled = "enable_floats" in allOptions
     var noSysInit = "no_sysinit" in allOptions
+    var rombale = "romable" in allOptions
     var zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
@@ -408,7 +409,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
 
     return CompilationOptions(
         outputType, launcherType,
-        zpType, zpReserved, zpAllowed, floatsEnabled, noSysInit,
+        zpType, zpReserved, zpAllowed, floatsEnabled, noSysInit, rombale,
         compTarget, 0u, 0xffffu
     )
 }

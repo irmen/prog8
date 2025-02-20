@@ -65,6 +65,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
 +                               .byte  0    ; modified"""
                                 )
+                                asmgen.romableWarning("self-modifying code for cx16 banked jsr", call.position)  // TODO
                             }
                             "c64" -> {
                                 asmgen.out("""
@@ -78,6 +79,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
 +                               .byte  0    ; modified"""
                                 )
+                                asmgen.romableWarning("self-modifying code for c64 banked jsr", call.position)  // TODO
                             }
                             "c128" -> {
                                 asmgen.out("""
@@ -91,6 +93,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
 +                               .byte  0    ; modified"""
                                 )
+                                asmgen.romableWarning("self-modifying code for c128 banked jsr", call.position)  // TODO
                             }
                             else -> throw AssemblyError("callfar is not supported on the selected compilation target")
                         }

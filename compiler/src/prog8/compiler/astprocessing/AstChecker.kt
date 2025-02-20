@@ -1033,14 +1033,14 @@ internal class AstChecker(private val program: Program,
                     err("this directive may only occur in a block or at module level")
                 if(directive.args.isEmpty())
                     err("missing option directive argument(s)")
-                else if(directive.args.map{it.string in arrayOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")}.any { !it })
+                else if(directive.args.map{it.string in arrayOf("enable_floats", "force_output", "no_sysinit", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused", "romable")}.any { !it })
                     err("invalid option directive argument(s)")
                 if(directive.parent is Block) {
                     if(directive.args.any {it.string !in arrayOf("force_output", "merge", "verafxmuls", "no_symbol_prefixing", "ignore_unused")})
                         err("using an option that is not valid for blocks")
                 }
                 if(directive.parent is Module) {
-                    if(directive.args.any {it.string !in arrayOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused")})
+                    if(directive.args.any {it.string !in arrayOf("enable_floats", "no_sysinit", "no_symbol_prefixing", "ignore_unused", "romable")})
                         err("using an option that is not valid for modules")
                 }
                 if(directive.args.any { it.string=="verafxmuls" } && compilerOptions.compTarget.name != Cx16Target.NAME)

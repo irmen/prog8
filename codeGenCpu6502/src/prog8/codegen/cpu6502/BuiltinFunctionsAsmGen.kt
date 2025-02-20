@@ -236,6 +236,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 jsr  $jsrfar
 +               .word  0
 +               .byte  0""")
+            asmgen.romableWarning("self-modifying code for jsrfar", fcall.position)  // TODO
         }
 
         // note that by convention the values in A+Y registers are now the return value of the call.
@@ -292,6 +293,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 jsr  $jsrfar
 +               .word  0
 +               .byte  0""")
+            asmgen.romableWarning("self-modifying code for jsrfar", fcall.position)  // TODO
         }
 
         // note that by convention the values in A+Y registers are now the return value of the call.
@@ -411,12 +413,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
-                        asmgen.out("  lda  ${varname},x |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${varname},x")
+                        asmgen.out("  lda  ${varname},x |  lsr  a |  bcc  + |  ora  #$80 |+  |  sta  ${varname},x")
                     }
                     is PtMemoryByte -> {
                         if (what.address is PtNumber) {
                             val number = (what.address as PtNumber).number
-                            asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  ${number.toHex()}")
+                            asmgen.out("  lda  ${number.toHex()} |  lsr  a |  bcc  + |  ora  #$80 |+  |  sta  ${number.toHex()}")
                         } else {
                             asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
                             asmgen.out("  jsr  prog8_lib.ror2_mem_ub")
@@ -424,7 +426,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                     is PtIdentifier -> {
                         val variable = asmgen.asmVariableName(what)
-                        asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #\$80 |+  |  sta  $variable")
+                        asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #$80 |+  |  sta  $variable")
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -435,13 +437,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
                         if(what.splitWords)
-                            asmgen.out("  lsr  ${varname}_msb,x |  ror  ${varname}_lsb,x |  bcc  + |  lda  ${varname}_msb,x |  ora  #\$80 |  sta  ${varname}_msb,x |+ ")
+                            asmgen.out("  lsr  ${varname}_msb,x |  ror  ${varname}_lsb,x |  bcc  + |  lda  ${varname}_msb,x |  ora  #$80 |  sta  ${varname}_msb,x |+ ")
                         else
-                            asmgen.out("  lsr  ${varname}+1,x |  ror  ${varname},x |  bcc  +  |  lda  ${varname}+1,x  |  ora  #\$80 |  sta  ${varname}+1,x |+ ")
+                            asmgen.out("  lsr  ${varname}+1,x |  ror  ${varname},x |  bcc  +  |  lda  ${varname}+1,x  |  ora  #$80 |  sta  ${varname}+1,x |+ ")
                     }
                     is PtIdentifier -> {
                         val variable = asmgen.asmVariableName(what)
-                        asmgen.out("  lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #\$80 |  sta  $variable+1 |+  ")
+                        asmgen.out("  lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #$80 |  sta  $variable+1 |+  ")
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -478,6 +480,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                 asmgen.out("""
                                     plp
 +                                   ror  ${'$'}ffff,x           ; modified""")
+                                asmgen.romableWarning("self-modifying code (ror)", fcall.position) // TODO
                             } else {
                                 if(!what.address.isSimple()) asmgen.out("  php")   // save Carry
                                 asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
@@ -486,6 +489,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                     sta  (+) + 1
                                     sty  (+) + 2
 +                                   ror  ${'$'}ffff            ; modified""")
+                                asmgen.romableWarning("self-modifying code (ror)", fcall.position) // TODO
                             }
                         }
                     }
@@ -527,12 +531,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable)
-                        asmgen.out("  lda  ${varname},x |  cmp  #\$80 |  rol  a |  sta  ${varname},x")
+                        asmgen.out("  lda  ${varname},x |  cmp  #$80 |  rol  a |  sta  ${varname},x")
                     }
                     is PtMemoryByte -> {
                         if (what.address is PtNumber) {
                             val number = (what.address as PtNumber).number
-                            asmgen.out("  lda  ${number.toHex()} |  cmp  #\$80 |  rol  a |  sta  ${number.toHex()}")
+                            asmgen.out("  lda  ${number.toHex()} |  cmp  #$80 |  rol  a |  sta  ${number.toHex()}")
                         } else {
                             asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
                             asmgen.out("  jsr  prog8_lib.rol2_mem_ub")
@@ -540,7 +544,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                     is PtIdentifier -> {
                         val variable = asmgen.asmVariableName(what)
-                        asmgen.out("  lda  $variable |  cmp  #\$80 |  rol  a |  sta  $variable")
+                        asmgen.out("  lda  $variable |  cmp  #$80 |  rol  a |  sta  $variable")
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -594,6 +598,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                 asmgen.out("""
                                     plp
 +                                   rol  ${'$'}ffff,x           ; modified""")
+                                asmgen.romableWarning("self-modifying code (rol)", fcall.position) // TODO
                             } else {
                                 if(!what.address.isSimple()) asmgen.out("  php")   // save Carry
                                 asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
@@ -602,6 +607,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                     sta  (+) + 1
                                     sty  (+) + 2
 +                                   rol  ${'$'}ffff            ; modified""")
+                                asmgen.romableWarning("self-modifying code (rol)", fcall.position) // TODO
                             }
                         }
                     }

@@ -11,6 +11,7 @@ class CompilationOptions(val output: OutputType,
                          val zpAllowed: List<UIntRange>,
                          val floats: Boolean,
                          val noSysInit: Boolean,
+                         val romable: Boolean,
                          val compTarget: ICompilationTarget,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,

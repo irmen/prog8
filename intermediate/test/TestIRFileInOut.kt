@@ -21,6 +21,7 @@ class TestIRFileInOut: FunSpec({
             CompilationOptions.AllZeropageAllowed,
             floats = false,
             noSysInit = true,
+            romable = false,
             compTarget = target,
             loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu,
