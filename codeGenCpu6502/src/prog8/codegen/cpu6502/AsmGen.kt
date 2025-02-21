@@ -1716,7 +1716,7 @@ $repeatLabel""")
         if(options.romable) {
             // until the code generation can provide an alternative, we have to report about code generated that is incompatible with ROMable code mode...
             errors.warn("problem for ROMable code: $problem", pos)
-            out("  .warn \"ROMable code selected but incompatible code was generated: $problem\"")
+            out("  .error \"ROMable code selected but incompatible code was generated: $problem\"")
         }
     }
 }

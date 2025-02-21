@@ -2,6 +2,9 @@
 %option no_sysinit, romable
 
 main {
+    ubyte[100] @shared array1
+    ubyte[100] @shared array2 = [42] *100
+
     sub start() {
         uword @shared pointer = $4000
         ubyte @shared size = 42

@@ -154,6 +154,7 @@ _found	tya
     asmsub rfind(uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string, starting from the right.
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
+		; TODO: Romable
         %asm {{
             stx  P8ZP_SCRATCH_B1
             sta  _str

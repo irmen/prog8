@@ -146,6 +146,7 @@ memcopy16_up	.proc
 memset          .proc
 	; -- fill memory from (P8ZP_SCRATCH_W1), length XY, with value in A.
 	;    clobbers X, Y
+	; TODO: Romable
 		stx  P8ZP_SCRATCH_B1
 		sty  _save_reg
 		ldy  #0
@@ -268,6 +269,7 @@ strcpy		.proc
 
 strcmp_expression	.proc
 		; -- compare strings, result in A
+		; TODO: Romable
 		lda  _arg_s2
 		ldy  _arg_s2+1
 		sta  P8ZP_SCRATCH_W2

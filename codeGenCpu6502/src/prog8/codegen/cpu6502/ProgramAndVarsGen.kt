@@ -652,6 +652,7 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.second,
                     it.initializationStringValue!!.first
                 )
+                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO
             }
             alignedStrings.sortedBy { it.align }.forEach {
                 outputStringvar(
@@ -660,13 +661,16 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.second,
                     it.initializationStringValue!!.first
                 )
+                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO
             }
 
             notAlignedOther.sortedBy { it.type }.forEach {
                 staticVariable2asm(it)
+                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO
             }
             alignedOther.sortedBy { it.align }.sortedBy { it.type }.forEach {
                 staticVariable2asm(it)
+                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO
             }
         }
     }

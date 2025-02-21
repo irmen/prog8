@@ -140,6 +140,7 @@ compression {
         ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
         ;    Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
         ;    Instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
+		; TODO: Romable
         %asm {{
             sta  _cb_mod1+1
             sty  _cb_mod1+2

@@ -460,6 +460,7 @@ sys {
     }
 
     asmsub save_prog8_internals() {
+        ; TODO: Romable
         %asm {{
             lda  P8ZP_SCRATCH_B1
             sta  save_SCRATCH_ZPB1
@@ -1072,6 +1073,7 @@ cx16 {
     &byte r15sH = $cfff
 
     asmsub save_virtual_registers() clobbers(A,Y) {
+		; TODO: Romable
         %asm {{
             ldy  #31
     -       lda  cx16.r0,y

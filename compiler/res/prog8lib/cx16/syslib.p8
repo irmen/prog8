@@ -981,6 +981,7 @@ asmsub vpoke_mask(ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @
 }
 
 asmsub save_virtual_registers() clobbers(A,Y) {
+    ; TODO: Romable
     %asm {{
         ldy  #31
 -       lda  cx16.r0,y
@@ -1010,6 +1011,7 @@ asmsub restore_virtual_registers() clobbers(A,Y) {
 
 asmsub save_vera_context() clobbers(A) {
     ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
+    ; TODO: Romable
     %asm {{
         ; note cannot store this on cpu hardware stack because this gets called as a subroutine
         lda  cx16.VERA_ADDR_L
@@ -1448,6 +1450,7 @@ _modified
 }
 
 asmsub  restore_irq() clobbers(A) {
+    ; TODO: Romable
 	%asm {{
 	    sei
 	    lda  _orig_irqvec
@@ -1770,6 +1773,7 @@ _no_msb_size
     }
 
     asmsub save_prog8_internals() {
+        ; TODO: Romable
         %asm {{
             lda  P8ZP_SCRATCH_B1
             sta  save_SCRATCH_ZPB1

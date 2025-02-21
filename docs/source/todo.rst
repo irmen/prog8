@@ -1,13 +1,15 @@
 TODO
 ====
 
+- disable floating point support for %option romable  ?  (because if it's your code that is running in the rom bank you can't have the floating point routines available there)
+
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Look at github PR for improved romability (see github issue 149)
+- Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
 - const values should always either be of type long or float, this is how they were usually treated in const expression evaluation already anyway
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
