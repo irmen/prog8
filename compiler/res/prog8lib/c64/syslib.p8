@@ -332,6 +332,7 @@ inline asmsub getbanks() -> ubyte @A {
     }}
 }
 
+    ; TODO: Romable
     asmsub x16jsrfar() {
         %asm {{
             ; setup a JSRFAR call (using X16 call convention)
@@ -474,10 +475,12 @@ sys {
             lda  P8ZP_SCRATCH_W2+1
             sta  save_SCRATCH_ZPWORD2+1
             rts
-save_SCRATCH_ZPB1	.byte  0
-save_SCRATCH_ZPREG	.byte  0
-save_SCRATCH_ZPWORD1	.word  0
-save_SCRATCH_ZPWORD2	.word  0
+            .section BSS
+save_SCRATCH_ZPB1	.byte  ?
+save_SCRATCH_ZPREG	.byte  ?
+save_SCRATCH_ZPWORD1	.word  ?
+save_SCRATCH_ZPWORD2	.word  ?
+            .send BSS
             ; !notreached!
         }}
     }
@@ -503,8 +506,8 @@ save_SCRATCH_ZPWORD2	.word  0
 asmsub  set_irq(uword handler @AY) clobbers(A)  {
 	%asm {{
 	    sei
-        sta  _modified+1
-        sty  _modified+2
+        sta  _vector
+        sty  _vector+1
 		lda  #<_irq_handler
 		sta  cbm.CINV
 		lda  #>_irq_handler
@@ -514,8 +517,8 @@ asmsub  set_irq(uword handler @AY) clobbers(A)  {
 _irq_handler
         jsr  sys.save_prog8_internals
         cld
-_modified
-        jsr  $ffff                      ; modified
+
+        jsr  _run_custom
         pha
 		jsr  sys.restore_prog8_internals
 		pla
@@ -530,6 +533,13 @@ _modified
 		tax
 		pla
 		rti
+
+_run_custom
+		jmp  (_vector)
+		.section BSS
+_vector	.word ?
+		.send BSS
+        ; !notreached!
     }}
 }
 
@@ -552,8 +562,8 @@ asmsub  restore_irq() clobbers(A) {
 asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
 	%asm {{
 	    sei
-        sta  _modified+1
-        sty  _modified+2
+        sta  _vector
+        sty  _vector+1
         lda  cx16.r0
         ldy  cx16.r0+1
         jsr  _setup_raster_irq
@@ -567,8 +577,8 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
 _raster_irq_handler
 		jsr  sys.save_prog8_internals
 		cld
-_modified
-        jsr  $ffff              ; modified
+
+        jsr  _run_custom
         pha
         jsr  sys.restore_prog8_internals
         lda  #$ff
@@ -582,6 +592,12 @@ _modified
 		tax
 		pla
 		rti
+
+_run_custom
+		jmp  (_vector)
+		.section BSS
+_vector	.word ?
+		.send BSS
 
 _setup_raster_irq
 		pha
@@ -1080,9 +1096,11 @@ cx16 {
             bpl  -
             rts
 
+            .section BSS
     _cx16_vreg_storage
-            .word 0,0,0,0,0,0,0,0
-            .word 0,0,0,0,0,0,0,0
+            .word ?,?,?,?,?,?,?,?
+            .word ?,?,?,?,?,?,?,?
+            .send BSS
             ; !notreached!
         }}
     }
@@ -1157,6 +1175,7 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
+    ; TODO: Romable
     %asm {{
         lda  #%00101111
         sta  $00
