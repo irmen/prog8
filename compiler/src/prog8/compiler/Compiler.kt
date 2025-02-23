@@ -336,6 +336,9 @@ fun parseMainModule(filepath: Path,
             errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
     }
 
+    if(compilerOptions.romable && compilerOptions.floats)
+        errors.err("When ROMable code is selected, floating point support is not available", program.toplevelModule.position)
+
     errors.report()
 
     return Triple(program, compilerOptions, importedFiles)

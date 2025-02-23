@@ -1,3 +1,4 @@
+%import textio
 %zeropage basicsafe
 %option no_sysinit, romable
 

@@ -1,8 +1,6 @@
 TODO
 ====
 
-- disable floating point support for %option romable  ?  (because if it's your code that is running in the rom bank you can't have the floating point routines available there)
-
 ...
 
 
