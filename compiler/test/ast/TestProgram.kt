@@ -15,7 +15,7 @@ import prog8.ast.statements.Block
 import prog8.code.ast.PtBlock
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
-import prog8.code.internedStringsModuleName
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.target.C64Target
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
@@ -28,7 +28,7 @@ class TestProgram: FunSpec({
         test("withNameBuiltinsAndMemsizer") {
             val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             program.modules.size shouldBe 1
-            program.modules[0].name shouldBe internedStringsModuleName
+            program.modules[0].name shouldBe INTERNED_STRINGS_MODULENAME
             program.modules[0].program shouldBeSameInstanceAs program
             program.modules[0].parent shouldBeSameInstanceAs program.namespace
         }
@@ -64,7 +64,7 @@ class TestProgram: FunSpec({
         test("withInternedStringsModule") {
             val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
             val m = program.modules[0]
-            m.name shouldBe internedStringsModuleName
+            m.name shouldBe INTERNED_STRINGS_MODULENAME
 
             val retVal = program.moveModuleToFront(m)
             retVal shouldBeSameInstanceAs program

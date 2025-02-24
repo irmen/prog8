@@ -1,9 +1,9 @@
 package prog8.intermediate
 
-import prog8.code.Either
 import prog8.code.core.*
-import prog8.code.left
-import prog8.code.right
+import prog8.Either
+import prog8.left
+import prog8.right
 
 
 fun DataType.irTypeString(length: Int?): String {

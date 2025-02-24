@@ -1,9 +1,9 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.GENERATED_LABEL_PREFIX
 import prog8.code.StConstant
 import prog8.code.StMemVar
 import prog8.code.SymbolTable
-import prog8.code.ast.PtLabel
 import prog8.code.core.ICompilationTarget
 
 
@@ -362,7 +362,7 @@ or *_afterif labels.
 This gets generated after certain if conditions, and only the branch instruction is needed in these cases.
          */
 
-        val autoLabelPrefix = PtLabel.GENERATED_LABEL_PREFIX
+        val autoLabelPrefix = GENERATED_LABEL_PREFIX
         if(first=="beq  +" && second=="lda  #1" && third=="+") {
             if((fourth.startsWith("beq  $autoLabelPrefix") || fourth.startsWith("bne  $autoLabelPrefix")) &&
                 (fourth.endsWith("_shortcut") || fourth.endsWith("_afterif") || fourth.endsWith("_shortcut:") || fourth.endsWith("_afterif:"))) {

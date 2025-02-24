@@ -1,13 +1,15 @@
-package prog8.code.core
+package prog8.code
 
-import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
+import prog8.code.core.CompilationOptions
+import prog8.code.core.IErrorReporter
 
 interface ICodeGeneratorBackend {
     fun generate(program: PtProgram,
                  symbolTable: SymbolTable,
                  options: CompilationOptions,
-                 errors: IErrorReporter): IAssemblyProgram?
+                 errors: IErrorReporter
+    ): IAssemblyProgram?
 }
 
 

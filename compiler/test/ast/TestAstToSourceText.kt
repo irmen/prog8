@@ -7,7 +7,7 @@ import prog8.ast.AstToSourceTextConverter
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.code.source.SourceCode
-import prog8.code.internedStringsModuleName
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.DummyFunctions
@@ -42,7 +42,7 @@ class TestAstToSourceText: AnnotationSpec() {
     fun testMentionsInternedStringsModule() {
         val orig = SourceCode.Text("\n")
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex(";.*$internedStringsModuleName")
+        txt shouldContain Regex(";.*$INTERNED_STRINGS_MODULENAME")
     }
 
     @Test

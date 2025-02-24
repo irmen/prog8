@@ -4,9 +4,9 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.ast.PtLabel
+import prog8.code.GENERATED_LABEL_PREFIX
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.core.*
-import prog8.code.internedStringsModuleName
 import prog8.code.source.SourceCode
 
 /*********** Everything starts from here, the Program; zero or more modules *************/
@@ -23,8 +23,8 @@ class Program(val name: String,
 
     init {
         // insert a container module for all interned strings later
-        val internedStringsModule = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated(internedStringsModuleName))
-        val block = Block(internedStringsModuleName, null, mutableListOf(), true, Position.DUMMY)
+        val internedStringsModule = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated(INTERNED_STRINGS_MODULENAME))
+        val block = Block(INTERNED_STRINGS_MODULENAME, null, mutableListOf(), true, Position.DUMMY)
         val directive = Directive("%option", listOf(DirectiveArg("no_symbol_prefixing", null, Position.DUMMY)), Position.DUMMY)
         block.statements.add(directive)
         directive.linkParents(block)
@@ -67,7 +67,7 @@ class Program(val name: String,
         }
 
     val toplevelModule: Module
-        get() = modules.first { it.name!= internedStringsModuleName }
+        get() = modules.first { it.name!= INTERNED_STRINGS_MODULENAME }
 
     private val internedStringsReferenceCounts = mutableMapOf<VarDecl, Int>()
 
@@ -81,8 +81,8 @@ class Program(val name: String,
         }
 
         val internedStringsBlock = modules
-            .first { it.name == internedStringsModuleName }.statements
-            .first { it is Block && it.name == internedStringsModuleName } as Block
+            .first { it.name == INTERNED_STRINGS_MODULENAME }.statements
+            .first { it is Block && it.name == INTERNED_STRINGS_MODULENAME } as Block
 
         fun addNewInternedStringvar(string: StringLiteral): Pair<List<String>, VarDecl> {
             val varName = "string_${internedStringsBlock.statements.size}"
@@ -93,7 +93,7 @@ class Program(val name: String,
             )
             internedStringsBlock.statements.add(decl)
             decl.linkParents(internedStringsBlock)
-            return Pair(listOf(internedStringsModuleName, decl.name), decl)
+            return Pair(listOf(INTERNED_STRINGS_MODULENAME, decl.name), decl)
         }
 
         val existingDecl = internedStringsBlock.statements.filterIsInstance<VarDecl>().singleOrNull {
@@ -133,8 +133,8 @@ class Program(val name: String,
         fun removeStrings(modules: List<Module>) {
             if(removals.isNotEmpty()) {
                 val internedStringsBlock = modules
-                    .first { it.name == internedStringsModuleName }.statements
-                    .first { it is Block && it.name == internedStringsModuleName } as Block
+                    .first { it.name == INTERNED_STRINGS_MODULENAME }.statements
+                    .first { it is Block && it.name == INTERNED_STRINGS_MODULENAME } as Block
                 removals.forEach { scopedname ->
                     val decl = internedStringsBlock.statements.filterIsInstance<VarDecl>().single { decl -> decl.scopedName == scopedname }
                     val numRefs = program.internedStringsReferenceCounts.getValue(decl) - 1
@@ -151,7 +151,7 @@ class Program(val name: String,
 
     fun makeLabel(postfix: String): String {
         generatedLabelSequenceNumber++
-        return "${PtLabel.GENERATED_LABEL_PREFIX}${generatedLabelSequenceNumber}_$postfix"
+        return "$GENERATED_LABEL_PREFIX${generatedLabelSequenceNumber}_$postfix"
     }
 
     fun makeLabel(postfix: String, position: Position): Label {

@@ -1,6 +1,7 @@
 package prog8.codegen.cpu6502
 
-import prog8.code.ast.PtLabel
+import prog8.code.GENERATED_LABEL_PREFIX
+import prog8.code.IAssemblyProgram
 import prog8.code.core.*
 import prog8.code.target.C128Target
 import prog8.code.target.C64Target
@@ -131,7 +132,7 @@ internal class AssemblyProgram(
     }
 
     private fun removeGeneratedLabelsFromMonlist() {
-        val pattern = Regex("""al (\w+) \S+${PtLabel.GENERATED_LABEL_PREFIX}.+?""")
+        val pattern = Regex("""al (\w+) \S+$GENERATED_LABEL_PREFIX.+?""")
         val lines = viceMonListFile.toFile().readLines()
         viceMonListFile.toFile().outputStream().bufferedWriter().use {
             for (line in lines) {

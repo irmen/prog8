@@ -10,7 +10,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
-import prog8.code.internedStringsModuleName
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.compiler.CallGraph
 
 
@@ -93,7 +93,7 @@ class UnusedCodeRemover(private val program: Program,
     override fun after(block: Block, parent: Node): Iterable<IAstModification> {
         if("force_output" !in block.options()) {
             if (block.containsNoCodeNorVars) {
-                if (block.name != internedStringsModuleName && "ignore_unused" !in block.options()) {
+                if (block.name != INTERNED_STRINGS_MODULENAME && "ignore_unused" !in block.options()) {
                     if (!block.statements.any { it is Subroutine && it.hasBeenInlined })
                         errors.info("removing unused block '${block.name}'", block.position)
                 }

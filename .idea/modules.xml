@@ -17,6 +17,7 @@
       <module fileurl="file://$PROJECT_DIR$/intermediate/intermediate.iml" filepath="$PROJECT_DIR$/intermediate/intermediate.iml" />
       <module fileurl="file://$PROJECT_DIR$/parser/parser.iml" filepath="$PROJECT_DIR$/parser/parser.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/prog8.iml" filepath="$PROJECT_DIR$/.idea/modules/prog8.iml" />
+      <module fileurl="file://$PROJECT_DIR$/simpleAst/simpleAst.iml" filepath="$PROJECT_DIR$/simpleAst/simpleAst.iml" />
       <module fileurl="file://$PROJECT_DIR$/virtualmachine/virtualmachine.iml" filepath="$PROJECT_DIR$/virtualmachine/virtualmachine.iml" />
     </modules>
   </component>

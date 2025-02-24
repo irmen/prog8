@@ -7,7 +7,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import prog8.code.core.ZeropageType
-import prog8.code.internedStringsModuleName
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
@@ -40,7 +40,7 @@ main {
         }
         withClue("module order in parse tree") {
             moduleNames.drop(1) shouldBe listOf(
-                internedStringsModuleName,
+                INTERNED_STRINGS_MODULENAME,
                 "textio",
                 "syslib",
                 "conv",
@@ -101,7 +101,7 @@ main {
         withClue("module order in parse tree") {
             program.modules.map { it.name } shouldBe
                 listOf(
-                    internedStringsModuleName,
+                    INTERNED_STRINGS_MODULENAME,
                     filenameBase,
                     "textio", "syslib", "conv", "shared_cbm_textio_functions", "floats", "shared_floats_functions", "prog8_math", "prog8_lib"
                 )

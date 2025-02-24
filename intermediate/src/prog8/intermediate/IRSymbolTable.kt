@@ -12,38 +12,6 @@ class IRSymbolTable {
     private val table = mutableMapOf<String, IRStNode>()
     private val asmSymbols = mutableMapOf<String, String>()
 
-    companion object {
-        fun fromAstSymboltable(sourceSt: SymbolTable?): IRSymbolTable {
-            val st = IRSymbolTable()
-            if (sourceSt != null) {
-                sourceSt.flat.forEach {
-                    when(it.value.type) {
-                        StNodeType.STATICVAR -> st.add(it.value as StStaticVariable)
-                        StNodeType.MEMVAR -> st.add(it.value as StMemVar)
-                        StNodeType.CONSTANT -> st.add(it.value as StConstant)
-                        StNodeType.MEMORYSLAB -> st.add(it.value as StMemorySlab)
-                        else -> { }
-                    }
-                }
-
-                require(st.table.all { it.key == it.value.name })
-
-                st.allVariables().forEach { variable ->
-                    variable.onetimeInitializationArrayValue?.let {
-                        it.forEach { arrayElt ->
-                            if (arrayElt.addressOfSymbol != null) {
-                                require(arrayElt.addressOfSymbol.contains('.')) {
-                                    "pointer var in array should be properly scoped: ${arrayElt.addressOfSymbol} in ${variable.name}"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return st
-        }
-    }
-
     fun allConstants(): Sequence<IRStConstant> =
         table.asSequence().map { it.value }.filterIsInstance<IRStConstant>()
 
@@ -58,92 +26,8 @@ class IRSymbolTable {
 
     fun lookup(name: String) = table[name]
 
-    fun add(variable: StStaticVariable) {
-        val scopedName: String
-        val varToadd: IRStStaticVariable
-        if('.' in variable.name) {
-            scopedName = variable.name
-            varToadd = IRStStaticVariable(variable.name,
-                variable.dt,
-                variable.initializationNumericValue,
-                variable.initializationStringValue,
-                variable.initializationArrayValue?.map { convertArrayElt(it) },
-                variable.length,
-                variable.zpwish,
-                variable.align)
-        } else {
-            fun fixupAddressOfInArray(array: List<StArrayElement>?): List<IRStArrayElement>? {
-                if(array==null)
-                    return null
-                val newArray = mutableListOf<IRStArrayElement>()
-                array.forEach {
-                    if(it.addressOfSymbol!=null) {
-                        val target = variable.lookup(it.addressOfSymbol!!) ?: throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
-                        newArray.add(IRStArrayElement(null, null, target.scopedName))
-                    } else {
-                        newArray.add(convertArrayElt(it))
-                    }
-                }
-                return newArray
-            }
-            scopedName = variable.scopedName
-            varToadd = IRStStaticVariable(scopedName,
-                variable.dt,
-                variable.initializationNumericValue,
-                variable.initializationStringValue,
-                fixupAddressOfInArray(variable.initializationArrayValue),
-                variable.length,
-                variable.zpwish,
-                variable.align
-            )
-        }
-        table[scopedName] = varToadd
-    }
-
-    fun add(variable: StMemVar) {
-        val scopedName: String
-        val varToadd: IRStMemVar
-        if('.' in variable.name) {
-            scopedName = variable.name
-            varToadd = IRStMemVar(
-                variable.name,
-                variable.dt,
-                variable.address,
-                variable.length
-            )
-        } else {
-            scopedName = try {
-                variable.scopedName
-            } catch (_: UninitializedPropertyAccessException) {
-                variable.name
-            }
-            varToadd = IRStMemVar(scopedName, variable.dt, variable.address, variable.length)
-        }
-        table[scopedName] = varToadd
-    }
-
-    fun add(variable: StMemorySlab) {
-        val varToadd = if('.' in variable.name)
-            IRStMemorySlab(variable.name, variable.size, variable.align)
-        else {
-            IRStMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align)
-        }
-        table[varToadd.name] = varToadd
-    }
-
-    fun add(constant: StConstant) {
-        val scopedName: String
-        val dt = DataType.forDt(constant.dt)
-        if('.' in constant.name) {
-            scopedName = constant.name
-        } else {
-            scopedName = try {
-                constant.scopedName
-            } catch (_: UninitializedPropertyAccessException) {
-                constant.name
-            }
-        }
-        table[scopedName] = IRStConstant(scopedName, dt, constant.value)
+    fun add(node: IRStNode) {
+        table[node.name] = node
     }
 
     fun addAsmSymbol(name: String, value: String) {
@@ -157,17 +41,15 @@ class IRSymbolTable {
         val vars = table.filter { it.key.startsWith(prefix) }
         vars.forEach {
             // check if attempt is made to delete interned strings, if so, refuse that.
-            if(!it.key.startsWith(internedStringsModuleName)) {
+            if(!it.key.startsWith(INTERNED_STRINGS_MODULENAME)) {
                 table.remove(it.key)
             }
         }
     }
 
-
-    private fun convertArrayElt(elt: StArrayElement): IRStArrayElement = if(elt.boolean!=null)
-        IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
-    else
-        IRStArrayElement(null, elt.number, elt.addressOfSymbol)
+    fun validate() {
+        require(table.all { it.key == it.value.name })
+    }
 }
 
 
@@ -178,10 +60,7 @@ enum class IRStNodeType {
     CONST
 }
 
-open class IRStNode(val name: String,
-                  val type: IRStNodeType,
-                  val children: MutableMap<String, StNode> = mutableMapOf()
-)
+open class IRStNode(val name: String, val type: IRStNodeType)
 
 class IRStMemVar(name: String,
                  val dt: DataType,
@@ -209,7 +88,7 @@ class IRStConstant(name: String, val dt: DataType, val value: Double) : IRStNode
 
 class IRStStaticVariable(name: String,
                        val dt: DataType,
-                       val onetimeInitializationNumericValue: Double?,      // regular (every-run-time) initialization is done via regular assignments
+                       val onetimeInitializationNumericValue: Double?,      // TODO still needed? Or can go?   regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: IRStString?,
                        val onetimeInitializationArrayValue: IRStArray?,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte

@@ -7,6 +7,7 @@ plugins {
 
 dependencies {
     implementation(project(":codeCore"))
+    implementation(project(":simpleAst"))
     implementation(project(":intermediate"))
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     // implementation "org.jetbrains.kotlin:kotlin-reflect"

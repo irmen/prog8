@@ -3,16 +3,15 @@
   <component name="NewModuleRootManager" inherit-compiler-output="true">
     <exclude-output />
     <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/resources" type="java-resource" />
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
-      <excludeFolder url="file://$MODULE_DIR$/build" />
+      <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/testResources" type="java-test-resource" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
-    <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
-    <orderEntry type="module" module-name="codeGenIntermediate" />
-    <orderEntry type="module" module-name="intermediate" />
     <orderEntry type="module" module-name="codeCore" />
-    <orderEntry type="module" module-name="simpleAst" />
+    <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
   </component>
 </module>

@@ -9,7 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
-import prog8.code.internedStringsModuleName
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.target.encodings.JapaneseCharacterConverter
 import java.io.CharConversionException
 import java.util.*
@@ -1250,7 +1250,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             return false
 
         val scope=decl.definingModule
-        return scope.name==internedStringsModuleName
+        return scope.name==INTERNED_STRINGS_MODULENAME
     }
 }
 

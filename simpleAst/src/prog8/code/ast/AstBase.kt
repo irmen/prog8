@@ -96,12 +96,7 @@ class PtInlineAssembly(val assembly: String, val isIR: Boolean, position: Positi
 }
 
 
-class PtLabel(name: String, position: Position) : PtNamedNode(name, position) {
-    companion object {
-        // all automatically generated labels everywhere need to have the same label name prefix:
-        const val GENERATED_LABEL_PREFIX = "p8_label_gen_"
-    }
-}
+class PtLabel(name: String, position: Position) : PtNamedNode(name, position)
 
 
 class PtBreakpoint(position: Position): PtNode(position)

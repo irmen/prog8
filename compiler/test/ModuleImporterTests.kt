@@ -12,7 +12,7 @@ import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
 import prog8.code.core.IErrorReporter
 import prog8.code.source.SourceCode
-import prog8.code.internedStringsModuleName
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
 import prog8tests.helpers.*
@@ -176,7 +176,7 @@ class TestModuleImporter: FunSpec({
                         }
                     }
                     withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
-                        program.modules[0].name shouldBe internedStringsModuleName
+                        program.modules[0].name shouldBe INTERNED_STRINGS_MODULENAME
                     }
                 }
 
@@ -258,7 +258,7 @@ class TestModuleImporter: FunSpec({
                             }
                         }
                         withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
-                        program.modules[0].name shouldBe internedStringsModuleName
+                        program.modules[0].name shouldBe INTERNED_STRINGS_MODULENAME
                         importer.errors.report()
                     }
                 }

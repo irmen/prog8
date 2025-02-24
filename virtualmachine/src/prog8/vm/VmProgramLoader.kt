@@ -1,10 +1,10 @@
 package prog8.vm
 
-import prog8.code.Either
-import prog8.code.core.DataType
-import prog8.code.left
-import prog8.code.right
+import prog8.Either
+import prog8.left
+import prog8.right
 import prog8.intermediate.*
+import prog8.code.core.DataType
 
 class VmProgramLoader {
     private val placeholders = mutableMapOf<Pair<IRCodeChunk, Int>, String>()      // program chunk+index to symbolname

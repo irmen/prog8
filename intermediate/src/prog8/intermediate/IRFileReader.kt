@@ -1,6 +1,5 @@
 package prog8.intermediate
 
-import prog8.code.*
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName
@@ -154,7 +153,7 @@ class IRFileReader {
             }
     }
 
-    private fun parseVarsWithoutInit(reader: XMLEventReader): List<StStaticVariable> {
+    private fun parseVarsWithoutInit(reader: XMLEventReader): List<IRStStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="VARIABLESNOINIT") { "missing VARIABLESNOINIT" }
@@ -165,7 +164,7 @@ class IRFileReader {
             emptyList()
         else {
             val varPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
-            val variables = mutableListOf<StStaticVariable>()
+            val variables = mutableListOf<IRStStaticVariable>()
             text.lineSequence().forEach { line ->
                 // example:  uword main.start.qq2 zp=DONTCARE
                 val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLESNOINIT $line")
@@ -182,14 +181,14 @@ class IRFileReader {
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 // val isSplit = if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-                val newVar = StStaticVariable(name, dt, null, null, arraysize, zp, align.toInt(), null)
+                val newVar = IRStStaticVariable(name, dt, null, null, null, arraysize, zp, align.toInt())
                 variables.add(newVar)
             }
             return variables
         }
     }
 
-    private fun parseConstants(reader: XMLEventReader): List<StConstant> {
+    private fun parseConstants(reader: XMLEventReader): List<IRStConstant> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="CONSTANTS") { "missing CONSTANTS" }
@@ -200,7 +199,7 @@ class IRFileReader {
             emptyList()
         else {
             val constantPattern = Regex("(.+?) (.+)=(.*?)")
-            val constants = mutableListOf<StConstant>()
+            val constants = mutableListOf<IRStConstant>()
             text.lineSequence().forEach { line ->
                 // examples:
                 // uword main.start.qq2=0
@@ -210,13 +209,13 @@ class IRFileReader {
                     throw IRParseException("unscoped name: $name")
                 val dt = parseDatatype(type, false)
                 val value = parseIRValue(valueStr)
-                constants.add(StConstant(name, dt.base, value, null))
+                constants.add(IRStConstant(name, dt, value))
             }
             return constants
         }
     }
 
-    private fun parseVariables(reader: XMLEventReader): List<StStaticVariable> {
+    private fun parseVariables(reader: XMLEventReader): List<IRStStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="VARIABLESWITHINIT") { "missing VARIABLESWITHINIT" }
@@ -227,7 +226,7 @@ class IRFileReader {
             emptyList()
         else {
             val varPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+)=(?<value>.*?) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
-            val variables = mutableListOf<StStaticVariable>()
+            val variables = mutableListOf<IRStStaticVariable>()
             text.lineSequence().forEach { line ->
                 // examples:
                 // uword main.start.qq2=0 zp=REQUIRE_ZP
@@ -248,21 +247,21 @@ class IRFileReader {
                 if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 var initNumeric: Double? = null
-                var initArray: StArray? = null
+                var initArray: IRStArray? = null
                 when {
                     dt.isNumericOrBool -> initNumeric = parseIRValue(value)
                     dt.isBoolArray -> {
                         initArray = value.split(',').map {
                             val boolean = parseIRValue(it) != 0.0
-                            StArrayElement(null, null, boolean)
+                            IRStArrayElement(boolean, null, null)
                         }
                     }
                     dt.isArray -> {
                         initArray = value.split(',').map {
                             if (it.startsWith('@'))
-                                StArrayElement(null, it.drop(1), null)
+                                IRStArrayElement(null, null, it.drop(1))
                             else
-                                StArrayElement(parseIRValue(it), null, null)
+                                IRStArrayElement(null, parseIRValue(it), null)
                         }
                     }
                     dt.isString -> throw IRParseException("STR should have been converted to byte array")
@@ -271,16 +270,14 @@ class IRFileReader {
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                val stVar = StStaticVariable(name, dt, null, initArray, arraysize, zp, align.toInt(), null)
-                if(initNumeric!=null)
-                    stVar.setOnetimeInitNumeric(initNumeric)
+                val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align.toInt())
                 variables.add(stVar)
             }
             return variables
         }
     }
 
-    private fun parseMemMapped(reader: XMLEventReader): List<StMemVar> {
+    private fun parseMemMapped(reader: XMLEventReader): List<IRStMemVar> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="MEMORYMAPPEDVARIABLES") { "missing MEMORYMAPPEDVARIABLES" }
@@ -290,7 +287,7 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val memvars = mutableListOf<StMemVar>()
+            val memvars = mutableListOf<IRStMemVar>()
             val mappedPattern = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
             text.lineSequence().forEach { line ->
                 // examples:
@@ -300,13 +297,13 @@ class IRFileReader {
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
-                memvars.add(StMemVar(name, dt, parseIRValue(address).toUInt(), arraysize, null))
+                memvars.add(IRStMemVar(name, dt, parseIRValue(address).toUInt(), arraysize))
             }
             memvars
         }
     }
 
-    private fun parseSlabs(reader: XMLEventReader): List<StMemorySlab> {
+    private fun parseSlabs(reader: XMLEventReader): List<IRStMemorySlab> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="MEMORYSLABS") { "missing MEMORYSLABS" }
@@ -316,13 +313,13 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val slabs = mutableListOf<StMemorySlab>()
+            val slabs = mutableListOf<IRStMemorySlab>()
             val slabPattern = Regex("(.+) (.+) (.+)")
             text.lineSequence().forEach { line ->
                 // example: "slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
                 val (name, size, align) = match.destructured
-                slabs.add(StMemorySlab(name, size.toUInt(), align.toUInt(), null))
+                slabs.add(IRStMemorySlab(name, size.toUInt(), align.toUInt()))
             }
             slabs
         }

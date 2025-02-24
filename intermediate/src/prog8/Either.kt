@@ -1,4 +1,4 @@
-package prog8.code
+package prog8
 
 /**
  * By convention, the right side of an `Either` is used to hold successful values.

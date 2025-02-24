@@ -25,7 +25,7 @@ class IRCodeGen(
         verifyNameScoping(program, symbolTable)
         changeGlobalVarInits(symbolTable)
 
-        val irSymbolTable = IRSymbolTable.fromAstSymboltable(symbolTable)
+        val irSymbolTable = convertStToIRSt(symbolTable)
         val irProg = IRProgram(program.name, irSymbolTable, options, program.encoding)
 
         // collect global variables initializers
@@ -1899,7 +1899,7 @@ class IRCodeGen(
     private var labelSequenceNumber = 0
     internal fun createLabelName(): String {
         labelSequenceNumber++
-        return "${PtLabel.GENERATED_LABEL_PREFIX}$labelSequenceNumber"
+        return "${GENERATED_LABEL_PREFIX}$labelSequenceNumber"
     }
 
     internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall): ExpressionCodeResult

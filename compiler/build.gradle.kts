@@ -10,6 +10,7 @@ plugins {
 
 dependencies {
     implementation(project(":codeCore"))
+    implementation(project(":simpleAst"))
     implementation(project(":codeOptimizers"))
     implementation(project(":compilerAst"))
     implementation(project(":codeGenCpu6502"))
