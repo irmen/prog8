@@ -1363,7 +1363,7 @@ _continue   iny
 
     sub poweroff_system() {
         ; -- use the SMC to shutdown the computer
-        void cx16.i2c_write_byte($42, $01, $00)
+        sys.poweroff_system()
     }
 
     sub set_led_state(bool on) {
@@ -1530,16 +1530,21 @@ asmsub  set_rasterline(uword line @AY) {
         ; (note: this is an asmsub on purpose! don't change into a normal sub)
         %asm {{
             sei
-            ldx #$42
+-           ldx #$42
             ldy #2
             lda #0
-            jmp  cx16.i2c_write_byte
+            jsr  cx16.i2c_write_byte
+            bra  -      ; to work around an issue where the routine does not in fact immediately reset the system
+            ; !notreached!
         }}
     }
 
     sub poweroff_system() {
         ; use the SMC to shutdown the computer
-        void cx16.i2c_write_byte($42, $01, $00)
+        ; in a loop for the event where the shutdown command does not in fact immediately shutdown the system
+        repeat {
+            void cx16.i2c_write_byte($42, $01, $00)
+        }
     }
 
     asmsub wait(uword jiffies @AY) clobbers(X) {
