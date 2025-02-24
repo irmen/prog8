@@ -989,10 +989,11 @@ asmsub save_virtual_registers() clobbers(A,Y) {
         dey
         bpl  -
         rts
-
+        .section BSS
 _cx16_vreg_storage
-        .word 0,0,0,0,0,0,0,0
-        .word 0,0,0,0,0,0,0,0
+        .word ?,?,?,?,?,?,?,?
+        .word ?,?,?,?,?,?,?,?
+        .send BSS
         ; !notreached!
     }}
 }
@@ -1032,7 +1033,9 @@ asmsub save_vera_context() clobbers(A) {
         lda  cx16.VERA_ADDR_H
         sta  _vera_storage+6
         rts
-_vera_storage:  .byte 0,0,0,0,0,0,0,0
+        .section BSS
+_vera_storage:  .byte ?,?,?,?,?,?,?,?
+        .send BSS
         ; !notreached!
     }}
 }
@@ -1117,6 +1120,8 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
     ; to the registered handler for each type.  (Only Vera IRQs supported for now).
     ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     ; where 1 means: continue with the system IRQ handler, 0 means: don't call that.
+
+    ; TODO: Romable
 	%asm {{
         php
         sei
@@ -1419,8 +1424,8 @@ asmsub  set_irq(uword handler @AY) clobbers(A)  {
     ; Sets the handler for the VSYNC interrupt, and enable that interrupt.
 	%asm {{
         sei
-        sta  _modified+1
-        sty  _modified+2
+        sta  _vector
+        sty  _vector+1
         lda  #<_irq_handler
         sta  cbm.CINV
         lda  #>_irq_handler
@@ -1433,8 +1438,8 @@ asmsub  set_irq(uword handler @AY) clobbers(A)  {
 _irq_handler
         jsr  sys.save_prog8_internals
         cld
-_modified
-        jsr  $ffff                      ; modified
+
+        jsr  _run_custom
         pha
 		jsr  sys.restore_prog8_internals
 		pla
@@ -1446,6 +1451,12 @@ _modified
 		plx
 		pla
 		rti
+_run_custom
+		jmp  (_vector)
+		.section BSS
+_vector	.word ?
+		.send BSS
+        ; !notreached!
     }}
 }
 
@@ -1463,7 +1474,9 @@ asmsub  restore_irq() clobbers(A) {
 	    sta  cx16.VERA_IEN
 	    cli
 	    rts
-_orig_irqvec    .word  0
+        .section BSS
+_orig_irqvec    .word  ?
+        .send BSS
         ; !notreached!
     }}
 }
@@ -1472,8 +1485,8 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
     ; Sets the handler for the LINE interrupt, and enable (only) that interrupt.
 	%asm {{
             sei
-            sta  _modified+1
-            sty  _modified+2
+            sta  _vector
+            sty  _vector+1
             lda  cx16.r0
             ldy  cx16.r0+1
             lda  cx16.VERA_IEN
@@ -1493,7 +1506,7 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
 _raster_irq_handler
             jsr  sys.save_prog8_internals
             cld
-_modified   jsr  $ffff    ; modified
+            jsr  _run_custom
             jsr  sys.restore_prog8_internals
             ; end irq processing - don't use kernal's irq handling
             lda  #2
@@ -1502,6 +1515,11 @@ _modified   jsr  $ffff    ; modified
             plx
             pla
             rti
+_run_custom
+		    jmp  (_vector)
+		    .section BSS
+_vector	    .word ?
+		    .send BSS
         }}
 }
 
@@ -1793,10 +1811,12 @@ _no_msb_size
             lda  P8ZP_SCRATCH_W2+1
             sta  save_SCRATCH_ZPWORD2+1
             rts
-save_SCRATCH_ZPB1	.byte  0
-save_SCRATCH_ZPREG	.byte  0
-save_SCRATCH_ZPWORD1	.word  0
-save_SCRATCH_ZPWORD2	.word  0
+            .section BSS
+save_SCRATCH_ZPB1	.byte  ?
+save_SCRATCH_ZPREG	.byte  ?
+save_SCRATCH_ZPWORD1	.word  ?
+save_SCRATCH_ZPWORD2	.word  ?
+            .send BSS
             ; !notreached!
         }}
     }
@@ -1977,6 +1997,7 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
+    ; TODO: Romable (I've decided not to do that yet)
     %asm {{
         lda  #1
         sta  $00        ; ram bank 1
