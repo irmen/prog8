@@ -28,6 +28,7 @@ You can compile programs for various machines that are built in into the compile
 * Commodore PET (limited support)
 * any other 65(C)02 target machine or setup can be configured to a great extent in a user written configuration file.
   There are some examples included for the Atari 800 XL, NEO6502 and such.
+* some users have been experimenting with a NES and a C64OS target as well.
 
 Some language features are mentioned below, and you can also read :ref:`comparingprog8` if you
 want to quickly read about how Prog8 compares to well-known other languages.

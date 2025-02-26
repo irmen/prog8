@@ -1,13 +1,15 @@
 TODO
 ====
 
+- Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
+- Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
+
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
 - const values should always either be of type long or float, this is how they were usually treated in const expression evaluation already anyway
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
@@ -26,8 +28,6 @@ Future Things and Ideas
   Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast , get rid of the statements there -> expressions that have Void data type
 - Can we support signed % (remainder) somehow?
-- instead of copy-pasting inline asmsubs, make them into a 64tass macro and use that instead.
-  that will allow them to be reused from custom user written assembly code as well.
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
@@ -58,7 +58,6 @@ IR/VM
 
 Libraries
 ---------
-- Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Add split-word array sorting routines to sorting module?
 - See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - add even more general raster irq routines to build some sort of "copper list" , like Oscar64 has?

@@ -6,7 +6,9 @@ main {
     sub start() {
         repeat {
             if cbm.GETIN2()==27
-                sys.poweroff_system()
+                cx16.poweroff_system()
+            if cbm.GETIN2()==27
+                cx16.reset_system()
         }
     }
 }

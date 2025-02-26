@@ -1358,12 +1358,12 @@ _continue   iny
 
     sub reset_system() {
         ; -- Soft-reset the system back to initial power-on Basic prompt.
-        sys.reset_system()
+        goto sys.reset_system
     }
 
     sub poweroff_system() {
         ; -- use the SMC to shutdown the computer
-        sys.poweroff_system()
+        goto sys.poweroff_system
     }
 
     sub set_led_state(bool on) {

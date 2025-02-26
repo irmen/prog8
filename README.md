@@ -93,8 +93,7 @@ What does Prog8 provide?
 - "c64": Commodore-64  (6502 like CPU)
 - "c128": Commodore-128  (6502 like CPU - the Z80 cpu mode is not supported)
 - "pet32": Commodore PET (limited support)
-- "atari": Atari 8 bit such as 800XL (experimental)
-- "neo": Neo6502 (experimental)
+- via external configurable targets: Atari 800 XL, Neo6502, NES, C64OS, ...
 - If you only use standard kernal and prog8 library routines, it is possible to compile the *exact same program* for different machines (just change the compiler target flag)
 
 
