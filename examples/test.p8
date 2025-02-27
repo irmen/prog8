@@ -1,27 +1,26 @@
+%import textio
+%zeropage basicsafe
+%option no_sysinit
+
 main {
-    sub start() {
-        uword uw = 9999
-        word sw = -2222
-        ubyte ub = 42
-        byte sb = -99
-        bool bb = true
+    const uword screenwidth = 80
+    const ubyte ten = 10
+    ubyte @shared vten = 10
 
-        cx16.r0 = uw
-        cx16.r0s = sw
-        cx16.r0L = ub
-        cx16.r0H = ub
-        cx16.r0sL = sb
-        cx16.r0sH = sb
-        cx16.r0bL = bb
-        cx16.r0bH = bb
+    sub start()  {
+        ; TODO should print 3 , 3
+        cx16.r0L = msb(vten * screenwidth)      ;   TODO in main , vten is casted to uword
+        txt.print_ub(cx16.r0L)
+        txt.nl()
+        txt.print_ub(msb(vten * screenwidth))   ;  TODO in main, vten is casted to uword
+        txt.nl()
 
-        uw = cx16.r0
-        sw = cx16.r0s
-        ub = cx16.r0L
-        ub = cx16.r0H
-        sb = cx16.r0sL
-        sb = cx16.r0sH
-        bb = cx16.r0bL
-        bb = cx16.r0bH
+        ; ok; prints 0, 0
+;        cx16.r0L = msb(vten * 80)
+;        txt.print_ub(cx16.r0L)
+;        txt.nl()
+;        txt.print_ub(msb(vten * 80))
+;        txt.nl()
+
     }
 }
