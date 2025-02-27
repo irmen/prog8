@@ -332,7 +332,7 @@ cx16 {
     &ubyte  VERA_FX_X_POS_S     = VERA_BASE + $0009
     &ubyte  VERA_FX_Y_POS_S     = VERA_BASE + $000a
     &ubyte  VERA_FX_POLY_FILL_L = VERA_BASE + $000b
-    &ubyte  VERA_FX_POLY_FILL_H = VERA_BASE + $000cF
+    &ubyte  VERA_FX_POLY_FILL_H = VERA_BASE + $000c
     &uword  VERA_FX_POLY_FILL   = VERA_BASE + $000b
     &ubyte  VERA_FX_CACHE_L     = VERA_BASE + $0009
     &ubyte  VERA_FX_CACHE_M     = VERA_BASE + $000a

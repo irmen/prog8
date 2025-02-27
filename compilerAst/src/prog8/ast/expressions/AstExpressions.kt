@@ -112,6 +112,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
                 BaseDataType.UBYTE -> NumericLiteral(BaseDataType.UBYTE, (constval.number.toInt().inv() and 255).toDouble(), constval.position)
                 BaseDataType.WORD -> NumericLiteral(BaseDataType.WORD, constval.number.toInt().inv().toDouble(), constval.position)
                 BaseDataType.UWORD -> NumericLiteral(BaseDataType.UWORD, (constval.number.toInt().inv() and 65535).toDouble(), constval.position)
+                BaseDataType.LONG -> NumericLiteral(BaseDataType.LONG, constval.number.toInt().inv().toDouble(), constval.position)
                 else -> throw ExpressionError("can only take bitwise inversion of int", constval.position)
             }
             "not" -> NumericLiteral.fromBoolean(constval.number==0.0, constval.position)

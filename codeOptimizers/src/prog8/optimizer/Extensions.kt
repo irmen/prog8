@@ -23,9 +23,11 @@ fun Program.constantFold(errors: IErrorReporter, options: CompilationOptions) {
 
                 val optimizer = ConstantFoldingOptimizer(this, errors)
                 optimizer.visit(this)
-                while (errors.noErrors() && optimizer.applyModifications() > 0) {
+                var tries=0
+                while (errors.noErrors() && optimizer.applyModifications() > 0 && tries++ < 100000) {
                     optimizer.visit(this)
                 }
+                require(tries<100000) { "endless loop in constantfold" }
 
                 if (errors.noErrors()) {
                     replacer.visit(this)
