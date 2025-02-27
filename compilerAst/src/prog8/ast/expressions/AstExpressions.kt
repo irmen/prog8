@@ -167,7 +167,7 @@ class BinaryExpression(
         when {
             node===left -> left = replacement
             node===right -> right = replacement
-            else -> throw FatalAstException("invalid replace, no child $node")
+            else -> throw FatalAstException("invalid replace in $this, no child $node")
         }
         replacement.parent = this
     }
@@ -434,7 +434,7 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
             arrayIndex = replacement
             replacement.parent = this
         } else {
-            throw FatalAstException("invalid replace, no child node $node")
+            throw FatalAstException("invalid replace in $this, no child node $node")
         }
     }
 
@@ -453,8 +453,9 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
                         if (index != null) {
                             address += when {
                                 target.datatype.isUnsignedWord -> index
+                                target.datatype.isLong -> index
                                 target.datatype.isArray -> program.memsizer.memorySize(targetVar.datatype, index)
-                                else -> throw FatalAstException("need array or uword ptr")
+                                else -> throw FatalAstException("need array or uword ptr, got ${target.datatype}")
                             }
                         } else
                             return null
@@ -594,6 +595,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                         BaseDataType.BOOL -> {}
                         BaseDataType.UBYTE -> largestOrig = BaseDataType.BYTE
                         BaseDataType.UWORD -> largestOrig = BaseDataType.WORD
+                        BaseDataType.LONG -> largestOrig = BaseDataType.LONG
                         else -> throw FatalAstException("invalid dt")
                     }
                 }

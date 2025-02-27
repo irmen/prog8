@@ -165,24 +165,32 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                 }
 
+                // if one of the operands is a long const, convert to a smaller type const if possible
+                val constLeft = expr.left.constValue(program)
+                val constRight = expr.right.constValue(program)
+                if(constLeft?.type == BaseDataType.LONG) {
+                    val small1 = NumericLiteral.optimalInteger(constLeft.number.toInt(), constLeft.position)
+                    var small = NumericLiteral.optimalInteger(small1.type, rightDt.getOrUndef().base, small1.number.toInt(), small1.position)
+                    val (commonDt, toFix) = BinaryExpression.commonDatatype(DataType.forDt(small.type), rightDt.getOrUndef(), small, expr.right)
+                    if(toFix != null && toFix===small) {
+                        small = NumericLiteral(commonDt.base, small.number, small.position)
+                    }
+                    return listOf(IAstModification.ReplaceNode(expr.left, small, expr))
+                }
+                if(constRight?.type == BaseDataType.LONG) {
+                    val small1 = NumericLiteral.optimalInteger(constRight.number.toInt(), constRight.position)
+                    var small = NumericLiteral.optimalInteger(small1.type, leftDt.getOrUndef().base, small1.number.toInt(), small1.position)
+                    val (commonDt, toFix) = BinaryExpression.commonDatatype(DataType.forDt(small.type), leftDt.getOrUndef(), small, expr.left)
+                    if(toFix != null && toFix===small) {
+                        small = NumericLiteral(commonDt.base, small.number, small.position)
+                    }
+                    return listOf(IAstModification.ReplaceNode(expr.right, small, expr))
+                }
 
                 if((expr.operator!="<<" && expr.operator!=">>") || !leftDt.isWords || !rightDt.isBytes) {
-                    // determine common datatype and add typecast as required to make left and right equal types
-                    val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOrUndef(), rightDt.getOrUndef(), expr.left, expr.right)
-                    if(toFix!=null) {
-                        if(commonDt.isBool) {
-                            // don't automatically cast to bool
-                            errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
-                        } else {
-                            val modifications = mutableListOf<IAstModification>()
-                            when {
-                                toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt.base, expr)
-                                toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt.base, expr)
-                                else -> throw FatalAstException("confused binary expression side")
-                            }
-                            return modifications
-                        }
-                    }
+                    val modifications = makeCommonDt(leftDt.getOrUndef(), rightDt.getOrUndef(), expr)
+                    if(modifications.isNotEmpty())
+                        return modifications
                 }
             }
 
@@ -197,6 +205,26 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             }
         }
 
+        return noModifications
+    }
+
+    private fun makeCommonDt(leftDt: DataType, rightDt: DataType, expr: BinaryExpression): List<IAstModification> {
+        // determine common datatype and add typecast as required to make left and right equal types
+        val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt, rightDt, expr.left, expr.right)
+        if(toFix!=null) {
+            if(commonDt.isBool) {
+                // don't automatically cast to bool
+                errors.err("left and right operands aren't the same type: $leftDt vs $rightDt", expr.position)
+            } else {
+                val modifications = mutableListOf<IAstModification>()
+                when {
+                    toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt.base, expr)
+                    toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt.base, expr)
+                    else -> throw FatalAstException("confused binary expression side")
+                }
+                return modifications
+            }
+        }
         return noModifications
     }
 

@@ -2,6 +2,7 @@ package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -18,13 +19,14 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestConst: FunSpec({
 
     val outputDir = tempdir().toPath()
-    
+
     test("const folding multiple scenarios +/-") {
         val source = """
             main {
@@ -307,10 +309,10 @@ main {
     }
 
     test("address of a const uword pointer array expression") {
-        val src="""
+        val src= """
 main {
     sub start() {
-        const uword buffer = ${'$'}2000
+        const uword buffer = $2000
         uword @shared addr = &buffer[2]
         
         const ubyte width = 100
@@ -329,7 +331,7 @@ main {
         assignAddr2.arrayIndex!!.indexExpr shouldBe instanceOf<BinaryExpression>()
     }
 
-    test("out of range const byte and word give correct error") {
+    test("deprecated typed consts get converted with message") {
         var src="""
 main {
     sub start() {
@@ -337,16 +339,25 @@ main {
         const word MIN_WORD = -32769
         const byte MAX_BYTE = 128
         const word MAX_WORD = 32768
+        const long MAX_LONG = 999999999
     }
 }"""
 
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
-        errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain "out of range"
-        errors.errors[1] shouldContain "out of range"
-        errors.errors[2] shouldContain "out of range"
-        errors.errors[3] shouldContain "out of range"
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false, errors=errors)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 5
+        (st[0] as VarDecl).datatype.isLong shouldBe true
+        (st[1] as VarDecl).datatype.isLong shouldBe true
+        (st[2] as VarDecl).datatype.isLong shouldBe true
+        (st[3] as VarDecl).datatype.isLong shouldBe true
+        (st[4] as VarDecl).datatype.isLong shouldBe true
+        errors.errors.size shouldBe 0
+        errors.infos.size shouldBeGreaterThanOrEqualTo 4
+        errors.infos[0] shouldContain "converted to long"
+        errors.infos[1] shouldContain "converted to long"
+        errors.infos[2] shouldContain "converted to long"
+        errors.infos[3] shouldContain "converted to long"
     }
 
     test("out of range var byte and word give correct error") {
@@ -467,5 +478,20 @@ main {
 }"""
         compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
 
+    }
+
+    test("const in scope ok") {
+        val src="""
+main {
+    sub start() {
+        repeat {
+            const ubyte MAX_WORDS = 8
+
+            cx16.r0L = MAX_WORDS
+        }
+    }
+}"""
+
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 })
