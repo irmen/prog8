@@ -35,14 +35,6 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
     override fun after(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> {
 
-        if(numLiteral.type==BaseDataType.LONG) {
-            // see if LONG values may be reduced to something smaller
-            val smaller = NumericLiteral.optimalInteger(numLiteral.number.toInt(), numLiteral.position)
-            if(smaller.type!=BaseDataType.LONG) {
-                return listOf(IAstModification.ReplaceNode(numLiteral, smaller, parent))
-            }
-        }
-
         if(parent is Assignment) {
             val iDt = parent.target.inferType(program)
             if(iDt.isKnown && !iDt.isBool && !(iDt issimpletype numLiteral.type)) {

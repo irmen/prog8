@@ -31,9 +31,10 @@ class TestAstChecks: FunSpec({
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), true, text, outputDir, writeAssembly = true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
-        errors.infos.size shouldBe 2
-        errors.infos[0] shouldContain "converted to float"
-        errors.infos[1] shouldContain "converted to float"
+        val nondeprecations = errors.infos.filter { "deprecat" !in it }
+        nondeprecations.size shouldBe 2
+        nondeprecations[0] shouldContain "converted to float"
+        nondeprecations[1] shouldContain "converted to float"
     }
 
     test("can't assign label or subroutine without using address-of") {
