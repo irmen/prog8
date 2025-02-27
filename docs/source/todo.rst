@@ -1,16 +1,32 @@
 TODO
 ====
 
+- swirl example (and rockrunner) is broken with long const now (code is missing?)
+
+- const values should always either be of type long or float, this is how they were usually treated in const expression evaluation already anyway
+  TODO: add new syntax where const declarations don't need the type anymore (and it's always set to long in the parser)
+  BUT!!! how to deal with variables turned into constants?  Can't be LONG constants, it will fuck up the type restriction system (types shouldn't grow)
+
+
+- Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
+
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
+- romable: instead of allocating temp var in ZP in for loops, always put it in system memory instead to save precious ZP space. Look for TODO("no space left in zp
+- romable: write access to strings and arrays should be a compilation error when generating romable code (because strings and arrays are immutable in this case). But only when NOT memory mapped!
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
+- [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
+  Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
+  But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
+  Maybe propose a patch to 64tass itself that will treat .proc as .block ?
+  Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
+
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
@@ -22,7 +38,7 @@ Future Things and Ideas
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-- [much work:] more support for (64tass) SEGMENTS in the prog8 syntax itself?
+- [much work:] more support for (64tass) SEGMENTS ?
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
 
@@ -74,7 +90,7 @@ STRUCTS?
 --------
 
 - declare struct *type*, or directly declare the variable itself?  Problem with the latter is: you cannot easily define multiple variables of the same struct type.
-- can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs, max 1 page of memory total size to allow regular indexing?
+- can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs
 - only as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
 - arrays of struct is just an array of uword pointers. Can even be @split?
 - need to introduce typed pointer datatype in prog8

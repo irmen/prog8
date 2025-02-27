@@ -314,13 +314,14 @@ internal class ConstantIdentifierReplacer(
             return noModifications
 
         try {
-            val cval = identifier.constValue(program) ?: return noModifications
+            val cvalue = identifier.constValue(program) ?: return noModifications
             val arrayIdx = identifier.parent as? ArrayIndexedExpression
-            if(arrayIdx!=null && cval.type.isNumeric) {
+            if(arrayIdx!=null && cvalue.type.isNumeric) {
                 // special case when the identifier is used as a pointer var
                 // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
                 // constpointer[x] = var -> @(constvalue+x) [directmemorywrite] = var
-                val add = BinaryExpression(NumericLiteral(cval.type, cval.number, identifier.position), "+", arrayIdx.indexer.indexExpr, identifier.position)
+                val dt = if(cvalue.type == BaseDataType.LONG) NumericLiteral.optimalInteger(cvalue.number.toInt(), cvalue.position).type else cvalue.type
+                val add = BinaryExpression(NumericLiteral(dt, cvalue.number, identifier.position), "+", arrayIdx.indexer.indexExpr, identifier.position)
                 return if(arrayIdx.parent is AssignTarget) {
                     val memwrite = DirectMemoryWrite(add, identifier.position)
                     val assignTarget = AssignTarget(null, null, memwrite, null, false, identifier.position)
@@ -331,18 +332,19 @@ internal class ConstantIdentifierReplacer(
                 }
             }
             when {
-                cval.type.isNumericOrBool -> {
+                cvalue.type.isNumericOrBool -> {
                     if(parent is AddressOf)
                         return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
+                    val dt = if(cvalue.type == BaseDataType.LONG) NumericLiteral.optimalInteger(cvalue.number.toInt(), cvalue.position).type else cvalue.type
                     return listOf(
                         IAstModification.ReplaceNode(
                             identifier,
-                            NumericLiteral(cval.type, cval.number, identifier.position),
+                            NumericLiteral(dt, cvalue.number, identifier.position),
                             identifier.parent
                         )
                     )
                 }
-                cval.type.isPassByRef -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
+                cvalue.type.isPassByRef -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
                 else -> return noModifications
             }
         } catch (x: UndefinedSymbolError) {
@@ -452,15 +454,20 @@ internal class ConstantIdentifierReplacer(
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    val rangeType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
-                    return if(rangeType.isByte) {
+                    val rangeType2 = rangeExpr.inferType(program).getOr(DataType.UBYTE)
+                    return if(rangeType2.isByte) {
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                            constRange.map { NumericLiteral(rangeType.base, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            constRange.map { NumericLiteral(rangeType2.base, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     } else {
-                        require(rangeType.sub!=null)
+                        require(rangeType2.sub!=null)
+                        val subDt = if(rangeType2.sub == BaseDataType.LONG) {
+                            val first = NumericLiteral.optimalInteger(constRange.first, Position.DUMMY).type
+                            val last = NumericLiteral.optimalInteger(constRange.last, Position.DUMMY).type
+                            if(last.largerSizeThan(first)) last else first
+                        } else rangeType2.sub!!
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
-                            constRange.map { NumericLiteral(rangeType.sub!!, it.toDouble(), decl.value!!.position) }.toTypedArray(),
+                            constRange.map { NumericLiteral(subDt, it.toDouble(), decl.value!!.position) }.toTypedArray(),
                             position = decl.value!!.position)
                     }
                 }

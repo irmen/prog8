@@ -69,6 +69,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, BaseDataType.UBYTE, resultRegister)
             "prog8_lib_square_word" -> funcSquare(fcall, BaseDataType.UWORD, resultRegister)
+            "len" -> throw AssemblyError("len() should have been replaced by the actual constant number")
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 

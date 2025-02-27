@@ -191,6 +191,23 @@ class AstPreprocessor(val program: Program,
             return makeUnSplitArray(decl)
         }
 
+        if(decl.type == VarDeclType.CONST && decl.datatype.isInteger && !decl.datatype.isLong) {
+            // All const vardecls are changed to LONG type, but ONLY if their scope is not an anonymous scope.
+            // This is because elsewhere in this processor, variables from anonymous scopes are first moved
+            // up to the subroutine scope, and this would otherwise interfere in the same modification iteration.
+            if(parent !is AnonymousScope) {
+                errors.info("byte or word const (deprecated) converted to long const", decl.position)
+                val longdecl = decl.copy(DataType.forDt(BaseDataType.LONG))
+                val declvalue = decl.value!!.constValue(program)
+                if(declvalue!=null) {
+                    val longvalue = NumericLiteral(BaseDataType.LONG, declvalue.number, declvalue.position)
+                    longdecl.value = longvalue
+                    longvalue.linkParents(longdecl)
+                }
+                return listOf(IAstModification.ReplaceNode(decl, longdecl, parent))
+            }
+        }
+
         return noModifications
     }
 
