@@ -53,8 +53,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                     } else {
                         // don't make it signed if it was unsigned and vice versa
-                        if(valueDt.isSigned && decl.datatype.isUnsigned ||
-                            valueDt.isUnsigned && decl.datatype.isSigned) {
+                        if(!decl.datatype.isLong && (valueDt.isSigned && decl.datatype.isUnsigned || valueDt.isUnsigned && decl.datatype.isSigned)) {
                             val constValue = decl.value!!.constValue(program)!!
                             errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                         } else {
@@ -63,8 +62,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         }
                     }
                 }
-                VarDeclType.MEMORY -> if(!valueType.isWords && !valueType.isBytes)
-                    throw FatalAstException("value type for a memory var should be word or byte (address)")
+                VarDeclType.MEMORY -> {
+                    if(!valueType.isWords && !valueType.isBytes) {
+                        val constVal = decl.value?.constValue(program)
+                        if(constVal == null || constVal.number>65535) {
+                            throw FatalAstException("value type for a memory var should be word or byte (address) ${decl.position}")
+                        }
+                    }
+                }
             }
 
         }

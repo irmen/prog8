@@ -76,7 +76,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        checkLongType(identifier)
+        checkResidualLongType(identifier)
         val stmt = identifier.targetStatement(program)
         if(stmt==null)
             errors.undefined(identifier.nameInSource, identifier.position)
@@ -328,7 +328,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(numLiteral: NumericLiteral) {
-        checkLongType(numLiteral)
+        checkResidualLongType(numLiteral)
     }
 
     private fun hasReturnOrExternalJumpOrRts(scope: IStatementContainer): Boolean {
@@ -709,7 +709,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(addressOf: AddressOf) {
-        checkLongType(addressOf)
+        checkResidualLongType(addressOf)
         val variable=addressOf.identifier.targetVarDecl()
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
@@ -1164,7 +1164,7 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        checkLongType(expr)
+        checkResidualLongType(expr)
         val dt = expr.expression.inferType(program).getOrUndef()
         if(!dt.isUndefined) {
             when (expr.operator) {
@@ -1221,7 +1221,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(expr: BinaryExpression) {
         super.visit(expr)
-        checkLongType(expr)
+        checkResidualLongType(expr)
 
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
@@ -1333,7 +1333,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(typecast: TypecastExpression) {
-        checkLongType(typecast)
+        checkResidualLongType(typecast)
         if(typecast.type.isIterable)
             errors.err("cannot type cast to string or array type", typecast.position)
 
@@ -1384,7 +1384,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(functionCallExpr: FunctionCallExpression) {
-        checkLongType(functionCallExpr)
+        checkResidualLongType(functionCallExpr)
         // this function call is (part of) an expression, which should be in a statement somewhere.
         val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
@@ -1601,7 +1601,7 @@ internal class AstChecker(private val program: Program,
         }
 
         args.forEach{
-            checkLongType(it)
+            checkResidualLongType(it)
         }
     }
 
@@ -1612,7 +1612,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        checkLongType(arrayIndexedExpression)
+        checkResidualLongType(arrayIndexedExpression)
         val target = arrayIndexedExpression.arrayvar.targetStatement(program)
         if(target is VarDecl) {
             if(!target.datatype.isIterable && !target.datatype.isUnsignedWord)
@@ -1779,12 +1779,15 @@ internal class AstChecker(private val program: Program,
             errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
     }
 
-    private fun checkLongType(expression: Expression) {
+    private fun checkResidualLongType(expression: Expression) {
         if(expression.inferType(program) issimpletype BaseDataType.LONG) {
             if((expression.parent as? VarDecl)?.type!=VarDeclType.CONST) {
-                if (expression.parent !is RepeatLoop) {
-                    if (errors.noErrorForLine(expression.position))
-                        errors.err("integer overflow", expression.position)
+                val constvalue = expression.constValue(program)
+                if(constvalue==null || constvalue.number>65535 || constvalue.number <= -32768) {
+                    if (expression.parent !is RepeatLoop) {
+                        if (errors.noErrorForLine(expression.position))
+                            errors.err("integer overflow", expression.position)
+                    }
                 }
             }
         }
