@@ -1360,6 +1360,14 @@ class ContainmentCheck(var element: Expression,
                         return NumericLiteral.fromBoolean(exists, position)
                     }
                 }
+                is RangeExpression -> {
+                    if(elementConst.type.isInteger) {
+                        val intprogression = (iterable as RangeExpression).toConstantIntegerRange()
+                        if (intprogression!=null) {
+                            return NumericLiteral.fromBoolean(intprogression.contains(elementConst.number.toInt()), position)
+                        }
+                    }
+                }
                 else -> {}
             }
         }
