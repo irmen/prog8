@@ -348,7 +348,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             cmp  ${asmgen.asmVariableName(arg2)}
 +""")
                     }
-                    is PtBool -> TODO("word compare against bool")
+                    is PtBool -> TODO("word compare against bool  ${arg2.position}")
                     is PtNumber -> {
                         asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
                         asmgen.out("""

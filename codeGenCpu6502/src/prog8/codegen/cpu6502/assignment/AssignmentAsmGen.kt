@@ -43,7 +43,7 @@ internal class AssignmentAsmGen(
         if(extsub!=null) {
             require(extsub.returns.size>=2)
             if(extsub.returns.any { it.type.isFloat })
-                TODO("deal with (multiple?) FP return registers")
+                TODO("deal with (multiple?) FP return registers  ${assignment.position}")
 
             asmgen.translate(values)
 
@@ -153,7 +153,7 @@ internal class AssignmentAsmGen(
                         else -> throw AssemblyError("weird dt")
                     }
                 }
-                else TODO("array target for multi-value assignment")        // Not done yet due to result register clobbering complexity
+                else TODO("array target for multi-value assignment  ${target.position}")        // Not done yet due to result register clobbering complexity
             }
         }
     }
@@ -710,7 +710,7 @@ internal class AssignmentAsmGen(
                 if(register in Cx16VirtualRegisters) {
                     asmgen.out("  lda  cx16.${register.toString().lowercase()}L")
                 } else {
-                    TODO("LDA byte from $register")
+                    TODO("LDA byte from $register  ${target.position}")
                 }
                 assignRegisterByte(target, CpuRegister.A, false, false)
             }
@@ -854,7 +854,7 @@ internal class AssignmentAsmGen(
                 RegisterOrPair.A -> "a"
                 RegisterOrPair.X -> "x"
                 RegisterOrPair.Y -> "y"
-                else -> TODO("comparison to word register")
+                else -> TODO("comparison to word register  ${expr.position}")
             }
             val assignTrue = PtInlineAssembly("\tld${reg}  #1", false, assign.target.position)
             val assignFalse = PtInlineAssembly("\tld${reg}  #0", false, assign.target.position)
@@ -1845,7 +1845,7 @@ internal class AssignmentAsmGen(
             "==" -> {
                 val dt = expr.left.type
                 when {
-                    dt.isBool -> TODO("compare bool to 0")
+                    dt.isBool -> TODO("compare bool to 0  ${expr.position}")
                     dt.isByte -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt.isSigned)
                         asmgen.out("""
@@ -1881,7 +1881,7 @@ internal class AssignmentAsmGen(
             "!=" -> {
                 val dt = expr.left.type
                 when {
-                    dt.isBool -> TODO("compare bool to 0")
+                    dt.isBool -> TODO("compare bool to 0  ${expr.position}")
                     dt.isByte -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt.isSigned)
                         asmgen.out("  beq  + |  lda  #1")
