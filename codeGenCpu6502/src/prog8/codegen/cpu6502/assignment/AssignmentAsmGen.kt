@@ -1845,8 +1845,7 @@ internal class AssignmentAsmGen(
             "==" -> {
                 val dt = expr.left.type
                 when {
-                    dt.isBool -> TODO("compare bool to 0  ${expr.position}")
-                    dt.isByte -> {
+                    dt.isBool || dt.isByte -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt.isSigned)
                         asmgen.out("""
                             cmp  #0
@@ -1881,8 +1880,7 @@ internal class AssignmentAsmGen(
             "!=" -> {
                 val dt = expr.left.type
                 when {
-                    dt.isBool -> TODO("compare bool to 0  ${expr.position}")
-                    dt.isByte -> {
+                    dt.isBool || dt.isByte -> {
                         assignExpressionToRegister(expr.left, RegisterOrPair.A, dt.isSigned)
                         asmgen.out("  beq  + |  lda  #1")
                         asmgen.out("+")

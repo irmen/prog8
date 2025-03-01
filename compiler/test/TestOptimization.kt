@@ -1159,4 +1159,20 @@ main {
         compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
     }
+
+    test("boolean comparisons without optimization can be assembled") {
+        val src="""
+main {
+    sub start() {
+        bool @shared pre_start, xxx
+
+        if (pre_start != false and xxx) {
+            return
+        } else if (pre_start != false and xxx) {
+            return
+        }
+    }
+}"""
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
 })
