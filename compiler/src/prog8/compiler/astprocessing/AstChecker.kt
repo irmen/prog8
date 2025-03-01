@@ -1375,8 +1375,10 @@ internal class AstChecker(private val program: Program,
         if(targetStatement!=null)
             checkFunctionCall(targetStatement, functionCallExpr.args, functionCallExpr.position)
 
+        val builtinFunctionName = functionCallExpr.target.nameInSource.singleOrNull()
+
         // warn about sgn(unsigned) this is likely a mistake
-        if(functionCallExpr.target.nameInSource.last()=="sgn") {
+        if(builtinFunctionName=="sgn") {
             val sgnArgType = functionCallExpr.args.first().inferType(program)
             if(sgnArgType issimpletype BaseDataType.UBYTE  || sgnArgType issimpletype BaseDataType.UWORD)
                 errors.warn("sgn() of unsigned type is always 0 or 1, this is perhaps not what was intended", functionCallExpr.args.first().position)
@@ -1400,13 +1402,21 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(functionCallExpr.target.nameInSource.singleOrNull() in listOf("peek", "peekw")) {
+        if(builtinFunctionName in listOf("peek", "peekw")) {
             val pointervar = functionCallExpr.args[0] as? IdentifierReference
             if(pointervar!=null)
                 checkPointer(pointervar)
             val binexpr = functionCallExpr.args[0] as? BinaryExpression
             if(binexpr?.left is IdentifierReference && binexpr.right is NumericLiteral)
                 checkPointer(binexpr.left as IdentifierReference)
+        }
+
+        if(builtinFunctionName=="memory") {
+            val str = functionCallExpr.args[0] as? StringLiteral
+            if(str==null)
+                errors.err("memory name argument must be a string literal", functionCallExpr.args[0].position)
+            else if(str.value.isEmpty())
+                errors.err("memory name argument cannot be empty string", functionCallExpr.args[0].position)
         }
 
         super.visit(functionCallExpr)

@@ -63,10 +63,11 @@ What does Prog8 provide?
 - various data types other than just bytes (16-bit words, floats, strings)
 - floating point math is supported on certain targets
 - access to most Kernal ROM routines as external subroutine definitions you can call normally
+- tight control over Zeropage usage
+- programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - strings can contain escaped characters but also many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \, {, } and | are also accepted and converted to the closest petscii equivalents.
 - automatic static variable allocations, automatic string and array variables and string sharing
 - high-level program optimizations
-- programs can be run multiple times without reloading because of automatic variable (re)initializations.
 - conditional branches that map 1:1 to cpu status flags
 - ``when`` statement to provide a concise jump table alternative to if/elseif chains
 - ``in`` expression for concise and efficient multi-value/containment check 

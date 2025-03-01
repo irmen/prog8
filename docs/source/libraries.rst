@@ -187,7 +187,8 @@ sizeof (name)  ;  sizeof (number)
 
 memory (name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
-    with the given name. The block is *uninitialized memory*; unlike other variables in Prog8 it is *not* set to zero at the start of the program!
+    with the given name. The name must be a string literal, it cannot be empty or be a variable.
+    The block is *uninitialized memory*; unlike other variables in Prog8 it is *not* set to zero at the start of the program!
     (if that is required, you can do so yourself using ``memset``).
     If you specify an alignment value >1, it means the block of memory will
     be aligned to such a dividable address in memory, for instance an alignment of $100 means the

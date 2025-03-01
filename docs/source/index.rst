@@ -96,6 +96,8 @@ Features
   and inline assembly to have full control when every register, cycle or byte matters
 - Variables are all allocated statically, no memory allocation overhead
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
+- Tight control over Zeropage usage
+- Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
 - Conditional branches for status flags that map 1:1 to processor branch instructions for optimal efficiency
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test
@@ -110,7 +112,6 @@ Features
 - Identifiers can contain Unicode Letters, so ``knäckebröd``, ``приблизительно``, ``見せしめ`` and ``π`` are all valid identifiers.
 - Subroutines can return more than one result value
 - Advanced code optimizations to make the resulting program smaller and faster
-- Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
 - Supports the sixteen 'virtual' 16-bit registers R0 to R15 as defined on the Commander X16. You can look at them as general purpose global variables. These are also available on the other compilation targets!
 - On the Commander X16: Support for low level system features such as Vera Fx, which includes 16x16 bits multiplication in hardware and fast memory copy and fill.
 - 50 Kb of available program RAM size on the C64 by default; because Basic ROM is banked out altogether
