@@ -1,15 +1,52 @@
 %import textio
-%zeropage basicsafe
 %option no_sysinit
+%zeropage basicsafe
 
 main {
-    sub start() {
-        bool @shared pre_start, xxx
+    const ubyte VALUE = 123
 
-        if (pre_start != false and xxx) {
-            return
-        } else if (pre_start != false and xxx) {
-            return
+    sub start() {
+        uword @shared @nozp location = $4000
+
+        @($3fff) = 55
+        @($4000) = 56
+        @($4001) = 57
+
+        txt.print_ub(@($3fff))
+        txt.spc()
+        txt.print_ub(@($4000))
+        txt.spc()
+        txt.print_ub(@($4001))
+        txt.nl()
+
+        for location in $4000 to $4002 {
+            @(location-1) = VALUE
+            txt.print_ub(@($3fff))
+            txt.spc()
+            txt.print_ub(@($4000))
+            txt.spc()
+            txt.print_ub(@($4001))
+            txt.nl()
         }
     }
 }
+
+
+/** TODO scoping bug
+; scoping bug:
+
+
+main {
+
+    %option no_symbol_prefixing
+
+    sub start() {
+        other.something()
+    }
+}
+
+other {
+    sub something() {
+    }
+}
+**/

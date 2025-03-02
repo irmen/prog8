@@ -1352,13 +1352,14 @@ $repeatLabel""")
                     if(pointervar!=null && isZpVar(pointervar)) {
                         val varname = asmSymbolName(pointervar)
                         out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
-                        out("  dec  $varname+1 |  sta  ($varname),y |  inc  $varname+1")        // temporarily make MSB 1 less
+                        out("  dec  $varname+1 |  sta  ($varname),y |  inc  $varname+1")        // temporarily make MSB 1 less to be able to use the negative Y offset
                         return true
                     } else {
                         // copy the pointer var to zp first
+                        out("  pha")
                         assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                         out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
-                        out("  dec  P8ZP_SCRATCH_W2+1 |  sta  (P8ZP_SCRATCH_W2),y |  inc  P8ZP_SCRATCH_W2+1")        // temporarily make MSB 1 less
+                        out("  dec  P8ZP_SCRATCH_W2+1 |  pla |  sta  (P8ZP_SCRATCH_W2),y")        // temporarily make MSB 1 less to be able to use the negative Y offset
                         return true
                     }
                 }
@@ -1382,13 +1383,13 @@ $repeatLabel""")
                     if(pointervar!=null && isZpVar(pointervar)) {
                         val varname = asmSymbolName(pointervar)
                         out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
-                        out("  dec  $varname+1 |  lda  ($varname),y |  inc  $varname+1")        // temporarily make MSB 1 less
+                        out("  dec  $varname+1 |  lda  ($varname),y |  inc  $varname+1")        // temporarily make MSB 1 less to be able to use the negative Y offset
                         return true
                     } else {
                         // copy the pointer var to zp first
                         assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
                         out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
-                        out("  dec  P8ZP_SCRATCH_W2+1 |  lda  (P8ZP_SCRATCH_W2),y |  inc  P8ZP_SCRATCH_W2+1")        // temporarily make MSB 1 less
+                        out("  dec  P8ZP_SCRATCH_W2+1 |  lda  (P8ZP_SCRATCH_W2),y")        // temporarily make MSB 1 less to be able to use the negative Y offset
                         return true
                     }
                 }
