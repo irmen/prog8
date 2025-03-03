@@ -12,6 +12,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- allow integer range as when choice? because 1,2,3,4,5 is already allowed, so perhaps 1 to 5 should be allowed too? However, [1,2,3,4,5] usually is the desugared equivalent of 1 to 5 and choice values can't be arrays.
 - const values should always either be of type long or float, this is how they were usually treated in const expression evaluation already anyway
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

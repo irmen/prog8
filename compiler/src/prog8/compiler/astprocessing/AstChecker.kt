@@ -1663,7 +1663,7 @@ internal class AstChecker(private val program: Program,
             val constvalues = whenChoice.values!!.map { it.constValue(program) to it.position }
             for((constvalue, pos) in constvalues) {
                 when {
-                    constvalue == null -> errors.err("choice value must be a constant", pos)
+                    constvalue == null -> errors.err("choice values must be constant numbers", pos)
                     !constvalue.type.isIntegerOrBool -> errors.err("choice value must be a byte or word", pos)
                     !(conditionType issimpletype constvalue.type) -> {
                         if(conditionType.isKnown) {
