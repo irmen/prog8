@@ -445,4 +445,33 @@ WARN name 'var1Warn' shadows occurrence at...
         errors.errors[3] shouldContain "internalOk"
         errors.errors[3] shouldContain "line 11"
     }
+
+    test("ast node linkage and lookups ok even with no symbol prefixing") {
+        val src="""
+main {
+    sub start() {
+        thing.routine()
+    }
+}
+
+thing {
+    %option no_symbol_prefixing
+
+    sub routine() {
+        other.something()
+        other.counter++
+    }
+}
+
+other {
+    sub something() {
+    }
+
+    uword @shared counter
+}
+"""
+
+        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+    }
+
 })

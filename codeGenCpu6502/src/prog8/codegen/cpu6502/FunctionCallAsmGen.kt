@@ -32,8 +32,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // NOTE: does NOT output code to save/restore the X register for this call! Every caller should deal with this in their own way!!
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
-        val symbol = asmgen.symbolTable.lookup(call.name)
-        val sub = symbol?.astNode as IPtSubroutine
+        val symbol = asmgen.symbolTable.lookup(call.name)!!
+        val sub = symbol.astNode as IPtSubroutine
         val subAsmName = asmgen.asmSymbolName(call.name)
 
         if(sub is PtAsmSub) {

@@ -1,8 +1,6 @@
 TODO
 ====
 
-- fix scoping bug
-
 - Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 

@@ -93,9 +93,35 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
             node.children.forEach { prefixSymbols(it) }
         }
 
+        fun maybePrefixFunctionCallsAndIdentifierReferences(node: PtNode) {
+            if(node is PtFunctionCall) {
+                // function calls to subroutines defined in a block that does NOT have NoSymbolPrefixing, still have to be prefixed at the call site
+                val stNode = st.lookup(node.name)!!
+                if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
+                    val index = node.parent.children.indexOf(node)
+                    functionCallsToPrefix += node.parent to index
+                }
+            }
+            else if (node is PtIdentifier) {
+                // identifier references to things defined in a block that does NOT have NoSymbolPrefixing, still have to be prefixed at the referencing point
+                var lookupName = node.name
+                if(node.type.isSplitWordArray && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
+                    lookupName = lookupName.dropLast(4)
+                }
+                val stNode = st.lookup(lookupName) ?: throw AssemblyError("unknown identifier $node")
+                if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
+                    val index = node.parent.children.indexOf(node)
+                    nodesToPrefix += node.parent to index
+                }
+            }
+            node.children.forEach { maybePrefixFunctionCallsAndIdentifierReferences(it) }
+        }
+
         program.allBlocks().forEach { block ->
             if (!block.options.noSymbolPrefixing) {
                 prefixSymbols(block)
+            } else {
+                maybePrefixFunctionCallsAndIdentifierReferences(block)
             }
         }
 

@@ -1,52 +1,23 @@
-%import textio
-%option no_sysinit
-%zeropage basicsafe
+; scoping bug:
 
 main {
-    const ubyte VALUE = 123
-
     sub start() {
-        uword @shared @nozp location = $4000
-
-        @($3fff) = 55
-        @($4000) = 56
-        @($4001) = 57
-
-        txt.print_ub(@($3fff))
-        txt.spc()
-        txt.print_ub(@($4000))
-        txt.spc()
-        txt.print_ub(@($4001))
-        txt.nl()
-
-        for location in $4000 to $4002 {
-            @(location-1) = VALUE
-            txt.print_ub(@($3fff))
-            txt.spc()
-            txt.print_ub(@($4000))
-            txt.spc()
-            txt.print_ub(@($4001))
-            txt.nl()
-        }
+        thing.routine()
     }
 }
 
-
-/** TODO scoping bug
-; scoping bug:
-
-
-main {
-
+thing {
     %option no_symbol_prefixing
 
-    sub start() {
+    sub routine() {
         other.something()
+        other.counter++
     }
 }
 
 other {
     sub something() {
     }
+
+    uword @shared counter
 }
-**/
