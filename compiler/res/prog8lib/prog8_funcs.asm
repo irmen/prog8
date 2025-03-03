@@ -237,8 +237,10 @@ _l3		ldy  P8ZP_SCRATCH_B1           ;where the largest value shall be put
 		dec  P8ZP_SCRATCH_B1
 		bne  _sort_loop           ;start working with the shorter sequence
 		rts
-_work1	.byte  0
-_work3	.word  0
+		.section BSS
+_work1	.byte  ?
+_work3	.word  ?
+		.send BSS
 		.pend
 
 
@@ -301,8 +303,10 @@ _l3		ldy  P8ZP_SCRATCH_B1           ;where the largest value shall be put
 		dec  P8ZP_SCRATCH_B1
 		bne  _sort_loop           ;start working with the shorter sequence
 		rts
-_work1	.byte  0
-_work3	.word  0
+		.section BSS
+_work1	.byte  ?
+_work3	.word  ?
+		.send BSS
 		.pend
 
 

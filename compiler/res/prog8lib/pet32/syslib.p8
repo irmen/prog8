@@ -375,10 +375,12 @@ _no_msb_size
             lda  P8ZP_SCRATCH_W2+1
             sta  save_SCRATCH_ZPWORD2+1
             rts
-save_SCRATCH_ZPB1	.byte  0
-save_SCRATCH_ZPREG	.byte  0
-save_SCRATCH_ZPWORD1	.word  0
-save_SCRATCH_ZPWORD2	.word  0
+            .section BSS
+save_SCRATCH_ZPB1	.byte  ?
+save_SCRATCH_ZPREG	.byte  ?
+save_SCRATCH_ZPWORD1	.word  ?
+save_SCRATCH_ZPWORD2	.word  ?
+            .send BSS
             ; !notreached!
         }}
     }
@@ -613,9 +615,11 @@ cx16 {
             bpl  -
             rts
 
+            .section BSS
     _cx16_vreg_storage
-            .word 0,0,0,0,0,0,0,0
-            .word 0,0,0,0,0,0,0,0
+            .word ?,?,?,?,?,?,?,?
+            .word ?,?,?,?,?,?,?,?
+            .send BSS
             ; !notreached!
         }}
     }
@@ -667,6 +671,7 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
+    ; TODO: Romable
     %asm {{
 _exitcodeCarry = *+1
         lda  #0
