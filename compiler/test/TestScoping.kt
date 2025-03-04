@@ -460,6 +460,7 @@ thing {
     sub routine() {
         other.something()
         other.counter++
+        other.asmsomething()
     }
 }
 
@@ -467,8 +468,16 @@ other {
     sub something() {
     }
 
+    asmsub asmsomething() {
+        %asm {{
+            nop
+            rts
+        }}
+    }
+
     uword @shared counter
 }
+
 """
 
         compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null

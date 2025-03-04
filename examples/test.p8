@@ -1,23 +1,12 @@
-; scoping bug:
+%import textio
+%zeropage basicsafe
 
 main {
-    sub start() {
-        thing.routine()
-    }
-}
-
-thing {
-    %option no_symbol_prefixing
-
-    sub routine() {
-        other.something()
-        other.counter++
-    }
-}
-
-other {
-    sub something() {
-    }
-
-    uword @shared counter
+  sub start() {
+    txt.print("1\n")
+    label()
+    txt.print("2\n")
+label:
+    txt.print("3\n")
+  }
 }

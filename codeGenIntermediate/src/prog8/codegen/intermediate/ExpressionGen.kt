@@ -2,6 +2,7 @@ package prog8.codegen.intermediate
 
 import prog8.code.StNode
 import prog8.code.StExtSub
+import prog8.code.StNodeType
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -579,7 +580,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     internal fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
-        val callTarget = codeGen.symbolTable.flat.getValue(fcall.name)
+        val callTarget = codeGen.symbolTable.lookup(fcall.name)!!
 
         if(callTarget.scopedName in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw", "floats.push", "floats.pop")) {
             // special case, these should be inlined, or even use specialized instructions. Instead of doing a normal subroutine call.
@@ -755,7 +756,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 else
                     ExpressionCodeResult(result, returnRegSpec!!.dt, finalReturnRegister, -1)
             }
-            else -> throw AssemblyError("invalid node type")
+            else -> {
+                if(callTarget.type == StNodeType.LABEL) {
+                    require(fcall.void)
+                    val result = mutableListOf<IRCodeChunkBase>()
+                    val args = FunctionCallArgs(emptyList(), emptyList())
+                    addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name, fcallArgs = args), null)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+                }
+                else {
+                    throw AssemblyError("invalid node type")
+                }
+            }
         }
     }
 

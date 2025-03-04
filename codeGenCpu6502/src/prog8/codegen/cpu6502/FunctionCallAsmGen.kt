@@ -1,5 +1,6 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.StNodeType
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignSource
@@ -33,6 +34,12 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         //       (you can use subroutine.shouldSaveX() and saveX()/restoreX() routines as a help for this)
 
         val symbol = asmgen.symbolTable.lookup(call.name)!!
+        if(symbol.type == StNodeType.LABEL) {
+            require(call.void)
+            asmgen.out("  jsr  ${asmgen.asmSymbolName(symbol.scopedName)}")
+            return
+        }
+
         val sub = symbol.astNode as IPtSubroutine
         val subAsmName = asmgen.asmSymbolName(call.name)
 
