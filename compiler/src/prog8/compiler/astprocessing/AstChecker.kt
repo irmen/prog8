@@ -1522,8 +1522,11 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(target is Label && args.isNotEmpty())
-            errors.err("cannot use arguments when calling a label", position)
+        if (target is Label) {
+            errors.warn("\uD83D\uDCA3 footgun: calling label as subroutine (JSR) is tricky", position)
+            if (args.isNotEmpty())
+                errors.err("cannot use arguments when calling a label", position)
+        }
 
         if(target is Subroutine) {
             if(target.isAsmSubroutine) {

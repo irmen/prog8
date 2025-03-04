@@ -63,10 +63,11 @@ Subroutine
 
 Label
     This is a named position in your code where you can jump to from another place.
-    You can jump to it with a jump statement elsewhere. It is also possible to use a
-    subroutine call to a label (but without parameters and return value).
     A label is an identifier followed by a colon ``:``. It's ok to put the next statement on
     the same line, immediately after the label.
+    You can jump to it with a goto statement. It is also possible to use a
+    subroutine call to a label (but without parameters and return value), however 🦶🔫 footgun warning:
+    doing that is tricky because it makes for weird control flow and interferes with defers.
 
 Scope
     Also known as 'namespace', this is a named box around the symbols defined in it.
