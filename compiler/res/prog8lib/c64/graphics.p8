@@ -334,10 +334,10 @@ hline_zero2
 ;        @(pixaddr) |= ormask[lsb(px) & 7]
 ;    }
 
-    inline asmsub  plot(uword plotx @XY, ubyte ploty @A) clobbers (A, X, Y) {
+    inline asmsub  plot(uword plotx @AX, ubyte ploty @Y) clobbers (A, X, Y) {
         %asm {{
-            stx  p8b_graphics.p8v_internal_plotx
-            sty  p8b_graphics.p8v_internal_plotx+1
+            sta  p8b_graphics.p8v_internal_plotx
+            stx  p8b_graphics.p8v_internal_plotx+1
             jsr  p8b_graphics.p8s_internal_plot
         }}
     }
