@@ -1,23 +1,34 @@
-%import graphics
+%import textio
+%zeropage basicsafe
 
 main {
-    const uword width = 320
-    const ubyte height = 200
-    const ubyte max_iter = 16
 
     sub start()  {
-        graphics.enable_bitmap_mode()
+        uword[] texts1 = [ 1,2,3 ]
+        uword[] @nosplit texts2 = [ 1,2,3 ]
 
-        uword pixelx
-        ubyte pixely
+        cx16.r4 = texts1
+        cx16.r5 = texts2
 
-        for pixely in 0 to height-1 {
-            for pixelx in 0 to width-1 {
-                graphics.plot(pixelx, pixely)
-            }
-        }
+;        txt.print_uwhex(&texts1, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r4, true)
+;        txt.nl()
+;        txt.print_uwhex(&texts2, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r5, true)
+;        txt.nl()
 
-        repeat {
-        }
+        cx16.r4 = &texts1
+        cx16.r5 = &texts2
+
+;        txt.print_uwhex(&texts1, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r4, true)
+;        txt.nl()
+;        txt.print_uwhex(&texts2, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r5, true)
+;        txt.nl()
     }
 }

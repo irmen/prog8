@@ -406,5 +406,44 @@ main {
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
     }
+
+    test("assigning address of split arrays without explicitly taking address works") {
+        val src="""
+main {
+
+    sub start()  {
+        uword[] texts1 = [ 1,2,3 ]
+        uword[] @nosplit texts2 = [ 1,2,3 ]
+
+        cx16.r4 = texts1
+        cx16.r5 = texts2
+
+;        txt.print_uwhex(&texts1, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r4, true)
+;        txt.nl()
+;        txt.print_uwhex(&texts2, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r5, true)
+;        txt.nl()
+
+        cx16.r4 = &texts1
+        cx16.r5 = &texts2
+
+;        txt.print_uwhex(&texts1, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r4, true)
+;        txt.nl()
+;        txt.print_uwhex(&texts2, true)
+;        txt.spc()
+;        txt.print_uwhex(cx16.r5, true)
+;        txt.nl()
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 0
+    }
 })
 

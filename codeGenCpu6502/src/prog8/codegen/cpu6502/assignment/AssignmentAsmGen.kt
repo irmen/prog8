@@ -241,7 +241,7 @@ internal class AssignmentAsmGen(
                     targetDt.isSignedWord -> assignVariableWord(assign.target, variable, assign.source.datatype)
                     targetDt.isUnsignedWord -> {
                         if(assign.source.datatype.isPassByRef)
-                            assignAddressOf(assign.target, variable, false, null, null)
+                            assignAddressOf(assign.target, variable, false, assign.source.datatype, assign.source.array ?: PtNumber(BaseDataType.UBYTE, 0.0, assign.position))
                         else
                             assignVariableWord(assign.target, variable, assign.source.datatype)
                     }
@@ -2611,6 +2611,7 @@ $endLabel""")
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         if(arrayIndexExpr!=null) {
+            val arrayName = if(arrayDt!!.isSplitWordArray) sourceName+"_lsb" else sourceName        // the _lsb split array comes first in memory
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
                 if (arrayDt?.isUnsignedWord==true) {
@@ -2626,10 +2627,10 @@ $endLabel""")
                 }
                 else {
                     if(constIndex>0) {
-                        val offset = if(arrayDt!!.isSplitWordArray) constIndex else program.memsizer.memorySize(arrayDt, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
-                        asmgen.out("  lda  #<($sourceName + $offset) |  ldy  #>($sourceName + $offset)")
+                        val offset = if(arrayDt.isSplitWordArray) constIndex else program.memsizer.memorySize(arrayDt, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
+                        asmgen.out("  lda  #<($arrayName + $offset) |  ldy  #>($arrayName + $offset)")
                     } else {
-                        asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
+                        asmgen.out("  lda  #<$arrayName |  ldy  #>$arrayName")
                     }
                 }
                 assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -2653,9 +2654,9 @@ $endLabel""")
                 else {
                     assignExpressionToRegister(arrayIndexExpr, RegisterOrPair.A, false)
                     asmgen.out("""
-                        ldy  #>$sourceName
+                        ldy  #>$arrayName
                         clc
-                        adc  #<$sourceName
+                        adc  #<$arrayName
                         bcc  +
                         iny
 +""")
