@@ -27,6 +27,7 @@ diskio {
         ;    Note that no list of pointers of some form is returned, the names are just squashed together.
         ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
         ;    and registering when the next one starts after the 0-byte separator.
+        ; TODO IMPLEMENT THIS
         txt.print("@TODO: list_filenames\n")
         sys.clear_carry()
         return 0
@@ -37,6 +38,7 @@ diskio {
     sub lf_start_list(uword pattern_ptr) -> bool {
         ; -- start an iterative file listing with optional pattern matching.
         ;    note: only a single iteration loop can be active at a time!
+        ; TODO IMPLEMENT THIS
         txt.print("@TODO: lf_start_list\n")
         return false
     }
@@ -45,11 +47,13 @@ diskio {
         ; -- retrieve the next entry from an iterative file listing session.
         ;    results will be found in list_blocks, list_filename, and list_filetype.
         ;    if it returns false though, there are no more entries (or an error occurred).
+        ; TODO IMPLEMENT THIS
         txt.print("@TODO: lf_next_entry\n")
         return false
     }
 
     sub lf_end_list() {
+        ; TODO IMPLEMENT THIS
         txt.print("@TODO: lf_end_list\n")
     }
 
