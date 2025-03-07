@@ -304,6 +304,34 @@ _c1_zero        lda  (P8ZP_SCRATCH_W2),y
 +		rts
 		.pend
 
+strncmp_mem	.proc
+		; --   compares strings in s1 (AY) and s2 (P8ZP_SCRATCH_W2).
+                ;      Compares up to maximum length specified in X.
+		;      Returns -1,0,1 in A, depending on the ordering. Clobbers X & Y.
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0
+_loop           lda  (P8ZP_SCRATCH_W1),y
+		beq  _c1_zero
+		cmp  (P8ZP_SCRATCH_W2),y
+		beq  _equal
+		bmi  _less
+		lda  #1
+		rts
+_less           lda  #-1
+		rts
+_equal          dex
+		bne +
+		lda #0
+		rts
++		iny
+		bne  _loop
+_c1_zero        lda  (P8ZP_SCRATCH_W2),y
+		beq  +
+		lda  #-1
++		rts
+		.pend
+
 
 strlen          .proc
         ; -- returns the number of bytes in the string in AY, in Y. Clobbers A.

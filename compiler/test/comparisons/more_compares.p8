@@ -22,6 +22,13 @@ main {
             txt.print("name2 fail!\n")
         }
 
+        if (strings.ncompare(name, "aaa", 3)==0) or (strings.compare(name, "johm", 3)==0) or (strings.compare(name, "bbb", 3)==0) {
+            txt.print("name1 ok\n")
+        }
+        if (strings.ncompare(name, "aaa", 2)==0) or (strings.ncompare(name, "zzz", 2)==0) or (strings.ncompare(name, "bbb", 2)==0) {
+            txt.print("name2 fail!\n")
+        }
+
         if name=="aaa" or name=="john" or name=="bbb"
             txt.print("name1b ok\n")
         if name=="aaa" or name=="zzz" or name=="bbb"

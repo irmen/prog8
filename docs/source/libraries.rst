@@ -900,6 +900,12 @@ Provides string manipulation routines.
     using ``==``, ``<`` etcetera (it will use strings.compare for you under water automatically).
     This even works when dealing with uword (pointer) variables when comparing them to a string type.
 
+``ncompare (string1, string2, length) -> ubyte result``
+    Compares two strings up to the number of characters in the length parameter.
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
+    Note that lengths of 0 or 1 evaluate the same.  The first character is always compared.
+    A length larger than either string will function identically to compare.
+
 ``copy (from, to) -> ubyte length``
     Copy a string to another, overwriting that one. Returns the length of the string that was copied.
     Often you don't have to call this explicitly and can just write ``string1 = string2``
