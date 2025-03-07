@@ -243,6 +243,19 @@ _str    .word 0
         }}
     }
 
+    asmsub ncompare(uword string1 @R0, uword string2 @AY, ubyte length @X) clobbers(X, Y) -> byte @A {
+        ; Compares two strings for sorting.
+        ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
+        ; Only compares the strings from index 0 up to the length argument.
+        %asm {{
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		lda  cx16.r0
+		ldy  cx16.r0+1
+		jmp  prog8_lib.strncmp_mem
+        }}
+    }
+
     asmsub lower(uword st @AY) -> ubyte @Y {
         ; Lowercases the petscii string in-place. Returns length of the string.
         ; (for efficiency, non-letter characters > 128 will also not be left intact,
