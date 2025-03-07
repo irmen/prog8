@@ -79,9 +79,14 @@ class ModuleImporter(private val program: Program,
         if("$moduleName.p8" == import.position.file)
             throw SyntaxError("cannot import self", import.position)
 
-        val existing = program.modules.singleOrNull { it.name == moduleName }
-        if (existing!=null)
+        val existing = program.modules.singleOrNull { it.name.equals(moduleName, ignoreCase = true) }
+        if (existing!=null) {
+            if(existing.name != moduleName) {
+                errors.err("module import name '$moduleName' differs in case only from already known name '${existing.name}'", import.position)
+                return null
+            }
             return existing
+        }
 
         // try internal library first
         val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName)
