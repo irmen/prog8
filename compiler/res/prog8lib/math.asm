@@ -182,8 +182,9 @@ _inner_loop2
     ldy  result+1
     rts
 
-result		.byte  0,0,0,0       ; routine could be faster if this were in Zeropage...
-
+		.section BSS
+result		.byte  ?,?,?,?       ; routine could be faster if this were in Zeropage...
+		.send BSS
 		.pend
 
 
@@ -217,7 +218,9 @@ divmod_b_asm	.proc
 		adc  #0			; negate result
 		tay
 +		rts
-_remainder	.byte  0
+		.section BSS
+_remainder	.byte  ?
+		.send BSS
 		.pend
 
 
@@ -325,10 +328,12 @@ result = dividend ;save memory by reusing divident to store the result
 		lda  result
 		ldy  result+1
 		rts
-_divisor	.word 0
+		.section BSS
+_divisor	.word ?
+		.send BSS
 		.pend
 
-
+; TODO: Romable (find a way to init these variables. Maybe allocate them in slabs_BSS to make it even more random?)
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
 	;    default seed = $00c2 $1137
