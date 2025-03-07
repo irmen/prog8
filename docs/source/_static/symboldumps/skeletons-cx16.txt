@@ -673,6 +673,7 @@ strings  {
     lstripped  (str s) -> str 
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
+    ncompare  (uword string1 @R0, uword string2 @AY, ubyte length @X) -> clobbers (X,Y) -> byte @A 
     pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
     rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
     right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
