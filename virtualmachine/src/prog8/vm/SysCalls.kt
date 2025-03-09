@@ -67,6 +67,7 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 55 = WRITE_FILE_BYTE
 56 = CLOSE_FILE
 57 = CLOSE_FILE_WRITE
+58 = ncompare strings
 */
 
 enum class Syscall {
@@ -128,6 +129,7 @@ enum class Syscall {
     WRITE_FILE_BYTE,
     CLOSE_FILE,
     CLOSE_FILE_WRITE,
+    NCOMPARE_STRINGS,
     ;
 
     companion object {
@@ -282,6 +284,21 @@ object SysCalls {
                 val secondAddr = secondV as UShort
                 val first = vm.memory.getString(firstAddr.toInt())
                 val second = vm.memory.getString(secondAddr.toInt())
+                val comparison = first.compareTo(second)
+                if(comparison==0)
+                    returnValue(callspec.returns.single(), 0, vm)
+                else if(comparison<0)
+                    returnValue(callspec.returns.single(), -1, vm)
+                else
+                    returnValue(callspec.returns.single(), 1, vm)
+            }
+            Syscall.NCOMPARE_STRINGS -> {
+                val (firstV, secondV, lengthV) = getArgValues(callspec.arguments, vm)
+                val firstAddr = firstV as UShort
+                val secondAddr = secondV as UShort
+                val length = (lengthV as UByte).toInt()
+                val first = vm.memory.getString(firstAddr.toInt()).take(length)
+                val second = vm.memory.getString(secondAddr.toInt()).take(length)
                 val comparison = first.compareTo(second)
                 if(comparison==0)
                     returnValue(callspec.returns.single(), 0, vm)

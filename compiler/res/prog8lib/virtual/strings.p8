@@ -123,6 +123,19 @@ strings {
         }}
     }
 
+    sub ncompare(str st1, str st2, ubyte length) -> byte {
+        ; Compares two strings for sorting.
+        ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
+        ; Only compares the strings from index 0 up to the length argument.
+        %ir {{
+            loadm.w r99000,strings.ncompare.st1
+            loadm.w r99001,strings.ncompare.st2
+            loadm.b r99100,strings.ncompare.length
+            syscall 58 (r99000.w, r99001.w, r99100.b) : r99100.b
+            returnr.b r99100
+        }}
+    }
+
     sub lower(str st) -> ubyte {
         ; Lowercases the petscii string in-place. Returns length of the string.
         ; (for efficiency, non-letter characters > 128 will also not be left intact,

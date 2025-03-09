@@ -1,34 +1,32 @@
 %import textio
+%import strings
 %zeropage basicsafe
 
 main {
 
+    str name1 = "irmen"
+    str name2 = "irmen de jong"
+
     sub start()  {
-        uword[] texts1 = [ 1,2,3 ]
-        uword[] @nosplit texts2 = [ 1,2,3 ]
 
-        cx16.r4 = texts1
-        cx16.r5 = texts2
+        txt.print_b(strings.compare(name1, name2))
+        txt.spc()
+        txt.print_b(strings.compare(name2, name1))
+        txt.nl()
 
-;        txt.print_uwhex(&texts1, true)
-;        txt.spc()
-;        txt.print_uwhex(cx16.r4, true)
-;        txt.nl()
-;        txt.print_uwhex(&texts2, true)
-;        txt.spc()
-;        txt.print_uwhex(cx16.r5, true)
-;        txt.nl()
+        txt.print_b(strings.ncompare(name1, name2, 6))
+        txt.spc()
+        txt.print_b(strings.ncompare(name2, name1, 6))
+        txt.nl()
 
-        cx16.r4 = &texts1
-        cx16.r5 = &texts2
+        txt.print_b(strings.ncompare(name1, name2, 5))
+        txt.spc()
+        txt.print_b(strings.ncompare(name2, name1, 5))
+        txt.nl()
 
-;        txt.print_uwhex(&texts1, true)
-;        txt.spc()
-;        txt.print_uwhex(cx16.r4, true)
-;        txt.nl()
-;        txt.print_uwhex(&texts2, true)
-;        txt.spc()
-;        txt.print_uwhex(cx16.r5, true)
-;        txt.nl()
+        txt.print_b(strings.ncompare(name1, name2, 4))
+        txt.spc()
+        txt.print_b(strings.ncompare(name2, name1, 4))
+        txt.nl()
     }
 }
