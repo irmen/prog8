@@ -60,6 +60,7 @@ internal fun compileText(
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
 ) : CompilationResult? {
+    @Suppress("DEPRECATION") // Thread.currentThread().id
     val filePath = outputDir.resolve("on_the_fly_test_" + Thread.currentThread().id.toString() + "_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)

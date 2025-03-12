@@ -89,7 +89,9 @@ main {
     }
 }
 """
+        @Suppress("DEPRECATION") // Thread.currentThread().id
         val filenameBase = "on_the_fly_test_" + Thread.currentThread().id.toString() + "_" + sourceText.hashCode().toUInt().toString(16)
+
         val filepath = outputDir.resolve("$filenameBase.p8")
         filepath.toFile().writeText(sourceText)
         val (program, options, importedfiles) = parseMainModule(filepath, errors, C64Target(), emptyList(), emptyList())

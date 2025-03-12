@@ -1,32 +1,31 @@
-%import textio
-%import strings
+%import psg
 %zeropage basicsafe
+%option no_sysinit
 
 main {
 
-    str name1 = "irmen"
-    str name2 = "irmen de jong"
-
     sub start()  {
+        psg.init()
 
-        txt.print_b(strings.compare(name1, name2))
-        txt.spc()
-        txt.print_b(strings.compare(name2, name1))
-        txt.nl()
+        psg.voice(5, psg.LEFT, 0, psg.TRIANGLE, 0)
+        psg.freq(5, 1600)
+        psg.envelope(5, 63, 10, 50, 2)
 
-        txt.print_b(strings.ncompare(name1, name2, 6))
-        txt.spc()
-        txt.print_b(strings.ncompare(name2, name1, 6))
-        txt.nl()
+        psg.voice(6, psg.RIGHT, 0, psg.SAWTOOTH, 0)
+        psg.freq(6, 1200)
+        psg.envelope(6, 63, 2, 50, 10)
 
-        txt.print_b(strings.ncompare(name1, name2, 5))
-        txt.spc()
-        txt.print_b(strings.ncompare(name2, name1, 5))
-        txt.nl()
+        repeat 140 {
+            sys.waitvsync()
+            psg.envelopes_irq()
+        }
 
-        txt.print_b(strings.ncompare(name1, name2, 4))
-        txt.spc()
-        txt.print_b(strings.ncompare(name2, name1, 4))
-        txt.nl()
+        psg.voice(5, psg.DISABLED, 0, 0, 0)
+        psg.voice(6, psg.DISABLED, 0, 0, 0)
+        psg.silent()
+        repeat {
+            sys.waitvsync()
+            psg.envelopes_irq()
+        }
     }
 }

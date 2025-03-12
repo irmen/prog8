@@ -1,5 +1,6 @@
 
-Prog8 compiler v11.2 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 8e31b622 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -586,6 +587,7 @@ LIBRARY MODULE NAME: psg
 ------------------------
 
 psg  {
+    const ubyte  DISABLED 
     const ubyte  LEFT 
     const ubyte  NOISE 
     const ubyte  PULSE 
@@ -598,9 +600,11 @@ psg  {
     ubyte[]  envelope_states 
     ubyte[]  envelope_sustains 
     uword[]  envelope_volumes 
+    bool[]  voice_enabled 
     envelope  (ubyte voice_num, ubyte maxvolume, ubyte attack, ubyte sustain, ubyte release) 
     envelopes_irq  () -> bool 
     freq  (ubyte voice_num, uword vera_freq) 
+    init  () 
     pulse_width  (ubyte voice_num, ubyte pw) 
     silent  () 
     voice  (ubyte voice_num, ubyte channel, ubyte vol, ubyte waveform, ubyte pulsewidth) 

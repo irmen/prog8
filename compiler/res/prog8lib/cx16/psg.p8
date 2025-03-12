@@ -15,14 +15,22 @@ psg {
     const ubyte NOISE    = %11000000
     const ubyte LEFT     = %01000000
     const ubyte RIGHT    = %10000000
+    const ubyte DISABLED = %11111111
+
+    sub init() {
+        ; -- initializes the psg module (all 16 voices set to disabled)
+        for cx16.r1L in 0 to 15
+            voice_enabled[cx16.r1L] = false
+    }
 
     sub voice(ubyte voice_num, ubyte channel, ubyte vol, ubyte waveform, ubyte pulsewidth) {
         ; -- Enables a 'voice' on the PSG.
         ;    voice_num = 0-15, the voice number.
-        ;    channel = either LEFT or RIGHT or (LEFT|RIGHT). Specifies the stereo channel(s) to use.
+        ;    channel = either LEFT or RIGHT or (LEFT|RIGHT). Specifies the stereo channel(s) to use.  DISABLED=disable the voice.
         ;    vol = 0-63, the starting volume for the voice
         ;    waveform = one of PULSE,SAWTOOTH,TRIANGLE,NOISE.
         ;    pulsewidth = 0-63.  Specifies the pulse width for waveform=PULSE.
+        voice_enabled[voice_num] = false
         envelope_states[voice_num] = 255
         sys.irqsafe_set_irqd()
         cx16.r0 = $f9c2 + voice_num * 4
@@ -30,11 +38,19 @@ psg {
         cx16.VERA_ADDR_L = lsb(cx16.r0)
         cx16.VERA_ADDR_M = msb(cx16.r0)
         cx16.VERA_ADDR_H = 1
-        cx16.VERA_DATA0 = channel | vol
-        cx16.VERA_ADDR_L++
-        cx16.VERA_DATA0 = waveform | pulsewidth
-        envelope_volumes[voice_num] = mkword(vol, 0)
-        envelope_maxvolumes[voice_num] = vol
+        if channel!=DISABLED {
+            cx16.VERA_DATA0 = channel | vol
+            cx16.VERA_ADDR_L++
+            cx16.VERA_DATA0 = waveform | pulsewidth
+            envelope_volumes[voice_num] = mkword(vol, 0)
+            envelope_maxvolumes[voice_num] = vol
+            voice_enabled[voice_num] = true
+        } else {
+            cx16.VERA_DATA0 = 0
+            envelope_volumes[voice_num] = 0
+            envelope_maxvolumes[voice_num] = 0
+            voice_enabled[voice_num] = false
+        }
         sys.irqsafe_clear_irqd()
     }
 
@@ -99,10 +115,12 @@ psg {
     }
 
     sub silent() {
-        ; -- Shut down all PSG voices.
+        ; -- Silence all active PSG voices.
         for cx16.r1L in 0 to 15 {
-            envelope_states[cx16.r1L] = 255
-            volume(cx16.r1L, 0)
+            if voice_enabled[cx16.r1L] {
+                envelope_states[cx16.r1L] = 255
+                volume(cx16.r1L, 0)
+            }
         }
     }
 
@@ -122,6 +140,8 @@ psg {
         sys.pushw(cx16.r9)
         ; calculate new volumes
         for cx16.r1L in 0 to 15 {
+            if not voice_enabled[cx16.r1L]
+                continue
             when envelope_states[cx16.r1L] {
                 0 -> {
                     ; attack
@@ -165,7 +185,10 @@ psg {
         cx16.VERA_ADDR_M = $f9
         cx16.VERA_ADDR_H = 1 | %00110000
         for cx16.r1L in 0 to 15 {
-            cx16.VERA_DATA0 = cx16.VERA_DATA1 & %11000000 | msb(envelope_volumes[cx16.r1L])
+            if voice_enabled[cx16.r1L]
+                cx16.VERA_DATA0 = cx16.VERA_DATA1 & %11000000 | msb(envelope_volumes[cx16.r1L])
+            else
+                cx16.VERA_DATA0 = cx16.VERA_DATA1
         }
         cx16.restore_vera_context()
         cx16.r9 = sys.popw()
@@ -175,6 +198,7 @@ psg {
         return true     ; run the system IRQ handler afterwards
     }
 
+    bool[16] voice_enabled
     ubyte[16] envelope_states
     uword[16] envelope_volumes      ; scaled by 256
     ubyte[16] envelope_attacks
