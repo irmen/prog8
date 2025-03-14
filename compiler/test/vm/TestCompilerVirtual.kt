@@ -2,6 +2,7 @@ package prog8tests.vm
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -21,6 +22,8 @@ import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestCompilerVirtual: FunSpec({
+    val outputDir = tempdir().toPath()
+
     test("linear words array with pointers") {
         val src = """
 main {
@@ -36,7 +39,7 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, false, src, writeAssembly = true)!!
+        val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
@@ -56,7 +59,7 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, false, src, writeAssembly = true)!!
+        val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
@@ -78,7 +81,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(VMTarget(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
     }
@@ -104,11 +107,11 @@ test {
     }
 }"""
         val target = VMTarget()
-        var result = compileText(target, false, src, writeAssembly = true)!!
+        var result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
 
-        result = compileText(target, true, src, writeAssembly = true)!!
+        result = compileText(target, true, src, outputDir, writeAssembly = true)!!
         virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText())
     }
@@ -174,10 +177,10 @@ mylabel_inside:
 }"""
 
         val target1 = C64Target()
-        compileText(target1, false, src, writeAssembly = false) shouldNotBe null
+        compileText(target1, false, src, outputDir, writeAssembly = false) shouldNotBe null
 
         val target = VMTarget()
-        compileText(target, false, src, writeAssembly = true) shouldNotBe null
+        compileText(target, false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("case sensitive symbols") {
@@ -195,7 +198,7 @@ skipLABEL:
         bytevar = 42
     }
 }"""
-        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUB(0) shouldBe 42u
@@ -215,7 +218,7 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, true, src, writeAssembly = true)!!
+        val result = compileText(target, true, src, outputDir, writeAssembly = true)!!
         val start = result.compilerAst.entrypoint
         start.statements.size shouldBe 9
         ((start.statements[1] as Assignment).value as FunctionCallExpression).target.nameInSource shouldBe listOf("memory")
@@ -236,16 +239,16 @@ main {
     }
 }"""
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
+        compileText(othertarget, true, src, outputDir, writeAssembly = true) shouldNotBe null
 
         val target = VMTarget()
-        var result = compileText(target, true, src, writeAssembly = true)!!
+        var result = compileText(target, true, src, outputDir, writeAssembly = true)!!
         var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.stepCount shouldBe 59
         }
 
-        result = compileText(target, false, src, writeAssembly = true)!!
+        result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.stepCount shouldBe 59
@@ -264,10 +267,10 @@ main {
   }
 }"""
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
+        compileText(othertarget, true, src, outputDir, writeAssembly = true) shouldNotBe null
 
         val target = VMTarget()
-        val result = compileText(target, false, src, writeAssembly = true)!!
+        val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText())
@@ -286,7 +289,7 @@ main {
   }
 }"""
         val target = VMTarget()
-        val result = compileText(target, false, src, writeAssembly = true)!!
+        val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irSrc = virtfile.readText()
         irSrc.shouldContain("incm.b $2000")
@@ -310,7 +313,7 @@ mylabel:
 }
 
 """
-        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val exc = shouldThrow<Exception> {
             VmRunner().runProgram(virtfile.readText())
@@ -340,7 +343,7 @@ main {
 }"""
 
         val target = VMTarget()
-        compileText(target, false, src, writeAssembly = true) shouldNotBe null
+        compileText(target, false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("compile virtual: short code for if-goto") {
@@ -358,7 +361,7 @@ main {
     ending:
     }
 }"""
-        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         result.compilerAst.entrypoint.statements.size shouldBe 8
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irProgram = IRFileReader().read(virtfile)
@@ -402,7 +405,7 @@ main {
         }
     }
 }"""
-        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val start = result.codegenAst!!.entrypoint()!!
         start.children.size shouldBe 11
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
@@ -455,7 +458,7 @@ main {
         }
     }
 }"""
-        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val start = result.codegenAst!!.entrypoint()!!
         start.children.size shouldBe 22
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
@@ -483,7 +486,7 @@ instructions {
         nop
     }}
 }"""
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("IR codegen for while loop with shortcircuit") {
@@ -496,7 +499,7 @@ main {
         }
     }
 }"""
-        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("push() and pop() generate correct IR instructions") {
@@ -513,7 +516,7 @@ main {
         ww=sys.popw()
     }
 }"""
-        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val irProgram = IRFileReader().read(virtfile)
         val start = irProgram.blocks[0].children[0] as IRSubroutine

@@ -3,6 +3,7 @@ package prog8tests.compiler
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -36,6 +37,8 @@ import prog8tests.helpers.compileText
  */
 class TestCompilerOnRanges: FunSpec({
 
+    val outputDir = tempdir().toPath()
+
     test("testUByteArrayInitializerWithRange_char_to_char") {
         val platform = Cx16Target()
         val result = compileText(platform, false, """
@@ -44,7 +47,7 @@ class TestCompilerOnRanges: FunSpec({
                     ubyte[] @shared cs = sc:'a' to sc:'z' ; values are computed at compile time 
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint
@@ -75,7 +78,7 @@ class TestCompilerOnRanges: FunSpec({
                     float[] @shared cs = 'a' to 'z' ; values are computed at compile time 
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint
@@ -124,7 +127,7 @@ class TestCompilerOnRanges: FunSpec({
                             float[$sizeInDecl] @shared cs = 1 to 42 ; values are computed at compile time
                         }
                     }
-                """)
+                """, outputDir)
             if (optEnableFloats != "" && (sizeInDecl=="" || sizeInDecl=="42"))
                 result shouldNotBe null
             else
@@ -143,7 +146,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint
@@ -177,7 +180,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint
@@ -204,7 +207,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """, errors, false) shouldBe null
+        """, outputDir, errors, false) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain ".p8:5:30: range expression from value must be integer"
         errors.errors[1] shouldContain ".p8:5:45: range expression to value must be integer"
@@ -221,7 +224,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint
@@ -262,7 +265,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """)!!
+        """, outputDir)!!
         val statements = result.compilerAst.entrypoint.statements
         val array = (statements[0] as VarDecl).value
         array shouldBe instanceOf<ArrayLiteral>()
@@ -284,7 +287,7 @@ class TestCompilerOnRanges: FunSpec({
                     }
                 }
             }
-        """)!!
+        """, outputDir)!!
         val statements = result.compilerAst.entrypoint.statements
         val forloop = (statements.dropLast(1).last() as ForLoop)
         forloop.iterable shouldBe instanceOf<RangeExpression>()
@@ -331,7 +334,7 @@ class TestCompilerOnRanges: FunSpec({
                         xx++
                     }
                 }
-            }""", writeAssembly = true) shouldNotBe null
+            }""", outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("if containment check on all possible iterable expressions") {
@@ -394,7 +397,7 @@ class TestCompilerOnRanges: FunSpec({
                         xx++
                     }
                 }
-            }""", writeAssembly = true) shouldNotBe null
+            }""", outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("containment check expressions") {
@@ -421,7 +424,7 @@ class TestCompilerOnRanges: FunSpec({
                     xx = ww in wvalues
                     xx = ww in wnsvalues
                 }
-            }""", writeAssembly = true) shouldNotBe null
+            }""", outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("ranges with byte and word boundary") {
@@ -438,7 +441,7 @@ main{
     }
 }           
         """
-        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("range types changed from byte to words if needed by outer containment check") {
@@ -453,7 +456,7 @@ main {
         bool @shared z5 = cx16.r0s in $0001 to 135
     }
 }"""
-        compileText(Cx16Target(), true, src) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
     }
 
     test("constant containmentcheck simplification") {
@@ -466,7 +469,7 @@ main {
     }
 }"""
 
-        val result = compileText(Cx16Target(), false, src)
+        val result = compileText(Cx16Target(), false, src, outputDir)
         val st = result!!.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 3
         ((st[1] as PtIfElse).condition as PtBool).value shouldBe false
@@ -482,7 +485,7 @@ main {
     }
 }"""
 
-        val result = compileText(Cx16Target(), false, src)
+        val result = compileText(Cx16Target(), false, src, outputDir)
         val st = result!!.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 4
         val cond = (st[2] as PtIfElse).condition as PtBinaryExpression

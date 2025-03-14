@@ -2,6 +2,7 @@ package prog8tests.ast
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -12,6 +13,8 @@ import kotlin.io.path.Path
 
 
 class TestSourceCode: AnnotationSpec() {
+
+    val outputDir = tempdir().toPath()
 
     @Test
     fun testFromString() {

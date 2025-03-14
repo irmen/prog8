@@ -1,6 +1,7 @@
 package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -22,6 +23,8 @@ import prog8tests.helpers.compileText
 
 class TestConst: FunSpec({
 
+    val outputDir = tempdir().toPath()
+    
     test("const folding multiple scenarios +/-") {
         val source = """
             main {
@@ -38,7 +41,7 @@ class TestConst: FunSpec({
                     cx16.r7s = llw - 900 + 999
                 }
             }"""
-        val result = compileText(C64Target(), true, source, writeAssembly = false)!!
+        val result = compileText(C64Target(), true, source, outputDir, writeAssembly = false)!!
         // expected:
 //        uword load_location
 //        load_location = 12345
@@ -92,7 +95,7 @@ class TestConst: FunSpec({
                     result = llw * 90 / 5
                 }
             }"""
-        val result = compileText(C64Target(), true, source, writeAssembly = false)!!
+        val result = compileText(C64Target(), true, source, outputDir, writeAssembly = false)!!
         // expected:
 //        float llw
 //        llw = 300.0
@@ -145,7 +148,7 @@ class TestConst: FunSpec({
                     cx16.r4s = llw * 90 / 5     ; not optimized because of loss of integer division precision
                 }
             }"""
-        val result = compileText(C64Target(), true, source, writeAssembly = false)!!
+        val result = compileText(C64Target(), true, source, outputDir, writeAssembly = false)!!
         // expected:
 //        word llw
 //        llw = 300
@@ -193,7 +196,7 @@ class TestConst: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, sourcecode)!!
+        val result = compileText(C64Target(), false, sourcecode, outputDir)!!
         val mainsub = result.compilerAst.entrypoint
         mainsub.statements.size shouldBe 10
         val declTest = mainsub.statements[0] as VarDecl
@@ -231,7 +234,7 @@ main {
     }
 }
 """
-        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("advanced const folding of known library functions") {
@@ -247,7 +250,7 @@ main {
         bool @shared result2 = strings.isletter(math.diff(119, floats.floor(floats.deg(1.2)) as ubyte))
     }
 }"""
-        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 5
         (st[0] as VarDecl).type shouldBe VarDeclType.CONST
@@ -270,7 +273,7 @@ main {
         cx16.r2 = &array2           ; ${'$'}9e3c
     }
 }"""
-        val result = compileText(Cx16Target(), false, src, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 6
         ((st[0] as VarDecl).value as NumericLiteral).number shouldBe 0x2000
@@ -294,7 +297,7 @@ main {
         &uword[20] @shared @nosplit wa = HIGH_MEMORY_START
     }
 }"""
-        val result = compileText(Cx16Target(), optimize=false, src, writeAssembly=true)!!
+        val result = compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=true)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 7
         val arrayDeclV = (st[2] as VarDecl).value
@@ -316,7 +319,7 @@ main {
         uword @shared addr2 = &buffer[i * width + j]
     }
 }"""
-        val result = compileText(Cx16Target(), true, src, writeAssembly = true)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = true)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 11
         val assignAddr = (st[2] as Assignment).value
@@ -338,7 +341,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain "out of range"
         errors.errors[1] shouldContain "out of range"
@@ -358,7 +361,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 8
         errors.errors[0] shouldContain "out of range"
         errors.errors[2] shouldContain "out of range"
@@ -378,7 +381,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain(":4:31: const declaration needs a compile-time constant")
         errors.errors[1] shouldContain(":4:32: no cast available")
@@ -398,7 +401,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain(":4:37: no cast available")
         errors.errors[1] shouldContain(":5:37: no cast available")

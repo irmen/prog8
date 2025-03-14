@@ -2,6 +2,7 @@ package prog8tests.ast
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -22,6 +23,9 @@ import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestVariousCompilerAst: FunSpec({
+    
+    val outputDir = tempdir().toPath()
+    
     context("arrays") {
 
         test("invalid array element proper errormessage") {
@@ -32,7 +36,7 @@ class TestVariousCompilerAst: FunSpec({
                 }
             }"""
             val errors = ErrorReporterForTests()
-            compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
+            compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors=errors) shouldBe null
             errors.errors.size shouldBe 1
             errors.errors[0] shouldContain "value has incompatible type"
         }
@@ -55,7 +59,7 @@ main {
         uword[] @shared addresses5 = [1111, 2222]
     }
 }"""
-            compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+            compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
         }
 
         test("array init size mismatch error") {
@@ -67,7 +71,7 @@ main {
     }
 }"""
             val errors = ErrorReporterForTests()
-            compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+            compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
             errors.errors.size shouldBe 2
             errors.errors[0] shouldContain "size mismatch"
             errors.errors[1] shouldContain "size mismatch"
@@ -84,7 +88,7 @@ main {
         return [11,22,33]
     }
 }"""
-            compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+            compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
         }
     }
 
@@ -120,7 +124,7 @@ txt {
 }
 
 """
-            compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
         }
 
         test("wrong alias gives correct error") {
@@ -151,7 +155,7 @@ txt {
 
 """
             val errors = ErrorReporterForTests()
-            compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors) shouldBe null
+            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldBe null
             errors.errors.size shouldBe 2
             errors.errors[0] shouldContain "undefined symbol: txt.print2222"
             errors.errors[1] shouldContain "undefined symbol: txt.DEFAULT_WIDTH_XXX"
@@ -190,10 +194,10 @@ main {
         return 0
     }
 }"""
-            val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+            val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true)!!
             val stmts = result.compilerAst.entrypoint.statements
             stmts.size shouldBe 17
-            val result2 = compileText(VMTarget(), optimize=false, src, writeAssembly=true)!!
+            val result2 = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true)!!
             val stmts2 = result2.compilerAst.entrypoint.statements
             stmts2.size shouldBe 17
         }
@@ -209,7 +213,7 @@ main {
                 rept = "xyz" * (times+1)
             }
         }"""
-            val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+            val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true)!!
             val stmts = result.compilerAst.entrypoint.statements
             stmts.size shouldBe 6
             val name1 = stmts[0] as VarDecl
@@ -235,7 +239,7 @@ main {
     }
 }"""
             val errors = ErrorReporterForTests()
-            compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+            compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
             errors.errors.single() shouldContain  "cannot use byte value"
         }
     }
@@ -261,7 +265,7 @@ main {
     }
 }"""
             val errors = ErrorReporterForTests()
-            compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
             errors.errors.size shouldBe 2
             errors.errors[0] shouldContain "has result value"
             errors.errors[1] shouldContain "has result value"
@@ -286,7 +290,7 @@ main {
         cx16.r0++
     }
 }"""
-            compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
         }
     }
 
@@ -306,7 +310,7 @@ main {
         }
     }
 }"""
-            val result = compileText(VMTarget(), optimize = false, src, writeAssembly = false)!!
+            val result = compileText(VMTarget(), optimize = false, src, outputDir, writeAssembly = false)!!
             val st = result.compilerAst.entrypoint.statements
             /*
         sub start () {
@@ -348,7 +352,7 @@ main {
         ubyte @shared k,l,m = 42
     }
 }"""
-            val result = compileText(Cx16Target(), optimize=true, src, writeAssembly=false)!!
+            val result = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=false)!!
             val st = result.compilerAst.entrypoint.statements
             st.size shouldBe 12
             st[0] shouldBe instanceOf<VarDecl>()    // x
@@ -390,7 +394,7 @@ main {
         arg++
     }
 }"""
-            compileText(Cx16Target(), false, src) shouldNotBe null
+            compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
         }
 
         test("@dirty variables") {
@@ -418,7 +422,7 @@ main {
 }"""
 
             val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-            val result = compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors)!!
+            val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors=errors)!!
             errors.warnings.size shouldBe 6
             errors.infos.size shouldBe 0
             errors.warnings.all { "dirty variable" in it } shouldBe true
@@ -449,10 +453,10 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBeGreaterThan 1
         errors.clear()
-        compileText(C64Target(), optimize=true, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBeGreaterThan 1
     }
 
@@ -485,7 +489,7 @@ main {
         uword b3 = b1 && b2     ; invalid syntax: '&&' is not an operator, 'and' should be used instead
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = false) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldBe null
     }
 
     test("pointervariable indexing allowed with >255") {
@@ -502,7 +506,7 @@ main {
         ub = pointer[index]
     }
 }"""
-        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("bitshift left of const byte not converted to word") {
@@ -516,7 +520,7 @@ main {
         value++
     }
 }"""
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 7
         val assign1expr = (stmts[3] as Assignment).value as BinaryExpression
@@ -547,7 +551,7 @@ main {
         }
     }
 }"""
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 9
     }
@@ -563,7 +567,7 @@ main {
     }
 }
 """
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 4
         val value1 = (stmts[2] as Assignment).value as PrefixExpression
@@ -586,7 +590,7 @@ main {
 }
 """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors=errors) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldNotBe null
         errors.warnings.size shouldBe 1
         errors.warnings[0] shouldContain "large number of unrolls"
     }
@@ -609,7 +613,7 @@ main {
 }
 """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "invalid statement in unroll loop"
         errors.errors[1] shouldContain "invalid statement in unroll loop"
@@ -657,7 +661,7 @@ other {
     }
 }"""
 
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("when on booleans") {
@@ -675,7 +679,7 @@ main
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "use if"
     }
@@ -688,7 +692,7 @@ main {
         uword @shared size2 = sizeof(2.2)
     }
 }"""
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("'not in' operator parsing") {
@@ -703,7 +707,7 @@ main {
             insync=true
     }
 }"""
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("no chained comparison modifying expression semantics") {
@@ -723,7 +727,7 @@ main {
         result2 = not n<x
     }
 }"""
-        val result=compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!
+        val result=compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 11
 
@@ -751,7 +755,7 @@ main {
     }
 }"""
 
-        val result=compileText(Cx16Target(), optimize=false, src, writeAssembly=false)!!
+        val result=compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 6
         val value = (st[5] as Assignment).value as BinaryExpression
@@ -797,7 +801,7 @@ main {
         uword @shared vaddr = bottom[cx16.r0L] as uword << 8          ; a mkword will get inserted here
     }
 }"""
-        val result = compileText(VMTarget(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
         val assignUbbVal = ((st[5] as Assignment).value as TypecastExpression)
@@ -828,7 +832,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=true, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldEndWith "cannot assign to 'void'"
         errors.errors[1] shouldEndWith "cannot assign to 'void', perhaps a void function call was intended"
@@ -876,7 +880,7 @@ main {
                 }
             }"""
 
-        val result = compileText(C64Target(), false, src, writeAssembly = true)
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)
         result shouldNotBe null
 
         val st1 = result!!.compilerAst.entrypoint.statements
@@ -920,7 +924,7 @@ main {
         defer cx16.r2++
     }
 }"""
-        val result = compileText(Cx16Target(), optimize=true, src, writeAssembly=true)!!
+        val result = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=true)!!
         val main = result.codegenAst!!.allBlocks().single {it.name=="p8b_main"}
         val sub = main.children[1] as PtSub
         sub.scopedName shouldBe "p8b_main.p8s_test"
@@ -972,7 +976,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain "loop variable can only loop over"
         errors.errors[1] shouldContain "undefined symbol"
@@ -988,7 +992,7 @@ main {
         return 1,2,3
     }
 }"""
-        val result1 = compileText(VMTarget(), optimize=true, src, writeAssembly=true)!!
+        val result1 = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st1 = result1.codegenAst!!.entrypoint()!!.children
         st1.size shouldBe 5
         (st1[0] as PtVariable).name shouldBe "main.start.x"
@@ -998,7 +1002,7 @@ main {
         st1[3].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("main.start.x", "main.start.y", "main.start.z")
         ((st1[3] as PtAssignment).value as PtFunctionCall).name shouldBe "main.multi"
 
-        val result2 = compileText(Cx16Target(), optimize=true, src, writeAssembly=true)!!
+        val result2 = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st2 = result2.codegenAst!!.entrypoint()!!.children
         st2.size shouldBe 5
         (st2[0] as PtVariable).name shouldBe "p8v_x"

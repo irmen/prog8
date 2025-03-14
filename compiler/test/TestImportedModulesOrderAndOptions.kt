@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -15,10 +16,11 @@ import prog8.compiler.determineCompilationOptions
 import prog8.compiler.parseMainModule
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
-import prog8tests.helpers.outputDir
 
 
 class TestImportedModulesOrderAndOptions: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     test("testImportedModuleOrderAndMainModuleCorrect") {
         val result = compileText(
@@ -31,7 +33,7 @@ main {
         ; nothing
     }
 }
-""")!!
+""", outputDir)!!
         result.compilerAst.toplevelModule.name shouldStartWith "on_the_fly_test"
 
         val moduleNames = result.compilerAst.modules.map { it.name }
@@ -67,7 +69,7 @@ main {
         ; nothing
     }
 }
-""")!!
+""", outputDir)!!
         result.compilerAst.toplevelModule.name shouldStartWith "on_the_fly_test"
         val options = determineCompilationOptions(result.compilerAst, C64Target())
         options.floats shouldBe true
@@ -136,7 +138,7 @@ main {
         txt.println("Hello, world3")
     }
 }"""
-        compileText(VMTarget(), optimize = false, src) shouldNotBe null
+        compileText(VMTarget(), optimize = false, src, outputDir) shouldNotBe null
     }
 
     test("double merge is invalid") {
@@ -166,7 +168,7 @@ block1 {
     }
 }"""
         val errors=ErrorReporterForTests()
-        compileText(VMTarget(), optimize = false, src, errors=errors) shouldBe null
+        compileText(VMTarget(), optimize = false, src, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "all declarations of block 'block1' have %option merge"
     }
@@ -205,7 +207,7 @@ sub printit(str arg) {
     txt.schrijf(arg)
 }
 }"""
-        compileText(C64Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("merge override existing subroutine") {
@@ -228,7 +230,7 @@ sub print(str text) {
 }
 }"""
 
-        val result = compileText(VMTarget(), optimize=false, src, writeAssembly=false)
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false)
         result shouldNotBe null
     }
 
@@ -252,7 +254,7 @@ sub print(str anotherparamname) {
 }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "name conflict"
     }
@@ -281,8 +283,8 @@ sub start() {
 }
 }"""
 
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
-        compileText(Cx16Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
     test("merge of float stuff into sys and txt - import order 2") {
@@ -309,7 +311,7 @@ sub start() {
 }
 }"""
 
-        compileText(VMTarget(), optimize=false, src, writeAssembly=false) shouldNotBe null
-        compileText(Cx16Target(), optimize=false, src, writeAssembly=false) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 })

@@ -1,6 +1,7 @@
 package prog8tests.compiler
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.inspectors.shouldForAll
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -16,6 +17,8 @@ import prog8tests.helpers.compileText
 
 class TestBuiltinFunctions: FunSpec({
 
+    val outputDir = tempdir().toPath()
+    
     test("pure func with fixed type") {
         val func = BuiltinFunctions.getValue("sgn")
         func.parameters.size shouldBe 1
@@ -72,7 +75,7 @@ main {
         value++
     }
 }"""
-        val result = compileText(Cx16Target(), false, src, writeAssembly = false)
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)
         val statements = result!!.compilerAst.entrypoint.statements
         statements.size shouldBe 7
         val a1 = statements[2] as Assignment
@@ -98,7 +101,7 @@ main {
     }
 }"""
 
-        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 })
 

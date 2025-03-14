@@ -1,6 +1,7 @@
 package prog8tests.compiler
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -24,6 +25,8 @@ import prog8tests.helpers.compileText
 
 class TestTypecasts: FunSpec({
 
+    val outputDir = tempdir().toPath()
+
     test("integer args for builtin funcs") {
         val text="""
             %import floats
@@ -34,7 +37,7 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        val result = compileText(C64Target(), false, text, writeAssembly = false, errors=errors)
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors)
         result shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "type mismatch, was: float expected one of: [UWORD, WORD, LONG]"
@@ -49,7 +52,7 @@ class TestTypecasts: FunSpec({
                     bool @shared bb = bb2 and bb3
                 }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 6
         val expr = (stmts[5] as Assignment).value as BinaryExpression
@@ -57,7 +60,7 @@ class TestTypecasts: FunSpec({
         (expr.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
         (expr.right as IdentifierReference).nameInSource shouldBe listOf("bb3")  // no cast
 
-        val result2 = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val result2 = compileText(C64Target(), true, text, outputDir, writeAssembly = true)!!
         val stmts2 = result2.compilerAst.entrypoint.statements
         stmts2.size shouldBe 7
         val expr2 = (stmts2[5] as Assignment).value as BinaryExpression
@@ -92,7 +95,7 @@ main {
         bvalue = ub1 and ub2 and btrue(99)        
     }
 }"""
-        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), true, text, outputDir, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
         printProgram(result.compilerAst)
         /*
@@ -152,7 +155,7 @@ main {
                         boolvalue1=false
                  }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 7
         val fcall1 = ((stmts[4] as Assignment).value as IFunctionCall)
@@ -168,24 +171,24 @@ main {
     }
 
     test("correct evaluation of words in boolean expressions") {
-        val text="""
+        val text= """
             main {
                 sub start() {
                     uword camg
                     bool @shared interlaced
-                    interlaced = (camg & ${'$'}0004) != 0
+                    interlaced = (camg & $0004) != 0
                     cx16.r0L++
-                    interlaced = (${'$'}0004 & camg) != 0
+                    interlaced = ($0004 & camg) != 0
                     cx16.r0L++
                     uword @shared ww
-                    ww = (camg & ${'$'}0004)
+                    ww = (camg & $0004)
                     ww++
-                    ww = (${'$'}0004 & camg)
+                    ww = ($0004 & camg)
                     ubyte @shared value
-                    bool @shared collected = (value >= ${'$'}33) or (value >= ${'$'}66) or (value >= ${'$'}99) or (value >= ${'$'}CC)
+                    bool @shared collected = (value >= $33) or (value >= $66) or (value >= $99) or (value >= ${'$'}CC)
                 }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBeGreaterThan 10
     }
@@ -204,7 +207,7 @@ main {
                     txt.print_w(func(0) as ubyte)
                 }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 3
     }
@@ -219,7 +222,7 @@ main {
     }
 }"""
 
-        val result = compileText(C64Target(), true, src, writeAssembly = false)!!
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 4
         val assign1tc = (stmts[2] as Assignment).value as TypecastExpression
@@ -250,7 +253,7 @@ main {
                     handler(&handler)
                 }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 8
         val arg1 = (stmts[2] as IFunctionCall).args.single()
@@ -287,7 +290,7 @@ main {
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         result.compilerAst.entrypoint.statements.size shouldBe 14
     }
 
@@ -309,7 +312,7 @@ main {
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "no cast"
         errors.errors[1] shouldContain "no cast"
@@ -325,7 +328,7 @@ main {
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "refused"
         errors.errors[1] shouldContain "refused"
@@ -342,7 +345,7 @@ main {
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "in-place makes no sense"
     }
@@ -358,7 +361,7 @@ main {
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "refused"
         errors.errors[1] shouldContain "refused"
@@ -407,7 +410,7 @@ main {
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val statements = result.compilerAst.entrypoint.statements
         statements.size shouldBeGreaterThan 10
     }
@@ -434,7 +437,7 @@ main {
                     }
                 }
             }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val statements = result.compilerAst.entrypoint.statements
         statements.size shouldBeGreaterThan 10
     }
@@ -451,7 +454,7 @@ main {
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("(u)byte extend to word parameters") {
@@ -480,7 +483,7 @@ main {
                     }}
                 }
             }"""
-        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("lsb msb used as args with word types") {
@@ -499,7 +502,7 @@ main {
                     }}
                 }
             }"""
-        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("memory reads byte into word variable") {
@@ -514,7 +517,7 @@ main {
                     cx16.r0 = @(address+1000)
                 }
             }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("various floating point casts don't crash the compiler") {
@@ -541,10 +544,10 @@ main {
                     total += result
                 }
             }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("byte when choices silently converted to word for convenience") {
@@ -559,7 +562,7 @@ main {
     }
   }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("returning smaller dt than returndt is ok") {
@@ -573,7 +576,7 @@ main {
         return cx16.r0L
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("returning bigger dt than returndt is not ok") {
@@ -588,7 +591,7 @@ main {
     }
 }"""
         val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.single() shouldContain "doesn't match"
     }
 
@@ -610,7 +613,7 @@ main {
     }
 }"""
         val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain ":9:"
         errors.errors[0] shouldContain "no cast"
@@ -662,7 +665,7 @@ main {
     }
 }"""
         val errors=ErrorReporterForTests()
-        compileText(VMTarget(), false, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 12
         errors.errors.all { "type of value" in it } shouldBe true
         errors.errors.all { "doesn't match" in it } shouldBe true
@@ -686,7 +689,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = true, errors = errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain("argument 1 type mismatch")
         errors.errors[1] shouldContain("argument 1 type mismatch")
@@ -715,7 +718,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 6
         errors.errors[0] shouldContain("type mismatch")
         errors.errors[1] shouldContain("type mismatch")
@@ -740,7 +743,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain(":5:14: argument 1 type mismatch")
         errors.errors[1] shouldContain(":6:20: type of value bool doesn't match target")
@@ -769,7 +772,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain(":4:15: no implicit cast")
         errors.errors[1] shouldContain(":5:15: no implicit cast")
@@ -798,8 +801,8 @@ main {
         }}
     }
 }"""
-        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
-        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
         val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
         derp.returns shouldBe listOf(DataType.forDt(BaseDataType.UWORD))
@@ -824,7 +827,7 @@ main {
         return 42
     }
 }"""
-        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("bool to word cast") {
@@ -837,8 +840,8 @@ main {
     }
 }"""
 
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("undefined symbol error instead of type cast error") {
@@ -854,7 +857,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[1] shouldContain "undefined symbol"
     }
@@ -883,7 +886,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "17:16: return value's type ubyte doesn't match subroutine's return type byte"
         errors.errors[1] shouldContain "20:16: return value's type uword doesn't match subroutine's return type word"
@@ -897,7 +900,7 @@ main {
     }
 }"""
 
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!
         val program = result.compilerAst
         val st = program.entrypoint.statements
         st.size shouldBe 1
@@ -919,10 +922,10 @@ main {
         cx16.r0 = cx16.r0-1+WIDTH
         cx16.r0 = cx16.r0-1+WIDER 
         cx16.r0 = cx16.r0L * 5               ; byte multiplication
-        cx16.r0 = cx16.r0L * ${'$'}0005      ; word multiplication
+        cx16.r0 = cx16.r0L * $0005      ; word multiplication
     }
 }"""
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!
         val program = result.compilerAst
         val st = program.entrypoint.statements
         st.size shouldBe 6
@@ -965,6 +968,6 @@ main {
             return
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 })

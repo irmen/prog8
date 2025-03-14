@@ -1,6 +1,7 @@
 package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -13,6 +14,8 @@ import prog8tests.helpers.compileText
 
 class TestAstChecks: FunSpec({
 
+    val outputDir = tempdir().toPath()
+    
     test("conditional expression w/float works") {
         val text = """
             %import floats
@@ -26,7 +29,7 @@ class TestAstChecks: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), true, text, writeAssembly = true, errors=errors) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.infos.size shouldBe 2
         errors.infos[0] shouldContain "converted to float"
@@ -51,7 +54,7 @@ class TestAstChecks: FunSpec({
             }
             """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, text, writeAssembly = true, errors=errors) shouldBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain ":7:28: invalid assignment value, maybe forgot '&'"
@@ -74,7 +77,7 @@ class TestAstChecks: FunSpec({
             }
             """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.filter { it.contains("missing &") }.size shouldBe 4
     }
 
@@ -97,7 +100,7 @@ class TestAstChecks: FunSpec({
                 }
             }
             """
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("const is not allowed on arrays") {
@@ -110,7 +113,7 @@ class TestAstChecks: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), true, text, writeAssembly = true, errors=errors)
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true, errors=errors)
         errors.errors.size shouldBe 1
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "const can only be used"
@@ -127,7 +130,7 @@ class TestAstChecks: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), true, text, writeAssembly = true, errors=errors)
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true, errors=errors)
         errors.errors.size shouldBe 1
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "indexing requires"
@@ -155,9 +158,9 @@ main {
         นี่คือตัวอักษรภาษาไท++
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true)  shouldNotBe null
-        compileText(Cx16Target(), false, text, writeAssembly = true)  shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true)  shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true)  shouldNotBe null
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)  shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true)  shouldNotBe null
     }
 
     test("return with a statement instead of a value is a syntax error") {
@@ -173,7 +176,7 @@ main {
     }
 }"""
         val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors=errors)  shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors=errors)  shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "statement"
     }
@@ -189,12 +192,12 @@ main {
     }
 }"""
         val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors=errors)  shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors=errors)  shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "name conflict"
 
         errors.clear()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors)  shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors)  shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "name conflict"
     }
@@ -212,12 +215,12 @@ main {
 }
 """
         val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors=errors)  shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors=errors)  shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "name conflict"
 
         errors.clear()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors)  shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors)  shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "name conflict"
     }
@@ -270,8 +273,8 @@ main {
         }
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = false) shouldNotBe null
-        compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("reg params cannot be statusflag") {
@@ -287,7 +290,7 @@ main {
 }"""
 
         // the syntax error is actually thrown by the parser, so we cannot catch it, but we know that there may not be a compilation result
-        compileText(C64Target(), false, src, writeAssembly = false) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldBe null
     }
 
     test("reg params cannot be cpu register") {
@@ -303,7 +306,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "can only use R0-R15"
     }
@@ -321,7 +324,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "register is used multiple times"
     }
@@ -344,7 +347,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 2
         errors.warnings[0] shouldContain "footgun"
@@ -363,7 +366,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "requires integer or boolean type"
@@ -378,7 +381,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "missing &"
@@ -410,7 +413,7 @@ main {
 }
 """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain  ":5:16: argument 1 type mismatch"
@@ -437,7 +440,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
         errors.errors[1] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
@@ -455,7 +458,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), optimize=true, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "too few values: expected 3 got 1"
         errors.errors[1] shouldContain "too few values: expected 3 got 1"
@@ -475,7 +478,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain "type of value uword doesn't match target str"
         errors.errors[1] shouldContain "string var must be initialized with a string literal"

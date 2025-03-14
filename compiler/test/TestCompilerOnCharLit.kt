@@ -3,6 +3,7 @@ package prog8tests.compiler
 import io.kotest.assertions.fail
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
@@ -28,6 +29,8 @@ import prog8tests.helpers.compileText
  */
 class TestCompilerOnCharLit: FunSpec({
 
+    val outputDir = tempdir().toPath()
+
     fun findInitializer(vardecl: VarDecl, program: Program): Assignment? =
         (vardecl.parent as IStatementContainer).statements
             .asSequence()
@@ -44,7 +47,7 @@ class TestCompilerOnCharLit: FunSpec({
                     chrout('\n')
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint
@@ -68,7 +71,7 @@ class TestCompilerOnCharLit: FunSpec({
                     chrout(ch)
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint
@@ -103,7 +106,7 @@ class TestCompilerOnCharLit: FunSpec({
                     chrout(ch)
                 }
             }
-        """)!!
+        """, outputDir)!!
 
         val program = result.compilerAst
         val startSub = program.entrypoint

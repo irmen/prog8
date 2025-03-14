@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -15,6 +16,9 @@ import prog8tests.helpers.compileText
 
 
 class TestNumbers: FunSpec({
+
+    val outputDir = tempdir().toPath()
+
     test("testToHex") {
         0.toHex() shouldBe "0"
         1.toHex() shouldBe "1"
@@ -125,7 +129,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.infos.size shouldBe 2
         errors.infos[0] shouldContain "converted to float"
@@ -145,7 +149,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "converted to float"
@@ -163,7 +167,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 6
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "out of range"
@@ -184,7 +188,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, writeAssembly = false, errors=errors) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldNotBe null
     }
 
     test("big numbers okay in const expressions if result fits") {
@@ -196,7 +200,7 @@ class TestNumbers: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), true, src, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("signed negative numbers not implicitly cast to unsigned") {
@@ -212,7 +216,7 @@ class TestNumbers: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 6
         errors.errors[0] shouldContain "out of range"
         errors.errors[1] shouldContain "word doesn't match"

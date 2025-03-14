@@ -1,6 +1,7 @@
 package prog8tests.compiler
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldNotBe
 import prog8.code.target.Cx16Target
 import prog8.compiler.CompilationResult
@@ -8,7 +9,6 @@ import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8tests.helpers.assumeReadableFile
 import prog8tests.helpers.fixturesDir
-import prog8tests.helpers.outputDir
 import prog8tests.helpers.workingDir
 import java.nio.file.Path
 import kotlin.io.path.absolute
@@ -44,7 +44,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             ignoreFootguns = false,
             symbolDefs = emptyMap(),
             sourceDirs,
-            outputDir
+            outputDir = tempdir().toPath()
         )
         return compileProgram(args)
     }

@@ -1,6 +1,7 @@
 package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -13,6 +14,8 @@ import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestArrayThings: FunSpec({
+    val outputDir = tempdir().toPath()
+    
     test("assign prefix var to array should compile fine and is not split into inplace array modification") {
         val text = """
             main {
@@ -23,8 +26,8 @@ class TestArrayThings: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array in-place negation (integer types)") {
@@ -43,8 +46,8 @@ main {
     foow[1] = -foow[1]
   }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array in-place negation (float type) vm target") {
@@ -59,7 +62,7 @@ main {
     flt[1] = -flt[1]
   }
 }"""
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array in-place negation (float type) 6502 target") {
@@ -74,7 +77,7 @@ main {
     flt[1] = -flt[1]
   }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array in-place invert") {
@@ -91,8 +94,8 @@ main {
     foow[1] = ~foow[1]
   }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("split word arrays in asm as lsb/msb, nosplit as single linear") {
@@ -112,8 +115,8 @@ main {
     }}
   }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array target with expression for index") {
@@ -125,8 +128,8 @@ main {
         cx16.r0L = array[cx16.r0L+1]
     } 
 }"""
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("split array in zeropage is okay") {
@@ -137,7 +140,7 @@ main {
         uword[3] @zp @nosplit @shared thearray2
     } 
 }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val assembly = assemblyFile.readText()
         assembly shouldContain "thearray_lsb"
@@ -160,7 +163,7 @@ main {
         }
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("address of a uword pointer array expression") {
@@ -174,7 +177,7 @@ main {
         addr++
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("negative array index variables are not allowed, but ptr indexing is allowed") {
@@ -196,7 +199,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain "signed variables"
         errors.errors[1] shouldContain "signed variables"
@@ -215,7 +218,7 @@ main {
         array[-10] = 0
     }
 }"""
-        compileText(VMTarget(), false, src, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("bounds checking on strings, correct cases") {
@@ -227,7 +230,7 @@ main {
         name[9] = 0
     }
 }"""
-        compileText(VMTarget(), false, src, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("bounds checking for positive indexes, invalid case") {
@@ -239,7 +242,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "out of bounds"
     }
@@ -253,7 +256,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "out of bounds"
     }
@@ -269,7 +272,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain "out of bounds"
         errors.errors[1] shouldContain "out of bounds"
@@ -289,7 +292,7 @@ main {
         float[3] floatarray = [123.45] * 3
     }
 }"""
-        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val x = result.codegenAst!!.entrypoint()!!
         x.children.size shouldBe 6
         ((x.children[0] as PtVariable).value as PtString).value shouldBe "xyzxyzxyz"
@@ -314,7 +317,7 @@ main {
         float[3] floatarray2 = 100 to 102
     }
 }"""
-        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val x = result.codegenAst!!.entrypoint()!!
         x.children.size shouldBe 4
         val array1 = (x.children[0] as PtVariable).value as PtArray
@@ -335,7 +338,7 @@ label:
         uword[] @shared array2 = [&name, &label, &start, &main]
     }
 }"""
-        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val x = result.codegenAst!!.entrypoint()!!
         x.children.size shouldBe 5
         val array1 = (x.children[1] as PtVariable).value as PtArray
@@ -360,7 +363,7 @@ label:
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = true, errors=errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "contains non-constant"
         errors.errors[1] shouldContain "contains non-constant"
@@ -381,8 +384,8 @@ main {
         return [1000,2000,3000,4000]
     }
 }"""
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("taking address of split arrays works") {
@@ -402,7 +405,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
     }
@@ -441,7 +444,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), optimize=false, src, writeAssembly=true, errors=errors) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true, errors=errors) shouldNotBe null
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
     }

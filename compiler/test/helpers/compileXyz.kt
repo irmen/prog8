@@ -14,7 +14,7 @@ internal fun compileFile(
     optimize: Boolean,
     fileDir: Path,
     fileName: String,
-    outputDir: Path = prog8tests.helpers.outputDir,
+    outputDir: Path,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
 ) : CompilationResult? {
@@ -57,6 +57,7 @@ internal fun compileText(
     platform: ICompilationTarget,
     optimize: Boolean,
     sourceText: String,
+    outputDir: Path,
     errors: IErrorReporter? = null,
     writeAssembly: Boolean = true,
 ) : CompilationResult? {
@@ -64,6 +65,6 @@ internal fun compileText(
     val filePath = outputDir.resolve("on_the_fly_test_" + Thread.currentThread().id.toString() + "_" + sourceText.hashCode().toUInt().toString(16) + ".p8")
     // we don't assumeNotExists(filePath) - should be ok to just overwrite it
     filePath.toFile().writeText(sourceText)
-    return compileFile(platform, optimize, filePath.parent, filePath.name,
+    return compileFile(platform, optimize, filePath.parent, filePath.name, outputDir,
         errors=errors, writeAssembly=writeAssembly)
 }

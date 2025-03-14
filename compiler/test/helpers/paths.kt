@@ -2,7 +2,6 @@ package prog8tests.helpers
 
 import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
-import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.io.path.*
 
@@ -10,15 +9,6 @@ import kotlin.io.path.*
 val workingDir = assumeDirectory("").absolute()   // Note: "." does NOT work..!
 val fixturesDir = assumeDirectory(workingDir, "test/fixtures")
 val resourcesDir = assumeDirectory(workingDir, "res")
-val outputDir: Path =
-    createIfNotExists(workingDir, "build/tmp/test").also { assumeDirectory(workingDir, "build/tmp/test") }
-
-fun createIfNotExists(workingDir: Path, path: String): Path {
-    val dir = workingDir / path
-    if (!dir.toFile().isDirectory)
-        Files.createDirectories(dir)
-    return dir
-}
 
 fun assumeNotExists(path: Path): Path {
     withClue("sanity check: should not exist: ${path.absolute()}") {

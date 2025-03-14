@@ -1,6 +1,7 @@
 package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -15,6 +16,8 @@ import prog8tests.helpers.compileText
 
 
 class TestVariables: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     test("shared variables without refs not removed for inlined asm") {
         val text = """
@@ -32,7 +35,7 @@ class TestVariables: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array initialization with array literal") {
@@ -43,7 +46,7 @@ class TestVariables: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("pipe character in string literal") {
@@ -55,7 +58,7 @@ class TestVariables: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
     
     test("negation of unsigned via casts") {
@@ -71,7 +74,7 @@ class TestVariables: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("initialization of boolean array with array") {
@@ -82,7 +85,7 @@ class TestVariables: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("initialization of boolean array with wrong array type should fail") {
@@ -95,7 +98,7 @@ class TestVariables: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "value has incompatible type"
         errors.errors[1] shouldContain "value has incompatible type"
@@ -120,7 +123,7 @@ main {
     }
 }"""
 
-        val result = compileText(C64Target(), true, src, writeAssembly = true)!!.compilerAst
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!.compilerAst
         val main = result.allBlocks.first { it.name=="main" }
         main.statements.size shouldBe 17
         val assigns = main.statements.filterIsInstance<Assignment>()
@@ -165,7 +168,7 @@ main {
     }
 }"""
 
-        val result = compileText(C64Target(), true, src, writeAssembly = true)!!.compilerAst
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!.compilerAst
         val st = result.entrypoint.statements
         st.size shouldBe 17
         val assigns = st.filterIsInstance<Assignment>()
@@ -206,7 +209,7 @@ main {
         }
     }
 }"""
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!.compilerAst
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!.compilerAst
         val st = result.entrypoint.statements
         st.size shouldBe 8
         st[0] shouldBe instanceOf<VarDecl>()

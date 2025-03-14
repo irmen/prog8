@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.ICompilationTarget
 import prog8.code.target.C128Target
@@ -13,7 +14,6 @@ import prog8.compiler.CompilerArguments
 import prog8.compiler.compileProgram
 import prog8tests.helpers.assumeDirectory
 import prog8tests.helpers.cartesianProduct
-import prog8tests.helpers.outputDir
 import prog8tests.helpers.workingDir
 import java.nio.file.Path
 import kotlin.io.path.absolute
@@ -28,7 +28,7 @@ import kotlin.io.path.exists
 
 private val examplesDir = assumeDirectory(workingDir, "../examples")
 
-private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget): CompilationResult? {
+private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilationTarget, outputDir: Path): CompilationResult? {
     val args = CompilerArguments(
         filepath,
         optimize,
@@ -76,6 +76,8 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
 
 class TestCompilerOnExamplesC64: FunSpec({
 
+    val outputDir = tempdir().toPath()
+
     val onlyC64 = cartesianProduct(
         listOf(
             "balloonflight",
@@ -104,11 +106,13 @@ class TestCompilerOnExamplesC64: FunSpec({
     ) { (params, prep) ->
         val filepath = prep.second
         val optimize = params.second
-        compileTheThing(filepath, optimize, target) shouldNotBe null
+        compileTheThing(filepath, optimize, target, outputDir) shouldNotBe null
     }
 })
 
 class TestCompilerOnExamplesCx16: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     val onlyCx16 = cartesianProduct(
         listOf(
@@ -170,11 +174,13 @@ class TestCompilerOnExamplesCx16: FunSpec({
     ) { (params, prep) ->
         val filepath = prep.second
         val optimize = params.second
-        compileTheThing(filepath, optimize, target) shouldNotBe null
+        compileTheThing(filepath, optimize, target, outputDir) shouldNotBe null
     }
 })
 
 class TestCompilerOnExamplesBothC64andCx16: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     val bothCx16AndC64 = cartesianProduct(
         listOf(
@@ -209,11 +215,13 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
     ) { params ->
         val filepath = params.third.second
         val optimize = params.first
-        compileTheThing(filepath, optimize, params.second) shouldNotBe null
+        compileTheThing(filepath, optimize, params.second, outputDir) shouldNotBe null
     }
 })
 
 class TestCompilerOnExamplesVirtual: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     val onlyVirtual = cartesianProduct(
         listOf(
@@ -232,6 +240,6 @@ class TestCompilerOnExamplesVirtual: FunSpec({
     ) { (params, prep) ->
         val filepath = prep.second
         val optimize = params.second
-        compileTheThing(filepath, optimize, target) shouldNotBe null
+        compileTheThing(filepath, optimize, target, outputDir) shouldNotBe null
     }
 })

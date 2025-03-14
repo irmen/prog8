@@ -3,6 +3,7 @@ package prog8tests.ast
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
@@ -23,6 +24,8 @@ import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.compileText
 
 class TestProgram: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     context("Constructor") {
         test("withNameBuiltinsAndMemsizer") {
@@ -158,7 +161,7 @@ datablock2 ${'$'}8000 {
 }
 """
 
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+        val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true)!!
         result.compilerAst.allBlocks.size shouldBeGreaterThan 5
         result.compilerAst.modules.drop(2).all { it.isLibrary } shouldBe true
         val mainMod = result.compilerAst.modules[0]

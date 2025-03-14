@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -25,6 +26,8 @@ import prog8tests.helpers.*
 
 
 class TestOptimization: FunSpec({
+    val outputDir = tempdir().toPath()
+    
     test("remove empty subroutine except start") {
         val sourcecode = """
             main {
@@ -35,7 +38,7 @@ class TestOptimization: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), true, sourcecode)!!
+        val result = compileText(C64Target(), true, sourcecode, outputDir)!!
         val mainBlock = result.compilerAst.entrypoint.definingBlock
         val startSub = mainBlock.statements.single() as Subroutine
         result.compilerAst.entrypoint shouldBeSameInstanceAs startSub
@@ -69,7 +72,7 @@ main {
         bar()
     }
 }"""
-        compileText(C64Target(), true, src) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
     }
 
     test("don't remove empty subroutine if it's referenced") {
@@ -84,7 +87,7 @@ main {
                 }
             }
         """
-        val result = compileText(C64Target(), true, sourcecode)!!
+        val result = compileText(C64Target(), true, sourcecode, outputDir)!!
         val mainBlock = result.compilerAst.entrypoint.definingBlock
         val startSub = mainBlock.statements[0] as Subroutine
         val emptySub = mainBlock.statements[1] as Subroutine
@@ -111,8 +114,8 @@ other {
         return 80
     }
 }"""
-        compileText(C64Target(), true, sourcecode, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), true, sourcecode, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, sourcecode, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, sourcecode, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("generated constvalue from typecast inherits proper parent linkage") {
@@ -159,7 +162,7 @@ other {
                 }
             }
         """
-        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 9
 
@@ -191,7 +194,7 @@ other {
                 }
             }
         """
-        val result = compileText(C64Target(), true, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 9
 
@@ -221,7 +224,7 @@ other {
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly = false)!!
+        val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly = false)!!
         val assignFF = result.compilerAst.entrypoint.statements.last() as Assignment
         assignFF.isAugmentable shouldBe true
         assignFF.target.identifier!!.nameInSource shouldBe listOf("ff")
@@ -230,7 +233,7 @@ other {
         (value.left as? IdentifierReference)?.nameInSource shouldBe listOf("ff")
         value.right shouldBe instanceOf<TypecastExpression>()
 
-        compileText(C64Target(), optimize=false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("unused variable removal") {
@@ -248,7 +251,7 @@ other {
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         result.compilerAst.entrypoint.statements.size shouldBe 7
         val alldecls = result.compilerAst.entrypoint.allDefinedSymbols.toList()
         alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
@@ -272,7 +275,7 @@ other {
                     }
                 }
             }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         result.compilerAst.entrypoint.statements.size shouldBe 3
         val ifstmt = result.compilerAst.entrypoint.statements[0] as IfElse
         ifstmt.truepart.statements.size shouldBe 1
@@ -308,7 +311,7 @@ main {
         ; nothing
     }
 }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         result.compilerAst.entrypoint.statements.size shouldBe 0
         result.compilerAst.entrypoint.definingScope.statements.size shouldBe 1
     }
@@ -331,7 +334,7 @@ main {
                     z6 = z1+z6-5
                 }
             }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         /* expected:
         ubyte z1
         z1 = 10
@@ -390,7 +393,7 @@ main {
             }
         """
 
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val assign=stmts.last() as Assignment
@@ -407,7 +410,7 @@ main {
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val assign=stmts.last() as Assignment
@@ -426,7 +429,7 @@ main {
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 10
         stmts.filterIsInstance<VarDecl>().size shouldBe 5
@@ -442,7 +445,7 @@ main {
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain  "out of range"
         errors.errors[1] shouldContain  "cannot assign word to byte"
@@ -457,7 +460,7 @@ main {
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), optimize=false, src, writeAssembly=false, errors = errors) shouldBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain  "no cast"
     }
@@ -475,7 +478,7 @@ main {
                 q=r
             }
         }"""
-        val result = compileText(C64Target(), optimize=false, src, writeAssembly=true)!!
+        val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true)!!
         result.compilerAst.entrypoint.statements.size shouldBe 11
         result.compilerAst.entrypoint.statements.last() shouldBe instanceOf<Return>()
     }
@@ -493,7 +496,7 @@ main {
             }
         }
         """
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         /* expected result:
         uword yy
         yy = 20
@@ -522,7 +525,7 @@ main {
                 xx = xx+10      ; so this should not be changed into xx=10
             }
         }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         /*
         expected result:
         uword xx
@@ -560,9 +563,9 @@ main {
             }
         }"""
 
-        compileText(VMTarget(), optimize=true, src, writeAssembly=true) shouldNotBe null
+        compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=true) shouldNotBe null
 
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         /*
         expected result:
         ubyte[] auto_heap_var = [1,2,3,4,42,99]
@@ -605,9 +608,9 @@ main {
             }
         }"""
 
-        compileText(VMTarget(), optimize=true, src, writeAssembly=true) shouldNotBe null
+        compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=true) shouldNotBe null
 
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
@@ -629,7 +632,7 @@ main {
                     thingy++
             }
         }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
@@ -647,7 +650,7 @@ main {
                     thingy++
             }
         }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
@@ -665,7 +668,7 @@ main {
                     thingy++
             }
         }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 5
         val ifStmt = stmts[4] as IfElse
@@ -682,7 +685,7 @@ main {
                     }
                 }
             }"""
-        val result = compileText(C64Target(), optimize=true, src, writeAssembly=false)!!
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
         stmts.size shouldBe 3
     }
@@ -704,7 +707,7 @@ main {
         return
     }
 }"""
-        var result = compileText(Cx16Target(), true, srcX16, writeAssembly = true)!!
+        var result = compileText(Cx16Target(), true, srcX16, outputDir, writeAssembly = true)!!
         var statements = result.compilerAst.entrypoint.statements
         statements.size shouldBe 9
         (statements[1] as Assignment).target.identifier!!.nameInSource shouldBe listOf("xx")
@@ -731,7 +734,7 @@ main {
         return
     }
 }"""
-        result = compileText(C64Target(), true, srcC64, writeAssembly = true)!!
+        result = compileText(C64Target(), true, srcC64, outputDir, writeAssembly = true)!!
         statements = result.compilerAst.entrypoint.statements
         statements.size shouldBe 9
         (statements[1] as Assignment).target.identifier!!.nameInSource shouldBe listOf("xx")
@@ -754,7 +757,7 @@ main {
         cx16.r0 = "abc"
     }
 }"""
-        compileText(C64Target(), true, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("replacing string print by chrout with referenced string elsewhere shouldn't give string symbol error") {
@@ -771,7 +774,7 @@ main {
     }
 }
 """
-        compileText(VMTarget(), true, text, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), true, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("sub only called by asm should not be optimized away") {
@@ -787,7 +790,7 @@ main {
         cx16.r0++
     }
 }"""
-        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("no crash for making var in removed/inlined subroutine fully scoped") {
@@ -810,7 +813,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), true, src, writeAssembly = false, errors = errors) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
     }
 
     test("var to const") {
@@ -823,7 +826,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        val result = compileText(Cx16Target(), true, src, writeAssembly = false, errors = errors)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false, errors = errors)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 4
         val xxConst = st[0] as VarDecl
@@ -845,7 +848,7 @@ main {
         cx16.r0 = msb(variable) as uword
     }
 }"""
-        compileText(VMTarget(), true, src, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("De Morgan's laws") {
@@ -867,7 +870,7 @@ main {
             
     }
 }"""
-        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
         val if1c = (st[4] as IfElse).condition as PrefixExpression
@@ -910,7 +913,7 @@ main {
             cx16.r0 ++
     }
 }"""
-        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 12
         val if1 = st[4] as IfElse
@@ -965,7 +968,7 @@ main {
     
 }"""
 
-        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 17
 
@@ -1014,7 +1017,7 @@ main {
             cx16.r0++
     }
 }"""
-        val result = compileText(Cx16Target(), true, src, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 3
         val ifCond1 = (st[0] as IfElse).condition as BinaryExpression
@@ -1051,7 +1054,7 @@ main {
         cx16.r0H = func3()
     }
 }"""
-        val result = compileText(C64Target(), true, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
         val st = result.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 9
         (st[2] as PtFunctionCall).name shouldBe "cbm.GETIN"
@@ -1099,8 +1102,8 @@ main {
         }
     }
 }"""
-        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("optimizing inlined functions must reference proper scopes") {
@@ -1125,8 +1128,8 @@ other {
     }
 }"""
 
-        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("if-else should not have 'not' in the condition even after optimization steps") {
@@ -1154,10 +1157,10 @@ main {
             cx16.r2++
     }
 }"""
-        compileText(VMTarget(), false, src, writeAssembly = false) shouldNotBe null
-        compileText(C64Target(), false, src, writeAssembly = false) shouldNotBe null
-        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("boolean comparisons without optimization can be assembled") {
@@ -1173,6 +1176,6 @@ main {
         }
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 })

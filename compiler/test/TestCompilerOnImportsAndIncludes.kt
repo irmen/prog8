@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.AddressOf
@@ -22,6 +23,8 @@ import kotlin.io.path.name
  */
 class TestCompilerOnImportsAndIncludes: FunSpec({
 
+    val outputDir = tempdir().toPath()
+
     context("Import") {
 
         test("testImportFromSameFolder") {
@@ -29,7 +32,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             assumeReadableFile(fixturesDir, "foo_bar.p8")
 
             val platform = Cx16Target()
-            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
+            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name, outputDir)!!
 
             val program = result.compilerAst
             val startSub = program.entrypoint
@@ -51,7 +54,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             assumeReadableFile(fixturesDir, "foo_bar.asm")
 
             val platform = Cx16Target()
-            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name)!!
+            val result = compileFile(platform, optimize = false, fixturesDir, filepath.name, outputDir)!!
 
             val program = result.compilerAst
             val startSub = program.entrypoint

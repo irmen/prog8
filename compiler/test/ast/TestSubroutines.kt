@@ -1,6 +1,7 @@
 package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -19,6 +20,8 @@ import prog8tests.helpers.compileText
 
 
 class TestSubroutines: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     test("stringParameter AcceptedInParser") {
         // note: the *parser* should accept this as it is valid *syntax*,
@@ -81,7 +84,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), false, src, errors, false) shouldBe null
+        compileText(Cx16Target(), false, src, outputDir, errors, false) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain "cannot call that"
         errors.errors[1] shouldContain "cannot call that"
@@ -104,7 +107,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), false, src, errors, false) shouldBe null
+        compileText(Cx16Target(), false, src, outputDir, errors, false) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "can't call this indirectly"
         errors.errors[1] shouldContain "can't call this indirectly"
@@ -140,9 +143,9 @@ main {
         }}
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         val errors = ErrorReporterForTests()
-        val result = compileText(Cx16Target(), false, src, errors, true)!!
+        val result = compileText(Cx16Target(), false, src, outputDir, errors, true)!!
         errors.errors.size shouldBe 0
         val start = result.codegenAst!!.entrypoint()!!
         start.children.size shouldBe 8
@@ -190,9 +193,9 @@ main {
     extsub ${'$'}8003 = test3() -> uword @R1, bool @Pc, ubyte @X
 }"""
 
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         val errors = ErrorReporterForTests()
-        val result = compileText(Cx16Target(), false, src, errors, true)!!
+        val result = compileText(Cx16Target(), false, src, outputDir, errors, true)!!
         errors.errors.size shouldBe 0
         val start = result.codegenAst!!.entrypoint()!!
         start.children.size shouldBe 9
@@ -236,7 +239,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(Cx16Target(), false, src, errors, false) shouldBe null
+        compileText(Cx16Target(), false, src, outputDir, errors, false) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain ":8:5: address must be a constant"
     }

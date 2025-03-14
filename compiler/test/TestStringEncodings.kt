@@ -6,6 +6,7 @@ import com.github.michaelbull.result.getOrElse
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.CharLiteral
@@ -29,6 +30,8 @@ import java.io.CharConversionException
 
 
 class TestStringEncodings: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     context("petscii") {
         test("testZero") {
@@ -293,7 +296,7 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, false) shouldBe null
+        compileText(C64Target(), false, source, outputDir, errors, false) shouldBe null
         errors.errors.size shouldBe 0
     }
 
@@ -308,7 +311,7 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, source, outputDir, errors, writeAssembly = false) shouldNotBe null
         errors.errors.size shouldBe 0
     }
 
@@ -323,7 +326,7 @@ class TestStringEncodings: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, source, errors, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, source, outputDir, errors, writeAssembly = false) shouldNotBe null
         errors.errors.size shouldBe 0
     }
 
@@ -353,7 +356,7 @@ class TestStringEncodings: FunSpec({
                 sub start() {
                 }
             }"""
-        compileText(Cx16Target(), false, source, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), false, source, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("module level no default encoding thus petscii") {
@@ -368,7 +371,7 @@ class TestStringEncodings: FunSpec({
                 sub start() {
                 }
             }"""
-        val result = compileText(Cx16Target(), false, source, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), false, source, outputDir, writeAssembly = false)!!
         val main = result.compilerAst.entrypoint.definingBlock
         main.statements.size shouldBe 7
         val string1 = (main.statements[0] as VarDecl).value as StringLiteral
@@ -396,7 +399,7 @@ class TestStringEncodings: FunSpec({
                 sub start() {
                 }
             }"""
-        val result = compileText(Cx16Target(), false, source, writeAssembly = false)!!
+        val result = compileText(Cx16Target(), false, source, outputDir, writeAssembly = false)!!
         val main = result.compilerAst.entrypoint.definingBlock
         main.statements.size shouldBe 7
         val string1 = (main.statements[0] as VarDecl).value as StringLiteral

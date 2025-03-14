@@ -1,6 +1,7 @@
 package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.Module
@@ -23,6 +24,8 @@ import prog8.compiler.astprocessing.SimplifiedAstMaker
 import prog8tests.helpers.*
 
 class TestAsmGenSymbols: StringSpec({
+    val outputDir = tempdir().toPath()
+    
     fun createTestProgram(): Program {
         /*
     main  {
@@ -182,7 +185,7 @@ main {
                 }
             }            
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = true)
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)
         result shouldNotBe null
     }
 
@@ -223,9 +226,9 @@ main {
     }
 }
 """
-        val result = compileText(C64Target(), false, text, writeAssembly = true)
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)
         result shouldNotBe null
-        val result2 = compileText(VMTarget(), false, text, writeAssembly = true)
+        val result2 = compileText(VMTarget(), false, text, outputDir, writeAssembly = true)
         result2 shouldNotBe null
 
     }
@@ -247,9 +250,9 @@ main {
         return cx16.r0L
     }
 }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = true)
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)
         result shouldNotBe null
-        val result2 = compileText(VMTarget(), false, text, writeAssembly = true)
+        val result2 = compileText(VMTarget(), false, text, outputDir, writeAssembly = true)
         result2 shouldNotBe null
     }
 })

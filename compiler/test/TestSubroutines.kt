@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -20,6 +21,8 @@ import prog8tests.helpers.compileText
 
 class TestSubroutines: FunSpec({
 
+    val outputDir = tempdir().toPath()
+
     test("string arg for byte param proper errormessage") {
         val text="""
             main {
@@ -32,7 +35,7 @@ class TestSubroutines: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = true, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "type mismatch, was: str expected: ubyte"
     }
@@ -60,7 +63,7 @@ class TestSubroutines: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val mainBlock = result.compilerAst.entrypoint.definingBlock
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -118,7 +121,7 @@ class TestSubroutines: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val mainBlock = result.compilerAst.entrypoint.definingBlock
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -179,7 +182,7 @@ class TestSubroutines: FunSpec({
             }
         """
 
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val mainBlock = result.compilerAst.entrypoint.definingBlock
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
@@ -204,7 +207,7 @@ class TestSubroutines: FunSpec({
         """
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "pass-by-reference type can't be used"
         errors.errors[1] shouldContain "pass-by-reference type can't be used"
@@ -225,7 +228,7 @@ class TestSubroutines: FunSpec({
         """
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "7:25: invalid number of arguments"
         errors.errors[1] shouldContain "9:25: invalid number of arguments"
@@ -246,7 +249,7 @@ class TestSubroutines: FunSpec({
         """
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "7:25: invalid number of arguments"
         errors.errors[1] shouldContain "9:25: invalid number of arguments"
@@ -266,7 +269,7 @@ class TestSubroutines: FunSpec({
         """
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "cannot use arguments"
         errors.errors[1] shouldContain "invalid number of arguments"
@@ -284,7 +287,7 @@ class TestSubroutines: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val stmts = result.compilerAst.entrypoint.statements
 
         stmts.last() shouldBe instanceOf<Subroutine>()
@@ -309,7 +312,7 @@ main {
         return 12345, 66, true
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true).shouldNotBeNull()
-        compileText(VMTarget(), false, src, writeAssembly = true).shouldNotBeNull()
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
     }
 })

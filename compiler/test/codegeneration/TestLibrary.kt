@@ -1,6 +1,7 @@
 package prog8tests.compiler.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.ast.PtBlock
@@ -14,6 +15,8 @@ import kotlin.io.path.readBytes
 import kotlin.io.path.readText
 
 class TestLibrary: FunSpec({
+
+    val outputDir = tempdir().toPath()
 
     test("library compilation (x16)") {
         val src="""
@@ -55,7 +58,7 @@ library {
     }
 }"""
 
-        val result = compileText(Cx16Target(), true, src, writeAssembly = true)!!
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = true)!!
         val ep = result.codegenAst!!.entrypoint()
         val main = ep!!.parent as PtBlock
         main.name shouldBe "p8b_main"
@@ -141,7 +144,7 @@ library {
     }
 }"""
 
-        val result = compileText(C64Target(), true, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
         val ep = result.codegenAst!!.entrypoint()
         val main = ep!!.parent as PtBlock
         main.name shouldBe "p8b_main"

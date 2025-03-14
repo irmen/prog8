@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.maps.shouldNotContainKey
@@ -20,6 +21,9 @@ import prog8tests.helpers.*
 import kotlin.io.path.readText
 
 class TestCallgraph: FunSpec({
+
+    val outputDir = tempdir().toPath()
+
     test("testGraphForEmptySubs") {
         val sourcecode = """
             %import conv
@@ -30,7 +34,7 @@ class TestCallgraph: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, sourcecode)!!
+        val result = compileText(C64Target(), false, sourcecode, outputDir)!!
         val graph = CallGraph(result.compilerAst)
 
         graph.imports.size shouldBe 1
@@ -71,7 +75,7 @@ class TestCallgraph: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, sourcecode)!!
+        val result = compileText(C64Target(), false, sourcecode, outputDir)!!
         val graph = CallGraph(result.compilerAst)
 
         graph.imports.size shouldBe 1
@@ -114,7 +118,7 @@ class TestCallgraph: FunSpec({
                 }
             }
         """
-        val result = compileText(C64Target(), false, sourcecode)!!
+        val result = compileText(C64Target(), false, sourcecode, outputDir)!!
         val graph = CallGraph(result.compilerAst)
         graph.allIdentifiers.size shouldBeGreaterThanOrEqual 5
         val empties = graph.allIdentifiers.filter { it.first.nameInSource==listOf("empty") }
@@ -245,7 +249,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        val result = compileText(C64Target(), true, src, errors=errors)!!
+        val result = compileText(C64Target(), true, src, outputDir, errors=errors)!!
         val callgraph = CallGraph(result.compilerAst)
         val scopeSub = result.compilerAst.entrypoint.lookup(listOf("main", "scopesub")) as Subroutine
         scopeSub.name shouldBe "scopesub"
@@ -273,7 +277,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        val result = compileText(VMTarget(), true, src, errors=errors)!!
+        val result = compileText(VMTarget(), true, src, outputDir, errors=errors)!!
         val callgraph = CallGraph(result.compilerAst)
         val scopeSub = result.compilerAst.entrypoint.lookup(listOf("main", "scopesub")) as Subroutine
         scopeSub.name shouldBe "scopesub"
@@ -301,10 +305,10 @@ xyz {
         return buffer_ptr[2]
     }
 }"""
-        val result = compileText(VMTarget(), true, src, writeAssembly = true)!!
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val blocks = result.codegenAst!!.allBlocks().toList()
         blocks.any { it.name=="xyz" } shouldBe false
-        val result2 = compileText(C64Target(), true, src, writeAssembly = true)!!
+        val result2 = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
         val blocks2 = result2.codegenAst!!.allBlocks().toList()
         blocks2.any { it.name=="xyz" } shouldBe false
     }

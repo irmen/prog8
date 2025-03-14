@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -18,6 +19,8 @@ import prog8tests.helpers.compileText
 
 class TestScoping: FunSpec({
 
+    val outputDir = tempdir().toPath()
+    
     test("modules parent is global namespace") {
         val src = """
             main {
@@ -26,7 +29,7 @@ class TestScoping: FunSpec({
             }
         """
 
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!
         val module = result.compilerAst.toplevelModule
         module.parent shouldBe instanceOf<GlobalNamespace>()
         module.program shouldBeSameInstanceAs result.compilerAst
@@ -45,7 +48,7 @@ class TestScoping: FunSpec({
             }
         """
 
-        val result = compileText(C64Target(), false, src, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!
         val mainBlock = result.compilerAst.entrypoint.definingBlock
         val start = mainBlock.statements.single() as Subroutine
         val repeatbody = start.statements.filterIsInstance<RepeatLoop>().single().body
@@ -118,7 +121,7 @@ class TestScoping: FunSpec({
             }
         """
 
-        val result = compileText(C64Target(), false, src, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val mainBlock = result.compilerAst.entrypoint.definingBlock
         val start = mainBlock.statements.single() as Subroutine
         val labels = start.statements.filterIsInstance<Label>()
@@ -142,7 +145,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("wrong subroutine call without qualified names") {
@@ -158,7 +161,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "undefined"
         errors.errors[0] shouldContain "routine2"
@@ -179,7 +182,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("wrong subroutine calls with qualified names (not from root)") {
@@ -198,7 +201,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain "undefined"
         errors.errors[0] shouldContain "start.routine2"
@@ -234,7 +237,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("wrong variables without qualified names") {
@@ -266,7 +269,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 5
         errors.errors[0] shouldContain "undefined symbol: v3"
         errors.errors[1] shouldContain "undefined symbol: v4"
@@ -299,7 +302,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("wrong variable refs with qualified names 1 (not from root)") {
@@ -326,7 +329,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors= ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 5
         errors.errors[0] shouldContain "undefined symbol: routine.value"
         errors.errors[1] shouldContain "undefined symbol: routine.arg"
@@ -364,7 +367,7 @@ class TestScoping: FunSpec({
                 }
             }
         """
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("various wrong goto targets") {
@@ -382,7 +385,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "wrong address"
         errors.errors[1] shouldContain "takes parameters"
@@ -410,7 +413,7 @@ class TestScoping: FunSpec({
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         /*
 There are 4 errors and 3 warnings.
 ERROR name conflict 'start', also defined...
@@ -480,7 +483,7 @@ other {
 
 """
 
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
 })

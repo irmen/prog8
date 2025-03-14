@@ -1,6 +1,9 @@
 TODO
 ====
 
+- in unit test helpers: replace own temp file name creation by kotest tempfile(), instead of using Thread.currentThread().id, which is deprecated in newer Java versions
+
+
 - Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
 
 ...
@@ -9,9 +12,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- in unit test helpers: replace own temp file name creation by kotest tempfile()/tempdir() , instead of using Thread.currentThread().id, which is deprecated in newer Java versions
-- allow integer range as when choice? because 1,2,3,4,5 is already allowed, so perhaps 1 to 5 should be allowed too? However, [1,2,3,4,5] usually is the desugared equivalent of 1 to 5 and choice values can't be arrays.
-- const values should always either be of type long or float, this is how they were usually treated in const expression evaluation already anyway
+- allow integer range as when choice? because 1,2,3,4,5 is already allowed, so perhaps 1 to 5 should be allowed too? However, [1,2,3,4,5] usually is the desugared equivalent of 1 to 5 and choice values can't be arrays. Unless we allow array literals as well and desugar those into separate labels too.
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions

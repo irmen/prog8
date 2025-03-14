@@ -1,6 +1,7 @@
 package prog8tests.codegeneration
 
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -16,6 +17,9 @@ import prog8tests.helpers.compileText
 import kotlin.io.path.readText
 
 class TestVariousCodeGen: FunSpec({
+
+    val outputDir = tempdir().toPath()
+
     test("nested scoping") {
         val text="""
 main {
@@ -40,7 +44,7 @@ testscope {
         return cx16.r0L
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("word array indexing") {
@@ -51,7 +55,7 @@ main {
         cx16.r0 = seed[0] + seed[1] + seed[2]
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("ast result from compileText") {
@@ -62,7 +66,7 @@ main {
         cx16.r0 = seed[0] + seed[1] + seed[2]
     }
 }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         result.compilerAst.name shouldStartWith  "on_the_fly"
         val ast = result.codegenAst!!
         ast.name shouldBe result.compilerAst.name
@@ -94,7 +98,7 @@ main {
         pokew(arr[i], 4242)
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("assigning memory byte into arrays works") {
@@ -114,7 +118,7 @@ main {
         wordarray[0] = @(5000)
     }
 }"""
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("reading memory from unknown var gives proper error") {
@@ -125,7 +129,7 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, writeAssembly = true, errors = errors)
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors = errors)
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "isn't uword"
         errors.errors[1] shouldContain "undefined symbol: doesnotexist"
@@ -145,8 +149,8 @@ main {
         qq = 16000 + c*${'$'}0008
     }
 }"""
-        compileText(C64Target(), true, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), true, text, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("builtin func in float expression") {
@@ -159,7 +163,7 @@ main {
         fl = sqrt(fl)+0.5
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("string vars in inlined subroutines are ok") {
@@ -182,8 +186,8 @@ block2 {
     }
 }"""
 
-        compileText(C64Target(), true, src, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("array with pointers") {
@@ -201,7 +205,7 @@ main {
     }
 }"""
         val othertarget = Cx16Target()
-        compileText(othertarget, true, src, writeAssembly = true) shouldNotBe null
+        compileText(othertarget, true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("case sensitive symbols") {
@@ -220,7 +224,7 @@ skipLABEL:
     }
 }"""
         val target = Cx16Target()
-        compileText(target, true, src, writeAssembly = true) shouldNotBe null
+        compileText(target, true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("addresses from labels/subroutines") {
@@ -239,7 +243,7 @@ mylabel:
 }
 
 """
-        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("duplicate symbols okay other block and variable") {
@@ -265,8 +269,8 @@ derp {
     }
 }"""
 
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
-        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("ambiguous symbol name variable vs block") {
@@ -284,7 +288,7 @@ module {
 }
 """
         val errors=ErrorReporterForTests()
-        compileText(VMTarget(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "ambiguous symbol"
     }
@@ -318,8 +322,8 @@ main
     }
 }"""
 
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
-        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("inlining sub with 2 statements") {
@@ -338,8 +342,8 @@ main {
         cx16.r0++
     }
 }"""
-        compileText(VMTarget(), true, src, writeAssembly = false) shouldNotBe null
-        compileText(Cx16Target(), true, src, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("push pop are inlined also with noopt") {
@@ -354,7 +358,7 @@ main {
         cx16.r0L = sys.pop()
     } 
 }"""
-        val result = compileText(C64Target(), false, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
         val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val assembly = assemblyFile.readText()
         assembly shouldContain "inlined routine follows: push"
@@ -377,11 +381,11 @@ main {
     }
 }
 """
-        compileText(Cx16Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(C64Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(C128Target(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(PETTarget(), false, text, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, text, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C128Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(PETTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("block start address must be greater than program load address") {
@@ -404,7 +408,7 @@ thirdblock ${'$'}2014 {
     %option force_output
 }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "6:1: block address must be at least program load address + 20"
         errors.errors[1] shouldContain "12:1: block address must be at least program load address + 20"
@@ -441,10 +445,10 @@ main {
         }
     }
 }"""
-        compileText(VMTarget(), true, src, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
-        compileText(Cx16Target(), true, src, writeAssembly = true) shouldNotBe null
-        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("multiple status flags return values from asmsub") {
@@ -464,7 +468,7 @@ main {
         void carryAndNegativeAndByteAndWord()
     }    
 }"""
-        compileText(Cx16Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("missing rts in asmsub") {
@@ -491,7 +495,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, src, writeAssembly = true, errors = errors) shouldBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "asmsub seems to never return"
     }
@@ -512,7 +516,7 @@ main {
     }
 }"""
 
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("if not without else is not swapped") {
@@ -528,8 +532,8 @@ main {
         return false
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
-        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val st = result.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 2
         val ifelse = st[0] as PtIfElse
@@ -552,8 +556,8 @@ main {
         return false
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
-        val result = compileText(VMTarget(), false, src, writeAssembly = true)!!
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val st = result.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 2
         val ifelse = st[0] as PtIfElse
@@ -577,7 +581,7 @@ main {
         cx16.r10L = if cx16.r5L & ${'$'}40 == 0  11 else 22
     } 
 }"""
-        val result = compileText(C64Target(), true, text, writeAssembly = true)!!
+        val result = compileText(C64Target(), true, text, outputDir, writeAssembly = true)!!
         val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val assembly = assemblyFile.readText()
         assembly shouldContain "bit  cx16.r0L"
@@ -587,7 +591,7 @@ main {
         assembly shouldContain "bit  cx16.r4L"
         assembly shouldContain "bit  cx16.r5L"
 
-        val resultIR = compileText(VMTarget(), true, text, writeAssembly = true)!!
+        val resultIR = compileText(VMTarget(), true, text, outputDir, writeAssembly = true)!!
         val irFile = resultIR.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val ir = irFile.readText()
         ir shouldContain "bit.b ${'$'}ff02"     // r0
@@ -608,7 +612,7 @@ main {
        uword @shared foobar = if flag foo else bar
     }
 }"""
-        compileText(C64Target(), false, src, writeAssembly = true) shouldNotBe null
-        compileText(VMTarget(), false, src, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 })

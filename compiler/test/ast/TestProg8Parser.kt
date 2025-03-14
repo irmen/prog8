@@ -5,6 +5,7 @@ import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.or
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -32,6 +33,8 @@ import kotlin.io.path.nameWithoutExtension
 
 
 class TestProg8Parser: FunSpec( {
+
+    val outputDir = tempdir().toPath()
 
     context("Newline at end") {
         test("is not required - #40, fixed by #45") {
@@ -863,7 +866,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val start = result.compilerAst.entrypoint
         val string = (start.statements[0] as VarDecl).value as StringLiteral
         withClue("x-escapes are hacked to range 0x8000-0x80ff") {
@@ -902,7 +905,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """
-        val result = compileText(C64Target(), false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val start = result.compilerAst.entrypoint
         val containmentChecks = start.statements.takeLast(4)
         (containmentChecks[0] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
@@ -923,7 +926,7 @@ class TestProg8Parser: FunSpec( {
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(),  false, text, writeAssembly = false, errors = errors) shouldBe null
+        compileText(C64Target(),  false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "iterable must be"
         errors.errors[1] shouldContain "datatype doesn't match"
@@ -943,7 +946,7 @@ class TestProg8Parser: FunSpec( {
                 }
             }
         """
-        val result = compileText(C64Target(),  false, text, writeAssembly = false)!!
+        val result = compileText(C64Target(),  false, text, outputDir, writeAssembly = false)!!
         val stmt = result.compilerAst.entrypoint.statements
         stmt.size shouldBe 12
         val var1 = stmt[0] as VarDecl
@@ -984,7 +987,7 @@ main {
     }
 }"""
 
-        compileText(C64Target(),  false, src, writeAssembly = false) shouldNotBe null
+        compileText(C64Target(),  false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("various alternative curly brace styles are ok") {
@@ -1023,7 +1026,7 @@ main {
     }
 }"""
 
-        compileText(VMTarget(),  false, src, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(),  false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("underscores for numeric groupings") {
@@ -1037,7 +1040,7 @@ main {
         float fl = 3_000_001.141_592_654
     }
 }"""
-        val result = compileText(VMTarget(),  false, src, writeAssembly = false)!!
+        val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
         val assigns = st.filterIsInstance<Assignment>()
@@ -1052,7 +1055,7 @@ main {
             main { sub start() { cx16.r0++ cx16.r1++ } }
             other { asmsub thing() { %asm {{ inx }} } }
         """
-        val result = compileText(VMTarget(),  false, src, writeAssembly = false)!!
+        val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 2
     }
