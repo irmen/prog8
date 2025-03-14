@@ -6,9 +6,9 @@ import java.nio.file.Path
 import kotlin.io.path.*
 
 
-val workingDir = assumeDirectory("").absolute()   // Note: "." does NOT work..!
-val fixturesDir = assumeDirectory(workingDir, "test/fixtures")
-val resourcesDir = assumeDirectory(workingDir, "res")
+val workingDir = assumeDirectory("")   // Note: "." does NOT work..!
+val fixturesDir = assumeDirectory("test/fixtures")
+val resourcesDir = assumeDirectory("res")
 
 fun assumeNotExists(path: Path): Path {
     withClue("sanity check: should not exist: ${path.absolute()}") {

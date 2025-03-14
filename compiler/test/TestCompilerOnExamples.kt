@@ -1,5 +1,6 @@
 package prog8tests.compiler
 
+import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withData
 import io.kotest.engine.spec.tempdir
@@ -16,7 +17,6 @@ import prog8tests.helpers.assumeDirectory
 import prog8tests.helpers.cartesianProduct
 import prog8tests.helpers.workingDir
 import java.nio.file.Path
-import kotlin.io.path.absolute
 import kotlin.io.path.exists
 
 
@@ -66,15 +66,18 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
     }
     val filepath = searchIn.asSequence()
         .map { it.resolve("$source.p8") }
-        .map { it.absolute().normalize() }
+        .map { it.normalize() }
         .map { workingDir.relativize(it) }
         .first { it.exists() }
-    val displayName = "${examplesDir.relativize(filepath.absolute())}: ${target.name}, optimize=$optimize"
+    val displayName = "${examplesDir.relativize(filepath)}: ${target.name}, optimize=$optimize"
     return Pair(displayName, filepath)
 }
 
 
 class TestCompilerOnExamplesC64: FunSpec({
+
+    @OptIn(ExperimentalKotest::class)
+    this.concurrency = 4
 
     val outputDir = tempdir().toPath()
 
@@ -111,6 +114,9 @@ class TestCompilerOnExamplesC64: FunSpec({
 })
 
 class TestCompilerOnExamplesCx16: FunSpec({
+
+    @OptIn(ExperimentalKotest::class)
+    this.concurrency = 4
 
     val outputDir = tempdir().toPath()
 
@@ -179,6 +185,9 @@ class TestCompilerOnExamplesCx16: FunSpec({
 })
 
 class TestCompilerOnExamplesBothC64andCx16: FunSpec({
+
+    @OptIn(ExperimentalKotest::class)
+    this.concurrency = 4
 
     val outputDir = tempdir().toPath()
 

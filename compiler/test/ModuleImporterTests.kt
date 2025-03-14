@@ -95,7 +95,7 @@ class TestModuleImporter: FunSpec({
 
             test("testAbsolute") {
                 val searchIn = listOf(
-                    Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
+                    workingDir.relativize(fixturesDir), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
                 val importer = makeImporter(null, searchIn)
                 val fileName = "ast_simple_main.p8"
@@ -109,7 +109,7 @@ class TestModuleImporter: FunSpec({
 
             test("testRelativeToWorkingDir") {
                 val searchIn = listOf(
-                    Path(".").div(workingDir.relativize(fixturesDir)), // we do want a dot "." in front
+                    workingDir.relativize(fixturesDir), // we do want a dot "." in front
                 ).map { it.invariantSeparatorsPathString }
                 val importer = makeImporter(null, searchIn)
                 val fileName = "ast_simple_main.p8"
@@ -125,9 +125,7 @@ class TestModuleImporter: FunSpec({
             }
 
             test("testRelativeTo1stDirInSearchList") {
-                val searchIn = Path(".")
-                    .div(workingDir.relativize(fixturesDir))
-                    .invariantSeparatorsPathString
+                val searchIn = (workingDir.relativize(fixturesDir)).invariantSeparatorsPathString
                 val importer = makeImporter(null, searchIn)
                 val fileName = "ast_simple_main.p8"
                 val path = Path(".", fileName)

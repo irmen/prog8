@@ -55,7 +55,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
     }
 
     test("testFilePathOutsideWorkingDirRelativeToWorkingDir") {
-        val filepath = workingDir.relativize(assumeReadableFile(fixturesDir, "ast_simple_main.p8").absolute())
+        val filepath = workingDir.relativize(assumeReadableFile(fixturesDir, "ast_simple_main.p8"))
         compileFile(filepath, listOf()) shouldNotBe null
     }
 
