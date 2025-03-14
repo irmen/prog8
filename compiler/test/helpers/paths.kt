@@ -51,12 +51,3 @@ fun assumeDirectory(pathStr: String): Path = assumeDirectory(Path(pathStr))
 fun assumeDirectory(path: Path, other: String): Path = assumeDirectory(path / other)
 fun assumeDirectory(pathStr: String, other: String): Path = assumeDirectory(Path(pathStr) / other)
 fun assumeDirectory(pathStr: String, other: Path): Path = assumeDirectory(Path(pathStr) / other)
-
-
-@Deprecated(
-    "Directories are checked automatically at init.",
-    ReplaceWith("/* nothing */")
-)
-@Suppress("UNUSED_PARAMETER")
-fun sanityCheckDirectories(workingDirName: String? = null) {
-}

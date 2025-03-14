@@ -1,9 +1,6 @@
 TODO
 ====
 
-- in unit test helpers: replace own temp file name creation by kotest tempfile(), instead of using Thread.currentThread().id, which is deprecated in newer Java versions
-
-
 - Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
 
 ...
