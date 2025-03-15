@@ -1,13 +1,7 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import prog8.code.GENERATED_LABEL_PREFIX
-import prog8.code.IAssemblyProgram
-import prog8.code.ICodeGeneratorBackend
-import prog8.code.StNode
-import prog8.code.StNodeType
-import prog8.code.SymbolTable
-import prog8.code.SymbolTableMaker
+import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.ImportFileSystem
@@ -15,7 +9,6 @@ import prog8.code.source.SourceCode
 import prog8.code.target.Cx16Target
 import prog8.codegen.cpu6502.assignment.*
 import kotlin.io.path.Path
-import kotlin.io.path.absolute
 import kotlin.io.path.writeLines
 
 
@@ -1144,8 +1137,8 @@ $repeatLabel""")
         val sourcePath = Path(incbin.definingBlock()!!.source.origin)
         val includedPath = sourcePath.resolveSibling(incbin.file)
         val pathForAssembler = options.outputDir // #54: 64tass needs the path *relative to the .asm file*
-            .absolute()
-            .relativize(includedPath.absolute())
+            .sanitize()
+            .relativize(includedPath.sanitize())
             .normalize() // avoid assembler warnings (-Wportable; only some, not all)
             .toString().replace('\\', '/')
         out("  .binary \"$pathForAssembler\" $offset $length")

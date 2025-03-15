@@ -2,6 +2,7 @@ package prog8tests.compiler
 
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
+import io.kotest.datatest.withData
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -10,24 +11,18 @@ import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
+import prog8.code.sanitize
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.*
-import kotlin.io.path.absolute
 import kotlin.io.path.name
 
-
-/**
- * ATTENTION: this is just kludge!
- * They are not really unit tests, but rather tests of the whole process,
- * from source file loading all the way through to running 64tass.
- */
 class TestCompilerOnImportsAndIncludes: FunSpec({
-
     val outputDir = tempdir().toPath()
 
     context("Import") {
 
         test("testImportFromSameFolder") {
+            val outputDir = tempdir().toPath()
             val filepath = assumeReadableFile(fixturesDir, "importFromSameFolder.p8")
             assumeReadableFile(fixturesDir, "foo_bar.p8")
 
@@ -49,7 +44,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
     }
 
     context("AsmInclude") {
-        test("testAsmIncludeFromSameFolder") {
+        test("AsmIncludeFromSameFolder") {
             val filepath = assumeReadableFile(fixturesDir, "asmIncludeFromSameFolder.p8")
             assumeReadableFile(fixturesDir, "foo_bar.asm")
 
@@ -89,26 +84,22 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
         }
 
         val tests = listOf(
-                Triple("same ", "asmBinaryFromSameFolder.p8", "do_nothing1.bin"),
-                Triple("sub", "asmBinaryFromSubFolder.p8", "subFolder/do_nothing2.bin"),
+                "same" to "asmBinaryFromSameFolder.p8",
+                "sub" to "asmBinaryFromSubFolder.p8"
             )
 
-        tests.forEach {
-            val (where, p8Str, _) = it
-            test("%asmbinary from ${where}folder") {
-                val p8Path = assumeReadableFile(fixturesDir, p8Str)
-                // val binPath = assumeReadableFile(fixturesDir, binStr)
+        withData<Pair<String, String>>({"%asmbinary from ${it.first} folder"}, tests) { (_, p8Str) ->
+            val p8Path = assumeReadableFile(fixturesDir, p8Str)
 
-                // the bug we're testing for (#54) was hidden if outputDir == workingDir
-                withClue("sanity check: workingDir and outputDir should not be the same folder") {
-                    outputDir.absolute().normalize() shouldNotBe workingDir.absolute().normalize()
-                }
+            // the bug we're testing for (#54) was hidden if outputDir == workingDir
+            withClue("sanity check: workingDir and outputDir should not be the same folder") {
+                outputDir.sanitize() shouldNotBe workingDir.sanitize()
+            }
 
-                withClue("argument to assembler directive .binary " +
-                        "should be relative to the generated .asm file (in output dir), " +
-                        "NOT relative to .p8 neither current working dir") {
-                    compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldNotBe null
-                }
+            withClue("argument to assembler directive .binary " +
+                    "should be relative to the generated .asm file (in output dir), " +
+                    "NOT relative to .p8 neither current working dir") {
+                compileFile(Cx16Target(), false, p8Path.parent, p8Path.name, outputDir) shouldNotBe null
             }
         }
     }

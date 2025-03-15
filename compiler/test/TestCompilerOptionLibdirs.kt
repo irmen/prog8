@@ -3,6 +3,7 @@ package prog8tests.compiler
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldNotBe
+import prog8.code.sanitize
 import prog8.code.target.Cx16Target
 import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
@@ -11,7 +12,6 @@ import prog8tests.helpers.assumeReadableFile
 import prog8tests.helpers.fixturesDir
 import prog8tests.helpers.workingDir
 import java.nio.file.Path
-import kotlin.io.path.absolute
 
 /**
  * ATTENTION: this is just kludge!
@@ -51,7 +51,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
 
     test("testAbsoluteFilePathOutsideWorkingDir") {
         val filepath = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
-        compileFile(filepath.absolute(), listOf()) shouldNotBe null
+        compileFile(filepath.sanitize(), listOf()) shouldNotBe null
     }
 
     test("testFilePathOutsideWorkingDirRelativeToWorkingDir") {

@@ -8,6 +8,7 @@ import prog8.ast.statements.Directive
 import prog8.ast.statements.DirectiveArg
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
+import prog8.code.sanitize
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.parser.Prog8Parser
@@ -24,8 +25,8 @@ class ModuleImporter(private val program: Program,
                      sourceDirs: List<String>,
                      libraryDirs: List<String>) {
 
-    private val sourcePaths: List<Path> = sourceDirs.map { Path(it).absolute().normalize() }.toSortedSet().toList()
-    private val libraryPaths: List<Path> = libraryDirs.map { Path(it).absolute().normalize() }.toSortedSet().toList()
+    private val sourcePaths: List<Path> = sourceDirs.map { Path(it).sanitize() }.toSortedSet().toList()
+    private val libraryPaths: List<Path> = libraryDirs.map { Path(it).sanitize() }.toSortedSet().toList()
 
     fun importMainModule(filePath: Path): Result<Module, NoSuchFileException> {
         val searchIn = (listOf(Path("").absolute()) + sourcePaths).toSortedSet()
@@ -141,7 +142,7 @@ class ModuleImporter(private val program: Program,
             if (importingModule == null) {
                 sourcePaths
             } else {
-                val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).absolute().normalize()
+                val pathFromImportingModule = (Path(importingModule.position.file).parent ?: Path("")).sanitize()
                 listOf(pathFromImportingModule) + sourcePaths
             }
 

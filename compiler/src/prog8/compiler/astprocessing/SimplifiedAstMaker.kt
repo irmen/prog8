@@ -10,12 +10,12 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.sanitize
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
 import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
-import kotlin.io.path.absolute
 import kotlin.io.path.isRegularFile
 
 
@@ -268,10 +268,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 val offset: UInt? = if(directive.args.size>=2) directive.args[1].int!! else null
                 val length: UInt? = if(directive.args.size>=3) directive.args[2].int!! else null
                 val abspath = if(File(filename).isFile) {
-                    Path(filename).absolute()
+                    Path(filename).sanitize()
                 } else {
                     val sourcePath = Path(directive.definingModule.source.origin)
-                    sourcePath.resolveSibling(filename).absolute()
+                    sourcePath.resolveSibling(filename).sanitize()
                 }
                 if(abspath.toFile().isFile)
                     PtIncludeBinary(abspath, offset, length, directive.position)

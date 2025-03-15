@@ -555,7 +555,7 @@ object SysCalls {
             Syscall.DIRECTORY -> {
                 // no arguments
                 val directory = Path("")
-                println("Directory listing for ${directory.absolute().normalize()}")
+                println("Directory listing for ${directory}")
                 directory.listDirectoryEntries().sorted().forEach {
                     println("${it.toFile().length()}\t${it.normalize()}")
                 }

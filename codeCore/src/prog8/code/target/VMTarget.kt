@@ -75,7 +75,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
             if(withExt.isReadable())
                 vm.runProgram(withExt.readText())
             else
-                throw NoSuchFileException(withExt.toFile(), reason="not a .p8ir file")
+                throw java.nio.file.NoSuchFileException(withExt.name, null, "not a .p8ir file")
         }
     }
 

@@ -1,10 +1,10 @@
 package prog8.code.source
 
 import prog8.code.core.Position
+import prog8.code.sanitize
 import java.nio.file.Path
-import java.util.TreeMap
+import java.util.*
 import kotlin.io.path.Path
-import kotlin.io.path.absolute
 
 
 // Resource caching "filesystem".
@@ -22,7 +22,7 @@ object ImportFileSystem {
     fun expandTilde(path: Path): Path = Path(expandTilde(path.toString()))
 
     fun getFile(path: Path, isLibrary: Boolean=false): SourceCode {
-        val normalized = path.absolute().normalize()
+        val normalized = path.sanitize()
         val cached = cache[normalized.toString()]
         if (cached != null)
             return cached
@@ -48,7 +48,7 @@ object ImportFileSystem {
         val cached = cache[position.file]
         if(cached != null)
             return getLine(cached, position.line)
-        val path = Path(position.file).absolute().normalize()
+        val path = Path(position.file).sanitize()
         val cached2 = cache[path.toString()]
         if(cached2 != null)
             return getLine(cached2, position.line)

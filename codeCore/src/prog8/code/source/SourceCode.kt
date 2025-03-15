@@ -1,5 +1,6 @@
 package prog8.code.source
 
+import prog8.code.sanitize
 import java.io.IOException
 import java.nio.file.Path
 import java.text.Normalizer
@@ -59,7 +60,7 @@ sealed class SourceCode {
         private const val LIBRARYFILEPREFIX = "library:"
         private const val STRINGSOURCEPREFIX = "string:"
         val curdir: Path = Path(".").absolute()
-        fun relative(path: Path): Path = curdir.relativize(path.absolute())
+        fun relative(path: Path): Path = curdir.relativize(path.sanitize())
         fun isRegularFilesystemPath(pathString: String) = !isLibraryResource(pathString) && !isStringResource(pathString)
         fun isLibraryResource(path: String) = path.startsWith(LIBRARYFILEPREFIX)
         fun isStringResource(path: String) = path.startsWith(STRINGSOURCEPREFIX)
