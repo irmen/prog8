@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.comparables.shouldBeGreaterThan
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -683,6 +684,40 @@ main
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "use if"
     }
+
+    test("when on range expressions is ok") {
+        val src="""
+
+main {
+
+    sub start()  {
+        when cx16.r0L {
+            21 to 29 step 2 -> cx16.r1L++
+            else -> cx16.r1L--
+        }
+    }
+}"""
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false).shouldNotBeNull()
+    }
+
+    test("when on range expressions outside value datatype is error") {
+        val src="""
+
+main {
+
+    sub start()  {
+        when cx16.r0L {
+            300 to 400 -> cx16.r1L++
+            else -> cx16.r1L--
+        }
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "values must be constant numbers"
+    }
+
 
     test("sizeof number const evaluation in vardecl") {
         val src="""

@@ -751,18 +751,23 @@ action. It is possible to combine several choices to result in the same action::
     when value {
         4 -> txt.print("four")
         5 -> txt.print("five")
-        10,20,30 -> {
-            txt.print("ten or twenty or thirty")
-        }
+        10,20,30 -> txt.print("ten or twenty or thirty")
+        50 to 60 step 2 -> txt.print("fifty to sixty, even")
         else -> txt.print("don't know")
     }
 
 The when-*value* can be any expression but the choice values have to evaluate to
 compile-time constant integers (bytes or words). They also have to be the same
 datatype as the when-value, otherwise no efficient comparison can be done.
-The else part is optional.
+You can explicitly put a list of numbers that all should result in the same case,
+or even use any *range expression* as long as it denotes a constant list of numbers.
+Be aware that every number is compared individually so using long lists of numbers and/or
+many choice cases will result in poor performance.
+
 Choices can result in a single statement or a block of multiple statements in which
 case you have to use { } to enclose them.
+
+The else part is optional.
 
 
 .. note::

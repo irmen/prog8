@@ -319,4 +319,35 @@ _after:
         }
         return noModifications
     }
+
+    override fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> {
+        // replace a range expression in a when by the actual list of numbers it represents
+        val values = whenChoice.values
+        if(values!=null && values.size==1) {
+            val conditionType = (whenChoice.parent as When).condition.inferType(program)
+            val intRange = (values[0] as? RangeExpression)?.toConstantIntegerRange()
+            if(conditionType.isKnown && intRange != null) {
+                if(intRange.count()>255)
+                    errors.err("values list too long", values[0].position)
+                else {
+                    val dt = conditionType.getOrUndef().base
+                    val newValues = intRange.map {
+                        val num = NumericLiteral(BaseDataType.LONG, it.toDouble(), values[0].position)
+                        num.linkParents(whenChoice)
+                        val cast = num.cast(dt, true)
+                        if (cast.isValid) cast.valueOrZero() else null
+                    }
+                    if(null !in newValues) {
+                        if(newValues.size>=10)
+                            errors.warn("long list of values, checking will not be very efficient", values[0].position)
+                        values.clear()
+                        for(num in newValues)
+                            values.add(num!!)
+                    }
+                }
+            }
+        }
+
+        return noModifications
+    }
 }
