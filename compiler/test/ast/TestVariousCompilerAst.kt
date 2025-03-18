@@ -881,6 +881,9 @@ main {
         DataType.UWORD.isWord shouldBe true
         DataType.BYTE.isByte shouldBe true
         DataType.UBYTE.isByte shouldBe true
+        DataType.BOOL.isBool shouldBe true
+        DataType.STR.isString shouldBe true
+        DataType.FLOAT.isFloat shouldBe true
 
         DataType.forDt(BaseDataType.UNDEFINED).isUndefined shouldBe true
         DataType.forDt(BaseDataType.LONG).isLong shouldBe true
@@ -888,6 +891,9 @@ main {
         DataType.forDt(BaseDataType.UWORD).isWord shouldBe true
         DataType.forDt(BaseDataType.BYTE).isByte shouldBe true
         DataType.forDt(BaseDataType.UBYTE).isByte shouldBe true
+        DataType.forDt(BaseDataType.BOOL).isBool shouldBe true
+        DataType.forDt(BaseDataType.STR).isString shouldBe true
+        DataType.forDt(BaseDataType.FLOAT).isFloat shouldBe true
 
         DataType.arrayFor(BaseDataType.UBYTE, true).isUnsignedByteArray shouldBe true
         DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true

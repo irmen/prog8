@@ -62,7 +62,7 @@ class PtSub(
     val parameters: List<PtSubroutineParameter>,
     val returns: List<DataType>,
     position: Position
-) : PtNamedNode(name, position), IPtSubroutine, IPtStatementContainer {
+) : PtNamedNode(name, position), IPtSubroutine {
     init {
         // params and return values should not be str
         if(parameters.any{ !it.type.isNumericOrBool })
@@ -227,7 +227,7 @@ class PtWhenChoice(val isElse: Boolean, position: Position) : PtNode(position) {
 }
 
 
-class PtDefer(position: Position): PtNode(position), IPtStatementContainer
+class PtDefer(position: Position): PtNode(position)
 
 
 class PtJmpTable(position: Position) : PtNode(position)     // contains only PtIdentifier nodes

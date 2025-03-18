@@ -31,10 +31,7 @@ sealed class PtNode(val position: Position) {
 }
 
 
-sealed interface IPtStatementContainer
-
-
-class PtNodeGroup : PtNode(Position.DUMMY), IPtStatementContainer
+class PtNodeGroup : PtNode(Position.DUMMY)
 
 
 sealed class PtNamedNode(var name: String, position: Position): PtNode(position) {
@@ -79,7 +76,7 @@ class PtBlock(name: String,
               val source: SourceCode,       // taken from the module the block is defined in.
               val options: Options,
               position: Position
-) : PtNamedNode(name, position), IPtStatementContainer {
+) : PtNamedNode(name, position) {
     class Options(val address: UInt? = null,
                   val forceOutput: Boolean = false,
                   val noSymbolPrefixing: Boolean = false,
