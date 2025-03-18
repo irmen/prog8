@@ -805,11 +805,11 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
         val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
-        derp.returns shouldBe listOf(DataType.forDt(BaseDataType.UWORD))
-        derp.parameters.single().type shouldBe DataType.forDt(BaseDataType.UWORD)
+        derp.returns shouldBe listOf(DataType.UWORD)
+        derp.parameters.single().type shouldBe DataType.UWORD
         val mult3 = main.children.single { it is PtAsmSub && it.name=="main.mult3"} as PtAsmSub
-        mult3.parameters.single().second.type shouldBe DataType.forDt(BaseDataType.UWORD)
-        mult3.returns.single().second shouldBe DataType.forDt(BaseDataType.UWORD)
+        mult3.parameters.single().second.type shouldBe DataType.UWORD
+        mult3.returns.single().second shouldBe DataType.UWORD
     }
 
     test("return 0 for str converted to uword") {

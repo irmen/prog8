@@ -82,7 +82,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 asmgen.out("  beq  $falseLabel")
             }
             in LogicalOperators -> {
-                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.BOOL), condition.definingISub(), condition.position, register=RegisterOrPair.A)
+                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, condition.definingISub(), condition.position, register=RegisterOrPair.A)
                 if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
                     asmgen.out("  beq  $falseLabel")
                 } else {

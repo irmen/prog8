@@ -59,7 +59,7 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable): Int {
                 if(node.children.dropLast(1).all { (it as PtAssignTarget).void }) {
                     // all targets are now void, the whole assignment can be discarded and replaced by just a (void) call to the subroutine
                     val index = node.parent.children.indexOf(node)
-                    val voidCall = PtFunctionCall(functionName, true, DataType.forDt(BaseDataType.UNDEFINED), value.position)
+                    val voidCall = PtFunctionCall(functionName, true, DataType.UNDEFINED, value.position)
                     value.children.forEach { voidCall.add(it) }
                     node.parent.children[index] = voidCall
                     voidCall.parent = node.parent

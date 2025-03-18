@@ -243,7 +243,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 }
             }
             in LogicalOperators -> {
-                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.BOOL), stmt.definingISub(), condition.position, register=RegisterOrPair.A)
+                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, stmt.definingISub(), condition.position, register=RegisterOrPair.A)
                 if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
                     if (jumpAfterIf != null)
                         translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)

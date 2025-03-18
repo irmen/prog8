@@ -271,7 +271,7 @@ class VarDecl(val type: VarDeclType,
                 decltype = VarDeclType.MEMORY
                 value = AddressOf(IdentifierReference(regname, param.position), null, false, param.position)
             }
-            val dt = if(param.type.isArray) DataType.forDt(BaseDataType.UWORD) else param.type
+            val dt = if(param.type.isArray) DataType.UWORD else param.type
             return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, SplitWish.DONTCARE, null, param.name, emptyList(), value,
                 sharedWithAsm = false,
                 alignment = 0u,

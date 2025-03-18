@@ -556,13 +556,13 @@ class IRFileReader {
             }
         } else {
             return when(type) {
-                "bool" -> DataType.forDt(BaseDataType.BOOL)
-                "byte" -> DataType.forDt(BaseDataType.BYTE)
-                "ubyte" -> DataType.forDt(BaseDataType.UBYTE)
-                "word" -> DataType.forDt(BaseDataType.WORD)
-                "uword" -> DataType.forDt(BaseDataType.UWORD)
-                "float" -> DataType.forDt(BaseDataType.FLOAT)
-                "long" -> DataType.forDt(BaseDataType.LONG)
+                "bool" -> DataType.BOOL
+                "byte" -> DataType.BYTE
+                "ubyte" -> DataType.UBYTE
+                "word" -> DataType.WORD
+                "uword" -> DataType.UWORD
+                "float" -> DataType.FLOAT
+                "long" -> DataType.LONG
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
                 else -> throw IRParseException("invalid dt  $type")
             }

@@ -1,11 +1,6 @@
 package prog8.optimizer
 
-import prog8.ast.FatalAstException
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
-import prog8.ast.UndefinedSymbolError
+import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -457,7 +452,7 @@ internal class ConstantIdentifierReplacer(
                 if(declArraySize!=null && declArraySize!=rangeExpr.size())
                     errors.err("range expression size (${rangeExpr.size()}) doesn't match declared array size ($declArraySize)", decl.value?.position!!)
                 if(constRange!=null) {
-                    val rangeType = rangeExpr.inferType(program).getOr(DataType.forDt(BaseDataType.UBYTE))
+                    val rangeType = rangeExpr.inferType(program).getOr(DataType.UBYTE)
                     return if(rangeType.isByte) {
                         ArrayLiteral(InferredTypes.InferredType.known(decl.datatype),
                             constRange.map { NumericLiteral(rangeType.base, it.toDouble(), decl.value!!.position) }.toTypedArray(),

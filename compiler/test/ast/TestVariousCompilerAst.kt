@@ -875,6 +875,13 @@ main {
     }
 
     test("datatype consistencies") {
+        DataType.UNDEFINED.isUndefined shouldBe true
+        DataType.LONG.isLong shouldBe true
+        DataType.WORD.isWord shouldBe true
+        DataType.UWORD.isWord shouldBe true
+        DataType.BYTE.isByte shouldBe true
+        DataType.UBYTE.isByte shouldBe true
+
         DataType.forDt(BaseDataType.UNDEFINED).isUndefined shouldBe true
         DataType.forDt(BaseDataType.LONG).isLong shouldBe true
         DataType.forDt(BaseDataType.WORD).isWord shouldBe true

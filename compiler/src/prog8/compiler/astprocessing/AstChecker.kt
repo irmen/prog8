@@ -1,8 +1,6 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.*
-import prog8.ast.FatalAstException
-import prog8.ast.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -1124,7 +1122,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(string: StringLiteral) {
-        checkValueTypeAndRangeString(DataType.forDt(BaseDataType.STR), string)
+        checkValueTypeAndRangeString(DataType.STR, string)
 
         try {  // just *try* if it can be encoded, don't actually do it
             val bytes = compilerOptions.compTarget.encodeString(string.value, string.encoding)
@@ -1570,7 +1568,7 @@ internal class AstChecker(private val program: Program,
             }
 
             if(target.returntypes.size>1) {
-                if (DataType.forDt(BaseDataType.FLOAT) in target.returntypes) {
+                if (DataType.FLOAT in target.returntypes) {
                     errors.err("floats cannot be used as part of a multi-value result", target.position)
                 }
             }

@@ -52,7 +52,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
         fun fromAstAssignmentMulti(targets: List<PtAssignTarget>, definingSub: IPtSubroutine?, asmgen: AsmGen6502Internal): List<AsmAssignTarget> {
             return targets.map {
                 if(it.void)
-                    AsmAssignTarget(TargetStorageKind.VOID, asmgen, DataType.forDt(BaseDataType.UNDEFINED), null, it.position)
+                    AsmAssignTarget(TargetStorageKind.VOID, asmgen, DataType.UNDEFINED, null, it.position)
                 else
                     fromAstAssignment(it, definingSub, asmgen)
             }
@@ -87,18 +87,18 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.A,
                     RegisterOrPair.X,
                     RegisterOrPair.Y -> {
-                        val dt = DataType.forDt(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
+                        val dt = if(signed) DataType.BYTE else DataType.UBYTE
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                     RegisterOrPair.AX,
                     RegisterOrPair.AY,
                     RegisterOrPair.XY -> {
-                        val dt = DataType.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
+                        val dt = if(signed) DataType.WORD else DataType.UWORD
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                     RegisterOrPair.FAC1,
                     RegisterOrPair.FAC2 -> {
-                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.FLOAT), scope, pos, register = registers)
+                        AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, scope, pos, register = registers)
                     }
                     RegisterOrPair.R0,
                     RegisterOrPair.R1,
@@ -116,7 +116,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.R13,
                     RegisterOrPair.R14,
                     RegisterOrPair.R15 -> {
-                        val dt = DataType.forDt(if(signed) BaseDataType.WORD else BaseDataType.UWORD)
+                        val dt = if(signed) DataType.WORD else DataType.UWORD
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                 }
@@ -170,7 +170,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, cv.type, number = cv)
             val bv = value as? PtBool
             if(bv!=null)
-                return AsmAssignSource(SourceStorageKind.LITERALBOOLEAN, program, asmgen, DataType.forDt(BaseDataType.BOOL), boolean = bv)
+                return AsmAssignSource(SourceStorageKind.LITERALBOOLEAN, program, asmgen, DataType.BOOL, boolean = bv)
 
             return when(value) {
                 // checked above:   is PtNumber -> throw AssemblyError("should have been constant value")
@@ -191,7 +191,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     }
                 }
                 is PtMemoryByte -> {
-                    AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.forDt(BaseDataType.UBYTE), memory = value)
+                    AsmAssignSource(SourceStorageKind.MEMORY, program, asmgen, DataType.UBYTE, memory = value)
                 }
                 is PtArrayIndexer -> {
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, value.type, array = value)
@@ -204,7 +204,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val sub = symbol.astNode as IPtSubroutine
                     val returnType =
                         if(sub is PtSub && sub.returns.size>1)
-                            DataType.forDt(BaseDataType.UNDEFINED)      // TODO list of types instead?
+                            DataType.UNDEFINED      // TODO list of types instead?
                         else
                             sub.returnsWhatWhere().firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
                             ?: throw AssemblyError("can't translate zero return values in assignment")

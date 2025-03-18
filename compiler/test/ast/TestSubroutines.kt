@@ -41,10 +41,10 @@ class TestSubroutines: FunSpec({
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.parameters.single().type shouldBe DataType.forDt(BaseDataType.STR)
+        asmfunc.parameters.single().type shouldBe DataType.STR
         asmfunc.statements.isEmpty() shouldBe true
         func.isAsmSubroutine shouldBe false
-        func.parameters.single().type shouldBe DataType.forDt(BaseDataType.STR)
+        func.parameters.single().type shouldBe DataType.STR
         func.statements.isEmpty() shouldBe true
     }
 

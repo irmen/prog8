@@ -82,7 +82,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
                     }
                     datatype.isFloat -> {
                         if (options.floats) {
-                            val memsize = options.compTarget.memorySize(DataType.forDt(BaseDataType.FLOAT), null)
+                            val memsize = options.compTarget.memorySize(DataType.FLOAT, null)
                             if(position!=null)
                                 errors.warn("allocating a large value in zeropage; float $memsize bytes", position)
                             else
@@ -154,7 +154,7 @@ class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAlloc
                 datatype.isArray -> options.compTarget.memorySize(datatype, numElements!!)
                 datatype.isFloat -> {
                     if (options.floats) {
-                        options.compTarget.memorySize(DataType.forDt(BaseDataType.FLOAT), null)
+                        options.compTarget.memorySize(DataType.FLOAT, null)
                     } else return Err(MemAllocationError("floating point option not enabled"))
                 }
                 else -> throw MemAllocationError("weird dt")

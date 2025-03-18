@@ -1,15 +1,11 @@
 package prog8.ast.expressions
 
-import prog8.ast.ExpressionError
-import prog8.ast.FatalAstException
-import prog8.ast.IFunctionCall
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
 import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.core.*
 import prog8.code.target.encodings.JapaneseCharacterConverter
 import java.io.CharConversionException
 import java.util.*
@@ -201,17 +197,17 @@ class BinaryExpression(
                     try {
                         val dt = InferredTypes.knownFor(
                             commonDatatype(
-                                leftDt.getOr(DataType.forDt(BaseDataType.BYTE)),
-                                rightDt.getOr(DataType.forDt(BaseDataType.BYTE)),
+                                leftDt.getOr(DataType.BYTE),
+                                rightDt.getOr(DataType.BYTE),
                                 null, null
                             ).first
                         )
                         if(operator=="*") {
                             // if both operands are the same, X*X is always positive.
                             if(left isSameAs right) {
-                                if(dt istype DataType.forDt(BaseDataType.BYTE))
+                                if(dt istype DataType.BYTE)
                                     InferredTypes.knownFor(BaseDataType.UBYTE)
-                                else if(dt istype DataType.forDt(BaseDataType.WORD))
+                                else if(dt istype DataType.WORD)
                                     InferredTypes.knownFor(BaseDataType.UWORD)
                                 else
                                     dt
@@ -225,9 +221,9 @@ class BinaryExpression(
                 }
             }
             "&", "|", "^" -> when(leftDt.getOrUndef()) {
-                DataType.forDt(BaseDataType.BYTE) -> InferredTypes.knownFor(BaseDataType.UBYTE)
-                DataType.forDt(BaseDataType.WORD) -> InferredTypes.knownFor(BaseDataType.UWORD)
-                DataType.forDt(BaseDataType.BOOL) -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                DataType.BYTE -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                DataType.WORD -> InferredTypes.knownFor(BaseDataType.UWORD)
+                DataType.BOOL -> InferredTypes.knownFor(BaseDataType.UBYTE)
                 else -> leftDt
             }
             "and", "or", "xor", "not", "in", "not in",
@@ -245,7 +241,7 @@ class BinaryExpression(
                            left: Expression?, right: Expression?): Pair<DataType, Expression?> {
 
             if(leftDt.isUndefined || rightDt.isUndefined)
-                return DataType.forDt(BaseDataType.UNDEFINED) to null
+                return DataType.UNDEFINED to null
 
             // byte + byte -> byte
             // byte + word -> word
@@ -275,52 +271,52 @@ class BinaryExpression(
             return when (leftDt.base) {
                 BaseDataType.BOOL -> {
                     return if(rightDt.isBool)
-                        Pair(DataType.forDt(BaseDataType.BOOL), null)
+                        Pair(DataType.BOOL, null)
                     else
-                        Pair(DataType.forDt(BaseDataType.BOOL), right)
+                        Pair(DataType.BOOL, right)
                 }
                 BaseDataType.UBYTE -> {
                     when (rightDt.base) {
-                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.UBYTE), null)
-                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.BYTE), left)
-                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.UWORD), left)
-                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
-                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
+                        BaseDataType.UBYTE -> Pair(DataType.UBYTE, null)
+                        BaseDataType.BYTE -> Pair(DataType.BYTE, left)
+                        BaseDataType.UWORD -> Pair(DataType.UWORD, left)
+                        BaseDataType.WORD -> Pair(DataType.WORD, left)
+                        BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
                 BaseDataType.BYTE -> {
                     when (rightDt.base) {
-                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.BYTE), right)
-                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.BYTE), null)
-                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
-                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
-                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
+                        BaseDataType.UBYTE -> Pair(DataType.BYTE, right)
+                        BaseDataType.BYTE -> Pair(DataType.BYTE, null)
+                        BaseDataType.UWORD -> Pair(DataType.WORD, left)
+                        BaseDataType.WORD -> Pair(DataType.WORD, left)
+                        BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
                 BaseDataType.UWORD -> {
                     when (rightDt.base) {
-                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.UWORD), right)
-                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
-                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.UWORD), null)
-                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), left)
-                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
+                        BaseDataType.UBYTE -> Pair(DataType.UWORD, right)
+                        BaseDataType.BYTE -> Pair(DataType.WORD, right)
+                        BaseDataType.UWORD -> Pair(DataType.UWORD, null)
+                        BaseDataType.WORD -> Pair(DataType.WORD, left)
+                        BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
                 BaseDataType.WORD -> {
                     when (rightDt.base) {
-                        BaseDataType.UBYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
-                        BaseDataType.BYTE -> Pair(DataType.forDt(BaseDataType.WORD), right)
-                        BaseDataType.UWORD -> Pair(DataType.forDt(BaseDataType.WORD), right)
-                        BaseDataType.WORD -> Pair(DataType.forDt(BaseDataType.WORD), null)
-                        BaseDataType.FLOAT -> Pair(DataType.forDt(BaseDataType.FLOAT), left)
+                        BaseDataType.UBYTE -> Pair(DataType.WORD, right)
+                        BaseDataType.BYTE -> Pair(DataType.WORD, right)
+                        BaseDataType.UWORD -> Pair(DataType.WORD, right)
+                        BaseDataType.WORD -> Pair(DataType.WORD, null)
+                        BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
                 }
                 BaseDataType.FLOAT -> {
-                    Pair(DataType.forDt(BaseDataType.FLOAT), right)
+                    Pair(DataType.FLOAT, right)
                 }
                 else -> Pair(leftDt, null)      // non-numeric datatype
             }
@@ -995,19 +991,19 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             return InferredTypes.InferredType.unknown()
         val dts = datatypesInArray.map { it.getOrUndef() }
         return when {
-            dts.any { it.isFloat } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.FLOAT).elementToArray())
-            dts.any { it.isString } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UWORD).elementToArray())
-            dts.any { it.isSignedWord } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.WORD).elementToArray())
-            dts.any { it.isUnsignedWord } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UWORD).elementToArray())
-            dts.any { it.isSignedByte } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.BYTE).elementToArray())
+            dts.any { it.isFloat } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT))
+            dts.any { it.isString } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
+            dts.any { it.isSignedWord } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.WORD))
+            dts.any { it.isUnsignedWord } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
+            dts.any { it.isSignedByte } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.BYTE))
             dts.any { it.isBool } -> {
                 if(dts.all { it.isBool})
-                    InferredTypes.InferredType.known(DataType.forDt(BaseDataType.BOOL).elementToArray())
+                    InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.BOOL))
                 else
                     InferredTypes.InferredType.unknown()
             }
-            dts.any { it.isUnsignedByte } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UBYTE).elementToArray())
-            dts.any { it.isArray } -> InferredTypes.InferredType.known(DataType.forDt(BaseDataType.UWORD).elementToArray())
+            dts.any { it.isUnsignedByte } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE))
+            dts.any { it.isArray } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
             else -> InferredTypes.InferredType.unknown()
         }
     }
@@ -1105,11 +1101,11 @@ class RangeExpression(var from: Expression,
         val toDt=to.inferType(program)
         return when {
             !fromDt.isKnown || !toDt.isKnown -> InferredTypes.unknown()
-            fromDt istype DataType.forDt(BaseDataType.UBYTE) && toDt istype DataType.forDt(BaseDataType.UBYTE) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.UBYTE).elementToArray())
-            fromDt istype DataType.forDt(BaseDataType.UWORD) && toDt istype DataType.forDt(BaseDataType.UWORD) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.UWORD).elementToArray())
-            fromDt istype DataType.forDt(BaseDataType.STR) && toDt istype DataType.forDt(BaseDataType.STR) -> InferredTypes.knownFor(BaseDataType.STR)
-            fromDt istype DataType.forDt(BaseDataType.WORD) || toDt istype DataType.forDt(BaseDataType.WORD) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.WORD).elementToArray())
-            fromDt istype DataType.forDt(BaseDataType.BYTE) || toDt istype DataType.forDt(BaseDataType.BYTE) -> InferredTypes.knownFor(DataType.forDt(BaseDataType.BYTE).elementToArray())
+            fromDt istype DataType.UBYTE && toDt istype DataType.UBYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE))
+            fromDt istype DataType.UWORD && toDt istype DataType.UWORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
+            fromDt istype DataType.STR && toDt istype DataType.STR -> InferredTypes.knownFor(BaseDataType.STR)
+            fromDt istype DataType.WORD || toDt istype DataType.WORD -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD))
+            fromDt istype DataType.BYTE || toDt istype DataType.BYTE -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE))
             else -> {
                 val fdt = fromDt.getOrUndef()
                 val tdt = toDt.getOrUndef()

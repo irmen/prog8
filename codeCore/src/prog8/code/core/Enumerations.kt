@@ -1,6 +1,6 @@
 package prog8.code.core
 
-import java.util.Objects
+import java.util.*
 
 enum class BaseDataType {
     UBYTE,              // pass by value            8 bits unsigned
@@ -80,6 +80,17 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     override fun hashCode(): Int = Objects.hash(base, sub)
 
     companion object {
+
+        val UBYTE = DataType(BaseDataType.UBYTE, null)
+        val BYTE = DataType(BaseDataType.BYTE, null)
+        val UWORD = DataType(BaseDataType.UWORD, null)
+        val WORD = DataType(BaseDataType.WORD, null)
+        val LONG = DataType(BaseDataType.LONG, null)
+        val FLOAT = DataType(BaseDataType.FLOAT, null)
+        val BOOL = DataType(BaseDataType.BOOL, null)
+        val STR = DataType(BaseDataType.STR, BaseDataType.UBYTE)
+        val UNDEFINED = DataType(BaseDataType.UNDEFINED, null)
+
         private val simpletypes = mapOf(
             BaseDataType.UBYTE to DataType(BaseDataType.UBYTE, null),
             BaseDataType.BYTE to DataType(BaseDataType.BYTE, null),

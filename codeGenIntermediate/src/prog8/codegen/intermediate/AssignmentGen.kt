@@ -514,7 +514,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             addToResult(result, tr, tr.resultReg, -1)
             return Pair(result, tr.resultReg)
         }
-        val mult: PtExpression = PtBinaryExpression("*", DataType.forDt(BaseDataType.UBYTE), array.position)
+        val mult: PtExpression = PtBinaryExpression("*", DataType.UBYTE, array.position)
         mult.children += array.index
         mult.children += PtNumber(BaseDataType.UBYTE, itemsize.toDouble(), array.position)
         val tr = expressionEval.translateExpression(mult)

@@ -531,7 +531,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // useless msb() of byte value that was typecasted to word, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCallExpr,
-                            NumericLiteral(valueDt.getOr(DataType.forDt(BaseDataType.UBYTE)).base, 0.0, arg.expression.position),
+                            NumericLiteral(valueDt.getOr(DataType.UBYTE).base, 0.0, arg.expression.position),
                             parent))
                 }
             } else {
@@ -546,7 +546,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // useless msb() of byte value, replace with 0
                     return listOf(IAstModification.ReplaceNode(
                             functionCallExpr,
-                            NumericLiteral(argDt.getOr(DataType.forDt(BaseDataType.UBYTE)).base, 0.0, arg.position),
+                            NumericLiteral(argDt.getOr(DataType.UBYTE).base, 0.0, arg.position),
                             parent))
                 }
             }

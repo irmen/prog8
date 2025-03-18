@@ -137,7 +137,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     */
 }
 
-class PtAddressOf(position: Position, val isMsbForSplitArray: Boolean=false) : PtExpression(DataType.forDt(BaseDataType.UWORD), position) {
+class PtAddressOf(position: Position, val isMsbForSplitArray: Boolean=false) : PtExpression(DataType.UWORD, position) {
     val identifier: PtIdentifier
         get() = children[0] as PtIdentifier
     val arrayIndexExpr: PtExpression?
@@ -216,7 +216,7 @@ class PtIfExpression(type: DataType, position: Position): PtExpression(type, pos
 }
 
 
-class PtContainmentCheck(position: Position): PtExpression(DataType.forDt(BaseDataType.BOOL), position) {
+class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, position) {
     val needle: PtExpression
         get() = children[0] as PtExpression
     val haystackHeapVar: PtIdentifier?
@@ -256,13 +256,13 @@ class PtIdentifier(val name: String, type: DataType, position: Position) : PtExp
 }
 
 
-class PtMemoryByte(position: Position) : PtExpression(DataType.forDt(BaseDataType.UBYTE), position) {
+class PtMemoryByte(position: Position) : PtExpression(DataType.UBYTE, position) {
     val address: PtExpression
         get() = children.single() as PtExpression
 }
 
 
-class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.forDt(BaseDataType.BOOL), position) {
+class PtBool(val value: Boolean, position: Position) : PtExpression(DataType.BOOL, position) {
     override fun hashCode(): Int = Objects.hash(type, value)
 
     override fun equals(other: Any?): Boolean {
@@ -366,7 +366,7 @@ class PtRange(type: DataType, position: Position) : PtExpression(type, position)
 }
 
 
-class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.forDt(BaseDataType.STR), position) {
+class PtString(val value: String, val encoding: Encoding, position: Position) : PtExpression(DataType.STR, position) {
     override fun hashCode(): Int = Objects.hash(value, encoding)
     override fun equals(other: Any?): Boolean {
         if(other==null || other !is PtString)

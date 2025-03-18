@@ -1,10 +1,6 @@
 package prog8.codegen.cpu6502.assignment
 
-import prog8.code.StMemVar
-import prog8.code.StExtSub
-import prog8.code.StExtSubParameter
-import prog8.code.StStaticVariable
-import prog8.code.StSub
+import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
@@ -382,7 +378,7 @@ internal class AssignmentAsmGen(
         }
 
         // fallback assignmen through temporary pointer var
-        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
@@ -433,7 +429,7 @@ internal class AssignmentAsmGen(
 //          }
         }
         if(saveA) asmgen.out("  pha")
-        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+        assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
         if(saveA) asmgen.out("  pla")
         asmgen.storeAIntoZpPointerVar("P8ZP_SCRATCH_W2", false)
     }
@@ -985,7 +981,7 @@ internal class AssignmentAsmGen(
             expr.type.isUnsignedWord -> {
                 asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
                 asmgen.out("  jsr  prog8_math.divmod_uw_asm")
-                assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.UWORD)
                 return true
             }
             else -> return false
@@ -1501,7 +1497,7 @@ internal class AssignmentAsmGen(
                     if(right.type.isWord && castedValue.type.isByte && castedValue is PtIdentifier) {
                         if(right.type.isSigned) {
                             // we need to sign extend, do this via temporary word variable
-                            asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.WORD))
+                            asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.WORD)
                             assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
                             if(expr.operator=="+") {
                                 asmgen.out("""
@@ -1638,7 +1634,7 @@ internal class AssignmentAsmGen(
                 asmgen.out("  sty  P8ZP_SCRATCH_B1")
             } else {
                 asmgen.out("  pha")
-                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
+                assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.out("  pla")
             }
             when (expr.operator) {
@@ -1691,7 +1687,7 @@ internal class AssignmentAsmGen(
                     asmgen.out("  sty  P8ZP_SCRATCH_B1")
                 } else {
                     asmgen.out("  pha")
-                    assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
+                    assignExpressionToVariable(right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                     asmgen.out("  pla")
                 }
                 when (operator) {
@@ -1964,27 +1960,27 @@ $endLabel""")
         val (dt, numElements) = when(symbol) {
             is StStaticVariable  -> symbol.dt to symbol.length!!
             is StMemVar -> symbol.dt to symbol.length!!
-            else -> DataType.forDt(BaseDataType.UNDEFINED) to 0
+            else -> DataType.UNDEFINED to 0
         }
         when {
             dt.isString -> {
                 assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, false, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, false, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #${numElements-1}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             dt.isFloatArray -> {
                 assignExpressionToRegister(containment.needle, RegisterOrPair.FAC1, true)
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, false, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, false, null, null)
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  floats.containment_floatarray")
             }
             dt.isByteArray -> {
                 assignExpressionToRegister(containment.needle, RegisterOrPair.A, elementDt.isSigned)
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
-                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, false, null, null)
+                assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W1"), symbolName, false, null, null)
                 asmgen.out("  pla")
                 asmgen.out("  ldy  #$numElements")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
@@ -1992,11 +1988,11 @@ $endLabel""")
             dt.isWordArray -> {
                 assignExpressionToVariable(containment.needle, "P8ZP_SCRATCH_W1", elementDt)
                 if(dt.isSplitWordArray) {
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName+"_lsb", false, null, null)
+                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName+"_lsb", false, null, null)
                     asmgen.out("  ldy  #$numElements")
                     asmgen.out("  jsr  prog8_lib.containment_splitwordarray")
                 } else {
-                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.forDt(BaseDataType.UWORD), containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, false, null, null)
+                    assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position, "P8ZP_SCRATCH_W2"), symbolName, false, null, null)
                     asmgen.out("  ldy  #$numElements")
                     asmgen.out("  jsr  prog8_lib.containment_linearwordarray")
                 }
@@ -2060,7 +2056,7 @@ $endLabel""")
                 if(targetDt.isWord) {
 
                     fun assignViaExprEval(addressExpression: PtExpression) {
-                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
                         asmgen.out("  ldy  #0")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
@@ -2287,10 +2283,10 @@ $endLabel""")
     }
 
     private fun assignCastViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
-        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.forDt(BaseDataType.UBYTE), value.position)
+        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.UBYTE, value.position)
         lsb.parent = value.parent
         lsb.add(value)
-        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.forDt(BaseDataType.UBYTE), expression = lsb)
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
         val assign = AsmAssignment(src, listOf(target), program.memsizer, value.position)
         translateNormalAssignment(assign, value.definingISub())
     }
@@ -2614,7 +2610,7 @@ $endLabel""")
             val arrayName = if(arrayDt!!.isSplitWordArray) sourceName+"_lsb" else sourceName        // the _lsb split array comes first in memory
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
-                if (arrayDt?.isUnsignedWord==true) {
+                if (arrayDt.isUnsignedWord ==true) {
                     require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     if(constIndex>0)
@@ -2636,12 +2632,12 @@ $endLabel""")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return
             } else {
-                if (arrayDt?.isUnsignedWord==true) {
+                if (arrayDt.isUnsignedWord ==true) {
                     require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
                     asmgen.saveRegisterStack(CpuRegister.Y, false)
-                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.forDt(BaseDataType.UBYTE))
+                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.UBYTE)
                     asmgen.restoreRegisterStack(CpuRegister.Y, false)
                     asmgen.restoreRegisterStack(CpuRegister.A, false)
                     asmgen.out("""
@@ -4092,7 +4088,7 @@ $endLabel""")
                                 asmgen.storeAIntoPointerVar(memory.address as PtIdentifier)
                             }
                             else -> {
-                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                                asmgen.assignExpressionToVariable(memory.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
                                 if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                                     asmgen.out("""
                                         lda  (P8ZP_SCRATCH_W2)
@@ -4154,8 +4150,8 @@ $endLabel""")
         val target = assign.target
         val datatype = if(ignoreDatatype) {
             when {
-                target.datatype.isByte -> DataType.forDt(BaseDataType.BYTE)
-                target.datatype.isWord -> DataType.forDt(BaseDataType.WORD)
+                target.datatype.isByte -> DataType.BYTE
+                target.datatype.isWord -> DataType.WORD
                 else -> target.datatype
             }
         } else target.datatype

@@ -57,12 +57,12 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
         // However, to be able for the compiler to "see" them as zeropage variables, we have to register them here as well.
         // This is important because the compiler sometimes treats ZP variables more efficiently (for example if it's a pointer)
         for(reg in 0..15) {
-            allocatedVariables["cx16.r${reg}"]   = VarAllocation((2+reg*2).toUInt(), DataType.forDt(BaseDataType.UWORD), 2)       // cx16.r0 .. cx16.r15
-            allocatedVariables["cx16.r${reg}s"]  = VarAllocation((2+reg*2).toUInt(), DataType.forDt(BaseDataType.WORD), 2)        // cx16.r0s .. cx16.r15s
-            allocatedVariables["cx16.r${reg}L"]  = VarAllocation((2+reg*2).toUInt(), DataType.forDt(BaseDataType.UBYTE), 1)       // cx16.r0L .. cx16.r15L
-            allocatedVariables["cx16.r${reg}H"]  = VarAllocation((3+reg*2).toUInt(), DataType.forDt(BaseDataType.UBYTE), 1)       // cx16.r0H .. cx16.r15H
-            allocatedVariables["cx16.r${reg}sL"] = VarAllocation((2+reg*2).toUInt(), DataType.forDt(BaseDataType.BYTE), 1)        // cx16.r0sL .. cx16.r15sL
-            allocatedVariables["cx16.r${reg}sH"] = VarAllocation((3+reg*2).toUInt(), DataType.forDt(BaseDataType.BYTE), 1)        // cx16.r0sH .. cx16.r15sH
+            allocatedVariables["cx16.r${reg}"]   = VarAllocation((2+reg*2).toUInt(), DataType.UWORD, 2)       // cx16.r0 .. cx16.r15
+            allocatedVariables["cx16.r${reg}s"]  = VarAllocation((2+reg*2).toUInt(), DataType.WORD, 2)        // cx16.r0s .. cx16.r15s
+            allocatedVariables["cx16.r${reg}L"]  = VarAllocation((2+reg*2).toUInt(), DataType.UBYTE, 1)       // cx16.r0L .. cx16.r15L
+            allocatedVariables["cx16.r${reg}H"]  = VarAllocation((3+reg*2).toUInt(), DataType.UBYTE, 1)       // cx16.r0H .. cx16.r15H
+            allocatedVariables["cx16.r${reg}sL"] = VarAllocation((2+reg*2).toUInt(), DataType.BYTE, 1)        // cx16.r0sL .. cx16.r15sL
+            allocatedVariables["cx16.r${reg}sH"] = VarAllocation((3+reg*2).toUInt(), DataType.BYTE, 1)        // cx16.r0sH .. cx16.r15sH
         }
     }
 }

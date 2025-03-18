@@ -14,11 +14,7 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.RangeExpression
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
-import prog8.code.ast.PtBinaryExpression
-import prog8.code.ast.PtBool
-import prog8.code.ast.PtIdentifier
-import prog8.code.ast.PtIfElse
-import prog8.code.ast.PtNumber
+import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
@@ -233,7 +229,7 @@ class TestCompilerOnRanges: FunSpec({
             .map { it.iterable }
             .filterIsInstance<IdentifierReference>()[0]
 
-        iterable.inferType(program).getOrUndef() shouldBe DataType.forDt(BaseDataType.STR)
+        iterable.inferType(program).getOrUndef() shouldBe DataType.STR
     }
 
     test("testRangeExprNumericSize") {
@@ -493,11 +489,11 @@ main {
         val left = cond.left as PtBinaryExpression
         val right = cond.right as PtBinaryExpression
         left.operator shouldBe "<="
-        (left.left as PtNumber).type shouldBe DataType.forDt(BaseDataType.WORD)
+        (left.left as PtNumber).type shouldBe DataType.WORD
         (left.left as PtNumber).number shouldBe 325.0
         left.right shouldBe instanceOf<PtIdentifier>()
         right.operator shouldBe "<="
-        (right.right as PtNumber).type shouldBe DataType.forDt(BaseDataType.WORD)
+        (right.right as PtNumber).type shouldBe DataType.WORD
         (right.right as PtNumber).number shouldBe 477.0
         right.left shouldBe instanceOf<PtIdentifier>()
     }

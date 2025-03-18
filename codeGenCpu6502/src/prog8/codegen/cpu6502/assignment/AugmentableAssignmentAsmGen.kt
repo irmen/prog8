@@ -131,18 +131,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtNumber -> {
                         val addr = (memory.address as PtNumber).number.toInt()
                         when(value.kind) {
-                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteWithLiteralval(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.boolean!!.asInt())
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteWithLiteralval(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.number!!.number.toInt())
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationByteWithLiteralval(addr.toHex(), DataType.UBYTE, operator, value.boolean!!.asInt())
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationByteWithLiteralval(addr.toHex(), DataType.UBYTE, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationByteWithVariable(addr.toHex(), false, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationByteWithVariable(addr.toHex(), false, operator, regName(value))
-                            SourceStorageKind.MEMORY -> inplacemodificationByteWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplacemodificationByteWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.array!!)
+                            SourceStorageKind.MEMORY -> inplacemodificationByteWithValue(addr.toHex(), DataType.UBYTE, operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationByteWithValue(addr.toHex(), DataType.UBYTE, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplacemodificationByteWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.expression)
+                                    inplacemodificationByteWithValue(addr.toHex(), DataType.UBYTE, operator, value.expression)
                                 } else {
-                                    inplacemodificationByteWithValue(addr.toHex(), DataType.forDt(BaseDataType.UBYTE), operator, value.expression!!)
+                                    inplacemodificationByteWithValue(addr.toHex(), DataType.UBYTE, operator, value.expression!!)
                                 }
                             }
                         }
@@ -196,21 +196,21 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             SourceStorageKind.MEMORY -> {
                                 asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                inplacemodificationByteWithValue("P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE), operator, value.memory!!)
+                                inplacemodificationByteWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.memory!!)
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.ARRAY -> {
                                 asmgen.out("  sta  P8ZP_SCRATCH_B1")
-                                inplacemodificationByteWithValue("P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE), operator, value.array!!)
+                                inplacemodificationByteWithValue("P8ZP_SCRATCH_B1", DataType.UBYTE, operator, value.array!!)
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.EXPRESSION -> {
                                 val tempVar = asmgen.getTempVarName(BaseDataType.UBYTE)
                                 asmgen.out("  sta  $tempVar")
                                 if(value.expression is PtTypeCast)
-                                    inplacemodificationByteWithValue(tempVar, DataType.forDt(BaseDataType.UBYTE), operator, value.expression)
+                                    inplacemodificationByteWithValue(tempVar, DataType.UBYTE, operator, value.expression)
                                 else
-                                    inplacemodificationByteWithValue(tempVar, DataType.forDt(BaseDataType.UBYTE), operator, value.expression!!)
+                                    inplacemodificationByteWithValue(tempVar, DataType.UBYTE, operator, value.expression!!)
                                 asmgen.out("  ldx  $tempVar")
                             }
                         }
@@ -592,7 +592,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         fun assignValueToA() {
             val assignValue = AsmAssignment(value,
                 listOf(
-                    AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.forDt(BaseDataType.UBYTE),
+                    AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE,
                     address.definingISub(), Position.DUMMY, register = RegisterOrPair.A)
                 ),
                 program.memsizer, Position.DUMMY)
@@ -898,7 +898,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun inplacemodificationBytePointerWithValue(pointervar: PtIdentifier, operator: String, value: PtExpression) {
-        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.forDt(BaseDataType.UBYTE))
+        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE)
         inplacemodificationBytePointerWithVariable(pointervar, operator, "P8ZP_SCRATCH_B1")
     }
 

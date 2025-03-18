@@ -1,6 +1,9 @@
 package prog8.code.target.zp
 
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.DataType
+import prog8.code.core.Zeropage
+import prog8.code.core.ZeropageType
 
 class ConfigurableZeropage(
     override val SCRATCH_B1: UInt,      // temp storage for a single byte
@@ -46,12 +49,12 @@ class ConfigurableZeropage(
         for(reg in 0..15) {
             val address = virtualRegistersStart + (2*reg).toUInt()
             if(address<=0xffu) {
-                allocatedVariables["cx16.r${reg}"]   = VarAllocation(address, DataType.forDt(BaseDataType.UWORD), 2)       // cx16.r0 .. cx16.r15
-                allocatedVariables["cx16.r${reg}s"]  = VarAllocation(address, DataType.forDt(BaseDataType.WORD), 2)        // cx16.r0s .. cx16.r15s
-                allocatedVariables["cx16.r${reg}L"]  = VarAllocation(address, DataType.forDt(BaseDataType.UBYTE), 1)       // cx16.r0L .. cx16.r15L
-                allocatedVariables["cx16.r${reg}H"]  = VarAllocation(address+1u, DataType.forDt(BaseDataType.UBYTE), 1)    // cx16.r0H .. cx16.r15H
-                allocatedVariables["cx16.r${reg}sL"] = VarAllocation(address, DataType.forDt(BaseDataType.BYTE), 1)        // cx16.r0sL .. cx16.r15sL
-                allocatedVariables["cx16.r${reg}sH"] = VarAllocation(address+1u, DataType.forDt(BaseDataType.BYTE), 1)     // cx16.r0sH .. cx16.r15sH
+                allocatedVariables["cx16.r${reg}"]   = VarAllocation(address, DataType.UWORD, 2)       // cx16.r0 .. cx16.r15
+                allocatedVariables["cx16.r${reg}s"]  = VarAllocation(address, DataType.WORD, 2)        // cx16.r0s .. cx16.r15s
+                allocatedVariables["cx16.r${reg}L"]  = VarAllocation(address, DataType.UBYTE, 1)       // cx16.r0L .. cx16.r15L
+                allocatedVariables["cx16.r${reg}H"]  = VarAllocation(address+1u, DataType.UBYTE, 1)    // cx16.r0H .. cx16.r15H
+                allocatedVariables["cx16.r${reg}sL"] = VarAllocation(address, DataType.BYTE, 1)        // cx16.r0sL .. cx16.r15sL
+                allocatedVariables["cx16.r${reg}sH"] = VarAllocation(address+1u, DataType.BYTE, 1)     // cx16.r0sH .. cx16.r15sH
             }
         }
     }

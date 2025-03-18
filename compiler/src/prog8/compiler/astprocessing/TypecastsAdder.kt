@@ -1,9 +1,9 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.FatalAstException
 import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.FatalAstException
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -300,7 +300,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // make sure the memory address is an uword
         val modifications = mutableListOf<IAstModification>()
         val dt = memread.addressExpression.inferType(program)
-        if(dt.isKnown && !dt.getOr(DataType.forDt(BaseDataType.UWORD)).isUnsignedWord) {
+        if(dt.isKnown && !dt.getOr(DataType.UWORD).isUnsignedWord) {
             val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
@@ -314,7 +314,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // make sure the memory address is an uword
         val modifications = mutableListOf<IAstModification>()
         val dt = memwrite.addressExpression.inferType(program)
-        if(dt.isKnown && !dt.getOr(DataType.forDt(BaseDataType.UWORD)).isUnsignedWord) {
+        if(dt.isKnown && !dt.getOr(DataType.UWORD).isUnsignedWord) {
             val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)

@@ -5,7 +5,7 @@ interface IMemSizer {
 
     fun memorySize(dt: BaseDataType): Int {
         if(dt.isPassByRef)
-            return memorySize(DataType.forDt(BaseDataType.UWORD), null)      // a pointer size
+            return memorySize(DataType.UWORD, null)      // a pointer size
         try {
             return memorySize(DataType.forDt(dt), null)
         } catch (x: NoSuchElementException) {

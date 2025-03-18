@@ -117,7 +117,7 @@ class TestMemory: FunSpec({
     }
 
     fun createTestProgramForMemoryRefViaVar(address: UInt, vartype: VarDeclType): AssignTarget {
-        val decl = VarDecl(vartype, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.BYTE), ZeropageWish.DONTCARE,
+        val decl = VarDecl(vartype, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE,
             SplitWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, Position.DUMMY)
         val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
         val target = AssignTarget(null, null, DirectMemoryWrite(memexpr, Position.DUMMY), null, false, Position.DUMMY)
@@ -156,7 +156,7 @@ class TestMemory: FunSpec({
     }
 
     test("regular variable not in mapped IO ram on C64") {
-        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.BYTE), ZeropageWish.DONTCARE,
+        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE,
             SplitWish.DONTCARE, null, "address", emptyList(), null, false, 0u, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -169,7 +169,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped variable not in mapped IO ram on C64") {
         val address = 0x1000u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.UBYTE), ZeropageWish.DONTCARE,
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE,
             SplitWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -182,7 +182,7 @@ class TestMemory: FunSpec({
 
     test("memory mapped variable in mapped IO ram on C64") {
         val address = 0xd020u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.forDt(BaseDataType.UBYTE), ZeropageWish.DONTCARE,
+        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE,
             SplitWish.DONTCARE, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, Position.DUMMY)
         val target = AssignTarget(IdentifierReference(listOf("address"), Position.DUMMY), null, null, null, false, Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -270,12 +270,12 @@ class TestMemory: FunSpec({
             target.memorySize(BaseDataType.WORD) shouldBe 2
             target.memorySize(BaseDataType.FLOAT) shouldBe target.FLOAT_MEM_SIZE
 
-            target.memorySize(DataType.forDt(BaseDataType.BOOL), null) shouldBe 1
-            target.memorySize(DataType.forDt(BaseDataType.WORD), null) shouldBe 2
-            target.memorySize(DataType.forDt(BaseDataType.FLOAT), null) shouldBe target.FLOAT_MEM_SIZE
+            target.memorySize(DataType.BOOL, null) shouldBe 1
+            target.memorySize(DataType.WORD, null) shouldBe 2
+            target.memorySize(DataType.FLOAT, null) shouldBe target.FLOAT_MEM_SIZE
 
-            target.memorySize(DataType.forDt(BaseDataType.STR), null) shouldBe 2
-            target.memorySize(DataType.forDt(BaseDataType.STR), 50) shouldBe 50
+            target.memorySize(DataType.STR, null) shouldBe 2
+            target.memorySize(DataType.STR, 50) shouldBe 50
             target.memorySize(BaseDataType.STR) shouldBe 2
             target.memorySize(BaseDataType.ARRAY) shouldBe 2
             target.memorySize(BaseDataType.ARRAY_SPLITW) shouldBe 2
@@ -288,9 +288,9 @@ class TestMemory: FunSpec({
             target.memorySize(DataType.arrayFor(BaseDataType.WORD, true), 10) shouldBe 20
             target.memorySize(DataType.arrayFor(BaseDataType.UWORD, true), 10) shouldBe 20
 
-            target.memorySize(DataType.forDt(BaseDataType.BOOL), 10) shouldBe 10
-            target.memorySize(DataType.forDt(BaseDataType.UWORD), 10) shouldBe 20
-            target.memorySize(DataType.forDt(BaseDataType.FLOAT), 10) shouldBe 10*target.FLOAT_MEM_SIZE
+            target.memorySize(DataType.BOOL, 10) shouldBe 10
+            target.memorySize(DataType.UWORD, 10) shouldBe 20
+            target.memorySize(DataType.FLOAT, 10) shouldBe 10*target.FLOAT_MEM_SIZE
         }
     }
 })

@@ -207,13 +207,13 @@ internal class StatementReorderer(
         // change 'str' and 'ubyte[]' parameters into 'uword' (just treat it as an address)
         val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }
         val parameterChanges = stringParams.map {
-            val uwordParam = SubroutineParameter(it.name, DataType.forDt(BaseDataType.UWORD), it.zp, it.registerOrPair, it.position)
+            val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.zp, it.registerOrPair, it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)
         }
         // change 'str' and 'ubyte[]' return types into 'uword' (just treat it as an address)
         subroutine.returntypes.withIndex().forEach { (index, type) ->
             if(type.isString || type.isUnsignedByteArray)
-                subroutine.returntypes[index] = DataType.forDt(BaseDataType.UWORD)
+                subroutine.returntypes[index] = DataType.UWORD
         }
 
         val varsChanges = mutableListOf<IAstModification>()
@@ -226,7 +226,7 @@ internal class StatementReorderer(
                         .filterIsInstance<VarDecl>()
                         .filter { it.origin==VarDeclOrigin.SUBROUTINEPARAM && it.name in stringParamsByNames }
                         .map {
-                            val newvar = VarDecl(it.type, it.origin, DataType.forDt(BaseDataType.UWORD),
+                            val newvar = VarDecl(it.type, it.origin, DataType.UWORD,
                                 it.zeropage,
                                 it.splitwordarray,
                                 null,

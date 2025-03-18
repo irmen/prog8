@@ -758,9 +758,9 @@ class TestProg8Parser: FunSpec( {
         val expr = bb2.value as BinaryExpression
         println(expr)
         expr.operator shouldBe "or"
-        expr.left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UBYTE)
-        expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UWORD)
-        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
+        expr.left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
     }
 
     test("inferred type for typecasted expressions with logical operators") {
@@ -783,16 +783,16 @@ class TestProg8Parser: FunSpec( {
         val zz = (stmts[3] as VarDecl).value as BinaryExpression
         val bb2 = (stmts[4] as VarDecl).value as BinaryExpression
         val zz2 = (stmts[5] as VarDecl).value as BinaryExpression
-        qq.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UWORD)
-        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
-        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
+        qq.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
 
         zz2.operator shouldBe "or"
         val left = zz2.left as TypecastExpression
         val right = zz2.right as PrefixExpression
-        left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UWORD)
-        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
-        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.BOOL)
+        left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
+        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
     }
 
     test("type cast from byte to ubyte as desired target type") {
@@ -807,7 +807,7 @@ class TestProg8Parser: FunSpec( {
         val stmts = (module.statements.single() as Block).statements
         stmts.size shouldBe 2
         val ubexpr = (stmts[1] as VarDecl).value as TypecastExpression
-        ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.forDt(BaseDataType.UBYTE)
+        ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
     }
 
     test("assignment isAugmented correctness") {

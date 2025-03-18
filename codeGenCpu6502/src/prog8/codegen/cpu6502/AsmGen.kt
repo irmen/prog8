@@ -131,7 +131,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
         functionCallsToPrefix.reversed().forEach { (parent, index) ->
             val node = parent.children[index]
             if(node is PtFunctionCall) {
-                val prefixedName = PtIdentifier(node.name, DataType.forDt(BaseDataType.UNDEFINED), Position.DUMMY).prefix(parent, st)
+                val prefixedName = PtIdentifier(node.name, DataType.UNDEFINED, Position.DUMMY).prefix(parent, st)
                 val prefixedNode = node.withNewName(prefixedName.name)
                 parent.children[index] = prefixedNode
             } else {
@@ -1081,7 +1081,7 @@ $repeatLabel""")
         else {
             if(evaluateAddressExpression) {
                 // we can do the address evaluation right now and just use a temporary pointer variable
-                assignExpressionToVariable(jump.target, "P8ZP_SCRATCH_W1", DataType.forDt(BaseDataType.UWORD))
+                assignExpressionToVariable(jump.target, "P8ZP_SCRATCH_W1", DataType.UWORD)
                 return JumpTarget("P8ZP_SCRATCH_W1", true, false)
             } else {
                 return JumpTarget("PROG8_JUMP_TARGET_IS_UNEVALUATED_ADDRESS_EXPRESSION", true, true)
@@ -1294,13 +1294,13 @@ $repeatLabel""")
                     val saveA = evalBytevalueWillClobberA(ptrAndIndex.first) || evalBytevalueWillClobberA(ptrAndIndex.second)
                     if(saveA) out("  pha")
                     if(ptrAndIndex.second.isSimple()) {
-                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                         if(saveA) out("  pla")
                         out("  sta  (P8ZP_SCRATCH_W2),y")
                     } else {
                         pushCpuStack(BaseDataType.UBYTE,  ptrAndIndex.second)
-                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         restoreRegisterStack(CpuRegister.Y, true)
                         if(saveA) out("  pla")
                         out("  sta  (P8ZP_SCRATCH_W2),y")
@@ -1337,12 +1337,12 @@ $repeatLabel""")
                     } else {
                         // copy the pointer var to zp first
                         if(ptrAndIndex.second.isSimple()) {
-                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                             assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.Y)
                             out("  lda  (P8ZP_SCRATCH_W2),y")
                         } else {
                             pushCpuStack(BaseDataType.UBYTE, ptrAndIndex.second)
-                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                            assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                             restoreRegisterStack(CpuRegister.Y, false)
                             out("  lda  (P8ZP_SCRATCH_W2),y")
                         }
@@ -1382,7 +1382,7 @@ $repeatLabel""")
                     } else {
                         // copy the pointer var to zp first
                         out("  pha")
-                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
                         out("  dec  P8ZP_SCRATCH_W2+1 |  pla |  sta  (P8ZP_SCRATCH_W2),y")        // temporarily make MSB 1 less to be able to use the negative Y offset
                         return true
@@ -1412,7 +1412,7 @@ $repeatLabel""")
                         return true
                     } else {
                         // copy the pointer var to zp first
-                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+                        assignExpressionToVariable(ptrAndIndex.first, "P8ZP_SCRATCH_W2", DataType.UWORD)
                         out("  ldy  #${256-constOffset}     ; negative offset $constOffset")
                         out("  dec  P8ZP_SCRATCH_W2+1 |  lda  (P8ZP_SCRATCH_W2),y")        // temporarily make MSB 1 less to be able to use the negative Y offset
                         return true
@@ -1434,22 +1434,22 @@ $repeatLabel""")
 
     internal fun assignByteOperandsToAAndVar(left: PtExpression, right: PtExpression, rightVarName: String) {
         if(left.isSimple()) {
-            assignExpressionToVariable(right, rightVarName, DataType.forDt(BaseDataType.UBYTE))
+            assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(BaseDataType.UBYTE, left)
-            assignExpressionToVariable(right, rightVarName, DataType.forDt(BaseDataType.UBYTE))
+            assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
             out("  pla")
         }
     }
 
     internal fun assignWordOperandsToAYAndVar(left: PtExpression, right: PtExpression, rightVarname: String) {
         if(left.isSimple()) {
-            assignExpressionToVariable(right, rightVarname, DataType.forDt(BaseDataType.UWORD))
+            assignExpressionToVariable(right, rightVarname, DataType.UWORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
         }  else {
             pushCpuStack(BaseDataType.UWORD, left)
-            assignExpressionToVariable(right, rightVarname, DataType.forDt(BaseDataType.UWORD))
+            assignExpressionToVariable(right, rightVarname, DataType.UWORD)
             restoreRegisterStack(CpuRegister.Y, false)
             restoreRegisterStack(CpuRegister.A, false)
         }
@@ -1458,7 +1458,7 @@ $repeatLabel""")
     internal fun translateDirectMemReadExpressionToRegA(expr: PtMemoryByte) {
 
         fun assignViaExprEval() {
-            assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.forDt(BaseDataType.UWORD))
+            assignExpressionToVariable(expr.address, "P8ZP_SCRATCH_W2", DataType.UWORD)
             if (isTargetCpu(CpuType.CPU65C02)) {
                 out("  lda  (P8ZP_SCRATCH_W2)")
             } else {
@@ -1654,7 +1654,7 @@ $repeatLabel""")
                 is PtIdentifier -> equalf(asmVariableName(left), asmVariableName(right))
                 is PtNumber -> equalf(asmVariableName(left), allocator.getFloatAsmConst(right.number))
                 else -> {
-                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
                     equalf(asmVariableName(left), subroutineFloatEvalResultVar1)
                     subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1664,7 +1664,7 @@ $repeatLabel""")
                 is PtIdentifier -> equalf(left, asmVariableName(right))
                 is PtNumber -> equalf(left, allocator.getFloatAsmConst(right.number))
                 else -> {
-                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
                     equalf(left, subroutineFloatEvalResultVar1)
                     subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1699,7 +1699,7 @@ $repeatLabel""")
                 is PtIdentifier -> lessf(asmVariableName(left), asmVariableName(right))
                 is PtNumber -> lessf(asmVariableName(left), allocator.getFloatAsmConst(right.number))
                 else -> {
-                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
                     lessf(asmVariableName(left), subroutineFloatEvalResultVar1)
                     subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
@@ -1709,7 +1709,7 @@ $repeatLabel""")
                 is PtIdentifier -> lessf(left, asmVariableName(right))
                 is PtNumber -> lessf(left, allocator.getFloatAsmConst(right.number))
                 else -> {
-                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.forDt(BaseDataType.FLOAT))
+                    assignExpressionToVariable(right, subroutineFloatEvalResultVar1, DataType.FLOAT)
                     lessf(left, subroutineFloatEvalResultVar1)
                     subroutineExtra(left.definingISub()!!).usedFloatEvalResultVar1 = true
                 }
