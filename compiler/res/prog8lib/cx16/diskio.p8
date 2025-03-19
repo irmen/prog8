@@ -346,7 +346,7 @@ close_end:
             if cbm.READST()==0 {
                 iteration_in_progress = true
                 void cbm.CHRIN()        ; read first byte to test for file not found
-                if cbm.READST()==0 {
+                if cbm.READST() & $BF == 0 {
                     cbm.CLOSE(READ_IO_CHANNEL)    ; close file because we already consumed first byte
                     void cbm.OPEN()         ; re-open the file
                     cbm.CLRCHN()            ; reset default i/o channels
