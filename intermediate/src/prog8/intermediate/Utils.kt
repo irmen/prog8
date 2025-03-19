@@ -1,7 +1,7 @@
 package prog8.intermediate
 
-import prog8.code.core.*
 import prog8.Either
+import prog8.code.core.*
 import prog8.left
 import prog8.right
 
@@ -36,6 +36,7 @@ fun DataType.irTypeString(length: Int?): String {
             }
         }
         BaseDataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
+        BaseDataType.VOID -> throw IllegalArgumentException("void (absence of value)")
     }
 }
 

@@ -13,7 +13,8 @@ enum class BaseDataType {
     STR,                // pass by reference
     ARRAY,              // pass by reference, subtype is the element type
     ARRAY_SPLITW,       // pass by reference, split word layout, subtype is the element type (restricted to word types)
-    UNDEFINED;
+    UNDEFINED,          // unknown/undefined/wrong value type
+    VOID;               // absence of any value
 
 
     fun largerSizeThan(other: BaseDataType) =
@@ -89,7 +90,8 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         val FLOAT = DataType(BaseDataType.FLOAT, null)
         val BOOL = DataType(BaseDataType.BOOL, null)
         val STR = DataType(BaseDataType.STR, BaseDataType.UBYTE)
-        val UNDEFINED = DataType(BaseDataType.UNDEFINED, null)
+        val UNDEFINED = DataType(BaseDataType.UNDEFINED, null)      // used to signify unknown/undefined/wrong value type
+        val VOID = DataType(BaseDataType.VOID, null)                // used to signify absence of any value
 
         private val simpletypes = mapOf(
             BaseDataType.UBYTE to DataType(BaseDataType.UBYTE, null),
@@ -100,7 +102,8 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null),
             BaseDataType.BOOL to DataType(BaseDataType.BOOL, null),
             BaseDataType.STR to DataType(BaseDataType.STR, BaseDataType.UBYTE),
-            BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null)
+            BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null),
+            BaseDataType.VOID to DataType(BaseDataType.VOID, null)
         )
 
         fun forDt(dt: BaseDataType) = simpletypes.getValue(dt)
@@ -178,7 +181,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
-        BaseDataType.UNDEFINED -> throw IllegalArgumentException("wrong dt")
+        BaseDataType.UNDEFINED, BaseDataType.VOID -> throw IllegalArgumentException("wrong dt")
     }
 
     // is the type assignable to the given other type (perhaps via a typecast) without loss of precision?
@@ -193,13 +196,14 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
             BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
-            BaseDataType.UNDEFINED -> false
+            BaseDataType.UNDEFINED , BaseDataType.VOID-> false
         }
 
     fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
     fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
 
     val isUndefined = base == BaseDataType.UNDEFINED
+    val isVoid = base == BaseDataType.VOID
     val isByte = base.isByte
     val isUnsignedByte = base == BaseDataType.UBYTE
     val isSignedByte = base == BaseDataType.BYTE
