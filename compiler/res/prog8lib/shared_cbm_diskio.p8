@@ -10,6 +10,7 @@ diskio {
 
     const ubyte READ_IO_CHANNEL=12
     const ubyte WRITE_IO_CHANNEL=13
+    const ubyte STATUS_EOF=$40
 
     ubyte @shared drivenumber = 8           ; user programs can set this to the drive number they want to load/save to!
 
@@ -72,7 +73,7 @@ io_error:
         cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(READ_IO_CHANNEL)
 
-        if status!=0 and status & $40 == 0 {            ; bit 6=end of file
+        if status!=0 and status & STATUS_EOF == 0 {
             txt.print("\ni/o error, status: ")
             txt.print_ub(status)
             txt.nl()
@@ -322,7 +323,7 @@ close_end:
             if cbm.READST()==0 {
                 iteration_in_progress = true
                 void cbm.CHRIN()        ; read first byte to test for file not found
-                if cbm.READST() & $BF == 0 {
+                if cbm.READST() & ~STATUS_EOF == 0 {
                     cbm.CLOSE(READ_IO_CHANNEL)           ; close file because we already consumed first byte
                     void cbm.OPEN()         ; re-open the file
                     cbm.CLRCHN()            ; reset default i/o channels
@@ -349,7 +350,7 @@ close_end:
             cbm.CLRCHN()            ; reset default i/o channels
             if cx16.r0L!=0 {
                 f_close()
-                if cx16.r0L & $40 == 0
+                if cx16.r0L & STATUS_EOF == 0
                     return 0
             }
             return 1
@@ -375,7 +376,7 @@ m_in_buffer     sta  $ffff
             if_nz {
                 f_close()
                 cbm.CLRCHN()            ;  reset default i/o channels
-                if cx16.r0L & $40 !=0    ; eof?
+                if cx16.r0L & STATUS_EOF !=0    ; eof?
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
             }
