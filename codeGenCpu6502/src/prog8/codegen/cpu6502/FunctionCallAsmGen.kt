@@ -58,6 +58,10 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 if(bank==null) {
                     val varbank = if(sub.address?.varbank==null) null else asmgen.asmVariableName(sub.address!!.varbank!!)
                     if(varbank!=null) {
+                        if(asmgen.options.romable)
+                            TODO("no codegen yet for non-const bank in subroutine call that's usable in ROM  ${call.position}")
+
+                        // self-modifying code: set jsrfar bank argument
                         when(asmgen.options.compTarget.name) {
                             "cx16" -> {
                                 // JSRFAR can jump to a banked RAM address as well!
@@ -72,7 +76,6 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
 +                               .byte  0    ; modified"""
                                 )
-                                asmgen.romableWarning("self-modifying code for cx16 banked jsr", call.position)  // TODO
                             }
                             "c64" -> {
                                 asmgen.out("""
@@ -86,7 +89,6 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
 +                               .byte  0    ; modified"""
                                 )
-                                asmgen.romableWarning("self-modifying code for c64 banked jsr", call.position)  // TODO
                             }
                             "c128" -> {
                                 asmgen.out("""
@@ -100,7 +102,6 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                                 .word  $subAsmName    ; ${sub.address!!.address.toHex()}
 +                               .byte  0    ; modified"""
                                 )
-                                asmgen.romableWarning("self-modifying code for c128 banked jsr", call.position)  // TODO
                             }
                             else -> throw AssemblyError("callfar is not supported on the selected compilation target")
                         }

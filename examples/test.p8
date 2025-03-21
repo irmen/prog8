@@ -5,18 +5,17 @@
 main {
 
     sub start()  {
+        ubyte[] @shared array = [1,2,3,4,5,6,7]
         uword @shared @nozp ptr = $4000
 
         @(ptr) = %11110001
-        txt.print_ubbin(@(ptr), true)
+        txt.print_ub(@(ptr))
         txt.nl()
-        sys.set_carry()
-        rol(@(ptr))
-        txt.print_ubbin(@(ptr), true)
+        @(ptr)++
+        txt.print_ub(@(ptr))
         txt.nl()
-        sys.clear_carry()
-        ror(@(ptr))
-        txt.print_ubbin(@(ptr), true)
+        @(ptr)--
+        txt.print_ub(@(ptr))
         txt.nl()
 
 ;        cx16.r0L = @(ptr)

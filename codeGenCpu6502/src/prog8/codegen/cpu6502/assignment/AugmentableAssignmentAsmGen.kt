@@ -962,10 +962,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         when (operator) {
             "+" -> {
                 if(value==1) {
-                    asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
-                    asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                    asmgen.out("+\tinc  ${'$'}ffff\t; modified")
-                    asmgen.romableWarning("self-modifying code (access pointer)", pointervar.position)  // TODO
+                    if(asmgen.options.romable) {
+                        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                            asmgen.out("  inc  a")
+                        else
+                            asmgen.out("  clc |  adc  #1")
+                        asmgen.storeAIntoZpPointerVar(sourceName, false)
+                    } else {
+                        asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
+                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                        asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                    }
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     asmgen.out("  clc |  adc  #$value")
@@ -974,10 +982,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "-" -> {
                 if(value==1) {
-                    asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
-                    asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                    asmgen.out("+\tdec  ${'$'}ffff\t; modified")
-                    asmgen.romableWarning("self-modifying code (access pointer)", pointervar.position)  // TODO
+                    if(asmgen.options.romable) {
+                        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                            asmgen.out("  dec  a")
+                        else
+                            asmgen.out("  sec |  sbc  #1")
+                        asmgen.storeAIntoZpPointerVar(sourceName, false)
+                    } else {
+                        asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
+                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                        asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                    }
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                     asmgen.out("  sec |  sbc  #$value")
