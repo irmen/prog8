@@ -652,7 +652,7 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.second,
                     it.initializationStringValue!!.first
                 )
-                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO
+                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO what to do with strings in romable? should they simply be treated as read-only?
             }
             alignedStrings.sortedBy { it.align }.forEach {
                 outputStringvar(
@@ -661,7 +661,7 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.second,
                     it.initializationStringValue!!.first
                 )
-                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO
+                asmgen.romableWarning("inlined variable (${it.dt}, ${it.name})", Position.DUMMY)  // TODO what to do with strings in romable? should they simply be treated as read-only?
             }
 
             notAlignedOther.sortedBy { it.type }.forEach {

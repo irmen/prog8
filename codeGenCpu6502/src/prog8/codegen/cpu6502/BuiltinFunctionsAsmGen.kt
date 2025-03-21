@@ -227,6 +227,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 .word  ${constAddress.toHex()}
                 .byte  $constBank""")
         } else {
+            if(asmgen.options.romable)
+                TODO("no code for non-const callfar (jsrfar) yet that's usable in ROM  ${fcall.position}")
+            // self-modifying code: set jsrfar arguments
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
             asmgen.out("  sta  (++)+0")
             asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)     // jump address
@@ -236,7 +239,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 jsr  $jsrfar
 +               .word  0
 +               .byte  0""")
-            asmgen.romableWarning("self-modifying code for jsrfar", fcall.position)  // TODO
         }
 
         // note that by convention the values in A+Y registers are now the return value of the call.
@@ -284,6 +286,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 .word  ${constAddress.toHex()}
                 .byte  $constBank""")
         } else {
+            if(asmgen.options.romable)
+                TODO("no code for non-const callfar2 (jsrfar) yet that's usable in ROM  ${fcall.position}")
+            // self-modifying code: set jsrfar arguments
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
             asmgen.out("  sta  (++)+0")
             asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)     // jump address
@@ -293,7 +298,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 jsr  $jsrfar
 +               .word  0
 +               .byte  0""")
-            asmgen.romableWarning("self-modifying code for jsrfar", fcall.position)  // TODO
         }
 
         // note that by convention the values in A+Y registers are now the return value of the call.
@@ -465,31 +469,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         asmgen.out("  ror  ${varname},x")
                     }
                     is PtMemoryByte -> {
-                        if (what.address is PtNumber) {
-                            val number = (what.address as PtNumber).number
-                            asmgen.out("  ror  ${number.toHex()}")
-                        } else {
-                            val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
-                            if(ptrAndIndex!=null) {
-                                asmgen.out("  php")
-                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.A)
-                                asmgen.saveRegisterStack(CpuRegister.A, true)
-                                asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
-                                asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                                asmgen.restoreRegisterStack(CpuRegister.X, false)
-                                asmgen.out("""
-                                    plp
-+                                   ror  ${'$'}ffff,x           ; modified""")
-                                asmgen.romableWarning("self-modifying code (ror)", fcall.position) // TODO
-                            } else {
-                                if(!what.address.isSimple()) asmgen.out("  php")   // save Carry
-                                asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
-                                if(!what.address.isSimple()) asmgen.out("  plp")
-                                asmgen.out("""
-                                    sta  (+) + 1
-                                    sty  (+) + 2
-+                                   ror  ${'$'}ffff            ; modified""")
-                                asmgen.romableWarning("self-modifying code (ror)", fcall.position) // TODO
+                        when {
+                            what.address is PtNumber -> {
+                                val number = (what.address as PtNumber).number
+                                asmgen.out("  ror  ${number.toHex()}")
+                            }
+                            what.address is PtIdentifier -> {
+                                asmgen.out("  php")   // save Carry
+                                val sourceName = asmgen.loadByteFromPointerIntoA(what.address as PtIdentifier)
+                                asmgen.out("  plp |  ror  a")
+                                asmgen.storeAIntoZpPointerVar(sourceName, false)
+                            }
+                            else -> {
+                                TODO("ror ptr-expression ${what.position}")
                             }
                         }
                     }
@@ -583,31 +575,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         asmgen.out("  rol  ${varname},x")
                     }
                     is PtMemoryByte -> {
-                        if (what.address is PtNumber) {
-                            val number = (what.address as PtNumber).number
-                            asmgen.out("  rol  ${number.toHex()}")
-                        } else {
-                            val ptrAndIndex = asmgen.pointerViaIndexRegisterPossible(what.address)
-                            if(ptrAndIndex!=null) {
-                                asmgen.out("  php")
-                                asmgen.assignExpressionToRegister(ptrAndIndex.second, RegisterOrPair.A)
-                                asmgen.saveRegisterStack(CpuRegister.A, true)
-                                asmgen.assignExpressionToRegister(ptrAndIndex.first, RegisterOrPair.AY)
-                                asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                                asmgen.restoreRegisterStack(CpuRegister.X, false)
-                                asmgen.out("""
-                                    plp
-+                                   rol  ${'$'}ffff,x           ; modified""")
-                                asmgen.romableWarning("self-modifying code (rol)", fcall.position) // TODO
-                            } else {
-                                if(!what.address.isSimple()) asmgen.out("  php")   // save Carry
-                                asmgen.assignExpressionToRegister(what.address, RegisterOrPair.AY)
-                                if(!what.address.isSimple()) asmgen.out("  plp")
-                                asmgen.out("""
-                                    sta  (+) + 1
-                                    sty  (+) + 2
-+                                   rol  ${'$'}ffff            ; modified""")
-                                asmgen.romableWarning("self-modifying code (rol)", fcall.position) // TODO
+                        when {
+                            what.address is PtNumber -> {
+                                val number = (what.address as PtNumber).number
+                                asmgen.out("  rol  ${number.toHex()}")
+                            }
+                            what.address is PtIdentifier -> {
+                                asmgen.out("  php")   // save Carry
+                                val sourceName = asmgen.loadByteFromPointerIntoA(what.address as PtIdentifier)
+                                asmgen.out("  plp |  rol  a")
+                                asmgen.storeAIntoZpPointerVar(sourceName, false)
+                            }
+                            else -> {
+                                TODO("rol ptr-expression ${what.position}")
                             }
                         }
                     }
