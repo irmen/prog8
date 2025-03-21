@@ -237,11 +237,11 @@ music {
             sta  _lp2+2
             ldx  #4
             ldy  #0
-_loop       lda  $ffff,y
+_loop       lda  $ffff,y    ;modified
             eor  #$80       ; convert to signed
             sta  cx16.VERA_AUDIO_DATA
             iny
-_lp2        lda  $ffff,y
+_lp2        lda  $ffff,y    ; modified
             eor  #$80       ; convert to signed
             sta  cx16.VERA_AUDIO_DATA
             iny
@@ -274,10 +274,10 @@ _lp2        lda  $ffff,y
             sta  _lp2+2
             ldx  #4
             ldy  #0
-_loop       lda  $ffff,y
+_loop       lda  $ffff,y    ; modified
             sta  cx16.VERA_AUDIO_DATA
             iny
-_lp2        lda  $ffff,y
+_lp2        lda  $ffff,y    ; modified
             sta  cx16.VERA_AUDIO_DATA
             iny
             bne  _loop

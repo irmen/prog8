@@ -45,6 +45,12 @@ Various things:
 `Prog8 code for ZSMkit <https://github.com/mooinglemur/zsmkit/tree/main/p8demo>`_
     ZSMkit is an advanced music and sound effects engine for the Commander X16.
 
+`vtsbank: a library for affine transformation and rotation of sprites and tiles <https://github.com/tallLeRoy/vtsbank>`_
+    "VERA Tile Set and Sprite feature" is a module that provides all sorts
+    of routines to perform tile and sprite transformations and rotation, using
+    the VeraFX hardware feature. Includes examples.
+
+
 .. image:: _static/curious.png
     :align: center
     :alt: Curious

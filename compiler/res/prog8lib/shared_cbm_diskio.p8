@@ -366,7 +366,7 @@ close_end:
         while num_bytes!=0 {
             %asm {{
                 jsr  cbm.CHRIN
-m_in_buffer     sta  $ffff
+m_in_buffer     sta  $ffff          ; modified
                 inc  m_in_buffer+1
                 bne  +
                 inc  m_in_buffer+2
