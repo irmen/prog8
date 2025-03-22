@@ -33,228 +33,243 @@ internal class ForLoopsAsmGen(
     }
 
     private fun translateForOverNonconstRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
-        val loopLabel = asmgen.makeLabel("for_loop")
-        val endLabel = asmgen.makeLabel("for_end")
-        val modifiedLabel = asmgen.makeLabel("for_modified")
-        val modifiedLabel2 = asmgen.makeLabel("for_modifiedb")
-        asmgen.loopEndLabels.add(endLabel)
-        val stepsize=range.step.asConstInteger()!!
-
-        if(stepsize < -1) {
+        if(range.step.asConstInteger()!! < -1) {
             val limit = range.to.asConstInteger()
             if(limit==0)
                 throw AssemblyError("for unsigned loop variable it's not possible to count down with step != -1 from a non-const value to exactly zero due to value wrapping")
         }
 
         when {
-            iterableDt.isByteArray -> {
-                val varname = asmgen.asmVariableName(stmt.variable)
-                asmgen.assignExpressionToVariable(range.from, varname, iterableDt.elementType())
-                if (stepsize==-1 && range.to.asConstInteger()==0) {
-                    // simple loop downto 0 step -1
-                    asmgen.out(loopLabel)
-                    asmgen.translate(stmt.statements)
-                    asmgen.out("""
-                        dec  $varname
-                        lda  $varname
-                        cmp  #255
-                        bne  $loopLabel""")
-                }
-                else if (stepsize==-1 && range.to.asConstInteger()==1) {
-                    // simple loop downto 1 step -1
-                    asmgen.out(loopLabel)
-                    asmgen.translate(stmt.statements)
-                    asmgen.out("""
-                        dec  $varname
-                        bne  $loopLabel""")
-                }
-                else if (stepsize==1 || stepsize==-1) {
-                    // bytes array, step 1 or -1
+            iterableDt.isByteArray -> forOverNonconstByteRange(stmt, iterableDt, range)
+            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> forOverNonconstWordRange(stmt, iterableDt, range)
+            else -> throw AssemblyError("range expression can only be byte or word")
+        }
 
-                    val incdec = if(stepsize==1) "inc" else "dec"
-                    // loop over byte range via loopvar
-                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
-                    // pre-check for end already reached
-                    if(iterableDt.isSignedByteArray) {
-                        asmgen.out("  sta  $modifiedLabel+1")
-                        if(stepsize<0) {
-                            asmgen.out("""
-                                clc
-                                sbc  $varname
-                                bvc  +
-                                eor  #${'$'}80
-+                               bpl  $endLabel""")
-                        }
-                        else
-                            asmgen.out("""
-                                sec
-                                sbc  $varname
-                                bvc  +
-                                eor  #${'$'}80
-+                               bmi  $endLabel""")
-                    } else {
-                        if(stepsize<0) {
-                            asmgen.out("""
-                                cmp  $varname
-                                beq  +
-                                bcs  $endLabel
+        asmgen.loopEndLabels.removeLast()
+    }
+
+    private fun forOverNonconstByteRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+        val stepsize = range.step.asConstInteger()!!
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
+        val modifiedLabel = asmgen.makeLabel("for_modified")
+        asmgen.loopEndLabels.add(endLabel)
+        val varname = asmgen.asmVariableName(stmt.variable)
+        asmgen.assignExpressionToVariable(range.from, varname, iterableDt.elementType())
+        if (stepsize==-1 && range.to.asConstInteger()==0) {
+            // simple loop downto 0 step -1
+            asmgen.out(loopLabel)
+            asmgen.translate(stmt.statements)
+            asmgen.out("""
+                dec  $varname
+                lda  $varname
+                cmp  #255
+                bne  $loopLabel""")
+        }
+        else if (stepsize==-1 && range.to.asConstInteger()==1) {
+            // simple loop downto 1 step -1
+            asmgen.out(loopLabel)
+            asmgen.translate(stmt.statements)
+            asmgen.out("""
+                dec  $varname
+                bne  $loopLabel""")
+        }
+        else if (stepsize==1 || stepsize==-1) {
+            // bytes array, step 1 or -1
+
+            val incdec = if(stepsize==1) "inc" else "dec"
+            // loop over byte range via loopvar
+            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
+            // pre-check for end already reached
+            if(iterableDt.isSignedByteArray) {
+                asmgen.out("  sta  $modifiedLabel+1")
+                if(stepsize<0) {
+                    asmgen.out("""
+                        clc
+                        sbc  $varname
+                        bvc  +
+                        eor  #${'$'}80
++                       bpl  $endLabel""")
+                }
+                else
+                    asmgen.out("""
+                        sec
+                        sbc  $varname
+                        bvc  +
+                        eor  #${'$'}80
++                       bmi  $endLabel""")
+            } else {
+                if(stepsize<0) {
+                    asmgen.out("""
+                        cmp  $varname
+                        beq  +
+                        bcs  $endLabel
 +""")
-                        }
-                        else
-                            asmgen.out("  cmp  $varname  |  bcc  $endLabel")
-                        asmgen.out("  sta  $modifiedLabel+1")
-                    }
-                    asmgen.out(loopLabel)
-                    asmgen.translate(stmt.statements)
-                    asmgen.out("""
-                        lda  $varname
-$modifiedLabel          cmp  #0         ; modified 
-                        beq  $endLabel
-                        $incdec  $varname""")
-                    asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
-                    asmgen.jmp(loopLabel)
-                    asmgen.out(endLabel)
-
-                } else {
-
-                    // bytes, step >= 2 or <= -2
-
-                    // loop over byte range via loopvar
-                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
-                    // pre-check for end already reached
-                    if(iterableDt.isSignedByteArray) {
-                        asmgen.out("  sta  $modifiedLabel+1")
-                        if(stepsize<0)
-                            asmgen.out("""
-                                clc
-                                sbc  $varname
-                                bvc  +
-                                eor  #${'$'}80
-+                               bpl  $endLabel""")
-                        else
-                            asmgen.out("""
-                                sec
-                                sbc  $varname
-                                bvc  +
-                                eor  #${'$'}80
-+                               bmi  $endLabel""")
-                    } else {
-                        if(stepsize<0)
-                            asmgen.out("""
-                                cmp  $varname
-                                beq  +
-                                bcs  $endLabel
-+""")
-                        else
-                            asmgen.out("  cmp  $varname  |  bcc  $endLabel")
-                        asmgen.out("  sta  $modifiedLabel+1")
-                    }
-                    asmgen.out(loopLabel)
-                    asmgen.translate(stmt.statements)
-                    if(stepsize>0) {
-                        asmgen.out("""
-                            lda  $varname
-                            clc
-                            adc  #$stepsize
-                            sta  $varname
-$modifiedLabel              cmp  #0    ; modified
-                            bmi  $loopLabel
-                            beq  $loopLabel""")
-                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
-                    } else {
-                        asmgen.out("""
-                            lda  $varname
-                            sec
-                            sbc  #${stepsize.absoluteValue}
-                            sta  $varname
-$modifiedLabel              cmp  #0     ; modified
-                            bpl  $loopLabel""")
-                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
-                    }
-                    asmgen.out(endLabel)
                 }
+                else {
+                    asmgen.out("  cmp  $varname  |  bcc  $endLabel")
+                }
+                asmgen.out("  sta  $modifiedLabel+1")
             }
-            iterableDt.isWordArray && !iterableDt.isSplitWordArray -> {
-                val varname = asmgen.asmVariableName(stmt.variable)
-                assignLoopvarWord(stmt, range)
-                if(stepsize==-1 && range.to.asConstInteger()==0) {
-                    // simple loop downto 0 step -1 (words)
-                    asmgen.out(loopLabel)
-                    asmgen.translate(stmt.statements)
+            asmgen.out(loopLabel)
+            asmgen.translate(stmt.statements)
+            asmgen.out("""
+                lda  $varname
+$modifiedLabel  cmp  #0         ; modified 
+                beq  $endLabel
+                $incdec  $varname""")
+            asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
+            asmgen.jmp(loopLabel)
+            asmgen.out(endLabel)
+
+        } else {
+
+            // bytes, step >= 2 or <= -2
+
+            // loop over byte range via loopvar
+            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
+            // pre-check for end already reached
+            if(iterableDt.isSignedByteArray) {
+                asmgen.out("  sta  $modifiedLabel+1")
+                if(stepsize<0)
                     asmgen.out("""
-                        lda  $varname
-                        bne  ++
-                        lda  $varname+1
-                        beq  $endLabel
-+                       lda  $varname
-                        bne  +
-                        dec  $varname+1
-+                       dec  $varname""")
-                    asmgen.jmp(loopLabel)
-                    asmgen.out(endLabel)
+                        clc
+                        sbc  $varname
+                        bvc  +
+                        eor  #${'$'}80
++                       bpl  $endLabel""")
+                else
+                    asmgen.out("""
+                        sec
+                        sbc  $varname
+                        bvc  +
+                        eor  #${'$'}80
++                       bmi  $endLabel""")
+            } else {
+                if(stepsize<0)
+                    asmgen.out("""
+                        cmp  $varname
+                        beq  +
+                        bcs  $endLabel
++""")
+                else {
+                    asmgen.out("  cmp  $varname  |  bcc  $endLabel")
                 }
-                else if (stepsize==-1 && range.to.asConstInteger()==1) {
-                    // simple loop downto 1 step -1 (words)
-                    asmgen.out(loopLabel)
-                    asmgen.translate(stmt.statements)
-                    asmgen.out("""
-                        lda  $varname
-                        cmp  #1
-                        bne  +
-                        lda  $varname+1
-                        beq  $endLabel
-+                       lda  $varname
-                        bne  +
-                        dec  $varname+1
-+                       dec  $varname""")
-                    asmgen.jmp(loopLabel)
-                    asmgen.out(endLabel)
-                }
-                else if (stepsize == 1 || stepsize == -1) {
-                    // words, step 1 or -1
-                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
-                    precheckFromToWord(iterableDt, stepsize, varname, endLabel)
-                    asmgen.out("""
+                asmgen.out("  sta  $modifiedLabel+1")
+            }
+            asmgen.out(loopLabel)
+            asmgen.translate(stmt.statements)
+            if(stepsize>0) {
+                asmgen.out("""
+                    lda  $varname
+                    clc
+                    adc  #$stepsize
+                    sta  $varname
+$modifiedLabel      cmp  #0    ; modified
+                    bmi  $loopLabel
+                    beq  $loopLabel""")
+                asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
+            } else {
+                asmgen.out("""
+                    lda  $varname
+                    sec
+                    sbc  #${stepsize.absoluteValue}
+                    sta  $varname
+$modifiedLabel      cmp  #0     ; modified
+                    bpl  $loopLabel""")
+                asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
+            }
+            asmgen.out(endLabel)
+        }
+    }
+
+    private fun forOverNonconstWordRange(stmt: PtForLoop, iterableDt: DataType, range: PtRange) {
+        val stepsize = range.step.asConstInteger()!!
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
+        val modifiedLabel = asmgen.makeLabel("for_modified")
+        val modifiedLabel2 = asmgen.makeLabel("for_modifiedb")
+        asmgen.loopEndLabels.add(endLabel)
+        val varname = asmgen.asmVariableName(stmt.variable)
+        assignLoopvarWord(stmt, range)
+        if(stepsize==-1 && range.to.asConstInteger()==0) {
+            // simple loop downto 0 step -1 (words)
+            asmgen.out(loopLabel)
+            asmgen.translate(stmt.statements)
+            asmgen.out("""
+                lda  $varname
+                bne  ++
+                lda  $varname+1
+                beq  $endLabel
++               lda  $varname
+                bne  +
+                dec  $varname+1
++               dec  $varname""")
+            asmgen.jmp(loopLabel)
+            asmgen.out(endLabel)
+        }
+        else if (stepsize==-1 && range.to.asConstInteger()==1) {
+            // simple loop downto 1 step -1 (words)
+            asmgen.out(loopLabel)
+            asmgen.translate(stmt.statements)
+            asmgen.out("""
+                lda  $varname
+                cmp  #1
+                bne  +
+                lda  $varname+1
+                beq  $endLabel
++               lda  $varname
+                bne  +
+                dec  $varname+1
++               dec  $varname""")
+            asmgen.jmp(loopLabel)
+            asmgen.out(endLabel)
+        }
+        else if (stepsize == 1 || stepsize == -1) {
+            // words, step 1 or -1
+            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+            precheckFromToWord(iterableDt, stepsize, varname, endLabel)
+            asmgen.out("""
                 sty  $modifiedLabel+1
                 sta  $modifiedLabel2+1
 $loopLabel""")
-                    asmgen.translate(stmt.statements)
-                    asmgen.out("""
+            asmgen.translate(stmt.statements)
+            asmgen.out("""
                 lda  $varname+1
 $modifiedLabel  cmp  #0    ; modified 
                 bne  +
                 lda  $varname
 $modifiedLabel2 cmp  #0    ; modified 
                 beq  $endLabel""")
-                    asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
-                    if(stepsize==1) {
-                        asmgen.out("""
+            asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
+            if(stepsize==1) {
+                asmgen.out("""
 +               inc  $varname
                 bne  $loopLabel
                 inc  $varname+1""")
-                        asmgen.jmp(loopLabel)
-                    } else {
-                        asmgen.out("""
+                asmgen.jmp(loopLabel)
+            } else {
+                asmgen.out("""
 +               lda  $varname
                 bne  +
                 dec  $varname+1
 +               dec  $varname""")
-                        asmgen.jmp(loopLabel)
-                    }
-                    asmgen.out(endLabel)
-                }
-                else if (stepsize > 0) {
-                    // (u)words, step >= 2
-                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
-                    precheckFromToWord(iterableDt, stepsize, varname, endLabel)
-                    asmgen.out("""
+                asmgen.jmp(loopLabel)
+            }
+            asmgen.out(endLabel)
+        }
+        else if (stepsize > 0) {
+            // (u)words, step >= 2
+            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+            precheckFromToWord(iterableDt, stepsize, varname, endLabel)
+            asmgen.out("""
                 sty  $modifiedLabel+1
                 sta  $modifiedLabel2+1
 $loopLabel""")
-                    asmgen.translate(stmt.statements)
+            asmgen.translate(stmt.statements)
 
-                    if (iterableDt.isUnsignedWordArray) {
-                        asmgen.out("""
+            if (iterableDt.isUnsignedWordArray) {
+                asmgen.out("""
                 lda  $varname
                 clc
                 adc  #<$stepsize
@@ -270,9 +285,9 @@ $modifiedLabel2 lda  #0     ; modified
                 bcc  $endLabel
                 bcs  $loopLabel
 $endLabel""")
-                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
-                    } else {
-                        asmgen.out("""
+                asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
+            } else {
+                asmgen.out("""
                 lda  $varname
                 clc
                 adc  #<$stepsize
@@ -288,21 +303,21 @@ $modifiedLabel  lda  #0   ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-                        asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
-                    }
-                }
-                else {
+                asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
+            }
+        }
+        else {
 
-                    // (u)words, step <= -2
-                    asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
-                    precheckFromToWord(iterableDt, stepsize, varname, endLabel)
-                    asmgen.out("""
+            // (u)words, step <= -2
+            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
+            precheckFromToWord(iterableDt, stepsize, varname, endLabel)
+            asmgen.out("""
                 sty  $modifiedLabel+1
                 sta  $modifiedLabel2+1
 $loopLabel""")
-                    asmgen.translate(stmt.statements)
+            asmgen.translate(stmt.statements)
 
-                    asmgen.out("""
+            asmgen.out("""
                 lda  $varname
                 sec
                 sbc  #<${stepsize.absoluteValue}
@@ -319,13 +334,8 @@ $modifiedLabel  sbc  #0    ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-                    asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
-                }
-            }
-            else -> throw AssemblyError("range expression can only be byte or word")
+            asmgen.romableWarning("self-modifying code (forloop over range)", stmt.position)  // TODO
         }
-
-        asmgen.loopEndLabels.removeLast()
     }
 
     private fun precheckFromToWord(iterableDt: DataType, stepsize: Int, fromVar: String, endLabel: String) {
@@ -390,24 +400,41 @@ $endLabel""")
         }
         when {
             iterableDt.isString -> {
-                asmgen.out("""
-                    lda  #<$iterableName
-                    ldy  #>$iterableName
-                    sta  $loopLabel+1
-                    sty  $loopLabel+2
-$loopLabel          lda  ${65535.toHex()}       ; modified
-                    beq  $endLabel
-                    sta  ${asmgen.asmVariableName(stmt.variable)}""")
-                asmgen.romableWarning("self-modifying code (forloop over iterable)", stmt.position)  // TODO
-                asmgen.translate(stmt.statements)
-                asmgen.out("""
-                    inc  $loopLabel+1
-                    bne  $loopLabel
-                    inc  $loopLabel+2
-                    bne  $loopLabel
+                // keep the iteration index on the cpu stack rather than allocating a variable for it
+                if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
+                    asmgen.out("""
+                        ldy  #0
+                        phy
+$loopLabel              ply
+                        lda  $iterableName,y
+                        beq  $endLabel
+                        sta  ${asmgen.asmVariableName(stmt.variable)}
+                        iny
+                        phy""")
+                    asmgen.translate(stmt.statements)
+                    asmgen.out("""   bra  $loopLabel
 $endLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  #0
+                        pha
+                        tay
+$loopLabel              lda  $iterableName,y
+                        beq  $endLabel
+                        sta  ${asmgen.asmVariableName(stmt.variable)}""")
+                    asmgen.translate(stmt.statements)
+                    asmgen.out("""
+                        pla
+                        tay
+                        iny
+                        tya
+                        pha
+                        bne  $loopLabel
+$endLabel               pla""")
+                }
             }
             iterableDt.isByteArray || iterableDt.isBoolArray -> {
+                // TODO don't use an inline iteration variable when using romable code
                 val indexVar = asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0

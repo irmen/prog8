@@ -1,3 +1,4 @@
+%import test_stack
 %import textio
 %zeropage basicsafe
 %option no_sysinit, romable
@@ -5,18 +6,20 @@
 main {
 
     sub start()  {
-        ubyte[] @shared array = [1,2,3,4,5,6,7]
-        uword @shared @nozp ptr = $4000
+        &ubyte[100] @shared array = $a000
+        str name = "irmen1234567890" * 16 + "abcdefghijklmno"
 
-        @(ptr) = %11110001
-        txt.print_ub(@(ptr))
+        txt.print_ub(len(name))
         txt.nl()
-        @(ptr)++
-        txt.print_ub(@(ptr))
-        txt.nl()
-        @(ptr)--
-        txt.print_ub(@(ptr))
-        txt.nl()
+
+        test_stack.test()
+
+        for cx16.r0L in name {
+            txt.chrout(cx16.r0L)
+        }
+
+        test_stack.test()
+        cx16.r0++
 
 ;        cx16.r0L = @(ptr)
 ;
