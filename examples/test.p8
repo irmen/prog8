@@ -6,18 +6,17 @@
 main {
 
     sub start()  {
-        cx16.r8L = 3
-        cx16.r9L = 20
+        uword[] array = [1111,2222,3333,4444]
 
-        for cx16.r2L in cx16.r8L to cx16.r9L step 1 {
-            txt.print_ub(cx16.r2L)
+        cx16.r5 = 1000
+        cx16.r6 = 1010
+
+        test_stack.test()
+        for cx16.r2 in cx16.r5 to cx16.r6 {
+            txt.print_uw(cx16.r2)
             txt.spc()
         }
-
-;        cx16.r0L = @(ptr)
-;
-;        @(ptr)++
-;
-;        @(ptr)+=10
+        test_stack.test()
+        cx16.r0L++
     }
 }
