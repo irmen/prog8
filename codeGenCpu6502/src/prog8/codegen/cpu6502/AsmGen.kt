@@ -1741,12 +1741,13 @@ $repeatLabel""")
         return null
     }
 
-    fun romableWarning(problem: String, pos: Position, assemblerShouldFail: Boolean = true) {
+    fun romableError(problem: String, pos: Position, assemblerShouldFail: Boolean = true) {
         if(options.romable) {
             // until the code generation can provide an alternative, we have to report about code generated that is incompatible with ROMable code mode...
             errors.warn("problem for ROMable code: $problem", pos)
-            if(assemblerShouldFail)
-                out("  .error \"ROMable code selected but incompatible code was generated: $problem\"")
+            if(assemblerShouldFail) {
+                out("  .error \"ROMable code selected but incompatible code was generated: $problem  $pos\"")
+            }
         }
     }
 }

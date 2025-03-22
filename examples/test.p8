@@ -6,20 +6,13 @@
 main {
 
     sub start()  {
-        &ubyte[100] @shared array = $a000
-        str name = "irmen1234567890" * 16 + "abcdefghijklmno"
+        cx16.r8L = 3
+        cx16.r9L = 20
 
-        txt.print_ub(len(name))
-        txt.nl()
-
-        test_stack.test()
-
-        for cx16.r0L in name {
-            txt.chrout(cx16.r0L)
+        for cx16.r2L in cx16.r8L to cx16.r9L step 1 {
+            txt.print_ub(cx16.r2L)
+            txt.spc()
         }
-
-        test_stack.test()
-        cx16.r0++
 
 ;        cx16.r0L = @(ptr)
 ;
