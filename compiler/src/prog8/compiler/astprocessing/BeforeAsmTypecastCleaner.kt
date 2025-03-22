@@ -70,11 +70,11 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
         return noModifications
     }
 
-    override fun after(fcs: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
-        if(fcs.target.nameInSource==listOf("cmp")) {
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+        if(functionCallStatement.target.nameInSource==listOf("cmp")) {
             // if the datatype of the arguments of cmp() are different, cast the byte one to word.
-            val arg1 = fcs.args[0]
-            val arg2 = fcs.args[1]
+            val arg1 = functionCallStatement.args[0]
+            val arg2 = functionCallStatement.args[1]
             val dt1 = arg1.inferType(program).getOrUndef()
             val dt2 = arg2.inferType(program).getOrUndef()
             if(dt1.isBool && dt2.isBool)
@@ -84,13 +84,13 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                     return noModifications
                 val (replaced, cast) = arg1.typecastTo(if(dt1.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt1, true)
                 if(replaced)
-                    return listOf(IAstModification.ReplaceNode(arg1, cast, fcs))
+                    return listOf(IAstModification.ReplaceNode(arg1, cast, functionCallStatement))
             } else {
                 if(dt2.isWord)
                     return noModifications
                 val (replaced, cast) = arg2.typecastTo(if(dt2.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt2, true)
                 if(replaced)
-                    return listOf(IAstModification.ReplaceNode(arg2, cast, fcs))
+                    return listOf(IAstModification.ReplaceNode(arg2, cast, functionCallStatement))
             }
         }
         return noModifications
