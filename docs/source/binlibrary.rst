@@ -60,7 +60,7 @@ source code such as %launcher, %zeropage and so on. But there is a single direct
 Together with ``%address`` and possibly ``%memtop`` -to tell the compiler what the load address of the library should be-
 it will create a "library.bin" file that fulfills the requirements of a loadable binary library program as listed above.
 
-For older CBM targets (C64, C128 and PET) the library file will have a load address header,
+For older CBM targets (C64, C128 and PET) the library file *will* have a load address header,
 because these targets require a header to easily load files. For the other targets such as the Commander X16,
 the library will be a headerless binary file that can then be loaded given the correct load address.
 
@@ -101,7 +101,11 @@ Assuming the load address of the library is $A000:
     SYS $A008 : REM CALL SECOND ROUTINE, ETC.
 
 
-**From Prog8**::
+**From Prog8**
+The ``diskio`` module actually provides a convenience routine called ``loadlib`` that loads a Prog8-compiled
+library blob into memory. It internally automatically uses either regular load() or load_raw(),
+as required by the compilation target (so you don't have to bother with target machine
+differences if you want to write portable code)::
 
     %import diskio
 
@@ -112,7 +116,7 @@ Assuming the load address of the library is $A000:
         extsub $A008 = lib_func2() clobbers(A,X,Y)
 
         sub start() {
-            if diskio.load_raw("library.bin", $a000) != 0 {
+            if diskio.loadlib("library.bin", $a000) != 0 {
                 lib_init()
                 lib_func1()
                 lib_func2()

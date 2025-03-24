@@ -644,6 +644,12 @@ io_error:
         return load(filenameptr, start_address)
     }
 
+    ; Load a prog8 compiled library binary blob at the given location into memory.
+    sub loadlib(uword libnameptr, uword libaddress) -> uword {
+        return load(libnameptr, libaddress)
+    }
+
+
     sub delete(uword filenameptr) {
         ; -- delete a file on the drive
         list_filename[0] = 's'

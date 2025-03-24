@@ -5,7 +5,7 @@
 
 main {
     sub start() {
-        if diskio.load_raw("fselector-a000.bin", $a000) != 0 {
+        if diskio.loadlib("fselector-a000.bin", $a000) != 0 {
             fselector.init()
             fselector.config(8, fselector.TYPE_ALL)
             uword filename = fselector.select("*")

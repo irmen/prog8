@@ -725,6 +725,12 @@ io_error:
     }
 
 
+    ; Load a prog8 compiled library binary blob at the given location into memory.
+    sub loadlib(uword libnameptr, uword libaddress) -> uword {
+        return internal_load_routine(libnameptr, libaddress, true)
+    }
+
+
     sub internal_load_routine(uword filenameptr, uword address_override, bool headerless) -> uword {
         cbm.SETNAM(strings.length(filenameptr), filenameptr)
         ubyte secondary = 1
