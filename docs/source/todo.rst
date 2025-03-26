@@ -9,6 +9,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- romable: add way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - romable: write access to strings and arrays should be a compilation error when generating romable code (because strings and arrays are immutable in this case). But only when NOT memory mapped!
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

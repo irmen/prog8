@@ -319,6 +319,10 @@ internal class ProgramAndVarsGen(
                 asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many data for slabs_BSS section\"")
             }
         }
+
+        if(relocatedBssEnd >= options.memtopAddress)
+            options.memtopAddress = relocatedBssEnd+1u
+
         asmgen.out("  ; memtop check")
         asmgen.out("  .cerror * >= ${options.memtopAddress.toHex()}, \"Program too long by \", * - ${(options.memtopAddress-1u).toHex()}, \" bytes, memtop=${options.memtopAddress.toHex()}\"")
     }
