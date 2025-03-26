@@ -232,6 +232,7 @@ internal class ProgramAndVarsGen(
                         BaseDataType.WORD  -> asmgen.out("$name    .sint  ?")
                         BaseDataType.UWORD -> asmgen.out("$name    .word  ?")
                         BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
+                        BaseDataType.LONG -> throw AssemblyError("should not have a variable with long dt only constants")
                         else -> throw AssemblyError("weird dt for extravar $dt")
                     }
                 }

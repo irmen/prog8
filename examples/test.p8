@@ -1,6 +1,6 @@
 %import test_stack
 %import textio
-%zeropage basicsafe
+%zeropage dontuse
 %option no_sysinit, romable
 
 main {
@@ -16,6 +16,17 @@ main {
             txt.print_uw(cx16.r2)
             txt.spc()
         }
+        txt.nl()
+
+        test_stack.test()
+        cx16.r5L=10
+        cx16.r6L=20
+        for cx16.r0L in "irmen" {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+        }
+        txt.nl()
+
         test_stack.test()
         cx16.r0L++
     }

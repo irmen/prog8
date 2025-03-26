@@ -9,7 +9,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- romable: instead of allocating temp var in ZP in for loops, always put it in system memory instead to save precious ZP space. Look for TODO("no space left in zp
 - romable: write access to strings and arrays should be a compilation error when generating romable code (because strings and arrays are immutable in this case). But only when NOT memory mapped!
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

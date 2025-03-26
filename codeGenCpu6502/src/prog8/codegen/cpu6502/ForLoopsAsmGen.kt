@@ -6,10 +6,7 @@ import prog8.code.StStaticVariable
 import prog8.code.ast.PtForLoop
 import prog8.code.ast.PtIdentifier
 import prog8.code.ast.PtRange
-import prog8.code.core.AssemblyError
-import prog8.code.core.DataType
-import prog8.code.core.RegisterOrPair
-import prog8.code.core.Zeropage
+import prog8.code.core.*
 import kotlin.math.absoluteValue
 
 internal class ForLoopsAsmGen(
@@ -78,13 +75,13 @@ internal class ForLoopsAsmGen(
                 bne  $loopLabel""")
         }
         else if (stepsize==1 || stepsize==-1)
-            forOverBytesStepOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
+            forOverBytesRangeStepOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
         else
-            forOverBytesStepGreaterOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
+            forOverBytesRangeStepGreaterOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
     }
 
-    private fun forOverBytesStepOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
-        // bytes array, step 1 or -1
+    private fun forOverBytesRangeStepOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
+        // bytes range, step 1 or -1
 
         val stepsize = range.step.asConstInteger()!!
         val incdec = if(stepsize==1) "inc" else "dec"
@@ -92,17 +89,7 @@ internal class ForLoopsAsmGen(
         if(asmgen.options.romable) {
             // cannot use self-modifying code, cannot use cpu stack (because loop can be interrupted halfway)
             // so we need to store the loop end value in a newly allocated temporary variable
-            // TODO allocate var in ZP if possible, but maybe we should always allocate it in system memory for this (ZP is precious)?
-            val toValueVar = asmgen.makeLabel("for_tovalue")
-            val result = zeropage.allocate(toValueVar, iterableDt.elementType(), null, forloop.position, asmgen.errors)
-            result.fold(
-                success = {
-                    (address, _, _)-> asmgen.out("""$toValueVar = $address  ; auto zp UBYTE""")
-                },
-                failure = {
-                    TODO("no space left in zp for temp loop variable ${forloop.position}, where to put it instead?")
-                }
-            )
+            val toValueVar = asmgen.getTempVarName(iterableDt.elementType().base)
             asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
             asmgen.out("  sta  $toValueVar")
             // pre-check for end already reached
@@ -193,8 +180,8 @@ $modifiedLabel  cmp  #0         ; modified
         }
     }
 
-    private fun forOverBytesStepGreaterOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
-        // bytes, step >= 2 or <= -2
+    private fun forOverBytesRangeStepGreaterOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
+        // bytes range, step >= 2 or <= -2
 
         val stepsize = range.step.asConstInteger()!!
 
@@ -295,31 +282,21 @@ $modifiedLabel  cmp  #0     ; modified
             asmgen.out(endLabel)
         }
         else if (stepsize == 1 || stepsize == -1)
-            forOverWordsStepOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
+            forOverWordsRangeStepOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
         else if (stepsize > 0)
-            forOverWordsStepGreaterOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
+            forOverWordsRangeStepGreaterOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
         else
-            forOverWordsStepGreaterOneDescending(range, varname, iterableDt, loopLabel, endLabel, stmt)
+            forOverWordsRangeStepGreaterOneDescending(range, varname, iterableDt, loopLabel, endLabel, stmt)
     }
 
-    private fun forOverWordsStepOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
-        // words, step 1 or -1
+    private fun forOverWordsRangeStepOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
+        // words range, step 1 or -1
         val stepsize = range.step.asConstInteger()!!
 
         if(asmgen.options.romable) {
             // cannot use self-modifying code, cannot use cpu stack (because loop can be interrupted halfway)
             // so we need to store the loop end value in a newly allocated temporary variable
-            // TODO allocate var in ZP if possible, but maybe we should always allocate it in system memory for this (ZP is precious)?
-            val toValueVar = asmgen.makeLabel("for_tovalue")
-            val result = zeropage.allocate(toValueVar, iterableDt.elementType(), null, forloop.position, asmgen.errors)
-            result.fold(
-                success = {
-                    (address, _, _)-> asmgen.out("""$toValueVar = $address  ; auto zp UWORD""")
-                },
-                failure = {
-                    TODO("no space left in zp for temp loop variable ${forloop.position}, where to put it instead?")
-                }
-            )
+            val toValueVar = asmgen.getTempVarName(iterableDt.elementType().base)
             asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
             precheckFromToWord(iterableDt, stepsize, varname, endLabel)
             asmgen.out("  sta  $toValueVar")
@@ -385,7 +362,7 @@ $modifiedLabel2 cmp  #0    ; modified
         }
     }
 
-    private fun forOverWordsStepGreaterOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, stmt: PtForLoop) {
+    private fun forOverWordsRangeStepGreaterOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, stmt: PtForLoop) {
         // (u)words, step >= 2
         val stepsize = range.step.asConstInteger()!!
         val modifiedLabel = asmgen.makeLabel("for_modified")
@@ -437,7 +414,7 @@ $endLabel""")
         }
     }
 
-    private fun forOverWordsStepGreaterOneDescending(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, stmt: PtForLoop) {
+    private fun forOverWordsRangeStepGreaterOneDescending(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, stmt: PtForLoop) {
         // (u)words, step <= -2
         val stepsize = range.step.asConstInteger()!!
         val modifiedLabel = asmgen.makeLabel("for_modified")
@@ -532,17 +509,7 @@ $endLabel""")
         when {
             iterableDt.isString -> {
                 if(asmgen.options.romable) {
-                    // TODO allocate var in ZP if possible, but maybe we should always allocate it in system memory for this (ZP is precious)?
-                    val indexVar = asmgen.makeLabel("for_idx")
-                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
-                    result.fold(
-                        success = {
-                            (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""")
-                        },
-                        failure = {
-                            TODO("no space left in zp for temp loop variable ${stmt.position}, where to put it instead")
-                        }
-                    )
+                    val indexVar = asmgen.getTempVarName(BaseDataType.UBYTE)
                     asmgen.out("""
                         ldy  #0
                         sty  $indexVar

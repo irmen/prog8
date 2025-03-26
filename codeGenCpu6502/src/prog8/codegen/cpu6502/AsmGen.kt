@@ -436,6 +436,7 @@ class AsmGen6502Internal (
         BaseDataType.UBYTE to 0,
         BaseDataType.WORD to 0,
         BaseDataType.UWORD to 0,
+        BaseDataType.LONG to 0,
         BaseDataType.FLOAT to 0
     )
 
