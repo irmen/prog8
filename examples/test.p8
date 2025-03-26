@@ -19,10 +19,8 @@ main {
         txt.nl()
 
         test_stack.test()
-        cx16.r5L=10
-        cx16.r6L=20
-        for cx16.r0L in "irmen" {
-            txt.print_ub(cx16.r0L)
+        for cx16.r0 in array {
+            txt.print_uw(cx16.r0)
             txt.spc()
         }
         txt.nl()

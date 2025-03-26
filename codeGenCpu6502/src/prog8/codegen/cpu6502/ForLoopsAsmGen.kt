@@ -537,12 +537,10 @@ $loopLabel              lda  $iterableName,y
                         bne  $loopLabel
 $indexVar   .byte  0                        
 $endLabel""")
-                    asmgen.romableError("inlined forloop index variable", stmt.position)  // TODO fix romable
                 }
             }
             iterableDt.isByteArray || iterableDt.isBoolArray -> {
-                // TODO don't use an inline iteration variable when using romable code
-                val indexVar = asmgen.makeLabel("for_index")
+                val indexVar = if(asmgen.options.romable) asmgen.getTempVarName(iterableDt.elementType().base) else asmgen.makeLabel("for_index")
                 asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
@@ -564,24 +562,22 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(numElements>=16) {
-                    // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
-                    result.fold(
-                        success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
-                        failure = {
-                            asmgen.out("$indexVar    .byte  0")
-                            asmgen.romableError("inlined forloop index variable", stmt.position)  // TODO fix romable
-                        }
-                    )
-                } else {
-                    asmgen.out("$indexVar    .byte  0")
-                    asmgen.romableError("inlined forloop index variable", stmt.position)  // TODO fix romable
+                if(!asmgen.options.romable) {
+                    if(numElements>=16) {
+                        // allocate index var on ZP if possible, otherwise inline
+                        val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                        result.fold(
+                            success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                            failure = { asmgen.out("$indexVar    .byte  0") }
+                        )
+                    } else {
+                        asmgen.out("$indexVar    .byte  0")
+                    }
                 }
                 asmgen.out(endLabel)
             }
             iterableDt.isSplitWordArray -> {
-                val indexVar = asmgen.makeLabel("for_index")
+                val indexVar = if(asmgen.options.romable) asmgen.getTempVarName(BaseDataType.UBYTE) else asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
                     ldy  #0
@@ -606,25 +602,23 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(numElements>=16) {
-                    // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
-                    result.fold(
-                        success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
-                        failure = {
-                            asmgen.out("$indexVar    .byte  0")
-                            asmgen.romableError("inlined forloop index variable", stmt.position)  // TODO fix romable
-                        }
-                    )
-                } else {
-                    asmgen.out("$indexVar    .byte  0")
-                    asmgen.romableError("inlined forloop index variable", stmt.position)  // TODO fix romable
+                if(!asmgen.options.romable) {
+                    if(numElements>=16) {
+                        // allocate index var on ZP if possible, otherwise inline
+                        val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                        result.fold(
+                            success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                            failure = { asmgen.out("$indexVar    .byte  0") }
+                        )
+                    } else {
+                        asmgen.out("$indexVar    .byte  0")
+                    }
                 }
                 asmgen.out(endLabel)
             }
             iterableDt.isWordArray -> {
                 val length = numElements * 2
-                val indexVar = asmgen.makeLabel("for_index")
+                val indexVar = if(asmgen.options.romable) asmgen.getTempVarName(BaseDataType.UBYTE) else asmgen.makeLabel("for_index")
                 val loopvarName = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
                     ldy  #0
@@ -651,19 +645,17 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(length>=16) {
-                    // allocate index var on ZP if possible
-                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
-                    result.fold(
-                        success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
-                        failure = {
-                            asmgen.out("$indexVar    .byte  0")
-                            asmgen.romableError("inlined forloop index variable", stmt.position)  // TODO fix romable
-                        }
-                    )
-                } else {
-                    asmgen.out("$indexVar    .byte  0")
-                    asmgen.romableError("inlined forloop index variable", stmt.position)  // TODO fix romable
+                if(!asmgen.options.romable) {
+                    if(length>=16) {
+                        // allocate index var on ZP if possible, otherwise inline
+                        val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                        result.fold(
+                            success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                            failure = { asmgen.out("$indexVar    .byte  0") }
+                        )
+                    } else {
+                        asmgen.out("$indexVar    .byte  0")
+                    }
                 }
                 asmgen.out(endLabel)
             }
