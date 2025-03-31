@@ -686,6 +686,25 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
+
+
+        fun checkRomTarget(target: AssignTarget) {
+            val idx=target.arrayindexed
+            if(idx!=null) {
+                val decl = idx.arrayvar.targetVarDecl(program)!!
+                if(decl.type!=VarDeclType.MEMORY && decl.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE) {
+                    // memory mapped arrays are assumed to be in RAM. If they're not.... well, POOF
+                    errors.err("cannot assign to an array or string that is located in ROM", assignTarget.position)
+                }
+            }
+        }
+
+        if(compilerOptions.romable) {
+            if (assignTarget.multi != null)
+                assignTarget.multi?.forEach { checkRomTarget(it) }
+            else
+                checkRomTarget(assignTarget)
+        }
     }
 
     override fun visit(addressOf: AddressOf) {
