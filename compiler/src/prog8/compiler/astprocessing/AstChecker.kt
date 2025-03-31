@@ -386,6 +386,12 @@ internal class AstChecker(private val program: Program,
         }
         val varbank = subroutine.asmAddress?.varbank
         if(varbank!=null) {
+            if(compilerOptions.romable) {
+                // the jsrfar bank argument byte needs to be set via self-modifying code, which is non-romable
+                // maybe one day a jsrfar copy/trampoline could be placed in system ram somwhere in the future.
+                err("variable bank extsub has no romable code-generation for the required jsrfar call, stick to constant bank, or create a system-ram trampoline")
+            }
+
             if(varbank.targetVarDecl(program)?.datatype?.isUnsignedByte!=true)
                 err("bank variable must be ubyte")
         }
@@ -742,8 +748,10 @@ internal class AstChecker(private val program: Program,
 
         // ARRAY without size specifier MUST have an iterable initializer value
         if(decl.isArray && decl.arraysize==null) {
-            if(decl.type== VarDeclType.MEMORY)
+            if(decl.type== VarDeclType.MEMORY) {
                 err("memory mapped array must have a size specification")
+                return
+            }
             if(decl.value==null || decl.value is NumericLiteral) {
                 err("array variable is missing a size specification")
                 return
@@ -833,12 +841,9 @@ internal class AstChecker(private val program: Program,
                     err("string var must be initialized with a string literal")
             }
 
-            if(decl.value !is StringLiteral) {
-                if(decl.type==VarDeclType.MEMORY)
-                    err("strings can't be memory mapped")
-                else
-                    valueerr("string var must be initialized with a string literal")
-            }
+            if(decl.value !is StringLiteral && decl.type!=VarDeclType.MEMORY)
+                valueerr("string var must be initialized with a string literal")
+
             return
         }
 
