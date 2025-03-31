@@ -1,4 +1,7 @@
 %import shared_cbm_diskio
 
-; No alterations here; everything is taken from the shared module.
+diskio {
+    %option no_symbol_prefixing, ignore_unused
 
+    ; No alterations here; everything is taken from the shared module.
+}
