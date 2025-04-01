@@ -1,16 +1,14 @@
 TODO
 ====
 
-- Look at github PR for improved romability (see github issue 149)  Also search for "TODO: Romable"
-
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- romable: add way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
-- romable: write access to strings and arrays should be a compilation error when generating romable code (because strings and arrays are immutable in this case). But only when NOT memory mapped!
+- romable: fix / add "TODO: Romable" in libraries
+- romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions

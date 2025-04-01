@@ -1520,6 +1520,8 @@ _run_custom
 		    .section BSS
 _vector	    .word ?
 		    .send BSS
+
+		    ; !notreached!
         }}
 }
 
