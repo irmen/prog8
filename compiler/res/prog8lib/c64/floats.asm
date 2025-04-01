@@ -4,8 +4,9 @@ FL_ONE_const	.byte  129     			; 1.0
 FL_ZERO_const	.byte  0,0,0,0,0		; 0.0
 FL_LOG2_const	.byte  $80, $31, $72, $17, $f8	; log(2)
 
-
-floats_temp_var         .byte  0,0,0,0,0        ; temporary storage for a float
+		.section BSS
+floats_temp_var         .byte  ?,?,?,?,?        ; temporary storage for a float
+		.send BSS
 
 ub2float	.proc
 		; -- convert ubyte in SCRATCH_ZPB1 to float at address A/Y
@@ -178,10 +179,10 @@ dec_var_f	.proc
 		jmp  MOVMF
 		.pend
 
-
-fmath_float1	.byte 0,0,0,0,0	; storage for a mflpt5 value
-fmath_float2	.byte 0,0,0,0,0	; storage for a mflpt5 value
-
+		.section BSS
+fmath_float1	.byte ?,?,?,?,?	; storage for a mflpt5 value
+fmath_float2	.byte ?,?,?,?,?	; storage for a mflpt5 value
+		.send BSS
 
 var_fac1_less_f	.proc
 		; -- is the float in FAC1 < the variable AY? Result in A. Clobbers X.

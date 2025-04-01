@@ -1,9 +1,9 @@
 ; Internal library routines - always included by the compiler
 ; Generic machine independent 6502 code.
 
-
-orig_stackpointer	.byte  0	; stores the Stack pointer register at program start
-
+		.section BSS
+orig_stackpointer	.byte  ?	; stores the Stack pointer register at program start
+		.send BSS
 
 program_startup_clear_bss    .proc
 	; this is always ran first thing from the start routine to clear out the BSS area
@@ -167,17 +167,17 @@ _lastpage	ldy  P8ZP_SCRATCH_B1
 		bne  -
 
 +           	rts
-_save_reg	.byte  0
+		.section BSS
+_save_reg	.byte  ?
+		.send BSS
 		.pend
 
 
 memsetw		.proc
 	; -- fill memory from (P8ZP_SCRATCH_W1) number of words in P8ZP_SCRATCH_W2, with word value in AY.
 	;    clobbers A, X, Y
-		sta  _mod1+1                    ; self-modify
-		sty  _mod1b+1                   ; self-modify
-		sta  _mod2+1                    ; self-modify
-		sty  _mod2b+1                   ; self-modify
+		sta  _val                    ; this used to be self-modify
+		sty  _val+1
 		ldx  P8ZP_SCRATCH_W1
 		stx  P8ZP_SCRATCH_B1
 		ldx  P8ZP_SCRATCH_W1+1
@@ -189,11 +189,11 @@ memsetw		.proc
 		beq  _lastpage
 
 _fullpage
-_mod1           lda  #0                         ; self-modified
+		lda  _val
 		sta  (P8ZP_SCRATCH_W1),y        ; first page
 		sta  (P8ZP_SCRATCH_B1),y            ; second page
 		iny
-_mod1b		lda  #0                         ; self-modified
+		lda  _val+1
 		sta  (P8ZP_SCRATCH_W1),y        ; first page
 		sta  (P8ZP_SCRATCH_B1),y            ; second page
 		iny
@@ -210,12 +210,12 @@ _lastpage	ldx  P8ZP_SCRATCH_W2
 
 		ldy  #0
 -
-_mod2           lda  #0                         ; self-modified
-                sta  (P8ZP_SCRATCH_W1), y
+		lda  _val
+		sta  (P8ZP_SCRATCH_W1), y
 		inc  P8ZP_SCRATCH_W1
 		bne  _mod2b
 		inc  P8ZP_SCRATCH_W1+1
-_mod2b          lda  #0                         ; self-modified
+		lda  _val+1
 		sta  (P8ZP_SCRATCH_W1), y
 		inc  P8ZP_SCRATCH_W1
 		bne  +
@@ -223,6 +223,9 @@ _mod2b          lda  #0                         ; self-modified
 +               dex
 		bne  -
 _done		rts
+		.section BSS
+_val	.word ?
+		.send BSS
 		.pend
 
 
@@ -277,8 +280,10 @@ strcmp_expression	.proc
 		lda  _arg_s1
 		ldy  _arg_s1+1
 		jmp  strcmp_mem
-_arg_s1		.word  0
-_arg_s2		.word  0
+		.section BSS
+_arg_s1		.word  ?
+_arg_s2		.word  ?
+		.send BSS
 		.pend
 
 strcmp_mem	.proc
@@ -425,7 +430,7 @@ _found          lda  #1
 		rts
 	.pend
 
-
+; TODO: Romable
 arraycopy_split_to_normal_words .proc
 	; P8ZP_SCRATCH_W1 = start of lsb array
 	; P8ZP_SCRATCH_W2 = start of msb array
@@ -462,7 +467,7 @@ _modmsb         sta  $ffff       ; modified msb store
 		rts
 		.pend
 
-
+; TODO: Romable
 arraycopy_normal_to_split_words .proc
 	; P8ZP_SCRATCH_W1 = start of target lsb array
 	; P8ZP_SCRATCH_W2 = start of target msb array
