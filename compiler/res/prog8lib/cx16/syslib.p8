@@ -1474,9 +1474,9 @@ asmsub  restore_irq() clobbers(A) {
 	    sta  cx16.VERA_IEN
 	    cli
 	    rts
-        .section BSS
+        .section BSS_NOCLEAR
 _orig_irqvec    .word  ?
-        .send BSS
+        .send BSS_NOCLEAR
         ; !notreached!
     }}
 }

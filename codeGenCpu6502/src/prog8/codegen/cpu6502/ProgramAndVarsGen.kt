@@ -300,6 +300,7 @@ internal class ProgramAndVarsGen(
                 asmgen.out("  .dsection slabs_BSS")
             asmgen.out("prog8_program_end\t; end of program label for progend()")
             asmgen.out("  * = ${relocatedBssStart.toHex()}")
+            asmgen.out("  .dsection BSS_NOCLEAR")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
             if(relocateBssSlabs)
@@ -307,6 +308,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables/data for BSS section\"")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
+            asmgen.out("  .dsection BSS_NOCLEAR")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")

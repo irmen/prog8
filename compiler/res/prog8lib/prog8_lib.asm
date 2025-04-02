@@ -1,9 +1,9 @@
 ; Internal library routines - always included by the compiler
 ; Generic machine independent 6502 code.
 
-		.section BSS
+		.section BSS_NOCLEAR
 orig_stackpointer	.byte  ?	; stores the Stack pointer register at program start
-		.send BSS
+		.send BSS_NOCLEAR
 
 program_startup_clear_bss    .proc
 	; this is always ran first thing from the start routine to clear out the BSS area

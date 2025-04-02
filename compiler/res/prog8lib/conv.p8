@@ -6,7 +6,7 @@ conv {
 
 ; ----- number conversions to decimal strings ----
 
-    ubyte[16]  @shared string_out       ; result buffer for the string conversion routines
+    ubyte[16]  @shared string_out       ; result buffer for the string conversion routines (note: uses uninitialized ARRAY instead of STR, to force it to be allocated in BSS area so it's ROM-compatible)
 
     asmsub str_ub0(ubyte value @A) clobbers(X) -> str @AY {
         ; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)

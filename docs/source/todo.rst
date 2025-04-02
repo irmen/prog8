@@ -1,6 +1,17 @@
 TODO
 ====
 
+atari customtarget: default output should be .xex not .prg (10.5 still did it correctly)
+
+megascroll has become larger, why?
+
+test irqs on various targets: set_irq, set_rasterirq
+
+cleanup_at_exit : is that not romable?
+
+can memset/memsetw be written without the need of a temp register variable?
+
+
 ...
 
 
