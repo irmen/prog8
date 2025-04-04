@@ -1,6 +1,6 @@
 
 Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 8e31b622 in branch master
+Prerelease version from git commit 73f6880f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -115,7 +115,7 @@ LIBRARY MODULE NAME: conv
 -------------------------
 
 conv  {
-    str @shared  string_out 
+    ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> clobbers (Y) -> ubyte @A 
     bin2uword  (str string @AY) -> uword @AY 
     hex2uword  (str string @AY) -> uword @AY 
@@ -176,6 +176,7 @@ LIBRARY MODULE NAME: diskio
 
 diskio  {
     const ubyte  READ_IO_CHANNEL 
+    const ubyte  STATUS_EOF 
     const ubyte  WRITE_IO_CHANNEL 
     ubyte @shared  drivenumber 
     bool  iteration_in_progress 
@@ -220,6 +221,7 @@ diskio  {
     load  (uword filenameptr, uword address_override) -> uword 
     load_raw  (uword filenameptr, uword startaddress) -> uword 
     load_size  (ubyte startbank, uword startaddress, uword endaddress) -> uword 
+    loadlib  (uword libnameptr, uword libaddress) -> uword 
     mkdir  (str name) 
     read4hex  () -> uword 
     relabel  (str name) 

@@ -563,6 +563,7 @@ p8_sys_startup {
 
     asmsub  cleanup_at_exit() {
         ; executed when the main subroutine does rts
+        ; TODO: Romable
         %asm {{
 _exitcodeCarry = *+1
             lda  #0

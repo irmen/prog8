@@ -1999,7 +1999,7 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
-    ; TODO: Romable (I've decided not to do that yet)
+    ; TODO: Romable
     %asm {{
         lda  #1
         sta  $00        ; ram bank 1

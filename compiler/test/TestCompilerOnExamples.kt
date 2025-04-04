@@ -61,7 +61,7 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
     when (target) {
         is C64Target -> searchIn.add(0, assumeDirectory(examplesDir, "c64"))
         is Cx16Target -> searchIn.add(0, assumeDirectory(examplesDir, "cx16"))
-        is VMTarget -> searchIn.add(0, assumeDirectory(examplesDir, "vm"))
+        is VMTarget -> searchIn.add(0, assumeDirectory(examplesDir, "virtual"))
         is C128Target -> searchIn.add(0, assumeDirectory(examplesDir, "c128"))
     }
     val filepath = searchIn.asSequence()

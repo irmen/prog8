@@ -1,6 +1,6 @@
 
 Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 8e31b622 in branch master
+Prerelease version from git commit 73f6880f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -77,7 +77,7 @@ LIBRARY MODULE NAME: conv
 -------------------------
 
 conv  {
-    str @shared  string_out 
+    ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> clobbers (Y) -> ubyte @A 
     bin2uword  (str string @AY) -> uword @AY 
     hex2uword  (str string @AY) -> uword @AY 
@@ -133,6 +133,55 @@ cx16logo  {
 }
 
 
+LIBRARY MODULE NAME: diskio
+---------------------------
+
+diskio  {
+    const ubyte  READ_IO_CHANNEL 
+    const ubyte  STATUS_EOF 
+    const ubyte  WRITE_IO_CHANNEL 
+    ubyte @shared  drivenumber 
+    bool  iteration_in_progress 
+    uword  list_blocks 
+    str  list_filename 
+    str  list_filetype 
+    uword  list_pattern 
+    bool  list_skip_disk_name 
+    bool  write_iteration_in_progress 
+    delete  (uword filenameptr) 
+    directory  () -> bool 
+    directory_dirs  () -> bool 
+    directory_files  () -> bool 
+    diskname  () -> uword 
+    exists  (str filename) -> bool 
+    f_close  () 
+    f_close_w  () 
+    f_open  (uword filenameptr) -> bool 
+    f_open_w  (uword filenameptr) -> bool 
+    f_read  (uword bufferpointer, uword num_bytes) -> uword 
+    f_read_all  (uword bufferpointer) -> uword 
+    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
+    f_write  (uword bufferpointer, uword num_bytes) -> bool 
+    get_loadaddress  (str filename) -> uword 
+    lf_end_list  () 
+    lf_next_entry  () -> bool 
+    lf_start_list  (uword pattern_ptr) -> bool 
+    lf_start_list_dirs  (uword pattern_ptr) -> bool 
+    lf_start_list_files  (uword pattern_ptr) -> bool 
+    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
+    load  (uword filenameptr, uword address_override) -> uword 
+    load_raw  (uword filenameptr, uword start_address) -> uword 
+    loadlib  (uword libnameptr, uword libaddress) -> uword 
+    rename  (uword oldfileptr, uword newfileptr) 
+    reset_read_channel  () 
+    reset_write_channel  () 
+    save  (uword filenameptr, uword start_address, uword savesize) -> bool 
+    send_command  (uword commandptr) 
+    status  () -> uword 
+    status_code  () -> ubyte 
+}
+
+
 LIBRARY MODULE NAME: math
 -------------------------
 
@@ -171,53 +220,6 @@ math  {
     sin8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
     sinr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
     sinr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
-}
-
-
-LIBRARY MODULE NAME: shared_cbm_diskio
---------------------------------------
-
-diskio  {
-    const ubyte  READ_IO_CHANNEL 
-    const ubyte  WRITE_IO_CHANNEL 
-    ubyte @shared  drivenumber 
-    bool  iteration_in_progress 
-    uword  list_blocks 
-    str  list_filename 
-    str  list_filetype 
-    uword  list_pattern 
-    bool  list_skip_disk_name 
-    bool  write_iteration_in_progress 
-    delete  (uword filenameptr) 
-    directory  () -> bool 
-    directory_dirs  () -> bool 
-    directory_files  () -> bool 
-    diskname  () -> uword 
-    exists  (str filename) -> bool 
-    f_close  () 
-    f_close_w  () 
-    f_open  (uword filenameptr) -> bool 
-    f_open_w  (uword filenameptr) -> bool 
-    f_read  (uword bufferpointer, uword num_bytes) -> uword 
-    f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
-    f_write  (uword bufferpointer, uword num_bytes) -> bool 
-    get_loadaddress  (str filename) -> uword 
-    lf_end_list  () 
-    lf_next_entry  () -> bool 
-    lf_start_list  (uword pattern_ptr) -> bool 
-    lf_start_list_dirs  (uword pattern_ptr) -> bool 
-    lf_start_list_files  (uword pattern_ptr) -> bool 
-    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
-    load  (uword filenameptr, uword address_override) -> uword 
-    load_raw  (uword filenameptr, uword start_address) -> uword 
-    rename  (uword oldfileptr, uword newfileptr) 
-    reset_read_channel  () 
-    reset_write_channel  () 
-    save  (uword filenameptr, uword start_address, uword savesize) -> bool 
-    send_command  (uword commandptr) 
-    status  () -> uword 
-    status_code  () -> ubyte 
 }
 
 

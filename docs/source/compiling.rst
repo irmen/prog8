@@ -257,7 +257,7 @@ One or more .p8 module files
     Assembling the program will fail if there are too many variables to fit in a single high ram bank.
 
 ``-vm``
-    load and run a p8-virt or p8-ir listing in the internal VirtualMachine instead of compiling a prog8 program file..
+    load and run a 'p8ir' intermediate representation file in the internal VirtualMachine instead of compiling a prog8 program file.
 
 ``-warnshadow``
     Tells the assembler to issue warning messages about symbol shadowing.

@@ -1148,7 +1148,7 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
-    ; TODO: Romable (It's technically an easy fix, but i've decided not to touch it for now)
+    ; TODO: Romable
     %asm {{
         lda  #0
         sta  $ff00          ; default bank 15

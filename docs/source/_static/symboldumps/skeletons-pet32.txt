@@ -1,6 +1,6 @@
 
 Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 8e31b622 in branch master
+Prerelease version from git commit 73f6880f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -77,7 +77,7 @@ LIBRARY MODULE NAME: conv
 -------------------------
 
 conv  {
-    str @shared  string_out 
+    ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> clobbers (Y) -> ubyte @A 
     bin2uword  (str string @AY) -> uword @AY 
     hex2uword  (str string @AY) -> uword @AY 
