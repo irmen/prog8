@@ -1,5 +1,10 @@
 ; shared CBM (C64/C128) disk drive I/O routines.
 
+; About the Dos/Drive error status message:
+; The routines don't usually read/clear the dos/drive error status and message. ("blinking red led")
+; In case of an error, you usually have to read/clear that yourself (with status() for example).
+
+
 %import textio
 %import conv
 %import strings
@@ -679,6 +684,7 @@ io_error:
     sub exists(str filename) -> bool {
         ; -- returns true if the given file exists on the disk, otherwise false
         ;    DON'T use this if you already have a file open with f_open!
+        ;    NOTE: doesn't clear the dos error status and message, you'll have to read/clear that yourself (with status() for example)
         if f_open(filename) {
             f_close()
             return true

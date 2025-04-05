@@ -558,6 +558,7 @@ const ubyte  EXTAPI_mouse_set_position = $0C
 const ubyte  EXTAPI_scnsiz = $0D
 const ubyte  EXTAPI_kbd_leds = $0E
 const ubyte  EXTAPI_memory_decompress_from_func = $0F
+const ubyte  EXTAPI_default_palette = $10
 
 ; extapi16 call numbers
 const ubyte  EXTAPI16_test = $00
@@ -664,6 +665,13 @@ asmsub scnsiz(ubyte width @X, ubyte heigth @Y) clobbers(A,X,Y) {
     ;    (rom R48+)
     %asm {{
         lda  #EXTAPI_scnsiz
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub memory_decompress_from_func(uword datafunction @R4, uword output @R1)  clobbers(A,X,Y) -> uword @R1  {
+    %asm {{
+        lda  #EXTAPI_memory_decompress_from_func
         jmp  cx16.extapi
     }}
 }

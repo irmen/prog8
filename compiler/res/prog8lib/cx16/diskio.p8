@@ -4,11 +4,15 @@
 ; NOTE: If you experience weird behavior with these routines and you are using them
 ;       in the X16 emulator using HostFs, please try again with an SD-card image instead first.
 ;       It is possible that there are still small differences between HostFS and actual CBM DOS in the emulator.
-;
+
 ; About the secondary addresses:
 ; for writes (new files or overwrites), you can use 1 (without the mode string) or 2-14 (with the mode string)
 ; for reads (existing files) you can use 0 or 2-14 (mode string is optional)
 ; for modify mode (new files* or existing files), you must use 2-14, and the mode string ,s,m is required
+
+; About the Dos/Drive error status message:
+; The routines don't usually read/clear the dos/drive error status and message. ("blinking red led")
+; In case of an error, you usually have to read/clear that yourself (with status() for example).
 
 
 %import textio
@@ -980,6 +984,7 @@ io_error:
     sub exists(str filename) -> bool {
         ; -- returns true if the given file exists on the disk, otherwise false
         ;    DON'T use this if you already have a file open with f_open!
+        ;    NOTE: doesn't clear the dos error status and message, you'll have to read/clear that yourself (with status() for example)
         if f_open(filename) {
             f_close()
             return true
