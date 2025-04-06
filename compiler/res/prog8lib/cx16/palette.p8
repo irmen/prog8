@@ -257,6 +257,7 @@ palette {
 
     sub set_default16() {
         ; set first 16 colors to the defaults on the X16
+        ; (doesn't use the rom table so this works on roms older than 49 as well)
         uword[] @nosplit colors = [
             $000,   ; 0 = black
             $fff,   ; 1 = white
@@ -277,4 +278,12 @@ palette {
         ]
         set_rgb_nosplit(colors, len(colors), 0)
     }
+
+    ; set the full 256 colors in the palette back to its default values on the X16
+    ; NOTE: this routine requires rom version 49+
+    alias set_default = cx16.set_default_palette
+
+    ; get the bank and address of the word-array containing the 256 default palette colors
+    ; NOTE: this routine requires rom version 49+
+    alias get_default = cx16.get_default_palette
 }

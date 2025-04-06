@@ -670,8 +670,29 @@ asmsub scnsiz(ubyte width @X, ubyte heigth @Y) clobbers(A,X,Y) {
 }
 
 asmsub memory_decompress_from_func(uword datafunction @R4, uword output @R1)  clobbers(A,X,Y) -> uword @R1  {
+    ; requires rom v49+
     %asm {{
         lda  #EXTAPI_memory_decompress_from_func
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub get_default_palette() -> ubyte @A, uword @XY {
+    ; returns memory address of default palette; bank in A and address in XY
+    ; requires rom v49+
+    %asm {{
+        sec
+        lda  #EXTAPI_default_palette
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub set_default_palette() {
+    ; sets default palette in to the Vera
+    ; requires rom v49+
+    %asm {{
+        clc
+        lda  #EXTAPI_default_palette
         jmp  cx16.extapi
     }}
 }
