@@ -37,7 +37,9 @@ system  get banks (returns byte)                      set banks
 ======= ============================================= ===========
 c64     ``c64.getbanks()``                            ``c64.banks(x)``
 c128    ``c128.getbanks()``                           ``c128.banks(x)``
-cx16    ``cx16.getrombank()`` , ``cx16.getrambank()`` ``cx16.rombank(x)`` , ``cx16.rambank(x)``
+cx16    ``cx16.getrombank()`` , ``cx16.getrambank()`` ``cx16.rombank(x)`` , ``cx16.rambank(x)`` ,
+                                                      ``cx16.push_rombank(x)``, ``cx16.pop_rombank()`` ,
+                                                      ``cx16.push_rambank(x)``, ``cx16.pop_rambank()``
 other   N/A                                           N/A
 ======= ============================================= ===========
 

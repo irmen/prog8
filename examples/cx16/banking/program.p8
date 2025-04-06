@@ -14,12 +14,12 @@ main {
         ; load the example libraries in hiram banks 4 and 5
         ; in this example these are constants, but you can also specify
         ; a variable for the bank so you can vary the bank where the routine is loaded.
-        cx16.rambank(4)
+        cx16.push_rambank(4)        ; remember the original ram bank, switch to 4
         void diskio.load("library1.prg", $a000)
         cx16.rambank(5)
         void diskio.load("library2.prg", $a000)
 
-        cx16.rambank(1)
+        cx16.pop_rambank()      ; restore orig rambank.
 
         ; call a routine from the Audio rom bank:
         bool success = audio_init()

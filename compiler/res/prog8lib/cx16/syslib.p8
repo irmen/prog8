@@ -757,6 +757,42 @@ inline asmsub getrambank() -> ubyte @A {
     }}
 }
 
+inline asmsub push_rombank(ubyte newbank @A) clobbers(Y) {
+    ; push the current rombank on the stack and makes the given rom bank active
+    ; combined with pop_rombank() makes for easy temporary rom bank switch
+    %asm {{
+        ldy  $01
+        phy
+        sta  $01
+    }}
+}
+
+inline asmsub pop_rombank() {
+    ; sets the current rom bank back to what was stored previously on the stack
+    %asm {{
+        pla
+        sta  $01
+    }}
+}
+
+inline asmsub push_rambank(ubyte newbank @A) clobbers(Y) {
+    ; push the current hiram bank on the stack and makes the given hiram bank active
+    ; combined with pop_rombank() makes for easy temporary hiram bank switch
+    %asm {{
+        ldy  $00
+        phy
+        sta  $00
+    }}
+}
+
+inline asmsub pop_rambank() {
+    ; sets the current hiram bank back to what was stored previously on the stack
+    %asm {{
+        pla
+        sta  $00
+    }}
+}
+
 asmsub numbanks() clobbers(X) -> uword @AY {
     ; -- Returns the number of available RAM banks according to the kernal (each bank is 8 Kb).
     ;    Note that the number of such banks can be 256 so a word is returned.
