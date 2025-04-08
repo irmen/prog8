@@ -296,7 +296,7 @@ class PtNumber(type: BaseDataType, val number: Double, position: Position) : PtE
             BaseDataType.UBYTE -> require(number in 0.0..255.0)
             BaseDataType.BYTE -> require(number in -128.0..127.0)
             BaseDataType.UWORD -> require(number in 0.0..65535.0)
-            BaseDataType.WORD -> require(number in -32728.0..32767.0)
+            BaseDataType.WORD -> require(number in -32768.0..32767.0)
             BaseDataType.LONG -> require(number in -2147483647.0..2147483647.0)
             else ->  require(type.isNumeric) { "numeric literal type should be numeric: $type" }
         }

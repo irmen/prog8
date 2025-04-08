@@ -23,7 +23,7 @@ main {
         ; ---------- REGISTER A ---------
         count = 0
         total = 0
-        txt.print("a in string: ")
+        txt.print("a in string:    ")
         for a in "hello" {
             aa=a
             count++
@@ -36,7 +36,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in arrayliteral: ")
+        txt.print("a in arrayliteral:    ")
         for a in [1,3,5,99] {
             aa=a
             count++
@@ -49,7 +49,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in arrayvar: ")
+        txt.print("a in arrayvar:    ")
         for a in ubarr {
             aa=a
             count++
@@ -62,7 +62,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in range step 1: ")
+        txt.print("a in range step 1:    ")
         for a in 10 to 20 {
             aa=a
             count++
@@ -75,7 +75,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in range step -1: ")
+        txt.print("a in range step -1:    ")
         for a in 20 downto 10 {
             aa=a
             count++
@@ -88,7 +88,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in range step 3: ")
+        txt.print("a in range step 3:    ")
         for a in 10 to 21 step 3 {
             aa=a
             count++
@@ -101,7 +101,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in rangeincl step 3: ")
+        txt.print("a in rangeincl step 3:    ")
         for a in 10 to 22 step 3 {
             aa=a
             count++
@@ -114,7 +114,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in range step -3: ")
+        txt.print("a in range step -3:    ")
         for a in 24 to 10 step -3 {
             aa=a
             count++
@@ -127,7 +127,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("a in rangeincl step -3: ")
+        txt.print("a in rangeincl step -3:    ")
         for a in 24 to 9 step -3 {
             aa=a
             count++
@@ -141,7 +141,7 @@ main {
         count = 0
         total = 0
         endub1=101
-        txt.print("a in ncrange step 1: ")
+        txt.print("a in ncrange step 1:    ")
         for a in 95 to endub1 step 1 {
             aa=a
             count++
@@ -155,7 +155,7 @@ main {
         count = 0
         total = 0
         endub1=101
-        txt.print("a in ncrange step -1: ")
+        txt.print("a in ncrange step -1:    ")
         for a in endub1 downto 95 {
             aa=a
             count++
@@ -169,7 +169,7 @@ main {
         count = 0
         total = 0
         endub1=105
-        txt.print("a in ncrange step 3: ")
+        txt.print("a in ncrange step 3:    ")
         for a in 95 to endub1 step 3 {
             aa=a
             count++
@@ -183,7 +183,7 @@ main {
         count = 0
         total = 0
         endub1=105
-        txt.print("a in ncrange step -3: ")
+        txt.print("a in ncrange step -3:    ")
         for a in endub1 to 95 step -3 {
             aa=a
             count++
@@ -197,7 +197,7 @@ main {
         count = 0
         total = 0
         endub1=107
-        txt.print("a in ncrangeinc step 3: ")
+        txt.print("a in ncrangeinc step 3:    ")
         for a in 95 to endub1 step 3 {
             aa=a
             count++
@@ -211,7 +211,7 @@ main {
         count = 0
         total = 0
         endub1=107
-        txt.print("a in ncrangeinc step -3: ")
+        txt.print("a in ncrangeinc step -3:    ")
         for a in endub1 to 95 step -3 {
             aa=a
             count++
@@ -228,7 +228,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in string: ")
+        txt.print("ubyte var in string:    ")
         for ub in "hello" {
             count++
             total += ub
@@ -240,7 +240,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in arrayliteral: ")
+        txt.print("ubyte var in arrayliteral:    ")
         for ub in [1,3,5,99] {
             count++
             total += ub
@@ -252,7 +252,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in arrayvar: ")
+        txt.print("ubyte var in arrayvar:    ")
         for ub in ubarr {
             count++
             total += ub
@@ -264,7 +264,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in range step 1: ")
+        txt.print("ubyte var in range step 1:    ")
         for ub in 10 to 20 {
             count++
             total += ub
@@ -276,7 +276,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in range step -1: ")
+        txt.print("ubyte var in range step -1:    ")
         for ub in 20 downto 10 step -1 {
             count++
             total += ub
@@ -288,7 +288,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in range step 3: ")
+        txt.print("ubyte var in range step 3:    ")
         for ub in 10 to 21 step 3 {
             count++
             total += ub
@@ -300,7 +300,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in rangeincl step 3: ")
+        txt.print("ubyte var in rangeincl step 3:    ")
         for ub in 10 to 22 step 3 {
             count++
             total += ub
@@ -312,7 +312,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in range step -3: ")
+        txt.print("ubyte var in range step -3:    ")
         for ub in 24 to 10 step -3 {
             count++
             total += ub
@@ -324,7 +324,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("ubyte var in rangeincl step -3: ")
+        txt.print("ubyte var in rangeincl step -3:    ")
         for ub in 24 to 9 step -3 {
             count++
             total += ub
@@ -337,7 +337,7 @@ main {
         count = 0
         total = 0
         endub1=101
-        txt.print("ubyte var in ncrange step 1: ")
+        txt.print("ubyte var in ncrange step 1:    ")
         for ub in 95 to endub1 step 1 {
             count++
             total += ub
@@ -350,7 +350,7 @@ main {
         count = 0
         total = 0
         endub1=101
-        txt.print("ubyte var in ncrange step -1: ")
+        txt.print("ubyte var in ncrange step -1:    ")
         for ub in endub1 downto 95 {
             count++
             total += ub
@@ -363,7 +363,7 @@ main {
         count = 0
         total = 0
         endub1=105
-        txt.print("ubyte var in ncrange step 3: ")
+        txt.print("ubyte var in ncrange step 3:    ")
         for ub in 95 to endub1 step 3 {
             count++
             total += ub
@@ -376,7 +376,7 @@ main {
         count = 0
         total = 0
         endub1=105
-        txt.print("ubyte var in ncrange step -3: ")
+        txt.print("ubyte var in ncrange step -3:    ")
         for ub in endub1 to 95 step -3 {
             count++
             total += ub
@@ -389,7 +389,7 @@ main {
         count = 0
         total = 0
         endub1=107
-        txt.print("ubyte var in ncrangeinc step 3: ")
+        txt.print("ubyte var in ncrangeinc step 3:    ")
         for ub in 95 to endub1 step 3 {
             count++
             total += ub
@@ -402,7 +402,7 @@ main {
         count = 0
         total = 0
         endub1=107
-        txt.print("ubyte var in ncrangeinc step -3: ")
+        txt.print("ubyte var in ncrangeinc step -3:    ")
         for ub in endub1 to 95 step -3 {
             count++
             total += ub
@@ -418,7 +418,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in arrayliteral: ")
+        txt.print("byte var in arrayliteral:    ")
         for bb in [1,3,5,99] {
             count++
             total += bb
@@ -430,7 +430,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in arrayvar: ")
+        txt.print("byte var in arrayvar:    ")
         for bb in barr {
             count++
             total += bb
@@ -442,7 +442,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in range step 1: ")
+        txt.print("byte var in range step 1:    ")
         for bb in 10 to 20 {
             count++
             total += bb
@@ -454,7 +454,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in range step -1: ")
+        txt.print("byte var in range step -1:    ")
         for bb in 20 downto 10 {
             count++
             total += bb
@@ -466,7 +466,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in range step 3: ")
+        txt.print("byte var in range step 3:    ")
         for bb in 10 to 21 step 3 {
             count++
             total += bb
@@ -478,7 +478,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in rangeincl step 3: ")
+        txt.print("byte var in rangeincl step 3:    ")
         for bb in 10 to 22 step 3 {
             count++
             total += bb
@@ -490,7 +490,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in range step -3: ")
+        txt.print("byte var in range step -3:    ")
         for bb in 24 to 10 step -3 {
             count++
             total += bb
@@ -502,7 +502,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("byte var in rangeincl step -3: ")
+        txt.print("byte var in rangeincl step -3:    ")
         for bb in 24 to 9 step -3 {
             count++
             total += bb
@@ -515,7 +515,7 @@ main {
         count = 0
         total = 0
         endb1=101
-        txt.print("byte var in ncrange step 1: ")
+        txt.print("byte var in ncrange step 1:    ")
         for bb in 95 to endb1 step 1 {
             count++
             total += bb
@@ -528,7 +528,7 @@ main {
         count = 0
         total = 0
         endb1=101
-        txt.print("byte var in ncrange step -1: ")
+        txt.print("byte var in ncrange step -1:    ")
         for bb in endb1 downto 95 {
             count++
             total += bb
@@ -541,7 +541,7 @@ main {
         count = 0
         total = 0
         endb1=105
-        txt.print("byte var in ncrange step 3: ")
+        txt.print("byte var in ncrange step 3:    ")
         for bb in 95 to endb1 step 3 {
             count++
             total += bb
@@ -554,7 +554,7 @@ main {
         count = 0
         total = 0
         endb1=105
-        txt.print("byte var in ncrange step -3: ")
+        txt.print("byte var in ncrange step -3:    ")
         for bb in endb1 to 95 step -3 {
             count++
             total += bb
@@ -567,7 +567,7 @@ main {
         count = 0
         total = 0
         endb1=107
-        txt.print("byte var in ncrangeinc step 3: ")
+        txt.print("byte var in ncrangeinc step 3:    ")
         for bb in 95 to endb1 step 3 {
             count++
             total += bb
@@ -580,7 +580,7 @@ main {
         count = 0
         total = 0
         endb1=107
-        txt.print("byte var in ncrangeinc step -3: ")
+        txt.print("byte var in ncrangeinc step -3:    ")
         for bb in endb1 to 95 step -3 {
             count++
             total += bb
@@ -601,7 +601,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in string: ")
+        txt.print("uword var in string:    ")
         for uw in "hello" {
             count++
             totaluw += uw
@@ -613,7 +613,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in arrayliteral: ")
+        txt.print("uword var in arrayliteral:    ")
         for uw in [1111,3333,555,999] {
             count++
             totaluw += uw
@@ -625,7 +625,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in arrayvar: ")
+        txt.print("uword var in arrayvar:    ")
         for uw in uwarr {
             count++
             totaluw += uw
@@ -637,7 +637,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in range step 1: ")
+        txt.print("uword var in range step 1:    ")
         for uw in 1000 to 1100 {
             count++
             totaluw += uw
@@ -649,7 +649,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in range step -1: ")
+        txt.print("uword var in range step -1:    ")
         for uw in 2000 downto 1500 {
             count++
             totaluw += uw
@@ -661,7 +661,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in range step 333: ")
+        txt.print("uword var in range step 333:    ")
         for uw in 1000 to 2200 step 333 {
             count++
             totaluw += uw
@@ -673,7 +673,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in rangeincl step 333: ")
+        txt.print("uword var in rangeincl step 333:    ")
         for uw in 1000 to 2332 step 333 {
             count++
             totaluw += uw
@@ -685,7 +685,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in range step -333: ")
+        txt.print("uword var in range step -333:    ")
         for uw in 17000 to 14500 step -333 {
             count++
             totaluw += uw
@@ -697,7 +697,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in rangeincl step -333: ")
+        txt.print("uword var in rangeincl step -333:    ")
         for uw in 17000 to 14336 step -333 {
             count++
             totaluw += uw
@@ -710,7 +710,7 @@ main {
         count = 0
         totaluw = 0
         enduw1=17000
-        txt.print("uword var in ncrange step 1: ")
+        txt.print("uword var in ncrange step 1:    ")
         for uw in 16500 to enduw1 step 1 {
             count++
             totaluw += uw
@@ -722,7 +722,7 @@ main {
 
         count = 0
         totaluw = 0
-        txt.print("uword var in ncrange step -1: ")
+        txt.print("uword var in ncrange step -1:    ")
         for uw in enduw1 downto 16500 {
             count++
             totaluw += uw
@@ -735,7 +735,7 @@ main {
         count = 0
         totaluw = 0
         enduw1=17000
-        txt.print("uword var in ncrange step 333: ")
+        txt.print("uword var in ncrange step 333:    ")
         for uw in 14500 to enduw1 step 333 {
             count++
             totaluw += uw
@@ -748,7 +748,7 @@ main {
         count = 0
         totaluw = 0
         enduw1=17000
-        txt.print("uword var in ncrange step -333: ")
+        txt.print("uword var in ncrange step -333:    ")
         for uw in enduw1 to 14500 step -333 {
             count++
             totaluw += uw
@@ -761,7 +761,7 @@ main {
         count = 0
         totaluw = 0
         enduw1=17164
-        txt.print("uword var in ncrangeinc step 333: ")
+        txt.print("uword var in ncrangeinc step 333:    ")
         for uw in 14500 to enduw1 step 333 {
             count++
             totaluw += uw
@@ -774,7 +774,7 @@ main {
         count = 0
         totaluw = 0
         enduw1=17000
-        txt.print("uword var in ncrangeinc step -333: ")
+        txt.print("uword var in ncrangeinc step -333:    ")
         for uw in enduw1 to 14336 step -333 {
             count++
             totaluw += uw
@@ -794,7 +794,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in arrayliteral: ")
+        txt.print("word var in arrayliteral:    ")
         for ww in [1111,3333,555,999] {
             count++
             total += ww
@@ -806,7 +806,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in arrayvar: ")
+        txt.print("word var in arrayvar:    ")
         for ww in warr {
             count++
             total += ww
@@ -818,7 +818,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in range step 1: ")
+        txt.print("word var in range step 1:    ")
         for ww in -100 to 1000 {
             count++
             total += ww
@@ -830,7 +830,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in range step -1: ")
+        txt.print("word var in range step -1:    ")
         for ww in 1000 downto -500 {
             count++
             total += ww
@@ -842,7 +842,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in range step 333: ")
+        txt.print("word var in range step 333:    ")
         for ww in -1000 to 2200 step 333 {
             count++
             total += ww
@@ -854,7 +854,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in rangeincl step 333: ")
+        txt.print("word var in rangeincl step 333:    ")
         for ww in -1000 to 2330 step 333 {
             count++
             total += ww
@@ -866,7 +866,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in range step -333: ")
+        txt.print("word var in range step -333:    ")
         for ww in 2000 to -2500 step -333 {
             count++
             total += ww
@@ -878,7 +878,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in rangeincl step -333: ")
+        txt.print("word var in rangeincl step -333:    ")
         for ww in 2000 to -2662 step -333 {
             count++
             total += ww
@@ -891,7 +891,7 @@ main {
         count = 0
         total = 0
         endw1=17000
-        txt.print("word var in ncrange step 1: ")
+        txt.print("word var in ncrange step 1:    ")
         for ww in 16500 to endw1 step 1 {
             count++
             total += ww
@@ -903,7 +903,7 @@ main {
 
         count = 0
         total = 0
-        txt.print("word var in ncrange step -1: ")
+        txt.print("word var in ncrange step -1:    ")
         for ww in endw1 downto 16500 {
             count++
             total += ww
@@ -916,7 +916,7 @@ main {
         count = 0
         total = 0
         endw1=17000
-        txt.print("word var in ncrange step 333: ")
+        txt.print("word var in ncrange step 333:    ")
         for ww in 14500 to endw1 step 333 {
             count++
             total += ww
@@ -929,7 +929,7 @@ main {
         count = 0
         total = 0
         endw1=17000
-        txt.print("word var in ncrange step -333: ")
+        txt.print("word var in ncrange step -333:    ")
         for ww in endw1 to 14500 step -333 {
             count++
             total += ww
@@ -942,7 +942,7 @@ main {
         count = 0
         total = 0
         endw1=17164
-        txt.print("word var in ncrangeinc step 333: ")
+        txt.print("word var in ncrangeinc step 333:    ")
         for ww in 14500 to endw1 step 333 {
             count++
             total += ww
@@ -955,7 +955,7 @@ main {
         count = 0
         total = 0
         endw1=17000
-        txt.print("word var in ncrangeinc step -333: ")
+        txt.print("word var in ncrangeinc step -333:    ")
         for ww in endw1 to 14336 step -333 {
             count++
             total += ww

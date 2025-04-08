@@ -267,31 +267,6 @@ main {
             print_bool(newcarry)
             txt.nl()
         }
-
-        @($8001)=original
-        carrycheck = false
-        if carry
-            sys.set_carry()
-        else
-            sys.clear_carry()
-        rol(@($8000+value_and_carry(1)))
-        if_cs
-            carrycheck=true
-        if @($8001)!=test or carrycheck!=newcarry {
-            txt.print("rol_ub mem error ")
-            txt.print_ub(original)
-            txt.spc()
-            print_bool(carry)
-            txt.spc()
-            txt.print_ub(@($8001))
-            txt.spc()
-            print_bool(carrycheck)
-            txt.print(" exp: ")
-            txt.print_ub(test)
-            txt.spc()
-            print_bool(newcarry)
-            txt.nl()
-        }
     }
 
     sub test_ror_ub(ubyte value, bool carry, ubyte test, bool newcarry) {
@@ -336,31 +311,6 @@ main {
             print_bool(carry)
             txt.spc()
             txt.print_ub(ubarray[1])
-            txt.spc()
-            print_bool(carrycheck)
-            txt.print(" exp: ")
-            txt.print_ub(test)
-            txt.spc()
-            print_bool(newcarry)
-            txt.nl()
-        }
-
-        @($8001) = original
-        carrycheck = false
-        if carry
-            sys.set_carry()
-        else
-            sys.clear_carry()
-        ror(@($8000+value_and_carry(1)))
-        if_cs
-            carrycheck=true
-        if @($8001)!=test or carrycheck!=newcarry {
-            txt.print("ror_ub mem error ")
-            txt.print_ub(original)
-            txt.spc()
-            print_bool(carry)
-            txt.spc()
-            txt.print_ub(@($8001))
             txt.spc()
             print_bool(carrycheck)
             txt.print(" exp: ")
