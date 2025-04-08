@@ -1,6 +1,6 @@
 
 Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 73f6880f in branch master
+Prerelease version from git commit a6835ce3 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -502,7 +502,10 @@ math  {
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
     interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte 
+    interpolatef   alias for: floats.interpolate
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
+    lerpf   alias for: floats.lerp
+    lerpf_fast   alias for: floats.lerp_fast
     lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value @A) -> ubyte @Y 
     log2w  (uword value @AY) -> ubyte @Y 
@@ -570,11 +573,13 @@ palette  {
     fade_step_colors  (ubyte startindex, ubyte endindex, uword target_colors) -> bool 
     fade_step_multi  (ubyte startindex, ubyte endindex, uword target_rgb) -> bool 
     get_color  (ubyte index) -> uword 
+    get_default   alias for: cx16.get_default_palette
     set_all_black  () 
     set_all_white  () 
     set_c64ntsc  () 
     set_c64pepto  () 
     set_color  (ubyte index, uword color) 
+    set_default   alias for: cx16.set_default_palette
     set_default16  () 
     set_grayscale  (ubyte startindex) 
     set_rgb  (uword palette_words_ptr, uword num_colors, ubyte startindex) 
@@ -782,6 +787,7 @@ cx16  {
     const ubyte  EXTAPI16_test 
     const ubyte  EXTAPI_clear_status 
     const ubyte  EXTAPI_cursor_blink 
+    const ubyte  EXTAPI_default_palette 
     const ubyte  EXTAPI_getlfs 
     const ubyte  EXTAPI_iso_cursor_char 
     const ubyte  EXTAPI_joystick_ps2_keycodes 
@@ -1070,6 +1076,7 @@ cx16  {
     fetch  (ubyte zp_startaddr @A, ubyte bank @X, ubyte index @Y) -> clobbers (X) -> ubyte @A  = $ff74
     get_charset  () -> ubyte @A 
     get_chrin_keyhandler  () -> ubyte @R0, uword @R1 
+    get_default_palette  () -> ubyte @A, uword @XY 
     get_program_args  (uword buffer @R0, ubyte buf_size @R1, bool binary @Pc) 
     get_screen_mode  () -> ubyte @A, ubyte @X, ubyte @Y 
     getlfs  () -> ubyte @X, ubyte @A, ubyte @Y 
@@ -1089,6 +1096,7 @@ cx16  {
     memory_copy  (uword source @R0, uword target @R1, uword num_bytes @R2) -> clobbers (A,X,Y)  = $fee7
     memory_crc  (uword address @R0, uword num_bytes @R1) -> clobbers (A,X,Y) -> uword @R2  = $feea
     memory_decompress  (uword input @R0, uword output @R1) -> clobbers (A,X,Y) -> uword @R1  = $feed
+    memory_decompress_from_func  (uword datafunction @R4, uword output @R1) -> clobbers (A,X,Y) -> uword @R1 
     memory_fill  (uword address @R0, uword num_bytes @R1, ubyte value @A) -> clobbers (A,X,Y)  = $fee4
     monitor  () -> clobbers (A,X,Y)  = $fecc
     mouse_config  (byte shape @A, ubyte resX @X, ubyte resY @Y) -> clobbers (A,X,Y)  = $ff68
@@ -1117,6 +1125,8 @@ cx16  {
     notecon_psg2fm  (uword freq @XY) -> clobbers (A) -> ubyte @X, ubyte @Y, bool @Pc @bank 10 = $c045
     notecon_psg2midi  (uword freq @XY) -> clobbers (A) -> ubyte @X, ubyte @Y, bool @Pc @bank 10 = $c048
     numbanks  () -> clobbers (X) -> uword @AY 
+    pop_rambank  () 
+    pop_rombank  () 
     poweroff_system  () 
     psg_getatten  (ubyte voice @A) -> clobbers (Y) -> ubyte @X @bank 10 = $c093
     psg_getpan  (ubyte voice @A) -> clobbers (Y) -> ubyte @X @bank 10 = $c096
@@ -1129,6 +1139,8 @@ cx16  {
     psg_setvol  (ubyte voice @A, ubyte volume @X) -> clobbers (A,X,Y) @bank 10 = $c05d
     psg_write  (ubyte value @A, ubyte offset @X) -> clobbers (Y) @bank 10 = $c060
     psg_write_fast  (ubyte value @A, ubyte offset @X) -> clobbers (Y) @bank 10 = $c0a2
+    push_rambank  (ubyte newbank @A) -> clobbers (Y) 
+    push_rombank  (ubyte newbank @A) -> clobbers (Y) 
     rambank  (ubyte bank @A) 
     reset_system  () 
     restore_vera_context  () -> clobbers (A) 
@@ -1143,6 +1155,7 @@ cx16  {
     search_x16edit  () -> ubyte 
     set_aflow_irq_handler  (uword address @AY) -> clobbers (A) 
     set_chrin_keyhandler  (ubyte handlerbank @A, uword handler @XY) -> clobbers (A) 
+    set_default_palette  () 
     set_led_state  (bool on) 
     set_line_irq_handler  (uword rasterline @R0, uword address @AY) -> clobbers (A,Y) 
     set_program_args  (uword args_ptr, ubyte args_size) 
@@ -1294,6 +1307,7 @@ txt  {
     print  (str text @AY) -> clobbers (A,Y) 
     print_b  (byte value @A) -> clobbers (A,X,Y) 
     print_bool  (bool value) 
+    print_f   alias for: floats.print
     print_lit  (str text @AY) -> clobbers (A,Y) 
     print_ub  (ubyte value @A) -> clobbers (A,X,Y) 
     print_ub0  (ubyte value @A) -> clobbers (A,X,Y) 

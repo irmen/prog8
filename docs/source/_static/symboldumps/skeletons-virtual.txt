@@ -1,6 +1,6 @@
 
 Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 73f6880f in branch master
+Prerelease version from git commit a6835ce3 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -218,6 +218,8 @@ math  {
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
     interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte 
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
+    lerpf   alias for: floats.lerp
+    lerpf_fast   alias for: floats.lerp_fast
     lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value) -> ubyte 
     log2w  (uword value) -> ubyte 
@@ -488,6 +490,7 @@ txt  {
     print  (str text) 
     print_b  (byte value) 
     print_bool  (bool value) 
+    print_f   alias for: floats.print
     print_ub  (ubyte value) 
     print_ub0  (ubyte value) 
     print_ubbin  (ubyte value, bool prefix) 

@@ -3,7 +3,9 @@ package prog8.ast
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
+import prog8.code.core.Position
+import prog8.code.core.ZeropageWish
+import prog8.code.core.toHex
 import prog8.code.source.SourceCode
 import java.io.PrintStream
 
@@ -56,17 +58,31 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     }
 
     override fun visit(block: Block) {
-        val (vars, subs) = block.statements.filter{ it is Subroutine || it is VarDecl }.partition { it is VarDecl }
-        if(vars.isNotEmpty() || subs.isNotEmpty()) {
+        val (vars, others) = block.statements.filter{ it is Subroutine || it is Alias || it is VarDecl }.partition { it is VarDecl }
+        if(vars.isNotEmpty() || others.isNotEmpty()) {
             outputln("${block.name}  {")
             for (variable in vars.sortedBy { (it as VarDecl).name }) {
                 output("    ")
                 variable.accept(this)
             }
-            for (subroutine in subs.sortedBy { (it as Subroutine).name }) {
-                output("    ")
-                subroutine.accept(this)
+
+            val byname = others.map {
+                val name = if(it is Alias) it.alias else if(it is Subroutine) it.name else "???"
+                name to it
             }
+
+            for((_, thing) in byname.sortedBy { it.first }) {
+                if(thing is Subroutine) {
+                    output("    ")
+                    thing.accept(this)
+                } else if(thing is Alias) {
+                    output("    ")
+                    thing.accept(this)
+                } else {
+                    outputln("???")
+                }
+            }
+
             outputln("}\n")
         }
     }
@@ -162,5 +178,9 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         }
 
         output("\n")
+    }
+
+    override fun visit(alias: Alias) {
+        output("${alias.alias}   alias for: ${alias.target.nameInSource.joinToString(".")}\n")
     }
 }
