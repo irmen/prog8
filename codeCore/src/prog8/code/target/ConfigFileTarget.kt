@@ -24,6 +24,7 @@ class ConfigFileTarget(
     override val BSSHIGHRAM_END: UInt,
     override val BSSGOLDENRAM_START: UInt,
     override val BSSGOLDENRAM_END: UInt,
+    override val defaultOutputType: OutputType,
     override val libraryPath: Path,
     override val customLauncher: List<String>,
     override val additionalAssemblerOptions: String?,
@@ -110,6 +111,9 @@ class ConfigFileTarget(
             val assemblerOptionsStr = props.getProperty("assembler_options", "").trim()
             val assemblerOptions = if(assemblerOptionsStr.isBlank()) null else assemblerOptionsStr
 
+            val outputTypeString = props.getProperty("output_type", "PRG")
+            val defaultOutputType = OutputType.valueOf(outputTypeString.uppercase())
+
             return ConfigFileTarget(
                 configfile.nameWithoutExtension,
                 Encoding.entries.first { it.prefix==props.getString("encoding") },
@@ -121,6 +125,7 @@ class ConfigFileTarget(
                 props.getInteger("bss_highram_end"),
                 props.getInteger("bss_goldenram_start"),
                 props.getInteger("bss_goldenram_end"),
+                defaultOutputType,
                 libraryPath,
                 customLauncher,
                 assemblerOptions,

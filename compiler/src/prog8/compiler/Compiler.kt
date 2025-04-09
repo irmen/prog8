@@ -384,13 +384,13 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         .toList()
 
     val outputType = if (outputTypeStr == null) {
-        OutputType.PRG
+        compTarget.defaultOutputType
     } else {
         try {
             OutputType.valueOf(outputTypeStr)
         } catch (_: IllegalArgumentException) {
             // set default value; actual check and error handling of invalid option is handled in the AstChecker later
-            OutputType.PRG
+            compTarget.defaultOutputType
         }
     }
     var launcherType = if (launcherTypeStr == null)

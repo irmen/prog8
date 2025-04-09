@@ -28,6 +28,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     val libraryPath: Path?
     val customLauncher: List<String>
     val additionalAssemblerOptions: String?
+    val defaultOutputType: OutputType
 
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)
     fun getFloatAsmBytes(num: Number): String

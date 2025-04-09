@@ -1,8 +1,6 @@
 TODO
 ====
 
-atari customtarget: default output should be .xex not .prg (10.5 still did it correctly)
-
 test irqs on various targets: set_irq, set_rasterirq
 
 can memset/memsetw be written without the need of a temp register variable?
