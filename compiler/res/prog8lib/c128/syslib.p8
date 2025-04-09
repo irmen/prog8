@@ -534,8 +534,8 @@ asmsub  restore_irq() clobbers(A) {
 		sta  cbm.CINV
 		lda  #>cbm.IRQDFRT
 		sta  cbm.CINV+1
-		lda  #0
-		sta  c64.IREQMASK	; disable raster irq
+		lda  #1
+		sta  c64.IREQMASK	; enable raster irq
 		lda  #%10000001
 		sta  c64.CIA1ICR	; restore CIA1 irq
 		cli

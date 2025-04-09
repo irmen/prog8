@@ -146,11 +146,10 @@ memcopy16_up	.proc
 memset          .proc
 	; -- fill memory from (P8ZP_SCRATCH_W1), length XY, with value in A.
 	;    clobbers X, Y
-	; TODO: Romable
 		stx  P8ZP_SCRATCH_B1
-		sty  _save_reg
+		sty  P8ZP_SCRATCH_REG
 		ldy  #0
-		ldx  _save_reg
+		ldx  P8ZP_SCRATCH_REG
 		beq  _lastpage
 
 _fullpage	sta  (P8ZP_SCRATCH_W1),y
@@ -167,16 +166,13 @@ _lastpage	ldy  P8ZP_SCRATCH_B1
 		bne  -
 
 +           	rts
-		.section BSS
-_save_reg	.byte  ?
-		.send BSS
 		.pend
 
 
 memsetw		.proc
 	; -- fill memory from (P8ZP_SCRATCH_W1) number of words in P8ZP_SCRATCH_W2, with word value in AY.
 	;    clobbers A, X, Y
-		sta  _val                    ; this used to be self-modify
+		sta  _val
 		sty  _val+1
 		ldx  P8ZP_SCRATCH_W1
 		stx  P8ZP_SCRATCH_B1
@@ -213,9 +209,9 @@ _lastpage	ldx  P8ZP_SCRATCH_W2
 		lda  _val
 		sta  (P8ZP_SCRATCH_W1), y
 		inc  P8ZP_SCRATCH_W1
-		bne  _mod2b
+		bne  +
 		inc  P8ZP_SCRATCH_W1+1
-		lda  _val+1
++		lda  _val+1
 		sta  (P8ZP_SCRATCH_W1), y
 		inc  P8ZP_SCRATCH_W1
 		bne  +

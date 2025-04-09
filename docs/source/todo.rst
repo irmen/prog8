@@ -1,11 +1,6 @@
 TODO
 ====
 
-test irqs on various targets: set_irq, set_rasterirq
-
-can memset/memsetw be written without the need of a temp register variable?
-
-
 ...
 
 
@@ -18,12 +13,6 @@ Future Things and Ideas
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
-- [problematic due to using 64tass:] better support for building library programs, where unused .proc are NOT deleted from the assembly.
-  Perhaps replace all uses of .proc/.pend/.endproc by .block/.bend will fix that with a compiler flag?
-  But all library code written in asm uses .proc already..... (textual search/replace when writing the actual asm?)
-  Maybe propose a patch to 64tass itself that will treat .proc as .block ?
-  Once new codegen is written that is based on the IR, this point is mostly moot anyway as that will have its own dead code removal on the IR level.
-
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
@@ -35,7 +24,7 @@ Future Things and Ideas
 - Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers.
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-- [much work:] more support for (64tass) SEGMENTS ?
+- [much work:] more support for (64tass) SEGMENTS in the prog8 syntax itself?
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
 
