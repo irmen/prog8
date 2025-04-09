@@ -445,7 +445,6 @@ sys {
     }
 
     asmsub save_prog8_internals() {
-        ; TODO: Romable
         %asm {{
             lda  P8ZP_SCRATCH_B1
             sta  save_SCRATCH_ZPB1
@@ -896,7 +895,7 @@ _no_msb_size
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             lda  #0
             rol  a
-            sta  p8_sys_startup.cleanup_at_exit._exitcodeCarry
+            sta  p8_sys_startup.cleanup_at_exit._exitcarry
             stx  p8_sys_startup.cleanup_at_exit._exitcodeX
             sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
@@ -1071,7 +1070,6 @@ cx16 {
     &byte r15sH = $1bff
 
     asmsub save_virtual_registers() clobbers(A,Y) {
-		; TODO: Romable
         %asm {{
             ldy  #31
     -       lda  cx16.r0,y
@@ -1148,22 +1146,26 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
-    ; TODO: Romable
     %asm {{
         lda  #0
         sta  $ff00          ; default bank 15
         jsr  cbm.CLRCHN		; reset i/o channels
         jsr  enable_runstop_and_charsetswitch
-_exitcodeCarry = *+1
-        lda  #0
+        lda  _exitcarry
         lsr  a
-_exitcode = *+1
-        lda  #0        ; exit code possibly modified in exit()
-_exitcodeX = *+1
-        ldx  #0
-_exitcodeY = *+1
-        ldy  #0
+        lda  _exitcode
+        ldx  _exitcodeX
+        ldy  _exitcodeY
         rts
+
+        .section BSS
+_exitcarry  .byte ?
+_exitcode   .byte ?
+_exitcodeX  .byte ?
+_exitcodeY  .byte ?
+        .send BSS
+
+        ; !notreached!
     }}
 }
 

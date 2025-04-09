@@ -352,7 +352,6 @@ asmsub  str2word(str string @AY) -> word @AY {
 	;    the number may be preceded by a + or - sign but may NOT contain spaces
 	;    (any non-digit character will terminate the number string that is parsed)
 	;    result in AY,  number of characters processed also remains in cx16.r15 if you want to use it!! (0 = error)
-    ; TODO: Romable
 	%asm {{
 _result = P8ZP_SCRATCH_W1
 		sta  P8ZP_SCRATCH_W2
@@ -542,7 +541,6 @@ asmsub  internal_uword2decimal  (uword value @AY) -> ubyte @Y, ubyte @A, ubyte @
 	;  output in internal_uword2decimal.decTenThousands, decThousands, decHundreds, decTens, decOnes
 	;  (these are terminated by a zero byte so they can be easily printed)
 	;  also returns Y = 100's, A = 10's, X = 1's
-    ; TODO: Romable
 
 	%asm {{
 

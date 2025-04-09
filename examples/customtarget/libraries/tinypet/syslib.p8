@@ -7,6 +7,20 @@ sys {
 
     ; these push/pop routines are always required by the compiler:
 
+    inline asmsub progend() -> uword @AY {
+        %asm {{
+            lda  #<prog8_program_end
+            ldy  #>prog8_program_end
+        }}
+    }
+
+    inline asmsub progstart() -> uword @AY {
+        %asm {{
+            lda  #<prog8_program_start
+            ldy  #>prog8_program_start
+        }}
+    }
+
     inline asmsub push(ubyte value @A) {
         %asm {{
             pha
@@ -42,6 +56,43 @@ sys {
             jmp  ($fffc)    ; reset vector
         }}
     }
+
+    asmsub exit(ubyte returnvalue @A) {
+        ; -- immediately exit the program with a return code in the A register
+        %asm {{
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            jmp  p8_sys_startup.cleanup_at_exit
+        }}
+    }
+
+    asmsub exit2(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) {
+        ; -- immediately exit the program with result values in the A, X and Y registers.
+        %asm {{
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            jmp  p8_sys_startup.cleanup_at_exit
+        }}
+    }
+
+    asmsub exit3(ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) {
+        ; -- immediately exit the program with result values in the A, X and Y registers, and the Carry flag in the status register.
+        %asm {{
+            sta  p8_sys_startup.cleanup_at_exit._exitcode
+            lda  #0
+            rol  a
+            sta  p8_sys_startup.cleanup_at_exit._exitcarry
+            stx  p8_sys_startup.cleanup_at_exit._exitcodeX
+            sty  p8_sys_startup.cleanup_at_exit._exitcodeY
+            ldx  prog8_lib.orig_stackpointer
+            txs
+            jmp  p8_sys_startup.cleanup_at_exit
+        }}
+    }
 }
 
 
@@ -62,18 +113,22 @@ p8_sys_startup {
 
     asmsub  cleanup_at_exit() {
         ; executed when the main subroutine does rts
-        ; TODO: Romable
         %asm {{
-_exitcodeCarry = *+1
-            lda  #0
+            lda  _exitcarry
             lsr  a
-_exitcode = *+1
-            lda  #0        ; exit code possibly modified in exit()
-_exitcodeX = *+1
-            ldx  #0
-_exitcodeY = *+1
-            ldy  #0
+            lda  _exitcode
+            ldx  _exitcodeX
+            ldy  _exitcodeY
             rts
+
+            .section BSS
+_exitcarry  .byte ?
+_exitcode   .byte ?
+_exitcodeX  .byte ?
+_exitcodeY  .byte ?
+            .send BSS
+
+            ; !notreached!
         }}
     }
 }

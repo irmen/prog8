@@ -4,14 +4,8 @@
 
 main {
     sub start() {
-        str name = "irmen!"
-        txt.print(name)
-        txt.nl()
-        sys.memset(&name, len(name), 'a')
-        txt.print(name)
-        txt.nl()
-        sys.memsetw(&name, len(name)/2, $4041)
-        txt.print(name)
-        txt.nl()
+        sys.exit3(100,101,102,true)
+        sys.exit2(100,101,102)
+        sys.exit(100)
     }
 }

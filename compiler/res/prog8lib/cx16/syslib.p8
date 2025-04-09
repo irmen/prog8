@@ -1046,7 +1046,6 @@ asmsub vpoke_mask(ubyte bank @A, uword address @R0, ubyte mask @X, ubyte value @
 }
 
 asmsub save_virtual_registers() clobbers(A,Y) {
-    ; TODO: Romable
     %asm {{
         ldy  #31
 -       lda  cx16.r0,y
@@ -1077,7 +1076,6 @@ asmsub restore_virtual_registers() clobbers(A,Y) {
 
 asmsub save_vera_context() clobbers(A) {
     ; -- use this at the start of your IRQ handler if it uses Vera registers, to save the state
-    ; TODO: Romable
     %asm {{
         ; note cannot store this on cpu hardware stack because this gets called as a subroutine
         lda  cx16.VERA_ADDR_L
@@ -1526,7 +1524,6 @@ _vector	.word ?
 }
 
 asmsub  restore_irq() clobbers(A) {
-    ; TODO: Romable
 	%asm {{
 	    sei
 	    lda  _orig_irqvec
@@ -1863,7 +1860,6 @@ _no_msb_size
     }
 
     asmsub save_prog8_internals() {
-        ; TODO: Romable
         %asm {{
             lda  P8ZP_SCRATCH_B1
             sta  save_SCRATCH_ZPB1
@@ -1934,7 +1930,7 @@ save_SCRATCH_ZPWORD2	.word  ?
             sta  p8_sys_startup.cleanup_at_exit._exitcode
             lda  #0
             rol  a
-            sta  p8_sys_startup.cleanup_at_exit._exitcodeCarry
+            sta  p8_sys_startup.cleanup_at_exit._exitcarry
             stx  p8_sys_startup.cleanup_at_exit._exitcodeX
             sty  p8_sys_startup.cleanup_at_exit._exitcodeY
             ldx  prog8_lib.orig_stackpointer
@@ -2064,7 +2060,6 @@ asmsub  init_system_phase2()  {
 
 asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
-    ; TODO: Romable
     %asm {{
         lda  #1
         sta  $00        ; ram bank 1
@@ -2073,16 +2068,21 @@ asmsub  cleanup_at_exit() {
         jsr  cbm.CLRCHN		; reset i/o channels
         lda  #9
         jsr  cbm.CHROUT     ; enable charset switch
-_exitcodeCarry = *+1
-        lda  #0
+        lda  _exitcarry
         lsr  a
-_exitcode = *+1
-        lda  #0        ; exit code possibly modified in exit()
-_exitcodeX = *+1
-        ldx  #0
-_exitcodeY = *+1
-        ldy  #0
+        lda  _exitcode
+        ldx  _exitcodeX
+        ldy  _exitcodeY
         rts
+
+        .section BSS
+_exitcarry  .byte ?
+_exitcode   .byte ?
+_exitcodeX  .byte ?
+_exitcodeY  .byte ?
+        .send BSS
+
+        ; !notreached!
     }}
 }
 
