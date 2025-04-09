@@ -219,7 +219,7 @@ _cb_mod3    jsr  $ffff      ; modified
             inc  P8ZP_SCRATCH_W2+1
             bcs  _loop
 
-_orig_target    .word  0
+_orig_target    .word  0        ; modified
 _end
             ; return w2-orig_target, the size of the decompressed data
             lda  P8ZP_SCRATCH_W2
@@ -239,6 +239,7 @@ _end
         ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
         ;    Also stops decompressing if the maxsize has been reached.
         ;    Returns the size of the decompressed data.
+        ; TODO: Romable
         %asm {{
             sta  P8ZP_SCRATCH_W1        ; compressed data ptr
             sty  P8ZP_SCRATCH_W1+1

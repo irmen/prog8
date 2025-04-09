@@ -1,14 +1,17 @@
 TODO
 ====
 
+make compiler quiet when running .p8ir files via -vm (also add -quiet flag to suppress output on regular operation?)
+
+romable: check library files for routines that are not yet romable and add "TODO: Romable" comment
+romable: fix as many of those issues as possible to improve romability of library code
+
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- make compiler quiet when running .p8ir files via -vm (also add -quiet flag to suppress output on regular operation?)
-- romable: fix / add "TODO: Romable" in libraries
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

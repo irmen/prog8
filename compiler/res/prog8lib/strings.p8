@@ -47,7 +47,6 @@ _loop		dey
 		bne  _loop
 +		rts
         }}
-;                asmgen.out("  jsr  prog8_lib.func_leftstr")
     }
 
     asmsub right(uword source @AY, ubyte length @X, uword target @R1) clobbers(A,Y) {
@@ -56,16 +55,16 @@ _loop		dey
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         %asm {{
-                ; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
-                stx  P8ZP_SCRATCH_B1
-                sta  cx16.r0
-                sty  cx16.r0+1
-                jsr  length
-                tya
-                sec
-                sbc  P8ZP_SCRATCH_B1
-                clc
-                adc  cx16.r0
+		; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
+		stx  P8ZP_SCRATCH_B1
+		sta  cx16.r0
+		sty  cx16.r0+1
+		jsr  length
+		tya
+		sec
+		sbc  P8ZP_SCRATCH_B1
+		clc
+		adc  cx16.r0
 		sta  P8ZP_SCRATCH_W1
 		lda  cx16.r0+1
 		adc  #0
@@ -96,7 +95,7 @@ _loop		dey
         ; Also, you have to make sure yourself that start and length are within bounds of the strings.
         ; Modifies in-place, doesn’t return a value (so can’t be used in an expression).
         %asm {{
-                ; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
+		; need to copy the the cx16 virtual registers to zeropage to be compatible with C64...
 		; substr(source, target, start, length)
 		sta  P8ZP_SCRATCH_B1
 		lda  cx16.r0
@@ -178,7 +177,7 @@ _found      tya
             sec
             rts
 
-_str    .word 0
+_str    .word 0 ; modified
             ; !notreached!
         }}
     }
@@ -333,6 +332,7 @@ _done       rts
 ; Notes:  Clobbers A, X, Y. Each * in the pattern uses 4 bytes of stack.
 ;
 ; see http://6502.org/source/strings/patmatch.htm
+; TODO: Romable   (or skip it?)
 
 strptr = P8ZP_SCRATCH_W1
 
