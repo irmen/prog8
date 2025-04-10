@@ -32,6 +32,7 @@ class CompilationOptions(val output: OutputType,
                          var breakpointCpuInstruction: String? = null,
                          var ignoreFootguns: Boolean = false,
                          var outputDir: Path = Path(""),
+                         var quiet: Boolean = false,
                          var symbolDefs: Map<String, String> = emptyMap()
 ) {
     init {

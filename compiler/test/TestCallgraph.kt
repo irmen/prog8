@@ -288,7 +288,7 @@ main {
         errors.infos.any { "unused" in it } shouldBe false
 
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
+        VmRunner().runProgram(virtfile.readText(), false)
     }
 
     test("also remove subroutines with names matching IR asm instruction") {

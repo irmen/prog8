@@ -48,13 +48,15 @@ class PETTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
         return m5.toDouble()
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
+    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
         if(selectedEmulator!=1) {
             System.err.println("The pet target only supports the main emulator (Vice).")
             return
         }
 
-        println("\nStarting PET emulator...")
+        if(!quiet)
+            println("\nStarting PET emulator...")
+
         val viceMonlist = C64Target.viceMonListName(programNameWithPath.toString())
         val cmdline = listOf("xpet", "-model", "4032", "-ramsize", "32", "-videosize", "40", "-silent", "-moncommands", viceMonlist,
             "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")

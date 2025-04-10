@@ -25,6 +25,7 @@ internal fun compileFile(
         optimize,
         writeAssembly = writeAssembly,
         warnSymbolShadowing = false,
+        quietAll = true,
         quietAssembler = true,
         asmListfile = false,
         includeSourcelines = false,

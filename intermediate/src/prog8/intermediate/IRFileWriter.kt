@@ -20,7 +20,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private var numInstr = 0
 
     fun write(): Path {
-        println("Writing intermediate representation to $outfile")
+        if(!irProgram.options.quiet)
+            println("Writing intermediate representation to $outfile")
+
         xml.writeStartDocument("utf-8", "1.0")
         xml.writeEndDocument()
         xml.writeCharacters("\n")
@@ -43,7 +45,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
         val used = irProgram.registersUsed()
         val numberUsed = (used.readRegs.keys + used.writeRegs.keys).size + (used.readFpRegs.keys + used.writeFpRegs.keys).size
-        println("($numInstr instructions in $numChunks chunks, $numberUsed registers)")
+        if(!irProgram.options.quiet)
+            println("($numInstr instructions in $numChunks chunks, $numberUsed registers)")
         return outfile
     }
 

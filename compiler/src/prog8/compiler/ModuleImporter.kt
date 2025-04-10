@@ -23,7 +23,8 @@ class ModuleImporter(private val program: Program,
                      private val compilationTargetName: String,
                      val errors: IErrorReporter,
                      sourceDirs: List<String>,
-                     libraryDirs: List<String>) {
+                     libraryDirs: List<String>,
+                     val quiet: Boolean) {
 
     private val sourcePaths: List<Path> = sourceDirs.map { Path(it).sanitize() }.toSortedSet().toList()
     private val libraryPaths: List<Path> = libraryDirs.map { Path(it).sanitize() }.toSortedSet().toList()
@@ -34,8 +35,10 @@ class ModuleImporter(private val program: Program,
         for(path in searchIn) {
             val programPath = path.resolve(normalizedFilePath)
             if(programPath.exists()) {
-                println("Compiling program ${Path("").absolute().relativize(programPath)}")
-                println("Compiler target: $compilationTargetName")
+                if(!quiet) {
+                    println("Compiling program ${Path("").absolute().relativize(programPath)}")
+                    println("Compiler target: $compilationTargetName")
+                }
                 val source = ImportFileSystem.getFile(programPath, false)
                 return Ok(importModule(source))
             }

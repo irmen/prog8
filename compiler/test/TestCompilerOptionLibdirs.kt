@@ -26,6 +26,7 @@ class TestCompilerOptionSourcedirs: FunSpec({
             optimize = false,
             writeAssembly = true,
             warnSymbolShadowing = false,
+            quietAll = true,
             quietAssembler = true,
             asmListfile = false,
             includeSourcelines = false,

@@ -265,7 +265,9 @@ class AsmGen6502Internal (
         assembly.clear()
         loopEndLabels.clear()
 
-        println("Generating assembly code... ")
+        if(!options.quiet)
+            println("Generating assembly code... ")
+
         programGen.generate()
 
         if(errors.noErrors()) {

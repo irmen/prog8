@@ -28,12 +28,6 @@ fun main(args: Array<String>) {
     //       it means that you have to run the gradle task once to generate this file.
     //       Do that with this command:  gradle createVersionFile
 
-    println("\nProg8 compiler v${prog8.buildversion.VERSION} by Irmen de Jong (irmen@razorvine.net)")
-    if('-' in prog8.buildversion.VERSION) {
-        println("Prerelease version from git commit ${prog8.buildversion.GIT_SHA.take(8)} in branch ${prog8.buildversion.GIT_BRANCH}")
-    }
-    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
-
     val succes = compileMain(args)
     if(!succes)
         exitProcess(1)
@@ -63,7 +57,8 @@ private fun compileMain(args: Array<String>): Boolean {
     val plainText by cli.option(ArgType.Boolean, fullName = "plaintext", description = "output only plain text, no colors or fancy symbols")
     val printAst1 by cli.option(ArgType.Boolean, fullName = "printast1", description = "print out the internal compiler AST")
     val printAst2 by cli.option(ArgType.Boolean, fullName = "printast2", description = "print out the simplified AST that is used for code generation")
-    val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler output results")
+    val quietAll by cli.option(ArgType.Boolean, fullName = "quiet", description = "don't print compiler and assembler messages")
+    val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler messages")
     val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.")
     val dontIncludeSourcelines by cli.option(ArgType.Boolean, fullName = "nosourcelines", description = "do not include original Prog8 source lines in generated asm code")
@@ -82,6 +77,14 @@ private fun compileMain(args: Array<String>): Boolean {
     } catch (e: IllegalStateException) {
         System.err.println(e.message)
         return false
+    }
+
+    if(quietAll!=true) {
+        println("\nProg8 compiler v${prog8.buildversion.VERSION} by Irmen de Jong (irmen@razorvine.net)")
+        if('-' in prog8.buildversion.VERSION) {
+            println("Prerelease version from git commit ${prog8.buildversion.GIT_SHA.take(8)} in branch ${prog8.buildversion.GIT_BRANCH}")
+        }
+        println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
     }
 
     val outputPath = pathFrom(outputDir)
@@ -148,7 +151,7 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     if(startVm==true) {
-        runVm(moduleFiles.first())
+        runVm(moduleFiles.first(), quietAll==true)
         return true
     }
 
@@ -169,7 +172,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     if(checkSource==true) false else dontOptimize != true,
                     if(checkSource==true) false else dontWriteAssembly != true,
                     warnSymbolShadowing == true,
-                    quietAssembler == true,
+                    quietAll == true,
+                    quietAll == true || quietAssembler == true,
                     asmListfile == true,
                     dontIncludeSourcelines != true,
                     experimentalCodegen == true,
@@ -252,7 +256,8 @@ private fun compileMain(args: Array<String>): Boolean {
                     if(checkSource==true) false else dontOptimize != true,
                     if(checkSource==true) false else dontWriteAssembly != true,
                     warnSymbolShadowing == true,
-                    quietAssembler == true,
+                    quietAll == true,
+                    quietAll == true || quietAssembler == true,
                     asmListfile == true,
                     dontIncludeSourcelines != true,
                     experimentalCodegen == true,
@@ -296,9 +301,9 @@ private fun compileMain(args: Array<String>): Boolean {
             val programNameInPath = outputPath.resolve(compilationResult.compilerAst.name)
 
             if (startEmulator1 == true)
-                compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath)
+                compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath, quietAll==true)
             else if (startEmulator2 == true)
-                compilationResult.compilationOptions.compTarget.launchEmulator(2, programNameInPath)
+                compilationResult.compilationOptions.compTarget.launchEmulator(2, programNameInPath, quietAll==true)
         }
     }
 
@@ -335,8 +340,8 @@ private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
     return result
 }
 
-fun runVm(irFilename: String) {
+fun runVm(irFilename: String, quiet: Boolean) {
     val irFile = Path(irFilename)
     val vmdef = VMTarget()
-    vmdef.launchEmulator(0, irFile)
+    vmdef.launchEmulator(0, irFile, quiet)
 }

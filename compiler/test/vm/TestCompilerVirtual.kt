@@ -41,7 +41,7 @@ main {
         val target = VMTarget()
         val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
+        VmRunner().runProgram(virtfile.readText(), false)
     }
 
     test("split words array with pointers") {
@@ -61,7 +61,7 @@ main {
         val target = VMTarget()
         val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
+        VmRunner().runProgram(virtfile.readText(), false)
     }
 
     test("taking address of split arrays works") {
@@ -109,11 +109,11 @@ test {
         val target = VMTarget()
         var result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         var virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
+        VmRunner().runProgram(virtfile.readText(), false)
 
         result = compileText(target, true, src, outputDir, writeAssembly = true)!!
         virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText())
+        VmRunner().runProgram(virtfile.readText(), false)
     }
 
     test("compile virtual: nested labels") {
@@ -273,7 +273,7 @@ main {
         val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val exc = shouldThrow<Exception> {
-            VmRunner().runProgram(virtfile.readText())
+            VmRunner().runProgram(virtfile.readText(), false)
         }
         exc.message shouldContain("encountered unconverted inline assembly chunk")
     }
@@ -294,7 +294,7 @@ main {
         val irSrc = virtfile.readText()
         irSrc.shouldContain("incm.b $2000")
         irSrc.shouldNotContain("</ASM>")
-        VmRunner().runProgram(irSrc)
+        VmRunner().runProgram(irSrc, false)
     }
 
     test("addresses from labels/subroutines not yet supported in VM") {
@@ -316,7 +316,7 @@ mylabel:
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val exc = shouldThrow<Exception> {
-            VmRunner().runProgram(virtfile.readText())
+            VmRunner().runProgram(virtfile.readText(), false)
         }
         exc.message shouldContain("cannot yet load a label address as a value")
     }

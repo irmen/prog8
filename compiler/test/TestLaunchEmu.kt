@@ -39,7 +39,7 @@ class TestLaunchEmu: FunSpec({
 </BLOCK>
 </PROGRAM>
 """)
-        target.launchEmulator(0, tmpfile)
+        target.launchEmulator(0, tmpfile, true)
         tmpfile.deleteExisting()
     }
 })

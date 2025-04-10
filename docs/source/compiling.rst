@@ -207,8 +207,11 @@ One or more .p8 module files
     Prints the "simplified AST" which is the reduced representation of the program.
     This is what is used in the code generators, to generate the executable code from.
 
+``-quiet``
+    Don't print compiler and assembler messages.
+
 ``-quietasm``
-    Don't print assembler output results.
+    Don't print assembler messages
 
 ``-slabsgolden``
     put memory() slabs in 'golden ram' memory area instead of at the end of the program.

@@ -76,7 +76,7 @@ class VirtualMachine(irProgram: IRProgram) {
         reset(false)
     }
 
-    fun run() {
+    fun run(quiet: Boolean) {
         try {
             var before = System.nanoTime()
             var numIns = 0
@@ -98,7 +98,8 @@ class VirtualMachine(irProgram: IRProgram) {
                 }
             }
         } catch (hx: ProgramExitException) {
-            println("\nProgram exit! Statuscode=${hx.status} #steps=${stepCount}")
+            if(!quiet)
+                println("\nProgram exit! Statuscode=${hx.status} #steps=${stepCount}")
             gfx_close()
         }
     }
@@ -2613,18 +2614,18 @@ internal fun ArrayDeque<UByte>.popf(): Double {
 
 // probably called via reflection
 class VmRunner: IVirtualMachineRunner {
-    override fun runProgram(irSource: String) {
-        runAndTestProgram(irSource) { /* no tests */ }
+    override fun runProgram(irSource: String, quiet: Boolean) {
+        runAndTestProgram(irSource, quiet) { /* no tests */ }
     }
 
-    fun runAndTestProgram(irSource: String, test: (VirtualMachine) -> Unit) {
+    fun runAndTestProgram(irSource: String, quiet: Boolean = false, test: (VirtualMachine) -> Unit) {
         val irProgram = IRFileReader().read(irSource)
         val vm = VirtualMachine(irProgram)
 //        vm.breakpointHandler = { pcChunk, pcIndex ->
 //            println("UNHANDLED BREAKPOINT")
 //            println("  IN CHUNK: $pcChunk(${pcChunk.label})  INDEX: $pcIndex = INSTR ${pcChunk.instructions[pcIndex]}")
 //        }
-        vm.run()
+        vm.run(quiet)
         test(vm)
     }
 }

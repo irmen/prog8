@@ -36,7 +36,7 @@ class TestVm: FunSpec( {
         vm.valueStack.shouldBeEmpty()
         vm.pcIndex shouldBe 0
         vm.stepCount shouldBe 0
-        vm.run()
+        vm.run(false)
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
         vm.pcIndex shouldBe 0
@@ -63,7 +63,7 @@ class TestVm: FunSpec( {
         vm.valueStack.shouldBeEmpty()
         vm.pcIndex shouldBe 0
         vm.stepCount shouldBe 0
-        vm.run()
+        vm.run(false)
         vm.stepCount shouldBe 4
         vm.memory.getUW(1000) shouldBe 12345u
         vm.callStack.shouldBeEmpty()
@@ -121,7 +121,7 @@ class TestVm: FunSpec( {
 </BLOCK>
 </PROGRAM>
 """
-        runner.runProgram(irSource)
+        runner.runProgram(irSource, false)
     }
 
     test("vm machine float bits") {

@@ -10,9 +10,9 @@ import io.kotest.matchers.collections.shouldBeIn
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.core.IErrorReporter
 import prog8.code.source.SourceCode
-import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.compiler.ModuleImporter
 import prog8.parser.ParseError
 import prog8tests.helpers.*
@@ -29,7 +29,7 @@ class TestModuleImporter: FunSpec({
     }
 
     fun makeImporter(errors: IErrorReporter? = null, searchIn: Iterable<String>) =
-        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(false), searchIn.toList(), emptyList())
+        ModuleImporter(program, "blah", errors ?: ErrorReporterForTests(false), searchIn.toList(), emptyList(), false)
 
     fun makeImporter(errors: IErrorReporter?, vararg searchIn: String): ModuleImporter {
         return makeImporter(errors, searchIn.asList())

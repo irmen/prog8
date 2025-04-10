@@ -36,7 +36,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     fun convertFloatToBytes(num: Double): List<UByte>
     fun convertBytesToFloat(bytes: List<UByte>): Double
 
-    fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path)
+    fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean)
     fun isIOAddress(address: UInt): Boolean
 
     override fun encodeString(str: String, encoding: Encoding): List<UByte>

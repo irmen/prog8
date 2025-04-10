@@ -53,14 +53,16 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
         return m5.toDouble()
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
+    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
         if(selectedEmulator!=1) {
             System.err.println("The c64 target only supports the main emulator (Vice).")
             return
         }
 
         for(emulator in listOf("x64sc", "x64")) {
-            println("\nStarting C-64 emulator $emulator...")
+            if(!quiet)
+                println("\nStarting C-64 emulator $emulator...")
+
             val viceMonlist = viceMonListName(programNameWithPath.toString())
             val cmdline = listOf(emulator, "-silent", "-moncommands", viceMonlist,
                 "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")

@@ -2,7 +2,10 @@ package prog8.codegen.cpu6502
 
 import prog8.code.GENERATED_LABEL_PREFIX
 import prog8.code.IAssemblyProgram
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.ICompilationTarget
+import prog8.code.core.IErrorReporter
+import prog8.code.core.OutputType
 import prog8.code.target.C128Target
 import prog8.code.target.C64Target
 import prog8.code.target.PETTarget
@@ -46,7 +49,8 @@ internal class AssemblyProgram(
 
                 command.addAll(listOf("--output", prgFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
-                println("\nCreating prg for target ${compTarget.name}.")
+                if(!options.quiet)
+                    println("\nCreating prg for target ${compTarget.name}.")
             }
             OutputType.XEX -> {
                 // Atari800XL .xex generation.
@@ -67,7 +71,8 @@ internal class AssemblyProgram(
 
                 command.addAll(listOf("--output", xexFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
-                println("\nCreating xex for target ${compTarget.name}.")
+                if(!options.quiet)
+                    println("\nCreating xex for target ${compTarget.name}.")
             }
             OutputType.RAW -> {
                 // Neo6502/headerless raw program generation.
@@ -87,7 +92,8 @@ internal class AssemblyProgram(
 
                 command.addAll(listOf("--output", binFile.toString(), assemblyFile.toString()))
                 assemblerCommand = command
-                println("\nCreating raw binary for target ${compTarget.name}.")
+                if(!options.quiet)
+                    println("\nCreating raw binary for target ${compTarget.name}.")
             }
             OutputType.LIBRARY -> {
                 // CBM machines library (.bin) generation (with or without 2 byte load address header depending on the compilation target machine)
@@ -107,10 +113,12 @@ internal class AssemblyProgram(
                     command.add("--list=$listFile")
 
                 if(compTarget.name in listOf(C64Target.NAME, C128Target.NAME, PETTarget.NAME)) {
-                    println("\nCreating binary library file with header for target ${compTarget.name}.")
+                    if(!options.quiet)
+                        println("\nCreating binary library file with header for target ${compTarget.name}.")
                     command.add("--cbm-prg")
                 } else {
-                    println("\nCreating binary library file without header for target ${compTarget.name}.")
+                    if(!options.quiet)
+                        println("\nCreating binary library file without header for target ${compTarget.name}.")
                     command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
                 }
 

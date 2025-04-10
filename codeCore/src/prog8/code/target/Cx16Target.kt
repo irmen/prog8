@@ -49,7 +49,7 @@ class Cx16Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
         return m5.toDouble()
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
+    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
         val emulator: String
         val extraArgs: List<String>
 
@@ -68,7 +68,9 @@ class Cx16Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
             }
         }
 
-        println("\nStarting Commander X16 emulator $emulator...")
+        if(!quiet)
+            println("\nStarting Commander X16 emulator $emulator...")
+
         val cmdline = listOf(emulator, "-scale", "2", "-rtc", "-run", "-prg", "${programNameWithPath}.prg") + extraArgs
         val processb = ProcessBuilder(cmdline).inheritIO()
         processb.environment()["PULSE_LATENCY_MSEC"] = "10"

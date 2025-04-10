@@ -1,8 +1,6 @@
 TODO
 ====
 
-make compiler quiet when running .p8ir files via -vm (also add -quiet flag to suppress output on regular operation?)
-
 romable: check library files for routines that are not yet romable and add "TODO: Romable" comment
 romable: fix as many of those issues as possible to improve romability of library code
 

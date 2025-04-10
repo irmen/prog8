@@ -49,13 +49,15 @@ class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
         return m5.toDouble()
     }
 
-    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path) {
+    override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
         if(selectedEmulator!=1) {
             System.err.println("The c128 target only supports the main emulator (Vice).")
             return
         }
 
-        println("\nStarting C-128 emulator x128...")
+        if(!quiet)
+            println("\nStarting C-128 emulator x128...")
+
         val viceMonlist = C64Target.viceMonListName(programNameWithPath.toString())
         val cmdline = listOf("x128", "-silent", "-moncommands", viceMonlist,
             "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
