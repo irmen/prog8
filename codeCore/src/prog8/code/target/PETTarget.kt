@@ -60,7 +60,9 @@ class PETTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
         val viceMonlist = C64Target.viceMonListName(programNameWithPath.toString())
         val cmdline = listOf("xpet", "-model", "4032", "-ramsize", "32", "-videosize", "40", "-silent", "-moncommands", viceMonlist,
             "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
-        val processb = ProcessBuilder(cmdline).inheritIO()
+        val processb = ProcessBuilder(cmdline)
+        if(!quiet)
+            processb.inheritIO()
         val process=processb.start()
         process.waitFor()
     }

@@ -72,7 +72,9 @@ class Cx16Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
             println("\nStarting Commander X16 emulator $emulator...")
 
         val cmdline = listOf(emulator, "-scale", "2", "-rtc", "-run", "-prg", "${programNameWithPath}.prg") + extraArgs
-        val processb = ProcessBuilder(cmdline).inheritIO()
+        val processb = ProcessBuilder(cmdline)
+        if(!quiet)
+            processb.inheritIO()
         processb.environment()["PULSE_LATENCY_MSEC"] = "10"
         val process: Process = processb.start()
         process.waitFor()

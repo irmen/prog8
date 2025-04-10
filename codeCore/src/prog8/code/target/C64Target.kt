@@ -66,7 +66,9 @@ class C64Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by No
             val viceMonlist = viceMonListName(programNameWithPath.toString())
             val cmdline = listOf(emulator, "-silent", "-moncommands", viceMonlist,
                 "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
-            val processb = ProcessBuilder(cmdline).inheritIO()
+            val processb = ProcessBuilder(cmdline)
+            if(!quiet)
+                processb.inheritIO()
             val process: Process
             try {
                 process=processb.start()

@@ -130,8 +130,11 @@ internal class AssemblyProgram(
         if(options.compTarget.additionalAssemblerOptions!=null)
             assemblerCommand.add(options.compTarget.additionalAssemblerOptions!!)
 
-        val proc = ProcessBuilder(assemblerCommand).inheritIO().start()
-        val result = proc.waitFor()
+        val proc = ProcessBuilder(assemblerCommand)
+        if(!options.quiet)
+            proc.inheritIO()
+        val process = proc.start()
+        val result = process.waitFor()
         if (result == 0) {
             removeGeneratedLabelsFromMonlist()
             generateBreakpointList()

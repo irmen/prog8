@@ -61,7 +61,9 @@ class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
         val viceMonlist = C64Target.viceMonListName(programNameWithPath.toString())
         val cmdline = listOf("x128", "-silent", "-moncommands", viceMonlist,
             "-autostartprgmode", "1", "-autostart-warp", "-autostart", "${programNameWithPath}.prg")
-        val processb = ProcessBuilder(cmdline).inheritIO()
+        val processb = ProcessBuilder(cmdline)
+        if(!quiet)
+            processb.inheritIO()
         val process: Process = processb.start()
         process.waitFor()
     }
