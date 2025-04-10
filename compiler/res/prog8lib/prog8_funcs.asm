@@ -184,7 +184,6 @@ func_sort_uw	.proc
 		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
 		; input:  address of array to sort in P8ZP_SCRATCH_W1, length in A
 		; first: subtract 2 of the pointer
-		; TODO: Romable
 		asl  a
 		sta  P8ZP_SCRATCH_B1
 		lda  P8ZP_SCRATCH_W1
@@ -249,7 +248,6 @@ func_sort_w	.proc
 		; sorting subroutine coded by mats rosengren (mats.rosengren@esa.int)
 		; input:  address of array to sort in P8ZP_SCRATCH_W1, length in A
 		; first: subtract 2 of the pointer
-		; TODO: Romable
 		asl  a
 		sta  P8ZP_SCRATCH_B1
 		lda  P8ZP_SCRATCH_W1

@@ -332,7 +332,7 @@ _literals
             inc  P8ZP_SCRATCH_W2+1
             bcs  _loop
 
-_orig_target    .word  0
+_orig_target    .word  0    ; modified
 _end
             ; return w2-orig_target, the size of the decompressed data
             lda  P8ZP_SCRATCH_W2

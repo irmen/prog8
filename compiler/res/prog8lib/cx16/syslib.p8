@@ -1183,8 +1183,6 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
     ; to the registered handler for each type.  (Only Vera IRQs supported for now).
     ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     ; where 1 means: continue with the system IRQ handler, 0 means: don't call that.
-
-    ; TODO: Romable
 	%asm {{
         php
         sei

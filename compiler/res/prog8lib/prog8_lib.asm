@@ -268,7 +268,6 @@ strcpy		.proc
 
 strcmp_expression	.proc
 		; -- compare strings, result in A
-		; TODO: Romable
 		lda  _arg_s2
 		ldy  _arg_s2+1
 		sta  P8ZP_SCRATCH_W2
@@ -426,12 +425,12 @@ _found          lda  #1
 		rts
 	.pend
 
-; TODO: Romable
 arraycopy_split_to_normal_words .proc
 	; P8ZP_SCRATCH_W1 = start of lsb array
 	; P8ZP_SCRATCH_W2 = start of msb array
 	; AY = start of normal word target array
 	; X = number of elements to copy
+	; TODO: Romable
                 sta  _modlsb+1
                 sty  _modlsb+2
                 clc
@@ -463,12 +462,12 @@ _modmsb         sta  $ffff       ; modified msb store
 		rts
 		.pend
 
-; TODO: Romable
 arraycopy_normal_to_split_words .proc
 	; P8ZP_SCRATCH_W1 = start of target lsb array
 	; P8ZP_SCRATCH_W2 = start of target msb array
 	; AY = start of normal word source array
 	; X = number of elements to copy
+	; TODO: Romable
 		sta  _modsrclsb+1
 		sty  _modsrclsb+2
 		clc

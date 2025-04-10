@@ -64,8 +64,6 @@ multiply_words	.proc
 	;      The routine also works for NEGATIVE (signed) word values, but ONLY the lower 16 bits of the result are correct then!
 	;      Prog8 only uses those so that's not an issue, but math.mul16_last_upper() no longer gives the correct result here.
 
-	; TODO: Romable
-
 ; mult62.a
 ; from: https://github.com/TobyLobster/multiply_test/blob/main/tests/mult62.a
 ; based on Dr Jefyll, http://forum.6502.org/viewtopic.php?f=9&t=689&start=0#p19958
@@ -190,7 +188,6 @@ result		.byte  ?,?,?,?       ; routine could be faster if this were in Zeropage.
 
 divmod_b_asm	.proc
 	; signed byte division: make everything positive and fix sign afterwards
-	; TODO: Romable
 		sta  P8ZP_SCRATCH_B1
 		tya
 		eor  P8ZP_SCRATCH_B1
@@ -292,8 +289,6 @@ divmod_uw_asm	.proc
 	;    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
 	;    output: P8ZP_SCRATCH_W2 in ZP: 16 bit remainder, A/Y: 16 bit division result
 	;    division by zero will result in quotient = 65535 and remainder = divident
-	; TODO: Romable
-
 
 dividend = P8ZP_SCRATCH_W1
 remainder = P8ZP_SCRATCH_W2
@@ -333,12 +328,11 @@ _divisor	.word ?
 		.send BSS
 		.pend
 
-; TODO: Romable (find a way to init these variables. Maybe allocate them in slabs_BSS to make it even more random?)
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
 	;    default seed = $00c2 $1137
         ;    routine from https://codebase64.org/doku.php?id=base:x_abc_random_number_generator_8_16_bit
-	; TODO: Romable
+	; TODO: Romable  (find a way to init these variables. Maybe allocate them in slabs_BSS to make it even more random?)
 		inc x1
 		clc
 x1=*+1
