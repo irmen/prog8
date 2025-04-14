@@ -1,4 +1,6 @@
 zsmkit {
+    ; extsubs for ZSMKIT version 2.6
+
 	const ubyte ZSMKitBank = 1
 	extsub @bank ZSMKitBank $A000 = zsm_init_engine(uword lowram @XY) clobbers(A, X, Y)
 	extsub @bank ZSMKitBank $A003 = zsm_tick(ubyte type @A) clobbers(A, X, Y)

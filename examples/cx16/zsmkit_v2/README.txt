@@ -6,6 +6,11 @@ Advanced music and sound effects engine for the Commander X16
 Evolution of Zerobyte's ZSOUND, by MooingLemur.  Read the README there!
 
 
+INCLUDED ZSMKIT BIN
+-------------------
+The ZSMKIT-A000.BIN included here is release version 2.6 of zsmkit.
+
+
 DEMO PROGRAM
 ------------
 The demo program loads the zsmkit player program in HiRAM bank 1.
