@@ -3,6 +3,9 @@ TODO
 
 romable: fix as many of the "TODO: Romable" issues as possible to improve romability of library code
 
+document romable option and that strings+initialized arrays become read-only
+
+
 ...
 
 
@@ -76,7 +79,7 @@ STRUCTS?
 --------
 
 - declare struct *type*, or directly declare the variable itself?  Problem with the latter is: you cannot easily define multiple variables of the same struct type.
-- can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs
+- can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs, max 1 page of memory total size to allow regular indexing?
 - only as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
 - arrays of struct is just an array of uword pointers. Can even be @split?
 - need to introduce typed pointer datatype in prog8

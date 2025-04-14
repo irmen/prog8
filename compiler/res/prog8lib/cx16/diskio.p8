@@ -411,18 +411,17 @@ close_end:
 byte_read_loop:         ; fallback if MACPTR isn't supported on the device
         %asm {{
             lda  bufferpointer
-            sta  m_in_buffer+1
+            sta  P8ZP_SCRATCH_W1
             lda  bufferpointer+1
-            sta  m_in_buffer+2
+            sta  P8ZP_SCRATCH_W1+1
         }}
         while num_bytes!=0 {
-            ; TODO: Romable
             %asm {{
                 jsr  cbm.CHRIN
-m_in_buffer     sta  $ffff          ; modified
-                inc  m_in_buffer+1
+                sta  (P8ZP_SCRATCH_W1)
+                inc  P8ZP_SCRATCH_W1
                 bne  +
-                inc  m_in_buffer+2
+                inc  P8ZP_SCRATCH_W1+1
 +
             }}
             cx16.r0L = cbm.READST()

@@ -364,18 +364,18 @@ close_end:
         list_blocks = 0     ; we reuse this variable for the total number of bytes read
         %asm {{
             lda  bufferpointer
-            sta  m_in_buffer+1
+            sta  P8ZP_SCRATCH_W1
             lda  bufferpointer+1
-            sta  m_in_buffer+2
+            sta  P8ZP_SCRATCH_W1+1
         }}
         while num_bytes!=0 {
-            ; TODO: Romable
             %asm {{
                 jsr  cbm.CHRIN
-m_in_buffer     sta  $ffff          ; modified
-                inc  m_in_buffer+1
+                ldy  #0
+                sta  (P8ZP_SCRATCH_W1),y
+                inc  P8ZP_SCRATCH_W1
                 bne  +
-                inc  m_in_buffer+2
+                inc  P8ZP_SCRATCH_W1+1
 +
             }}
             cx16.r0L = cbm.READST()
