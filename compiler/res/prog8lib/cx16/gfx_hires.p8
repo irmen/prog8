@@ -154,9 +154,9 @@ gfx_hires {
                 inc  cx16.VERA_ADDR_L
                 bne  ++
                 inc  cx16.VERA_ADDR_M
-+                       bne  +
++               bne  +
                 inc  cx16.VERA_ADDR_H
-+                       inx                     ; next pixel
++               inx                     ; next pixel
             }}
         }
     }

@@ -8,6 +8,7 @@ sorting {
 
     ; NOTE: all word arrays are assumed to be @nosplit!!
     ; NOTE: sorting is done in ascending order!!!
+    ; TODO: Romable
 
     asmsub gnomesort_ub(uword bytearray @AY, ubyte num_elements @X) {
         %asm {{

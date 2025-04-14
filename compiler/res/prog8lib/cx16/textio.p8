@@ -95,6 +95,7 @@ asmsub get_cursor() -> ubyte @X, ubyte @Y {
 
 asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A, X)  {
 	; ---- fill the character screen with the given fill character and character color.
+    ; TODO: Romable
 	%asm {{
         sty  _ly+1
         pha
@@ -142,6 +143,7 @@ set_vera_textmatrix_addresses:
 asmsub  clear_screenchars (ubyte character @ A) clobbers(X, Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
+    ; TODO: Romable
 	%asm {{
         pha
         jsr  cbm.SCREEN             ; get dimensions in X/Y
@@ -171,6 +173,7 @@ _lx     ldx  #0                     ; modified
 asmsub  clear_screencolors (ubyte color @ A) clobbers(X, Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
+    ; TODO: Romable
 	%asm {{
         sta  _la+1
         jsr  cbm.SCREEN             ; get dimensions in X/Y
@@ -269,6 +272,7 @@ sub kata() {
 asmsub  scroll_left() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
+    ; TODO: Romable
 	%asm {{
 	    jsr  cbm.SCREEN
 	    dex
@@ -313,6 +317,7 @@ _lx     ldx  #0                ; modified
 asmsub  scroll_right() clobbers(A,X,Y)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
+    ; TODO: Romable
 	%asm {{
 	    jsr  cbm.SCREEN
 	    dex
@@ -365,6 +370,7 @@ _lx     ldx  #0                 ; modified
 asmsub  scroll_up() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
+    ; TODO: Romable
 	%asm {{
 	    jsr  cbm.SCREEN
 	    stx  _nextline+1
@@ -413,6 +419,7 @@ _nextline
 asmsub  scroll_down() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
+    ; TODO: Romable
 	%asm {{
 	    jsr  cbm.SCREEN
 	    stx  _nextline+1

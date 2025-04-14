@@ -192,6 +192,7 @@ graphics {
         }
 
         if length!=0 {
+            ; TODO: Romable
             %asm {{
                 lda  p8v_length
                 and  #7

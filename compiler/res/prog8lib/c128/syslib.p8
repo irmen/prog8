@@ -1077,6 +1077,7 @@ cx16 {
             dey
             bpl  -
             rts
+
             .section BSS
     _cx16_vreg_storage
             .word ?,?,?,?,?,?,?,?

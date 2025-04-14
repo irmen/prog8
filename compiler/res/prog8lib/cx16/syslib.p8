@@ -1053,6 +1053,7 @@ asmsub save_virtual_registers() clobbers(A,Y) {
         dey
         bpl  -
         rts
+
         .section BSS
 _cx16_vreg_storage
         .word ?,?,?,?,?,?,?,?
@@ -1183,6 +1184,7 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
     ; to the registered handler for each type.  (Only Vera IRQs supported for now).
     ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     ; where 1 means: continue with the system IRQ handler, 0 means: don't call that.
+    ; TODO: Romable
 	%asm {{
         php
         sei
@@ -1266,6 +1268,7 @@ _default_aflow_handler
 
 asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the VSYNC irq handler to use with enable_irq_handlers().  Also enables VSYNC irqs.
+    ; TODO: Romable
     %asm {{
         php
         sei
@@ -1281,6 +1284,7 @@ asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
 asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,Y) {
     ; Sets the LINE irq handler to use with enable_irq_handlers(), for the given rasterline.  Also enables LINE irqs.
     ; You can use sys.set_rasterline() later to adjust the rasterline on which to trigger.
+    ; TODO: Romable
     %asm {{
         php
         sei
@@ -1298,6 +1302,7 @@ asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,
 
 asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the SPRCOL irq handler to use with enable_irq_handlers().  Also enables SPRCOL irqs.
+    ; TODO: Romable
     %asm {{
         php
         sei
@@ -1313,6 +1318,7 @@ asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
 asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the AFLOW irq handler to use with enable_irq_handlers().  Also enables AFLOW irqs.
     ; NOTE: the handler itself must fill the audio fifo buffer to at least 25% full again (1 KB) or the aflow irq will keep triggering!
+    ; TODO: Romable
     %asm {{
         php
         sei

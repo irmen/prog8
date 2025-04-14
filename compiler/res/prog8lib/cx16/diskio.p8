@@ -416,6 +416,7 @@ byte_read_loop:         ; fallback if MACPTR isn't supported on the device
             sta  m_in_buffer+2
         }}
         while num_bytes!=0 {
+            ; TODO: Romable
             %asm {{
                 jsr  cbm.CHRIN
 m_in_buffer     sta  $ffff          ; modified

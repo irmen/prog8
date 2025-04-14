@@ -1,8 +1,7 @@
 TODO
 ====
 
-romable: check library files for routines that are not yet romable and add "TODO: Romable" comment
-romable: fix as many of those issues as possible to improve romability of library code
+romable: fix as many of the "TODO: Romable" issues as possible to improve romability of library code
 
 ...
 

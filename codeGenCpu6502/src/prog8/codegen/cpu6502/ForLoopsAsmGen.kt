@@ -218,6 +218,8 @@ $modifiedLabel  cmp  #0         ; modified
         }
         asmgen.out(loopLabel)
         asmgen.translate(forloop.statements)
+
+        asmgen.romableError("self-modifying code (forloop over bytes range)", forloop.position)  // TODO fix romable; there is self-modifying code below
         if(stepsize>0) {
             asmgen.out("""
                 lda  $varname
@@ -227,7 +229,6 @@ $modifiedLabel  cmp  #0         ; modified
 $modifiedLabel  cmp  #0    ; modified
                 bmi  $loopLabel
                 beq  $loopLabel""")
-            asmgen.romableError("self-modifying code (forloop over range)", forloop.position)  // TODO fix romable
         } else {
             asmgen.out("""
                 lda  $varname
@@ -236,7 +237,6 @@ $modifiedLabel  cmp  #0    ; modified
                 sta  $varname
 $modifiedLabel  cmp  #0     ; modified
                 bpl  $loopLabel""")
-            asmgen.romableError("self-modifying code (forloop over range)", forloop.position)  // TODO fix romable
         }
         asmgen.out(endLabel)
     }
@@ -375,6 +375,7 @@ $modifiedLabel2 cmp  #0    ; modified
 $loopLabel""")
         asmgen.translate(stmt.statements)
 
+        asmgen.romableError("self-modifying code (forloop over word range)", stmt.position)  // TODO fix romable; there is self-modifying code below
         if (iterableDt.isUnsignedWordArray) {
             asmgen.out("""
                 lda  $varname
@@ -392,7 +393,6 @@ $modifiedLabel2 lda  #0     ; modified
                 bcc  $endLabel
                 bcs  $loopLabel
 $endLabel""")
-            asmgen.romableError("self-modifying code (forloop over range)", stmt.position)  // TODO fix romable
         } else {
             asmgen.out("""
                 lda  $varname
@@ -410,7 +410,6 @@ $modifiedLabel  lda  #0   ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-            asmgen.romableError("self-modifying code (forloop over range)", stmt.position)  // TODO fix romable
         }
     }
 
@@ -443,7 +442,7 @@ $modifiedLabel  sbc  #0    ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-        asmgen.romableError("self-modifying code (forloop over range)", stmt.position)  // TODO fix romable
+        asmgen.romableError("self-modifying code (forloop over words range)", stmt.position)  // TODO fix romable
     }
 
     private fun precheckFromToWord(iterableDt: DataType, stepsize: Int, fromVar: String, endLabel: String) {

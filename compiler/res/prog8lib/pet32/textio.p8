@@ -153,6 +153,7 @@ asmsub  scroll_down  () clobbers(A,X)  {
 
 asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y)  {
 	; ---- sets the character in the screen matrix at the given position
+    ; TODO: Romable
 	%asm {{
 		pha
 		tya
@@ -177,6 +178,7 @@ _screenrows	.word  cbm.Screen + range(0, 1000, 40)
 
 asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
+    ; TODO: Romable
 	%asm  {{
 		pha
 		tya
@@ -202,6 +204,7 @@ sub  setclr  (ubyte col, ubyte row, ubyte color)  {
 
 sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)  {
 	; ---- set char at the given position on the screen. charcolor is ignored on PET
+    ; TODO: Romable
 	%asm {{
   		lda  row
 		asl  a
