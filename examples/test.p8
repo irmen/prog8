@@ -4,8 +4,9 @@
 
 main {
     sub start() {
-        sys.exit3(100,101,102,true)
-        sys.exit2(100,101,102)
-        sys.exit(100)
+        uword @shared crc1 = $ED
+        uword @shared temp = $100
+
+        crc1 = temp - crc1
     }
 }

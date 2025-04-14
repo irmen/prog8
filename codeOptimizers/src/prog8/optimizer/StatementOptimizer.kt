@@ -5,11 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.AssociativeOperators
-import prog8.code.core.BaseDataType
-import prog8.code.core.CompilationOptions
-import prog8.code.core.IErrorReporter
-import prog8.code.core.Position
+import prog8.code.core.*
 
 
 class StatementOptimizer(private val program: Program,
@@ -315,17 +311,6 @@ class StatementOptimizer(private val program: Program,
         val bexpr=assignment.value as? BinaryExpression
         if(bexpr!=null) {
             val rightCv = bexpr.right.constValue(program)?.number
-            if(bexpr.operator=="-" && rightCv==null && targetIDt.isInteger) {
-                if(bexpr.right.isSimple && bexpr.right isSameAs assignment.target) {
-                    // X = value - X  -->  X = -X ; X += value  (to avoid need of stack-evaluation, for integers)
-                    val negation = PrefixExpression("-", bexpr.right.copy(), bexpr.position)
-                    val addValue = Assignment(assignment.target.copy(), BinaryExpression(bexpr.right, "+", bexpr.left, bexpr.position), AssignmentOrigin.OPTIMIZER, assignment.position)
-                    return listOf(
-                        IAstModification.ReplaceNode(bexpr, negation, assignment),
-                        IAstModification.InsertAfter(assignment, addValue, parent as IStatementContainer)
-                    )
-                }
-            }
 
             if (rightCv != null && assignment.target isSameAs bexpr.left) {
                 // assignments of the form:  X = X <operator> <expr>
