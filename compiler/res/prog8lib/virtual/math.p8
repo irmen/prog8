@@ -204,6 +204,13 @@ math {
         }}
     }
 
+    ; there should be zero need to use these variants in the virtual target, but whatever:
+    alias rndseed_rom = math.rndseed
+    alias rnd_rom = math.rnd
+    alias rndw_rom = math.rndw
+    alias randrange_rom = math.randrange
+    alias randrangew_rom = math.randrangew
+
     sub log2(ubyte value) -> ubyte {
         ubyte result = 7
         ubyte compare = $80

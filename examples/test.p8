@@ -1,12 +1,99 @@
 %import textio
+%import math
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        uword @shared crc1 = $ED
-        uword @shared temp = $100
+        normal()
+        txt.nl()
+        romable()
+        repeat {}
+    }
 
-        crc1 = temp - crc1
+    sub romable() {
+        txt.print("romable: ")
+        txt.print_uw(math.rndw_rom())
+        txt.spc()
+        txt.print_uw(math.rndw_rom())
+        txt.spc()
+        txt.print_uw(math.randrangew_rom(1000))
+        txt.spc()
+        txt.print_uw(math.randrangew_rom(1000))
+        txt.nl()
+        txt.nl()
+        math.rndseed_rom($00c2, $1137)
+        txt.print_uw(math.rndw_rom())
+        txt.spc()
+        txt.print_uw(math.rndw_rom())
+        txt.spc()
+        txt.print_uw(math.randrangew_rom(1000))
+        txt.spc()
+        txt.print_uw(math.randrangew_rom(1000))
+        txt.nl()
+        txt.nl()
+
+        math.rndseed_rom($00c2, $1137)
+        txt.print_ub(math.rnd_rom())
+        txt.spc()
+        txt.print_ub(math.rnd_rom())
+        txt.spc()
+        txt.print_ub(math.randrange_rom(10))
+        txt.spc()
+        txt.print_ub(math.randrange_rom(10))
+        txt.nl()
+        txt.nl()
+        math.rndseed_rom($00c2, $1137)
+        txt.print_ub(math.rnd_rom())
+        txt.spc()
+        txt.print_ub(math.rnd_rom())
+        txt.spc()
+        txt.print_ub(math.randrange_rom(10))
+        txt.spc()
+        txt.print_ub(math.randrange_rom(10))
+        txt.nl()
+    }
+
+    sub normal() {
+        txt.print("normal: ")
+        txt.print_uw(math.rndw())
+        txt.spc()
+        txt.print_uw(math.rndw())
+        txt.spc()
+        txt.print_uw(math.randrangew(1000))
+        txt.spc()
+        txt.print_uw(math.randrangew(1000))
+        txt.nl()
+        txt.nl()
+        math.rndseed($00c2, $1137)
+        txt.print_uw(math.rndw())
+        txt.spc()
+        txt.print_uw(math.rndw())
+        txt.spc()
+        txt.print_uw(math.randrangew(1000))
+        txt.spc()
+        txt.print_uw(math.randrangew(1000))
+        txt.nl()
+        txt.nl()
+
+        math.rndseed($00c2, $1137)
+        txt.print_ub(math.rnd())
+        txt.spc()
+        txt.print_ub(math.rnd())
+        txt.spc()
+        txt.print_ub(math.randrange(10))
+        txt.spc()
+        txt.print_ub(math.randrange(10))
+        txt.nl()
+        txt.nl()
+        math.rndseed($00c2, $1137)
+        txt.print_ub(math.rnd())
+        txt.spc()
+        txt.print_ub(math.rnd())
+        txt.spc()
+        txt.print_ub(math.randrange(10))
+        txt.spc()
+        txt.print_ub(math.randrange(10))
+        txt.nl()
     }
 }

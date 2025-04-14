@@ -83,14 +83,27 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
+    asmsub rnd_rom() clobbers(Y) -> ubyte @A {
+        %asm {{
+            jmp  prog8_math.randbyte_rom
+        }}
+    }
+
     asmsub rndw() -> uword @AY {
         %asm {{
             jmp  prog8_math.randword
         }}
     }
 
+    asmsub rndw_rom() -> uword @AY {
+        %asm {{
+            jmp  prog8_math.randword_rom
+        }}
+    }
+
     sub randrange(ubyte n) -> ubyte {
-        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias).
+        ;    NOTE: does not work for code in ROM
         cx16.r0H = 255 / n * n
         do {
             cx16.r0L = math.rnd()
@@ -98,8 +111,19 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         return cx16.r0L % n
     }
 
+    sub randrange_rom(ubyte n) -> ubyte {
+        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias).
+        ;    NOTE: works for code in ROM, make sure to initialize seed using rndseed_rom
+        cx16.r0H = 255 / n * n
+        do {
+            cx16.r0L = math.rnd_rom()
+        } until cx16.r0L < cx16.r0H
+        return cx16.r0L % n
+    }
+
     sub randrangew(uword n) -> uword {
         ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+        ;    NOTE: does not work for code in ROM
         cx16.r1 = 65535 / n * n
         do {
             cx16.r0 = math.rndw()
@@ -107,8 +131,18 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         return cx16.r0 % n
     }
 
+    sub randrangew_rom(uword n) -> uword {
+        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+        ;    NOTE: works for code in ROM, make sure to initialize seed using rndseed_rom
+        cx16.r1 = 65535 / n * n
+        do {
+            cx16.r0 = math.rndw_rom()
+        } until cx16.r0 < cx16.r1
+        return cx16.r0 % n
+    }
+
     asmsub rndseed(uword seed1 @AY, uword seed2 @R0) clobbers(A,Y) {
-        ; -- set new pseudo RNG's seed values. Defaults are: $00c2, $1137
+        ; -- set new pseudo RNG's seed values. Defaults are: $00c2, $1137. NOTE: does not work for code in ROM, use rndseed_rom instead
         %asm {{
             sta  prog8_math.randword.x1
             sty  prog8_math.randword.c1
@@ -116,6 +150,19 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
             sta  prog8_math.randword.a1
             lda  cx16.r0H
             sta  prog8_math.randword.b1
+            rts
+        }}
+    }
+
+    asmsub rndseed_rom(uword seed1 @AY, uword seed2 @R0) clobbers(A,Y) {
+        ; -- set new pseudo RNG's seed values (for the ROM-version of the RNG). Good defaults are: $00c2, $1137.
+        %asm {{
+            sta  prog8_math.randword_rom._x1
+            sty  prog8_math.randword_rom._c1
+            lda  cx16.r0L
+            sta  prog8_math.randword_rom._a1
+            lda  cx16.r0H
+            sta  prog8_math.randword_rom._b1
             rts
         }}
     }

@@ -649,19 +649,44 @@ but perhaps the provided ones can be of service too.
 
 ``rnd ()``
     Returns next random byte 0-255 from the pseudo-RNG sequence.
+    Does not work in ROM code; use rnd_rom instead.
+
+``rnd ()``
+    Returns next random byte 0-255 from the pseudo-RNG sequence.
+    Works in ROM code, but make sure to initialize the seed values using rndseed_rom.
 
 ``rndw ()``
     Returns next random word 0-65535 from the pseudo-RNG sequence.
+    Does not work in ROM code; use rndw_rom instead.
+
+``rndw_rom ()``
+    Returns next random word 0-65535 from the pseudo-RNG sequence.
+    Works in ROM code, but make sure to initialize the seed values using rndseed_rom.
 
 ``randrange (ubyte n) -> ubyte``
     Returns random byte uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+    Does not work in ROM code; use randrange_rom instead.
+
+``randrange_rom (ubyte n) -> ubyte``
+    Returns random byte uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+    Works in ROM code, but make sure to initialize the seed values using rndseed_rom.
 
 ``randrangew (uword n) -> uword``
     Returns random word uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+    Does not work in ROM code; use randrangew_rom instead.
+
+``randrangew_rom (uword n) -> uword``
+    Returns random word uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+    Works in ROM code, but make sure to initialize the seed values using rndseed_rom.
 
 ``rndseed (uword seed1, uword seed2)``
     Sets a new seed for the pseudo-RNG sequence (both rnd and rndw). The seed consists of two words.
-    Do not use zeros for the seed!
+    Do not use zeros for either of the seed values!
+    Does not work in ROM code; use rndseed_rom instead.
+
+``rndseed_rom (uword seed1, uword seed2)``
+    Sets a new seed for the pseudo-RNG sequence of the ROM version of the RNG (both rnd and rndw). The seed consists of two words.
+    Do not use zeros for either of the seed values!
 
 .. hint::
     This is a graph showing the various ranges of values mentioned in the integer sine and cosine

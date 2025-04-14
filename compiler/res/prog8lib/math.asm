@@ -330,9 +330,8 @@ _divisor	.word ?
 
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
-	;    default seed = $00c2 $1137
+	;    default seed = $00c2 $1137.  NOTE:  uses self-modifying code so won't work in ROM (use randword_rom instead)
         ;    routine from https://codebase64.org/doku.php?id=base:x_abc_random_number_generator_8_16_bit
-	; TODO: Romable  (find a way to init these variables. Maybe allocate them in slabs_BSS to make it even more random?)
 		inc x1
 		clc
 x1=*+1
@@ -353,7 +352,34 @@ b1=*+1
 		rts
 		.pend
 
-randbyte = randword    ; -- 8 bit pseudo random number generator into A (by just reusing randword)
+randword_rom	.proc
+	; -- 16 bit pseudo random number generator into AY. Can run from ROM.
+	;    NOTE: you have to set the initial seed using randseed_rom! (a good default seed = $00c2 $1137)
+        ;    routine from https://codebase64.org/doku.php?id=base:x_abc_random_number_generator_8_16_bit
+		inc  _x1
+		clc
+		lda  _x1
+		eor  _c1
+		eor  _a1
+		sta  _a1
+		adc  _b1
+		sta  _b1
+		lsr  a
+		eor  _a1
+		adc  _c1
+		sta  _c1
+		ldy  _b1
+		rts
+		.section BSS
+_x1      .byte  ?
+_c1      .byte  ?
+_a1      .byte  ?
+_b1      .byte  ?
+		.send BSS
+		.pend
+
+randbyte = randword             ; -- 8 bit pseudo random number generator into A (by just reusing randword) NOTE: can not run from ROM
+randbyte_rom = randword_rom     ; -- 8 bit pseudo random number generator into A (by just reusing randword). Can run from ROM
 
 
 ; ----------- optimized multiplications (in-place A (byte) and ?? (word)) : ---------
