@@ -332,7 +332,6 @@ inline asmsub getbanks() -> ubyte @A {
     }}
 }
 
-    ; TODO: Romable
     asmsub x16jsrfar() {
         %asm {{
             ; setup a JSRFAR call (using X16 call convention)
@@ -350,10 +349,10 @@ inline asmsub getbanks() -> ubyte @A {
             ; retrieve arguments
             ldy  #$01
             lda  (P8ZP_SCRATCH_W1),y            ; grab low byte of target address
-            sta  _jmpfar+1
+            sta  _jmpfar_vec
             iny
             lda  (P8ZP_SCRATCH_W1),y            ; now the high byte
-            sta  _jmpfar+2
+            sta  _jmpfar_vec+1
             iny
             lda  (P8ZP_SCRATCH_W1),y            ; then the target bank
             sta  P8ZP_SCRATCH_B1
@@ -378,7 +377,7 @@ inline asmsub getbanks() -> ubyte @A {
             lda  P8ZP_SCRATCH_W2
             ldy  P8ZP_SCRATCH_W2+1
             plp
-            jsr  _jmpfar        ; do the actual call
+            jsr  _jsrfar        ; do the actual call
             ; restore bank without clobbering status flags and A register
             sta  P8ZP_SCRATCH_W1
             php
@@ -391,8 +390,13 @@ inline asmsub getbanks() -> ubyte @A {
             lda  P8ZP_SCRATCH_W1
             plp
             rts
+_jsrfar     jmp  (_jmpfar_vec)
 
-_jmpfar     jmp  $0000          ; modified
+            .section BSS
+_jmpfar_vec .word ?
+            .send BSS
+
+            ; !notreached!
         }}
     }
 
