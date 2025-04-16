@@ -10,6 +10,7 @@ strings {
         ; This value is determined during runtime and counts upto the first terminating 0 byte in the string,
         ; regardless of the size of the string during compilation time. Don’t confuse this with len and sizeof!
 
+        ; uses P8ZP_SCRATCH_W1 to store the string address, do not change this, other routines here may depend on it (as optimization implementation detail)
         %asm {{
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1
@@ -153,17 +154,13 @@ _found	tya
     asmsub rfind(uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string, starting from the right.
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
-		; TODO: Romable
         %asm {{
             stx  P8ZP_SCRATCH_B1
-            sta  _str
-            sty  _str+1
+            ; note: we make use of the fact that length() stores the string address AY in P8ZP_SCRATCH_W1 for us! we need that later
             jsr  length
+            cpy  #0
+            beq  _notfound
             dey
-            lda  _str
-    		sta  P8ZP_SCRATCH_W1
-    		lda  _str+1
-    		sta  P8ZP_SCRATCH_W1+1
 -           lda  (P8ZP_SCRATCH_W1),y
             cmp  P8ZP_SCRATCH_B1
             beq  _found
@@ -176,9 +173,6 @@ _notfound   lda  #255
 _found      tya
             sec
             rts
-
-_str    .word 0 ; modified
-            ; !notreached!
         }}
     }
 
@@ -322,17 +316,23 @@ _done       rts
     }
 
     asmsub pattern_match(str string @AY, str pattern @R0) clobbers(Y) -> bool @A {
+        ; This routine matches a string against a pattern and returns with the carry bit set if they match, or clear if they don't.
+        ; The two characters ? and * have a special meaning when they appear in the pattern. All other characters match themselves.
+        ; ? matches any one character. For example, F?? matches FOO but not FU, and ?? matches all two-character strings.
+        ; * matches any string, including the empty string.
+        ; For example, F* matches all strings starting with F. *O*O* matches all strings with at least two Os. Finally, ?* matches all non-empty strings.
+        ; Both the pattern and the string must be NUL-terminated (that it, followed with a 00 byte) and at most 255 characters long (excluding the NUL).
+        ; Code taken from http://6502.org/source/strings/patmatch.htm
+        ;
+        ; Input:  cx16.r0:  A NUL-terminated, <255-length pattern
+        ;              AY:  A NUL-terminated, <255-length string
+        ;
+        ; Output: A = 1 if the string matches the pattern, A = 0 if not.
+        ;
+        ; Notes:  Clobbers A, X, Y. Each * in the pattern uses 4 bytes of stack.
+        ;         Does not work in ROM due to self-modifying code.
+
 		%asm {{
-; pattern matching of a string.
-; Input:  cx16.r0:  A NUL-terminated, <255-length pattern
-;              AY:  A NUL-terminated, <255-length string
-;
-; Output: A = 1 if the string matches the pattern, A = 0 if not.
-;
-; Notes:  Clobbers A, X, Y. Each * in the pattern uses 4 bytes of stack.
-;
-; see http://6502.org/source/strings/patmatch.htm
-; TODO: Romable   (or skip it?)
 
 strptr = P8ZP_SCRATCH_W1
 

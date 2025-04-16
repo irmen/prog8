@@ -998,6 +998,7 @@ Provides string manipulation routines.
     Returns true if the string matches the pattern, false if not.
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
     An empty pattern matches nothing. If you need everything to match, use a single '*'.
+    Note: this routine does not work when code is in ROM.
 
 ``hash (string) -> ubyte``
     Returns a simple 8 bit hash value for the given string.
