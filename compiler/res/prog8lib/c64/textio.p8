@@ -345,22 +345,22 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 
 asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
 	; ---- set the color in A on the screen matrix at the given position
-    ; TODO: Romable
 	%asm {{
 		pha
 		tya
 		asl  a
 		tay
 		lda  _colorrows+1,y
-		sta  _mod+2
+		sta  P8ZP_SCRATCH_W1+1
 		txa
 		clc
 		adc  _colorrows,y
-		sta  _mod+1
+		sta  P8ZP_SCRATCH_W1
 		bcc  +
-		inc  _mod+2
+		inc  P8ZP_SCRATCH_W1+1
 +		pla
-_mod		sta  $ffff		; modified
+		ldy  #0
+		sta  (P8ZP_SCRATCH_W1),y
 		rts
 
 _colorrows	.word  $d800 + range(0, 1000, 40)
@@ -370,21 +370,21 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 
 asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 	; ---- get the color in the screen color matrix at the given location
-    ; TODO: Romable
 	%asm  {{
 		pha
 		tya
 		asl  a
 		tay
 		lda  setclr._colorrows+1,y
-		sta  _mod+2
+		sta  P8ZP_SCRATCH_W1+1
 		pla
 		clc
 		adc  setclr._colorrows,y
-		sta  _mod+1
-		bcc  _mod
-		inc  _mod+2
-_mod		lda  $ffff		; modified
+		sta  P8ZP_SCRATCH_W1
+		bcc  +
+		inc  P8ZP_SCRATCH_W1+1
++		ldy  #0
+        lda  (P8ZP_SCRATCH_W1),y
 		rts
 	}}
 }
