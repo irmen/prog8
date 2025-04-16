@@ -202,23 +202,23 @@ sub  setclr  (ubyte col, ubyte row, ubyte color)  {
 }
 
 
-sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)  {
+sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor_ignored)  {
 	; ---- set char at the given position on the screen. charcolor is ignored on PET
-    ; TODO: Romable
 	%asm {{
   		lda  row
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
-		sta  _charmod+2
+		sta  P8ZP_SCRATCH_W1+1
 		lda  setchr._screenrows,y
 		clc
 		adc  col
-		sta  _charmod+1
+		sta  P8ZP_SCRATCH_W1
 		bcc  +
-		inc  _charmod+2
+		inc  P8ZP_SCRATCH_W1+1
 +		lda  character
-_charmod	sta  $ffff		; modified
+		ldy  #0
+		sta  (P8ZP_SCRATCH_W1),y
 		rts
 	}}
 }

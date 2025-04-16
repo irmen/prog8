@@ -388,27 +388,29 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 
 sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)  {
 	; ---- set char+color at the given position on the screen
-    ; TODO: Romable
 	%asm {{
+_charptr = P8ZP_SCRATCH_W1
+_colorptr = P8ZP_SCRATCH_W2
 		lda  row
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
-		sta  _charmod+2
+		sta  _charptr+1
 		adc  #$d4
-		sta  _colormod+2
+		sta  _colorptr+1
 		lda  setchr._screenrows,y
 		clc
 		adc  col
-		sta  _charmod+1
-		sta  _colormod+1
+		sta  _charptr
+		sta  _colorptr
 		bcc  +
-		inc  _charmod+2
-		inc  _colormod+2
+		inc  _charptr+1
+		inc  _colorptr+1
 +		lda  character
-_charmod	sta  $ffff		; modified
+		ldy  #0
+		sta  (_charptr),y
 		lda  charcolor
-_colormod	sta  $ffff		; modified
+		sta  (_colorptr),y
 		rts
 	}}
 }
