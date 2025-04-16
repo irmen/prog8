@@ -1184,7 +1184,6 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
     ; to the registered handler for each type.  (Only Vera IRQs supported for now).
     ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     ; where 1 means: continue with the system IRQ handler, 0 means: don't call that.
-    ; TODO: Romable
 	%asm {{
         php
         sei
@@ -1195,8 +1194,29 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
         ldy  #>_irq_dispatcher
         sta  cbm.CINV
         sty  cbm.CINV+1
+
+		lda  #<_default_1_handler
+		ldy  #>_default_1_handler
+		sta  _vsync_vec
+		sty  _vsync_vec+1
+		lda  #<_default_0_handler
+		ldy  #>_default_0_handler
+		sta  _line_vec
+		sty  _line_vec+1
+		sta  _aflow_vec
+		sty  _aflow_vec+1
+		sta  _sprcol_vec
+		sty  _sprcol_vec+1
+
         plp
         rts
+
+        .section BSS
+_vsync_vec   .word  ?
+_line_vec    .word  ?
+_aflow_vec   .word  ?
+_sprcol_vec  .word  ?
+        .send BSS
 
 _irq_dispatcher
         ; order of handling: LINE, SPRCOL, AFLOW, VSYNC.
@@ -1207,31 +1227,27 @@ _irq_dispatcher
 
         bit  #2
         beq  +
-_mod_line_jump
-        jsr  _default_line_handler      ; modified
+        jsr  _line_handler
         ldy  #2
         sty  cx16.VERA_ISR
         bra  _dispatch_end
 +
         bit  #4
         beq  +
-_mod_sprcol_jump
-        jsr  _default_sprcol_handler      ; modified
+        jsr  _sprcol_handler
         ldy  #4
         sty  cx16.VERA_ISR
         bra  _dispatch_end
 +
         bit  #8
         beq  +
-_mod_aflow_jump
-        jsr  _default_aflow_handler      ; modified
+        jsr  _aflow_handler
         ; note: AFLOW can only be cleared by filling the audio FIFO for at least 1/4. Not via the ISR bit.
         bra  _dispatch_end
 +
         bit  #1
         beq  +
-_mod_vsync_jump
-        jsr  _default_vsync_handler      ; modified
+        jsr  _vsync_handler
         cmp  #0
         bne  _dispatch_end
         ldy  #1
@@ -1251,29 +1267,31 @@ _return_irq
 		pla
 		rti
 
-_default_vsync_handler
+_default_0_handler
+        lda  #0
+        rts
+_default_1_handler
         lda  #1
         rts
-_default_line_handler
-        lda  #0
-        rts
-_default_sprcol_handler
-        lda  #0
-        rts
-_default_aflow_handler
-        lda  #0
-        rts
+
+_vsync_handler
+        jmp  (_vsync_vec)
+_line_handler
+        jmp  (_line_vec)
+_sprcol_handler
+        jmp  (_sprcol_vec)
+_aflow_handler
+        jmp  (_aflow_vec)
     }}
 }
 
 asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the VSYNC irq handler to use with enable_irq_handlers().  Also enables VSYNC irqs.
-    ; TODO: Romable
     %asm {{
         php
         sei
-        sta  enable_irq_handlers._mod_vsync_jump+1
-        sty  enable_irq_handlers._mod_vsync_jump+2
+        sta  enable_irq_handlers._vsync_vec
+        sty  enable_irq_handlers._vsync_vec+1
         lda  #1
         tsb  cx16.VERA_IEN
         plp
@@ -1284,12 +1302,11 @@ asmsub set_vsync_irq_handler(uword address @AY) clobbers(A) {
 asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,Y) {
     ; Sets the LINE irq handler to use with enable_irq_handlers(), for the given rasterline.  Also enables LINE irqs.
     ; You can use sys.set_rasterline() later to adjust the rasterline on which to trigger.
-    ; TODO: Romable
     %asm {{
         php
         sei
-        sta  enable_irq_handlers._mod_line_jump+1
-        sty  enable_irq_handlers._mod_line_jump+2
+        sta  enable_irq_handlers._line_vec
+        sty  enable_irq_handlers._line_vec+1
         lda  cx16.r0
         ldy  cx16.r0+1
         jsr  sys.set_rasterline
@@ -1302,12 +1319,11 @@ asmsub set_line_irq_handler(uword rasterline @R0, uword address @AY) clobbers(A,
 
 asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the SPRCOL irq handler to use with enable_irq_handlers().  Also enables SPRCOL irqs.
-    ; TODO: Romable
     %asm {{
         php
         sei
-        sta  enable_irq_handlers._mod_sprcol_jump+1
-        sty  enable_irq_handlers._mod_sprcol_jump+2
+        sta  enable_irq_handlers._sprcol_vec
+        sty  enable_irq_handlers._sprcol_vec+1
         lda  #4
         tsb  cx16.VERA_IEN
         plp
@@ -1318,12 +1334,11 @@ asmsub set_sprcol_irq_handler(uword address @AY) clobbers(A) {
 asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
     ; Sets the AFLOW irq handler to use with enable_irq_handlers().  Also enables AFLOW irqs.
     ; NOTE: the handler itself must fill the audio fifo buffer to at least 25% full again (1 KB) or the aflow irq will keep triggering!
-    ; TODO: Romable
     %asm {{
         php
         sei
-        sta  enable_irq_handlers._mod_aflow_jump+1
-        sty  enable_irq_handlers._mod_aflow_jump+2
+        sta  enable_irq_handlers._aflow_vec
+        sty  enable_irq_handlers._aflow_vec+1
         lda  #8
         tsb  cx16.VERA_IEN
         plp
