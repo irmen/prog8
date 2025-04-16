@@ -273,11 +273,10 @@ sub kata() {
 asmsub  scroll_left() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
-    ; TODO: Romable
 	%asm {{
 	    jsr  cbm.SCREEN
 	    dex
-	    stx  _lx+1
+	    stx  P8ZP_SCRATCH_REG   ; columns
         dey
         sty  P8ZP_SCRATCH_B1    ; number of rows to scroll
 
@@ -299,7 +298,7 @@ _nextline
         stz  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
 
-_lx     ldx  #0                ; modified
+        ldx  P8ZP_SCRATCH_REG   ; columns
 -       lda  cx16.VERA_DATA0
         sta  cx16.VERA_DATA1    ; copy char
         lda  cx16.VERA_DATA0
@@ -318,18 +317,20 @@ _lx     ldx  #0                ; modified
 asmsub  scroll_right() clobbers(A,X,Y)  {
 	; ---- scroll the whole screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
-    ; TODO: Romable
 	%asm {{
+_columns = P8ZP_SCRATCH_REG
+_rcolv1 = P8ZP_SCRATCH_W1
+_rcolv2 = P8ZP_SCRATCH_W1+1
 	    jsr  cbm.SCREEN
 	    dex
-	    stx  _lx+1
+	    stx  _columns
 	    txa
 	    asl  a
 	    dea
-	    sta  _rcol+1
+	    sta  _rcolv1
 	    ina
 	    ina
-	    sta  _rcol2+1
+	    sta  _rcolv2
         dey
         sty  P8ZP_SCRATCH_B1    ; number of rows to scroll
 
@@ -337,7 +338,7 @@ _nextline
         stz  cx16.VERA_CTRL     ; data port 0: source column
         lda  #%00011000 | VERA_TEXTMATRIX>>16        ; auto decrement 1
         sta  cx16.VERA_ADDR_H
-_rcol   lda  #79*2-1            ; modified
+        lda  _rcolv1
         sta  cx16.VERA_ADDR_L   ; begin in rightmost column minus one
         lda  P8ZP_SCRATCH_B1
         clc
@@ -348,11 +349,11 @@ _rcol   lda  #79*2-1            ; modified
         sta  cx16.VERA_CTRL     ; data port 1: destination column
         lda  #%00011000 | VERA_TEXTMATRIX>>16        ; auto decrement 1
         sta  cx16.VERA_ADDR_H
-_rcol2  lda  #79*2+1           ; modified
+        lda  _rcolv2
         sta  cx16.VERA_ADDR_L
         sty  cx16.VERA_ADDR_M
 
-_lx     ldx  #0                 ; modified
+        ldx  _columns
 -       lda  cx16.VERA_DATA0
         sta  cx16.VERA_DATA1    ; copy char
         lda  cx16.VERA_DATA0
@@ -371,10 +372,9 @@ _lx     ldx  #0                 ; modified
 asmsub  scroll_up() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
-    ; TODO: Romable
 	%asm {{
 	    jsr  cbm.SCREEN
-	    stx  _nextline+1
+	    stx  P8ZP_SCRATCH_REG       ; columns
 	    dey
         sty  P8ZP_SCRATCH_B1
         stz  cx16.VERA_CTRL         ; data port 0 is source
@@ -393,7 +393,7 @@ asmsub  scroll_up() clobbers(A, X, Y)  {
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
 _nextline
-        ldx  #80        ; modified
+        ldx  P8ZP_SCRATCH_REG       ; columns
 -       lda  cx16.VERA_DATA0
         sta  cx16.VERA_DATA1        ; copy char
         lda  cx16.VERA_DATA0
@@ -420,10 +420,9 @@ _nextline
 asmsub  scroll_down() clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
-    ; TODO: Romable
 	%asm {{
 	    jsr  cbm.SCREEN
-	    stx  _nextline+1
+	    stx  P8ZP_SCRATCH_REG       ; columns
 	    dey
         sty  P8ZP_SCRATCH_B1
         stz  cx16.VERA_CTRL         ; data port 0 is source
@@ -448,7 +447,7 @@ asmsub  scroll_down() clobbers(A, X, Y)  {
         sta  cx16.VERA_ADDR_H       ; enable auto increment by 1, bank 0.
 
 _nextline
-        ldx  #80        ; modified
+        ldx  P8ZP_SCRATCH_REG       ; columns
 -       lda  cx16.VERA_DATA0
         sta  cx16.VERA_DATA1        ; copy char
         lda  cx16.VERA_DATA0

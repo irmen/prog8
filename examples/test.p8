@@ -4,6 +4,25 @@
 
 main {
     sub start() {
-        txt.clear_screencolors($f7)
+        repeat 16 {
+            sys.waitvsync()
+            sys.waitvsync()
+            txt.scroll_right()
+        }
+        repeat 16 {
+            sys.waitvsync()
+            sys.waitvsync()
+            txt.scroll_left()
+        }
+        repeat 16 {
+            sys.waitvsync()
+            sys.waitvsync()
+            txt.scroll_down()
+        }
+        repeat 16 {
+            sys.waitvsync()
+            sys.waitvsync()
+            txt.scroll_up()
+        }
     }
 }
