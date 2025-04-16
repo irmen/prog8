@@ -1,41 +1,40 @@
 %import textio
-%import strings
+%import compression
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        str name = "irmen de jong"
-        str shortname = "i"
-        str emptyname = ""
+        str data = "a..........irmen????????zzzzz!"
+        str output = "?" * 100
+        str decompressed = "\x00" * 100
 
-        ubyte idx
-        bool found
-        idx, found = strings.rfind(name, 'j')
-        txt.print_bool(found)
-        txt.print_ub(idx)
-        txt.nl()
-        idx, found = strings.rfind(name, 'x')
-        txt.print_bool(found)
-        txt.print_ub(idx)
+        uword ptr
+
+        uword csize = compression.encode_rle(data, len(data), output, true)
+        txt.print_ub(len(data))
+        txt.spc()
+        txt.print_uw(csize)
         txt.nl()
         txt.nl()
-        idx, found = strings.rfind(shortname, 'i')
-        txt.print_bool(found)
-        txt.print_ub(idx)
+        ptr = &output - 1
+        csize = compression.decode_rle_srcfunc(&srcfunc, decompressed, len(decompressed))
+        txt.print_uw(csize)
         txt.nl()
-        idx, found = strings.rfind(shortname, 'x')
-        txt.print_bool(found)
-        txt.print_ub(idx)
+        txt.print(data)
         txt.nl()
+        txt.print(decompressed)
         txt.nl()
-        idx, found = strings.rfind(emptyname, 'i')
-        txt.print_bool(found)
-        txt.print_ub(idx)
-        txt.nl()
-        idx, found = strings.rfind(emptyname, 'x')
-        txt.print_bool(found)
-        txt.print_ub(idx)
-        txt.nl()
+
+        asmsub srcfunc() -> ubyte @A {
+            %asm {{
+                inc  p8v_ptr
+                bne  +
+                inc  p8v_ptr+1
++               ldy  #0
+                lda  (p8v_ptr),y
+                rts
+            }}
+        }
     }
 }

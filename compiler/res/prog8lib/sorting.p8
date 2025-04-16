@@ -8,11 +8,11 @@ sorting {
 
     ; NOTE: all word arrays are assumed to be @nosplit!!
     ; NOTE: sorting is done in ascending order!!!
-    ; TODO: Romable
+    ; Note: could be made slightly faster by using modifying dcode for the CPY after _loop but that compromises romability
 
     asmsub gnomesort_ub(uword bytearray @AY, ubyte num_elements @X) {
         %asm {{
-            stx  _loop+1        ; modifying
+            stx  P8ZP_SCRATCH_REG
             sta  P8ZP_SCRATCH_W1
             sty  P8ZP_SCRATCH_W1+1
             sta  P8ZP_SCRATCH_W2
@@ -23,7 +23,7 @@ sorting {
             sty  P8ZP_SCRATCH_W2+1
             ldy  #1     ; pos
 _loop
-            cpy  #0     ; modified
+            cpy  P8ZP_SCRATCH_REG
             beq  _done
             lda  (P8ZP_SCRATCH_W1),y
             cmp  (P8ZP_SCRATCH_W2),y

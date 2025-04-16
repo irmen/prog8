@@ -299,6 +299,7 @@ API is slightly experimental and may change in a future version.
     Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
     Instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
     This is useful if the compressed data is read from a disk file for instance as this avoids having to buffer it first.
+    Note: the callback routine MUST NOT MODIFY the prog8 scratch variables such as P8ZP_SCRATCH_W1 etc!
 
 ``decode_rle_vram (uword compressed, ubyte vbank, uword vaddr)``  (cx16 only)
     Decodes "ByteRun1" (aka PackBits) RLE compressed data directly into Vera VRAM, without needing an intermediate buffer.

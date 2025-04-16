@@ -139,8 +139,8 @@ compression {
     asmsub decode_rle_srcfunc(uword source_function @AY, uword target @R0, uword maxsize @R1) clobbers(X) -> uword @AY {
         ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
         ;    Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
-        ;    Instead of a source buffer, you provide a callback function that must return the next byte to compress in A.
-		; TODO: Romable
+        ;    Instead of a source buffer, you provide a callback function that must return the next byte to decompress in A.
+        ;    Note: the callback routine MUST NOT MODIFY the prog8 scratch variables such as P8ZP_SCRATCH_W1 etc!
         %asm {{
             sta  _cb_mod1+1
             sty  _cb_mod1+2
@@ -173,6 +173,7 @@ _loop
 
             ; check control byte
 _cb_mod1    jsr  $ffff      ; modified
+            cmp  #0
             bpl  _literals
             cmp  #128
             beq  _end
@@ -219,7 +220,10 @@ _cb_mod3    jsr  $ffff      ; modified
             inc  P8ZP_SCRATCH_W2+1
             bcs  _loop
 
-_orig_target    .word  0        ; modified
+            .section BSS
+_orig_target    .word  ?
+            .send BSS
+
 _end
             ; return w2-orig_target, the size of the decompressed data
             lda  P8ZP_SCRATCH_W2
@@ -239,7 +243,6 @@ _end
         ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
         ;    Also stops decompressing if the maxsize has been reached.
         ;    Returns the size of the decompressed data.
-        ; TODO: Romable
         %asm {{
             sta  P8ZP_SCRATCH_W1        ; compressed data ptr
             sty  P8ZP_SCRATCH_W1+1
@@ -332,7 +335,10 @@ _literals
             inc  P8ZP_SCRATCH_W2+1
             bcs  _loop
 
-_orig_target    .word  0    ; modified
+            .section BSS
+_orig_target    .word  ?
+            .send BSS
+
 _end
             ; return w2-orig_target, the size of the decompressed data
             lda  P8ZP_SCRATCH_W2
