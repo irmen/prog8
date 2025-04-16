@@ -1,14 +1,12 @@
-%import textio
+%import graphics
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        txt.home()
-        for cx16.r11L in 0 to 20 {
-            for cx16.r10L in 0 to 30 {
-                txt.setcc(cx16.r10L, cx16.r11L, sc:'*', 7)
-            }
+        graphics.enable_bitmap_mode()
+        for cx16.r11L in 0 to 110 {
+            graphics.horizontal_line(cx16.r11L+10, cx16.r11L+20, cx16.r11L+5)
         }
     }
 }

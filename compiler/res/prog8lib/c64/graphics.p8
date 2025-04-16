@@ -192,8 +192,8 @@ graphics {
         }
 
         if length!=0 {
-            ; TODO: Romable
             %asm {{
+_pixeladdr = P8ZP_SCRATCH_W1
                 lda  p8v_length
                 and  #7
                 sta  p8v_separate_pixels
@@ -204,37 +204,35 @@ graphics {
                 lsr  p8v_length+1
                 ror  p8v_length
                 lda  p8v_pixaddr
-                sta  _modified+1
+                sta  _pixeladdr
                 lda  p8v_pixaddr+1
-                sta  _modified+2
+                sta  _pixeladdr+1
                 lda  p8v_length
                 ora  p8v_length+1
                 beq  _zero
                 ldy  p8v_length
+                sty  P8ZP_SCRATCH_B1        ; length
                 ldx  #$ff
-_modified       stx  $ffff      ; modified
-                lda  _modified+1
+_more           txa
+                ldy  #0
+                sta  (_pixeladdr),y
+                lda  _pixeladdr
                 clc
                 adc  #8
-                sta  _modified+1
+                sta  _pixeladdr
                 bcc  +
-                inc  _modified+2
-+               dey
-                bne  _modified
+                inc  _pixeladdr+1
++               dec  P8ZP_SCRATCH_B1        ; length
+                bne  _more
 _zero
                 ldy  p8v_separate_pixels
-                beq  hline_zero2
-                lda  _modified+1
-                sta  P8ZP_SCRATCH_W1
-                lda  _modified+2
-                sta  P8ZP_SCRATCH_W1+1
+                beq  _end
                 lda  hline_filled_right,y
                 ldy  #0
-                ora  (P8ZP_SCRATCH_W1),y
-                sta  (P8ZP_SCRATCH_W1),y
-                jmp  hline_zero2
+                ora  (_pixeladdr),y
+                sta  (_pixeladdr),y
+_end            rts
 hline_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %11111000, %11111100, %11111110
-hline_zero2
             }}
         }
     }
