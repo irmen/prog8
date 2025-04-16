@@ -296,22 +296,22 @@ _scroll_screen  ; scroll only the screen memory
 
 asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y)  {
 	; ---- sets the character in the screen matrix at the given position
-    ; TODO: Romable
 	%asm {{
 		pha
 		tya
 		asl  a
 		tay
 		lda  _screenrows+1,y
-		sta  _mod+2
+		sta  P8ZP_SCRATCH_W1+1
 		txa
 		clc
 		adc  _screenrows,y
-		sta  _mod+1
+		sta  P8ZP_SCRATCH_W1
 		bcc  +
-		inc  _mod+2
+		inc  P8ZP_SCRATCH_W1+1
 +		pla
-_mod		sta  $ffff		; modified
+        ldy  #0
+		sta  (P8ZP_SCRATCH_W1),y
 		rts
 
 _screenrows	.word  cbm.Screen + range(0, 1000, 40)

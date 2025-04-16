@@ -4,25 +4,17 @@
 
 main {
     sub start() {
-        repeat 16 {
-            sys.waitvsync()
-            sys.waitvsync()
-            txt.scroll_right()
+        txt.home()
+        for cx16.r11L in 0 to 20 {
+            for cx16.r10L in 0 to 30 {
+                txt.setchr(cx16.r10L, cx16.r11L, sc:'.')
+            }
         }
-        repeat 16 {
-            sys.waitvsync()
-            sys.waitvsync()
-            txt.scroll_left()
-        }
-        repeat 16 {
-            sys.waitvsync()
-            sys.waitvsync()
-            txt.scroll_down()
-        }
-        repeat 16 {
-            sys.waitvsync()
-            sys.waitvsync()
-            txt.scroll_up()
-        }
+        cx16.r10L = txt.getchr(10,5)
+        txt.setchr(10,5,sc:'*')
+        cx16.r11L = txt.getchr(10,5)
+        txt.print_ub(cx16.r10L)
+        txt.spc()
+        txt.print_ub(cx16.r11L)
     }
 }
