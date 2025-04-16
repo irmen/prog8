@@ -95,21 +95,22 @@ asmsub get_cursor() -> ubyte @X, ubyte @Y {
 
 asmsub  fill_screen (ubyte character @ A, ubyte color @ Y) clobbers(A, X)  {
 	; ---- fill the character screen with the given fill character and character color.
-    ; TODO: Romable
 	%asm {{
-        sty  _ly+1
+_color = P8ZP_SCRATCH_B1
+_numrows = P8ZP_SCRATCH_REG
+        sty  _color
         pha
         jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
         lsr  a
         lsr  a
-        sta  _lx+1
+        sta  _numrows
         lda  #%00010000
         jsr  set_vera_textmatrix_addresses
         pla
-_lx     ldx  #0                     ; modified
+_more   ldx  _numrows
         phy
-_ly     ldy  #1                     ; modified
+        ldy  _color
 -       sta  cx16.VERA_DATA0
         sty  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
@@ -125,7 +126,7 @@ _ly     ldy  #1                     ; modified
         beq  +
         stz  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M       ; next line
-        bra  _lx
+        bra  _more
 +       rts
 
 set_vera_textmatrix_addresses:
@@ -143,18 +144,17 @@ set_vera_textmatrix_addresses:
 asmsub  clear_screenchars (ubyte character @ A) clobbers(X, Y)  {
 	; ---- clear the character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
-    ; TODO: Romable
 	%asm {{
         pha
         jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
         lsr  a
         lsr  a
-        sta  _lx+1
+        sta  P8ZP_SCRATCH_REG
         lda  #%00100000
         jsr  fill_screen.set_vera_textmatrix_addresses
         pla
-_lx     ldx  #0                     ; modified
+_more   ldx  P8ZP_SCRATCH_REG
 -       sta  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
@@ -165,7 +165,7 @@ _lx     ldx  #0                     ; modified
         beq  +
         stz  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M       ; next line
-        bra  _lx
+        bra  _more
 +       rts
         }}
 }
@@ -173,20 +173,21 @@ _lx     ldx  #0                     ; modified
 asmsub  clear_screencolors (ubyte color @ A) clobbers(X, Y)  {
 	; ---- clear the character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
-    ; TODO: Romable
 	%asm {{
-        sta  _la+1
+_color = P8ZP_SCRATCH_B1
+_numrows = P8ZP_SCRATCH_REG
+        sta  _color
         jsr  cbm.SCREEN             ; get dimensions in X/Y
         txa
         lsr  a
         lsr  a
-        sta  _lx+1
+        sta  _numrows
         stz  cx16.VERA_CTRL
         lda  #%00100000
         jsr  fill_screen.set_vera_textmatrix_addresses
         inc  cx16.VERA_ADDR_L       ; start at (1,0) - the color attribute byte
-_lx     ldx  #0                     ; modified
-_la     lda  #0                     ; modified
+_more   ldx  _numrows
+        lda  _color
 -       sta  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
         sta  cx16.VERA_DATA0
@@ -198,7 +199,7 @@ _la     lda  #0                     ; modified
         lda  #1
         sta  cx16.VERA_ADDR_L
         inc  cx16.VERA_ADDR_M       ; next line
-        bra  _lx
+        bra  _more
 +       rts
         }}
 }
