@@ -178,21 +178,21 @@ _screenrows	.word  cbm.Screen + range(0, 1000, 40)
 
 asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 	; ---- get the character in the screen matrix at the given location
-    ; TODO: Romable
 	%asm  {{
 		pha
 		tya
 		asl  a
 		tay
 		lda  setchr._screenrows+1,y
-		sta  _mod+2
+		sta  P8ZP_SCRATCH_W1+1
 		pla
 		clc
 		adc  setchr._screenrows,y
-		sta  _mod+1
-		bcc  _mod
-		inc  _mod+2
-_mod		lda  $ffff		; modified
+		sta  P8ZP_SCRATCH_W1
+		bcc  +
+		inc  P8ZP_SCRATCH_W1+1
++		ldy  #0
+		lda  (P8ZP_SCRATCH_W1),y
 		rts
 	}}
 }
