@@ -75,17 +75,13 @@ private fun compileMain(args: Array<String>): Boolean {
     try {
         cli.parse(args)
     } catch (e: IllegalStateException) {
+        banner()
         System.err.println(e.message)
         return false
     }
 
-    if(quietAll!=true) {
-        println("\nProg8 compiler v${prog8.buildversion.VERSION} by Irmen de Jong (irmen@razorvine.net)")
-        if('-' in prog8.buildversion.VERSION) {
-            println("Prerelease version from git commit ${prog8.buildversion.GIT_SHA.take(8)} in branch ${prog8.buildversion.GIT_BRANCH}")
-        }
-        println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
-    }
+    if(quietAll!=true)
+        banner()
 
     val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
@@ -308,6 +304,14 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     return true
+}
+
+private fun banner() {
+    println("\nProg8 compiler v${prog8.buildversion.VERSION} by Irmen de Jong (irmen@razorvine.net)")
+    if('-' in prog8.buildversion.VERSION) {
+        println("Prerelease version from git commit ${prog8.buildversion.GIT_SHA.take(8)} in branch ${prog8.buildversion.GIT_BRANCH}")
+    }
+    println("This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html\n")
 }
 
 fun convertFloatToBytes(number: String, target: String) {
