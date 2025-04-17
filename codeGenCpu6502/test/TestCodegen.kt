@@ -5,12 +5,15 @@ import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
+import prog8.code.StMemVar
+import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.codegen.cpu6502.AsmGen6502
+import prog8.codegen.cpu6502.VariableAllocator
 import java.nio.file.Files
 import kotlin.io.path.Path
 
@@ -159,6 +162,16 @@ class TestCodegen: FunSpec({
                     minorNum shouldBeGreaterThanOrEqual 58
             }
         }
+    }
+
+    test("memory mapped zp var is correctly considered to be zp var") {
+        val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
+        val st = SymbolTable(program)
+        st.add(StMemVar("zpmemvar", DataType.WORD, 0x20u, null, null))
+        st.add(StMemVar("normalmemvar", DataType.WORD, 0x9000u, null, null))
+        val allocator = VariableAllocator(st, getTestOptions(), ErrorReporterForTests())
+        allocator.isZpVar("zpmemvar") shouldBe true
+        allocator.isZpVar("normalmemvar") shouldBe false
     }
 })
 

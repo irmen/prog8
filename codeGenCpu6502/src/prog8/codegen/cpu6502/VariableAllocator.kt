@@ -2,10 +2,7 @@ package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
 import com.github.michaelbull.result.onSuccess
-import prog8.code.StNode
-import prog8.code.StNodeType
-import prog8.code.StStaticVariable
-import prog8.code.SymbolTable
+import prog8.code.*
 import prog8.code.core.*
 
 
@@ -23,7 +20,13 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         zeropageVars = zeropage.allocatedVariables
     }
 
-    internal fun isZpVar(scopedName: String) = scopedName in zeropageVars
+    internal fun isZpVar(scopedName: String): Boolean {
+        if(scopedName in zeropageVars)
+            return true
+
+        val v = symboltable.lookup(scopedName)
+        return if(v is StMemVar) v.address <= 255u else false
+    }
 
     internal fun getFloatAsmConst(number: Double): String {
         val asmName = globalFloatConsts[number]
