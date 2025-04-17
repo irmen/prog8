@@ -301,3 +301,37 @@ The tool isn't powerful enough to see what routine the variables or instructions
 You can see in the example above that the variables that are among the most used are neatly placed in zeropage already.
 If you see for instance a variable that is heavily used and that is *not* in zeropage, you
 could consider adding ``@zp`` to that variable's declaration to prioritize it to be put into zeropage.
+
+
+.. _romable:
+
+ROM-able programs
+-----------------
+
+Normally Prog8 will use some tricks to generate the smallest and most optimized code it can.
+This includes the following techniques that by default prevent generated program code from running in ROM:
+
+self-modifying code
+    This is program code that actually modifies itself during program execution (instructions or operands are modified)
+    When the program is in ROM, such modifications are impossible, so the program will not execute correctly.
+
+inline variables
+    These are variables that are located in the same memory region that the program code is in (or even interleaved within the program code).
+    Again, writing to such variables will not work when it is in ROM, so the program will not execute correctly.
+
+(Not all prog8 source code will end up using these techniques but you should not depend on it.)
+
+The directive ``%option romable`` changes this behavior.
+It tells the compiler to no longer generate code using these two tricks, and instead revert to slightly slower running code (or needing more instructions)
+but which *is* able to run from ROM.
+There are a few things to note:
+
+- string variables and array variables that are initialized with something other than just zeros, *are no longer mutable*.
+  This is because both of these will still end up as part of the same memory region the program code is in (which will be ROM).
+  The compiler will try to detect writes to them and give an error if these occur. However it cannot detect all such writes, so beware.
+- arrays without an initialization literal will be placed into the memory region for variables instead which can and should be placed in RAM,
+  so those arrays *are* mutable as usual.
+- the same holds for memory blocks allocated using the ``memory`` function; nothing changes for them.
+- the memory region for variables and memory blocks (BSS sections) should be explicitly placed in RAM memory.
+  You can do this with the ``-varsgolden`` or ``-varshigh``, and ``-slabsgolden`` or ``-slabshigh`` command line options.
+  TODO: maybe in the future an option will be added to choose a memory address for those manually.

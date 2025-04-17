@@ -694,7 +694,7 @@ internal class AstChecker(private val program: Program,
                 val decl = idx.arrayvar.targetVarDecl(program)!!
                 if(decl.type!=VarDeclType.MEMORY && decl.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE) {
                     // memory mapped arrays are assumed to be in RAM. If they're not.... well, POOF
-                    errors.err("cannot assign to an array or string that is located in ROM", assignTarget.position)
+                    errors.err("cannot assign to an array or string that is located in ROM (option romable is enabled)", assignTarget.position)
                 }
             }
         }
@@ -1898,7 +1898,7 @@ internal class AstChecker(private val program: Program,
                         return err("invalid float array size, must be 1-51")
 
                     // check if the floating point values are all within range
-                    val doubles = value.value.map {it.constValue(program)?.number!!.toDouble()}.toDoubleArray()
+                    val doubles = value.value.map { it.constValue(program)?.number!! }.toDoubleArray()
                     if(doubles.any { it < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE || it > compilerOptions.compTarget.FLOAT_MAX_POSITIVE })
                         return err("floating point value overflow")
                     return true

@@ -111,6 +111,15 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             resultingProgram = program
             importedFiles = imported
 
+            if(compilationOptions.romable) {
+                if (!compilationOptions.varsGolden && compilationOptions.varsHighBank==null)
+                    args.errors.err("When ROMable code is selected, variables should be moved to a RAM memory region using either -varsgolden or -varshigh option", program.toplevelModule.position)
+                if (!compilationOptions.slabsGolden && compilationOptions.slabsHighBank==null)
+                    args.errors.err("When ROMable code is selected, memory() blocks should be moved to a RAM memory region using either -slabsgolden or -slabshigh option", program.toplevelModule.position)
+                args.errors.report()
+            }
+
+
             processAst(program, args.errors, compilationOptions)
 //            println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
 //            printProgram(program)
@@ -246,7 +255,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
 internal fun determineProgramLoadAddress(program: Program, options: CompilationOptions, errors: IErrorReporter) {
     val specifiedAddress = program.toplevelModule.loadAddress
-    var loadAddress: UInt? = null
+    var loadAddress: UInt?
     if(specifiedAddress!=null)
         loadAddress = specifiedAddress.first
     else
@@ -360,7 +369,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
     val allOptions = program.modules.flatMap { it.options() }.toSet()
     val floatsEnabled = "enable_floats" in allOptions
     var noSysInit = "no_sysinit" in allOptions
-    var rombale = "romable" in allOptions
+    val rombale = "romable" in allOptions
     var zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
@@ -490,7 +499,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 
     if(errors.noErrors()) {
         // certain optimization steps could have introduced a "not" in an if statement, postprocess those again.
-        var changer = NotExpressionAndIfComparisonExprChanger(program, errors, compilerOptions.compTarget)
+        val changer = NotExpressionAndIfComparisonExprChanger(program, errors, compilerOptions.compTarget)
         changer.visit(program)
         if(errors.noErrors())
             changer.applyModifications()

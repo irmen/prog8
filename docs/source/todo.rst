@@ -1,11 +1,6 @@
 TODO
 ====
 
-document romable option and that strings+initialized arrays become read-only
-
-also support 'heavy' version of the unicode box characters like https://www.compart.com/en/unicode/U+250F as characters in strings
-
-
 ...
 
 
