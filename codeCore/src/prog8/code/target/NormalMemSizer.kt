@@ -18,8 +18,8 @@ internal class NormalMemSizer(val floatsize: Int): IMemSizer {
             }
         }
         else if (dt.isString) {
-            if(numElements!=null) return numElements        // treat it as the size of the given string with the length
-            else return 2    // treat it as the size to store a string pointer
+            return numElements        // treat it as the size of the given string with the length
+                ?: 2    // treat it as the size to store a string pointer
         }
 
         return when {

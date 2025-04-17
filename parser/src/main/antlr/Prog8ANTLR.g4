@@ -38,22 +38,22 @@ fragment HEX_DIGIT: ('a'..'f') | ('A'..'F') | ('0'..'9') ;
 fragment BIN_DIGIT: ('0' | '1') ;
 fragment DEC_DIGIT: ('0'..'9') ;
 
-FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;	// sign comes later from unary expression
+FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;    // sign comes later from unary expression
 FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
 FDOTNUMBER : '.' (DEC_DIGIT | '_')+ ;
 FNUMDOTNUMBER : DEC_DIGIT (DEC_DIGIT | '_')* FDOTNUMBER? ;
 
 STRING_ESCAPE_SEQ :  '\\' . | '\\x' . . | '\\u' . . . .;
 STRING :
-	'"' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f"] )* '"'
-	;
+    '"' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f"] )* '"'
+    ;
 INLINEASMBLOCK :
-	'{{' .+? '}}'
-	;
+    '{{' .+? '}}'
+    ;
 
 SINGLECHAR :
-	'\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f'] ) '\''
-	;
+    '\'' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f'] ) '\''
+    ;
 
 TAG: '@' ('a'..'z' | '0'..'9')+ ;
 
@@ -75,56 +75,56 @@ module_element:
 block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}';
 
 block_statement:
-	directive
-	| variabledeclaration
-	| subroutinedeclaration
-	| inlineasm
-	| inlineir
-	| labeldef
-	| alias
-	;
+    directive
+    | variabledeclaration
+    | subroutinedeclaration
+    | inlineasm
+    | inlineir
+    | labeldef
+    | alias
+    ;
 
 
 statement :
-	directive
-	| variabledeclaration
-	| assignment
-	| augassignment
-	| unconditionaljump
-	| postincrdecr
-	| functioncall_stmt
-	| if_stmt
-	| branch_stmt
-	| subroutinedeclaration
-	| inlineasm
-	| inlineir
-	| returnstmt
-	| forloop
-	| whileloop
-	| untilloop
-	| repeatloop
-	| unrollloop
-	| whenstmt
-	| breakstmt
-	| continuestmt
-	| labeldef
-	| defer
-	| alias
-	;
+    directive
+    | variabledeclaration
+    | assignment
+    | augassignment
+    | unconditionaljump
+    | postincrdecr
+    | functioncall_stmt
+    | if_stmt
+    | branch_stmt
+    | subroutinedeclaration
+    | inlineasm
+    | inlineir
+    | returnstmt
+    | forloop
+    | whileloop
+    | untilloop
+    | repeatloop
+    | unrollloop
+    | whenstmt
+    | breakstmt
+    | continuestmt
+    | labeldef
+    | defer
+    | alias
+    ;
 
 
 variabledeclaration :
-	varinitializer
-	| vardecl
-	| constdecl
-	| memoryvardecl
+    varinitializer
+    | vardecl
+    | constdecl
+    | memoryvardecl
     ;
 
 
 subroutinedeclaration :
-	subroutine
-	| asmsubroutine
-	| extsubroutine
+    subroutine
+    | asmsubroutine
+    | extsubroutine
     ;
 
 alias: 'alias' identifier '=' scoped_identifier ;
@@ -136,7 +136,7 @@ labeldef :  identifier ':'  ;
 unconditionaljump :  'goto'  expression ;
 
 directive :
-	directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%memtop' | '%import' |
+    directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%memtop' | '%import' |
                        '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' | '%align' | '%jmptable' )
         (directivenamelist | (directivearg? | directivearg (',' directivearg)*))
         ;
@@ -160,15 +160,15 @@ arrayindex:  '[' expression ']' ;
 assignment :  (assign_target '=' expression) | (assign_target '=' assignment) | (multi_assign_target '=' expression);
 
 augassignment :
-	assign_target operator=('+=' | '-=' | '/=' | '*=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
-	;
+    assign_target operator=('+=' | '-=' | '/=' | '*=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
+    ;
 
 assign_target:
-	scoped_identifier               #IdentifierTarget
-	| arrayindexed                  #ArrayindexedTarget
-	| directmemory                  #MemoryTarget
-	| void                          #VoidTarget
-	;
+    scoped_identifier               #IdentifierTarget
+    | arrayindexed                  #ArrayindexedTarget
+    | directmemory                  #MemoryTarget
+    | void                          #VoidTarget
+    ;
 
 multi_assign_target:
     assign_target (',' assign_target)+ ;
@@ -176,32 +176,32 @@ multi_assign_target:
 postincrdecr :  assign_target  operator = ('++' | '--') ;
 
 expression :
-	'(' expression ')'
-	| functioncall
-	| <assoc=right> prefix = ('+'|'-'|'~') expression
-	| left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
-	| left = expression EOL? bop = ('+' | '-' ) EOL? right = expression
-	| left = expression EOL? bop = ('<<' | '>>' ) EOL? right = expression
-	| left = expression EOL? bop = '&' EOL? right = expression
-	| left = expression EOL? bop = '^' EOL? right = expression
-	| left = expression EOL? bop = '|' EOL? right = expression
-	| left = expression EOL? bop = ('<' | '>' | '<=' | '>=') EOL? right = expression
-	| left = expression EOL? bop = ('==' | '!=') EOL? right = expression
-	| rangefrom = expression rto = ('to'|'downto') rangeto = expression ('step' rangestep = expression)?	// can't create separate rule due to mutual left-recursion
-	| left = expression EOL? bop = 'in' EOL? right = expression
-	| left = expression EOL? bop = NOT_IN EOL? right = expression
-	| prefix = 'not' expression
-	| left = expression EOL? bop = 'and' EOL? right = expression
-	| left = expression EOL? bop = 'or' EOL? right = expression
-	| left = expression EOL? bop = 'xor' EOL? right = expression
-	| literalvalue
-	| scoped_identifier
-	| arrayindexed
-	| directmemory
-	| addressof
-	| expression typecast
-	| if_expression
-	;
+    '(' expression ')'
+    | functioncall
+    | <assoc=right> prefix = ('+'|'-'|'~') expression
+    | left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
+    | left = expression EOL? bop = ('+' | '-' ) EOL? right = expression
+    | left = expression EOL? bop = ('<<' | '>>' ) EOL? right = expression
+    | left = expression EOL? bop = '&' EOL? right = expression
+    | left = expression EOL? bop = '^' EOL? right = expression
+    | left = expression EOL? bop = '|' EOL? right = expression
+    | left = expression EOL? bop = ('<' | '>' | '<=' | '>=') EOL? right = expression
+    | left = expression EOL? bop = ('==' | '!=') EOL? right = expression
+    | rangefrom = expression rto = ('to'|'downto') rangeto = expression ('step' rangestep = expression)?    // can't create separate rule due to mutual left-recursion
+    | left = expression EOL? bop = 'in' EOL? right = expression
+    | left = expression EOL? bop = NOT_IN EOL? right = expression
+    | prefix = 'not' expression
+    | left = expression EOL? bop = 'and' EOL? right = expression
+    | left = expression EOL? bop = 'or' EOL? right = expression
+    | left = expression EOL? bop = 'xor' EOL? right = expression
+    | literalvalue
+    | scoped_identifier
+    | arrayindexed
+    | directmemory
+    | addressof
+    | expression typecast
+    | if_expression
+    ;
 
 arrayindexed:
     scoped_identifier arrayindex
@@ -221,8 +221,8 @@ functioncall : scoped_identifier '(' expression_list? ')'  ;
 functioncall_stmt : VOID? scoped_identifier '(' expression_list? ')'  ;
 
 expression_list :
-	expression (',' EOL? expression)*           // you can split the expression list over several lines
-	;
+    expression (',' EOL? expression)*           // you can split the expression list over several lines
+    ;
 
 returnstmt : 'return' returnvalues? ;
 
@@ -250,13 +250,13 @@ floatliteral :  FLOAT_NUMBER ;
 
 
 literalvalue :
-	integerliteral
-	| booleanliteral
-	| arrayliteral
-	| stringliteral
-	| charliteral
-	| floatliteral
-	;
+    integerliteral
+    | booleanliteral
+    | arrayliteral
+    | stringliteral
+    | charliteral
+    | floatliteral
+    ;
 
 inlineasm :  '%asm' EOL? INLINEASMBLOCK;
 
@@ -265,16 +265,16 @@ inlineir: '%ir' EOL? INLINEASMBLOCK;
 inline: 'inline';
 
 subroutine :
-	'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
-	;
+    'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
+    ;
 
 sub_return_part : '->' datatype (',' datatype)*  ;
 
 statement_block :
-	'{' EOL?
-		(statement | EOL) *
-	'}'
-	;
+    '{' EOL?
+        (statement | EOL) *
+    '}'
+    ;
 
 
 sub_params :  sub_param (',' EOL? sub_param)* ;

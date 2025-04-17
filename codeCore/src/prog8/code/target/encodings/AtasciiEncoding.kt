@@ -26,7 +26,7 @@ object AtasciiEncoding {
         '▖',
 
         // $10
-     	'♣',
+        '♣',
         '┌',
         '─',
         '┼',
@@ -62,7 +62,7 @@ object AtasciiEncoding {
         '/',
 
         // $30
-     	'0',
+        '0',
         '1',
         '2',
         '3',
@@ -80,7 +80,7 @@ object AtasciiEncoding {
         '?',
 
         // $40
-     	'@',
+        '@',
         'A',
         'B',
         'C',

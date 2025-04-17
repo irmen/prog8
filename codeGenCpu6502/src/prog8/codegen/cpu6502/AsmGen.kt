@@ -1098,7 +1098,7 @@ $repeatLabel""")
         val returnRegs = sub.returnsWhatWhere()
 
         if(returnvalue!=null) {
-            if (sub.returns.single().isNumericOrBool==true) {
+            if (sub.returns.single().isNumericOrBool) {
                 assignExpressionToRegister(returnvalue as PtExpression, returnRegs.single().first.registerOrPair!!)
             }
             else {

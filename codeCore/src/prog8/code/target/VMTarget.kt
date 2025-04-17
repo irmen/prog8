@@ -22,8 +22,8 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
 
     override val cpu = CpuType.VIRTUAL
 
-    override val FLOAT_MAX_POSITIVE = Double.MAX_VALUE.toDouble()
-    override val FLOAT_MAX_NEGATIVE = -Double.MAX_VALUE.toDouble()
+    override val FLOAT_MAX_POSITIVE = Double.MAX_VALUE
+    override val FLOAT_MAX_NEGATIVE = -Double.MAX_VALUE
     override val FLOAT_MEM_SIZE = VMTarget.FLOAT_MEM_SIZE
     override val STARTUP_CODE_RESERVED_SIZE = 0u  // not actually used
     override val PROGRAM_LOAD_ADDRESS = 0u      // not actually used
@@ -40,7 +40,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
         // little endian binary representation
         val bits = num.toDouble().toBits().toULong()
         val hexStr = bits.toString(16).padStart(16, '0')
-        val parts = hexStr.chunked(2).map { "\$" + it }
+        val parts = hexStr.chunked(2).map { "$$it" }
         return parts.joinToString(", ")
     }
 
@@ -101,8 +101,8 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
             }
         }
         else if (dt.isString) {
-            if(numElements!=null) return numElements        // treat it as the size of the given string with the length
-            else return 2    // treat it as the size to store a string pointer
+            return numElements        // treat it as the size of the given string with the length
+                ?: 2    // treat it as the size to store a string pointer
         }
 
         return when {

@@ -1,19 +1,8 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StArrayElement
-import prog8.code.StConstant
-import prog8.code.StMemVar
-import prog8.code.StMemorySlab
-import prog8.code.StNodeType
-import prog8.code.StStaticVariable
-import prog8.code.SymbolTable
+import prog8.code.*
 import prog8.code.core.DataType
-import prog8.intermediate.IRStArrayElement
-import prog8.intermediate.IRStConstant
-import prog8.intermediate.IRStMemVar
-import prog8.intermediate.IRStMemorySlab
-import prog8.intermediate.IRStStaticVariable
-import prog8.intermediate.IRSymbolTable
+import prog8.intermediate.*
 
 
 fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
@@ -37,7 +26,7 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
                     val addrOfSymbol = arrayElt.addressOfSymbol
                     if (addrOfSymbol != null) {
                         require(addrOfSymbol.contains('.')) {
-                            "pointer var in array should be properly scoped: ${addrOfSymbol} in ${variable.name}"
+                            "pointer var in array should be properly scoped: $addrOfSymbol in ${variable.name}"
                         }
                     }
                 }
@@ -55,9 +44,7 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
     else
         IRStArrayElement(null, elt.number, elt.addressOfSymbol)
 
-    val scopedName: String
     if('.' in variable.name) {
-        scopedName = variable.name
         return IRStStaticVariable(variable.name,
             variable.dt,
             variable.initializationNumericValue,
@@ -81,7 +68,7 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
             }
             return newArray
         }
-        scopedName = variable.scopedName
+        val scopedName = variable.scopedName
         return IRStStaticVariable(scopedName,
             variable.dt,
             variable.initializationNumericValue,
@@ -96,9 +83,7 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
 
 
 private fun convert(variable: StMemVar): IRStMemVar {
-    val scopedName: String
     if('.' in variable.name) {
-        scopedName = variable.name
         return IRStMemVar(
             variable.name,
             variable.dt,
@@ -106,7 +91,7 @@ private fun convert(variable: StMemVar): IRStMemVar {
             variable.length
         )
     } else {
-        scopedName = try {
+        val scopedName = try {
             variable.scopedName
         } catch (_: UninitializedPropertyAccessException) {
             variable.name

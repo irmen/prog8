@@ -547,7 +547,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transformSub(srcSub: Subroutine): PtSub {
         val (vardecls, statements) = srcSub.statements.partition { it is VarDecl }
         // if a sub returns 'str', replace with uword.  Simplified AST and I.R. don't contain 'str' datatype anymore.
-        var returnTypes = srcSub.returntypes.map {
+        val returnTypes = srcSub.returntypes.map {
             if(it.isString) DataType.UWORD else it
         }
         // do not bother about the 'inline' hint of the source subroutine.

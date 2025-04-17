@@ -173,7 +173,7 @@ class IRUnusedCodeRemover(
                             if(chunk!=null)
                                 new+=chunk
                             else
-                                allLabeledChunks[label]?.let { new += it }
+                                allLabeledChunks[label]?.let { c -> new += c }
                         }
                     else
                         new += instr.branchTarget!!
@@ -226,7 +226,7 @@ class IRUnusedCodeRemover(
             chunk.instructions.forEach {
                 if(it.labelSymbol!=null) {
                     val chunkName = it.labelSymbol!!.substringBeforeLast('.')
-                    allLabeledChunks[chunkName]?.let { linkedChunks+=it }
+                    allLabeledChunks[chunkName]?.let { c -> linkedChunks += c }
                 }
             }
         }

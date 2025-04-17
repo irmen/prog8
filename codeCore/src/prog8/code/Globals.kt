@@ -20,10 +20,10 @@ const val GENERATED_LABEL_PREFIX = "p8_label_gen_"
  * it is returned unchanged.
  */
 fun Path.sanitize(): Path {
-    try {
-        return this.toRealPath().normalize()
+    return try {
+        this.toRealPath().normalize()
     } catch (_: java.nio.file.NoSuchFileException) {
-        return this.absolute().normalize()
+        this.absolute().normalize()
         //throw NoSuchFileException(this.toFile(), null, nx.reason).also { it.initCause(nx) }
     } catch (iox: IOException) {
         throw FileSystemException(this.toFile()).also { it.initCause(iox) }

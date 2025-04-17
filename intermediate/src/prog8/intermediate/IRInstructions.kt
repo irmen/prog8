@@ -1005,10 +1005,10 @@ data class IRInstruction(
     private fun determineReg1Type(): IRDataType? {
         if(type==IRDataType.FLOAT) {
             // some float instructions have an integer register as well.
-            if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP))
-                return IRDataType.BYTE
+            return if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP))
+                IRDataType.BYTE
             else
-                return IRDataType.WORD
+                IRDataType.WORD
         }
         if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI)
             return IRDataType.WORD

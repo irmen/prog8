@@ -384,15 +384,19 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                     }
                 }
                 Opcode.AND -> {
-                    if (ins.immediate == 0) {
-                        chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
-                        changed = true
-                    } else if (ins.immediate == 255 && ins.type == IRDataType.BYTE) {
-                        chunk.instructions.removeAt(idx)
-                        changed = true
-                    } else if (ins.immediate == 65535 && ins.type == IRDataType.WORD) {
-                        chunk.instructions.removeAt(idx)
-                        changed = true
+                    when (ins.immediate) {
+                        0 -> {
+                            chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = 0)
+                            changed = true
+                        }
+                        255 if ins.type == IRDataType.BYTE -> {
+                            chunk.instructions.removeAt(idx)
+                            changed = true
+                        }
+                        65535 if ins.type == IRDataType.WORD -> {
+                            chunk.instructions.removeAt(idx)
+                            changed = true
+                        }
                     }
                 }
                 Opcode.OR -> {

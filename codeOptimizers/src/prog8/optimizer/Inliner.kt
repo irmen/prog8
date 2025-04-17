@@ -13,7 +13,7 @@ import prog8.code.core.InternalCompilerException
 import prog8.code.target.VMTarget
 
 
-private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.size==0
+private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.isEmpty()
 
 
 // inliner potentially enables *ONE LINED* subroutines, wihtout to be inlined.
@@ -45,7 +45,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                         else if (stmt.values[0] is IdentifierReference) {
                                             makeFullyScoped(stmt.values[0] as IdentifierReference)
                                             true
-                                        } else if (stmt.values[0]!! is IFunctionCall && (stmt.values[0] as IFunctionCall).args.size <= 1 && (stmt.values[0] as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
+                                        } else if (stmt.values[0] is IFunctionCall && (stmt.values[0] as IFunctionCall).args.size <= 1 && (stmt.values[0] as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
                                             if (stmt.values[0] is FunctionCallExpression) {
                                                 makeFullyScoped(stmt.values[0] as FunctionCallExpression)
                                                 true

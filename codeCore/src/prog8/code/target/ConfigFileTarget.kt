@@ -109,7 +109,7 @@ class ConfigFileTarget(
                     (customLauncherStr+"\n").lines().map { it.trimEnd() }
                 else emptyList()
             val assemblerOptionsStr = props.getProperty("assembler_options", "").trim()
-            val assemblerOptions = if(assemblerOptionsStr.isBlank()) null else assemblerOptionsStr
+            val assemblerOptions = assemblerOptionsStr.ifBlank { null }
 
             val outputTypeString = props.getProperty("output_type", "PRG")
             val defaultOutputType = OutputType.valueOf(outputTypeString.uppercase())

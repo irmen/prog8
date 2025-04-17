@@ -383,12 +383,11 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val toDt = range.to.inferType(program).getOrUndef()
         val fromConst = range.from.constValue(program)
         val toConst = range.to.constValue(program)
-        val varDt = if (parent is ContainmentCheck)
-                parent.element.inferType(program)
-            else if (parent is ForLoop)
-                parent.loopVarDt(program)
-            else
-                InferredTypes.InferredType.unknown()
+        val varDt = when (parent) {
+            is ContainmentCheck -> parent.element.inferType(program)
+            is ForLoop -> parent.loopVarDt(program)
+            else -> InferredTypes.InferredType.unknown()
+        }
         return adjustRangeDts(range, fromConst, fromDt, toConst, toDt, varDt.getOrUndef(), parent)
     }
 

@@ -72,14 +72,20 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
             }
 
             for((_, thing) in byname.sortedBy { it.first }) {
-                if(thing is Subroutine) {
-                    output("    ")
-                    thing.accept(this)
-                } else if(thing is Alias) {
-                    output("    ")
-                    thing.accept(this)
-                } else {
-                    outputln("???")
+                when (thing) {
+                    is Subroutine -> {
+                        output("    ")
+                        thing.accept(this)
+                    }
+
+                    is Alias -> {
+                        output("    ")
+                        thing.accept(this)
+                    }
+
+                    else -> {
+                        outputln("???")
+                    }
                 }
             }
 

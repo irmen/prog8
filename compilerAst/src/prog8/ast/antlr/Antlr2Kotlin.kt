@@ -298,7 +298,7 @@ private fun InlineirContext.toAst(): InlineAssembly {
 }
 
 private fun ReturnstmtContext.toAst() : Return {
-    val values = if(returnvalues()==null || returnvalues().expression().size==0) arrayOf<Expression>() else returnvalues().expression().map { it.toAst() }.toTypedArray()
+    val values = if(returnvalues()==null || returnvalues().expression().isEmpty()) arrayOf() else returnvalues().expression().map { it.toAst() }.toTypedArray()
     return Return(values, toPosition())
 }
 
@@ -333,14 +333,14 @@ private fun SubroutineContext.toAst() : Subroutine {
 private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
         sub_param().map {
             val decl = it.vardecl()
-            val tags = decl.TAG().map { it.text }
+            val tags = decl.TAG().map { t -> t.text }
             val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@split", "@nosplit", "@shared")
             for(tag in tags) {
                 if(tag !in validTags)
                     throw SyntaxError("invalid parameter tag '$tag'", toPosition())
             }
             val zp = getZpOption(tags)
-            var baseDt = decl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
+            val baseDt = decl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
             var datatype = DataType.forDt(baseDt)
             if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
                 datatype = datatype.elementToArray()

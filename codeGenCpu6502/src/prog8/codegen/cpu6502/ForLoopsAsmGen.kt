@@ -56,28 +56,28 @@ internal class ForLoopsAsmGen(
         val varname = asmgen.asmVariableName(stmt.variable)
 
         asmgen.assignExpressionToVariable(range.from, varname, iterableDt.elementType())
-        if (stepsize==-1 && range.to.asConstInteger()==0) {
-            // simple loop downto 0 step -1
-            asmgen.out(loopLabel)
-            asmgen.translate(stmt.statements)
-            asmgen.out("""
-                dec  $varname
-                lda  $varname
-                cmp  #255
-                bne  $loopLabel""")
+        when (stepsize) {
+            -1 if range.to.asConstInteger()==0 -> {
+                // simple loop downto 0 step -1
+                asmgen.out(loopLabel)
+                asmgen.translate(stmt.statements)
+                asmgen.out("""
+                    dec  $varname
+                    lda  $varname
+                    cmp  #255
+                    bne  $loopLabel""")
+            }
+            -1 if range.to.asConstInteger()==1 -> {
+                // simple loop downto 1 step -1
+                asmgen.out(loopLabel)
+                asmgen.translate(stmt.statements)
+                asmgen.out("""
+                    dec  $varname
+                    bne  $loopLabel""")
+            }
+            1, -1 -> forOverBytesRangeStepOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
+            else -> forOverBytesRangeStepGreaterOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
         }
-        else if (stepsize==-1 && range.to.asConstInteger()==1) {
-            // simple loop downto 1 step -1
-            asmgen.out(loopLabel)
-            asmgen.translate(stmt.statements)
-            asmgen.out("""
-                dec  $varname
-                bne  $loopLabel""")
-        }
-        else if (stepsize==1 || stepsize==-1)
-            forOverBytesRangeStepOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
-        else
-            forOverBytesRangeStepGreaterOne(range, varname, iterableDt, loopLabel, endLabel, stmt)
     }
 
     private fun forOverBytesRangeStepOne(range: PtRange, varname: String, iterableDt: DataType, loopLabel: String, endLabel: String, forloop: PtForLoop) {
@@ -454,23 +454,23 @@ $endLabel""")
                     sta  P8ZP_SCRATCH_W2        ; to
                     sty  P8ZP_SCRATCH_W2+1      ; to
                     lda  $fromVar
-	                cmp  P8ZP_SCRATCH_W2
+                    cmp  P8ZP_SCRATCH_W2
                     lda  $fromVar+1
-	                sbc  P8ZP_SCRATCH_W2+1
-	                bvc  +
-	                eor  #${'$'}80
-+           		bmi  $endLabel
+                    sbc  P8ZP_SCRATCH_W2+1
+                    bvc  +
+                    eor  #$80
++                   bmi  $endLabel
                     lda  P8ZP_SCRATCH_W2
                     ldy  P8ZP_SCRATCH_W2+1""")
             else
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_REG
-	                cmp  $fromVar
-	                tya
-	                sbc  $fromVar+1
-	                bvc  +
-	                eor  #${'$'}80
-+           		bmi  $endLabel
+                    cmp  $fromVar
+                    tya
+                    sbc  $fromVar+1
+                    bvc  +
+                    eor  #$80
++                   bmi  $endLabel
                     lda  P8ZP_SCRATCH_REG""")
         } else {
             if(stepsize<0)
@@ -486,11 +486,11 @@ $endLabel""")
 +""")
             else
                 asmgen.out("""
-                	cpy  $fromVar+1
-	                bcc  $endLabel
-	                bne  +
-	                cmp  $fromVar
-	                bcc  $endLabel
+                    cpy  $fromVar+1
+                    bcc  $endLabel
+                    bne  +
+                    cmp  $fromVar
+                    bcc  $endLabel
 +""")
         }
     }

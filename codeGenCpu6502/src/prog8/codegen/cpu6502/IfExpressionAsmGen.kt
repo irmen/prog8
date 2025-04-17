@@ -43,21 +43,26 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     }
 
     private fun evalIfExpressionConditonAndBranchWhenFalse(condition: PtExpression, falseLabel: String) {
-        if (condition is PtBinaryExpression) {
-            val rightDt = condition.right.type
-            return when {
-                rightDt.isByteOrBool -> translateIfExpressionByteConditionBranch(condition, falseLabel)
-                rightDt.isWord -> translateIfExpressionWordConditionBranch(condition, falseLabel)
-                rightDt.isFloat -> translateIfExpressionFloatConditionBranch(condition, falseLabel)
-                else -> throw AssemblyError("weird dt")
+        when (condition) {
+            is PtBinaryExpression -> {
+                val rightDt = condition.right.type
+                return when {
+                    rightDt.isByteOrBool -> translateIfExpressionByteConditionBranch(condition, falseLabel)
+                    rightDt.isWord -> translateIfExpressionWordConditionBranch(condition, falseLabel)
+                    rightDt.isFloat -> translateIfExpressionFloatConditionBranch(condition, falseLabel)
+                    else -> throw AssemblyError("weird dt")
+                }
             }
-        }
-        else if(condition is PtPrefix && condition.operator=="not") {
-            throw AssemblyError("not prefix in ifexpression should have been replaced by swapped values")
-        } else {
-            // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
-            asmgen.assignConditionValueToRegisterAndTest(condition)
-            asmgen.out("  beq  $falseLabel")
+
+            is PtPrefix if condition.operator=="not" -> {
+                throw AssemblyError("not prefix in ifexpression should have been replaced by swapped values")
+            }
+
+            else -> {
+                // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
+                asmgen.assignConditionValueToRegisterAndTest(condition)
+                asmgen.out("  beq  $falseLabel")
+            }
         }
     }
 

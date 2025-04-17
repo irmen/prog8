@@ -459,7 +459,7 @@ private fun optimizeStoreLoadSame(
     return mods
 }
 
-private val identifierRegex = Regex("""^([a-zA-Z_$][a-zA-Z\d_\.$]*)""")
+private val identifierRegex = Regex("""^([a-zA-Z_$][a-zA-Z\d_.$]*)""")
 
 private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
     // try to get the constant value address, could return null if it's a symbol instead
@@ -687,18 +687,20 @@ private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<
         // phy + ldy + pla -> tya + ldy
         // phx + ldx + pla -> txa + ldx
         // pha + lda + pla -> nop
-        if(first=="phy" && second.startsWith("ldy ") && third=="pla") {
-            mods.add(Modification(lines[3].index, true, null))
-            mods.add(Modification(lines[1].index, false, "  tya"))
-        }
-        else if(first=="phx" && second.startsWith("ldx ") && third=="pla") {
-            mods.add(Modification(lines[3].index, true, null))
-            mods.add(Modification(lines[1].index, false, "  txa"))
-        }
-        else if(first=="pha" && second.startsWith("lda ") && third=="pla") {
-            mods.add(Modification(lines[1].index, true, null))
-            mods.add(Modification(lines[2].index, true, null))
-            mods.add(Modification(lines[3].index, true, null))
+        when (first) {
+            "phy" if second.startsWith("ldy ") && third=="pla" -> {
+                mods.add(Modification(lines[3].index, true, null))
+                mods.add(Modification(lines[1].index, false, "  tya"))
+            }
+            "phx" if second.startsWith("ldx ") && third=="pla" -> {
+                mods.add(Modification(lines[3].index, true, null))
+                mods.add(Modification(lines[1].index, false, "  txa"))
+            }
+            "pha" if second.startsWith("lda ") && third=="pla" -> {
+                mods.add(Modification(lines[1].index, true, null))
+                mods.add(Modification(lines[2].index, true, null))
+                mods.add(Modification(lines[3].index, true, null))
+            }
         }
     }
 

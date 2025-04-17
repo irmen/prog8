@@ -123,7 +123,7 @@ internal class StatementReorderer(
             when(stmt) {
                 is Assignment -> {
                     if (!stmt.isAugmentable) {
-                        var assignTargets = stmt.target.multi?.mapNotNull { it.identifier?.targetVarDecl(program) }
+                        val assignTargets = stmt.target.multi?.mapNotNull { it.identifier?.targetVarDecl(program) }
                         if(assignTargets!=null) {
                             if(decl in assignTargets) {
                                 stmt.origin = AssignmentOrigin.VARINIT

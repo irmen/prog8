@@ -133,14 +133,12 @@ class IRProgram(val name: String,
             if (jump == null || jump !in OpcodesThatJump) {
                 // no jump at the end, so link to next chunk (if it exists)
                 if(next!=null) {
-                    if (next is IRCodeChunk && chunk.instructions.lastOrNull()?.opcode !in OpcodesThatJump)
-                        chunk.next = next
-                    else if(next is IRInlineAsmChunk)
-                        chunk.next = next
-                    else if(next is IRInlineBinaryChunk)
-                        chunk.next =next
-                    else
-                        throw AssemblyError("code chunk followed by invalid chunk type $next")
+                    when (next) {
+                        is IRCodeChunk if chunk.instructions.lastOrNull()?.opcode !in OpcodesThatJump -> chunk.next = next
+                        is IRInlineAsmChunk -> chunk.next = next
+                        is IRInlineBinaryChunk -> chunk.next =next
+                        else -> throw AssemblyError("code chunk followed by invalid chunk type $next")
+                    }
                 }
             }
 

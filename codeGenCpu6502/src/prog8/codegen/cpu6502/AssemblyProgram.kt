@@ -160,7 +160,7 @@ internal class AssemblyProgram(
         for (line in viceMonListFile.toFile().readLines()) {
             val match = pattern.matchEntire(line)
             if (match != null)
-                breakpoints.add("break \$" + match.groupValues[1])
+                breakpoints.add("break $" + match.groupValues[1])
         }
         val num = breakpoints.size
         breakpoints.add(0, "; breakpoint list now follows")

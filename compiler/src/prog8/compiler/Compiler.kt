@@ -255,12 +255,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
 internal fun determineProgramLoadAddress(program: Program, options: CompilationOptions, errors: IErrorReporter) {
     val specifiedAddress = program.toplevelModule.loadAddress
-    var loadAddress: UInt?
-    if(specifiedAddress!=null)
-        loadAddress = specifiedAddress.first
-    else
-        loadAddress = options.compTarget.PROGRAM_LOAD_ADDRESS
-
+    val loadAddress = specifiedAddress?.first ?: options.compTarget.PROGRAM_LOAD_ADDRESS
 
 
     if(options.output==OutputType.PRG && options.launcher==CbmPrgLauncherType.BASIC && options.compTarget.customLauncher.isEmpty()) {
@@ -343,7 +338,7 @@ fun parseMainModule(filepath: Path,
             errors.err("library must not use a launcher", program.toplevelModule.position)
         if(compilerOptions.zeropage != ZeropageType.DONTUSE)
             errors.err("library cannot use zeropage", program.toplevelModule.position)
-        if(compilerOptions.noSysInit == false)
+        if(!compilerOptions.noSysInit)
             errors.err("library cannot use sysinit", program.toplevelModule.position)
     } else {
         if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)

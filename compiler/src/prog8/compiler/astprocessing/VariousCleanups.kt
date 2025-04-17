@@ -1,10 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
-import prog8.ast.FatalAstException
+import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -79,7 +75,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 errors.err("@split and @nosplit are for word arrays only", decl.position)
         }
         else if(decl.datatype.isWordArray) {
-            var changeDataType: DataType? = null
+            var changeDataType: DataType?
             var changeSplit: SplitWish = decl.splitwordarray
             when(decl.splitwordarray) {
                 SplitWish.DONTCARE -> {

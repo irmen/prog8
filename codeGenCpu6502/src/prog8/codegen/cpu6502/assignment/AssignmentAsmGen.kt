@@ -2610,7 +2610,7 @@ $endLabel""")
             val arrayName = if(arrayDt!!.isSplitWordArray) sourceName+"_lsb" else sourceName        // the _lsb split array comes first in memory
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
-                if (arrayDt.isUnsignedWord ==true) {
+                if (arrayDt.isUnsignedWord) {
                     require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     if(constIndex>0)
@@ -2632,7 +2632,7 @@ $endLabel""")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return
             } else {
-                if (arrayDt.isUnsignedWord ==true) {
+                if (arrayDt.isUnsignedWord) {
                     require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
@@ -3221,7 +3221,7 @@ $endLabel""")
                             if(signed)
                                 asmgen.out("""
                 ldy  #0
-                cmp  #${'$'}80
+                cmp  #$80
                 bcc  +
                 dey
 +""")
@@ -3233,7 +3233,7 @@ $endLabel""")
                             if(signed)
                                 asmgen.out("""
                 ldx  #0
-                cmp  #${'$'}80
+                cmp  #$80
                 bcc  +
                 dex
 +""")
@@ -3246,7 +3246,7 @@ $endLabel""")
                                 asmgen.out("""
                 tax
                 ldy  #0
-                cpx  #${'$'}80
+                cpx  #$80
                 bcc  +
                 dey
 +""")
@@ -3272,7 +3272,7 @@ $endLabel""")
                                 asmgen.out("""
                 txa
                 ldy  #0
-                cmp  #${'$'}80
+                cmp  #$80
                 bcc  +
                 dey
 +""")
@@ -3285,7 +3285,7 @@ $endLabel""")
                                 asmgen.out("""
                 txa
                 ldx  #0
-                cmp  #${'$'}80
+                cmp  #$80
                 bcc  +
                 dex
 +""")
@@ -3297,7 +3297,7 @@ $endLabel""")
                             if(signed)
                                 asmgen.out("""
                 ldy  #0
-                cpx  #${'$'}80
+                cpx  #$80
                 bcc  +
                 dey
 +""")
@@ -3323,7 +3323,7 @@ $endLabel""")
                                 asmgen.out("""
                 tya
                 ldy  #0
-                cmp  #${'$'}80
+                cmp  #$80
                 bcc  +
                 dey
 +""")
@@ -3336,7 +3336,7 @@ $endLabel""")
                                 asmgen.out("""
                 tya
                 ldx  #0
-                cmp  #${'$'}80
+                cmp  #$80
                 bcc  +
                 dex
 +""")
@@ -3350,7 +3350,7 @@ $endLabel""")
                 tya
                 tax
                 ldy  #0
-                cpx  #${'$'}80
+                cpx  #$80
                 bcc  +
                 dey
 +""")

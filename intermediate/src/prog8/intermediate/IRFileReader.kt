@@ -350,7 +350,7 @@ class IRFileReader {
         require(reader.nextEvent().isCharacters)
         require(reader.nextEvent().isEndElement)
 
-        var next = reader.peek()
+        val next = reader.peek()
         if(next.isStartElement && next.asStartElement().name.localPart=="P8SRC") {
             reader.nextEvent()  // skip the P8SRC node
             while(!reader.nextEvent().isEndElement) { /* skip until end of P8SRC node */ }

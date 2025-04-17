@@ -134,7 +134,7 @@ internal class AstChecker(private val program: Program,
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
                     } else {
-                        errors.err("return value's type $valueDt doesn't match subroutine's return type ${expectedDt}", actual.position)
+                        errors.err("return value's type $valueDt doesn't match subroutine's return type $expectedDt", actual.position)
                     }
                 }
             }
@@ -182,7 +182,7 @@ internal class AstChecker(private val program: Program,
 
         val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
 
-        if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric!? "+forLoop.position) // TODO
+        if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric!? "+forLoop.position)
 
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
