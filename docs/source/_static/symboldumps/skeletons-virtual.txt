@@ -1,6 +1,5 @@
 
-Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a6835ce3 in branch master
+Prog8 compiler v11.3 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -225,10 +224,15 @@ math  {
     log2w  (uword value) -> ubyte 
     mul16_last_upper  () -> uword 
     randrange  (ubyte n) -> ubyte 
+    randrange_rom   alias for: math.randrange
     randrangew  (uword n) -> uword 
+    randrangew_rom   alias for: math.randrangew
     rnd  () -> ubyte 
+    rnd_rom   alias for: math.rnd
     rndseed  (uword seed1, uword seed2) 
+    rndseed_rom   alias for: math.rndseed
     rndw  () -> uword 
+    rndw_rom   alias for: math.rndw
     sin8  (ubyte angle) -> byte 
     sin8u  (ubyte angle) -> ubyte 
     sinr8  (ubyte radians) -> byte 

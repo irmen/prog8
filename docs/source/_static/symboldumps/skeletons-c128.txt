@@ -1,6 +1,5 @@
 
-Prog8 compiler v11.3-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit a6835ce3 in branch master
+Prog8 compiler v11.3 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -212,10 +211,15 @@ math  {
     log2w  (uword value @AY) -> ubyte @Y 
     mul16_last_upper  () -> uword @AY 
     randrange  (ubyte n) -> ubyte 
+    randrange_rom  (ubyte n) -> ubyte 
     randrangew  (uword n) -> uword 
+    randrangew_rom  (uword n) -> uword 
     rnd  () -> clobbers (Y) -> ubyte @A 
+    rnd_rom  () -> clobbers (Y) -> ubyte @A 
     rndseed  (uword seed1 @AY, uword seed2 @R0) -> clobbers (A,Y) 
+    rndseed_rom  (uword seed1 @AY, uword seed2 @R0) -> clobbers (A,Y) 
     rndw  () -> uword @AY 
+    rndw_rom  () -> uword @AY 
     sin8  (ubyte angle @A) -> clobbers (Y) -> byte @A 
     sin8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
     sinr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
