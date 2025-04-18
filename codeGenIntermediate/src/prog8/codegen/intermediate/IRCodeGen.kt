@@ -1761,18 +1761,33 @@ class IRCodeGen(
         if(ret.children.size>1) {
             // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
             // (this allows unencumbered use of many Rx registers if you don't return that many values)
-            // make sure to assign the first value as the last in the sequence, to avoid clobbering the AY registers afterwards
+            // a floating point value is passed via FAC   (just one fp value is possible)
+
             val returnRegs = ret.definingISub()!!.returnsWhatWhere()
             val values = ret.children.zip(returnRegs)
+            // first all but the first return values
             for ((value, register) in values.drop(1)) {
                 val tr = expressionEval.translateExpression(value as PtExpression)
-                addToResult(result, tr, tr.resultReg, -1)
-                result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
+                if(register.second.isFloat) {
+                    addToResult(result, tr, -1, tr.resultFpReg)
+                    result += setCpuRegister(register.first, IRDataType.FLOAT, -1, tr.resultFpReg)
+                }
+                else {
+                    addToResult(result, tr, tr.resultReg, -1)
+                    result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
+                }
             }
+            // finally do the first of the return values (this avoids clobbering of its value in AY)
             values.first().also { (value, register) ->
                 val tr = expressionEval.translateExpression(value as PtExpression)
-                addToResult(result, tr, tr.resultReg, -1)
-                result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
+                if(register.second.isFloat) {
+                    addToResult(result, tr, -1, tr.resultFpReg)
+                    result += setCpuRegister(register.first, IRDataType.FLOAT, -1, tr.resultFpReg)
+                }
+                else {
+                    addToResult(result, tr, tr.resultReg, -1)
+                    result += setCpuRegister(register.first, irType(register.second), tr.resultReg, -1)
+                }
             }
             addInstr(result, IRInstruction(Opcode.RETURN), null)
             return result

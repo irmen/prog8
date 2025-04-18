@@ -1592,8 +1592,8 @@ internal class AstChecker(private val program: Program,
             }
 
             if(target.returntypes.size>1) {
-                if (DataType.FLOAT in target.returntypes) {
-                    errors.err("floats cannot be used as part of a multi-value result", target.position)
+                if(target.returntypes.count { it.isFloat }>1) {
+                    errors.err("can only have a single float value in a multi-value result", target.position)
                 }
             }
             if(target.returntypes.size>16) {

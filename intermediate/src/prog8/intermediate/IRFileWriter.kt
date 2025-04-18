@@ -149,7 +149,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             if(usedRegs.readFpRegs.any())
                 regs.append(" read: ${usedRegs.readFpRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
             if(usedRegs.writeFpRegs.any())
-                regs.append(" write: ${usedRegs.writeRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
+                regs.append(" write: ${usedRegs.writeFpRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
         }
 
         xml.writeStartElement("CODE")

@@ -1164,11 +1164,11 @@ Subroutines can return more than one value.
 For example, ``asmsub`` routines (implemented in assembly code) or ``extsub`` routines
 (referencing an external routine in ROM or elsewhere in RAM) can return multiple values spread
 across different registers, and even the CPU's status register flags for boolean values.
-Normal subroutines can also return multiple values (restricted to booleans, bytes and word values).
-In all of these cases, you have to "multi assign" all return values of the subroutine call to something.
-You simply write the assignment targets as a comma separated list,
-where the element's order corresponds to the order of the return values declared in the subroutine's signature.
-So for instance::
+Normal subroutines can also return multiple values.
+You have to "multi assign" all return values of the subroutine call to something:
+write the assignment targets as a comma separated list, where the element's order corresponds
+to the order of the return values declared in the subroutine's signature.
+Remember that you can use ``void`` to skip a value. So for instance::
 
     bool   flag
     ubyte  bytevar
@@ -1180,8 +1180,10 @@ So for instance::
 
 .. sidebar:: register usage
 
-    Subroutines with multiple return values use cpu registers A, Y, and the R0-R15 "virtual registers" to return those.
-    Using those virtual registers during the calculation of the values in the return statement should be avoided.
+    Subroutines with multiple return values use cpu registers A, Y, and the R0-R15 "virtual registers" to return those,
+    depending on the number of values returend.  A floating point value is passed via the FAC 'register'
+    (only a single floating point value is supported).
+    Using these during the calculation of the values in the return statement should be avoided.
     Otherwise you risk overwriting an earlier return value in the sequence.
 
 

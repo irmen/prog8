@@ -7,7 +7,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- Multi-value returns of normal subroutines: Can FAC be used for floats? Floats are now not supported for multi-value returns ("floats cannot be used as part of a multi-value result")
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

@@ -160,6 +160,8 @@ Regular subroutines
   - for regular subroutines, the compiler will return the first of the return values via the cpu register ``A``` (or ``A + Y``` if it's a word value),
     just like for subroutines that only return a single value.
     The remainder of the return values are returned via the "virtual registers" cx16.r16-cx16.r0 (using R15 first and counting down to R0).
+    A floating point value is passed via FAC1 as usual (only a single floating point value is supported,
+    using FAC1 and FAC2 together unfortunately interferes with the values).
 
 
 **Builtin functions can be different:**

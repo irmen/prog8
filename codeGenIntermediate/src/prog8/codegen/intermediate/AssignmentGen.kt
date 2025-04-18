@@ -76,6 +76,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             RegisterOrPair.AY -> IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
             RegisterOrPair.XY -> IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
             in Cx16VirtualRegisters -> IRInstruction(Opcode.LOADM, irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}")
+            RegisterOrPair.FAC1 -> IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = regNum)
+            RegisterOrPair.FAC2 -> IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = regNum)
             null -> {
                 TODO("assign CPU status flag ${returns.register.statusflag!!}")
             }
@@ -361,10 +363,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val instruction = if(zero) {
                 IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = targetIdent.name)
             } else {
-                if (targetDt == IRDataType.FLOAT)
+                if (targetDt == IRDataType.FLOAT) {
+                    require(valueFpRegister>=0)
                     IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = targetIdent.name)
-                else
+                }
+                else {
+                    require(valueRegister>=0)
                     IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = targetIdent.name)
+                }
             }
             result += IRCodeChunk(null, null).also { it += instruction }
             return result

@@ -31,11 +31,21 @@ sealed interface IPtSubroutine {
                     }
                     else -> {
                         // for multi-value results, put the first one in A or AY cpu register(s) and the rest in the virtual registers starting from R15 and counting down
-                        val first = cpuRegisterFor(returns.first()) to returns.first()
-                        val others = returns.drop(1)
-                            .zip(Cx16VirtualRegisters.reversed())
-                            .map { (type, reg) -> RegisterOrStatusflag(reg, null) to type }
-                        return listOf(first) + others
+                        // a floating point return values is returned in FAC1. Only a single fp value is possible.
+                        // The reason FAC2 cannot be used as well to support 2 fp values is that working with both FACs interferes with another.
+                        val firstRegister = cpuRegisterFor(returns.first()) to returns.first()
+
+                        val availableIntegerRegisters = Cx16VirtualRegisters.toMutableList()
+                        val availableFloatRegisters = mutableListOf(RegisterOrPair.FAC1)        // just one value is possible
+                        val others = returns.drop(1).map { type ->
+                            when {
+                                type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLast(), null) to type
+                                type.isIntegerOrBool -> RegisterOrStatusflag(availableIntegerRegisters.removeLast(), null) to type
+                                else -> throw AssemblyError("unsupported return type $type")
+                            }
+                        }
+
+                        return listOf(firstRegister) + others
                     }
                 }
             }

@@ -60,6 +60,8 @@ class VirtualMachine(irProgram: IRProgram) {
     var hardwareRegisterA: UByte = 0u
     var hardwareRegisterX: UByte = 0u
     var hardwareRegisterY: UByte = 0u
+    var hardwareRegisterFAC0: Double = 0.0
+    var hardwareRegisterFAC1: Double = 0.0
 
     internal var randomGenerator = Random(0xa55a7653)
     internal var randomGeneratorFloats = Random(0xc0d3dbad)
@@ -195,8 +197,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADHAX -> InsLOADHAX(ins)
             Opcode.LOADHAY -> InsLOADHAY(ins)
             Opcode.LOADHXY -> InsLOADHXY(ins)
-            Opcode.LOADHFACZERO -> TODO("read cpu reg FAC0")
-            Opcode.LOADHFACONE -> TODO("read cpu reg FAC1")
+            Opcode.LOADHFACZERO -> InsLOADHFACZERO(ins)
+            Opcode.LOADHFACONE -> InsLOADHFACONE(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREIX -> InsSTOREIX(ins)
@@ -210,8 +212,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREHAX -> InsSTOREHAX(ins)
             Opcode.STOREHAY -> InsSTOREHAY(ins)
             Opcode.STOREHXY -> InsSTOREHXY(ins)
-            Opcode.STOREHFACZERO -> TODO("store cpu reg FAC0")
-            Opcode.STOREHFACONE-> TODO("store cpu reg FAC1")
+            Opcode.STOREHFACZERO -> InsSTOREHFACZERO(ins)
+            Opcode.STOREHFACONE-> InsSTOREHFACONE(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.PREPARECALL -> nextPc()
@@ -1291,6 +1293,27 @@ class VirtualMachine(irProgram: IRProgram) {
         statusbitsComparison(comparison, i.type!!)
         nextPc()
     }
+
+    private fun InsLOADHFACZERO(ins: IRInstruction) {
+        registers.setFloat(ins.fpReg1!!, hardwareRegisterFAC0)
+        nextPc()
+    }
+
+    private fun InsLOADHFACONE(ins: IRInstruction) {
+        registers.setFloat(ins.fpReg1!!, hardwareRegisterFAC1)
+        nextPc()
+    }
+
+    private fun InsSTOREHFACZERO(ins: IRInstruction) {
+        hardwareRegisterFAC0 = registers.getFloat(ins.fpReg1!!)
+        nextPc()
+    }
+
+    private fun InsSTOREHFACONE(ins: IRInstruction) {
+        hardwareRegisterFAC1 = registers.getFloat(ins.fpReg1!!)
+        nextPc()
+    }
+
 
     private fun statusbitsNZ(value: Int, type: IRDataType) {
         statusZero = value==0

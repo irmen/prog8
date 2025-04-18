@@ -1,11 +1,14 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StNode
 import prog8.code.StExtSub
+import prog8.code.StNode
 import prog8.code.StNodeType
 import prog8.code.StSub
 import prog8.code.ast.*
-import prog8.code.core.*
+import prog8.code.core.AssemblyError
+import prog8.code.core.BaseDataType
+import prog8.code.core.Cx16VirtualRegisters
+import prog8.code.core.Statusflag
 import prog8.intermediate.*
 
 
@@ -30,7 +33,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     fun translateExpression(expr: PtExpression): ExpressionCodeResult {
         return when (expr) {
             is PtIrRegister -> {
-                ExpressionCodeResult(emptyList(), irType(expr.type), expr.register, -1)
+                if(expr.type.isFloat)
+                    ExpressionCodeResult(emptyList(), IRDataType.FLOAT, -1, expr.register)
+                else
+                    ExpressionCodeResult(emptyList(), irType(expr.type), expr.register, -1)
             }
             is PtBool -> {
                 val code = IRCodeChunk(null, null)
