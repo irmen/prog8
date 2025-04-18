@@ -23,6 +23,7 @@ Future Things and Ideas
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 - [much work:] more support for (64tass) SEGMENTS in the prog8 syntax itself?
+- ability to use a sub instead of only a var for @bank ? what for though? dynamic bank/overlay loading?
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
 
