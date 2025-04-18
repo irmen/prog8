@@ -98,6 +98,7 @@ Features
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
 - Tight control over Zeropage usage
 - Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
+- Programs can be configured to execute in ROM
 - Conditional branches for status flags that map 1:1 to processor branch instructions for optimal efficiency
 - ``when`` statement to avoid if-else chains
 - ``in`` expression for concise and efficient multi-value/containment test

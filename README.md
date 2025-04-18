@@ -65,6 +65,7 @@ What does Prog8 provide?
 - access to most Kernal ROM routines as external subroutine definitions you can call normally
 - tight control over Zeropage usage
 - programs can be run multiple times without reloading because of automatic variable (re)initializations.
+- programs can be configured to execute in ROM
 - strings can contain escaped characters but also many symbols directly if they have a petscii equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \, {, } and | are also accepted and converted to the closest petscii equivalents.
 - automatic static variable allocations, automatic string and array variables and string sharing
 - high-level program optimizations

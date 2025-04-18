@@ -7,6 +7,7 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- Multi-value returns of normal subroutines: Can FAC be used for floats? Floats are now not supported for multi-value returns ("floats cannot be used as part of a multi-value result")
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
@@ -54,7 +55,6 @@ Libraries
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 - c128 target: make syslib more complete (missing kernal routines)?
-- VM: implement the last diskio support (file listings)
 
 
 Optimizations
@@ -62,7 +62,6 @@ Optimizations
 
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
-- Multi-value returns of normal subroutines: Can FAC then be used for floats as well again? Those are now not supported for multi-value returns.
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest

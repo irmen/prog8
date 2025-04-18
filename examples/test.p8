@@ -1,13 +1,19 @@
 %import textio
+%option enable_floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        &uword zeropagevar = $20
-        uword @shared ptr = 999
+        ubyte ub
+        uword uw
+        ub, uw, fl = multi()
+    }
 
-        cx16.r0L = @(zeropagevar)
-        cx16.r1L = @(ptr)
+    float @shared fl
+
+    sub multi() -> ubyte, uword, float {
+        cx16.r0++
+        return cx16.r0L, cx16.r1, fl
     }
 }

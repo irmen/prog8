@@ -18,44 +18,8 @@ diskio {
         }}
     }
 
-    sub list_filenames(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
-        ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
-        ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against.
-        ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
-        ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
-        ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
-        ;    Note that no list of pointers of some form is returned, the names are just squashed together.
-        ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
-        ;    and registering when the next one starts after the 0-byte separator.
-        ; TODO IMPLEMENT THIS
-        txt.print("@TODO: list_filenames\n")
-        sys.clear_carry()
-        return 0
-    }
-
-    ; ----- iterative file lister functions (uses the read io channel) -----
-
-    sub lf_start_list(uword pattern_ptr) -> bool {
-        ; -- start an iterative file listing with optional pattern matching.
-        ;    note: only a single iteration loop can be active at a time!
-        ; TODO IMPLEMENT THIS
-        txt.print("@TODO: lf_start_list\n")
-        return false
-    }
-
-    sub lf_next_entry() -> bool {
-        ; -- retrieve the next entry from an iterative file listing session.
-        ;    results will be found in list_blocks, list_filename, and list_filetype.
-        ;    if it returns false though, there are no more entries (or an error occurred).
-        ; TODO IMPLEMENT THIS
-        txt.print("@TODO: lf_next_entry\n")
-        return false
-    }
-
-    sub lf_end_list() {
-        ; TODO IMPLEMENT THIS
-        txt.print("@TODO: lf_end_list\n")
-    }
+    ; the VM version of diskio has no facility to iterate over filenames.
+    ; (list_filenames, lf_start_list, lf_next_entry, lf_end_list)
 
 
     ; ----- iterative file loader functions (uses the input io channel) -----

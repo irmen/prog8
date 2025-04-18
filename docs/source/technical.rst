@@ -334,7 +334,7 @@ There are a few things to note:
 - the same holds for memory blocks allocated using the ``memory`` function; nothing changes for them.
 - the memory region for variables and memory blocks (BSS sections) should be explicitly placed in RAM memory.
   You can do this with the ``-varsgolden`` or ``-varshigh``, and ``-slabsgolden`` or ``-slabshigh`` command line options.
-  TODO: maybe in the future an option will be added to choose a memory address for those manually.
+  Maybe in the future an option will be added to choose a memory address for those manually.
 
 .. note::
     The ROMable code generation is still quite experimental. Problems may still surface, and perhaps

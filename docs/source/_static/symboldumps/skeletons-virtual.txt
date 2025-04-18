@@ -123,10 +123,6 @@ diskio  {
     f_readline  (uword bufptr) -> ubyte 
     f_write  (uword bufferpointer, uword num_bytes) -> bool 
     get_loadaddress  (str filename) -> uword 
-    lf_end_list  () 
-    lf_next_entry  () -> bool 
-    lf_start_list  (uword pattern_ptr) -> bool 
-    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     load  (uword filenameptr, uword address_override) -> uword 
     load_raw  (uword filenameptr, uword start_address) -> uword 
     mkdir  (str name) 
