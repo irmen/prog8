@@ -424,6 +424,7 @@ byte_read_loop:         ; fallback if MACPTR isn't supported on the device
                 inc  P8ZP_SCRATCH_W1+1
 +
             }}
+            list_blocks++
             cx16.r0L = cbm.READST()
             if_nz {
                 f_close()
@@ -432,18 +433,17 @@ byte_read_loop:         ; fallback if MACPTR isn't supported on the device
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
             }
-            list_blocks++
             num_bytes--
         }
         cbm.CLRCHN()            ; reset default i/o channels
         return list_blocks  ; number of bytes read
     }
 
-    ; optimized for Commander X16 to use MACPTR block read kernal call
     sub f_read_all(uword bufferpointer) -> uword {
-        ; -- read the full contents of the file, returns number of bytes read.
+        ; -- read the full rest of the file, returns number of bytes read.
         ;    It is assumed the file size is less than 64 K.
         ;    NOTE: cannot be used to load into VRAM.  Use vload() or call cx16.MACPTR() yourself with the vera data register as address.
+        ;    Usually you will just be using load() / load_raw() or vload() / vload_raw() to read entire files!
         if not iteration_in_progress
             return 0
 
@@ -451,6 +451,8 @@ byte_read_loop:         ; fallback if MACPTR isn't supported on the device
         uword total_read = 0
         while cbm.READST()==0 {
             cx16.r0 = f_read(bufferpointer, 256)
+            if cx16.r0==0
+                break
             total_read += cx16.r0
             bufferpointer += cx16.r0
         }

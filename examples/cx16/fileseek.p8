@@ -47,6 +47,8 @@ main {
 
     sub read_last_bytes() {
         ; read the last 10 bytes of the 1300 bytes file
+
+        ; first a test that a regular read still reads 1300 bytes
         uword total = 0
         uword size
         txt.print("\nreading...\n")
@@ -61,6 +63,7 @@ main {
             sys.exit(1)
         }
 
+        ; now the actual seek and read of the last few bytes
         txt.print("\nseeking to 1290 and reading...\n")
         if diskio.f_open("seektestfile.bin") {
             diskio.f_seek(0, 1290)

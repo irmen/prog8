@@ -378,6 +378,7 @@ close_end:
                 inc  P8ZP_SCRATCH_W1+1
 +
             }}
+            list_blocks++
             cx16.r0L = cbm.READST()
             if_nz {
                 f_close()
@@ -386,7 +387,6 @@ close_end:
                     return list_blocks   ; number of bytes read
                 return 0  ; error.
             }
-            list_blocks++
             num_bytes--
         }
         cbm.CLRCHN()            ; reset default i/o channels
@@ -394,8 +394,9 @@ close_end:
     }
 
     sub f_read_all(uword bufferpointer) -> uword {
-        ; -- read the full contents of the file, returns number of bytes read.
+        ; -- read the full rest of the file, returns number of bytes read.
         ;    It is assumed the file size is less than 64 K.
+        ;    Usually you will just be using load() / load_raw() to read entire files!
         if not iteration_in_progress
             return 0
 
@@ -403,6 +404,8 @@ close_end:
         uword total_read = 0
         while cbm.READST()==0 {
             cx16.r0 = f_read(bufferpointer, 256)
+            if cx16.r0==0
+                break
             total_read += cx16.r0
             bufferpointer += cx16.r0
         }

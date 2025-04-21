@@ -58,8 +58,9 @@ diskio {
     }
 
     sub f_read_all(uword bufferpointer) -> uword {
-        ; -- read the full contents of the file, returns number of bytes read.
+        ; -- read the full rest of the file, returns number of bytes read.
         ;    It is assumed the file size is less than 64 K.
+        ;    Usually you will just be using load() / load_raw() to read entire files!
         uword actual
         repeat {
             %ir {{
