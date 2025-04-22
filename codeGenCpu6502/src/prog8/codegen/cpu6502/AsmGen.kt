@@ -623,7 +623,7 @@ class AsmGen6502Internal (
             is PtJump -> {
                 val target = getJumpTarget(stmt)
                 require(!target.needsExpressionEvaluation)
-                jmp(target.asmLabel, target.indirect)
+                jmp(target.asmLabel, target.indirect, target.indexedX)
             }
             is PtLabel -> translate(stmt)
             is PtConditionalBranch -> translate(stmt)
@@ -1066,7 +1066,7 @@ $repeatLabel""")
         }
     }
 
-    class JumpTarget(val asmLabel: String, val indirect: Boolean, val needsExpressionEvaluation: Boolean)
+    class JumpTarget(val asmLabel: String, val indirect: Boolean, val indexedX: Boolean, val needsExpressionEvaluation: Boolean)
 
     internal fun getJumpTarget(jump: PtJump, evaluateAddressExpression: Boolean = true): JumpTarget {
         val ident = jump.target as? PtIdentifier
@@ -1074,20 +1074,28 @@ $repeatLabel""")
             // can be a label, or a pointer variable
             val symbol = symbolTable.lookup(ident.name)
             return if(symbol?.type in arrayOf(StNodeType.STATICVAR, StNodeType.MEMVAR, StNodeType.CONSTANT))
-                JumpTarget(asmSymbolName(ident), true, false)        // indirect jump if the jump symbol is a variable
+                JumpTarget(asmSymbolName(ident), true, false,false)        // indirect jump if the jump symbol is a variable
             else
-                JumpTarget(asmSymbolName(ident), false, false)
+                JumpTarget(asmSymbolName(ident), false, false,false)
         }
         val addr = jump.target.asConstInteger()
         if(addr!=null)
-            return JumpTarget(addr.toHex(), false, false)
+            return JumpTarget(addr.toHex(), false, false,false)
         else {
             if(evaluateAddressExpression) {
+                val arrayIdx = jump.target as? PtArrayIndexer
+                if(arrayIdx!=null && !arrayIdx.splitWords) {
+                    // if the jump target is an address in a non-split array (like a jump table of only pointers),
+                    // more optimal assembly can be generated using JMP address,X
+                    assignExpressionToRegister(arrayIdx.index, RegisterOrPair.A)
+                    out("  asl  a |  tax")
+                    return JumpTarget(asmSymbolName(arrayIdx.variable), true, true, false)
+                }
                 // we can do the address evaluation right now and just use a temporary pointer variable
                 assignExpressionToVariable(jump.target, "P8ZP_SCRATCH_W1", DataType.UWORD)
-                return JumpTarget("P8ZP_SCRATCH_W1", true, false)
+                return JumpTarget("P8ZP_SCRATCH_W1", true, false,false)
             } else {
-                return JumpTarget("PROG8_JUMP_TARGET_IS_UNEVALUATED_ADDRESS_EXPRESSION", true, true)
+                return JumpTarget("PROG8_JUMP_TARGET_IS_UNEVALUATED_ADDRESS_EXPRESSION", true, false,true)
             }
         }
     }
@@ -1207,10 +1215,14 @@ $repeatLabel""")
 
     internal fun isZpVar(variable: PtIdentifier): Boolean = allocator.isZpVar(variable.name)
 
-    internal fun jmp(asmLabel: String, indirect: Boolean=false) {
+    internal fun jmp(asmLabel: String, indirect: Boolean=false, indexedX: Boolean=false) {
         if(indirect) {
-            out("  jmp  ($asmLabel)")
+            if(indexedX)
+                out("  jmp  ($asmLabel,x)")
+            else
+                out("  jmp  ($asmLabel)")
         } else {
+            require(!indexedX) { "indexedX only allowed for indirect jumps" }
             if (isTargetCpu(CpuType.CPU65C02))
                 out("  bra  $asmLabel")     // note: 64tass will convert this automatically to a jmp if the relative distance is too large
             else

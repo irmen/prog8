@@ -1,8 +1,6 @@
 TODO
 ====
 
-- can goto array[idx] be optimized (array as @nosplit) ?
-
 ...
 
 
