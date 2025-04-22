@@ -200,10 +200,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         }
         return CompilationResult(resultingProgram!!, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {
-        System.out.flush()
-        System.err.print("\n\u001b[91m")  // bright red
-        System.err.println("${px.position.toClickableStr()} parse error: ${px.message}".trim())
-        System.err.print("\u001b[0m")  // reset
+        args.errors.print_single_error("${px.position.toClickableStr()} parse error: ${px.message}".trim())
     } catch (ac: ErrorsReportedException) {
         if(args.printAst1 && resultingProgram!=null) {
             println("\n*********** COMPILER AST *************")
@@ -220,32 +217,17 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             }
         }
         if(!ac.message.isNullOrEmpty()) {
-            System.out.flush()
-            System.err.print("\n\u001b[91m")  // bright red
-            System.err.println(ac.message)
-            System.err.print("\u001b[0m")  // reset
+            args.errors.print_single_error(ac.message!!)
         }
     } catch (nsf: NoSuchFileException) {
-        System.out.flush()
-        System.err.print("\n\u001b[91m")  // bright red
-        System.err.println("File not found: ${nsf.message}")
-        System.err.print("\u001b[0m")  // reset
+        args.errors.print_single_error("File not found: ${nsf.message}")
     } catch (ax: AstException) {
-        System.out.flush()
-        System.err.print("\n\u001b[91m")  // bright red
-        System.err.println(ax.toString())
-        System.err.print("\u001b[0m")  // reset
+        args.errors.print_single_error(ax.toString())
     } catch (x: Exception) {
-        print("\n\u001b[91m")  // bright red
-        println("\n* internal error *")
-        print("\u001b[0m")  // reset
-        System.out.flush()
+        args.errors.print_single_error("\ninternal error")
         throw x
     } catch (x: NotImplementedError) {
-        print("\n\u001b[91m")  // bright red
-        println("\n* internal error: missing feature/code *")
-        print("\u001b[0m")  // reset
-        System.out.flush()
+        args.errors.print_single_error("\ninternal error: missing feature/code")
         throw x
     }
 

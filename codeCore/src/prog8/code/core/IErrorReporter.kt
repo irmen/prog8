@@ -13,4 +13,6 @@ interface IErrorReporter {
     }
 
     fun noErrorForLine(position: Position): Boolean
+
+    fun print_single_error(errormessage: String)
 }
