@@ -508,6 +508,7 @@ private fun optimizeIncDec(linesByFour: Sequence<List<IndexedValue<String>>>): L
 
 private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
     // jsr Sub + rts -> jmp Sub
+    // jmp Sub + rts -> jmp Sub
     // rts + jmp -> remove jmp
     // rts + bxx -> remove bxx
     // lda  + cmp #0 -> remove cmp,  same for cpy and cpx.
@@ -520,7 +521,10 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
         val third = lines[2].value
 
         if(!haslabel(second)) {
-            if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
+            if ((" jmp" in first || "\tjmp" in first ) && (" rts" in second || "\trts" in second)) {
+                mods += Modification(lines[1].index, true, null)
+            }
+            else if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
                 if("floats.pushFAC" !in first && "floats.popFAC" !in first) {       // these 2 routines depend on being called with JSR!!
                     mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
                     mods += Modification(lines[1].index, true, null)
