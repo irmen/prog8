@@ -1,37 +1,27 @@
 %import textio
-%zeropage dontuse
+%zeropage basicsafe
 %option no_sysinit
 
 main {
-    ubyte @shared ub_global
-    uword @shared uw_global = 0
-    bool[4] @shared bool_array_global
 
     sub start() {
-        ubyte @shared ub_scoped
-        uword @shared uw_scoped = 0
-        bool[4] @shared bool_array_scoped
+        uword[128]  ptrs
+        ptrs[0] = &one
+        ptrs[1] = &two
+        ptrs[2] = &three
 
-        dump()
-
-        ub_scoped++
-        uw_scoped++
-        bool_array_scoped[2]=true
-        ub_global++
-        uw_global++
-        bool_array_global[2]=true
-
-        dump()
-
-        sub dump() {
-            txt.print_ub(ub_global)
-            txt.print_uw(uw_global)
-            txt.print_bool(bool_array_global[2])
-            txt.nl()
-            txt.print_ub(ub_scoped)
-            txt.print_uw(uw_scoped)
-            txt.print_bool(bool_array_scoped[2])
-            txt.nl()
-        }
+        ubyte @shared x =1
+        goto ptrs[x]
     }
+
+    sub one() {
+        txt.print("one\n")
+    }
+    sub two() {
+        txt.print("two\n")
+    }
+    sub three() {
+        txt.print("three\n")
+    }
+
 }

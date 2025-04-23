@@ -1,6 +1,8 @@
 TODO
 ====
 
+- get rid of RTS after JMP when doing goto's
+
 ...
 
 
