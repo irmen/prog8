@@ -1,5 +1,4 @@
 %import textio
-%import diskio
 %zeropage basicsafe
 %option no_sysinit
 
