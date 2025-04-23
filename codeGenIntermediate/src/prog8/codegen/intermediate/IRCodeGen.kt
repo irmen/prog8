@@ -64,15 +64,17 @@ class IRCodeGen(
             if(variable.uninitialized && variable.parent.type==StNodeType.BLOCK) {
                 val block = variable.parent.astNode as PtBlock
                 val initialization = (block.children.firstOrNull {
-                    it is PtAssignment && it.target.identifier?.name==variable.scopedName
+                    it is PtAssignment && it.isVarInitializer && it.target.identifier?.name==variable.scopedName
                 } as PtAssignment?)
                 val initValue = initialization?.value
                 when(initValue){
                     is PtBool -> {
+                        require(initValue.asInt()!=0) { "boolean var should not be initialized with false, it wil be set to false as part of BSS clear, initializer=$initialization" }
                         variable.setOnetimeInitNumeric(initValue.asInt().toDouble())
                         initsToRemove += block to initialization
                     }
                     is PtNumber -> {
+                        require(initValue.number!=0.0) { "variable should not be initialized with 0, it will already be zeroed as part of BSS clear, initializer=$initialization" }
                         variable.setOnetimeInitNumeric(initValue.number)
                         initsToRemove += block to initialization
                     }

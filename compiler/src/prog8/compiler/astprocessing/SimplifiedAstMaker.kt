@@ -164,6 +164,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         }
 
+        if(srcAssign.origin == AssignmentOrigin.VARINIT && srcAssign.parent is Block && srcAssign.value.constValue(program)?.number==0.0)
+            throw FatalAstException("should not have a redundant block-level variable=0 assignment; it will be zeroed as part of BSS clear")
+
         val assign = PtAssignment(srcAssign.position, srcAssign.origin==AssignmentOrigin.VARINIT)
         val multi = srcAssign.target.multi
         if(multi==null) {

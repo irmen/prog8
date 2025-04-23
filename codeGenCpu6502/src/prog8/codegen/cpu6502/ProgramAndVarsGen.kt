@@ -353,7 +353,9 @@ internal class ProgramAndVarsGen(
             initializers.forEach { assign ->
                 if((assign.value as? PtNumber)?.number != 0.0 || allocator.isZpVar(assign.target.identifier!!.name))
                     asmgen.translate(assign)
-                // the other variables that should be set to zero are done so as part of the BSS section.
+                else
+                    throw AssemblyError("non-zp variable should not be initialized to zero; it will be zeroed as part of BSS clear")
+                // the other variables that should be set to zero are done so as part of the BSS section clear.
             }
             asmgen.out("  rts\n  .bend")
         }

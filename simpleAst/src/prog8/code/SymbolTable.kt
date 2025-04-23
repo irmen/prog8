@@ -198,6 +198,8 @@ class StStaticVariable(name: String,
         // This has to do with the way Prog8 does the (re)initialization of such variables: via code assignment statements.
         // Certain codegens might want to put them back into the variable directly.
         // For strings and arrays this doesn't occur - these are always already specced at creation time.
+
+        require(number!=0.0) { "variable should not be initialized with 0, it will already be zeroed as part of BSS clear" }
         initializationNumericValue = number
     }
 

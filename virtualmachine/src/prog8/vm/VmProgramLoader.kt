@@ -1,10 +1,10 @@
 package prog8.vm
 
 import prog8.Either
+import prog8.code.core.DataType
+import prog8.intermediate.*
 import prog8.left
 import prog8.right
-import prog8.intermediate.*
-import prog8.code.core.DataType
 
 class VmProgramLoader {
     private val placeholders = mutableMapOf<Pair<IRCodeChunk, Int>, String>()      // program chunk+index to symbolname
@@ -222,6 +222,15 @@ class VmProgramLoader {
                             }
                             else -> throw IRParseException("invalid dt")
                         }
+                    }
+                } else {
+                    when {
+                        variable.dt.isUnsignedByte || variable.dt.isBool -> memory.setUB(addr, 0u)
+                        variable.dt.isSignedByte -> memory.setSB(addr, 0)
+                        variable.dt.isUnsignedWord -> memory.setUW(addr, 0u)
+                        variable.dt.isSignedWord -> memory.setSW(addr, 0)
+                        variable.dt.isFloat -> memory.setFloat(addr, 0.0)
+                        else -> throw IRParseException("invalid dt")
                     }
                 }
             }

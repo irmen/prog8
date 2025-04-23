@@ -52,7 +52,8 @@ internal class StatementReorderer(
             if (decl.datatype.isNumericOrBool) {
                 if(decl !in declsProcessedWithInitAssignment) {
                     declsProcessedWithInitAssignment.add(decl)
-                    if (decl.value == null) {
+                    if (decl.value == null || decl.value?.constValue(program)?.number==0.0) {
+                        decl.value = null
                         if (decl.origin==VarDeclOrigin.USERCODE && decl.allowInitializeWithZero) {
                             if(decl.dirty) {
                                 // no initialization at all!
@@ -62,11 +63,9 @@ internal class StatementReorderer(
                             // unless there's already an assignment below it, that initializes the value (or a for loop that uses it as loopvar).
                             // This allows you to restart the program and have the same starting values of the variables
                             // So basically consider 'ubyte xx' as a short form for 'ubyte xx; xx=0'
-                            decl.value = null
-                            val canskip = canSkipInitializationWith0(decl)
-                            if (!canskip) {
+                            // (this explicit initialization assignment to 0 is not required for global variables in the block scope, these are zeroed as part of the BSS section clear)
+                            if (!canSkipInitializationWith0(decl)) {
                                 // Add assignment to initialize with zero
-                                // Note: for block-level vars, this will introduce assignments in the block scope. These have to be dealt with correctly later.
                                 val identifier = IdentifierReference(listOf(decl.name), decl.position)
                                 val assignzero = Assignment(AssignTarget(identifier, null, null, null, false, decl.position),
                                     decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
@@ -115,6 +114,11 @@ internal class StatementReorderer(
     }
 
     private fun canSkipInitializationWith0(decl: VarDecl): Boolean {
+        // if the variable is declared in a block, we can omit the init with 0 because
+        // the variable will be initialized to zero when the BSS section is cleared as a whole.
+        if(decl.parent is Block)
+            return true
+
         // if there is an assignment to the variable below it (regular assign, or For loop),
         // and there is nothing important in between, we can skip the initialization.
         val statements = (decl.parent as? IStatementContainer)?.statements ?: return false

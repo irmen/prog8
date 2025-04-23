@@ -125,29 +125,24 @@ main {
 
         val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!.compilerAst
         val main = result.allBlocks.first { it.name=="main" }
-        main.statements.size shouldBe 17
+        main.statements.size shouldBe 15
         val assigns = main.statements.filterIsInstance<Assignment>()
-        assigns[0].target.identifier?.nameInSource shouldBe listOf("value1")
-        assigns[1].target.identifier?.nameInSource shouldBe listOf("value2")
-        assigns[2].target.identifier?.nameInSource shouldBe listOf("value3")
-        assigns[3].target.identifier?.nameInSource shouldBe listOf("value4")
-        assigns[4].target.identifier?.nameInSource shouldBe listOf("value5")
-        assigns[5].target.identifier?.nameInSource shouldBe listOf("value6")
-        assigns[6].target.identifier?.nameInSource shouldBe listOf("value7")
+        assigns.size shouldBe 5
+        assigns[0].target.identifier?.nameInSource shouldBe listOf("value2")
+        assigns[1].target.identifier?.nameInSource shouldBe listOf("value3")
+        assigns[2].target.identifier?.nameInSource shouldBe listOf("value5")
+        assigns[3].target.identifier?.nameInSource shouldBe listOf("value6")
+        assigns[4].target.identifier?.nameInSource shouldBe listOf("value7")
         assigns[0].origin shouldBe AssignmentOrigin.VARINIT
         assigns[1].origin shouldBe AssignmentOrigin.VARINIT
         assigns[2].origin shouldBe AssignmentOrigin.VARINIT
         assigns[3].origin shouldBe AssignmentOrigin.VARINIT
         assigns[4].origin shouldBe AssignmentOrigin.VARINIT
-        assigns[5].origin shouldBe AssignmentOrigin.VARINIT
-        assigns[6].origin shouldBe AssignmentOrigin.VARINIT
-        assigns[0].value.constValue(result)?.number shouldBe 0
-        assigns[1].value.constValue(result)?.number shouldBe 1
-        assigns[2].value.constValue(result)?.number shouldBe 1
-        assigns[3].value.constValue(result)?.number shouldBe 0
+        assigns[0].value.constValue(result)?.asBooleanValue shouldBe true
+        assigns[1].value.constValue(result)?.asBooleanValue shouldBe true
+        assigns[2].value.constValue(result) shouldBe null
+        assigns[3].value.constValue(result)?.number shouldBe 4242
         assigns[4].value.constValue(result) shouldBe null
-        assigns[5].value.constValue(result)?.number shouldBe 4242
-        assigns[6].value.constValue(result) shouldBe null
     }
 
 
