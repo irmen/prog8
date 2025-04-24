@@ -7,7 +7,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- randrange() function can be optimized by just multiplying by the range and bit shifting down?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets

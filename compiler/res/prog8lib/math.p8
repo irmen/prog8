@@ -102,43 +102,35 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
     }
 
     sub randrange(ubyte n) -> ubyte {
-        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias).
-        ;    NOTE: does not work for code in ROM
-        cx16.r0H = 255 / n * n
-        do {
-            cx16.r0L = math.rnd()
-        } until cx16.r0L < cx16.r0H
-        return cx16.r0L % n
+        ; -- return random number uniformly distributed from 0 to n-1
+        ;    NOTE: does not work for code in ROM, use randrange_rom instead for that
+        ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        cx16.r0 = math.rnd() * (n as uword)
+        return cx16.r0H
     }
 
     sub randrange_rom(ubyte n) -> ubyte {
-        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias).
-        ;    NOTE: works for code in ROM, make sure to initialize seed using rndseed_rom
-        cx16.r0H = 255 / n * n
-        do {
-            cx16.r0L = math.rnd_rom()
-        } until cx16.r0L < cx16.r0H
-        return cx16.r0L % n
+        ; -- return random number uniformly distributed from 0 to n-1
+        ;    NOTE: works for code in ROM, make sure you have initialized the seed using rndseed_rom
+        ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        cx16.r0 = math.rnd_rom() * (n as uword)
+        return cx16.r0H
     }
 
     sub randrangew(uword n) -> uword {
-        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
+        ; -- return random number uniformly distributed from 0 to n-1
         ;    NOTE: does not work for code in ROM
-        cx16.r1 = 65535 / n * n
-        do {
-            cx16.r0 = math.rndw()
-        } until cx16.r0 < cx16.r1
-        return cx16.r0 % n
+        ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        cx16.r0 = math.rndw() * n
+        return math.mul16_last_upper()
     }
 
     sub randrangew_rom(uword n) -> uword {
-        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
-        ;    NOTE: works for code in ROM, make sure to initialize seed using rndseed_rom
-        cx16.r1 = 65535 / n * n
-        do {
-            cx16.r0 = math.rndw_rom()
-        } until cx16.r0 < cx16.r1
-        return cx16.r0 % n
+        ; -- return random number uniformly distributed from 0 to n-1
+        ;    NOTE: works for code in ROM, make sure you have initialized the seed using rndseed_rom
+        ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        cx16.r0 = math.rndw_rom() * n
+        return math.mul16_last_upper()
     }
 
     asmsub rndseed(uword seed1 @AY, uword seed2 @R0) clobbers(A,Y) {

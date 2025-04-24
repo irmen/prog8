@@ -177,21 +177,17 @@ math {
     }
 
     sub randrange(ubyte n) -> ubyte {
-        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
-        cx16.r0H = 255 / n * n
-        do {
-            cx16.r0L = math.rnd()
-        } until cx16.r0L < cx16.r0H
-        return cx16.r0L % n
+        ; -- return random number uniformly distributed from 0 to n-1
+        ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        cx16.r0 = math.rnd() * (n as uword)
+        return cx16.r0H
     }
 
     sub randrangew(uword n) -> uword {
-        ; -- return random number uniformly distributed from 0 to n-1 (compensates for divisibility bias)
-        cx16.r1 = 65535 / n * n
-        do {
-            cx16.r0 = math.rndw()
-        } until cx16.r0 < cx16.r1
-        return cx16.r0 % n
+        ; -- return random number uniformly distributed from 0 to n-1
+        ; why this works: https://www.youtube.com/watch?v=3DvlLUWTNMY&t=347s
+        cx16.r0 = math.rndw() * n
+        return math.mul16_last_upper()
     }
 
     sub rndseed(uword seed1, uword seed2) {
