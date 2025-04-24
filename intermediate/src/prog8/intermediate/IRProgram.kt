@@ -65,9 +65,11 @@ class IRProgram(val name: String,
     val blocks = mutableListOf<IRBlock>()
 
     fun allSubs(): Sequence<IRSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRSubroutine>() }
+    fun allAsmSubs(): Sequence<IRAsmSubroutine> = blocks.asSequence().flatMap { it.children.filterIsInstance<IRAsmSubroutine>() }
     fun foreachSub(operation: (sub: IRSubroutine) -> Unit) = allSubs().forEach { operation(it) }
     fun foreachCodeChunk(operation: (chunk: IRCodeChunkBase) -> Unit) {
         allSubs().flatMap { it.chunks }.forEach { operation(it) }
+        allAsmSubs().forEach { operation(it.asmChunk) }
         operation(globalInits)
     }
     fun getChunkWithLabel(label: String): IRCodeChunkBase {
@@ -76,6 +78,10 @@ class IRProgram(val name: String,
                 if(chunk.label==label)
                     return chunk
             }
+        }
+        for(sub in allAsmSubs()) {
+            if(sub.asmChunk.label==label)
+                return sub.asmChunk
         }
         throw NoSuchElementException("no chunk with label '$label'")
     }

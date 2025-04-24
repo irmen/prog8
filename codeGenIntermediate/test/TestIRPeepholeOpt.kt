@@ -53,7 +53,7 @@ class TestIRPeepholeOpt: FunSpec({
         irProg.chunks().single().instructions.size shouldBe 1
     }
 
-    test("remove jmp to label below") {
+    test("remove jmp to label below but keep labels") {
         val c1 = IRCodeChunk("main.start", null)
         c1 += IRInstruction(Opcode.JUMP, labelSymbol = "label")
         val c2 = IRCodeChunk("label", null)
@@ -69,13 +69,16 @@ class TestIRPeepholeOpt: FunSpec({
         irProg.chunks().flatMap { it.instructions }.size shouldBe 5
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize(true, ErrorReporterForTests())
-        irProg.chunks().size shouldBe 3
-        irProg.chunks()[0].label shouldBe "main.start"
-        irProg.chunks()[1].label shouldBe "label2"
-        irProg.chunks()[2].label shouldBe "label3"
-        irProg.chunks()[0].isEmpty() shouldBe true
-        irProg.chunks()[1].isEmpty() shouldBe false
-        irProg.chunks()[2].isEmpty() shouldBe true
+        val chunks = irProg.chunks()
+        chunks.size shouldBe 4
+        chunks[0].label shouldBe "main.start"
+        chunks[1].label shouldBe "label"
+        chunks[2].label shouldBe "label2"
+        chunks[3].label shouldBe "label3"
+        chunks[0].isEmpty() shouldBe true
+        chunks[1].isEmpty() shouldBe true
+        chunks[2].isEmpty() shouldBe false
+        chunks[3].isEmpty() shouldBe true
         val instr = irProg.chunks().flatMap { it.instructions }
         instr.size shouldBe 2
         instr[0].opcode shouldBe Opcode.JUMP

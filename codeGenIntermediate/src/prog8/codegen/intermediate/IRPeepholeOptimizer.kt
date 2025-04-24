@@ -85,7 +85,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         /*
         Empty Code chunk with label ->
             If next chunk has no label -> move label to next chunk, remove original
-            If next chunk has label -> label name should be the same, remove original, otherwise merge both labels into 1.
+            If next chunk has label -> label name should be the same, in which case remove original, otherwise leave everything untouched.
             If is last chunk -> keep chunk in place because of the label.
         Empty Code chunk without label ->
             should not have been generated! ERROR.
@@ -112,14 +112,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                             if(index>0) {
                                 if (chunk.label == nextchunk.label)
                                     removeChunks += index
-                                else {
-                                    removeChunks += index
-                                    replaceLabels[chunk.label!!] = nextchunk.label!!
-                                    replaceLabels.entries.forEach { (key, value) ->
-                                        if (value == chunk.label)
-                                            replaceLabels[key] = nextchunk.label!!
-                                    }
-                                }
                             }
                         }
                     }
