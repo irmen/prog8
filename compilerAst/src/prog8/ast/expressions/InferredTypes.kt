@@ -84,9 +84,9 @@ object InferredTypes {
         type.isLong -> InferredType.known(BaseDataType.LONG)
         type.isSplitWordArray -> {
             when(type.sub) {
-                BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD, true))
-                BaseDataType.WORD -> InferredType.known(DataType.arrayFor(BaseDataType.WORD, true))
-                BaseDataType.STR -> InferredType.known(DataType.arrayFor(BaseDataType.STR, true))
+                BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
+                BaseDataType.WORD -> InferredType.known(DataType.arrayFor(BaseDataType.WORD))
+                BaseDataType.STR -> InferredType.known(DataType.arrayFor(BaseDataType.STR))
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }

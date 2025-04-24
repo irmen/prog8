@@ -13,7 +13,7 @@ Future Things and Ideas
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
-- Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first)
+- Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:
   in certain situations (need examples!), the "wrong" order of evaluation of function call arguments is done which results
@@ -21,7 +21,7 @@ Future Things and Ideas
   Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast classes, change statements to expressions that have (new) VOID data type
 - Can we support signed % (remainder) somehow?
-- Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers.
+- Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful if we have typed pointers. (addressed in 'struct' branch)
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 - [much work:] more support for (64tass) SEGMENTS in the prog8 syntax itself?

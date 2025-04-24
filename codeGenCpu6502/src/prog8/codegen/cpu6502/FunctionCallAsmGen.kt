@@ -234,9 +234,9 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 val param = sub.parameters[it]
                 val arg = call.args[it]
                 registersUsed += if(usesOtherRegistersWhileEvaluating(arg)) {
-                    if(!registersUsed.any{it.statusflag!=null || it.registerOrPair in CpuRegisters})
+                    if(!registersUsed.any{r -> r.statusflag!=null || r.registerOrPair in CpuRegisters})
                         argumentViaRegister(sub, IndexedValue(it, param.second), arg)
-                    else if(registersUsed.any {it.statusflag!=null}) {
+                    else if(registersUsed.any { r-> r.statusflag!=null }) {
                         throw AssemblyError("call argument evaluation problem: can't save cpu statusregister parameter ${call.position}")
                     }
                     else {

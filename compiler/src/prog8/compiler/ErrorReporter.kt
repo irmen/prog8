@@ -95,7 +95,7 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
     override fun noErrors() = messages.none { it.severity==MessageSeverity.ERROR }
     override fun noErrorForLine(position: Position) = !messages.any { it.position.line==position.line && it.severity!=MessageSeverity.INFO }
 
-    override fun print_single_error(errormessage: String) {
+    override fun printSingleError(errormessage: String) {
         System.out.flush()
         colors.error(System.err)
         System.err.println(errormessage)

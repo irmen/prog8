@@ -39,7 +39,7 @@ class ModuleImporter(private val program: Program,
                     println("Compiling program ${Path("").absolute().relativize(programPath)}")
                     println("Compiler target: $compilationTargetName")
                 }
-                val source = ImportFileSystem.getFile(programPath, false)
+                val source = ImportFileSystem.getFile(programPath)
                 return Ok(importModule(source))
             }
         }
@@ -158,7 +158,7 @@ class ModuleImporter(private val program: Program,
 
         normalLocations.forEach {
             try {
-                return Ok(ImportFileSystem.getFile(it.resolve(fileName), false))
+                return Ok(ImportFileSystem.getFile(it.resolve(fileName)))
             } catch (_: NoSuchFileException) {
             }
         }

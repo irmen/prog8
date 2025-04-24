@@ -170,7 +170,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         if(memory.address is PtBinaryExpression && tryOptimizedMemoryInplace(memory.address as PtBinaryExpression, operator, value))
                             return
                         // slower method to calculate and use the pointer to access the memory with:
-                        asmgen.assignExpressionToRegister(memory.address, RegisterOrPair.AY, false)
+                        asmgen.assignExpressionToRegister(memory.address, RegisterOrPair.AY)
                         asmgen.saveRegisterStack(CpuRegister.A, true)
                         asmgen.saveRegisterStack(CpuRegister.Y, true)
                         if(asmgen.isTargetCpu(CpuType.CPU65C02))
@@ -583,7 +583,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             if(address.left is PtIdentifier && asmgen.isZpVar(address.left as PtIdentifier)) {
                 return (address.left as PtIdentifier).name
             } else {
-                asmgen.assignExpressionToRegister(address.left, RegisterOrPair.AY, false)
+                asmgen.assignExpressionToRegister(address.left, RegisterOrPair.AY)
                 asmgen.out("  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")
                 return "P8ZP_SCRATCH_W2"
             }
@@ -635,9 +635,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 return true
             }
             if(rightTc!=null)
-                asmgen.assignExpressionToRegister(rightTc.value, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(rightTc.value, RegisterOrPair.A)
             else
-                asmgen.assignExpressionToRegister(address.right, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(address.right, RegisterOrPair.A)
             asmgen.out("  pha")     // offset on stack
             val zpPointerVarName = addrIntoZpPointer()
             assignValueToA()
@@ -2740,7 +2740,7 @@ $shortcutLabel:""")
                     "+" -> {
                         // name += byteexpression
                         if(valueDt.isUnsignedByte) {
-                            asmgen.assignExpressionToRegister(value, RegisterOrPair.A, false)
+                            asmgen.assignExpressionToRegister(value, RegisterOrPair.A)
                             asmgen.out("""
                                 clc
                                 adc  $name

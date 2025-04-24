@@ -154,7 +154,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             val elseLabel = asmgen.makeLabel("else")
             asmgen.out("  $elseBranchInstr  $elseLabel")
             asmgen.translate(stmt.ifScope)
-            asmgen.jmp(afterIfLabel, false)
+            asmgen.jmp(afterIfLabel)
             asmgen.out(elseLabel)
             asmgen.translate(stmt.elseScope)
         } else {
@@ -171,7 +171,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         if(target.indirect) {
             asmgen.out("  $falseBranch  +")
             if(target.needsExpressionEvaluation)
-                target = asmgen.getJumpTarget(jump, true)
+                target = asmgen.getJumpTarget(jump)
             asmgen.out("""
                 jmp  (${target.asmLabel})
 +""")
@@ -286,7 +286,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                         if(target.indirect) {
                             asmgen.out("  bmi  + |  beq +")
                             if(target.needsExpressionEvaluation)
-                                target = asmgen.getJumpTarget(jumpAfterIf, true)
+                                target = asmgen.getJumpTarget(jumpAfterIf)
                             asmgen.out("""
                                 jmp  (${target.asmLabel})
 +""")
@@ -306,7 +306,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             val elseLabel = asmgen.makeLabel("else")
                             asmgen.out("  bmi  $elseLabel |  beq  $elseLabel")
                             asmgen.translate(stmt.ifScope)
-                            asmgen.jmp(afterIfLabel, false)
+                            asmgen.jmp(afterIfLabel)
                             asmgen.out(elseLabel)
                             asmgen.translate(stmt.elseScope)
                         } else {
@@ -353,7 +353,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                         if(target.indirect) {
                             asmgen.out("  bmi  + |  bne  ++")
                             if(target.needsExpressionEvaluation)
-                                target = asmgen.getJumpTarget(jumpAfterIf, true)
+                                target = asmgen.getJumpTarget(jumpAfterIf)
                             asmgen.out("""
 +                               jmp  (${target.asmLabel})
 +""")
@@ -375,7 +375,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                                 bpl  $elseLabel
 +""")
                             asmgen.translate(stmt.ifScope)
-                            asmgen.jmp(afterIfLabel, false)
+                            asmgen.jmp(afterIfLabel)
                             asmgen.out(elseLabel)
                             asmgen.translate(stmt.elseScope)
                         } else {
@@ -427,14 +427,14 @@ internal class IfElseAsmGen(private val program: PtProgram,
             else
                 translateIfElseBodies("bpl", stmt)
         } else {
-            asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, false)
+            asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A)
             asmgen.cmpAwithByteValue(condition.right, false)
             if(jumpAfterIf!=null) {
                 var target = asmgen.getJumpTarget(jumpAfterIf, false)
                 if(target.indirect) {
                     asmgen.out("  bcc  + |  beq  +")
                     if(target.needsExpressionEvaluation)
-                        target = asmgen.getJumpTarget(jumpAfterIf, true)
+                        target = asmgen.getJumpTarget(jumpAfterIf)
                     asmgen.out("""
                         jmp  (${target.asmLabel})
 +""")
@@ -453,7 +453,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     val elseLabel = asmgen.makeLabel("else")
                     asmgen.out("  bcc  $elseLabel |  beq  $elseLabel")
                     asmgen.translate(stmt.ifScope)
-                    asmgen.jmp(afterIfLabel, false)
+                    asmgen.jmp(afterIfLabel)
                     asmgen.out(elseLabel)
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -535,7 +535,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             eor  #128
 +                           bpl  +""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
@@ -562,7 +562,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             eor  #128
 +                           bmi  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -590,7 +590,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             cmp  $valueLsb
                             bcs  +""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
 _jump                       jmp  (${target.asmLabel})
 +""")
@@ -615,7 +615,7 @@ _jump                       jmp  (${target.asmLabel})
                             sbc  $valueMsb
                             bcs  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -667,7 +667,7 @@ _jump                       jmp  (${target.asmLabel})
                             eor  #128
 +                           bpl  +""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
                            jmp  (${target.asmLabel})
 +""")
@@ -694,7 +694,7 @@ _jump                       jmp  (${target.asmLabel})
                             eor  #128
 +                           bmi  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -721,7 +721,7 @@ _jump                       jmp  (${target.asmLabel})
                             sbc  $valueMsb
                             bcc  +""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
@@ -744,7 +744,7 @@ _jump                       jmp  (${target.asmLabel})
                             sbc  $valueMsb
                             bcc  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -829,7 +829,7 @@ _jump                       jmp  (${target.asmLabel})
                             lda  $valueLsb
                             bne  ++""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -857,7 +857,7 @@ _jump                       jmp  (${target.asmLabel})
                             bne  $elseLabel
 +""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -908,7 +908,7 @@ _jump                       jmp  (${target.asmLabel})
                         cmp  #0
                         bne  ++""")
                     if(target.needsExpressionEvaluation)
-                        target = asmgen.getJumpTarget(jump, true)
+                        target = asmgen.getJumpTarget(jump)
                     asmgen.out("""
 +                       jmp  (${target.asmLabel})
 +""")
@@ -936,7 +936,7 @@ _jump                       jmp  (${target.asmLabel})
                             bne  $elseLabel
 +""")
                     asmgen.translate(stmt.ifScope)
-                    asmgen.jmp(afterIfLabel, false)
+                    asmgen.jmp(afterIfLabel)
                     asmgen.out(elseLabel)
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -973,7 +973,7 @@ _jump                       jmp  (${target.asmLabel})
                             lda  $valueLsb
                             beq  ++""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -1001,7 +1001,7 @@ _jump                       jmp  (${target.asmLabel})
                             beq  $elseLabel
 +""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -1053,7 +1053,7 @@ _jump                       jmp  (${target.asmLabel})
                         cmp  #0
                         beq  ++""")
                     if(target.needsExpressionEvaluation)
-                        target = asmgen.getJumpTarget(jump, true)
+                        target = asmgen.getJumpTarget(jump)
                     asmgen.out("""
 +                       jmp  (${target.asmLabel})
 +""")
@@ -1081,7 +1081,7 @@ _jump                       jmp  (${target.asmLabel})
                             beq  $elseLabel
 +""")
                     asmgen.translate(stmt.ifScope)
-                    asmgen.jmp(afterIfLabel, false)
+                    asmgen.jmp(afterIfLabel)
                     asmgen.out(elseLabel)
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -1196,7 +1196,7 @@ _jump                       jmp  (${target.asmLabel})
                         cpy  $valueMsb
                         beq  ++""")
                     if(target.needsExpressionEvaluation)
-                        target = asmgen.getJumpTarget(jump, true)
+                        target = asmgen.getJumpTarget(jump)
                     asmgen.out("""
 +                       jmp  (${target.asmLabel})
 +""")
@@ -1221,7 +1221,7 @@ _jump                       jmp  (${target.asmLabel})
                         beq  $elseLabel
 +""")
                     asmgen.translate(stmt.ifScope)
-                    asmgen.jmp(afterIfLabel, false)
+                    asmgen.jmp(afterIfLabel)
                     asmgen.out(elseLabel)
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -1248,7 +1248,7 @@ _jump                       jmp  (${target.asmLabel})
                         cpy  $valueMsb
                         bne  +""")
                     if(target.needsExpressionEvaluation)
-                        target = asmgen.getJumpTarget(jump, true)
+                        target = asmgen.getJumpTarget(jump)
                     asmgen.out("""
                         jmp  (${target.asmLabel})
 +""")
@@ -1273,7 +1273,7 @@ _jump                       jmp  (${target.asmLabel})
                         cpy  $valueMsb
                         bne  $elseLabel""")
                     asmgen.translate(stmt.ifScope)
-                    asmgen.jmp(afterIfLabel, false)
+                    asmgen.jmp(afterIfLabel)
                     asmgen.out(elseLabel)
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -1302,7 +1302,7 @@ _jump                       jmp  (${target.asmLabel})
                             cmp  ${right.name}+1
                             beq  ++""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -1331,7 +1331,7 @@ _jump                       jmp  (${target.asmLabel})
                             beq  $elseLabel
 +""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -1361,7 +1361,7 @@ _jump                       jmp  (${target.asmLabel})
                             cmp  ${right.name}+1
                             bne  +""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
@@ -1390,7 +1390,7 @@ _jump                       jmp  (${target.asmLabel})
                             cmp  ${right.name}+1
                             bne  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -1423,7 +1423,7 @@ _jump                       jmp  (${target.asmLabel})
                             cmp  #>$value
                             beq  ++""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -1452,7 +1452,7 @@ _jump                       jmp  (${target.asmLabel})
                             beq  $elseLabel
 +""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {
@@ -1481,7 +1481,7 @@ _jump                       jmp  (${target.asmLabel})
                             cmp  #>$value
                             bne  +""")
                         if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump, true)
+                            target = asmgen.getJumpTarget(jump)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
@@ -1510,7 +1510,7 @@ _jump                       jmp  (${target.asmLabel})
                             cmp  #>$value
                             bne  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel, false)
+                        asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
                         asmgen.translate(stmt.elseScope)
                     } else {

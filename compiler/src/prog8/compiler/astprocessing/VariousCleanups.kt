@@ -84,12 +84,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         changeSplit = SplitWish.NOSPLIT
                     }
                     else {
-                        changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base, true)
+                        changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base)
                         changeSplit = SplitWish.SPLIT
                     }
                 }
                 SplitWish.SPLIT -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base, true)
+                    changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base)
                 }
                 SplitWish.NOSPLIT -> {
                     changeDataType = if(decl.datatype.isSplitWordArray) DataType.arrayFor(decl.datatype.elementType().base, false) else null
@@ -285,7 +285,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
                     // replace x==1 or x==2 or x==3  with a containment check  x in [1,2,3]
                     val valueCopies = values.sortedBy { it.number }.map { it.copy() }
-                    val arrayType = DataType.arrayFor(elementType.base, true)
+                    val arrayType = DataType.arrayFor(elementType.base)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, containment, parent))

@@ -196,10 +196,7 @@ class IRCodeGen(
                 old.fpReg1,
                 old.fpReg2,
                 immediate = immediateValue,
-                null,
-                address = addressValue,
-                null,
-                null
+                address = addressValue
             )
         }
     }
@@ -427,19 +424,19 @@ class IRCodeGen(
             } else {
                 if(choice.statements.children.isEmpty()) {
                     // no statements for this choice value, jump to the end immediately
-                    choice.values.children.map { it as PtNumber }.sortedBy { it.number }.forEach { value ->
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
-                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
+                    choice.values.children.map { v -> v as PtNumber }.sortedBy { v -> v.number }.forEach { value ->
+                        result += IRCodeChunk(null, null).also { chunk ->
+                            chunk += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
+                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
                         }
                     }
                 } else {
                     val choiceLabel = createLabelName()
                     choices.add(choiceLabel to choice)
-                    choice.values.children.map { it as PtNumber }.sortedBy { it.number }.forEach { value ->
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
-                            it += IRInstruction(Opcode.BSTEQ, labelSymbol = choiceLabel)
+                    choice.values.children.map { v -> v as PtNumber }.sortedBy { v -> v.number }.forEach { value ->
+                        result += IRCodeChunk(null, null).also { chunk ->
+                            chunk += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
+                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = choiceLabel)
                         }
                     }
                 }
@@ -1072,7 +1069,7 @@ class IRCodeGen(
                 }
                 // evaluate jump address expression into a register and jump indirectly to it
                 val tr = expressionEval.translateExpression(goto.target)
-                for(i in tr.chunks.flatMap { it.instructions }) {
+                for(i in tr.chunks.flatMap { c -> c.instructions }) {
                     it += i
                 }
                 it += IRInstruction(Opcode.JUMPI, reg1 = tr.resultReg)

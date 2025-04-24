@@ -1313,7 +1313,7 @@ internal class AssignmentAsmGen(
                         // special optimization for  bytearray[y] + bytevalue :  no need to use a tempvar, just use adc array,y
                         assignExpressionToRegister(right, RegisterOrPair.A, right.type.isSigned)
                         if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pha")
-                        asmgen.assignExpressionToRegister(leftArrayIndexer.index, RegisterOrPair.Y, false)
+                        asmgen.assignExpressionToRegister(leftArrayIndexer.index, RegisterOrPair.Y)
                         if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pla")
                         val arrayvarname = asmgen.asmSymbolName(leftArrayIndexer.variable)
                         asmgen.out("  clc |  adc  $arrayvarname,y")
@@ -1322,7 +1322,7 @@ internal class AssignmentAsmGen(
                         // special optimization for  bytevalue +/- bytearray[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
                         assignExpressionToRegister(left, RegisterOrPair.A, left.type.isSigned)
                         if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pha")
-                        asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y, false)
+                        asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y)
                         if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pla")
                         val arrayvarname = asmgen.asmSymbolName(rightArrayIndexer.variable)
                         if (expr.operator == "+")
@@ -2855,7 +2855,7 @@ $endLabel""")
                     jsr  floats.MOVMF""")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A)
                 asmgen.out("""
                     ldy  #<${target.asmVarname} 
                     sty  P8ZP_SCRATCH_W1
@@ -2887,7 +2887,7 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 asmgen.out("  pha")
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A)
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
                 asmgen.out("  pla")
                 asmgen.out("""
@@ -2924,7 +2924,7 @@ $endLabel""")
                     jsr  floats.copy_float""")
             }
             TargetStorageKind.ARRAY -> {
-                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A)
                 asmgen.out("""
                     ldy  #<$sourceName
                     sty  P8ZP_SCRATCH_W1
@@ -3397,7 +3397,7 @@ $endLabel""")
             } else {
                 require(target.array.index.type.isByteOrBool)
                 asmgen.saveRegisterStack(register, false)
-                asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.Y, false)
+                asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.Y)
                 asmgen.out("  pla |  sta  ${target.asmVarname},y")
             }
         }
@@ -3712,7 +3712,7 @@ $endLabel""")
                         asmgen.out("  stz  ${target.asmVarname}+$indexValue")
                     }
                     else {
-                        asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.X, false)
+                        asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.X)
                         asmgen.out("  stz  ${target.asmVarname},x")
                     }
                 }
@@ -3802,7 +3802,7 @@ $endLabel""")
                             sta  ${target.asmVarname}+4""")
                 }
                 TargetStorageKind.ARRAY -> {
-                    asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                    asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A)
                     asmgen.out("""
                         ldy  #<${target.asmVarname}
                         sty  P8ZP_SCRATCH_W1
@@ -3836,7 +3836,7 @@ $endLabel""")
                         jsr  floats.copy_float""")
                 }
                 TargetStorageKind.ARRAY -> {
-                    asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A, false)
+                    asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A)
                     asmgen.out("""
                         ldy  #<${constFloat}
                         sty  P8ZP_SCRATCH_W1

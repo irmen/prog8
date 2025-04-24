@@ -200,7 +200,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         }
         return CompilationResult(resultingProgram!!, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {
-        args.errors.print_single_error("${px.position.toClickableStr()} parse error: ${px.message}".trim())
+        args.errors.printSingleError("${px.position.toClickableStr()} parse error: ${px.message}".trim())
     } catch (ac: ErrorsReportedException) {
         if(args.printAst1 && resultingProgram!=null) {
             println("\n*********** COMPILER AST *************")
@@ -217,17 +217,17 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             }
         }
         if(!ac.message.isNullOrEmpty()) {
-            args.errors.print_single_error(ac.message!!)
+            args.errors.printSingleError(ac.message!!)
         }
     } catch (nsf: NoSuchFileException) {
-        args.errors.print_single_error("File not found: ${nsf.message}")
+        args.errors.printSingleError("File not found: ${nsf.message}")
     } catch (ax: AstException) {
-        args.errors.print_single_error(ax.toString())
+        args.errors.printSingleError(ax.toString())
     } catch (x: Exception) {
-        args.errors.print_single_error("\ninternal error")
+        args.errors.printSingleError("\ninternal error")
         throw x
     } catch (x: NotImplementedError) {
-        args.errors.print_single_error("\ninternal error: missing feature/code")
+        args.errors.printSingleError("\ninternal error: missing feature/code")
         throw x
     }
 

@@ -53,7 +53,7 @@ internal class AnyExprAsmGen(
     private fun assignByteBinExpr(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
         when(expr.operator) {
             "+" -> {
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
                 asmgen.out("  pha")
                 asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.out("  pla |  clc |  adc  P8ZP_SCRATCH_B1")
@@ -61,7 +61,7 @@ internal class AnyExprAsmGen(
                 return true
             }
             "-" -> {
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
                 asmgen.out("  pha")
                 asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.out("  pla |  sec |  sbc  P8ZP_SCRATCH_B1")
@@ -76,7 +76,7 @@ internal class AnyExprAsmGen(
             "and" -> TODO("logical and (with optional shortcircuit) ${expr.position}")
             "or" -> TODO("logical or (with optional shortcircuit) ${expr.position}")
             "&" -> {
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
                 asmgen.out("  pha")
                 asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.out("  pla |  and  P8ZP_SCRATCH_B1")
@@ -84,7 +84,7 @@ internal class AnyExprAsmGen(
                 return true
             }
             "|" -> {
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
                 asmgen.out("  pha")
                 asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.out("  pla |  ora  P8ZP_SCRATCH_B1")
@@ -92,7 +92,7 @@ internal class AnyExprAsmGen(
                 return true
             }
             "^", "xor" -> {
-                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.A)
                 asmgen.out("  pha")
                 asmgen.assignExpressionToVariable(expr.right, "P8ZP_SCRATCH_B1", DataType.UBYTE)
                 asmgen.out("  pla |  eor  P8ZP_SCRATCH_B1")

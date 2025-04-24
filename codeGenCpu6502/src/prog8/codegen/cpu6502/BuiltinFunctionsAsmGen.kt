@@ -53,7 +53,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val memread = PtMemoryByte(fcall.position)
                 memread.add(fcall.args[0])
                 memread.parent = fcall
-                asmgen.assignExpressionToRegister(memread, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(memread, RegisterOrPair.A)
                 asmgen.out("  pha")
                 val memtarget = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.position, memory=memread)
                 asmgen.assignExpressionTo(fcall.args[1], memtarget)
@@ -676,7 +676,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         if(fcall.args[1].asConstInteger() == 0) {
             assignAsmGen.assignConstantByte(target, 0)
         } else {
-            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A, false)
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
             assignAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
         }
     }
@@ -815,7 +815,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.out("  jsr  floats.MOVFM")
         if(resultRegister!=null) {
             assignAsmGen.assignFAC1float(
-                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position, null, null, null, resultRegister, null))
+                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position))
         }
     }
 

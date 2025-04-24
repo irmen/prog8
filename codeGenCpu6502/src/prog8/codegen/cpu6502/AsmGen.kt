@@ -656,16 +656,16 @@ class AsmGen6502Internal (
         }
 
         if(expr.splitWords) {
-            assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register), false)
+            assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register))
             return
         }
 
         when  {
             expr.type.isByteOrBool -> {
-                assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register), false)
+                assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register))
             }
             expr.type.isWord -> {
-                assignExpressionToRegister(expr.index, RegisterOrPair.A, false)
+                assignExpressionToRegister(expr.index, RegisterOrPair.A)
                 out("  asl  a")
                 when (register) {
                     CpuRegister.A -> {}
@@ -675,7 +675,7 @@ class AsmGen6502Internal (
             }
             expr.type.isFloat -> {
                 require(options.compTarget.FLOAT_MEM_SIZE == 5) {"invalid float size ${expr.position}"}
-                assignExpressionToRegister(expr.index, RegisterOrPair.A, false)
+                assignExpressionToRegister(expr.index, RegisterOrPair.A)
                 out("""
                     sta  P8ZP_SCRATCH_REG
                     asl  a
@@ -750,7 +750,7 @@ class AsmGen6502Internal (
                         TargetStorageKind.REGISTER -> {
                             val zero = PtNumber(BaseDataType.UBYTE, 0.0, value.position)
                             zero.parent = value
-                            assignExpressionToRegister(zero, target.register!!, false)
+                            assignExpressionToRegister(zero, target.register!!)
                             return
                         }
                         else -> { }
@@ -1286,7 +1286,7 @@ $repeatLabel""")
         }
 
         if(addressExpr.operator=="+") {
-            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr, false)
+            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr)
             if (ptrAndIndex == null) return false
 
             if(write) {
@@ -1576,7 +1576,7 @@ $repeatLabel""")
         val compare = if(useSbc) "sec |  sbc" else "cmp"
         fun cmpViaScratch() {
             if(assignmentAsmGen.directIntoY(value)) {
-                assignExpressionToRegister(value, RegisterOrPair.Y, false)
+                assignExpressionToRegister(value, RegisterOrPair.Y)
                 out("  sty  P8ZP_SCRATCH_REG")
             } else {
                 out("  pha")
@@ -1635,7 +1635,7 @@ $repeatLabel""")
     }
 
     internal fun assignConditionValueToRegisterAndTest(condition: PtExpression) {
-        assignExpressionToRegister(condition, RegisterOrPair.A, false)
+        assignExpressionToRegister(condition, RegisterOrPair.A)
         when(condition) {
             is PtNumber,
             is PtBool,

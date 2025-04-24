@@ -15,18 +15,18 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         evalIfExpressionConditonAndBranchWhenFalse(expr.condition, falseLabel)
         when {
             expr.type.isByteOrBool -> {
-                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.A)
                 asmgen.jmp(endLabel)
                 asmgen.out(falseLabel)
-                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A)
                 asmgen.out(endLabel)
                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
             }
             expr.type.isWord || expr.type.isString -> {
-                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY, false)
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY)
                 asmgen.jmp(endLabel)
                 asmgen.out(falseLabel)
-                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY, false)
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY)
                 asmgen.out(endLabel)
                 assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
             }
@@ -195,7 +195,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 beq  $falseLabel
 +""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, false)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out("""
                 cmp  $varRight
                 bne  +
@@ -219,7 +219,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 cmp  $varRight+1
                 bne  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, false)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out("""
                 cmp  $varRight
                 bne  $falseLabel
@@ -242,7 +242,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 beq  $falseLabel
 +""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, false)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out("""
                 cmp  #<$number
                 bne  +
@@ -265,7 +265,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 cmp  #>$number
                 bne  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, false)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out(                """
                 cmp  #<$number
                 bne  $falseLabel
@@ -284,7 +284,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 ora  $varname+1
                 beq  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, false)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  beq  $falseLabel")
         }
     }
@@ -299,7 +299,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 ora  $varname+1
                 bne  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, false)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  bne  $falseLabel")
         }
     }

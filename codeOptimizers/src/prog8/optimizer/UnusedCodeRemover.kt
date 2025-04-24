@@ -8,9 +8,9 @@ import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.core.ICompilationTarget
 import prog8.code.core.IErrorReporter
-import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.compiler.CallGraph
 
 
@@ -27,10 +27,10 @@ class UnusedCodeRemover(private val program: Program,
 
         program.allBlocks.singleOrNull { it.name=="sys" } ?.let {
             val subroutines = it.statements.filterIsInstance<Subroutine>()
-            val push = subroutines.single { it.name == "push" }
-            val pushw = subroutines.single { it.name == "pushw" }
-            val pop = subroutines.single { it.name == "pop" }
-            val popw = subroutines.single { it.name == "popw" }
+            val push = subroutines.single { s -> s.name == "push" }
+            val pushw = subroutines.single { s -> s.name == "pushw" }
+            val pop = subroutines.single { s -> s.name == "pop" }
+            val popw = subroutines.single { s -> s.name == "popw" }
             neverRemoveSubroutines.add(push)
             neverRemoveSubroutines.add(pushw)
             neverRemoveSubroutines.add(pop)
@@ -39,8 +39,8 @@ class UnusedCodeRemover(private val program: Program,
 
         program.allBlocks.singleOrNull { it.name=="floats" } ?.let {
             val subroutines = it.statements.filterIsInstance<Subroutine>()
-            val push = subroutines.single { it.name == "push" }
-            val pop = subroutines.single { it.name == "pop" }
+            val push = subroutines.single { s -> s.name == "push" }
+            val pop = subroutines.single { s -> s.name == "pop" }
             neverRemoveSubroutines.add(push)
             neverRemoveSubroutines.add(pop)
         }

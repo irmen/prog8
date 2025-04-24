@@ -90,7 +90,7 @@ internal class ForLoopsAsmGen(
             // cannot use self-modifying code, cannot use cpu stack (because loop can be interrupted halfway)
             // so we need to store the loop end value in a newly allocated temporary variable
             val toValueVar = asmgen.getTempVarName(iterableDt.elementType().base)
-            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
+            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A)
             asmgen.out("  sta  $toValueVar")
             // pre-check for end already reached
             if(iterableDt.isSignedByteArray) {
@@ -136,7 +136,7 @@ internal class ForLoopsAsmGen(
 
             // use self-modifying code to store the loop end comparison value
             val modifiedLabel = asmgen.makeLabel("for_modified")
-            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
+            asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A)
             // pre-check for end already reached
             if(iterableDt.isSignedByteArray) {
                 asmgen.out("  sta  $modifiedLabel+1")
@@ -186,7 +186,7 @@ $modifiedLabel  cmp  #0         ; modified
         val stepsize = range.step.asConstInteger()!!
 
         val modifiedLabel = asmgen.makeLabel("for_modified")
-        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A, false)
+        asmgen.assignExpressionToRegister(range.to, RegisterOrPair.A)
         // pre-check for end already reached
         if(iterableDt.isSignedByteArray) {
             asmgen.out("  sta  $modifiedLabel+1")
