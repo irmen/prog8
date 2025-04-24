@@ -217,7 +217,7 @@ class IRProgram(val name: String,
                 if(chunk is IRInlineAsmChunk)
                     require(!chunk.isIR) { "inline IR-asm should have been converted into regular code chunk"}
             }
-            chunk.instructions.withIndex().forEach { (index, instr) ->
+            chunk.instructions.forEach { instr ->
                 if(instr.labelSymbol!=null && instr.opcode in OpcodesThatBranch) {
                     if(instr.opcode==Opcode.JUMPI) {
                         when(val pointervar = st.lookup(instr.labelSymbol)!!) {
@@ -228,26 +228,6 @@ class IRProgram(val name: String,
                     }
                     else if(!instr.labelSymbol.startsWith('$') && !instr.labelSymbol.first().isDigit())
                         require(instr.branchTarget != null) { "branching instruction to label should have branchTarget set" }
-                }
-
-                if(instr.opcode==Opcode.PREPARECALL) {
-                    var i = index+1
-                    var instr2 = chunk.instructions[i]
-                    val registers = mutableSetOf<Int>()
-                    while(instr2.opcode!=Opcode.SYSCALL && instr2.opcode!=Opcode.CALL && i<chunk.instructions.size-1) {
-                        if(instr2.reg1direction==OperandDirection.WRITE || instr2.reg1direction==OperandDirection.READWRITE) registers.add(instr2.reg1!!)
-                        if(instr2.reg2direction==OperandDirection.WRITE || instr2.reg2direction==OperandDirection.READWRITE) registers.add(instr2.reg2!!)
-                        if(instr2.reg3direction==OperandDirection.WRITE || instr2.reg3direction==OperandDirection.READWRITE) registers.add(instr2.reg3!!)
-                        if(instr2.fpReg1direction==OperandDirection.WRITE || instr2.fpReg1direction==OperandDirection.READWRITE) registers.add(instr2.fpReg1!!)
-                        if(instr2.fpReg2direction==OperandDirection.WRITE || instr2.fpReg2direction==OperandDirection.READWRITE) registers.add(instr2.fpReg2!!)
-                        i++
-                        instr2 = chunk.instructions[i]
-                    }
-                    // it could be that the actual call is only in another code chunk, so IF we find one, we can check, otherwise just skip the check...
-                    if(chunk.instructions[i].fcallArgs!=null) {
-                        val expectedRegisterLoads = chunk.instructions[i].fcallArgs!!.arguments.map { it.reg.registerNum }
-                        require(registers.containsAll(expectedRegisterLoads)) { "not all argument registers are given a value in the preparecall-call sequence" }
-                    }
                 }
             }
         }

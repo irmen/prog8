@@ -1,10 +1,15 @@
 main {
-    ubyte @shared banknumber
-    extsub @bank 10  $C04B = otherbank() clobbers(A,X,Y)
-    extsub @bank banknumber  $C04B = otherbankvar() clobbers(A,X,Y)
-
     sub start() {
-        otherbank()
-        otherbankvar()
+        nmi_handler()
+        cx16.r0++
+        the_loop:
+            repeat {
+                cx16.r0++
+            }
+    }
+
+    sub nmi_handler() {;forcefully kills the running process and returns to the shell prompt.
+        cx16.r0++
+        goto main.start.the_loop
     }
 }

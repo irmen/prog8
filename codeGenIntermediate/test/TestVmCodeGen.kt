@@ -554,11 +554,8 @@ class TestVmCodeGen: FunSpec({
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
         irChunks.size shouldBe 1
-        irChunks[0].instructions.size shouldBe 2
-        val preparecallInstr = irChunks[0].instructions[0]
-        preparecallInstr.opcode shouldBe Opcode.PREPARECALL
-        preparecallInstr.immediate shouldBe 0
-        val callInstr = irChunks[0].instructions[1]
+        irChunks[0].instructions.size shouldBe 1
+        val callInstr = irChunks[0].instructions[0]
         callInstr.opcode shouldBe Opcode.CALL
         callInstr.address shouldBe 0x5000
     }

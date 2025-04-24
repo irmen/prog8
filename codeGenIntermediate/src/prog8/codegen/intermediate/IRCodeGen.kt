@@ -48,6 +48,7 @@ class IRCodeGen(
         irProg.linkChunks()
         irProg.convertAsmChunks()
 
+        // the optimizer also does 1 essential step regardless of optimizations: joining adjacent chunks.
         val optimizer = IRPeepholeOptimizer(irProg)
         optimizer.optimize(options.optimize, errors)
         irProg.validate()

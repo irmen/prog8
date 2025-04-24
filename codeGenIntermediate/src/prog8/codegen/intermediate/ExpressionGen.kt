@@ -289,7 +289,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val haystackVar = check.haystackHeapVar!!
         when {
             haystackVar.type.isString -> {
-                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 2), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(haystackVar)
@@ -300,7 +299,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             haystackVar.type.isByteArray -> {
-                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(haystackVar)
@@ -314,7 +312,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             haystackVar.type.isWordArray -> {
-                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, elementTr.resultReg, -1)
                 val iterableTr = translateExpression(haystackVar)
@@ -328,7 +325,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             haystackVar.type.isFloatArray -> {
-                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = 3), null)
                 val elementTr = translateExpression(check.needle)
                 addToResult(result, elementTr, -1, elementTr.resultFpReg)
                 val iterableTr = translateExpression(haystackVar)
@@ -618,7 +614,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         when (callTarget) {
             is StSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
-                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = callTarget.parameters.size), null)
                 // assign the arguments
                 val argRegisters = mutableListOf<FunctionCallArgs.ArgumentSpec>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {
@@ -670,7 +665,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             is StExtSub -> {
                 val result = mutableListOf<IRCodeChunkBase>()
-                addInstr(result, IRInstruction(Opcode.PREPARECALL, immediate = callTarget.parameters.size), null)
                 // assign the arguments
                 val argRegisters = mutableListOf<FunctionCallArgs.ArgumentSpec>()
                 for ((arg, parameter) in fcall.args.zip(callTarget.parameters)) {

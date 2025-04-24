@@ -23,6 +23,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
     }
 
     private fun optimizeOnlyJoinChunks() {
+        // this chunk-joining is REQUIRED (optimization or no) to end up with a structurally sound chunk list
         irprog.foreachSub { sub ->
             joinChunks(sub)
             removeEmptyChunks(sub)

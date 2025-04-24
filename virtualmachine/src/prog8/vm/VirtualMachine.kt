@@ -216,7 +216,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREHFACONE-> InsSTOREHFACONE(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
-            Opcode.PREPARECALL -> nextPc()
             Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory bytes")
             Opcode.CALL -> InsCALL(ins)
             Opcode.CALLFAR, Opcode.CALLFARVB -> throw IllegalArgumentException("VM cannot run code from another ram/rombank")
