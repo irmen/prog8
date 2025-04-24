@@ -31,7 +31,6 @@ Future Things and Ideas
 
 IR/VM
 -----
-- TODO: IR: support callfar into another bank (crashes on examples/cx16/audioroutines.p8)
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg

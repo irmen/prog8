@@ -81,6 +81,8 @@ call   label(argument register list) [: resultreg.type]
                                         If the arguments should be passed in CPU registers, they'll have a @REGISTER postfix.
                                         For example: call $ffd2(r5.b@A)
                                         Always preceded by parameter setup and preparecall instructions
+callfar             bank,  address      Call a subroutine at the given memory address, in the given RAM/ROM bank (switches both banks at the same time)
+callfarvb   reg1           address      Call a subroutine at the given memory address, in the RAM/ROM bank in reg1.b  (switches both banks at the same time)
 syscall   number (argument register list) [: resultreg.type]
                                       - do a systemcall identified by number, result value(s) are pushed on value stack by the syscall code so
                                         will be POPped off into the given resultregister if any.
@@ -284,6 +286,8 @@ enum class Opcode {
     PREPARECALL,
     CALLI,
     CALL,
+    CALLFAR,
+    CALLFARVB,
     SYSCALL,
     RETURN,
     RETURNR,
@@ -428,6 +432,8 @@ val OpcodesThatBranch = arrayOf(
     Opcode.RETURNI,
     Opcode.CALLI,
     Opcode.CALL,
+    Opcode.CALLFAR,
+    Opcode.CALLFARVB,
     Opcode.SYSCALL,
     Opcode.BSTCC,
     Opcode.BSTCS,
@@ -623,6 +629,8 @@ val instructionFormats = mutableMapOf(
     Opcode.PREPARECALL to InstructionFormat.from("N,<i"),
     Opcode.CALLI      to InstructionFormat.from("N,<r1"),
     Opcode.CALL       to InstructionFormat.from("N,call"),
+    Opcode.CALLFAR    to InstructionFormat.from("N,<i,<a"),
+    Opcode.CALLFARVB  to InstructionFormat.from("N,<r1,<a"),
     Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
     Opcode.RETURN     to InstructionFormat.from("N"),
     Opcode.RETURNR    to InstructionFormat.from("BW,<r1        | F,<fr1"),

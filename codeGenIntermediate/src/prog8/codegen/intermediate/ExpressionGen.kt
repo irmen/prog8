@@ -710,9 +710,20 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                                 address = address.address.toInt(),
                                 fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                         } else if(address.constbank!=null) {
-                            TODO("IR: support callfar into another bank ${address.constbank}")
+                            IRInstruction(
+                                Opcode.CALLFAR,
+                                address = address.address.toInt(),
+                                immediate = address.constbank!!.toInt()
+                            )
                         } else {
-                            TODO("IR: support callfar into another bank ${address.varbank!!.name}")
+                            val tr = translateExpression(address.varbank!!)
+                            require(tr.dt==IRDataType.BYTE)
+                            result += tr.chunks
+                            IRInstruction(
+                                Opcode.CALLFARVB,
+                                address = address.address.toInt(),
+                                reg1 = tr.resultReg
+                            )
                         }
                     }
                 addInstr(result, call, null)
