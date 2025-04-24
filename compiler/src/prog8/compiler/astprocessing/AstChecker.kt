@@ -681,8 +681,7 @@ internal class AstChecker(private val program: Program,
                     if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck && assignment.value !is IfExpression)
                         errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
                 } else {
-                    checkAssignmentCompatible(assignTarget, targetDatatype.getOrUndef(),
-                            sourceDatatype.getOrUndef(), assignment.value)
+                    checkAssignmentCompatible(targetDatatype.getOrUndef(),sourceDatatype.getOrUndef(), assignment.value.position)
                 }
             }
         }
@@ -1122,14 +1121,6 @@ internal class AstChecker(private val program: Program,
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
-        }
-
-        if(array.parent is Assignment) {
-            val arraydt = array.inferType(program)
-            val assignTarget = (array.parent as Assignment).target
-            val targetDt = assignTarget.inferType(program)
-            if(arraydt!=targetDt)
-                errors.err("value has incompatible type ($arraydt) for the variable ($targetDt)", array.position)
         }
 
         super.visit(array)
@@ -2015,25 +2006,22 @@ internal class AstChecker(private val program: Program,
         return correct
     }
 
-    private fun checkAssignmentCompatible(target: AssignTarget,
-                                          targetDatatype: DataType,
+    private fun checkAssignmentCompatible(targetDatatype: DataType,
                                           sourceDatatype: DataType,
-                                          sourceValue: Expression) : Boolean {
-        val position = sourceValue.position
+                                          position: Position) : Boolean {
 
         if (targetDatatype.isArray) {
-            if(sourceValue.inferType(program).isArray)
-                errors.err("cannot assign arrays directly. Maybe use sys.memcopy instead.", target.position)
+            if(sourceDatatype.isArray)
+                errors.err("cannot assign arrays directly. Maybe use sys.memcopy instead.", position)
             else
-                errors.err("cannot assign value to array. Maybe use sys.memset/memsetw instead.", target.position)
+                errors.err("cannot assign value to array. Maybe use sys.memset/memsetw instead.", position)
             return false
         }
-        if (sourceValue is ArrayLiteral) {
-            errors.err("cannot assign array", target.position)
-            return false
-        }
-        if(sourceValue is RangeExpression) {
-            errors.err("can't assign a range value to something else", position)
+        if (sourceDatatype.isArray) {
+            if(targetDatatype.isUnsignedWord)
+                errors.err("invalid assignment value, maybe forgot '&' (address-of)", position)
+            else
+                errors.err("cannot assign array", position)         // also includes range expressions
             return false
         }
         if(sourceDatatype.isUndefined) {
@@ -2056,38 +2044,17 @@ internal class AstChecker(private val program: Program,
         if(result)
             return true
 
-        if(sourceDatatype.isWord && targetDatatype.isByte) {
-            errors.err("cannot assign word to byte, use msb() or lsb()?", position)
-        }
-        else if(sourceDatatype.isIterable && targetDatatype.isByte) {
-            errors.err("cannot assign string or array to a byte", position)
-        }
+        if(sourceDatatype.isWord && targetDatatype.isByte)
+            errors.err("cannot assign word to byte, maybe use msb() or lsb()", position)
         else if(sourceDatatype.isFloat&& targetDatatype.isInteger)
             errors.err("cannot assign float to ${targetDatatype}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
-        else if((sourceValue as? BinaryExpression)?.operator in BitwiseOperators && targetDatatype.equalsSize(sourceDatatype)) {
-            // this is allowed: bitwise operation between different types as long as they're the same size.
-        }
         else if(targetDatatype.isUnsignedWord && sourceDatatype.isPassByRef) {
             // this is allowed: a pass-by-reference datatype into an uword (pointer value).
         }
-        else if(sourceDatatype.isArray && targetDatatype.isArray) {
-            // this is allowed (assigning array to array)
-        }
-        else if(sourceDatatype.isBool && !targetDatatype.isBool) {
+        else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
+            errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
+        else
             errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
-        }
-        else if(targetDatatype.isBool && !sourceDatatype.isBool) {
-            errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
-        }
-        else if(targetDatatype.isString) {
-            if(sourceDatatype.isUnsignedWord)
-                errors.err("can't assign UWORD to STR. If the source is a string and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
-            else
-                errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
-        }
-        else {
-            errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
-        }
 
         return false
     }

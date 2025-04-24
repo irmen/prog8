@@ -7,6 +7,8 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- STRUCTS: are now being developed in their own separate branch "structs". This will be for the next major version of the compiler (v12)
+- is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
@@ -67,17 +69,3 @@ Optimizations
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
   those checks should probably be removed, or be made permanent
-
-
-STRUCTS?
---------
-
-- declare struct *type*, or directly declare the variable itself?  Problem with the latter is: you cannot easily define multiple variables of the same struct type.
-- can contain only numeric types (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs, max 1 page of memory total size to allow regular indexing?
-- only as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
-- arrays of struct is just an array of uword pointers. Can even be @split?
-- need to introduce typed pointer datatype in prog8
-- STR remains the type for a string literal (so we can keep doing register-indexed addressing directly on it)
-- ARRAY remains the type for an array literal (so we can keep doing register-indexed addressing directly on it)
-- we probably need to have a STRBYREF and ARRAYBYREF if we deal with a pointer to a string / array (such as when passing it to a function)
-  the subtype of those should include the declared element type and the declared length of the string / array

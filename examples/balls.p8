@@ -26,8 +26,8 @@ main {
             BX[lp] = math.rnd() % txt.DEFAULT_WIDTH
             BY[lp] = math.rnd() % txt.DEFAULT_HEIGHT
             BC[lp] = math.rnd() & 15
-            DX[lp] = math.rnd() & 1
-            DY[lp] = math.rnd() & 1
+            DX[lp] = math.rnd() & 1 == 1
+            DY[lp] = math.rnd() & 1 == 1
         }
 
         ; display balls
