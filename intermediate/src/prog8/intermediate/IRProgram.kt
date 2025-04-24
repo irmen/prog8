@@ -271,7 +271,7 @@ class IRProgram(val name: String,
                 val existingType = regsTypes[reg]
                 if (existingType!=null) {
                     if (existingType != type)
-                        throw IllegalArgumentException("register $reg assigned multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
+                        throw IllegalArgumentException("register $reg given multiple types! $existingType and $type  ${this.name}<--${child.label ?: child}")
                 } else
                     regsTypes[reg] = type
             }

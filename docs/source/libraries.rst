@@ -190,6 +190,7 @@ memory (name, size, alignment)
     with the given name. The name must be a string literal, it cannot be empty or be a variable.
     The block is *uninitialized memory*; unlike other variables in Prog8 it is *not* set to zero at the start of the program!
     (if that is required, you can do so yourself using ``memset``).
+    No *dynamic* allocation is done; the block with this name is placed in memory only once!
     If you specify an alignment value >1, it means the block of memory will
     be aligned to such a dividable address in memory, for instance an alignment of $100 means the
     memory block is aligned on a page boundary, and $2 means word aligned (even addresses).

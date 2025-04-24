@@ -8,6 +8,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - STRUCTS: are now being developed in their own separate branch "structs". This will be for the next major version of the compiler (v12)
+- targetStatement() method could only take IBuiltinFunctions rather than program, optionally even if you don't want/have to check the builtin functions
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
@@ -32,7 +33,8 @@ Future Things and Ideas
 IR/VM
 -----
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- fix call() return value handling
+- fix call() return value handling (... what's wrong with it again?)
+- encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
@@ -42,6 +44,8 @@ IR/VM
      cx16.r0sL = cx16.r1s as byte }
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
+- reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
+  don't forget to take into account the data type of the register when it's going to be reused!
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.

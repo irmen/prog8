@@ -2,7 +2,8 @@
 
 main {
     sub start() {
-        cx16.r0 = &txt.print    ; IR: this is ok
-        uword[] @shared vectors = [ &txt.print ] ; IR: ERROR no chunk with label txt.print
+        cx16.r0 = foo()
     }
+
+    extsub $f000 = foo() clobbers(X) -> uword @AY
 }
