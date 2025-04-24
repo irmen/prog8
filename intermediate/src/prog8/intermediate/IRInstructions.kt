@@ -1088,7 +1088,7 @@ data class IRInstruction(
                 }
             }
             if(result.last().endsWith(',')) {
-                result.add(result.removeLast().trimEnd(','))
+                result.add(result.removeLastOrNull()!!.trimEnd(','))
             }
             result.add(")")
             val returns = fcallArgs.returns
@@ -1158,7 +1158,7 @@ data class IRInstruction(
             }
         }
         if(result.last() == ",")
-            result.removeLast()
+            result.removeLastOrNull()
         return result.joinToString("").trimEnd()
     }
 }

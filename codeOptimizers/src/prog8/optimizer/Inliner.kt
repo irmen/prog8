@@ -105,7 +105,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
                     if (subroutine.inline && subroutine.statements.size > 1) {
                         require(subroutine.statements.size == 2 && isEmptyReturn(subroutine.statements[1]))
-                        subroutine.statements.removeLast()      // get rid of the Return, to be able to inline the (single) statement preceding it.
+                        subroutine.statements.removeLastOrNull()      // get rid of the Return, to be able to inline the (single) statement preceding it.
                     }
                 }
             }

@@ -39,8 +39,8 @@ sealed interface IPtSubroutine {
                         val availableFloatRegisters = mutableListOf(RegisterOrPair.FAC1)        // just one value is possible
                         val others = returns.drop(1).map { type ->
                             when {
-                                type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLast(), null) to type
-                                type.isIntegerOrBool -> RegisterOrStatusflag(availableIntegerRegisters.removeLast(), null) to type
+                                type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLastOrNull()!!, null) to type
+                                type.isIntegerOrBool -> RegisterOrStatusflag(availableIntegerRegisters.removeLastOrNull()!!, null) to type
                                 else -> throw AssemblyError("unsupported return type $type")
                             }
                         }
