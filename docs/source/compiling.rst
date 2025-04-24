@@ -145,8 +145,7 @@ One or more .p8 module files
     a breakpoint halt in the debugger when this is enabled by running the emulator with -debug.
 
 ``-bytes2float <bytes>``
-    convert a comma separated list of bytes from the target system to a float value.
-    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
+    convert a comma separated list of bytes from the specified target system to a float value.
     Also see -float2bytes
 
 ``-check``
@@ -176,8 +175,7 @@ One or more .p8 module files
     Use experimental code generation backend (*incomplete*).
 
 ``-float2bytes <number>``
-    convert floating point number to a list of bytes for the target system.
-    NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!
+    convert floating point number to a list of bytes for the specified target system.
     Also see -bytes2float
 
 ``-ignorefootguns``
@@ -258,6 +256,9 @@ One or more .p8 module files
     end of compilation shows precise details of where and how much memory is used by the variables
     (it's called 'BSS' section or Gap at the address mentioned above).
     Assembling the program will fail if there are too many variables to fit in a single high ram bank.
+
+``-version``
+    Just print the compiler version and copyright message, and exit.
 
 ``-vm``
     load and run a 'p8ir' intermediate representation file in the internal VirtualMachine instead of compiling a prog8 program file.

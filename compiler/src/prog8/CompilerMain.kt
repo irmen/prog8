@@ -70,7 +70,8 @@ private fun compileMain(args: Array<String>): Boolean {
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "run a .p8ir IR source file in the embedded VM")
     val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
-    val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").multiple(999)
+    val version by cli.option(ArgType.Boolean, fullName = "version", description = "print compiler version and exit")
+    val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").optional().multiple(999)
 
     try {
         cli.parse(args)
@@ -78,6 +79,11 @@ private fun compileMain(args: Array<String>): Boolean {
         banner()
         System.err.println(e.message)
         return false
+    }
+
+    if(version==true) {
+        banner()
+        return true
     }
 
     if(quietAll!=true)
@@ -121,6 +127,11 @@ private fun compileMain(args: Array<String>): Boolean {
     if(float2bytes!=null) {
         convertFloatToBytes(float2bytes!!, compilationTarget!!)
         return true
+    }
+
+    if(moduleFiles.isEmpty()) {
+        System.err.println("No module file(s) specified")
+        return false
     }
 
     if(varsHighBank==0 && compilationTarget==Cx16Target.NAME) {
