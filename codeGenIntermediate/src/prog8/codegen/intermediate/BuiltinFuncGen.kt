@@ -240,11 +240,11 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
             BaseDataType.UWORD -> {
                 addToResult(result, tr, tr.resultReg, -1)
-                val resultReg = codeGen.registers.next(IRDataType.WORD)
+                val resultReg = codeGen.registers.next(IRDataType.BYTE)     // sqrt of a word still produces just a byte result
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.SQRT, IRDataType.WORD, reg1=resultReg, reg2=tr.resultReg)
                 }
-                return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
             BaseDataType.FLOAT -> {
                 addToResult(result, tr, -1, tr.resultFpReg)

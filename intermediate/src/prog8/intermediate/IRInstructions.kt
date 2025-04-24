@@ -39,8 +39,8 @@ All have type b or w or f.
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
-loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (only the lsb part used for indexing)
-loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2 (only the lsb part used for indexing)
+loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
+loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2 (0-255, a byte)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
 loadha      reg1                      - load cpu hardware register A into reg1.b
 loadhx      reg1                      - load cpu hardware register X into reg1.b
@@ -52,11 +52,11 @@ loadfaczero       fpreg1              - load "cpu hardware register" fac0 into f
 loadfacone        fpreg1              - load "cpu hardware register" fac1 into freg1.f
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
-storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (only the lsb part used for indexing)
-storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2 (only the lsb part used for indexing)
+storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
+storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2 (0-255, a byte)
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
-storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (only the lsb part used for indexing)
+storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
 storeha     reg1                      - store reg1.b into cpu hardware register A
 storehx     reg1                      - store reg1.b into cpu hardware register X
 storehy     reg1                      - store reg1.b into cpu hardware register Y
@@ -1005,7 +1005,7 @@ data class IRInstruction(
     private fun determineReg1Type(): IRDataType? {
         if(type==IRDataType.FLOAT) {
             // some float instructions have an integer register as well.
-            return if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP))
+            return if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP, Opcode.LOADIX, Opcode.LOADX, Opcode.STOREIX, Opcode.STOREX, Opcode.STOREZX))
                 IRDataType.BYTE
             else
                 IRDataType.WORD

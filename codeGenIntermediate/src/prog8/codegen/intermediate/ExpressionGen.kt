@@ -709,9 +709,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                                 Opcode.CALL,
                                 address = address.address.toInt(),
                                 fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
-                        }
-                        else {
-                            TODO("callfar into another bank is not implemented for the selected compilation target")
+                        } else if(address.constbank!=null) {
+                            TODO("IR: support callfar into another bank ${address.constbank}")
+                        } else {
+                            TODO("IR: support callfar into another bank ${address.varbank!!.name}")
                         }
                     }
                 addInstr(result, call, null)

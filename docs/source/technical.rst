@@ -237,6 +237,9 @@ Some notes and references into the compiler's source code modules:
    is more or less a machine code language for a virtual machine - and indeed this is what the built-in
    prog8 VM will execute if you use the 'virtual' compilation target and use ``-emu`` to launch the VM.
    (``intermediate`` and ``codeGenIntermediate`` modules, and ``virtualmachine`` module for the VM related stuff)
+   Note that this IR is still *targeted to one specific compilation target only*; various properties and all library
+   code for the selected target machine is encoded into the IR. It is *not possible* to eventually create a C64 program
+   from an IR file crated for the CommanderX16 target.
 #. The code generator backends all implement a common interface ``ICodeGeneratorBackend`` defined in the ``codeCore`` module.
    Currently they get handed the program Ast, Symboltable and several other things.
    If the code generator wants it can use the ``IRCodeGen`` class from the ``codeGenIntermediate`` module

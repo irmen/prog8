@@ -4,7 +4,15 @@ import prog8.code.core.*
 
 /*
 
-note: all symbol names are flattened so that they're a single string that is globally unique.
+Intermediate Represenation of the compiled program.
+
+Note that even though it is called IR, it is not fully "intermediate".
+This IR program is targeted to a single chosen target machine; some code in it
+and all included library files are for this specific single chosen compilation target.
+It will *not* be possible to create a binary program for a different target machine
+from this IR than the one initially chosen!
+
+Note: all symbol names are flattened so that they're a single string that is globally unique.
 
 
 PROGRAM:
