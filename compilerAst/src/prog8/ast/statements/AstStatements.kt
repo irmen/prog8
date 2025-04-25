@@ -568,7 +568,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
                         val memoryAddress: DirectMemoryWrite?,
                         val multi: List<AssignTarget>?,
                         val void: Boolean,
-                        override val position: Position) : Node {
+                        override val position: Position,    // TODO move to end of param list
+                        val pointerDereference: IdentifierReference? = null) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -576,6 +577,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         identifier?.linkParents(this)
         arrayindexed?.linkParents(this)
         memoryAddress?.linkParents(this)
+        pointerDereference?.linkParents(this)
         multi?.forEach { it.linkParents(this) }
     }
 
@@ -598,7 +600,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), multi?.toList(), void, position)
+    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), multi?.toList(), void, position, pointerDereference?.copy())
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         identifier?.referencesIdentifier(nameInSource)==true ||
                 arrayindexed?.referencesIdentifier(nameInSource)==true ||
@@ -610,16 +612,12 @@ data class AssignTarget(var identifier: IdentifierReference?,
             val symbol = definingScope.lookup(identifier!!.nameInSource) ?: return InferredTypes.unknown()
             if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)
         }
-
-        if (arrayindexed != null) {
-            return arrayindexed!!.inferType(program)
+        return when {
+            arrayindexed != null -> arrayindexed!!.inferType(program)
+            memoryAddress != null -> InferredTypes.knownFor(BaseDataType.UBYTE)
+            pointerDereference != null -> pointerDereference.inferType(program)
+            else -> InferredTypes.unknown()   // a multi-target has no 1 particular type
         }
-
-        if (memoryAddress != null)
-            return InferredTypes.knownFor(BaseDataType.UBYTE)
-
-        // a multi-target has no 1 particular type
-        return InferredTypes.unknown()
     }
 
     fun toExpression(): Expression {
@@ -629,7 +627,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
             arrayindexed != null -> arrayindexed!!.copy()
             memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression.copy(), memoryAddress.position)
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
-            else -> throw FatalAstException("invalid assignmenttarget")
+            pointerDereference != null -> PtrDereference(pointerDereference.copy(), position)
+            else -> throw FatalAstException("invalid assignment target")
         }
     }
 
@@ -650,33 +649,36 @@ data class AssignTarget(var identifier: IdentifierReference?,
                     false
             }
             multi != null -> false
+            pointerDereference!=null -> value is IdentifierReference && value.nameInSource == pointerDereference.nameInSource
             else -> false
         }
     }
 
     fun isSameAs(other: AssignTarget, program: Program): Boolean {
-        if (this === other)
-            return true
-        if(void && other.void)
-            return true
-        if (this.identifier != null && other.identifier != null)
-            return this.identifier!!.nameInSource == other.identifier!!.nameInSource
-        if (this.memoryAddress != null && other.memoryAddress != null) {
-            val addr1 = this.memoryAddress.addressExpression.constValue(program)
-            val addr2 = other.memoryAddress.addressExpression.constValue(program)
-            return addr1 != null && addr2 != null && addr1 == addr2
-        }
-        if (this.arrayindexed != null && other.arrayindexed != null) {
-            if (this.arrayindexed!!.arrayvar.nameInSource == other.arrayindexed!!.arrayvar.nameInSource) {
-                val x1 = this.arrayindexed!!.indexer.constIndex()
-                val x2 = other.arrayindexed!!.indexer.constIndex()
-                return x1 != null && x2 != null && x1 == x2
+        when {
+            this === other -> return true
+            void && other.void -> return true
+            this.identifier != null && other.identifier != null -> return this.identifier!!.nameInSource == other.identifier!!.nameInSource
+            this.memoryAddress != null && other.memoryAddress != null -> {
+                val addr1 = this.memoryAddress.addressExpression.constValue(program)
+                val addr2 = other.memoryAddress.addressExpression.constValue(program)
+                return addr1 != null && addr2 != null && addr1 == addr2
             }
+            this.arrayindexed != null && other.arrayindexed != null -> {
+                if (this.arrayindexed!!.arrayvar.nameInSource == other.arrayindexed!!.arrayvar.nameInSource) {
+                    val x1 = this.arrayindexed!!.indexer.constIndex()
+                    val x2 = other.arrayindexed!!.indexer.constIndex()
+                    return x1 != null && x2 != null && x1 == x2
+                }
+                else
+                    return false
+            }
+            this.pointerDereference!=null && other.pointerDereference!=null -> {
+                return this.pointerDereference.nameInSource == other.pointerDereference.nameInSource
+            }
+            this.multi != null && other.multi != null -> return this.multi == other.multi
+            else -> return false
         }
-        if(this.multi != null && other.multi != null)
-            return this.multi == other.multi
-
-        return false
     }
 
     fun isIOAddress(target: ICompilationTarget): Boolean {

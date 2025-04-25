@@ -1453,6 +1453,39 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     }
 }
 
+class PtrDereference(val identifier: IdentifierReference, override val position: Position) : Expression() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        identifier.linkParents(this)
+    }
+
+    override val isSimple = true
+    override fun copy() = PtrDereference(identifier.copy(), position)
+    override fun constValue(program: Program): NumericLiteral? = null
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        return when (val targetStmt = identifier.targetStatement(program)) {
+            is VarDecl -> {
+                if(targetStmt.datatype.isUndefined || !targetStmt.datatype.isPointer)
+                    InferredTypes.unknown()
+                else {
+                    if(targetStmt.datatype.sub!=null)
+                        InferredTypes.knownFor(targetStmt.datatype.sub!!)
+                    else
+                        InferredTypes.unknown()     // a naked deref'd struct pointer is not supported / has no actual type
+                }
+            }
+            else -> InferredTypes.InferredType.unknown()
+        }
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun referencesIdentifier(nameInSource: List<String>) = identifier.referencesIdentifier(nameInSource)
+}
+
 fun invertCondition(cond: Expression, program: Program): Expression {
     if(cond is BinaryExpression) {
         val invertedOperator = invertedComparisonOperator(cond.operator)

@@ -92,12 +92,44 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr)
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
+            is PtPointerDeref -> translate(expr)
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
         }
     }
 
+    private fun translate(deref: PtPointerDeref): ExpressionCodeResult {
+        if(deref.field==null) {
+            require(deref.type.isBasic) { "can only read simple types through pointer dereference" }
+            val result = mutableListOf<IRCodeChunkBase>()
+            val tr = translateExpression(deref.identifier)
+            result += tr.chunks
+            when {
+                deref.type.isByteOrBool -> {
+                    val resultReg = codeGen.registers.next(IRDataType.BYTE)
+                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg), null)
+                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+                }
+
+                deref.type.isWord -> {
+                    val resultReg = codeGen.registers.next(IRDataType.WORD)
+                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = resultReg, reg2 = tr.resultReg), null)
+                    return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
+                }
+
+                deref.type.isFloat -> {
+                    val resultReg = codeGen.registers.next(IRDataType.FLOAT)
+                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = tr.resultReg), null)
+                    return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
+                }
+
+                else -> throw AssemblyError("unsupported dereference type ${deref.type}")
+            }
+        } else {
+            TODO("pointer^.field dereference  ${deref.identifier} ${deref.field} ${deref.type}")
+        }
+    }
 
     private fun translate(ifExpr: PtIfExpression): ExpressionCodeResult {
 

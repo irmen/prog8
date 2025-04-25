@@ -106,6 +106,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtPrefix -> value.isSimple()
             is PtRange -> true
             is PtString -> true
+            is PtPointerDeref -> true
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
         }
@@ -391,6 +392,12 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
         }
         return copy
     }
+}
+
+
+class PtPointerDeref(type: DataType, val field: String?, position: Position) : PtExpression(type, position) {
+    val identifier: PtIdentifier
+        get() = children.single() as PtIdentifier
 }
 
 

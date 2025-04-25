@@ -4,8 +4,9 @@ TODO
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- add ast check for assignments to struct fields type checks  node_ptr.nextnode = enemy_ptr
-- add IR LOADPIX/STOREPIX instructions for efficient field access through a pointer var
+- add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
+- ubyte_ptr^^ ++  doesn't get changed to an inplace-assign  whereas x++ does
+- add IR LOADPIX/STOREPIX instructions for efficient field access through a pointer var?
 - DONE: declare struct as a separate entity so you can then declare multiple variables (pointers) of the same struct type. Like usual.
 - struct is a 'packed' struct, fields are placed in order of declaration. This guarantees exact size and place of the fields
 - structs only supported as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
@@ -15,11 +16,11 @@ STRUCTS and TYPED POINTERS
 - DONE: struct might also contain typed pointer fields (because a pointer is just an address word)
 - max 1 page of memory total size to allow regular register indexing
 - DONE: assigning ptrs of different types is only allowed via a cast as usual. For simple address (uword) assignments, no cast is needed (but allowed)
-- how to dereference a pointer?  Pascal does it like this: ptr^
+- DONE (FOR SIMPLE TYPES): how to dereference a pointer?  Pascal does it like this: ptr^  But this conflicts with the existing eor operator so we now use ptr^^  (double hat)
 - dereferencing a pointer to struct could look like Pascal's ptr^.field  as well, but the ^ is actually redundant here; compiler already knows it's a pointer type.
   Note that actually dereferencing a pointer to a struct as an explicit operation, conflicts with the third axiom on this list (structs only as reference types) so it can only be done for basic types?
   So... setting struct fields can simply be ``structvar.field = 42`` and reading them ``a = structvar.field``
-- DONE: you should be able to get the address of an individual field: ``&structpointer.field``
+- you should be able to get the address of an individual field: ``&structpointer.field``
 - arrays of structs?  Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
@@ -27,7 +28,7 @@ STRUCTS and TYPED POINTERS
 - existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
 - rather than str or uword parameter types for routines with a string argument, use ^str  (or ^ubyte maybe? these are more or less identical..?)
 - same for arrays? pointer-to-array syntax = TBD
-
+- pointer arithmetic is a pain, but need to follow C?  ptr=ptr+10 adds 10*sizeof() instead of just 10.
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^

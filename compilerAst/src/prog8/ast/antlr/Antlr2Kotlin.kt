@@ -394,6 +394,10 @@ private fun Assign_targetContext.toAst() : AssignTarget {
         is VoidTargetContext -> {
             AssignTarget(null, null, null,null,true, void_().toPosition())
         }
+        is PointerDereferenceTargetContext -> {
+            val pointer = this.pointerdereference().scoped_identifier().toAst()
+            AssignTarget(null, null, null, null, false, pointer.position, pointer)
+        }
         else -> throw FatalAstException("weird assign target node $this")
     }
 }
@@ -632,6 +636,11 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
         val ifex = if_expression()
         val (condition, truevalue, falsevalue) = ifex.expression()
         return IfExpression(condition.toAst(), truevalue.toAst(), falsevalue.toAst(), toPosition())
+    }
+
+    if(pointerdereference()!=null) {
+        val deref = pointerdereference()
+        return PtrDereference(deref.scoped_identifier().toAst(), toPosition())
     }
 
     throw FatalAstException(text)

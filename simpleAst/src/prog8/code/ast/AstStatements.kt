@@ -116,6 +116,8 @@ class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {
         get() = children.single() as? PtArrayIndexer
     val memory: PtMemoryByte?
         get() = children.single() as? PtMemoryByte
+    val pointerDeref: PtPointerDeref?
+        get() = children.single() as? PtPointerDeref
 
     val type: DataType
         get() {
@@ -123,6 +125,7 @@ class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {
                 is PtIdentifier -> tgt.type
                 is PtArrayIndexer -> tgt.type
                 is PtMemoryByte -> tgt.type
+                is PtPointerDeref -> tgt.type
                 else -> throw AssemblyError("weird target $tgt")
             }
         }

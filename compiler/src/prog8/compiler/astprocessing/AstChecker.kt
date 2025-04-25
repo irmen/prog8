@@ -680,9 +680,25 @@ internal class AstChecker(private val program: Program,
                 val sourceDatatype = assignment.value.inferType(program)
                 if (sourceDatatype.isUnknown) {
                     if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck && assignment.value !is IfExpression)
-                        errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
+                        if(assignment.value is PtrDereference)
+                            errors.err("invalid pointer dereference value", assignment.value.position)
+                        else
+                            errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
                 } else {
-                    checkAssignmentCompatible(targetDatatype.getOrUndef(),sourceDatatype.getOrUndef(), assignment.value.position)
+                    if(assignTarget.pointerDereference!=null) {
+                        val dt = targetDatatype.getOrUndef()
+                        if(dt.isPointer) {
+                            if(dt.sub!=null) {
+                                checkAssignmentCompatible(DataType.forDt(dt.sub!!), sourceDatatype.getOrUndef(), assignment.value.position)
+                            } else {
+                                throw FatalAstException("cannot dereference a struct value at ${assignment.target.position}")
+                            }
+                        } else {
+                            errors.err("datatype mismatch", assignment.value.position)
+                        }
+                    } else {
+                        checkAssignmentCompatible(targetDatatype.getOrUndef(), sourceDatatype.getOrUndef(), assignment.value.position)
+                    }
                 }
             }
         }

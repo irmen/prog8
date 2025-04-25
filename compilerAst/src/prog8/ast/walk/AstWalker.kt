@@ -73,7 +73,7 @@ interface IAstModification {
             try {
                 parent.replaceChildNode(node, replacement)
                 replacement.linkParents(parent)
-            } catch (fa: FatalAstException) {
+            } catch (_: FatalAstException) {
                 // possibly because of another replacement. Ignore here, we try again later.
             }
         }
@@ -105,6 +105,7 @@ abstract class AstWalker {
     open fun before(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -152,6 +153,7 @@ abstract class AstWalker {
     open fun after(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -515,6 +517,12 @@ abstract class AstWalker {
         chainedAssignment.target.accept(this, chainedAssignment)
         chainedAssignment.nested.accept(this, chainedAssignment)
         track(after(chainedAssignment, parent), chainedAssignment, parent)
+    }
+
+    fun visit(deref: PtrDereference, parent: Node) {
+        track(before(deref, parent), deref, parent)
+        deref.identifier.accept(this, deref)
+        track(after(deref, parent), deref, parent)
     }
 }
 

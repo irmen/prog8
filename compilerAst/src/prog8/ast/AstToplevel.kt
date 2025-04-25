@@ -7,7 +7,9 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.Encoding
+import prog8.code.core.Position
 import prog8.code.source.SourceCode
 
 
@@ -153,9 +155,9 @@ interface INameScope: IStatementContainer, INamedStatement {
     }
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
-        // a scoped name refers to a name in another namespace, and stars from the root.
+        // a scoped name refers to a name in another namespace, and always starts from the root.
 
-// experimental code to be able to alias blocks too:
+// TODO experimental code to be able to alias blocks too:
 //        val stmt = this.lookup(listOf(scopedName[0])) ?: return null
 //        if(stmt is Alias) {
 //            val block = this.lookup(stmt.target.nameInSource) ?: return null

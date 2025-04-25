@@ -175,6 +175,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtStructDecl -> {
                 "struct ${node.name} { " + node.members.joinToString("  ") { "${it.first} ${it.second}" } + " }"
             }
+            is PtPointerDeref -> "<deref>"
         }
     }
 

@@ -33,6 +33,8 @@ ADDRESS_OF: '&' ;
 ADDRESS_OF_MSB: '&>' ;
 ADDRESS_OF_LSB: '&<' ;
 INVALID_AND_COMPOSITE: '&&' ;
+POINTER: '^';
+POINTERDEREF: '^^';
 
 fragment HEX_DIGIT: ('a'..'f') | ('A'..'F') | ('0'..'9') ;
 fragment BIN_DIGIT: ('0' | '1') ;
@@ -166,7 +168,7 @@ basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 
 
 datatype: pointertype | basedatatype;
 
-pointertype: '^' (scoped_identifier | basedatatype);
+pointertype: POINTER (scoped_identifier | basedatatype);
 
 arrayindex:  '[' expression ']' ;
 
@@ -180,6 +182,7 @@ assign_target:
     scoped_identifier               #IdentifierTarget
     | arrayindexed                  #ArrayindexedTarget
     | directmemory                  #MemoryTarget
+    | pointerdereference            #PointerDereferenceTarget
     | void                          #VoidTarget
     ;
 
@@ -214,6 +217,7 @@ expression :
     | addressof
     | expression typecast
     | if_expression
+    | pointerdereference
     ;
 
 arrayindexed:
@@ -322,6 +326,8 @@ if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ;
 else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
 
 if_expression :  'if' expression EOL? expression EOL? 'else' EOL? expression ;
+
+pointerdereference:  scoped_identifier POINTERDEREF ;
 
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 

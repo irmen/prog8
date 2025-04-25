@@ -167,7 +167,7 @@ open class StNode(val name: String,
     }
 
     private fun lookup(scopedName: List<String>): StNode? {
-        // a scoped name refers to a name in another namespace, and always stars from the root.
+        // a scoped name refers to a name in another namespace, and always starts from the root.
         var node = this
         while(node.type!=StNodeType.GLOBAL)
             node = node.parent

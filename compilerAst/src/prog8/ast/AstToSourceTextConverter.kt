@@ -432,6 +432,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             assignTarget.memoryAddress?.accept(this)
             assignTarget.identifier?.accept(this)
             assignTarget.arrayindexed?.accept(this)
+            assignTarget.pointerDereference?.accept(this)
             val multi = assignTarget.multi
             if (multi != null) {
                 multi.dropLast(1).forEach { target ->
@@ -462,7 +463,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     override fun visit(typecast: TypecastExpression) {
         output("(")
         typecast.expression.accept(this)
-        output(" as ${typecast.type} ")
+        output(" as ${typecast.type}) ")
     }
 
     override fun visit(memread: DirectMemoryRead) {
@@ -527,5 +528,13 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(alias: Alias) {
         output("alias ${alias.alias} = ${alias.target.nameInSource.joinToString(".")}")
+    }
+
+    override fun visit(deref: PtrDereference) {
+        output("${deref.identifier.nameInSource.joinToString(".")}^^")
+    }
+
+    override fun visit(field: StructFieldRef) {
+        throw FatalAstException("struct field ref shouldn't occur as part of the AST tree ")
     }
 }

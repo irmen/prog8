@@ -205,4 +205,8 @@ interface IAstVisitor {
         chainedAssignment.target.accept(this)
         chainedAssignment.nested.accept(this)
     }
+
+    fun visit(deref: PtrDereference) {
+        deref.identifier.accept(this)
+    }
 }
