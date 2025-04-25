@@ -38,7 +38,6 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 // use a BIT instruction to test for bit 7 or 6 set/clear
                 val (testBitSet, variable, bitmask) = useBIT
                 return translateIfBIT(stmt, jumpAfterIf, testBitSet, variable, bitmask)
-                return
             }
 
             val rightDt = compareCond.right.type
@@ -1596,9 +1595,9 @@ _jump                       jmp  (${target.asmLabel})
                     }
                 }
                 is PtAddressOf -> {
-                    if(left.isFromArrayElement)
+                    if(left.isFromArrayElement) {
                         fallbackTranslateForSimpleCondition(stmt)
-                    else {
+                    } else {
                         val varname = if(left.identifier.type.isSplitWordArray) {
                             if(left.isMsbForSplitArray) left.identifier.name+"_msb" else left.identifier.name+"_lsb"
                         } else {
@@ -1648,9 +1647,9 @@ _jump                       jmp  (${target.asmLabel})
                     }
                 }
                 is PtAddressOf -> {
-                    if(left.isFromArrayElement)
+                    if(left.isFromArrayElement) {
                         fallbackTranslateForSimpleCondition(stmt)
-                    else {
+                    } else {
                         val varname = if(left.identifier.type.isSplitWordArray) {
                             if(left.isMsbForSplitArray) left.identifier.name+"_msb" else left.identifier.name+"_lsb"
                         } else {

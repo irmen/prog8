@@ -5,10 +5,7 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.BaseDataType
-import prog8.code.core.ComparisonOperators
-import prog8.code.core.IErrorReporter
-import prog8.code.core.Position
+import prog8.code.core.*
 
 
 internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {
@@ -207,7 +204,7 @@ _after:
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl()
         if(arrayVar!=null && arrayVar.datatype.isUnsignedWord) {
-            val wordIndex = TypecastExpression(indexExpr, BaseDataType.UWORD, true, indexExpr.position)
+            val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
             val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", wordIndex, arrayIndexedExpression.position)
             return if(parent is AssignTarget) {
                 // assignment to array
@@ -281,7 +278,9 @@ _after:
             if(addressOf!=null && offset==1) {
                 val variable = addressOf.identifier.targetVarDecl()
                 if(variable!=null && variable.datatype.isWord) {
-                    val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), memread.position), mutableListOf(addressOf.identifier), memread.position)
+                    val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), memread.position), mutableListOf(
+                        addressOf.identifier
+                    ), memread.position)
                     return listOf(IAstModification.ReplaceNode(memread, msb, parent))
                 }
             }

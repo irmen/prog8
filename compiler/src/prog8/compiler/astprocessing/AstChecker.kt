@@ -297,6 +297,7 @@ internal class AstChecker(private val program: Program,
                 is Directive,
                 is Label,
                 is VarDecl,
+                is StructDecl,
                 is InlineAssembly,
                 is IStatementContainer -> true
                 is Assignment -> {
@@ -1336,10 +1337,16 @@ internal class AstChecker(private val program: Program,
             errors.err("this expression doesn't return a value", typecast.expression.position)
 
         if(typecast.expression is NumericLiteral) {
-            val castResult = (typecast.expression as NumericLiteral).cast(typecast.type, typecast.implicit)
-            if(castResult.isValid)
-                throw FatalAstException("cast should have been performed in const eval already")
-            errors.err(castResult.whyFailed!!, typecast.expression.position)
+            if(typecast.type.isBasic) {
+                val castResult = (typecast.expression as NumericLiteral).cast(typecast.type.base, typecast.implicit)
+                if (castResult.isValid)
+                    throw FatalAstException("cast should have been performed in const eval already")
+                errors.err(castResult.whyFailed!!, typecast.expression.position)
+            } else if (typecast.type.isPointer) {
+                if(!(typecast.expression.inferType(program) istype DataType.UWORD))
+                    errors.err("can only cast uword to pointer", typecast.position)
+            } else
+                errors.err("invalid type cast", typecast.position)
         }
 
         super.visit(typecast)
@@ -1771,6 +1778,12 @@ internal class AstChecker(private val program: Program,
             errors.err("%asm containing IR code cannot be translated to 6502 assembly", inlineAssembly.position)
     }
 
+    override fun visit(struct: StructDecl) {
+        val uniqueFields = struct.members.map { it.second }.toSet()
+        if(uniqueFields.size!=struct.members.size)
+            errors.err("duplicate field names in struct", struct.position)
+    }
+
     private fun checkLongType(expression: Expression) {
         if(expression.inferType(program) issimpletype BaseDataType.LONG) {
             if((expression.parent as? VarDecl)?.type!=VarDeclType.CONST) {
@@ -1955,6 +1968,9 @@ internal class AstChecker(private val program: Program,
             targetDt.isArray -> {
                 return checkValueTypeAndRange(targetDt.elementType(), value)
             }
+            targetDt.isPointer -> {
+                return value.type==BaseDataType.UWORD
+            }
             else -> return err("type of value ${value.type.toString().lowercase()} doesn't match target $targetDt")
         }
         return true
@@ -1966,9 +1982,9 @@ internal class AstChecker(private val program: Program,
                 is NumericLiteral -> it.number.toInt()
                 is AddressOf -> it.identifier.nameInSource.hashCode() and 0xffff
                 is IdentifierReference -> it.nameInSource.hashCode() and 0xffff
-                is TypecastExpression -> {
+                is TypecastExpression if it.type.isBasic -> {
                     val constVal = it.expression.constValue(program)
-                    val cast = constVal?.cast(it.type, true)
+                    val cast = constVal?.cast(it.type.base, true)
                     if(cast==null || !cast.isValid)
                         -9999999
                     else
@@ -2050,6 +2066,13 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot assign float to ${targetDatatype}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else if(targetDatatype.isUnsignedWord && sourceDatatype.isPassByRef) {
             // this is allowed: a pass-by-reference datatype into an uword (pointer value).
+        }
+        else if (targetDatatype.isPointer) {
+            if(sourceDatatype.isPointer) {
+                if(sourceDatatype!=targetDatatype)
+                    errors.err("cannot assign different pointer type", position)
+            } else if(!sourceDatatype.isUnsignedWord)
+                errors.err("can only assign uword or correct pointer type to a pointer", position)
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)

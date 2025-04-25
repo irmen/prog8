@@ -120,7 +120,7 @@ other {
 
     test("generated constvalue from typecast inherits proper parent linkage") {
         val number = NumericLiteral(BaseDataType.UBYTE, 11.0, Position.DUMMY)
-        val tc = TypecastExpression(number, BaseDataType.BYTE, false, Position.DUMMY)
+        val tc = TypecastExpression(number, DataType.BYTE, false, Position.DUMMY)
         val program = Program("test", DummyFunctions, DummyMemsizer, DummyStringEncoder)
         tc.linkParents(ParentSentinel)
         tc.parent shouldNotBe null
@@ -985,13 +985,13 @@ main {
         funcarg2 shouldBe NumericLiteral(BaseDataType.UWORD, 8.0, Position.DUMMY)
 
         val answer3ValueTc = (st[15] as Assignment).value as TypecastExpression
-        answer3ValueTc.type shouldBe BaseDataType.UWORD
+        answer3ValueTc.type shouldBe DataType.UWORD
         val answer3Value = answer3ValueTc.expression as FunctionCallExpression
         answer3Value.target.nameInSource shouldBe listOf("msb")
         answer3Value.args.single() shouldBe instanceOf<BinaryExpression>()
 
         val funcarg3tc = (st[16] as FunctionCallStatement).args.single() as TypecastExpression
-        funcarg3tc.type shouldBe BaseDataType.UWORD
+        funcarg3tc.type shouldBe DataType.UWORD
         val funcarg3 = funcarg3tc.expression as FunctionCallExpression
         funcarg3.target.nameInSource shouldBe listOf("msb")
         funcarg3.args.single() shouldBe instanceOf<BinaryExpression>()

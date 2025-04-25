@@ -1,7 +1,7 @@
 package prog8.intermediate
 
-import prog8.code.core.*
 import prog8.Either
+import prog8.code.core.*
 import prog8.left
 import prog8.right
 
@@ -17,6 +17,8 @@ fun DataType.irTypeString(length: Int?): String {
         BaseDataType.LONG -> "long"
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
+        BaseDataType.POINTER -> if(sub!=null) "^${sub!!.name.lowercase()}" else "^${subIdentifier!!.joinToString(".")}"
+        BaseDataType.ARRAY_POINTER -> if(sub!=null) "^${sub!!.name.lowercase()}[$lengthStr]" else "^${subIdentifier!!.joinToString(".")}[$lengthStr]"
         BaseDataType.ARRAY -> {
             when(this.sub) {
                 BaseDataType.UBYTE -> "ubyte[$lengthStr]"
@@ -342,6 +344,9 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
 
 
 fun irType(type: DataType): IRDataType {
+    if(type.isPointer)
+        return IRDataType.WORD          // TODO do we need typed pointers in IR? probably not though?
+
     if(type.base.isPassByRef)
         return IRDataType.WORD
 

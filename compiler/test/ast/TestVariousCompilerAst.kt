@@ -840,12 +840,12 @@ main {
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 8
         val assignUbbVal = ((st[5] as Assignment).value as TypecastExpression)
-        assignUbbVal.type shouldBe BaseDataType.UBYTE
+        assignUbbVal.type shouldBe DataType.UBYTE
         assignUbbVal.expression shouldBe instanceOf<IdentifierReference>()
         val assignVaddr = (st[7] as Assignment).value as FunctionCallExpression
         assignVaddr.target.nameInSource shouldBe listOf("mkword")
         val tc = assignVaddr.args[0] as TypecastExpression
-        tc.type shouldBe BaseDataType.UBYTE
+        tc.type shouldBe DataType.UBYTE
         tc.expression shouldBe instanceOf<ArrayIndexedExpression>()
     }
 

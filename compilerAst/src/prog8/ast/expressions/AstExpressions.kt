@@ -70,10 +70,10 @@ sealed class Expression: Node {
         if(sourceDt.base==targetDt && sourceDt.sub==null)
             return Pair(false, this)
         if(this is TypecastExpression) {
-            this.type = targetDt
+            this.type = DataType.forDt(targetDt)
             return Pair(false, this)
         }
-        val typecast = TypecastExpression(this, targetDt, implicit, this.position)
+        val typecast = TypecastExpression(this, DataType.forDt(targetDt), implicit, this.position)
         return Pair(true, typecast)
     }
 }
@@ -369,7 +369,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun copy() = ArrayIndexedExpression(arrayvar.copy(), indexer.copy(), position)
 }
 
-class TypecastExpression(var expression: Expression, var type: BaseDataType, val implicit: Boolean, override val position: Position) : Expression() {
+class TypecastExpression(var expression: Expression, var type: DataType, val implicit: Boolean, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -378,7 +378,7 @@ class TypecastExpression(var expression: Expression, var type: BaseDataType, val
     }
 
     init {
-        if(type==BaseDataType.BOOL) require(!implicit) {"no implicit cast to boolean allowed"}
+        if(type.isBool) require(!implicit) {"no implicit cast to boolean allowed"}
     }
 
     override val isSimple = expression.isSimple
@@ -396,9 +396,11 @@ class TypecastExpression(var expression: Expression, var type: BaseDataType, val
     override fun referencesIdentifier(nameInSource: List<String>) = expression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteral? {
+        if(!type.isBasic)
+            return null
         val cv = expression.constValue(program) ?: return null
         cv.linkParents(parent)
-        val cast = cv.cast(type, implicit)
+        val cast = cv.cast(type.base, implicit)
         return if(cast.isValid) {
             val newval = cast.valueOrZero()
             newval.linkParents(parent)
@@ -425,17 +427,21 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
     override val isSimple = true
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        if(node===identifier) {
-            require(replacement is IdentifierReference)
-            identifier = replacement
-            replacement.parent = this
-        } else if(node===arrayIndex) {
-            require(replacement is ArrayIndex)
-            arrayIndex = replacement
-            replacement.parent = this
-        } else {
-            throw FatalAstException("invalid replace, no child node $node")
+        when {
+            node===identifier -> {
+                require(replacement is IdentifierReference)
+                identifier = replacement
+                arrayIndex = null
+            }
+            node===arrayIndex -> {
+                require(replacement is ArrayIndex)
+                arrayIndex = replacement
+            }
+            else -> {
+                throw FatalAstException("invalid replace, no child node $node")
+            }
         }
+        replacement.parent = this
     }
 
     override fun copy() = AddressOf(identifier.copy(), arrayIndex?.copy(), msb, position)
@@ -1164,7 +1170,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override val isSimple = true
 
-    fun targetStatement(program: Program?) =
+    fun targetStatement(program: Program?): Statement? =
         if(program!=null && nameInSource.singleOrNull() in program.builtinFunctions.names)
             BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
         else
@@ -1172,6 +1178,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     fun targetVarDecl(): VarDecl? = targetStatement(null) as? VarDecl
     fun targetSubroutine(): Subroutine? = targetStatement(null) as? Subroutine
+    fun targetStructDecl(): StructDecl? = targetStatement(null) as? StructDecl
 
     fun targetNameAndType(program: Program): Pair<String, DataType> {
         val target = targetStatement(program) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
@@ -1250,6 +1257,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         return scope.name==INTERNED_STRINGS_MODULENAME
     }
 }
+
 
 class FunctionCallExpression(override var target: IdentifierReference,
                              override val args: MutableList<Expression>,
@@ -1437,7 +1445,7 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(replacement !is Expression)
-            throw throw FatalAstException("invalid replace")
+            throw FatalAstException("invalid replace")
         if(node===condition) condition=replacement
         else if(node===truevalue) truevalue=replacement
         else if(node===falsevalue) falsevalue=replacement

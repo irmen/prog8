@@ -74,8 +74,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
             is UntilLoop -> throw FatalAstException("until loops must have been converted to jumps")
             is VarDecl -> transform(statement)
+            is StructDecl -> transform(statement)
             is When -> transform(statement)
             is WhileLoop -> throw FatalAstException("while loops must have been converted to jumps")
+            is StructFieldRef -> throw FatalAstException("should not occur as part of the actual AST")
         }
     }
 
@@ -180,14 +182,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transform(srcTarget: AssignTarget): PtAssignTarget {
         val target = PtAssignTarget(srcTarget.void, srcTarget.position)
-        if(srcTarget.identifier!=null)
-            target.add(transform(srcTarget.identifier!!))
-        else if(srcTarget.arrayindexed!=null)
-            target.add(transform(srcTarget.arrayindexed!!))
-        else if(srcTarget.memoryAddress!=null)
-            target.add(transform(srcTarget.memoryAddress!!))
-        else if(!srcTarget.void)
-            throw FatalAstException("invalid AssignTarget")
+        when {
+            srcTarget.identifier!=null -> target.add(transform(srcTarget.identifier!!))
+            srcTarget.arrayindexed!=null -> target.add(transform(srcTarget.arrayindexed!!))
+            srcTarget.memoryAddress!=null -> target.add(transform(srcTarget.memoryAddress!!))
+            !srcTarget.void -> throw FatalAstException("invalid AssignTarget")
+        }
         return target
     }
 
@@ -588,6 +588,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
     }
 
+    private fun transform(struct: StructDecl): PtStructDecl {
+        return PtStructDecl(struct.name, struct.members, struct.position)
+    }
+
     private fun transform(srcWhen: When): PtWhen {
         val w = PtWhen(srcWhen.position)
         w.add(transformExpression(srcWhen.condition))
@@ -616,7 +620,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transform(src: AddressOf): PtAddressOf {
         val addr = PtAddressOf(src.position, src.msb)
         addr.add(transform(src.identifier))
-        if(src.arrayIndex!=null)
+        if (src.arrayIndex != null)
             addr.add(transformExpression(src.arrayIndex!!.indexExpr))
         return addr
     }
@@ -669,14 +673,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 expr.add(high)
             } else {
                 val low = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
-                val lowFloat = PtTypeCast(BaseDataType.FLOAT, range.from.position)
+                val lowFloat = PtTypeCast(DataType.FLOAT, range.from.position)
                 lowFloat.add(transformExpression(range.from))
                 low.add(lowFloat)
                 low.add(x1)
                 expr.add(low)
                 val high = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
                 high.add(x2)
-                val highFLoat = PtTypeCast(BaseDataType.FLOAT, range.to.position)
+                val highFLoat = PtTypeCast(DataType.FLOAT, range.to.position)
                 highFLoat.add(transformExpression(range.to))
                 high.add(highFLoat)
                 expr.add(high)

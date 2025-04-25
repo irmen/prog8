@@ -3,6 +3,7 @@ package prog8.code
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtNode
 import prog8.code.ast.PtProgram
+import prog8.code.ast.PtStructDecl
 import prog8.code.core.*
 
 
@@ -107,7 +108,8 @@ enum class StNodeType {
     MEMVAR,
     CONSTANT,
     BUILTINFUNC,
-    MEMORYSLAB
+    MEMORYSLAB,
+    STRUCT
 }
 
 
@@ -248,6 +250,13 @@ class StMemVar(name: String,
             requireNotNull(length)
     }
 }
+
+class StStruct(
+    name: String,
+    val members: List<Pair<DataType, String>>,
+    astNode: PtStructDecl?
+) : StNode(name, StNodeType.STRUCT, astNode)
+
 
 class StMemorySlab(
     name: String,

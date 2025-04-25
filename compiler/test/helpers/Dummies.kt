@@ -21,7 +21,9 @@ internal object DummyFunctions : IBuiltinFunctions {
 
 internal object DummyMemsizer : IMemSizer {
     override fun memorySize(dt: DataType, numElements: Int?): Int {
-        if(dt.isArray || dt.isSplitWordArray) {
+        if(dt.isPointerArray)
+            return 2 * numElements!!
+        else if(dt.isArray || dt.isSplitWordArray) {
             require(numElements!=null)
             return when(dt.sub) {
                 BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UBYTE -> numElements

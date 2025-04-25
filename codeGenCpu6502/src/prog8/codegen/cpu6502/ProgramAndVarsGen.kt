@@ -709,6 +709,10 @@ internal class ProgramAndVarsGen(
                 val numbytes = compTarget.memorySize(variable.dt, variable.length!!)
                 asmgen.out("${variable.name}\t.fill  $numbytes")
             }
+            dt.isPointer -> asmgen.out("${variable.name}\t.word  ?")        // a pointer is just an uword address
+            dt.isPointerArray -> {
+                TODO("pointers are not supported yet")
+            }
             else -> {
                 throw AssemblyError("weird dt")
             }

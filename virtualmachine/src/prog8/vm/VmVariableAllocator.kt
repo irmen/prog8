@@ -1,5 +1,6 @@
 package prog8.vm
 
+import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 import prog8.code.core.IStringEncoding
 import prog8.code.core.InternalCompilerException
@@ -19,6 +20,7 @@ internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncod
         for (variable in st.allVariables()) {
             val memsize =
                 when {
+                    variable.dt.isPointer -> memsizer.memorySize(DataType.UWORD, null)  // a pointer is just a word address
                     variable.dt.isString -> variable.onetimeInitializationStringValue!!.first.length + 1  // include the zero byte
                     variable.dt.isNumericOrBool -> memsizer.memorySize(variable.dt, null)
                     variable.dt.isArray -> memsizer.memorySize(variable.dt, variable.length!!)

@@ -77,6 +77,7 @@ block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}';
 block_statement:
     directive
     | variabledeclaration
+    | structdeclaration
     | subroutinedeclaration
     | inlineasm
     | inlineir
@@ -88,6 +89,7 @@ block_statement:
 statement :
     directive
     | variabledeclaration
+    | structdeclaration
     | assignment
     | augassignment
     | unconditionaljump
@@ -119,6 +121,13 @@ variabledeclaration :
     | constdecl
     | memoryvardecl
     ;
+
+
+structdeclaration:
+    'struct' identifier '{' EOL? (structfielddecl | EOL)+ '}'
+    ;
+
+structfielddecl: datatype identifier;
 
 
 subroutinedeclaration :
@@ -153,7 +162,11 @@ constdecl: 'const' varinitializer ;
 
 memoryvardecl: ADDRESS_OF varinitializer;
 
-datatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' ;
+basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' ;
+
+datatype: pointertype | basedatatype;
+
+pointertype: '^' (scoped_identifier | basedatatype);
 
 arrayindex:  '[' expression ']' ;
 

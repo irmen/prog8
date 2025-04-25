@@ -13,6 +13,8 @@ enum class BaseDataType {
     STR,                // pass by reference
     ARRAY,              // pass by reference, subtype is the element type
     ARRAY_SPLITW,       // pass by reference, split word layout, subtype is the element type (restricted to word types)
+    POINTER,            // typed pointer, subtype is whatever type is pointed to
+    ARRAY_POINTER,      // array of pointers (uwords), subtype is whatever type each element points to
     UNDEFINED;
 
 
@@ -50,25 +52,33 @@ val BaseDataType.isIntegerOrBool get() = this in arrayOf(BaseDataType.UBYTE, Bas
 val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
 val BaseDataType.isNumericOrBool get() = this == BaseDataType.BOOL || this.isNumeric
 val BaseDataType.isSigned get() = this in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW
+val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER
+val BaseDataType.isPointer get() = this == BaseDataType.POINTER
+val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW
-val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW)
+val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable
 val BaseDataType.isPassByValue get() = !this.isIterable
 
 
-class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?) {
+class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?, val subIdentifier: List<String>?) {
 
     init {
-        if(base.isArray) {
-            require(sub != null)
+        if(base.isPointerArray) {
+            require(sub!=null || subIdentifier!=null)
+        }
+        else if(base.isArray) {
+            require(sub != null && subIdentifier==null)
             if(base.isSplitWordArray)
                 require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
         }
         else if(base==BaseDataType.STR)
             require(sub==BaseDataType.UBYTE) { "string subtype should be ubyte" }
-        else
-            require(sub == null) { "only string and array base types can have a subtype"}
+        else if(base!=BaseDataType.POINTER)
+            require(sub == null) { "only string, array and pointer base types can have a subtype"}
+
+        require(sub == null || subIdentifier == null) { "subtype and identifier can't both be set" }
+
     }
 
     override fun equals(other: Any?): Boolean {
@@ -81,41 +91,49 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
 
     companion object {
 
-        val UBYTE = DataType(BaseDataType.UBYTE, null)
-        val BYTE = DataType(BaseDataType.BYTE, null)
-        val UWORD = DataType(BaseDataType.UWORD, null)
-        val WORD = DataType(BaseDataType.WORD, null)
-        val LONG = DataType(BaseDataType.LONG, null)
-        val FLOAT = DataType(BaseDataType.FLOAT, null)
-        val BOOL = DataType(BaseDataType.BOOL, null)
-        val STR = DataType(BaseDataType.STR, BaseDataType.UBYTE)
-        val UNDEFINED = DataType(BaseDataType.UNDEFINED, null)
+        val UBYTE = DataType(BaseDataType.UBYTE, null, null)
+        val BYTE = DataType(BaseDataType.BYTE, null, null)
+        val UWORD = DataType(BaseDataType.UWORD, null, null)
+        val WORD = DataType(BaseDataType.WORD, null, null)
+        val LONG = DataType(BaseDataType.LONG, null, null)
+        val FLOAT = DataType(BaseDataType.FLOAT, null, null)
+        val BOOL = DataType(BaseDataType.BOOL, null, null)
+        val STR = DataType(BaseDataType.STR, BaseDataType.UBYTE, null)
+        val UNDEFINED = DataType(BaseDataType.UNDEFINED, null, null)
 
         private val simpletypes = mapOf(
-            BaseDataType.UBYTE to DataType(BaseDataType.UBYTE, null),
-            BaseDataType.BYTE to DataType(BaseDataType.BYTE, null),
-            BaseDataType.UWORD to DataType(BaseDataType.UWORD, null),
-            BaseDataType.WORD to DataType(BaseDataType.WORD, null),
-            BaseDataType.LONG to DataType(BaseDataType.LONG, null),
-            BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null),
-            BaseDataType.BOOL to DataType(BaseDataType.BOOL, null),
-            BaseDataType.STR to DataType(BaseDataType.STR, BaseDataType.UBYTE),
-            BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null)
+            BaseDataType.UBYTE to DataType(BaseDataType.UBYTE, null, null),
+            BaseDataType.BYTE to DataType(BaseDataType.BYTE, null, null),
+            BaseDataType.UWORD to DataType(BaseDataType.UWORD, null, null),
+            BaseDataType.WORD to DataType(BaseDataType.WORD, null, null),
+            BaseDataType.LONG to DataType(BaseDataType.LONG, null, null),
+            BaseDataType.FLOAT to DataType(BaseDataType.FLOAT, null, null),
+            BaseDataType.BOOL to DataType(BaseDataType.BOOL, null, null),
+            BaseDataType.STR to DataType(BaseDataType.STR, BaseDataType.UBYTE, null),
+            BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null, null)
         )
 
         fun forDt(dt: BaseDataType) = simpletypes.getValue(dt)
 
         fun arrayFor(elementDt: BaseDataType, splitwordarray: Boolean=true): DataType {
+            require(!elementDt.isPointer) { "use other array constructor for arrays of pointers" }
             val actualElementDt = if(elementDt==BaseDataType.STR) BaseDataType.UWORD else elementDt      // array of strings is actually just an array of UWORD pointers
             return if(splitwordarray && actualElementDt.isWord)
-                DataType(BaseDataType.ARRAY_SPLITW, actualElementDt)
+                DataType(BaseDataType.ARRAY_SPLITW, actualElementDt, null)
             else {
                 if(actualElementDt.isNumericOrBool && actualElementDt != BaseDataType.LONG)
-                    DataType(BaseDataType.ARRAY, actualElementDt)
+                    DataType(BaseDataType.ARRAY, actualElementDt, null)
                 else
                     throw NoSuchElementException("invalid element dt $elementDt")
             }
         }
+
+        fun arrayOfPointersTo(sub: BaseDataType?, subIdentifier: List<String>?): DataType =
+            DataType(BaseDataType.ARRAY_POINTER, sub, subIdentifier)
+
+        fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
+
+        fun pointer(scopedIdentifier: List<String>): DataType = DataType(BaseDataType.POINTER, null, scopedIdentifier)
     }
 
     fun elementToArray(splitwords: Boolean = true): DataType {
@@ -124,7 +142,9 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     }
 
     fun elementType(): DataType =
-        if(base.isArray || base==BaseDataType.STR)
+        if(isPointerArray)
+            DataType(BaseDataType.POINTER, sub, subIdentifier)
+        else if(base.isArray || base==BaseDataType.STR)
             forDt(sub!!)
         else
             throw IllegalArgumentException("not an array")
@@ -148,6 +168,12 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
+        BaseDataType.POINTER -> {
+            if(sub!=null) "^${sub.name.lowercase()}" else "^${subIdentifier!!.joinToString(".")}"
+        }
+        BaseDataType.ARRAY_POINTER -> {
+            if(sub!=null) "^${sub.name.lowercase()}[] (split)" else "^${subIdentifier!!.joinToString(".")}[] (split)"
+        }
         else -> base.name.lowercase()
     }
 
@@ -160,6 +186,12 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         BaseDataType.LONG -> "long"
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "str"
+        BaseDataType.POINTER -> {
+            if(sub!=null) "^${sub.name.lowercase()}" else "^${subIdentifier!!.joinToString(".")}"
+        }
+        BaseDataType.ARRAY_POINTER -> {
+            if(sub!=null) "^${sub.name.lowercase()}[" else "^${subIdentifier!!.joinToString(".")}["
+        }
         BaseDataType.ARRAY -> {
             when(sub) {
                 BaseDataType.UBYTE -> "ubyte["
@@ -193,12 +225,20 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
             BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
+            BaseDataType.POINTER, BaseDataType.ARRAY_POINTER -> {
+                when {
+                    targetType.base == BaseDataType.UWORD || targetType.base == BaseDataType.LONG -> true
+                    targetType.isPointer -> this.isUnsignedWord
+                    else -> false
+                }
+            }
             BaseDataType.UNDEFINED -> false
         }
 
     fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
     fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
 
+    val isBasic = sub==null && subIdentifier==null
     val isUndefined = base == BaseDataType.UNDEFINED
     val isByte = base.isByte
     val isUnsignedByte = base == BaseDataType.UBYTE
@@ -214,6 +254,8 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     val isSigned = base.isSigned
     val isUnsigned = !base.isSigned
     val isArray = base.isArray
+    val isPointer = base.isPointer
+    val isPointerArray = base.isPointerArray
     val isBoolArray = base.isArray && sub == BaseDataType.BOOL
     val isByteArray = base.isArray && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE)
     val isUnsignedByteArray = base.isArray && sub == BaseDataType.UBYTE

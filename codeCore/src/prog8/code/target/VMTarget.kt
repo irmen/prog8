@@ -90,7 +90,9 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
     }
 
     override fun memorySize(dt: DataType, numElements: Int?): Int {
-        if(dt.isArray) {
+        if(dt.isPointerArray)
+            return 2 * numElements!!        // array of pointers is just array of uwords
+        else if(dt.isArray) {
             if(numElements==null) return 2      // treat it as a pointer size
             return when(dt.sub) {
                 BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
@@ -109,6 +111,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
             dt.isByteOrBool -> 1 * (numElements ?: 1)
             dt.isFloat -> FLOAT_MEM_SIZE * (numElements ?: 1)
             dt.isLong -> throw IllegalArgumentException("long can not yet be put into memory")
+            dt.isPointer -> 2  // pointer is just a uword
             dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
             else -> 2 * (numElements ?: 1)
         }

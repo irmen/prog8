@@ -45,6 +45,7 @@ internal fun BlockContext.toAst(isInLibrary: Boolean) : Block {
             it.inlineir()!=null -> it.inlineir().toAst()
             it.labeldef()!=null -> it.labeldef().toAst()
             it.alias()!=null -> it.alias().toAst()
+            it.structdeclaration()!=null -> it.structdeclaration().toAst()
             else -> throw FatalAstException("weird block node $it")
         }
     }
@@ -54,7 +55,7 @@ internal fun BlockContext.toAst(isInLibrary: Boolean) : Block {
 private fun Statement_blockContext.toAst(): MutableList<Statement> =
         statement().asSequence().map { it.toAst() }.toMutableList()
 
-private fun VariabledeclarationContext.toAst() : Statement {
+private fun VariabledeclarationContext.toAst() : VarDecl {
     vardecl()?.let {
         return it.toAst(VarDeclType.VAR, null)
     }
@@ -74,6 +75,12 @@ private fun VariabledeclarationContext.toAst() : Statement {
     }
 
     throw FatalAstException("weird variable decl $this")
+}
+
+private fun StructdeclarationContext.toAst(): Statement {
+    val name = identifier().text
+    val members = structfielddecl().map { it.toAst() }
+    return StructDecl(name, members, toPosition())
 }
 
 private fun SubroutinedeclarationContext.toAst() : Subroutine {
@@ -165,6 +172,9 @@ private fun StatementContext.toAst() : Statement {
     val aliasstmt = alias()?.toAst()
     if(aliasstmt!=null) return aliasstmt
 
+    val structdecl = structdeclaration()?.toAst()
+    if(structdecl!=null) return structdecl
+
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
@@ -231,18 +241,12 @@ private fun Asmsub_returnsContext.toAst(): List<AsmSubroutineReturn>
                     else -> throw SyntaxError("invalid register or status flag", toPosition())
                 }
             }
-            // asmsubs currently only return a base datatype
-            val returnBaseDt = it.datatype().toAst()
-            AsmSubroutineReturn(
-                    DataType.forDt(returnBaseDt),
-                    registerorpair,
-                    statusregister)
+            AsmSubroutineReturn(it.datatype().toAst(), registerorpair, statusregister)
         }
 
 private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_param().map {
     val vardecl = it.vardecl()
-    val baseDt = vardecl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    var datatype = DataType.forDt(baseDt)
+    var datatype = vardecl.datatype()?.toAst() ?: DataType.UNDEFINED
     if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
         datatype = datatype.elementToArray()
     val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
@@ -319,7 +323,7 @@ private fun SubroutineContext.toAst() : Subroutine {
     return Subroutine(
         identifier().text,
         sub_params()?.toAst()?.toMutableList() ?: mutableListOf(),
-        returntypes.map { DataType.forDt(it) }.toMutableList(),
+        returntypes.toMutableList(),
         emptyList(),
         emptyList(),
         emptySet(),
@@ -341,8 +345,7 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
                     throw SyntaxError("invalid parameter tag '$tag'", toPosition())
             }
             val zp = getZpOption(tags)
-            val baseDt = decl.datatype()?.toAst() ?: BaseDataType.UNDEFINED
-            var datatype = DataType.forDt(baseDt)
+            var datatype = decl.datatype()?.toAst() ?: DataType.UNDEFINED
             if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
                 datatype = datatype.elementToArray()
 
@@ -380,16 +383,16 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             AssignTarget(identifier, null, null, null, false, scoped_identifier().toPosition())
         }
         is MemoryTargetContext ->
-            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()), null, false, toPosition())
+            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()),null,false, toPosition())
         is ArrayindexedTargetContext -> {
             val ax = arrayindexed()
             val arrayvar = ax.scoped_identifier().toAst()
             val index = ax.arrayindex().toAst()
             val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
-            AssignTarget(null, arrayindexed, null, null, false, toPosition())
+            AssignTarget(null, arrayindexed, null,null,false, toPosition())
         }
         is VoidTargetContext -> {
-            AssignTarget(null, null, null, null, true, void_().toPosition())
+            AssignTarget(null, null, null,null,true, void_().toPosition())
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
@@ -397,7 +400,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
 
 private fun Multi_assign_targetContext.toAst() : AssignTarget {
     val targets = this.assign_target().map { it.toAst() }
-    return AssignTarget(null, null, null, targets, false, toPosition())
+    return AssignTarget(null, null, null,targets, false, toPosition())
 }
 
 private fun ClobberContext.toAst() : Set<CpuRegister> {
@@ -430,12 +433,28 @@ private fun AugassignmentContext.toAst(): Assignment {
     return Assignment(assign_target().toAst(), expression, AssignmentOrigin.USERCODE, toPosition())
 }
 
-private fun DatatypeContext.toAst(): BaseDataType {
+private fun BasedatatypeContext.toAst(): BaseDataType {
     return try {
         BaseDataType.valueOf(text.uppercase())
     } catch (_: IllegalArgumentException) {
         BaseDataType.UNDEFINED
     }
+}
+
+private fun DatatypeContext.toAst(): DataType {
+    val base = basedatatype()?.toAst()
+    if(base!=null)
+        return DataType.forDt(base)
+    val pointer = pointertype().toAst()
+    return pointer
+}
+
+private fun PointertypeContext.toAst(): DataType {
+    val base = basedatatype()?.toAst()
+    if(base!=null)
+        return DataType.pointer(base)
+    val identifier = scoped_identifier().identifier().map { it.text}
+    return DataType.pointer(identifier)
 }
 
 private fun ArrayindexContext.toAst() : ArrayIndex =
@@ -589,9 +608,8 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
         return expression(0).toAst(insideParentheses=true)        // expression within ( )
 
     if(typecast()!=null) {
-        // typecast is always to a base datatype
-        val baseDt = typecast().datatype().toAst()
-        return TypecastExpression(expression(0).toAst(), baseDt, false, toPosition())
+        val dt = typecast().datatype().toAst()
+        return TypecastExpression(expression(0).toAst(), dt, false, toPosition())
     }
 
     if(directmemory()!=null)
@@ -603,7 +621,7 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
         val msb = addressOf.ADDRESS_OF_MSB()!=null
         // note: &<  (ADDRESS_OF_LSB)  is equivalent to a regular &.
         return if (identifier != null)
-            AddressOf(addressof().scoped_identifier().toAst(), null, msb, toPosition())
+            AddressOf(addressof().scoped_identifier().toAst(),null, msb, toPosition())
         else {
             val array = addressOf.arrayindexed()
             AddressOf(array.scoped_identifier().toAst(), array.arrayindex().toAst(), msb, toPosition())
@@ -772,6 +790,12 @@ private fun When_choiceContext.toAst(): WhenChoice {
     return WhenChoice(values?.toMutableList(), scope, toPosition())
 }
 
+private fun StructfielddeclContext.toAst(): Pair<DataType, String> {
+    val identifier = identifier().NAME().text
+    val dt = datatype().toAst()
+    return dt to identifier
+}
+
 private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl {
     val tags = TAG().map { it.text }
     val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@split", "@nosplit", "@shared", "@alignword", "@alignpage", "@align64", "@dirty")
@@ -790,8 +814,13 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val alignpage = "@alignpage" in tags
     if(alignpage && alignword)
         throw SyntaxError("choose a single alignment option", toPosition())
-    val baseDt = datatype()?.toAst() ?: BaseDataType.UNDEFINED
-    val dt = if(isArray) DataType.arrayFor(baseDt, split!=SplitWish.NOSPLIT) else DataType.forDt(baseDt)
+    val baseDt = datatype()?.toAst() ?: DataType.UNDEFINED
+    val dt = if(!isArray) baseDt else {
+        if(baseDt.isPointer)
+            DataType.arrayOfPointersTo(baseDt.sub, baseDt.subIdentifier)
+        else
+            DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
+    }
 
     return VarDecl(
             type, VarDeclOrigin.USERCODE,

@@ -60,6 +60,9 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 val params = node.parameters.map {StSubroutineParameter(it.name, it.type, it.register) }
                 StSub(node.name, params, node.returns, node)
             }
+            is PtStructDecl -> {
+                StStruct(node.name, node.members, node)
+            }
             is PtVariable -> {
                 val initialNumeric: Double?
                 val initialString: StString?
@@ -134,9 +137,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         return value.children.map {
             when(it) {
                 is PtAddressOf -> {
-                    if(it.isFromArrayElement)
-                        TODO("address-of array element $it in initial array value")
-                    StArrayElement(null, it.identifier.name, null)
+                    when {
+                        it.isFromArrayElement -> TODO("address-of array element $it in initial array value")
+                        else -> StArrayElement(null, it.identifier.name, null)
+                    }
                 }
                 is PtNumber -> StArrayElement(it.number, null, null)
                 is PtBool -> StArrayElement(null, null, it.value)

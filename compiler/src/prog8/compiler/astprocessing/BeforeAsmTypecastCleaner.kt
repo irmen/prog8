@@ -9,7 +9,6 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.BaseDataType
 import prog8.code.core.IErrorReporter
-import prog8.code.core.isByte
 import prog8.code.core.isWord
 
 
@@ -29,11 +28,11 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             }
         }
 
-        if(typecast.type==sourceDt.base)
+        if(typecast.type==sourceDt)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(sourceDt.isPassByRef) {
-            if(typecast.type == BaseDataType.UWORD) {
+            if(typecast.type.isUnsignedWord) {
                 val identifier = typecast.expression as? IdentifierReference
                 if(identifier!=null) {
                     return if(identifier.isSubroutineParameter()) {

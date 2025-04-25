@@ -18,8 +18,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
         // try to statically convert a literal value into one of the desired type
         val literal = typecast.expression as? NumericLiteral
-        if (literal != null) {
-            val newLiteral = literal.cast(typecast.type, typecast.implicit)
+        if (literal != null && typecast.type.isBasic) {
+            val newLiteral = literal.cast(typecast.type.base, typecast.implicit)
             if (newLiteral.isValid && newLiteral.valueOrZero() !== literal) {
                 mods += IAstModification.ReplaceNode(typecast, newLiteral.valueOrZero(), parent)
             }
@@ -33,7 +33,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 mods += IAstModification.ReplaceNode(typecast.expression, subTypecast.expression, typecast)
             }
         } else {
-            if (typecast.expression.inferType(program) issimpletype typecast.type) {
+            if (typecast.expression.inferType(program) istype typecast.type) {
                 // remove duplicate cast
                 mods += IAstModification.ReplaceNode(typecast, typecast.expression, parent)
             }
@@ -499,7 +499,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 else if (valueDt issimpletype BaseDataType.BYTE) {
                     // useless lsb() of byte value, but as lsb() returns unsigned, we have to cast now.
-                    val cast = TypecastExpression(arg.expression, BaseDataType.UBYTE, true, arg.position)
+                    val cast = TypecastExpression(arg.expression, DataType.UBYTE, true, arg.position)
                     return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
                 }
             } else {
@@ -516,7 +516,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
                 else if (argDt issimpletype BaseDataType.BYTE) {
                     // useless lsb() of byte value, but as lsb() returns unsigned, we have to cast now.
-                    val cast = TypecastExpression(arg, BaseDataType.UBYTE, true, arg.position)
+                    val cast = TypecastExpression(arg, DataType.UBYTE, true, arg.position)
                     return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
                 }
             }
@@ -555,7 +555,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if(functionCallExpr.target.nameInSource == listOf("mkword")) {
             if(functionCallExpr.args[0].constValue(program)?.number==0.0) {
                 // just cast the lsb to uword
-                val cast = TypecastExpression(functionCallExpr.args[1], BaseDataType.UWORD, true, functionCallExpr.position)
+                val cast = TypecastExpression(functionCallExpr.args[1], DataType.UWORD, true, functionCallExpr.position)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
             }
         }
@@ -711,9 +711,9 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                             // just use:  msb(value) as type
                             val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
                             return if(leftDt.isSignedWord)
-                                TypecastExpression(msb, BaseDataType.BYTE, true, expr.position)
+                                TypecastExpression(msb, DataType.BYTE, true, expr.position)
                             else
-                                TypecastExpression(msb, BaseDataType.UWORD, true, expr.position)
+                                TypecastExpression(msb, DataType.UWORD, true, expr.position)
                         }
                         else -> return null
                     }
@@ -839,14 +839,14 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     // shift left by 8 bits is just a byte operation: mkword(lsb(X), 0)
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val mkword =  FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(lsb, NumericLiteral(BaseDataType.UBYTE, 0.0, expr.position)), expr.position)
-                    return TypecastExpression(mkword, BaseDataType.WORD, true, expr.position)
+                    return TypecastExpression(mkword, DataType.WORD, true, expr.position)
                 }
                 else if (amount > 8) {
                     // same as above but with residual shifts.
                     val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left), expr.position)
                     val shifted = BinaryExpression(lsb, "<<", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
                     val mkword = FunctionCallExpression(IdentifierReference(listOf("mkword"), expr.position), mutableListOf(shifted, NumericLiteral.optimalInteger(0, expr.position)), expr.position)
-                    return TypecastExpression(mkword, BaseDataType.WORD, true, expr.position)
+                    return TypecastExpression(mkword, DataType.WORD, true, expr.position)
                 }
             }
             else -> {
@@ -887,12 +887,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 else if(amount==8) {
                     // shift right by 8 bits is just a byte operation: msb(X) as uword
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    return TypecastExpression(msb, BaseDataType.UWORD, true, expr.position)
+                    return TypecastExpression(msb, DataType.UWORD, true, expr.position)
                 }
                 else if (amount > 8) {
                     // same as above but with residual shifts.
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position), BaseDataType.UWORD, true, expr.position)
+                    return TypecastExpression(BinaryExpression(msb, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position), DataType.UWORD, true, expr.position)
                 }
             }
             BaseDataType.WORD -> {
@@ -903,12 +903,12 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 else if(amount == 8) {
                     // shift right by 8 bits is just a byte operation: msb(X) as byte  (will get converted to word later)
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    return TypecastExpression(msb, BaseDataType.BYTE, true, expr.position)
+                    return TypecastExpression(msb, DataType.BYTE, true, expr.position)
                 }
                 else if(amount > 8) {
                     // same as above but with residual shifts. Take care to do signed shift.
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left), expr.position)
-                    val signed = TypecastExpression(msb, BaseDataType.BYTE, true, expr.position)
+                    val signed = TypecastExpression(msb, DataType.BYTE, true, expr.position)
                     return BinaryExpression(signed, ">>", NumericLiteral.optimalInteger(amount - 8, expr.position), expr.position)
                 }
             }

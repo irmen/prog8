@@ -440,9 +440,9 @@ internal class AssignmentAsmGen(
             is PtAddressOf -> {
                 val arrayDt = value.identifier.type
                 val sourceName =
-                    if(value.isMsbForSplitArray)
+                    if (value.isMsbForSplitArray)
                         asmgen.asmSymbolName(value.identifier) + "_msb"
-                    else if(arrayDt.isSplitWordArray)
+                    else if (arrayDt.isSplitWordArray)
                         asmgen.asmSymbolName(value.identifier) + "_lsb"  // the _lsb split array comes first in memory
                     else
                         asmgen.asmSymbolName(value.identifier)
@@ -1382,10 +1382,10 @@ internal class AssignmentAsmGen(
 
             when (right) {
                 is PtAddressOf -> {
-                    var symbol = asmgen.asmVariableName(right.identifier)
                     if(right.isFromArrayElement) {
-                        TODO("address-of array element $symbol at ${right.position}")
+                        TODO("address-of array element at ${right.position}")
                     } else {
+                        var symbol = asmgen.asmVariableName(right.identifier)
                         if(right.identifier.type.isSplitWordArray) {
                             symbol = if(right.isMsbForSplitArray) symbol+"_msb" else symbol+"_lsb"
                         }

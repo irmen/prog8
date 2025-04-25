@@ -155,6 +155,14 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
     }
 
+    override fun visit(struct: StructDecl) {
+        outputln("struct ${struct.name} {")
+        for(member in struct.members) {
+            outputlni(  "    ${member.first} ${member.second}")
+        }
+        outputlni("}")
+    }
+
     override fun visit(subroutine: Subroutine) {
         output("\n")
         outputi("")
@@ -454,7 +462,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     override fun visit(typecast: TypecastExpression) {
         output("(")
         typecast.expression.accept(this)
-        output(" as ${DataType.forDt(typecast.type).sourceString()}) ")
+        output(" as ${typecast.type} ")
     }
 
     override fun visit(memread: DirectMemoryRead) {
@@ -474,7 +482,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(addressOf.msb)
             output(">")
         addressOf.identifier.accept(this)
-        if(addressOf.arrayIndex!=null) {
+        if (addressOf.arrayIndex != null) {
             output("[")
             addressOf.arrayIndex?.accept(this)
             output("]")

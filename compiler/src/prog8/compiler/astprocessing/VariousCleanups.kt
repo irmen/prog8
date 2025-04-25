@@ -132,14 +132,17 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if(constValue!=null)
             return listOf(IAstModification.ReplaceNode(typecast, constValue, parent))
 
-        if(typecast.expression is NumericLiteral) {
-            val value = (typecast.expression as NumericLiteral).cast(typecast.type, typecast.implicit)
-            if(value.isValid)
-                return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
+        val number = typecast.expression as? NumericLiteral
+        if(number!=null) {
+            if(typecast.type.isBasic) {
+                val value = number.cast(typecast.type.base, typecast.implicit)
+                if (value.isValid)
+                    return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
+            }
         }
 
         val sourceDt = typecast.expression.inferType(program)
-        if(sourceDt issimpletype typecast.type)
+        if(sourceDt istype typecast.type)
             return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
@@ -423,7 +426,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(valueDt.isWords)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
             if(valueDt.isBytes) {
-                val cast = TypecastExpression(functionCallExpr.args[0], BaseDataType.UWORD, true, functionCallExpr.position)
+                val cast = TypecastExpression(functionCallExpr.args[0], DataType.UWORD, true, functionCallExpr.position)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
             }
         }

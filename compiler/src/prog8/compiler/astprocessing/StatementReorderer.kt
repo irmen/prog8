@@ -67,7 +67,7 @@ internal class StatementReorderer(
                             if (!canSkipInitializationWith0(decl)) {
                                 // Add assignment to initialize with zero
                                 val identifier = IdentifierReference(listOf(decl.name), decl.position)
-                                val assignzero = Assignment(AssignTarget(identifier, null, null, null, false, decl.position),
+                                val assignzero = Assignment(AssignTarget(identifier, null, null,null, false, decl.position),
                                     decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
                                 return listOf(IAstModification.InsertAfter(
                                     decl, assignzero, parent as IStatementContainer
@@ -99,7 +99,7 @@ internal class StatementReorderer(
                     if(target!=null && target.isArray) {
                         val pos = decl.value!!.position
                         val identifier = IdentifierReference(listOf(decl.name), pos)
-                        val assign = Assignment(AssignTarget(identifier, null, null, null, false, pos),
+                        val assign = Assignment(AssignTarget(identifier, null, null,null, false, pos),
                             decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
                         return listOf(IAstModification.InsertAfter(

@@ -259,6 +259,7 @@ class IRCodeGen(
             is PtDefer -> throw AssemblyError("should have been transformed")
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
             is PtSub -> throw AssemblyError("nested subroutines should have been flattened ${node.position}")
+            is PtStructDecl -> emptyList()
             else -> TODO("missing codegen for $node")
         }
 
@@ -1885,6 +1886,7 @@ class IRCodeGen(
                         }
                     }
                 }
+                is PtStructDecl -> { /* do nothing */ }
                 else -> TODO("weird block child node $child")
             }
         }

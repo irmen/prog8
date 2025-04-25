@@ -198,10 +198,14 @@ class VmProgramLoader {
 
             // zero out uninitialized ('bss') variables.
             if(variable.uninitialized) {
-                if(variable.dt.isArray) {
-                    val dt = variable.dt
+                val dt = variable.dt
+                if(dt.isArray) {
                     repeat(variable.length!!) {
                         when {
+                            dt.isPointerArray -> {
+                                memory.setUW(addr, 0u)      // array of pointers is just array of word addresses
+                                addr += 2
+                            }
                             dt.isString || dt.isBoolArray || dt.isByteArray -> {
                                 memory.setUB(addr, 0u)
                                 addr++
@@ -225,11 +229,11 @@ class VmProgramLoader {
                     }
                 } else {
                     when {
-                        variable.dt.isUnsignedByte || variable.dt.isBool -> memory.setUB(addr, 0u)
-                        variable.dt.isSignedByte -> memory.setSB(addr, 0)
-                        variable.dt.isUnsignedWord -> memory.setUW(addr, 0u)
-                        variable.dt.isSignedWord -> memory.setSW(addr, 0)
-                        variable.dt.isFloat -> memory.setFloat(addr, 0.0)
+                        dt.isUnsignedByte || dt.isBool -> memory.setUB(addr, 0u)
+                        dt.isSignedByte -> memory.setSB(addr, 0)
+                        dt.isUnsignedWord || dt.isPointer -> memory.setUW(addr, 0u)
+                        dt.isSignedWord -> memory.setSW(addr, 0)
+                        dt.isFloat -> memory.setFloat(addr, 0.0)
                         else -> throw IRParseException("invalid dt")
                     }
                 }

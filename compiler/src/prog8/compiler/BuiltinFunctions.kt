@@ -115,6 +115,12 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
             else -> NumericLiteral(BaseDataType.UBYTE, program.memsizer.memorySize(dt.getOrUndef(), null).toDouble(), position)
         }
     } else {
+        // the argument could refer to a struct declaration
+        val struct = (args[0] as? IdentifierReference)?.targetStructDecl()
+        if(struct!=null) {
+            val size = struct.memsize(program.memsizer)
+            return NumericLiteral(BaseDataType.UBYTE, size.toDouble(), position)
+        }
         throw SyntaxError("sizeof invalid argument type", position)
     }
 }

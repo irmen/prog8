@@ -172,6 +172,9 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtDefer -> "<defer>"
             is PtIfExpression -> "<ifexpr>"
             is PtJmpTable -> "<jmptable>"
+            is PtStructDecl -> {
+                "struct ${node.name} { " + node.members.joinToString("  ") { "${it.first} ${it.second}" } + " }"
+            }
         }
     }
 

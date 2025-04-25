@@ -98,7 +98,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 //                            if(rightDt.isBytes)
 //                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
                         }
-                    } else if (parent is TypecastExpression && parent.type == BaseDataType.UWORD && parent.parent is Assignment) {
+                    } else if (parent is TypecastExpression && parent.type.isUnsignedWord && parent.parent is Assignment) {
                         val assign = parent.parent as Assignment
                         if (assign.target.inferType(program).isWords) {
                             modifications += IAstModification.ReplaceNode(expr.left, leftConstAsWord, expr)
@@ -131,34 +131,34 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
                     if(leftDt issimpletype BaseDataType.BYTE && (rightDt issimpletype BaseDataType.UBYTE || rightDt issimpletype BaseDataType.UWORD)) {
                         // cast left to unsigned
-                        val cast = TypecastExpression(expr.left, rightDt.getOrUndef().base, true, expr.left.position)
+                        val cast = TypecastExpression(expr.left, rightDt.getOrUndef(), true, expr.left.position)
                         return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
                     }
                     if(leftDt issimpletype BaseDataType.WORD && (rightDt issimpletype BaseDataType.UBYTE || rightDt issimpletype BaseDataType.UWORD)) {
                         // cast left to unsigned word. Cast right to unsigned word if it is ubyte
                         val mods = mutableListOf<IAstModification>()
-                        val cast = TypecastExpression(expr.left, BaseDataType.UWORD, true, expr.left.position)
+                        val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
                         mods += IAstModification.ReplaceNode(expr.left, cast, expr)
                         if(rightDt issimpletype BaseDataType.UBYTE) {
                             mods += IAstModification.ReplaceNode(expr.right,
-                                TypecastExpression(expr.right, BaseDataType.UWORD, true, expr.right.position),
+                                TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position),
                                 expr)
                         }
                         return mods
                     }
                     if(rightDt issimpletype BaseDataType.BYTE && (leftDt issimpletype BaseDataType.UBYTE || leftDt issimpletype BaseDataType.UWORD)) {
                         // cast right to unsigned
-                        val cast = TypecastExpression(expr.right, leftDt.getOrUndef().base, true, expr.right.position)
+                        val cast = TypecastExpression(expr.right, leftDt.getOrUndef(), true, expr.right.position)
                         return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
                     }
                     if(rightDt issimpletype BaseDataType.WORD && (leftDt issimpletype BaseDataType.UBYTE || leftDt issimpletype BaseDataType.UWORD)) {
                         // cast right to unsigned word. Cast left to unsigned word if it is ubyte
                         val mods = mutableListOf<IAstModification>()
-                        val cast = TypecastExpression(expr.right, BaseDataType.UWORD, true, expr.right.position)
+                        val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
                         mods += IAstModification.ReplaceNode(expr.right, cast, expr)
                         if(leftDt issimpletype BaseDataType.UBYTE) {
                             mods += IAstModification.ReplaceNode(expr.left,
-                                TypecastExpression(expr.left, BaseDataType.UWORD, true, expr.left.position),
+                                TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position),
                                 expr)
                         }
                         return mods
@@ -296,7 +296,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // warn about any implicit type casts to Float, because that may not be intended
-        if(typecast.implicit && typecast.type==BaseDataType.FLOAT) {
+        if(typecast.implicit && typecast.type.isFloat) {
             if(options.floats)
                 errors.info("integer implicitly converted to float. Suggestion: use float literals, add an explicit cast, or revert to integer arithmetic", typecast.position)
             else
@@ -556,7 +556,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     private fun addTypecastOrCastedValueModification(
         modifications: MutableList<IAstModification>,
         expressionToCast: Expression,
-        requiredType: BaseDataType,
+        requiredType: BaseDataType,     // TODO DataType?
         parent: Node
     ) {
         val sourceDt = expressionToCast.inferType(program).getOrUndef()
@@ -575,7 +575,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 return
             }
         }
-        val cast = TypecastExpression(expressionToCast, requiredType, true, expressionToCast.position)
+        val cast = TypecastExpression(expressionToCast, DataType.forDt(requiredType), true, expressionToCast.position)
         modifications += IAstModification.ReplaceNode(expressionToCast, cast, parent)
     }
 }

@@ -7,7 +7,9 @@ import prog8.code.core.IMemSizer
 internal class NormalMemSizer(val floatsize: Int): IMemSizer {
 
     override fun memorySize(dt: DataType, numElements: Int?): Int {
-        if(dt.isArray) {
+        if(dt.isPointerArray)
+            return 2 * numElements!!        // array of pointers is just array of uwords
+        else if(dt.isArray) {
             if(numElements==null) return 2      // treat it as a pointer size
             return when(dt.sub) {
                 BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
@@ -26,6 +28,7 @@ internal class NormalMemSizer(val floatsize: Int): IMemSizer {
             dt.isByteOrBool -> 1 * (numElements ?: 1)
             dt.isFloat -> floatsize * (numElements ?: 1)
             dt.isLong -> throw IllegalArgumentException("long can not yet be put into memory")
+            dt.isPointer -> 2  // pointer is just a uword
             dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
             else -> 2 * (numElements ?: 1)
         }

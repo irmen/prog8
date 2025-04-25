@@ -4,29 +4,28 @@ import prog8.ast.FatalAstException
 import prog8.code.ast.PtExpression
 import prog8.code.ast.PtFunctionCall
 import prog8.code.ast.PtTypeCast
-import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 
 
 internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall, PtExpression> {
-    var popTypecast: BaseDataType? = null
-    var pushTypecast: BaseDataType? = null
+    var popTypecast: DataType? = null
+    var pushTypecast: DataType? = null
     var pushWord = false
     var pushFloat = false
 
     when {
         value.type.isBool -> {
-            pushTypecast = BaseDataType.UBYTE
-            popTypecast = BaseDataType.BOOL
+            pushTypecast = DataType.UBYTE
+            popTypecast = DataType.BOOL
         }
         value.type.isSignedByte -> {
-            pushTypecast = BaseDataType.UBYTE
-            popTypecast = BaseDataType.BYTE
+            pushTypecast = DataType.UBYTE
+            popTypecast = DataType.BYTE
         }
         value.type.isSignedWord -> {
             pushWord = true
-            pushTypecast = BaseDataType.UWORD
-            popTypecast = BaseDataType.WORD
+            pushTypecast = DataType.UWORD
+            popTypecast = DataType.WORD
         }
         value.type.isUnsignedByte -> {}
         value.type.isUnsignedWord -> pushWord = true

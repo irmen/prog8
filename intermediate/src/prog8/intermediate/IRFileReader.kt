@@ -544,6 +544,18 @@ class IRFileReader {
 
     private fun parseDatatype(type: String, isArray: Boolean): DataType {
         if(isArray) {
+            if(type[0]=='^') {
+                return when(type.drop(1)) {
+                    "bool" -> DataType.arrayOfPointersTo(BaseDataType.BOOL, null)
+                    "byte" -> DataType.arrayOfPointersTo(BaseDataType.BYTE, null)
+                    "ubyte", "str" -> DataType.arrayOfPointersTo(BaseDataType.UBYTE, null)
+                    "word" -> DataType.arrayOfPointersTo(BaseDataType.WORD, null)
+                    "uword" -> DataType.arrayOfPointersTo(BaseDataType.UWORD, null)
+                    "float" -> DataType.arrayOfPointersTo(BaseDataType.FLOAT, null)
+                    "long" -> DataType.arrayOfPointersTo(BaseDataType.LONG, null)
+                    else -> DataType.arrayOfPointersTo(null, type.drop(1).split('.'))
+                }
+            }
             return when(type) {
                 "bool" -> DataType.arrayFor(BaseDataType.BOOL, false)
                 "byte" -> DataType.arrayFor(BaseDataType.BYTE, false)
@@ -555,6 +567,20 @@ class IRFileReader {
                 else -> throw IRParseException("invalid dt  $type")
             }
         } else {
+            if(type[0]=='^') {
+                // pointer type to either a base datatype, or a struct name
+                return when(type.drop(1)) {
+                    "bool" -> DataType.pointer(BaseDataType.BOOL)
+                    "byte" -> DataType.pointer(BaseDataType.BYTE)
+                    "ubyte" -> DataType.pointer(BaseDataType.UBYTE)
+                    "word" -> DataType.pointer(BaseDataType.WORD)
+                    "uword" -> DataType.pointer(BaseDataType.UWORD)
+                    "float" -> DataType.pointer(BaseDataType.FLOAT)
+                    "long" -> DataType.pointer(BaseDataType.LONG)
+                    // note: 'str' should not occur anymore in IR. Should be 'uword'
+                    else -> DataType.pointer(type.drop(1).split('.'))
+                }
+            }
             return when(type) {
                 "bool" -> DataType.BOOL
                 "byte" -> DataType.BYTE

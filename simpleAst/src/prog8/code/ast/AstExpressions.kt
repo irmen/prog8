@@ -25,7 +25,9 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtAddressOf -> {
                 if(other !is PtAddressOf)
                     return false
-                if (other.type!==type || !(other.identifier isSameAs identifier))
+                if (other.type!==type)
+                    return false
+                if(!(other.identifier isSameAs identifier))
                     return false
                 if(other.children.size!=children.size)
                     return false
@@ -157,7 +159,7 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
         get() = variable.type.isSplitWordArray
 
     init {
-        require(elementType.isNumericOrBool)
+        require(elementType.isNumericOrBool || elementType.isPointer)
     }
 }
 
@@ -376,12 +378,12 @@ class PtString(val value: String, val encoding: Encoding, position: Position) : 
 }
 
 
-class PtTypeCast(type: BaseDataType, position: Position) : PtExpression(DataType.forDt(type), position) {
+class PtTypeCast(type: DataType, position: Position) : PtExpression(type, position) {
     val value: PtExpression
         get() = children.single() as PtExpression
 
     fun copy(): PtTypeCast {
-        val copy = PtTypeCast(type.base, position)
+        val copy = PtTypeCast(type, position)
         if(children[0] is PtIdentifier) {
             copy.add((children[0] as PtIdentifier).copy())
         } else {

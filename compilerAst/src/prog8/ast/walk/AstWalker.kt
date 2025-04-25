@@ -105,6 +105,8 @@ abstract class AstWalker {
     open fun before(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -150,6 +152,8 @@ abstract class AstWalker {
     open fun after(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -267,6 +271,16 @@ abstract class AstWalker {
         decl.value?.accept(this, decl)
         decl.arraysize?.accept(this)
         track(after(decl, parent), decl, parent)
+    }
+
+    fun visit(struct: StructDecl, parent: Node) {
+        track(before(struct, parent), struct, parent)
+        track(after(struct, parent), struct, parent)
+    }
+
+    fun visit(field: StructFieldRef, parent: Node) {
+        track(before(field, parent), field, parent)
+        track(after(field, parent), field, parent)
     }
 
     fun visit(subroutine: Subroutine, parent: Node) {

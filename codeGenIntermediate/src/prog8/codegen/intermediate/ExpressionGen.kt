@@ -98,6 +98,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
+
     private fun translate(ifExpr: PtIfExpression): ExpressionCodeResult {
 
         if((ifExpr.condition as? PtPrefix)?.operator=="not")
@@ -166,37 +167,38 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(expr: PtAddressOf): ExpressionCodeResult {
         val vmDt = irType(expr.type)
-        val symbol = expr.identifier.name
         // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
         val result = mutableListOf<IRCodeChunkBase>()
-        val resultRegister = codeGen.registers.next(vmDt)
+        val identifier = expr.identifier
 
         fun loadAddressOfArrayLabel(reg: Int) {
             if (expr.isMsbForSplitArray) {
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = symbol + "_msb"), null)
-            } else if (expr.identifier.type.isSplitWordArray) {
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier.name + "_msb"), null)
+            } else if (identifier.type.isSplitWordArray) {
                 // the _lsb split array comes first in memory
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = symbol + "_lsb"), null)
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier.name + "_lsb"), null)
             } else
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = symbol), null)
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier.name), null)
         }
+
+        val resultRegister = codeGen.registers.next(vmDt)
 
         if(expr.isFromArrayElement) {
             val indexTr = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr, indexTr.resultReg, -1)
             val indexWordReg = codeGen.registers.next(IRDataType.WORD)
             addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr.resultReg), null)
-            if(expr.identifier.type.isUnsignedWord) {
+            if(identifier.type.isUnsignedWord) {
                 require(!expr.isMsbForSplitArray)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
                 }
             } else {
-                val eltSize = codeGen.program.memsizer.memorySize(expr.identifier.type, 1)
+                val eltSize = codeGen.program.memsizer.memorySize(identifier.type, 1)
                 result += IRCodeChunk(null, null).also {
                     loadAddressOfArrayLabel(resultRegister)
-                    if(eltSize>1 && !expr.identifier.type.isSplitWordArray) {
+                    if(eltSize>1 && !identifier.type.isSplitWordArray) {
                         it += IRInstruction(Opcode.MUL, IRDataType.WORD, reg1=indexWordReg, immediate = eltSize)
                     }
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
@@ -506,6 +508,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
                         addInstr(result, IRInstruction(Opcode.FTOUW, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
+                    BaseDataType.POINTER -> {
+                        actualResultReg2 = tr.resultReg
+                    }
                     else -> throw AssemblyError("weird cast value type")
                 }
             }
@@ -548,6 +553,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     else -> throw AssemblyError("weird cast value type")
                 }
+            }
+            BaseDataType.POINTER -> {
+                require(valueDt.isUnsignedWord || valueDt.isPointer)
+                actualResultReg2 = tr.resultReg
+                // no further conversion required, pointers are all just uwords
+            }
+            BaseDataType.ARRAY_POINTER -> {
+                TODO("typecast to array of pointers $valueDt -> ${cast.type}")
             }
             else -> throw AssemblyError("weird cast type")
         }

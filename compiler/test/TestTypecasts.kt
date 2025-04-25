@@ -227,11 +227,11 @@ main {
         stmts.size shouldBe 4
         val assign1tc = (stmts[2] as Assignment).value as TypecastExpression
         val assign2tc = (stmts[3] as Assignment).value as TypecastExpression
-        assign1tc.type shouldBe BaseDataType.WORD
-        assign2tc.type shouldBe BaseDataType.WORD
+        assign1tc.type shouldBe DataType.WORD
+        assign2tc.type shouldBe DataType.WORD
         assign2tc.expression shouldBe instanceOf<IdentifierReference>()
         val assign1subtc = (assign1tc.expression as TypecastExpression)
-        assign1subtc.type shouldBe BaseDataType.BYTE
+        assign1subtc.type shouldBe DataType.BYTE
         assign1subtc.expression shouldBe instanceOf<IdentifierReference>()
     }
 
@@ -942,7 +942,7 @@ main {
         (v2.right as NumericLiteral).number shouldBe 399
 
         val v3 = (st[4] as Assignment).value as TypecastExpression
-        v3.type shouldBe BaseDataType.UWORD
+        v3.type shouldBe DataType.UWORD
         val v3e = v3.expression as BinaryExpression
         v3e.operator shouldBe "*"
         (v3e.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
@@ -952,7 +952,7 @@ main {
         val v4 = (st[5] as Assignment).value as BinaryExpression
         v4.operator shouldBe "*"
         val v4t = v4.left as TypecastExpression
-        v4t.type shouldBe BaseDataType.UWORD
+        v4t.type shouldBe DataType.UWORD
         (v4t.expression as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
         (v4.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v4.right as NumericLiteral).number shouldBe 5

@@ -1,14 +1,37 @@
 TODO
 ====
 
+STRUCTS and TYPED POINTERS
+--------------------------
 
-...
+- add ast check for assignments to struct fields type checks  node_ptr.nextnode = enemy_ptr
+- add IR LOADPIX/STOREPIX instructions for efficient field access through a pointer var
+- DONE: declare struct as a separate entity so you can then declare multiple variables (pointers) of the same struct type. Like usual.
+- struct is a 'packed' struct, fields are placed in order of declaration. This guarantees exact size and place of the fields
+- structs only supported as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
+- need to introduce typed pointer datatype in prog8 to allow this to make any sense. + correct code gen
+- initially only a pointer-to-struct should actually work, pointer-to-other-type is possible but that can come later.
+- DONE: a struct can contain only numeric type fields (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs.
+- DONE: struct might also contain typed pointer fields (because a pointer is just an address word)
+- max 1 page of memory total size to allow regular register indexing
+- DONE: assigning ptrs of different types is only allowed via a cast as usual. For simple address (uword) assignments, no cast is needed (but allowed)
+- how to dereference a pointer?  Pascal does it like this: ptr^
+- dereferencing a pointer to struct could look like Pascal's ptr^.field  as well, but the ^ is actually redundant here; compiler already knows it's a pointer type.
+  Note that actually dereferencing a pointer to a struct as an explicit operation, conflicts with the third axiom on this list (structs only as reference types) so it can only be done for basic types?
+  So... setting struct fields can simply be ``structvar.field = 42`` and reading them ``a = structvar.field``
+- DONE: you should be able to get the address of an individual field: ``&structpointer.field``
+- arrays of structs?  Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
+- DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
+- static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
+- allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
+- existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
+- rather than str or uword parameter types for routines with a string argument, use ^str  (or ^ubyte maybe? these are more or less identical..?)
+- same for arrays? pointer-to-array syntax = TBD
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- STRUCTS: are now being developed in their own separate branch "structs". This will be for the next major version of the compiler (v12)
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?

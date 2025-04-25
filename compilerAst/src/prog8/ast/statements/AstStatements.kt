@@ -374,6 +374,42 @@ class VarDecl(val type: VarDeclType,
     }
 }
 
+class StructDecl(override val name: String, val members: List<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun referencesIdentifier(nameInSource: List<String>) = false
+    override fun copy() = StructDecl(name, members.toList(), position)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    fun memsize(sizer: IMemSizer): Int = members.sumOf { sizer.memorySize(it.first, 1) }
+    fun getField(name: String): Pair<DataType, String>? = members.firstOrNull { it.second==name }
+}
+
+class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, val type: DataType, override val name: String, override val position: Position): Statement(), INamedStatement {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        // pointer and struct are not our property!
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+
+    override fun referencesIdentifier(nameInSource: List<String>) = pointer.referencesIdentifier(nameInSource) || struct.referencesIdentifier(nameInSource)
+
+    override fun copy(): StructFieldRef = StructFieldRef(pointer.copy(), struct.copy(), type, name, position)
+
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
+}
+
+
 class ArrayIndex(var indexExpr: Expression,
                  override val position: Position) : Node {
     override lateinit var parent: Node
@@ -545,8 +581,15 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
-            node === identifier -> identifier = replacement as IdentifierReference
-            node === arrayindexed -> arrayindexed = replacement as ArrayIndexedExpression
+            node === identifier -> {
+                require(replacement is IdentifierReference)
+                identifier = replacement
+                arrayindexed = null
+            }
+            node === arrayindexed -> {
+                arrayindexed = replacement as ArrayIndexedExpression
+                identifier = null
+            }
             node === multi -> throw FatalAstException("can't replace multi assign targets")
             else -> throw FatalAstException("invalid replace")
         }

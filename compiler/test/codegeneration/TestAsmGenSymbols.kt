@@ -114,7 +114,6 @@ class TestAsmGenSymbols: StringSpec({
         val localvarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.localvar" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(localvarIdentScoped) shouldBe "localvar"
         asmgen.asmVariableName(localvarIdentScoped) shouldBe "localvar"
-
         val scopedVarIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier
         asmgen.asmSymbolName(scopedVarIdent) shouldBe "main.var_outside"
         asmgen.asmVariableName(scopedVarIdent) shouldBe "main.var_outside"

@@ -21,7 +21,7 @@ object InferredTypes {
                 false
             else if(type==BaseDataType.STR && this.datatype?.base==BaseDataType.STR)
                 true
-            else (this.datatype?.base == type && this.datatype.sub == null)     // strict equality if known
+            else (this.datatype?.base == type && this.datatype.isBasic)     // strict equality if known
 
         companion object {
             fun unknown() = InferredType(isUnknown = true, isVoid = false, datatype = null)
@@ -82,6 +82,13 @@ object InferredTypes {
         type.isFloat -> InferredType.known(BaseDataType.FLOAT)
         type.isString -> InferredType.known(BaseDataType.STR)
         type.isLong -> InferredType.known(BaseDataType.LONG)
+        type.isPointerArray -> InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subIdentifier))
+        type.isPointer -> {
+            if(type.sub!=null)
+                InferredType.known(DataType.pointer(type.sub!!))
+            else
+                InferredType.known(DataType.pointer(type.subIdentifier!!))
+        }
         type.isSplitWordArray -> {
             when(type.sub) {
                 BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD))

@@ -44,6 +44,12 @@ interface IAstVisitor {
         decl.arraysize?.accept(this)
     }
 
+    fun visit(struct: StructDecl) {
+    }
+
+    fun visit(field: StructFieldRef) {
+    }
+
     fun visit(subroutine: Subroutine) {
         subroutine.asmAddress?.varbank?.accept(this)
         subroutine.statements.forEach { it.accept(this) }
