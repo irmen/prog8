@@ -16,7 +16,7 @@ import prog8.code.target.VMTarget
 private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.isEmpty()
 
 
-// inliner potentially enables *ONE LINED* subroutines, wihtout to be inlined.
+// inliner potentially enables *ONE LINED* subroutines, without to be inlined.
 
 class Inliner(private val program: Program, private val options: CompilationOptions): AstWalker() {
 
@@ -122,7 +122,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
         private fun makeFullyScoped(call: FunctionCallStatement) {
             makeFullyScoped(call.target)
-            call.target.targetSubroutine(program)?.let { sub ->
+            call.target.targetSubroutine()?.let { sub ->
                 val scopedName = IdentifierReference(sub.scopedName, call.target.position)
                 val scopedArgs = makeScopedArgs(call.args)
                 if(scopedArgs.any()) {
@@ -134,7 +134,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
         private fun makeFullyScoped(call: FunctionCallExpression) {
             makeFullyScoped(call.target)
-            call.target.targetSubroutine(program)?.let { sub ->
+            call.target.targetSubroutine()?.let { sub ->
                 val scopedName = IdentifierReference(sub.scopedName, call.target.position)
                 val scopedArgs = makeScopedArgs(call.args)
                 if(scopedArgs.any()) {

@@ -205,7 +205,7 @@ _after:
         // replace pointervar[word] by @(pointervar+word) to avoid the
         // "array indexing is limited to byte size 0..255" error for pointervariables.
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
-        val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+        val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl()
         if(arrayVar!=null && arrayVar.datatype.isUnsignedWord) {
             val wordIndex = TypecastExpression(indexExpr, BaseDataType.UWORD, true, indexExpr.position)
             val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", wordIndex, arrayIndexedExpression.position)
@@ -279,7 +279,7 @@ _after:
             val addressOf = expr.left as? AddressOf
             val offset = (expr.right as? NumericLiteral)?.number?.toInt()
             if(addressOf!=null && offset==1) {
-                val variable = addressOf.identifier.targetVarDecl(program)
+                val variable = addressOf.identifier.targetVarDecl()
                 if(variable!=null && variable.datatype.isWord) {
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), memread.position), mutableListOf(addressOf.identifier), memread.position)
                     return listOf(IAstModification.ReplaceNode(memread, msb, parent))

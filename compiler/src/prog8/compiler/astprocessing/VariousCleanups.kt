@@ -394,7 +394,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         val index = arrayIndexedExpression.indexer.constIndex()
         if(index!=null && index<0) {
-            val target = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+            val target = arrayIndexedExpression.arrayvar.targetVarDecl()
             val arraysize = target?.arraysize?.constIndex()
             if(arraysize!=null) {
                 if(arraysize+index < 0) {

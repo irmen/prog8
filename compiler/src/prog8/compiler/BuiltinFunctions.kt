@@ -1,8 +1,8 @@
 package prog8.compiler
 
-import prog8.ast.Program
 import prog8.ast.AstException
 import prog8.ast.FatalAstException
+import prog8.ast.Program
 import prog8.ast.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.VarDecl
@@ -119,12 +119,13 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     }
 }
 
+@Suppress("unused")
 private fun builtinLen(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // note: in some cases the length is > 255, and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)
         throw SyntaxError("len requires one argument", position)
 
-    val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl(program)
+    val directMemVar = ((args[0] as? DirectMemoryRead)?.addressExpression as? IdentifierReference)?.targetVarDecl()
     var arraySize = directMemVar?.arraysize?.constIndex()
     if(arraySize != null)
         return NumericLiteral.optimalInteger(arraySize, position)
@@ -134,7 +135,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         return NumericLiteral.optimalInteger((args[0] as StringLiteral).value.length, position)
     if(args[0] !is IdentifierReference)
         throw SyntaxError("len argument should be an identifier", position)
-    val target = (args[0] as IdentifierReference).targetVarDecl(program)
+    val target = (args[0] as IdentifierReference).targetVarDecl()
         ?: throw CannotEvaluateException("len", "no target vardecl")
 
     return when  {

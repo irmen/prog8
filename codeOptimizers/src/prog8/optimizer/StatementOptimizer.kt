@@ -33,8 +33,8 @@ class StatementOptimizer(private val program: Program,
             } else {
                 arg as? IdentifierReference
             }
-            if(stringVar!=null && stringVar.wasStringLiteral(program)) {
-                val string = stringVar.targetVarDecl(program)?.value as? StringLiteral
+            if(stringVar!=null && stringVar.wasStringLiteral()) {
+                val string = stringVar.targetVarDecl()?.value as? StringLiteral
                 if(string!=null) {
                     val pos = functionCallStatement.position
                     if (string.value.length == 1) {
@@ -152,7 +152,7 @@ class StatementOptimizer(private val program: Program,
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
         }
-        val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl(program)
+        val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl()
         if(iterable!=null) {
             if(iterable.datatype.isString) {
                 val sv = iterable.value as StringLiteral

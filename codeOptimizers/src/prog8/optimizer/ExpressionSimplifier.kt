@@ -560,7 +560,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
         }
         else if(functionCallExpr.target.nameInSource == listOf("strings", "contains")) {
-            val target = (functionCallExpr.args[0] as? IdentifierReference)?.targetVarDecl(program)
+            val target = (functionCallExpr.args[0] as? IdentifierReference)?.targetVarDecl()
             if(target?.value is StringLiteral) {
                 errors.info("for actual strings, use a regular containment check instead: 'char in string'", functionCallExpr.position)
                 val contains = ContainmentCheck(functionCallExpr.args[1], functionCallExpr.args[0], functionCallExpr.position)

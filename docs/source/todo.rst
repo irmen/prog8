@@ -8,7 +8,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - STRUCTS: are now being developed in their own separate branch "structs". This will be for the next major version of the compiler (v12)
-- targetStatement() method could only take IBuiltinFunctions rather than program, optionally even if you don't want/have to check the builtin functions
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?

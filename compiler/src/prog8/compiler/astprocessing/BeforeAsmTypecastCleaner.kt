@@ -36,7 +36,7 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             if(typecast.type == BaseDataType.UWORD) {
                 val identifier = typecast.expression as? IdentifierReference
                 if(identifier!=null) {
-                    return if(identifier.isSubroutineParameter(program)) {
+                    return if(identifier.isSubroutineParameter()) {
                         listOf(
                             IAstModification.ReplaceNode(
                                 typecast,

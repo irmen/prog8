@@ -129,7 +129,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                     return listOf(IAstModification.ReplaceNode(expr, newArray, parent))
                 }
                 else {
-                    val leftTarget = (expr.left as? IdentifierReference)?.targetVarDecl(program)
+                    val leftTarget = (expr.left as? IdentifierReference)?.targetVarDecl()
                     if(leftTarget!=null && leftTarget.origin==VarDeclOrigin.ARRAYLITERAL)
                         throw FatalAstException("shouldn't see an array literal converted to an autovar here")
                 }
@@ -332,7 +332,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
             val constIndex = arrayIndexedExpression.indexer.constIndex()
             if (constIndex != null) {
-                val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl(program)
+                val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl()
                 if(arrayVar!=null) {
                     val array =arrayVar.value as? ArrayLiteral
                     if(array!=null) {
@@ -387,7 +387,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         val rangeTo = iterableRange.to as? NumericLiteral
         if(rangeFrom==null || rangeTo==null) return noModifications
 
-        val loopvar = forLoop.loopVar.targetVarDecl(program) ?: return noModifications
+        val loopvar = forLoop.loopVar.targetVarDecl() ?: return noModifications
 
         val stepLiteral = iterableRange.step as? NumericLiteral
         require(loopvar.datatype.sub == null)

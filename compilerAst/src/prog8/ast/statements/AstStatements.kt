@@ -647,7 +647,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                     return target.isIOAddress(addr.number.toUInt())
                 return when (memAddr.addressExpression) {
                     is IdentifierReference -> {
-                        val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl(definingModule.program)
+                        val decl = (memAddr.addressExpression as IdentifierReference).targetVarDecl()
                         val result = if ((decl?.type == VarDeclType.MEMORY || decl?.type == VarDeclType.CONST) && decl.value is NumericLiteral)
                             target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
                         else
@@ -658,7 +658,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                 }
             }
             arrayIdx != null -> {
-                val targetStmt = arrayIdx.arrayvar.targetVarDecl(definingModule.program)
+                val targetStmt = arrayIdx.arrayvar.targetVarDecl()
                 return if (targetStmt?.type == VarDeclType.MEMORY) {
                     val addr = targetStmt.value as? NumericLiteral
                     if (addr != null)
@@ -668,7 +668,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                 } else false
             }
             ident != null -> {
-                val decl = ident.targetVarDecl(definingModule.program) ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
+                val decl = ident.targetVarDecl() ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")
                 return if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral)
                     target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
                 else

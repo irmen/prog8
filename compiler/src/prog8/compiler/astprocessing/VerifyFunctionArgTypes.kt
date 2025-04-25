@@ -5,8 +5,8 @@ import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
 import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.core.*
 
 internal class VerifyFunctionArgTypes(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : IAstVisitor {
 
@@ -31,7 +31,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
     }
 
     override fun visit(identifier: IdentifierReference) {
-        if(identifier.wasStringLiteral(program)) {
+        if(identifier.wasStringLiteral()) {
             allStringRefs.add(identifier.nameInSource)
         }
     }

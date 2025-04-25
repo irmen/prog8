@@ -3,11 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.CharLiteral
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.expressions.StringLiteral
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -185,8 +181,8 @@ internal fun Program.moveMainBlockAsFirst(target: ICompilationTarget) {
     }
 }
 
-internal fun IdentifierReference.isSubroutineParameter(program: Program): Boolean {
-    val vardecl = this.targetVarDecl(program)
+internal fun IdentifierReference.isSubroutineParameter(): Boolean {
+    val vardecl = this.targetVarDecl()
     if(vardecl!=null && vardecl.origin==VarDeclOrigin.SUBROUTINEPARAM) {
         return vardecl.definingSubroutine?.parameters?.any { it.name==vardecl.name } == true
     }

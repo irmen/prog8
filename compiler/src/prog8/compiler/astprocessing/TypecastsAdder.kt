@@ -251,7 +251,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     if(number!=null) {
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
                     } else if(identifier!=null && targetDt==BaseDataType.UWORD && argDt.isPassByRef) {
-                        if(!identifier.isSubroutineParameter(program)) {
+                        if(!identifier.isSubroutineParameter()) {
                             // We allow STR/ARRAY values for UWORD parameters.
                             // If it's an array (not STR), take the address.
                             if(!argDt.isString) {

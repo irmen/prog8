@@ -1164,14 +1164,14 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override val isSimple = true
 
-    fun targetStatement(program: Program) =
-        if(nameInSource.singleOrNull() in program.builtinFunctions.names)
+    fun targetStatement(program: Program?) =
+        if(program!=null && nameInSource.singleOrNull() in program.builtinFunctions.names)
             BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
         else
             definingScope.lookup(nameInSource)
 
-    fun targetVarDecl(program: Program): VarDecl? = targetStatement(program) as? VarDecl
-    fun targetSubroutine(program: Program): Subroutine? = targetStatement(program) as? Subroutine
+    fun targetVarDecl(): VarDecl? = targetStatement(null) as? VarDecl
+    fun targetSubroutine(): Subroutine? = targetStatement(null) as? Subroutine
 
     fun targetNameAndType(program: Program): Pair<String, DataType> {
         val target = targetStatement(program) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
@@ -1241,8 +1241,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    fun wasStringLiteral(program: Program): Boolean {
-        val decl = targetVarDecl(program)
+    fun wasStringLiteral(): Boolean {
+        val decl = targetVarDecl()
         if(decl == null || decl.origin!=VarDeclOrigin.STRINGLITERAL)
             return false
 

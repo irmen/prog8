@@ -189,7 +189,7 @@ internal class AstChecker(private val program: Program,
         } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression) {
             errors.err("can only loop over an iterable type", forLoop.position)
         } else {
-            val loopvar = forLoop.loopVar.targetVarDecl(program)
+            val loopvar = forLoop.loopVar.targetVarDecl()
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                 errors.err("for loop requires a variable to loop with", forLoop.position)
             } else {
@@ -392,7 +392,7 @@ internal class AstChecker(private val program: Program,
                 err("variable bank extsub has no romable code-generation for the required jsrfar call, stick to constant bank, or create a system-ram trampoline")
             }
 
-            if(varbank.targetVarDecl(program)?.datatype?.isUnsignedByte!=true)
+            if(varbank.targetVarDecl()?.datatype?.isUnsignedByte!=true)
                 err("bank variable must be ubyte")
         }
         if(subroutine.inline && subroutine.asmAddress!=null)
@@ -558,7 +558,7 @@ internal class AstChecker(private val program: Program,
 
         val ident = repeatLoop.iterations as? IdentifierReference
         if(ident!=null) {
-            val targetVar = ident.targetVarDecl(program)
+            val targetVar = ident.targetVarDecl()
             if(targetVar==null)
                 errors.err("invalid assignment value, maybe forgot '&' (address-of)", ident.position)
         }
@@ -598,7 +598,7 @@ internal class AstChecker(private val program: Program,
         }
 
         val fcall = assignment.value as? IFunctionCall
-        val fcallTarget = fcall?.target?.targetSubroutine(program)
+        val fcallTarget = fcall?.target?.targetSubroutine()
         if(assignment.target.multi!=null) {
             checkMultiAssignment(assignment, fcall, fcallTarget)
         } else if(fcallTarget!=null) {
@@ -690,7 +690,7 @@ internal class AstChecker(private val program: Program,
         fun checkRomTarget(target: AssignTarget) {
             val idx=target.arrayindexed
             if(idx!=null) {
-                val decl = idx.arrayvar.targetVarDecl(program)!!
+                val decl = idx.arrayvar.targetVarDecl()!!
                 if(decl.type!=VarDeclType.MEMORY && decl.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE) {
                     // memory mapped arrays are assumed to be in RAM. If they're not.... well, POOF
                     errors.err("cannot assign to an array or string that is located in ROM (option romable is enabled)", assignTarget.position)
@@ -708,7 +708,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(addressOf: AddressOf) {
         checkLongType(addressOf)
-        val variable=addressOf.identifier.targetVarDecl(program)
+        val variable=addressOf.identifier.targetVarDecl()
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
                 errors.err("invalid pointer-of operand type", addressOf.position)
@@ -1153,7 +1153,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(expr: PrefixExpression) {
 
         if(expr.expression is IFunctionCall) {
-            val targetStatement = (expr.expression as IFunctionCall).target.targetSubroutine(program)
+            val targetStatement = (expr.expression as IFunctionCall).target.targetSubroutine()
             if(targetStatement?.returntypes?.isEmpty()==true) {
                 errors.err("subroutine doesn't return a value", expr.expression.position)
             }
@@ -1601,7 +1601,7 @@ internal class AstChecker(private val program: Program,
     }
 
     private fun checkPointer(pointervar: IdentifierReference) {
-        val vardecl = pointervar.targetVarDecl(program)
+        val vardecl = pointervar.targetVarDecl()
         if(vardecl?.zeropage == ZeropageWish.NOT_IN_ZEROPAGE)
             errors.info("pointer variable should preferrably be in zeropage but is marked nozp", vardecl.position)
     }
@@ -1614,7 +1614,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("indexing requires an iterable or address uword variable", arrayIndexedExpression.position)
             val indexVariable = arrayIndexedExpression.indexer.indexExpr as? IdentifierReference
             if(indexVariable!=null) {
-                if(indexVariable.targetVarDecl(program)?.datatype?.isSigned==true) {
+                if(indexVariable.targetVarDecl()?.datatype?.isSigned==true) {
                     errors.err("variable array indexing can't be performed with signed variables", indexVariable.position)
                     return
                 }

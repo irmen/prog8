@@ -1,12 +1,7 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
-import prog8.ast.Node
-import prog8.ast.Program
-import prog8.ast.FatalAstException
-import prog8.ast.SyntaxError
+import prog8.ast.*
 import prog8.ast.expressions.*
-import prog8.ast.findParentNode
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -181,7 +176,7 @@ class AstPreprocessor(val program: Program,
         val nextAssignment = decl.nextSibling() as? Assignment
         if(nextAssignment!=null && nextAssignment.origin!=AssignmentOrigin.VARINIT) {
             // check if the following assignment initializes the variable
-            if(decl.value==null && nextAssignment.target.identifier?.targetVarDecl(program)===decl) {
+            if(decl.value==null && nextAssignment.target.identifier?.targetVarDecl()===decl) {
                 if(!nextAssignment.value.referencesIdentifier(nextAssignment.target.identifier!!.nameInSource))
                     nextAssignment.origin = AssignmentOrigin.VARINIT
             }

@@ -34,7 +34,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val strLits = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
                 .map { it.args[0] as IdentifierReference }
-                .map { it.targetVarDecl(program)!!.value as StringLiteral }
+                .map { it.targetVarDecl()!!.value as StringLiteral }
 
             strLits[0].value shouldBe "main.bar"
             strLits[1].value shouldBe "foo.bar"
@@ -57,7 +57,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
                 .filterIsInstance<FunctionCallStatement>()
                 .map { it.args[0] }
 
-            val str0 = (args[0] as IdentifierReference).targetVarDecl(program)!!.value as StringLiteral
+            val str0 = (args[0] as IdentifierReference).targetVarDecl()!!.value as StringLiteral
             str0.value shouldBe "main.bar"
             str0.definingScope.name shouldBe "main"
 

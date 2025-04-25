@@ -225,8 +225,8 @@ main {
             val rept2strcopy = stmts[4] as IFunctionCall
             val name2 = name2strcopy.args.first() as IdentifierReference
             val rept2 = rept2strcopy.args.first() as IdentifierReference
-            (name2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xx1xx2"
-            (rept2.targetVarDecl(result.compilerAst)!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
+            (name2.targetVarDecl()!!.value as StringLiteral).value shouldBe "xx1xx2"
+            (rept2.targetVarDecl()!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
         }
 
         test("char as str param is error") {

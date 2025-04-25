@@ -8,7 +8,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.IFunctionCall
 import prog8.ast.IStatementContainer
-import prog8.ast.Program
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
@@ -31,11 +30,11 @@ class TestCompilerOnCharLit: FunSpec({
 
     val outputDir = tempdir().toPath()
 
-    fun findInitializer(vardecl: VarDecl, program: Program): Assignment? =
+    fun findInitializer(vardecl: VarDecl): Assignment? =
         (vardecl.parent as IStatementContainer).statements
             .asSequence()
             .filterIsInstance<Assignment>()
-            .singleOrNull { it.origin== AssignmentOrigin.VARINIT && it.target.identifier?.targetVarDecl(program) === vardecl }
+            .singleOrNull { it.origin== AssignmentOrigin.VARINIT && it.target.identifier?.targetVarDecl() === vardecl }
 
 
     test("testCharLitAsExtsubArg") {
@@ -79,14 +78,14 @@ class TestCompilerOnCharLit: FunSpec({
 
         funCall.args[0] shouldBe instanceOf<IdentifierReference>()
         val arg = funCall.args[0] as IdentifierReference
-        val decl = arg.targetVarDecl(program)!!
+        val decl = arg.targetVarDecl()!!
         decl.type shouldBe VarDeclType.VAR
         decl.datatype shouldBe DataType.UBYTE
 
         withClue("initializer value should have been moved to separate assignment"){
             decl.value shouldBe null
         }
-        val assignInitialValue = findInitializer(decl, program)!!
+        val assignInitialValue = findInitializer(decl)!!
         assignInitialValue.target.identifier!!.nameInSource shouldBe listOf("ch")
         withClue("char literal should have been replaced by ubyte literal") {
             assignInitialValue.value shouldBe instanceOf<NumericLiteral>()
@@ -115,7 +114,7 @@ class TestCompilerOnCharLit: FunSpec({
         // Now, both is ok for the arg: a) still the IdRef or b) replaced by numeric literal
         when (val arg = funCall.args[0]) {
             is IdentifierReference -> {
-                val decl = arg.targetVarDecl(program)!!
+                val decl = arg.targetVarDecl()!!
                 decl.type shouldBe VarDeclType.CONST
                 decl.datatype shouldBe DataType.UBYTE
                 (decl.value as NumericLiteral).number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0]

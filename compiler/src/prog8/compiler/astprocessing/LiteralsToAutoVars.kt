@@ -9,7 +9,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.ast.PtContainmentCheck
-import prog8.code.core.*
+import prog8.code.core.IErrorReporter
 
 
 internal class LiteralsToAutoVars(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
@@ -83,7 +83,7 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.names.size>1) {
 
-            val fcallTarget = (decl.value as? IFunctionCall)?.target?.targetSubroutine(program)
+            val fcallTarget = (decl.value as? IFunctionCall)?.target?.targetSubroutine()
             if(fcallTarget!=null) {
                 // ubyte a,b,c = multi() --> ubyte a,b,c / a,b,c = multi()
                 val modifications = mutableListOf<IAstModification>()

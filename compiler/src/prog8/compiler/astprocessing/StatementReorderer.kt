@@ -95,7 +95,7 @@ internal class StatementReorderer(
                 // (that code only triggers on regular assignment, not on variable initializers)
                 val ident = decl.value as? IdentifierReference
                 if(ident!=null) {
-                    val target = ident.targetVarDecl(program)
+                    val target = ident.targetVarDecl()
                     if(target!=null && target.isArray) {
                         val pos = decl.value!!.position
                         val identifier = IdentifierReference(listOf(decl.name), pos)
@@ -127,14 +127,14 @@ internal class StatementReorderer(
             when(stmt) {
                 is Assignment -> {
                     if (!stmt.isAugmentable) {
-                        val assignTargets = stmt.target.multi?.mapNotNull { it.identifier?.targetVarDecl(program) }
+                        val assignTargets = stmt.target.multi?.mapNotNull { it.identifier?.targetVarDecl() }
                         if(assignTargets!=null) {
                             if(decl in assignTargets) {
                                 stmt.origin = AssignmentOrigin.VARINIT
                                 return true
                             }
                         } else {
-                            val assignTgt = stmt.target.identifier?.targetVarDecl(program)
+                            val assignTgt = stmt.target.identifier?.targetVarDecl()
                             if (assignTgt == decl) {
                                 stmt.origin = AssignmentOrigin.VARINIT
                                 return true
@@ -147,11 +147,11 @@ internal class StatementReorderer(
                 is ChainedAssignment -> {
                     var chained: ChainedAssignment? = stmt
                     while(chained!=null) {
-                        val assignTgt = chained.target.identifier?.targetVarDecl(program)
+                        val assignTgt = chained.target.identifier?.targetVarDecl()
                         if (assignTgt == decl)
                             return true
                         if(chained.nested is Assignment) {
-                            if ((chained.nested as Assignment).target.identifier?.targetVarDecl(program) == decl) {
+                            if ((chained.nested as Assignment).target.identifier?.targetVarDecl() == decl) {
                                 (chained.nested as Assignment).origin = AssignmentOrigin.VARINIT
                                 return true
                             }
@@ -329,7 +329,7 @@ internal class StatementReorderer(
 
     private fun checkCopyArrayValue(assign: Assignment) {
         val identifier = assign.target.identifier!!
-        val targetVar = identifier.targetVarDecl(program)!!
+        val targetVar = identifier.targetVarDecl()!!
 
         if(targetVar.arraysize==null) {
             errors.err("array has no defined size", assign.position)
@@ -344,7 +344,7 @@ internal class StatementReorderer(
         }
 
         val sourceIdent = assign.value as IdentifierReference
-        val sourceVar = sourceIdent.targetVarDecl(program)!!
+        val sourceVar = sourceIdent.targetVarDecl()!!
         if(!sourceVar.isArray) {
             errors.err("value must be an array", sourceIdent.position)
         } else {

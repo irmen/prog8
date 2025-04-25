@@ -420,7 +420,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             if(binexpr.operator=="==" || binexpr.operator=="!=") {
                 val fcall = binexpr.left as? FunctionCallExpression
                 if(fcall!=null) {
-                    val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
+                    val returnRegs = fcall.target.targetSubroutine()?.asmReturnvaluesRegisters
                     if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
                         return codeForStatusflag(fcall, returnRegs[0].statusflag!!, binexpr.operator == "==")
                     }
@@ -429,7 +429,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         } else {
             val fcall = srcIf.condition as? FunctionCallExpression
             if (fcall != null) {
-                val returnRegs = fcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
+                val returnRegs = fcall.target.targetSubroutine()?.asmReturnvaluesRegisters
                 if(returnRegs!=null && returnRegs.size==1 && returnRegs[0].statusflag!=null) {
                     return codeForStatusflag(fcall, returnRegs[0].statusflag!!, false)
                 }
@@ -439,7 +439,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             if(prefix!=null && prefix.operator=="not") {
                 val prefixedFcall = prefix.expression as? FunctionCallExpression
                 if (prefixedFcall != null) {
-                    val returnRegs = prefixedFcall.target.targetSubroutine(program)?.asmReturnvaluesRegisters
+                    val returnRegs = prefixedFcall.target.targetSubroutine()?.asmReturnvaluesRegisters
                     if (returnRegs != null && returnRegs.size == 1 && returnRegs[0].statusflag != null) {
                         return codeForStatusflag(prefixedFcall, returnRegs[0].statusflag!!, true)
                     }
@@ -622,7 +622,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
-        val dt = srcArr.arrayvar.targetVarDecl(program)!!.datatype
+        val dt = srcArr.arrayvar.targetVarDecl()!!.datatype
         if(!dt.isArray && !dt.isString)
             throw FatalAstException("array indexing can only be used on array or string variables ${srcArr.position}")
         val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }

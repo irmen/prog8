@@ -126,7 +126,7 @@ class Program(val name: String,
     private class StringSearch(val program: Program): IAstVisitor {
         val removals = mutableListOf<List<String>>()
         override fun visit(identifier: IdentifierReference) {
-            if(identifier.wasStringLiteral(program))
+            if(identifier.wasStringLiteral())
                 removals.add(identifier.nameInSource)
         }
 

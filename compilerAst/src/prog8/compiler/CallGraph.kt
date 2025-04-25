@@ -78,7 +78,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(functionCallExpr: FunctionCallExpression) {
-        val otherSub = functionCallExpr.target.targetSubroutine(program)
+        val otherSub = functionCallExpr.target.targetSubroutine()
         if (otherSub != null) {
             val definingSub = functionCallExpr.definingSubroutine
             if(definingSub!=null) {
@@ -90,7 +90,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
-        val otherSub = functionCallStatement.target.targetSubroutine(program)
+        val otherSub = functionCallStatement.target.targetSubroutine()
         if (otherSub != null) {
             functionCallStatement.definingSubroutine?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub) + otherSub
@@ -101,12 +101,12 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(addressOf: AddressOf) {
-        addressOf.identifier.targetSubroutine(program)?.let { notCalledButReferenced.add(it) }
+        addressOf.identifier.targetSubroutine()?.let { notCalledButReferenced.add(it) }
         super.visit(addressOf)
     }
 
     override fun visit(jump: Jump) {
-        val otherSub = (jump.target as? IdentifierReference)?.targetSubroutine(program)
+        val otherSub = (jump.target as? IdentifierReference)?.targetSubroutine()
         if (otherSub != null) {
             jump.definingSubroutine?.let { thisSub ->
                 calls[thisSub] = calls.getValue(thisSub) + otherSub
@@ -224,8 +224,6 @@ class CallGraph(private val program: Program) : IAstVisitor {
             prefixes.any { prefix -> prefix+name in it.names }
         }
     }
-
-    inline fun unused(label: Label) = false   // just always output labels
 
     fun unused(stmt: INamedStatement): Boolean {
         return when(stmt) {
