@@ -171,7 +171,14 @@ _after:
         }
         if(functionCall.target.nameInSource==listOf("poke")) {
             // poke(a, v) is synonymous with @(a) = v
-            val tgt = AssignTarget(null, null, DirectMemoryWrite(functionCall.args[0], position), null, false, position)
+            val tgt = AssignTarget(
+                null,
+                null,
+                DirectMemoryWrite(functionCall.args[0], position),
+                null,
+                false,
+                position = position
+            )
             val assign = Assignment(tgt, functionCall.args[1], AssignmentOrigin.OPTIMIZER, position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, assign, parent))
         }
@@ -210,7 +217,14 @@ _after:
             return if(parent is AssignTarget) {
                 // assignment to array
                 val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
-                val newtarget = AssignTarget(null, null, memwrite, null, false, arrayIndexedExpression.position)
+                val newtarget = AssignTarget(
+                    null,
+                    null,
+                    memwrite,
+                    null,
+                    false,
+                    position = arrayIndexedExpression.position
+                )
                 listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
             } else {
                 // read from array

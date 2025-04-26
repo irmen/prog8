@@ -88,9 +88,23 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
                 // ubyte a,b,c = multi() --> ubyte a,b,c / a,b,c = multi()
                 val modifications = mutableListOf<IAstModification>()
                 val variables = decl.names.map {
-                    AssignTarget(IdentifierReference(listOf(it), decl.position), null, null, null, false, decl.position)
+                    AssignTarget(
+                        IdentifierReference(listOf(it), decl.position),
+                        null,
+                        null,
+                        null,
+                        false,
+                        position = decl.position
+                    )
                 }
-                val multiassignFuncCall = Assignment(AssignTarget(null, null, null, variables, false, decl.position), decl.value!!, AssignmentOrigin.VARINIT, decl.position)
+                val multiassignFuncCall = Assignment(AssignTarget(
+                    null,
+                    null,
+                    null,
+                    variables,
+                    false,
+                    position = decl.position
+                ), decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                 decl.value = null
                 modifications += IAstModification.InsertAfter(decl, multiassignFuncCall, parent as IStatementContainer)
                 return modifications

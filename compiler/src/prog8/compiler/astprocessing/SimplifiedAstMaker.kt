@@ -207,7 +207,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             srcTarget.identifier!=null -> target.add(transform(srcTarget.identifier!!))
             srcTarget.arrayindexed!=null -> target.add(transform(srcTarget.arrayindexed!!))
             srcTarget.memoryAddress!=null -> target.add(transform(srcTarget.memoryAddress!!))
-            srcTarget.pointerDereference!=null -> {
+            srcTarget.pointerDereference !=null -> {
                 val deref = transform(srcTarget.pointerDereference!!)
                 target.add(deref)
             }

@@ -323,7 +323,7 @@ internal class ConstantIdentifierReplacer(
                 val add = BinaryExpression(NumericLiteral(cval.type, cval.number, identifier.position), "+", arrayIdx.indexer.indexExpr, identifier.position)
                 return if(arrayIdx.parent is AssignTarget) {
                     val memwrite = DirectMemoryWrite(add, identifier.position)
-                    val assignTarget = AssignTarget(null, null, memwrite, null, false, identifier.position)
+                    val assignTarget = AssignTarget(null, null, memwrite, null, false, position = identifier.position)
                     listOf(IAstModification.ReplaceNode(arrayIdx.parent, assignTarget, arrayIdx.parent.parent))
                 } else {
                     val memread = DirectMemoryRead(add, identifier.position)

@@ -563,13 +563,15 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
         }
 }
 
-data class AssignTarget(var identifier: IdentifierReference?,
-                        var arrayindexed: ArrayIndexedExpression?,
-                        val memoryAddress: DirectMemoryWrite?,
-                        val multi: List<AssignTarget>?,
-                        val void: Boolean,
-                        override val position: Position,    // TODO move to end of param list
-                        var pointerDereference: PtrDereference? = null) : Node {
+data class AssignTarget(
+    var identifier: IdentifierReference?,
+    var arrayindexed: ArrayIndexedExpression?,
+    val memoryAddress: DirectMemoryWrite?,
+    val multi: List<AssignTarget>?,
+    val void: Boolean,
+    var pointerDereference: PtrDereference? = null,
+    override val position: Position
+) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -606,7 +608,15 @@ data class AssignTarget(var identifier: IdentifierReference?,
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun copy() = AssignTarget(identifier?.copy(), arrayindexed?.copy(), memoryAddress?.copy(), multi?.toList(), void, position, pointerDereference?.copy())
+    override fun copy() = AssignTarget(
+        identifier?.copy(),
+        arrayindexed?.copy(),
+        memoryAddress?.copy(),
+        multi?.toList(),
+        void,
+        pointerDereference?.copy(),
+        position
+    )
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         identifier?.referencesIdentifier(nameInSource)==true ||
                 arrayindexed?.referencesIdentifier(nameInSource)==true ||
@@ -655,7 +665,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                     false
             }
             multi != null -> false
-            pointerDereference!=null -> {
+            pointerDereference !=null -> {
                 if(value is PtrDereference) {
                     if(pointerDereference!!.identifier!=value.identifier || pointerDereference!!.field!=value.field)
                         return false
@@ -686,8 +696,8 @@ data class AssignTarget(var identifier: IdentifierReference?,
                 else
                     return false
             }
-            this.pointerDereference!=null && other.pointerDereference!=null -> {
-                return this.pointerDereference!! isSameAs other.pointerDereference!!
+            pointerDereference !=null && other.pointerDereference !=null -> {
+                return pointerDereference!! isSameAs other.pointerDereference!!
             }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false

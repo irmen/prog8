@@ -380,23 +380,30 @@ private fun Assign_targetContext.toAst() : AssignTarget {
     return when(this) {
         is IdentifierTargetContext -> {
             val identifier = scoped_identifier().toAst()
-            AssignTarget(identifier, null, null, null, false, scoped_identifier().toPosition())
+            AssignTarget(identifier, null, null, null, false, position = scoped_identifier().toPosition())
         }
         is MemoryTargetContext ->
-            AssignTarget(null, null, DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()),null,false, toPosition())
+            AssignTarget(
+                null,
+                null,
+                DirectMemoryWrite(directmemory().expression().toAst(), directmemory().toPosition()),
+                null,
+                false,
+                position = toPosition()
+            )
         is ArrayindexedTargetContext -> {
             val ax = arrayindexed()
             val arrayvar = ax.scoped_identifier().toAst()
             val index = ax.arrayindex().toAst()
             val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
-            AssignTarget(null, arrayindexed, null,null,false, toPosition())
+            AssignTarget(null, arrayindexed, null, null, false, position = toPosition())
         }
         is VoidTargetContext -> {
-            AssignTarget(null, null, null,null,true, void_().toPosition())
+            AssignTarget(null, null, null, null, true, position = void_().toPosition())
         }
         is PointerDereferenceTargetContext -> {
             val deref = this.pointerdereference().toAst()
-            AssignTarget(null, null, null, null, false, deref.position, deref)
+            AssignTarget(null, null, null, null, false, deref, deref.position)
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
@@ -404,7 +411,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
 
 private fun Multi_assign_targetContext.toAst() : AssignTarget {
     val targets = this.assign_target().map { it.toAst() }
-    return AssignTarget(null, null, null,targets, false, toPosition())
+    return AssignTarget(null, null, null, targets, false, position = toPosition())
 }
 
 private fun ClobberContext.toAst() : Set<CpuRegister> {

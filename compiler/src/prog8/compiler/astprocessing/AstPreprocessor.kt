@@ -124,7 +124,14 @@ class AstPreprocessor(val program: Program,
                         // we need to handle multi-decl here too, the desugarer maybe has not processed it here yet...
                         if(decl.value!=null) {
                             decl.names.forEach { name ->
-                                val target = AssignTarget(IdentifierReference(listOf(name), decl.position), null, null, null, false, decl.position)
+                                val target = AssignTarget(
+                                    IdentifierReference(listOf(name), decl.position),
+                                    null,
+                                    null,
+                                    null,
+                                    false,
+                                    position = decl.position
+                                )
                                 val assign = Assignment(target.copy(), decl.value!!.copy(), AssignmentOrigin.VARINIT, decl.position)
                                 replacements.add(IAstModification.InsertAfter(decl, assign, scope))
                             }
@@ -140,7 +147,14 @@ class AstPreprocessor(val program: Program,
                     } else {
                         // handle declaration of a single variable
                         if(decl.value!=null && decl.datatype.isNumericOrBool) {
-                            val target = AssignTarget(IdentifierReference(listOf(decl.name), decl.position), null, null, null, false, decl.position)
+                            val target = AssignTarget(
+                                IdentifierReference(listOf(decl.name), decl.position),
+                                null,
+                                null,
+                                null,
+                                false,
+                                position = decl.position
+                            )
                             val assign = Assignment(target, decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                             replacements.add(IAstModification.ReplaceNode(decl, assign, scope))
                             decl.value = null

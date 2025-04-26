@@ -147,7 +147,14 @@ class StatementOptimizer(private val program: Program,
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
                 val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), range.from, AssignmentOrigin.OPTIMIZER, forLoop.position))
+                scope.statements.add(Assignment(AssignTarget(
+                    forLoop.loopVar,
+                    null,
+                    null,
+                    null,
+                    false,
+                    position = forLoop.position
+                ), range.from, AssignmentOrigin.OPTIMIZER, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
             }
@@ -162,7 +169,14 @@ class StatementOptimizer(private val program: Program,
                     val character = options.compTarget.encodeString(sv.value, sv.encoding)[0]
                     val byte = NumericLiteral(BaseDataType.UBYTE, character.toDouble(), iterable.position)
                     val scope = AnonymousScope(mutableListOf(), forLoop.position)
-                    scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
+                    scope.statements.add(Assignment(AssignTarget(
+                        forLoop.loopVar,
+                        null,
+                        null,
+                        null,
+                        false,
+                        position = forLoop.position
+                    ), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
                 }
@@ -175,7 +189,7 @@ class StatementOptimizer(private val program: Program,
                     if(av!=null) {
                         val scope = AnonymousScope(mutableListOf(), forLoop.position)
                         scope.statements.add(Assignment(
-                                AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), NumericLiteral.optimalInteger(av.toInt(), iterable.position),
+                                AssignTarget(forLoop.loopVar, null, null, null, false, position = forLoop.position), NumericLiteral.optimalInteger(av.toInt(), iterable.position),
                                 AssignmentOrigin.OPTIMIZER, forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
                         return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
