@@ -1500,9 +1500,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second)
                     if (!getLastPointerItselfInsteadOfItsValue || idx<targetPointerDeref.chain.size-1) {
-                        // TODO IR instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg'.
-                        it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = newPointerReg, reg2 = pointerReg)
-                        it += IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1 = pointerReg, reg2 = newPointerReg)
+                        // LOADI has an exception to allowallow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                        it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg)
                     }
                 }
             }

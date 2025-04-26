@@ -62,7 +62,6 @@ Future Things and Ideas
 
 IR/VM
 -----
-- instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg' in the pointer chain traversals.
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)

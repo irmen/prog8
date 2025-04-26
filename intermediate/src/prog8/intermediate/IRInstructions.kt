@@ -252,7 +252,7 @@ enum class Opcode {
     NOP,
     LOAD,       // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
     LOADM,
-    LOADI,
+    LOADI,      // the only opcode that allows r1 and r2 to be the same; because this saves a lot of intermediary registers and loads to dereference a pointer chain
     LOADX,
     LOADIX,
     LOADR,
@@ -806,7 +806,7 @@ data class IRInstruction(
         require(reg3==null || reg3 in 0..99999) {"reg3 out of bounds"}
         require(fpReg1==null || fpReg1 in 0..99999) {"fpReg1 out of bounds"}
         require(fpReg2==null || fpReg2 in 0..99999) {"fpReg2 out of bounds"}
-        if(reg1!=null && reg2!=null) require(reg1!=reg2) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type
+        if(reg1!=null && reg2!=null) require(reg1!=reg2 || opcode==Opcode.LOADI) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type.  LOADI is also an exception, hopefully this can work, because it saves a lot of intermediary registers when dereferencing a pointer chain
         if(reg1!=null && reg3!=null) require(reg1!=reg3) {"reg1 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
         if(reg2!=null && reg3!=null) require(reg2!=reg3) {"reg2 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
 
