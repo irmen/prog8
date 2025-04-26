@@ -481,8 +481,9 @@ abstract class AstWalker {
 
     fun visit(addressOf: AddressOf, parent: Node) {
         track(before(addressOf, parent), addressOf, parent)
-        addressOf.identifier.accept(this, addressOf)
+        addressOf.identifier?.accept(this, addressOf)
         addressOf.arrayIndex?.accept(this)
+        addressOf.dereference?.accept(this, addressOf)
         track(after(addressOf, parent), addressOf, parent)
     }
 

@@ -269,7 +269,7 @@ class VarDecl(val type: VarDeclType,
                 // parameter variable memory mapped to a R0-R15 virtual register
                 val regname = param.registerOrPair.asScopedNameVirtualReg(param.type)
                 decltype = VarDeclType.MEMORY
-                value = AddressOf(IdentifierReference(regname, param.position), null, false, param.position)
+                value = AddressOf(IdentifierReference(regname, param.position), null, null, false, param.position)
             }
             val dt = if(param.type.isArray) DataType.UWORD else param.type
             return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, SplitWish.DONTCARE, null, param.name, emptyList(), value,
@@ -667,9 +667,10 @@ data class AssignTarget(
             multi != null -> false
             pointerDereference !=null -> {
                 if(value is PtrDereference) {
-                    if(pointerDereference!!.identifier!=value.identifier || pointerDereference!!.field!=value.field)
-                        return false
-                    TODO("compare ptrderef chains")
+                    return if(pointerDereference!!.identifier!=value.identifier || pointerDereference!!.field!=value.field)
+                        false
+                    else
+                        pointerDereference!!.chain == value.chain
                 }
                 return false
             }

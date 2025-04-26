@@ -282,8 +282,8 @@ _after:
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf?.arrayIndex!=null)
             return noModifications
-        if(addrOf!=null && addrOf.identifier.inferType(program).isWords) {
-            val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), memread.position), mutableListOf(addrOf.identifier), memread.position)
+        if(addrOf!=null && addrOf.identifier?.inferType(program)?.isWords==true) {
+            val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), memread.position), mutableListOf(addrOf.identifier!!), memread.position)
             return listOf(IAstModification.ReplaceNode(memread, lsb, parent))
         }
         val expr = memread.addressExpression as? BinaryExpression
@@ -291,10 +291,10 @@ _after:
             val addressOf = expr.left as? AddressOf
             val offset = (expr.right as? NumericLiteral)?.number?.toInt()
             if(addressOf!=null && offset==1) {
-                val variable = addressOf.identifier.targetVarDecl()
+                val variable = addressOf.identifier?.targetVarDecl()
                 if(variable!=null && variable.datatype.isWord) {
                     val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), memread.position), mutableListOf(
-                        addressOf.identifier
+                        addressOf.identifier!!
                     ), memread.position)
                     return listOf(IAstModification.ReplaceNode(memread, msb, parent))
                 }

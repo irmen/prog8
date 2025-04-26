@@ -799,8 +799,8 @@ _jump                       jmp  (${target.asmLabel})
                     asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
                     asmgen.out("  cpy  #0")
                 } else {
-                    var varname = asmgen.asmVariableName(value.identifier)
-                    if(value.identifier.type.isSplitWordArray) {
+                    var varname = asmgen.asmVariableName(value.identifier!!)
+                    if(value.identifier!!.type.isSplitWordArray) {
                         varname += if(value.isMsbForSplitArray) "_msb" else "_lsb"
                     }
                     asmgen.out("  lda  #>$varname")
@@ -1598,10 +1598,10 @@ _jump                       jmp  (${target.asmLabel})
                     if(left.isFromArrayElement) {
                         fallbackTranslateForSimpleCondition(stmt)
                     } else {
-                        val varname = if(left.identifier.type.isSplitWordArray) {
-                            if(left.isMsbForSplitArray) left.identifier.name+"_msb" else left.identifier.name+"_lsb"
+                        val varname = if(left.identifier!!.type.isSplitWordArray) {
+                            if(left.isMsbForSplitArray) left.identifier!!.name+"_msb" else left.identifier!!.name+"_lsb"
                         } else {
-                            left.identifier.name
+                            left.identifier!!.name
                         }
                         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                         translateAYNotEquals("#<$varname", "#>$varname")
@@ -1650,10 +1650,10 @@ _jump                       jmp  (${target.asmLabel})
                     if(left.isFromArrayElement) {
                         fallbackTranslateForSimpleCondition(stmt)
                     } else {
-                        val varname = if(left.identifier.type.isSplitWordArray) {
-                            if(left.isMsbForSplitArray) left.identifier.name+"_msb" else left.identifier.name+"_lsb"
+                        val varname = if(left.identifier!!.type.isSplitWordArray) {
+                            if(left.isMsbForSplitArray) left.identifier!!.name+"_msb" else left.identifier!!.name+"_lsb"
                         } else {
-                            left.identifier.name
+                            left.identifier!!.name
                         }
                         asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
                         translateAYEquals("#<$varname", "#>$varname")

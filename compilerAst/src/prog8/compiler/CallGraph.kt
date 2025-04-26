@@ -101,7 +101,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(addressOf: AddressOf) {
-        addressOf.identifier.targetSubroutine()?.let { notCalledButReferenced.add(it) }
+        addressOf.identifier?.targetSubroutine()?.let { notCalledButReferenced.add(it) }
         super.visit(addressOf)
     }
 

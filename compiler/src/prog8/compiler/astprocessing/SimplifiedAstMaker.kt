@@ -652,9 +652,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transform(src: AddressOf): PtAddressOf {
         val addr = PtAddressOf(src.position, src.msb)
-        addr.add(transform(src.identifier))
+        if(src.identifier!=null)
+            addr.add(transform(src.identifier!!))
         if (src.arrayIndex != null)
             addr.add(transformExpression(src.arrayIndex!!.indexExpr))
+        if (src.dereference!=null)
+            addr.add(transformExpression(src.dereference!!))
         return addr
     }
 

@@ -482,12 +482,13 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         output("&")
         if(addressOf.msb)
             output(">")
-        addressOf.identifier.accept(this)
+        addressOf.identifier?.accept(this)
         if (addressOf.arrayIndex != null) {
             output("[")
             addressOf.arrayIndex?.accept(this)
             output("]")
         }
+        addressOf.dereference?.accept(this)
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {

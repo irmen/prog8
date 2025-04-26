@@ -32,7 +32,12 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                         is PtBool -> it.toString()
                         is PtNumber -> it.number.toString()
                         is PtIdentifier -> it.name
-                        is PtAddressOf -> "& ${it.identifier.name}"
+                        is PtAddressOf -> {
+                            if(it.identifier!=null)
+                                "& ${it.identifier!!.name}"
+                            else
+                                "& ${txt(it.dereference!!)}"
+                        }
                         else -> "invalid array element $it"
                     }
                 }

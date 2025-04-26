@@ -75,18 +75,19 @@ main {
         node_ptr.nextnode.nextnode.nextnode.nextnode.nextnode.value = 888
         cx16.r0=node_ptr.nextnode.nextnode.nextnode.nextnode.value
 
-        ; BELOW DOESN'T WORK YET:
         ; address of fields
+        txt.print("address of field: ")
+        txt.print_uw(&enemy_ptr.alive)
+        txt.spc()
+        enemy_ptr = 8000
         txt.print_uw(&enemy_ptr.alive)
         txt.nl()
 
-;        ubyte_ptr^^ ++
-
-
+        ; BELOW DOESN'T WORK YET:
         ; pointer arithmetic
+;        ubyte_ptr^^ ++
 ;        enemy_ptr ++        ; add 1*sizeof
 ;        enemy_ptr += 10     ; add 10*sizeof
-
 
         ; TODO how to statically allocate/initialize a struct? Difficult.. see TODO in docs
     }

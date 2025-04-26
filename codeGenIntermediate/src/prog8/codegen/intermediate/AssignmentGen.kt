@@ -511,7 +511,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         else if(targetPointerDeref!=null) {
             val pointerTr = expressionEval.translateExpression(targetPointerDeref.start)
             result += pointerTr.chunks
-            result += expressionEval.traverseDerefChain(targetPointerDeref, pointerTr.resultReg)
+            result += expressionEval.traverseDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg)
 
             val instr = when {
                 targetPointerDeref.type.isByteOrBool -> {
@@ -977,37 +977,33 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.INCM, vmDt, address = constAddress)
-                else
-                    IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol)
-                    , null)
+                addInstr(result, if (constAddress != null)
+                        IRInstruction(Opcode.INCM, vmDt, address = constAddress)
+                    else
+                        IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
             }
             else {
                 val tr = expressionEval.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
-                addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.ADDM, vmDt, fpReg1=tr.resultFpReg, address = constAddress)
-                else
-                    IRInstruction(Opcode.ADDM, vmDt, fpReg1=tr.resultFpReg, labelSymbol = symbol)
-                    , null)
+                addInstr(result, if (constAddress != null)
+                        IRInstruction(Opcode.ADDM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
+                    else
+                        IRInstruction(Opcode.ADDM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol) , null)
             }
         } else {
             if((operand as? PtNumber)?.number==1.0) {
-                addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.INCM, vmDt, address = constAddress)
-                else
-                    IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol)
-                    , null)
+                addInstr(result, if (constAddress != null)
+                        IRInstruction(Opcode.INCM, vmDt, address = constAddress)
+                    else
+                        IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
             }
             else {
                 val tr = expressionEval.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.ADDM, vmDt, reg1=tr.resultReg, address = constAddress)
-                else
-                    IRInstruction(Opcode.ADDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                    , null)
+                addInstr(result, if (constAddress != null)
+                        IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, address = constAddress)
+                    else
+                        IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol) , null)
             }
         }
         return result

@@ -101,7 +101,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(deref.start)
         result += tr.chunks
-        result += traverseDerefChain(deref, tr.resultReg)
+        result += traverseDerefChainToCalculateFinalAddress(deref, tr.resultReg)
         when {
             deref.type.isByteOrBool -> {
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
@@ -199,8 +199,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         fun loadAddressOfArrayLabel(reg: Int) {
             if (expr.isMsbForSplitArray) {
-                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier.name + "_msb"), null)
-            } else if (identifier.type.isSplitWordArray) {
+                addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier!!.name + "_msb"), null)
+            } else if (identifier!!.type.isSplitWordArray) {
                 // the _lsb split array comes first in memory
                 addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier.name + "_lsb"), null)
             } else
@@ -213,25 +213,35 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val indexTr = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr, indexTr.resultReg, -1)
             val indexWordReg = codeGen.registers.next(IRDataType.WORD)
-            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr.resultReg), null)
-            if(identifier.type.isUnsignedWord) {
+            addInstr(
+                result,
+                IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = indexWordReg, reg2 = indexTr.resultReg),
+                null
+            )
+            if (identifier!!.type.isUnsignedWord) {
                 require(!expr.isMsbForSplitArray)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
                 }
             } else {
                 val eltSize = codeGen.program.memsizer.memorySize(identifier.type, 1)
                 result += IRCodeChunk(null, null).also {
                     loadAddressOfArrayLabel(resultRegister)
-                    if(eltSize>1 && !identifier.type.isSplitWordArray) {
-                        it += IRInstruction(Opcode.MUL, IRDataType.WORD, reg1=indexWordReg, immediate = eltSize)
+                    if (eltSize > 1 && !identifier.type.isSplitWordArray) {
+                        it += IRInstruction(Opcode.MUL, IRDataType.WORD, reg1 = indexWordReg, immediate = eltSize)
                     }
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
                 }
             }
-        } else {
+        } else if(expr.identifier!=null ) {
             loadAddressOfArrayLabel(resultRegister)
+        } else {
+            require(vmDt==IRDataType.WORD)
+            val pointerTr = translateExpression(expr.dereference!!.start)
+            result += pointerTr.chunks
+            result += traverseDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
+            addInstr(result, IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1 = resultRegister, reg2 = pointerTr.resultReg), null)
         }
         return ExpressionCodeResult(result, vmDt, resultRegister, -1)
     }
@@ -1473,7 +1483,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun traverseDerefChain(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
+    internal fun traverseDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         var struct: StStruct? = null
         if(targetPointerDeref.start.type.subIdentifier!=null)

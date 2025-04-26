@@ -139,7 +139,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtAddressOf -> {
                     when {
                         it.isFromArrayElement -> TODO("address-of array element $it in initial array value")
-                        else -> StArrayElement(null, it.identifier.name, null)
+                        else -> StArrayElement(null, it.identifier!!.name, null)
                     }
                 }
                 is PtNumber -> StArrayElement(it.number, null, null)

@@ -29,7 +29,14 @@ class StatementOptimizer(private val program: Program,
         if(functionCallStatement.target.nameInSource==listOf("txt", "print")) {
             val arg = functionCallStatement.args.single()
             val stringVar: IdentifierReference? = if(arg is AddressOf) {
-                if(arg.arrayIndex==null) arg.identifier else null
+                if(arg.arrayIndex==null) {
+                    if(arg.identifier!=null)
+                        arg.identifier
+                    else
+                        null // struct can't have string fields so nothing to look at here
+                } else {
+                    null
+                }
             } else {
                 arg as? IdentifierReference
             }

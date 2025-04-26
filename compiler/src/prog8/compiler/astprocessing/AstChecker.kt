@@ -713,7 +713,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(addressOf: AddressOf) {
         checkLongType(addressOf)
-        val variable=addressOf.identifier.targetVarDecl()
+        val variable=addressOf.identifier?.targetVarDecl()
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
                 errors.err("invalid pointer-of operand type", addressOf.position)
@@ -1987,7 +1987,13 @@ internal class AstChecker(private val program: Program,
         val array = value.value.map {
             when (it) {
                 is NumericLiteral -> it.number.toInt()
-                is AddressOf -> it.identifier.nameInSource.hashCode() and 0xffff
+                is AddressOf -> {
+                    if(it.identifier!=null)
+                        it.identifier!!.nameInSource.hashCode() and 0xffff
+                    else if(it.dereference!=null)
+                        it.dereference!!.identifier.nameInSource.hashCode() and 0xffff
+                    else 9999999
+                }
                 is IdentifierReference -> it.nameInSource.hashCode() and 0xffff
                 is TypecastExpression if it.type.isBasic -> {
                     val constVal = it.expression.constValue(program)

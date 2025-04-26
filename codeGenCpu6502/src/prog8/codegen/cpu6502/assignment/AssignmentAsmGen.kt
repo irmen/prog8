@@ -438,15 +438,19 @@ internal class AssignmentAsmGen(
     private fun assignExpression(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(val value = assign.source.expression!!) {
             is PtAddressOf -> {
-                val arrayDt = value.identifier.type
-                val sourceName =
-                    if (value.isMsbForSplitArray)
-                        asmgen.asmSymbolName(value.identifier) + "_msb"
-                    else if (arrayDt.isSplitWordArray)
-                        asmgen.asmSymbolName(value.identifier) + "_lsb"  // the _lsb split array comes first in memory
-                    else
-                        asmgen.asmSymbolName(value.identifier)
-                assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, arrayDt, value.arrayIndexExpr)
+                if(value.identifier!=null) {
+                    val arrayDt = value.identifier!!.type
+                    val sourceName =
+                        if (value.isMsbForSplitArray)
+                            asmgen.asmSymbolName(value.identifier!!) + "_msb"
+                        else if (arrayDt.isSplitWordArray)
+                            asmgen.asmSymbolName(value.identifier!!) + "_lsb"  // the _lsb split array comes first in memory
+                        else
+                            asmgen.asmSymbolName(value.identifier!!)
+                    assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, arrayDt, value.arrayIndexExpr)
+                } else {
+                    TODO("read &dereference")
+                }
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")
             is PtNumber -> throw AssemblyError("source kind should have been literalnumber")
@@ -1384,9 +1388,11 @@ internal class AssignmentAsmGen(
                 is PtAddressOf -> {
                     if(right.isFromArrayElement) {
                         TODO("address-of array element at ${right.position}")
+                    } else if(right.dereference!=null) {
+                        TODO("read &dereference")
                     } else {
-                        var symbol = asmgen.asmVariableName(right.identifier)
-                        if(right.identifier.type.isSplitWordArray) {
+                        var symbol = asmgen.asmVariableName(right.identifier!!)
+                        if(right.identifier!!.type.isSplitWordArray) {
                             symbol = if(right.isMsbForSplitArray) symbol+"_msb" else symbol+"_lsb"
                         }
                         assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
@@ -4019,8 +4025,10 @@ $endLabel""")
             addressOf != null -> {
                 if(addressOf.isFromArrayElement) {
                     TODO("address-of array element $addressOf")
+                } else if(addressOf.dereference!=null) {
+                    throw AssemblyError("write &dereference, makes no sense at ${addressOf.position}")
                 } else {
-                    asmgen.out("  sta  ${asmgen.asmSymbolName(addressOf.identifier)}")
+                    asmgen.out("  sta  ${asmgen.asmSymbolName(addressOf.identifier!!)}")
                 }
             }
             addressExpr is PtIdentifier -> {

@@ -60,7 +60,7 @@ class TestIdentifierRef: FunSpec({
         val mstmts = (module.statements.single() as Block).statements
         val stmts = mstmts.filterIsInstance<Subroutine>().single().statements
         val wwref = (stmts[0] as Assignment).target.identifier!!
-        val mainref = ((stmts[1] as Assignment).value as AddressOf).identifier
+        val mainref = ((stmts[1] as Assignment).value as AddressOf).identifier!!
         wwref.nameInSource shouldBe listOf("ww")
         wwref.wasStringLiteral() shouldBe false
         wwref.targetStatement(program) shouldBe instanceOf<VarDecl>()

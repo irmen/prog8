@@ -27,8 +27,8 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         // @( &thing )  -->  thing  (but only if thing is a byte type!)
         val addrOf = memread.addressExpression as? AddressOf
         if(addrOf!=null) {
-            if(addrOf.identifier.inferType(program).isBytes)
-                return listOf(IAstModification.ReplaceNode(memread, addrOf.identifier, parent))
+            if(addrOf.identifier?.inferType(program)?.isBytes==true)
+                return listOf(IAstModification.ReplaceNode(memread, addrOf.identifier!!, parent))
         }
         return noModifications
     }

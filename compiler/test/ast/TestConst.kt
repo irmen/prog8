@@ -325,7 +325,7 @@ main {
         val assignAddr = (st[2] as Assignment).value
         (assignAddr as NumericLiteral).number shouldBe 8194.0
         val assignAddr2 = ((st[9] as Assignment).value as AddressOf)
-        assignAddr2.identifier.nameInSource shouldBe listOf("buffer")
+        assignAddr2.identifier!!.nameInSource shouldBe listOf("buffer")
         assignAddr2.arrayIndex!!.indexExpr shouldBe instanceOf<BinaryExpression>()
     }
 

@@ -65,13 +65,13 @@ class TestAsmGenSymbols: StringSpec({
             position = Position.DUMMY
         )
         val assign1 = Assignment(tgt, IdentifierReference(listOf("localvar"), Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val assign2 = Assignment(tgt, AddressOf(IdentifierReference(listOf("locallabel"), Position.DUMMY), null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val assign3 = Assignment(tgt, AddressOf(IdentifierReference(listOf("var_outside"), Position.DUMMY), null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val assign4 = Assignment(tgt, AddressOf(IdentifierReference(listOf("label_outside"), Position.DUMMY), null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val assign5 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","start","localvar"), Position.DUMMY), null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val assign6 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","start","locallabel"), Position.DUMMY), null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val assign7 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","var_outside"), Position.DUMMY), null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
-        val assign8 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","label_outside"), Position.DUMMY), null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
+        val assign2 = Assignment(tgt, AddressOf(IdentifierReference(listOf("locallabel"), Position.DUMMY), null, null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
+        val assign3 = Assignment(tgt, AddressOf(IdentifierReference(listOf("var_outside"), Position.DUMMY), null, null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
+        val assign4 = Assignment(tgt, AddressOf(IdentifierReference(listOf("label_outside"), Position.DUMMY), null, null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
+        val assign5 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","start","localvar"), Position.DUMMY), null, null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
+        val assign6 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","start","locallabel"), Position.DUMMY), null, null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
+        val assign7 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","var_outside"), Position.DUMMY), null, null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
+        val assign8 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","label_outside"), Position.DUMMY), null, null, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
 
         val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4, assign5, assign6, assign7, assign8)
         val subroutine = Subroutine("start", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, statements, Position.DUMMY)
@@ -118,13 +118,13 @@ class TestAsmGenSymbols: StringSpec({
         val localvarIdent = sub.children.asSequence().filterIsInstance<PtAssignment>().first { it.value is PtIdentifier }.value as PtIdentifier
         asmgen.asmSymbolName(localvarIdent) shouldBe "localvar"
         asmgen.asmVariableName(localvarIdent) shouldBe "localvar"
-        val localvarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.localvar" }.value as PtAddressOf).identifier
+        val localvarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.localvar" }.value as PtAddressOf).identifier!!
         asmgen.asmSymbolName(localvarIdentScoped) shouldBe "localvar"
         asmgen.asmVariableName(localvarIdentScoped) shouldBe "localvar"
-        val scopedVarIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier
+        val scopedVarIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier!!
         asmgen.asmSymbolName(scopedVarIdent) shouldBe "main.var_outside"
         asmgen.asmVariableName(scopedVarIdent) shouldBe "main.var_outside"
-        val scopedVarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier
+        val scopedVarIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.var_outside" }.value as PtAddressOf).identifier!!
         asmgen.asmSymbolName(scopedVarIdentScoped) shouldBe "main.var_outside"
         asmgen.asmVariableName(scopedVarIdentScoped) shouldBe "main.var_outside"
     }
@@ -134,17 +134,17 @@ class TestAsmGenSymbols: StringSpec({
         val asmgen = createTestAsmGen6502(program)
         val sub = asmgen.program.entrypoint()!!
 
-        val localLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier
+        val localLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier!!
         asmgen.asmSymbolName(localLabelIdent) shouldBe "locallabel"
         asmgen.asmVariableName(localLabelIdent) shouldBe "locallabel"
-        val localLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier
+        val localLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.start.locallabel" }.value as PtAddressOf).identifier!!
         asmgen.asmSymbolName(localLabelIdentScoped) shouldBe "locallabel"
         asmgen.asmVariableName(localLabelIdentScoped) shouldBe "locallabel"
 
-        val scopedLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier
+        val scopedLabelIdent = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier!!
         asmgen.asmSymbolName(scopedLabelIdent) shouldBe "main.label_outside"
         asmgen.asmVariableName(scopedLabelIdent) shouldBe "main.label_outside"
-        val scopedLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier
+        val scopedLabelIdentScoped = (sub.children.asSequence().filterIsInstance<PtAssignment>().first { (it.value as? PtAddressOf)?.identifier?.name=="main.label_outside" }.value as PtAddressOf).identifier!!
         asmgen.asmSymbolName(scopedLabelIdentScoped) shouldBe "main.label_outside"
         asmgen.asmVariableName(scopedLabelIdentScoped) shouldBe "main.label_outside"
     }

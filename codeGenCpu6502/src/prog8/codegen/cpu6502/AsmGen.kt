@@ -177,7 +177,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                         newValue.add(elt)
                     else {
                         val newAddr = PtAddressOf(elt.position)
-                        newAddr.children.add(elt.identifier.prefix(newAddr, st))
+                        newAddr.children.add(elt.identifier!!.prefix(newAddr, st))
                         if (elt.arrayIndexExpr != null)
                             newAddr.children.add(elt.arrayIndexExpr!!)
                         newAddr.parent = arrayValue
@@ -1299,8 +1299,10 @@ $repeatLabel""")
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
                         TODO("address-of array element $addrOf")
+                    } else if(addrOf.dereference!=null) {
+                        throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
-                        out("  sta  ${asmSymbolName(addrOf.identifier)}+${constOffset}")
+                        out("  sta  ${asmSymbolName(addrOf.identifier!!)}+${constOffset}")
                         return true
                     }
                 }
@@ -1339,8 +1341,10 @@ $repeatLabel""")
             if(addrOf!=null && constOffset!=null) {
                 if(addrOf.isFromArrayElement) {
                     TODO("address-of array element $addrOf")
+                } else if(addrOf.dereference!=null) {
+                    TODO("read &dereference")
                 } else {
-                    out("  lda  ${asmSymbolName(addrOf.identifier)}+${constOffset}")
+                    out("  lda  ${asmSymbolName(addrOf.identifier!!)}+${constOffset}")
                     return true
                 }
             }
@@ -1389,8 +1393,10 @@ $repeatLabel""")
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
                         TODO("address-of array element $addrOf")
+                    } else if(addrOf.dereference!=null) {
+                        throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
-                        out("  sta  ${asmSymbolName(addrOf.identifier)}-${constOffset}")
+                        out("  sta  ${asmSymbolName(addrOf.identifier!!)}-${constOffset}")
                         return true
                     }
                 }
@@ -1420,8 +1426,10 @@ $repeatLabel""")
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
                         TODO("address-of array element $addrOf")
+                    } else if(addrOf.dereference!=null) {
+                        TODO("read &dereference")
                     } else {
-                        out("  lda  ${asmSymbolName(addrOf.identifier)}-${constOffset}")
+                        out("  lda  ${asmSymbolName(addrOf.identifier!!)}-${constOffset}")
                         return true
                     }
                 }

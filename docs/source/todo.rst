@@ -7,13 +7,13 @@ STRUCTS and TYPED POINTERS
 'DONE' means working in the 'virtual' compiler target... (no 6502 codegen has been touched yet)
 
 - DONE: add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
-- ubyte_ptr^^ ++  doesn't get changed to an inplace-assign  whereas x++ does
 - add IR LOADPIX/STOREPIX instructions for efficient field access through a pointer var?
+- change IR instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg'.
 - DONE: declare struct as a separate entity so you can then declare multiple variables (pointers) of the same struct type. Like usual.
-- struct is a 'packed' struct, fields are placed in order of declaration. This guarantees exact size and place of the fields
-- structs only supported as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
-- need to introduce typed pointer datatype in prog8 to allow this to make any sense. + correct code gen
-- initially only a pointer-to-struct should actually work, pointer-to-other-type is possible but that can come later.
+- DONE: struct is a 'packed' struct, fields are placed in order of declaration. This guarantees exact size and place of the fields
+- DONE: structs only supported as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
+- DONE: need to introduce typed pointer datatype in prog8 to allow this to make any sense. + correct code gen
+- DONE: initially only a pointer-to-struct should actually work, pointer-to-other-type is possible but that can come later.
 - DONE: a struct can contain only numeric type fields (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs.
 - DONE: struct might also contain typed pointer fields (because a pointer is just an address word)
 - DONE: max 1 page of memory total size to allow regular register indexing
@@ -22,14 +22,16 @@ STRUCTS and TYPED POINTERS
 - DONE: dereferencing a pointer to struct could look like Pascal's ptr^.field  as well, but the ^ is actually redundant here; compiler already knows it's a pointer type.
   Note that actually dereferencing a pointer to a struct as an explicit operation, conflicts with the third axiom on this list (structs only as reference types) so it can only be done for basic types?
   So... setting struct fields can simply be ``structvar.field = 42`` and reading them ``a = structvar.field``
-- you should be able to get the address of an individual field: ``&structpointer.field``
-- arrays of structs?  Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
+- DONE: you should be able to get the address of an individual field: ``&structpointer.field``
 - DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
+- arrays of structs?  Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
 - existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
 - rather than str or uword parameter types for routines with a string argument, use ^str  (or ^ubyte maybe? these are more or less identical..?)
 - same for arrays? pointer-to-array syntax = TBD
+- what about pointers to subroutines? should these be typed as well now?
+- asm symbol name prefixing should work for dereferences too.
 - pointer arithmetic is a pain, but need to follow C?  ptr=ptr+10 adds 10*sizeof() instead of just 10.
 
 

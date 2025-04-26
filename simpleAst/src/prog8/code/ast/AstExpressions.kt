@@ -27,7 +27,17 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
                     return false
                 if (other.type!==type)
                     return false
-                if(!(other.identifier isSameAs identifier))
+                if(other.identifier==null && identifier!=null)
+                    return false
+                if(other.identifier!=null && identifier==null)
+                    return false
+                if(other.identifier!=null && identifier!=null && !(other.identifier!! isSameAs identifier!!))
+                    return false
+                if(other.dereference==null && identifier!=dereference)
+                    return false
+                if(other.dereference!=null && identifier==dereference)
+                    return false
+                if(other.dereference!=null && dereference!=null && !(other.dereference!! isSameAs dereference!!))
                     return false
                 if(other.children.size!=children.size)
                     return false
@@ -141,8 +151,10 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 }
 
 class PtAddressOf(position: Position, val isMsbForSplitArray: Boolean=false) : PtExpression(DataType.UWORD, position) {
-    val identifier: PtIdentifier
-        get() = children[0] as PtIdentifier
+    val identifier: PtIdentifier?
+        get() = children[0] as? PtIdentifier
+    val dereference: PtPointerDeref?
+        get() = children[0] as? PtPointerDeref
     val arrayIndexExpr: PtExpression?
         get() = if(children.size==2) children[1] as PtExpression else null
 

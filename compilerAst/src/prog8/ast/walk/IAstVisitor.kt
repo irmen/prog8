@@ -185,8 +185,9 @@ interface IAstVisitor {
     }
 
     fun visit(addressOf: AddressOf) {
-        addressOf.identifier.accept(this)
+        addressOf.identifier?.accept(this)
         addressOf.arrayIndex?.accept(this)
+        addressOf.dereference?.accept(this)
     }
 
     fun visit(inlineAssembly: InlineAssembly) {

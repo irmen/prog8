@@ -51,7 +51,7 @@ sealed class Expression: Node {
                 (other is TypecastExpression && other.implicit==implicit && other.type==type && other.expression isSameAs expression)
             }
             is AddressOf -> {
-                (other is AddressOf && other.identifier.nameInSource == identifier.nameInSource && other.arrayIndex==arrayIndex)
+                (other is AddressOf && other.identifier?.nameInSource == identifier?.nameInSource && other.arrayIndex==arrayIndex && other.dereference==dereference)
             }
             is RangeExpression -> {
                 (other is RangeExpression && other.from==from && other.to==to && other.step==step)
@@ -415,13 +415,14 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     }
 }
 
-data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayIndex?, val msb: Boolean, override val position: Position) : Expression() {
+data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: ArrayIndex?, var dereference: PtrDereference?, val msb: Boolean, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        identifier.linkParents(this)
+        identifier?.linkParents(this)
         arrayIndex?.linkParents(this)
+        dereference?.linkParents(this)
     }
 
     override val isSimple = true
@@ -432,8 +433,11 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
                 if(replacement is IdentifierReference) {
                     identifier = replacement
                     arrayIndex = null
+                    dereference = null
                 } else {
-                    TODO("replacement with $replacement")
+                    dereference = replacement as PtrDereference
+                    identifier = null
+                    arrayIndex = null
                 }
             }
             node===arrayIndex -> {
@@ -447,11 +451,11 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
         replacement.parent = this
     }
 
-    override fun copy() = AddressOf(identifier.copy(), arrayIndex?.copy(), msb, position)
+    override fun copy() = AddressOf(identifier?.copy(), arrayIndex?.copy(), dereference?.copy(), msb, position)
     override fun constValue(program: Program): NumericLiteral? {
         if(msb)
             return null
-        val target = this.identifier.targetStatement(program)
+        val target = this.identifier?.targetStatement(program)
         val targetVar = target as? VarDecl
         if(targetVar!=null) {
             if (targetVar.type == VarDeclType.MEMORY || targetVar.type == VarDeclType.CONST) {
@@ -482,7 +486,7 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
         }
         return null
     }
-    override fun referencesIdentifier(nameInSource: List<String>) = identifier.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true
+    override fun referencesIdentifier(nameInSource: List<String>) = identifier?.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true || dereference?.referencesIdentifier(nameInSource)==true
     override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UWORD)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
