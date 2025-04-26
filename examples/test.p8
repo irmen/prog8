@@ -59,28 +59,33 @@ main {
         node_list[2] = 3000
 
         ; dereference
-        ;;a.b.c.d^^.e^^.f^^ = 99              ; TODO AST check for symbol existence!
-        ;;a.b.c.d^^.e^^.f^^.fieldname = 99    ; TODO AST check for symbol existence!
         bool @shared bvar = bool_ptr^^
         bool_ptr^^ = false
 
-        ; BELOW DOESN'T WORK YET:
-        ; writing and reading fields
-        enemy_ptr^^.x = 42
-        ; enemy_ptr.x = 42
+        ; writing and reading fields using explicit deref
+        enemy_ptr^^.y = 42
         node_ptr^^.nextnode^^.value = 888
-        ; node_ptr.nextnode.value = 888
-;        enemy_ptr.alive = true
-;        node_ptr.nextnode = 2000
-;        node_ptr.nextnode = enemy_ptr    ; TODO should give type error!
-;        node_ptr.nextnode = node_ptr    ; link to self
-;        node_ptr.nextnode.value = 888   ; traverse multiple pointers
-;        main.start.enemy_ptr.value = 600    ; struct ptr vars can occur anywhere in a scoped name, not just the first segment
-;        cx16.r0 = enemy_ptr.value
-;
+        node_ptr^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.value = 888
+        cx16.r0=node_ptr^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.value
+        node_ptr^^.nextnode = node_ptr
+
+        ; writing and reading fields using implicit deref
+        enemy_ptr.y = 42
+        node_ptr.nextnode.value = 888
+        node_ptr.nextnode.nextnode.nextnode.nextnode.nextnode.value = 888
+        cx16.r0=node_ptr.nextnode.nextnode.nextnode.nextnode.value
+
+        ; BELOW DOESN'T WORK YET:
         ; address of fields
-;        txt.print_uw(&enemy_ptr.alive)
-;        txt.nl()
+        txt.print_uw(&enemy_ptr.alive)
+        txt.nl()
+
+;        ubyte_ptr^^ ++
+
+
+        ; pointer arithmetic
+;        enemy_ptr ++        ; add 1*sizeof
+;        enemy_ptr += 10     ; add 10*sizeof
 
 
         ; TODO how to statically allocate/initialize a struct? Difficult.. see TODO in docs

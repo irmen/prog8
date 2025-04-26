@@ -444,6 +444,7 @@ abstract class AstWalker {
         assignTarget.arrayindexed?.accept(this, assignTarget)
         assignTarget.identifier?.accept(this, assignTarget)
         assignTarget.memoryAddress?.accept(this, assignTarget)
+        assignTarget.pointerDereference?.accept(this, assignTarget)
         assignTarget.multi?.forEach { it.accept(this, assignTarget) }
         track(after(assignTarget, parent), assignTarget, parent)
     }
@@ -522,7 +523,6 @@ abstract class AstWalker {
     fun visit(deref: PtrDereference, parent: Node) {
         track(before(deref, parent), deref, parent)
         deref.identifier.accept(this, deref)
-        deref.chain?.accept(this, deref)
         track(after(deref, parent), deref, parent)
     }
 }

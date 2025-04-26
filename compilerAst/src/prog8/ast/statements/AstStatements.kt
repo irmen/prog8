@@ -387,7 +387,7 @@ class StructDecl(override val name: String, val members: List<Pair<DataType, Str
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     fun memsize(sizer: IMemSizer): Int = members.sumOf { sizer.memorySize(it.first, 1) }
-    fun getField(name: String): Pair<DataType, String>? = members.firstOrNull { it.second==name }
+    fun getFieldType(name: String): DataType? = members.firstOrNull { it.second==name }?.first
 }
 
 class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, val type: DataType, override val name: String, override val position: Position): Statement(), INamedStatement {
@@ -569,7 +569,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                         val multi: List<AssignTarget>?,
                         val void: Boolean,
                         override val position: Position,    // TODO move to end of param list
-                        val pointerDereference: PtrDereference? = null) : Node {
+                        var pointerDereference: PtrDereference? = null) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -584,13 +584,19 @@ data class AssignTarget(var identifier: IdentifierReference?,
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
             node === identifier -> {
-                require(replacement is IdentifierReference)
-                identifier = replacement
-                arrayindexed = null
+                if(replacement is IdentifierReference) {
+                    identifier = replacement
+                    arrayindexed = null
+                } else {
+                    pointerDereference = replacement as PtrDereference
+                    identifier = null
+                    arrayindexed = null
+                }
             }
             node === arrayindexed -> {
                 arrayindexed = replacement as ArrayIndexedExpression
                 identifier = null
+                pointerDereference = null
             }
             node === multi -> throw FatalAstException("can't replace multi assign targets")
             else -> throw FatalAstException("invalid replace")
@@ -615,7 +621,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
         return when {
             arrayindexed != null -> arrayindexed!!.inferType(program)
             memoryAddress != null -> InferredTypes.knownFor(BaseDataType.UBYTE)
-            pointerDereference != null -> pointerDereference.inferType(program)
+            pointerDereference != null -> pointerDereference!!.inferType(program)
             else -> InferredTypes.unknown()   // a multi-target has no 1 particular type
         }
     }
@@ -627,7 +633,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
             arrayindexed != null -> arrayindexed!!.copy()
             memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression.copy(), memoryAddress.position)
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
-            pointerDereference != null -> pointerDereference.copy()
+            pointerDereference != null -> pointerDereference!!.copy()
             else -> throw FatalAstException("invalid assignment target")
         }
     }
@@ -651,7 +657,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
             multi != null -> false
             pointerDereference!=null -> {
                 if(value is PtrDereference) {
-                    if(pointerDereference.identifier!=value.identifier || pointerDereference.field!=value.field)
+                    if(pointerDereference!!.identifier!=value.identifier || pointerDereference!!.field!=value.field)
                         return false
                     TODO("compare ptrderef chains")
                 }
@@ -681,7 +687,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                     return false
             }
             this.pointerDereference!=null && other.pointerDereference!=null -> {
-                return this.pointerDereference isSameAs other.pointerDereference
+                return this.pointerDereference!! isSameAs other.pointerDereference!!
             }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false

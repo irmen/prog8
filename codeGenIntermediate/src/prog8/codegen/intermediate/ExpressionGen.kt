@@ -1,9 +1,6 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StExtSub
-import prog8.code.StNode
-import prog8.code.StNodeType
-import prog8.code.StSub
+import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.BaseDataType
@@ -100,35 +97,31 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(deref: PtPointerDeref): ExpressionCodeResult {
-        if(deref.field==null) {
-            require(deref.type.isBasic) { "can only read simple types through pointer dereference" }
-            val result = mutableListOf<IRCodeChunkBase>()
-            TODO("traverse pointer deref $deref")
-//            val tr = translateExpression(deref.identifier)
-//            result += tr.chunks
-//            when {
-//                deref.type.isByteOrBool -> {
-//                    val resultReg = codeGen.registers.next(IRDataType.BYTE)
-//                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg), null)
-//                    return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
-//                }
-//
-//                deref.type.isWord -> {
-//                    val resultReg = codeGen.registers.next(IRDataType.WORD)
-//                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = resultReg, reg2 = tr.resultReg), null)
-//                    return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
-//                }
-//
-//                deref.type.isFloat -> {
-//                    val resultReg = codeGen.registers.next(IRDataType.FLOAT)
-//                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = tr.resultReg), null)
-//                    return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
-//                }
-//
-//                else -> throw AssemblyError("unsupported dereference type ${deref.type}")
-//            }
-        } else {
-            TODO("pointer^.field dereference  ${deref} ${deref.field} ${deref.type}")
+        require(deref.type.isBasic) { "can only read simple types through pointer dereference" }
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = translateExpression(deref.start)
+        result += tr.chunks
+        result += traverseDerefChain(deref, tr.resultReg)
+        when {
+            deref.type.isByteOrBool -> {
+                val resultReg = codeGen.registers.next(IRDataType.BYTE)
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg), null)
+                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+            }
+
+            deref.type.isWord -> {
+                val resultReg = codeGen.registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = resultReg, reg2 = tr.resultReg), null)
+                return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
+            }
+
+            deref.type.isFloat -> {
+                val resultReg = codeGen.registers.next(IRDataType.FLOAT)
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = tr.resultReg), null)
+                return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
+            }
+
+            else -> throw AssemblyError("unsupported dereference type ${deref.type}")
         }
     }
 
@@ -1480,6 +1473,36 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
+    internal fun traverseDerefChain(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        var struct: StStruct? = null
+        if(targetPointerDeref.start.type.subIdentifier!=null)
+            struct = codeGen.symbolTable.lookup(targetPointerDeref.start.type.subIdentifier!!.joinToString(".")) as StStruct
+        if(targetPointerDeref.chain.isNotEmpty()) {
+            // traverse deref chain
+            for(deref in targetPointerDeref.chain) {
+                val fieldinfo = struct!!.getField(deref, codeGen.program.memsizer)
+                struct = codeGen.symbolTable.lookup(fieldinfo.first.subIdentifier!!.joinToString(".")) as StStruct
+                // get new pointer from field
+                val newPointerReg = codeGen.registers.next(IRDataType.WORD)
+                result += IRCodeChunk(null, null).also {
+                    // TODO IR instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg'.
+                    it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second)
+                    it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = newPointerReg, reg2 = pointerReg)
+                    it += IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1 = pointerReg, reg2 = newPointerReg)
+                }
+            }
+        }
+        if(targetPointerDeref.field!=null) {
+            val fieldinfo = struct!!.getField(targetPointerDeref.field!!, codeGen.program.memsizer)
+            require(fieldinfo.first == targetPointerDeref.type)
+            if(fieldinfo.second>0) {
+                // add the field offset
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second), null)
+            }
+        }
+        return result
+    }
 }
 
 

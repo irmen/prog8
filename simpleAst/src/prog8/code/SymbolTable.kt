@@ -255,7 +255,27 @@ class StStruct(
     name: String,
     val members: List<Pair<DataType, String>>,
     astNode: PtStructDecl?
-) : StNode(name, StNodeType.STRUCT, astNode)
+) : StNode(name, StNodeType.STRUCT, astNode) {
+
+    init {
+        members.forEach { (dt, name) ->
+            if (dt.subIdentifier != null)
+                require(dt.subIdentifier!!.size > 1) { "subidentifier must be scoped" }
+        }
+    }
+
+    fun memsize(sizer: IMemSizer): Int = members.sumOf { sizer.memorySize(it.first, 1) }
+    fun getField(name: String, sizer: IMemSizer): Pair<DataType, Int> {
+        // returns type and byte offset of the given field
+        var offset = 0
+        for((dt, definedname) in members) {
+            if(name==definedname)
+                return dt to offset
+            offset += sizer.memorySize(dt, null)
+        }
+        throw NoSuchElementException("field $name not found in struct ${this.name}")
+    }
+}
 
 
 class StMemorySlab(

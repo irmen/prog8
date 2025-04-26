@@ -429,9 +429,12 @@ data class AddressOf(var identifier: IdentifierReference, var arrayIndex: ArrayI
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
             node===identifier -> {
-                require(replacement is IdentifierReference)
-                identifier = replacement
-                arrayIndex = null
+                if(replacement is IdentifierReference) {
+                    identifier = replacement
+                    arrayIndex = null
+                } else {
+                    TODO("replacement with $replacement")
+                }
             }
             node===arrayIndex -> {
                 require(replacement is ArrayIndex)
@@ -1453,17 +1456,16 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     }
 }
 
-class PtrDereference(val identifier: IdentifierReference, val chain: PtrDereference?, val field: String?, override val position: Position) : Expression() {
+class PtrDereference(val identifier: IdentifierReference, val chain: List<String>, val field: String?, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         identifier.linkParents(this)
-        chain?.linkParents(this)
     }
 
     override val isSimple = false
-    override fun copy(): PtrDereference = PtrDereference(identifier.copy(), chain?.copy(), field, position)
+    override fun copy(): PtrDereference = PtrDereference(identifier.copy(), chain.toList(), field, position)
     override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
@@ -1475,41 +1477,37 @@ class PtrDereference(val identifier: IdentifierReference, val chain: PtrDerefere
         if(vardecl==null || vardecl.datatype.isUndefined || !vardecl.datatype.isPointer)
             return InferredTypes.unknown()
 
-        if(chain==null) {
+        if(chain.isEmpty()) {
             return if(field==null) {
                 InferredTypes.knownFor(vardecl.datatype.sub!!)
             } else {
                 // lookup struct field type
                 val structDef = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
-                val fieldinfo = structDef.getField(field)
-                if(fieldinfo==null)
+                val fieldDt = structDef.getFieldType(field)
+                if(fieldDt==null)
                     InferredTypes.unknown()
                 else
-                    InferredTypes.knownFor(fieldinfo.first)
+                    InferredTypes.knownFor(fieldDt)
             }
         } else {
             // lookup type of field at the end of a dereference chain
-            var nextStructDef = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
-            var nextInChain: PtrDereference? = chain
-            var finalField: String? = null
-            while(nextInChain!=null) {
-                val fieldinfo = nextStructDef.getField(nextInChain.identifier.nameInSource.single())
-                if(fieldinfo==null)
-                    return InferredTypes.unknown()
-                if(!fieldinfo.first.isPointer || fieldinfo.first.subIdentifier==null)
-                    return InferredTypes.unknown()
-                nextStructDef = definingScope.lookup(fieldinfo.first.subIdentifier!!) as StructDecl
-                finalField = nextInChain.field
-                nextInChain = nextInChain.chain
-            }
-            if(finalField==null)
+            if(field==null)
                 return InferredTypes.unknown()  // type of naked deref'd struct pointer is not supported/unknown
 
-            val fieldinfo = nextStructDef.getField(finalField)
-            return if(fieldinfo==null)
+            var struct = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
+            chain.forEach { fieldname ->
+                val fieldDt = struct.getFieldType(fieldname)
+                if(fieldDt==null)
+                    return InferredTypes.unknown()
+                if(!fieldDt.isPointer || fieldDt.subIdentifier==null)
+                    return InferredTypes.unknown()
+                struct = definingScope.lookup(fieldDt.subIdentifier!!) as StructDecl
+            }
+            val fieldDt = struct.getFieldType(field)
+            return if(fieldDt==null)
                 InferredTypes.unknown()
             else
-                InferredTypes.knownFor(fieldinfo.first)
+                InferredTypes.knownFor(fieldDt)
         }
     }
 

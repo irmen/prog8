@@ -24,6 +24,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
     // - flatten chained assignments
     // - remove alias nodes
+    // - replace implicit pointer dereference chains (a.b.c.d) with explicit ones (a^^.b^^.c^^.d)
 
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
         return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
@@ -347,6 +348,45 @@ _after:
             }
         }
 
+        return noModifications
+    }
+
+    override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
+        if(identifier.nameInSource.size>1 && identifier.targetStatement(program)==null) {
+            // the a.b.c.d could be a pointer dereference chain a^^.b^^^.c^^^.d
+            for(i in identifier.nameInSource.size-1 downTo 1) {
+                val symbol = identifier.definingScope.lookup(identifier.nameInSource.take(i)) as? VarDecl
+                if(symbol!=null) {
+                    var struct = if(symbol.datatype.subIdentifier==null) null else identifier.definingScope.lookup(symbol.datatype.subIdentifier!!) as? StructDecl
+                    if(struct==null)
+                        return noModifications
+                    val restChain = identifier.nameInSource.drop(i)
+                    val chain = mutableListOf<String>()
+                    var field: String? = null
+                    for(part in restChain) {
+                        var fieldDt = struct!!.getFieldType(part)
+                        if(fieldDt==null) {
+                            errors.err("unknown field '${part}' in struct '${struct.name}'", identifier.position)
+                            return noModifications
+                        }
+                        if(!fieldDt.isPointer || fieldDt.subIdentifier==null) {
+                            // could be the final field
+                            fieldDt = struct.getFieldType(part)
+                            if(fieldDt!=null) {
+                                field = part
+                                break
+                            }
+                            errors.err("weird field type for field '$part' in struct '${struct.name}", identifier.position)
+                            break
+                        }
+                        chain.add(part)
+                        struct = identifier.definingScope.lookup(fieldDt.subIdentifier!!) as StructDecl
+                    }
+                    val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, identifier.position)
+                    return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
+                }
+            }
+        }
         return noModifications
     }
 }

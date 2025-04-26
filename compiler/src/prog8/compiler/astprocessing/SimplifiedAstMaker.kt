@@ -103,17 +103,23 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(deref: PtrDereference): PtPointerDeref {
-        val type = deref.inferType(program).getOrElse {
+        var type = deref.inferType(program).getOrElse {
             throw FatalAstException("unknown dt")
         }
-        TODO("transform")
-        var chain: PtrDereference? = deref.chain
-        while(chain!=null) {
-            chain = chain.chain
+        if(type.subIdentifier!=null) {
+            // make the sub identifier a fully scoped name
+            val struct = deref.definingScope.lookup(type.subIdentifier!!) as StructDecl
+            type = DataType.pointer(struct.scopedName)
         }
-        val derefPt = PtPointerDeref(type, null, deref.field, deref.position)
-        derefPt.add(transform(deref.identifier))
-        return derefPt
+        var start = transform(deref.identifier)
+        val startType = deref.identifier.inferType(program).getOrUndef()
+        if(startType.subIdentifier!=null) {
+            // make the sub identifier a fully scoped name
+            val struct = deref.definingScope.lookup(startType.subIdentifier!!) as StructDecl
+            val type = DataType.pointer(struct.scopedName)
+            start = PtIdentifier(start.name, type, start.position)
+        }
+        return PtPointerDeref(type, start, deref.chain, deref.field,deref.position)
     }
 
     private fun transform(ifExpr: IfExpression): PtIfExpression {
@@ -608,7 +614,15 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(struct: StructDecl): PtStructDecl {
-        return PtStructDecl(struct.name, struct.members, struct.position)
+        val scopedMembers = struct.members.map { (dt, name) ->
+            if(dt.subIdentifier==null)
+                dt to name
+            else {
+                val structDecl = struct.definingScope.lookup(dt.subIdentifier!!) as StructDecl
+                DataType.pointer(structDecl.scopedName) to name
+            }
+        }
+        return PtStructDecl(struct.name, scopedMembers, struct.position)
     }
 
     private fun transform(srcWhen: When): PtWhen {

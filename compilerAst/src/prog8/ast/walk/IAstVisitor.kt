@@ -160,6 +160,7 @@ interface IAstVisitor {
         assignTarget.arrayindexed?.accept(this)
         assignTarget.identifier?.accept(this)
         assignTarget.memoryAddress?.accept(this)
+        assignTarget.pointerDereference?.accept(this)
         assignTarget.multi?.forEach { it.accept(this) }
     }
 
@@ -208,6 +209,5 @@ interface IAstVisitor {
 
     fun visit(deref: PtrDereference) {
         deref.identifier.accept(this)
-        deref.chain?.accept(this)
     }
 }

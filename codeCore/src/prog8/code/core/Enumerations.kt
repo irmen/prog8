@@ -78,16 +78,15 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             require(sub == null) { "only string, array and pointer base types can have a subtype"}
 
         require(sub == null || subIdentifier == null) { "subtype and identifier can't both be set" }
-
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DataType) return false
-        return base == other.base && sub == other.sub
+        return base == other.base && sub == other.sub && subIdentifier == other.subIdentifier
     }
 
-    override fun hashCode(): Int = Objects.hash(base, sub)
+    override fun hashCode(): Int = Objects.hash(base, sub, subIdentifier)
 
     companion object {
 
@@ -225,13 +224,14 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
             BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
-            BaseDataType.POINTER, BaseDataType.ARRAY_POINTER -> {
+            BaseDataType.POINTER -> {
                 when {
                     targetType.base == BaseDataType.UWORD || targetType.base == BaseDataType.LONG -> true
-                    targetType.isPointer -> this.isUnsignedWord
+                    targetType.isPointer -> this.isUnsignedWord || this==targetType
                     else -> false
                 }
             }
+            BaseDataType.ARRAY_POINTER -> TODO("check assignability of array of pointers")
             BaseDataType.UNDEFINED -> false
         }
 

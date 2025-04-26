@@ -4,7 +4,9 @@ TODO
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
+'DONE' means working in the 'virtual' compiler target... (no 6502 codegen has been touched yet)
+
+- DONE: add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
 - ubyte_ptr^^ ++  doesn't get changed to an inplace-assign  whereas x++ does
 - add IR LOADPIX/STOREPIX instructions for efficient field access through a pointer var?
 - DONE: declare struct as a separate entity so you can then declare multiple variables (pointers) of the same struct type. Like usual.
@@ -14,10 +16,10 @@ STRUCTS and TYPED POINTERS
 - initially only a pointer-to-struct should actually work, pointer-to-other-type is possible but that can come later.
 - DONE: a struct can contain only numeric type fields (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs.
 - DONE: struct might also contain typed pointer fields (because a pointer is just an address word)
-- max 1 page of memory total size to allow regular register indexing
+- DONE: max 1 page of memory total size to allow regular register indexing
 - DONE: assigning ptrs of different types is only allowed via a cast as usual. For simple address (uword) assignments, no cast is needed (but allowed)
-- DONE (FOR SIMPLE TYPES): how to dereference a pointer?  Pascal does it like this: ptr^  But this conflicts with the existing eor operator so we now use ptr^^  (double hat)
-- dereferencing a pointer to struct could look like Pascal's ptr^.field  as well, but the ^ is actually redundant here; compiler already knows it's a pointer type.
+- DONE: how to dereference a pointer?  Pascal does it like this: ptr^  But this conflicts with the existing eor operator so we now use ptr^^  (double hat)
+- DONE: dereferencing a pointer to struct could look like Pascal's ptr^.field  as well, but the ^ is actually redundant here; compiler already knows it's a pointer type.
   Note that actually dereferencing a pointer to a struct as an explicit operation, conflicts with the third axiom on this list (structs only as reference types) so it can only be done for basic types?
   So... setting struct fields can simply be ``structvar.field = 42`` and reading them ``a = structvar.field``
 - you should be able to get the address of an individual field: ``&structpointer.field``
@@ -29,6 +31,7 @@ STRUCTS and TYPED POINTERS
 - rather than str or uword parameter types for routines with a string argument, use ^str  (or ^ubyte maybe? these are more or less identical..?)
 - same for arrays? pointer-to-array syntax = TBD
 - pointer arithmetic is a pain, but need to follow C?  ptr=ptr+10 adds 10*sizeof() instead of just 10.
+
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -56,6 +59,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg' in the pointer chain traversals.
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)

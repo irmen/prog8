@@ -224,7 +224,14 @@ class PtMemMapped(name: String, override val type: DataType, val address: UInt, 
 }
 
 
-class PtStructDecl(name: String, val members: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position)
+class PtStructDecl(name: String, val members: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position) {
+    init {
+        members.forEach { (dt, name) ->
+            if (dt.subIdentifier != null)
+                require(dt.subIdentifier!!.size > 1) { "subidentifier must be scoped" }
+        }
+    }
+}
 
 
 class PtWhen(position: Position) : PtNode(position) {

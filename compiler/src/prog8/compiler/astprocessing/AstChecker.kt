@@ -1786,6 +1786,9 @@ internal class AstChecker(private val program: Program,
         val uniqueFields = struct.members.map { it.second }.toSet()
         if(uniqueFields.size!=struct.members.size)
             errors.err("duplicate field names in struct", struct.position)
+        val memsize = struct.memsize(program.memsizer)
+        if(memsize>256)
+            errors.err("struct contains too many fields, max struct size is 256 bytes (actual: $memsize)", struct.position)
     }
 
     private fun checkLongType(expression: Expression) {
@@ -2073,7 +2076,7 @@ internal class AstChecker(private val program: Program,
         }
         else if (targetDatatype.isPointer) {
             if(sourceDatatype.isPointer) {
-                if(sourceDatatype!=targetDatatype)
+                if(!(sourceDatatype isAssignableTo targetDatatype))
                     errors.err("cannot assign different pointer type", position)
             } else if(!sourceDatatype.isUnsignedWord)
                 errors.err("can only assign uword or correct pointer type to a pointer", position)
