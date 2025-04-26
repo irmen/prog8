@@ -200,6 +200,16 @@ class AstPreprocessor(val program: Program,
             return makeUnSplitArray(decl)
         }
 
+        // make all subidentifiers (names of structs, basically) fully scoped
+        val subident = decl.datatype.subIdentifier
+        if(subident!=null && subident.size<2) {
+            val struct = decl.definingScope.lookup(subident) as? StructDecl
+            if(struct!=null) {
+                val newDecl = decl.copy(DataType.pointer(struct.scopedName))
+                return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
+            }
+        }
+
         return noModifications
     }
 
@@ -275,6 +285,19 @@ class AstPreprocessor(val program: Program,
         if(tgt is Block) {
             errors.err("cannot alias blocks", alias.target.position)
         }
+        return noModifications
+    }
+
+    override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
+        // make all subidentifiers (names of structs, basically) fully scoped
+        val subident = typecast.type.subIdentifier
+        if(subident!=null && subident.size<2) {
+            val struct = typecast.definingScope.lookup(subident) as? StructDecl
+            if(struct!=null) {
+                typecast.type = DataType.pointer(struct.scopedName)
+            }
+        }
+
         return noModifications
     }
 

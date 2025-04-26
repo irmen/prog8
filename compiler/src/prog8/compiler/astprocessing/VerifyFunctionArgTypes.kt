@@ -97,6 +97,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             val argITypes = call.args.map { it.inferType(program) }
             val firstUnknownDt = argITypes.indexOfFirst { it.isUnknown }
             if(firstUnknownDt>=0) {
+                // if an uword is expected but a pointer is provided, that is okay without a cast
                 val identifier = call.args[0] as? IdentifierReference
                 return if(identifier==null || identifier.targetStatement(program)!=null)
                     Pair("argument ${firstUnknownDt + 1} invalid argument type", call.args[firstUnknownDt].position)

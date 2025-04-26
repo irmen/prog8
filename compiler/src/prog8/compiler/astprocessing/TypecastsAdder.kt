@@ -66,6 +66,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 if(valueDt isNotAssignableTo decl.datatype)
                     return noModifications
 
+                // uwords are allowed to be assigned to pointers without a cast
+                if(decl.datatype.isPointer && valueDt.isUnsignedWord)
+                    return noModifications
+
                 val modifications = mutableListOf<IAstModification>()
                 addTypecastOrCastedValueModification(modifications, declValue, decl.datatype.base, decl)
                 return modifications
@@ -564,6 +568,11 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             return
         if(requiredType == BaseDataType.BOOL)
             return
+
+        // uwords are allowed to be assigned to pointers without a cast
+        if(requiredType.isPointer && sourceDt.isUnsignedWord)
+            return
+
         if(expressionToCast is NumericLiteral && expressionToCast.type!=BaseDataType.FLOAT) { // refuse to automatically truncate floats
             val castedValue = expressionToCast.cast(requiredType, true)
             if (castedValue.isValid) {
@@ -575,6 +584,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 return
             }
         }
+
         val cast = TypecastExpression(expressionToCast, DataType.forDt(requiredType), true, expressionToCast.position)
         modifications += IAstModification.ReplaceNode(expressionToCast, cast, parent)
     }

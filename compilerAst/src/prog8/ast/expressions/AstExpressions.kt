@@ -707,6 +707,8 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
+                if(targettype.isPointer)
+                    return ValueAfterCast(true, null, NumericLiteral(BaseDataType.UWORD, number, position))
             }
             BaseDataType.BYTE -> {
                 if(targettype==BaseDataType.UBYTE) {
@@ -1495,9 +1497,6 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
             }
         } else {
             // lookup type of field at the end of a dereference chain
-            if(field==null)
-                return InferredTypes.unknown()  // type of naked deref'd struct pointer is not supported/unknown
-
             var struct = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
             chain.forEach { fieldname ->
                 val fieldDt = struct.getFieldType(fieldname)
@@ -1507,6 +1506,8 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
                     return InferredTypes.unknown()
                 struct = definingScope.lookup(fieldDt.subIdentifier!!) as StructDecl
             }
+            if(field==null)
+                return InferredTypes.knownFor(DataType.pointer(struct.scopedName))
             val fieldDt = struct.getFieldType(field)
             return if(fieldDt==null)
                 InferredTypes.unknown()

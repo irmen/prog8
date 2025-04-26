@@ -3,32 +3,47 @@
 %zeropage basicsafe
 %option no_sysinit
 
-/*
 main {
     struct Node {
+        bool flag
         ^^Node next
         ubyte value
     }
 
     sub start() {
         uword mem = memory("mem", 1000, 0)
+        sys.memset(mem, 1000, 1)
 
         ^^Node n1 = mem
-        ^^Node n2 = mem+10
-        ^^Node n3 = mem+20
-        ^^Node n4 = mem+30 as ^^Node
 
-        txt.print_uw(n1)
-        txt.spc()
-        txt.print_uw(n1.next)
-        txt.print_uw(n1.next as uword)
-        txt.spc()
         txt.print_ub(n1.value)
         txt.nl()
+        mem[3]=42
+        txt.print_ub(n1.value)
+        txt.nl()
+
+        n1.value = 99
+        txt.print_ub(n1.value)
+        txt.nl()
+
+        txt.print_uw(n1.next)
+        txt.nl()
+        mem[1]=255
+        mem[2]=3
+        txt.print_uw(n1.next)
+        txt.nl()
+
+        n1.next = 12345      ; TODO make this work! stores in invalid place now
+        txt.print_uw(n1.next)
+        txt.nl()
+
+;        ^^Node n2 = mem+10
+;        ^^Node n3 = mem+20
+;        ^^Node n4 = mem+30 as ^^Node
     }
 }
-*/
 
+/*
 main {
 
     struct Enemy {
@@ -119,3 +134,4 @@ main {
     }
 }
 
+*/

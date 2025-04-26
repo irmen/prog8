@@ -24,6 +24,7 @@ STRUCTS and TYPED POINTERS
   So... setting struct fields can simply be ``structvar.field = 42`` and reading them ``a = structvar.field``
 - DONE: you should be able to get the address of an individual field: ``&structpointer.field``
 - DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
+- subroutine parameters should be able to accept pointers as well now
 - arrays of structs?  Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual

@@ -97,7 +97,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(deref: PtPointerDeref): ExpressionCodeResult {
-        require(deref.type.isBasic) { "can only read simple types through pointer dereference" }
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(deref.start)
         result += tr.chunks
@@ -108,19 +107,20 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
-
             deref.type.isWord -> {
                 val resultReg = codeGen.registers.next(IRDataType.WORD)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = resultReg, reg2 = tr.resultReg), null)
                 return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
             }
-
             deref.type.isFloat -> {
                 val resultReg = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = tr.resultReg), null)
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
             }
-
+            deref.type.isPointer -> {
+                // just return the pointer value itself, a word adress
+                return ExpressionCodeResult(result, IRDataType.WORD, tr.resultReg, -1)
+            }
             else -> throw AssemblyError("unsupported dereference type ${deref.type}")
         }
     }

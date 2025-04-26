@@ -49,7 +49,7 @@ internal class StatementReorderer(
             if(decl.dirty && decl.value!=null)
                 errors.err("dirty variable can't have initialization value", decl.position)
 
-            if (decl.datatype.isNumericOrBool) {
+            if (decl.datatype.isNumericOrBool || decl.datatype.isPointer) {
                 if(decl !in declsProcessedWithInitAssignment) {
                     declsProcessedWithInitAssignment.add(decl)
                     if (decl.value == null || decl.value?.constValue(program)?.number==0.0) {

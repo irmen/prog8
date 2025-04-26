@@ -850,8 +850,15 @@ internal class AstChecker(private val program: Program,
                     if(!(iDt istype eltDt))
                         valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 } else if(!decl.datatype.isString) {
-                    if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool))
-                        valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                    if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool)) {
+                        // pointer variables can be initialized with a compatible pointer or with a uword
+                        if(decl.datatype.isPointer) {
+                            if (!iDt.isAssignableTo(decl.datatype))
+                                valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                        }
+                        else
+                            valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                    }
                 }
             }
         }
@@ -1347,7 +1354,7 @@ internal class AstChecker(private val program: Program,
                     throw FatalAstException("cast should have been performed in const eval already")
                 errors.err(castResult.whyFailed!!, typecast.expression.position)
             } else if (typecast.type.isPointer) {
-                if(!(typecast.expression.inferType(program) istype DataType.UWORD))
+                if(!(typecast.expression.inferType(program).isUnsignedWord))
                     errors.err("can only cast uword to pointer", typecast.position)
             } else
                 errors.err("invalid type cast", typecast.position)

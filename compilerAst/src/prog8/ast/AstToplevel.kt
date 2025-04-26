@@ -383,6 +383,7 @@ fun defaultZero(dt: BaseDataType, position: Position) = when(dt) {
     BaseDataType.UWORD, BaseDataType.STR -> NumericLiteral(BaseDataType.UWORD, 0.0, position)
     BaseDataType.WORD -> NumericLiteral(BaseDataType.WORD, 0.0, position)
     BaseDataType.FLOAT -> NumericLiteral(BaseDataType.FLOAT, 0.0, position)
+    BaseDataType.POINTER -> NumericLiteral(BaseDataType.UWORD, 0.0, position)
     else -> throw FatalAstException("can only determine default zero value for a numeric type")
 }
 

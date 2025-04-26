@@ -198,8 +198,12 @@ class PtVariable(
 ) : PtNamedNode(name, position), IPtVariable {
     init {
 
+        require(type.subIdentifier==null || type.subIdentifier!!.size>1) { "subidentifier must be fully scoped" }
+
         if(value!=null) {
-            require(value is PtArray || value is PtString) { "variable initializer value must only be array or string" }
+            require(value is PtArray || value is PtString) {
+                "variable initializer value must only be array or string"
+            }
             // NOTE: the 6502 code generator expects numerical variables to not have an initialization value,
             // because that is done via assignment statements. There are no "inline" variables with a given value.
             // All variables are put into zeropage or into the BSS section and initialized afterwards during program
