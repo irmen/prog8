@@ -112,10 +112,6 @@ if not CONDITION
 
     override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
 
-        if(!whileLoop.condition.inferType(program).isBool) {
-            errors.err("condition should be a boolean", whileLoop.condition.position)
-        }
-
         /*
         while true -> repeat
         while false -> discard

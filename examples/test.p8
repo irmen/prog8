@@ -26,12 +26,37 @@ main {
 
         txt.print("chain values: ")
         ^^Node n = n1
-        while (n as uword)!=0 {
+        while n {
             txt.print_ub(n.value)
             txt.spc()
             n = n.next
         }
         txt.nl()
+
+;
+;        bool hasvalue
+;;        hasvalue = n1
+;;        hasvalue = n1 != 0
+;        if cx16.r0 {
+;            cx16.r0++
+;        }
+;        if n1 {
+;            cx16.r0++
+;        }
+;        hasvalue = n1 as bool
+;        txt.print_bool(hasvalue)
+;        txt.print_bool(hasvalue)
+;        txt.print_bool(cx16.r0)
+;        txt.print_bool(n1)
+;        txt.print_bool(n1 as bool)
+;        txt.spc()
+;        n1 = 0
+;;        ;hasvalue = n1
+;;        ;hasvalue = n1 != 0
+;         hasvalue = n1 as bool
+;        txt.print_bool(hasvalue)
+;        txt.print_bool(n1)
+;        txt.print_bool(n1 as bool)
     }
 }
 

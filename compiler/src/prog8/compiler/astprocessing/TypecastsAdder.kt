@@ -188,6 +188,29 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         }
                     }
                 }
+
+                // comparison of a pointer with a number will simply treat the pointer as the uword that it is
+                // this may require casting the other operand to uword as well
+                if(expr.operator in ComparisonOperators) {
+                    val modifications = mutableListOf<IAstModification>()
+                    if(leftDt.isNumeric && rightDt.isPointer) {
+                        val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                        modifications += IAstModification.ReplaceNode(expr.right, cast, expr)
+                        if(!leftDt.isUnsignedWord && leftDt isAssignableTo InferredTypes.knownFor(BaseDataType.UWORD)) {
+                            val cast2 = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                            modifications += IAstModification.ReplaceNode(expr.left, cast2, expr)
+                        }
+                    }
+                    else if(leftDt.isPointer && rightDt.isNumeric) {
+                        val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                        modifications += IAstModification.ReplaceNode(expr.left, cast, expr)
+                        if(!rightDt.isUnsignedWord && rightDt isAssignableTo InferredTypes.knownFor(BaseDataType.UWORD)) {
+                            val cast2 = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                            modifications += IAstModification.ReplaceNode(expr.right, cast2, expr)
+                        }
+                    }
+                    return modifications
+                }
             }
 
             // check if shifts have a positive integer shift type
@@ -425,6 +448,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     override fun after(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> {
+        val ct = ifExpr.condition.inferType(program)
+        if(!ct.isBool && (ct.isNumeric || ct.isPointer)) {
+            val cast = TypecastExpression(ifExpr.condition, DataType.BOOL, true, ifExpr.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifExpr.condition, cast, ifExpr))
+        }
+
         val trueDt = ifExpr.truevalue.inferType(program)
         val falseDt = ifExpr.falsevalue.inferType(program)
         if (trueDt != falseDt) {
@@ -439,6 +468,33 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 addTypecastOrCastedValueModification(modifications, toFix, commonDt.base, ifExpr)
                 return modifications
             }
+        }
+        return noModifications
+    }
+
+    override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+        val ct = whileLoop.condition.inferType(program)
+        if(!ct.isBool && (ct.isNumeric || ct.isPointer)) {
+            val cast = TypecastExpression(whileLoop.condition, DataType.BOOL, true, whileLoop.condition.position)
+            return listOf(IAstModification.ReplaceNode(whileLoop.condition, cast, whileLoop))
+        }
+        return noModifications
+    }
+
+    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        val ct = ifElse.condition.inferType(program)
+        if(!ct.isBool && (ct.isNumeric || ct.isPointer)) {
+            val cast = TypecastExpression(ifElse.condition, DataType.BOOL, true, ifElse.condition.position)
+            return listOf(IAstModification.ReplaceNode(ifElse.condition, cast, ifElse))
+        }
+        return noModifications
+    }
+
+    override fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+        val ct = untilLoop.condition.inferType(program)
+        if(!ct.isBool && (ct.isNumeric || ct.isPointer)) {
+            val cast = TypecastExpression(untilLoop.condition, DataType.BOOL, true, untilLoop.condition.position)
+            return listOf(IAstModification.ReplaceNode(untilLoop.condition, cast, untilLoop))
         }
         return noModifications
     }
@@ -566,8 +622,14 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val sourceDt = expressionToCast.inferType(program).getOrUndef()
         if(sourceDt.base == requiredType)
             return
-        if(requiredType == BaseDataType.BOOL)
+        if(requiredType == BaseDataType.BOOL) {
+            if(sourceDt.isNumeric || sourceDt.isPointer) {
+                // only allow numerics and pointers to be implicitly cast to bool
+                val cast = TypecastExpression(expressionToCast, DataType.BOOL, true, expressionToCast.position)
+                modifications += IAstModification.ReplaceNode(expressionToCast, cast, parent)
+            }
             return
+        }
 
         // uwords are allowed to be assigned to pointers without a cast
         if(requiredType.isPointer && sourceDt.isUnsignedWord)

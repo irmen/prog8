@@ -6,11 +6,7 @@ STRUCTS and TYPED POINTERS
 
 'DONE' means working in the 'virtual' compiler target... (no 6502 codegen has been touched yet)
 
-- implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
-- implicit cast of pointer to uword in conditional expressoins
 - DONE: add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
-- add IR LOADPIX/STOREPIX instructions for efficient field access through a pointer var?
-- change IR instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg'.
 - DONE: declare struct as a separate entity so you can then declare multiple variables (pointers) of the same struct type. Like usual.
 - DONE: struct is a 'packed' struct, fields are placed in order of declaration. This guarantees exact size and place of the fields
 - DONE: structs only supported as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
@@ -26,6 +22,8 @@ STRUCTS and TYPED POINTERS
   So... setting struct fields can simply be ``structvar.field = 42`` and reading them ``a = structvar.field``
 - DONE: you should be able to get the address of an individual field: ``&structpointer.field``
 - DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
+- DONE: implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
+- DONE: implicit cast of pointer to uword in conditional expressions
 - subroutine parameters should be able to accept pointers as well now
 - arrays of structs?  Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD

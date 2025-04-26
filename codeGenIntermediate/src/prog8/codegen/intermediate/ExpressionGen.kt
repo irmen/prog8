@@ -479,9 +479,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=tr.resultReg, immediate = 0), null)
                         actualResultReg2 = loadStatusAsBooleanResult(Opcode.BSTNE, result)
                     }
-                    valueDt.isWord -> {
+                    valueDt.isWord || valueDt.isPointer -> {
                         addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=tr.resultReg, immediate = 0), null)
-                        actualResultReg2 =loadStatusAsBooleanResult(Opcode.BSTNE, result)
+                        actualResultReg2 = loadStatusAsBooleanResult(Opcode.BSTNE, result)
                     }
                     valueDt.isFloat -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)

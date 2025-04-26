@@ -377,10 +377,6 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         expression.linkParents(this)
     }
 
-    init {
-        if(type.isBool) require(!implicit) {"no implicit cast to boolean allowed"}
-    }
-
     override val isSimple = expression.isSimple
 
     override fun replaceChildNode(node: Node, replacement: Node) {

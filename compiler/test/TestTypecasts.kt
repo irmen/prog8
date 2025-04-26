@@ -697,18 +697,20 @@ main {
         errors.errors[3] shouldContain("type of value bool doesn't match target")
     }
 
-    test("bool function parameters correct typing") {
+    test("bool function parameters correct typing and implicit casts to bool") {
         val src = """
 main {
     sub start() {
-        bool bb = func(true)
+        ^^word @shared pointer
+        bool @shared bb = func(true)
         void func(true)
-        ; all these should fail:
         void func(0)
         void func(1)
         void func(42)
         void func(65535)
         void func(655.444)
+        void func(cx16.r0)
+        void func(pointer)
         cx16.r0L = func(true)
     }
 
@@ -719,34 +721,22 @@ main {
 }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 6
-        errors.errors[0] shouldContain("type mismatch")
-        errors.errors[1] shouldContain("type mismatch")
-        errors.errors[2] shouldContain("type mismatch")
-        errors.errors[3] shouldContain("type mismatch")
-        errors.errors[4] shouldContain("type mismatch")
-        errors.errors[5] shouldContain("type of value bool doesn't match target")
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain("type of value bool doesn't match target")
     }
 
-    test("no implicit bool-to-int cast") {
+    test("no implicit bool-to-int cast in assignment") {
         val src="""
 main {
     sub start() {
-        func(true)
-        func(true as ubyte)
         cx16.r0L = true
         cx16.r0L = true as ubyte
-    }
-
-    sub func(bool b) {
-        cx16.r0++
     }
 }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain(":5:14: argument 1 type mismatch")
-        errors.errors[1] shouldContain(":6:20: type of value bool doesn't match target")
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain("type of value bool doesn't match target")
     }
 
     test("no implicit int-to-bool cast") {

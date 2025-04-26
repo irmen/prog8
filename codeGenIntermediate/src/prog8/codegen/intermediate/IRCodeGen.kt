@@ -1654,7 +1654,7 @@ class IRCodeGen(
                 translateSimple(cond, Opcode.BSTEQ, false)
             }
             is PtTypeCast -> {
-                require(cond.type.isBool && cond.value.type.isNumeric)
+                require(cond.type.isBool && (cond.value.type.isNumeric || cond.value.type.isPointer))
                 translateSimple(cond, Opcode.BSTEQ, false)
             }
             is PtIdentifier, is PtArrayIndexer, is PtContainmentCheck -> {
