@@ -100,7 +100,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(deref.start)
         result += tr.chunks
-        result += traverseDerefChainToCalculateFinalAddress(deref, tr.resultReg)
+        result += traverseDerefChainToCalculateFinalAddress(deref, tr.resultReg, false)
         when {
             deref.type.isByteOrBool -> {
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
@@ -118,7 +118,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
             }
             deref.type.isPointer -> {
-                // just return the pointer value itself, a word adress
+                // just return the value of the pointer, a word adress
                 return ExpressionCodeResult(result, IRDataType.WORD, tr.resultReg, -1)
             }
             else -> throw AssemblyError("unsupported dereference type ${deref.type}")
@@ -240,7 +240,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             require(vmDt==IRDataType.WORD)
             val pointerTr = translateExpression(expr.dereference!!.start)
             result += pointerTr.chunks
-            result += traverseDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
+            result += traverseDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg, false)
             addInstr(result, IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1 = resultRegister, reg2 = pointerTr.resultReg), null)
         }
         return ExpressionCodeResult(result, vmDt, resultRegister, -1)
@@ -1483,23 +1483,27 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun traverseDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
+    internal fun traverseDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int, getLastPointerItselfInsteadOfItsValue: Boolean): IRCodeChunks {
+        if(getLastPointerItselfInsteadOfItsValue)
+            require(targetPointerDeref.field==null)
         val result = mutableListOf<IRCodeChunkBase>()
         var struct: StStruct? = null
         if(targetPointerDeref.start.type.subIdentifier!=null)
             struct = codeGen.symbolTable.lookup(targetPointerDeref.start.type.subIdentifier!!.joinToString(".")) as StStruct
         if(targetPointerDeref.chain.isNotEmpty()) {
             // traverse deref chain
-            for(deref in targetPointerDeref.chain) {
+            for((idx, deref) in targetPointerDeref.chain.withIndex()) {
                 val fieldinfo = struct!!.getField(deref, codeGen.program.memsizer)
                 struct = codeGen.symbolTable.lookup(fieldinfo.first.subIdentifier!!.joinToString(".")) as StStruct
                 // get new pointer from field
                 val newPointerReg = codeGen.registers.next(IRDataType.WORD)
                 result += IRCodeChunk(null, null).also {
-                    // TODO IR instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg'.
                     it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second)
-                    it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = newPointerReg, reg2 = pointerReg)
-                    it += IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1 = pointerReg, reg2 = newPointerReg)
+                    if (!getLastPointerItselfInsteadOfItsValue || idx<targetPointerDeref.chain.size-1) {
+                        // TODO IR instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg'.
+                        it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = newPointerReg, reg2 = pointerReg)
+                        it += IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1 = pointerReg, reg2 = newPointerReg)
+                    }
                 }
             }
         }

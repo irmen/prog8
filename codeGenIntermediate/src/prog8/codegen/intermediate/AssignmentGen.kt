@@ -511,7 +511,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         else if(targetPointerDeref!=null) {
             val pointerTr = expressionEval.translateExpression(targetPointerDeref.start)
             result += pointerTr.chunks
-            result += expressionEval.traverseDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg)
+            result += expressionEval.traverseDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg, targetPointerDeref.type.isPointer)
 
             val instr = when {
                 targetPointerDeref.type.isByteOrBool -> {
@@ -533,7 +533,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = pointerTr.resultReg)
                 }
                 targetPointerDeref.type.isPointer -> {
-                    TODO()
+                    // stores value into the pointer itself
                     if(zero)
                         IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
                     else

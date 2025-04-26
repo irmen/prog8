@@ -6,6 +6,8 @@ STRUCTS and TYPED POINTERS
 
 'DONE' means working in the 'virtual' compiler target... (no 6502 codegen has been touched yet)
 
+- implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
+- implicit cast of pointer to uword in conditional expressoins
 - DONE: add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
 - add IR LOADPIX/STOREPIX instructions for efficient field access through a pointer var?
 - change IR instruction LOADI should allow reg1 and reg2 to be the same, so we can remove the extra 'newPointerReg'.

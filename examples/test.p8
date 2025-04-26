@@ -5,41 +5,33 @@
 
 main {
     struct Node {
-        bool flag
-        ^^Node next
         ubyte value
+        ^^Node next
     }
 
     sub start() {
-        uword mem = memory("mem", 1000, 0)
-        sys.memset(mem, 1000, 1)
+        uword buffer = memory("buffer", 1000, 0)
+        sys.memset(buffer, 1000, 0)
 
-        ^^Node n1 = mem
+        ^^Node n1 = buffer
+        ^^Node n2 = buffer + sizeof(Node)
+        ^^Node n3 = buffer + sizeof(Node)*2
 
-        txt.print_ub(n1.value)
-        txt.nl()
-        mem[3]=42
-        txt.print_ub(n1.value)
-        txt.nl()
+        n1.value = 11
+        n2.value = 22
+        n3.value = 33
+        n1.next = n2
+        n2.next = n3
+        n3.next = 0
 
-        n1.value = 99
-        txt.print_ub(n1.value)
+        txt.print("chain values: ")
+        ^^Node n = n1
+        while (n as uword)!=0 {
+            txt.print_ub(n.value)
+            txt.spc()
+            n = n.next
+        }
         txt.nl()
-
-        txt.print_uw(n1.next)
-        txt.nl()
-        mem[1]=255
-        mem[2]=3
-        txt.print_uw(n1.next)
-        txt.nl()
-
-        n1.next = 12345      ; TODO make this work! stores in invalid place now
-        txt.print_uw(n1.next)
-        txt.nl()
-
-;        ^^Node n2 = mem+10
-;        ^^Node n3 = mem+20
-;        ^^Node n4 = mem+30 as ^^Node
     }
 }
 
