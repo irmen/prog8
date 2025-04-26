@@ -33,8 +33,7 @@ ADDRESS_OF: '&' ;
 ADDRESS_OF_MSB: '&>' ;
 ADDRESS_OF_LSB: '&<' ;
 INVALID_AND_COMPOSITE: '&&' ;
-POINTER: '^';
-POINTERDEREF: '^^';
+POINTER: '^^';
 
 fragment HEX_DIGIT: ('a'..'f') | ('A'..'F') | ('0'..'9') ;
 fragment BIN_DIGIT: ('0' | '1') ;
@@ -331,7 +330,7 @@ pointerdereference:  (prefix = scoped_identifier '.')? derefchain ('.' field = i
 
 derefchain :  singlederef ('.' singlederef)* ;
 
-singlederef : identifier POINTERDEREF ;
+singlederef : identifier POINTER ;
 
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 

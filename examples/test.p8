@@ -3,6 +3,32 @@
 %zeropage basicsafe
 %option no_sysinit
 
+/*
+main {
+    struct Node {
+        ^^Node next
+        ubyte value
+    }
+
+    sub start() {
+        uword mem = memory("mem", 1000, 0)
+
+        ^^Node n1 = mem
+        ^^Node n2 = mem+10
+        ^^Node n3 = mem+20
+        ^^Node n4 = mem+30 as ^^Node
+
+        txt.print_uw(n1)
+        txt.spc()
+        txt.print_uw(n1.next)
+        txt.print_uw(n1.next as uword)
+        txt.spc()
+        txt.print_ub(n1.value)
+        txt.nl()
+    }
+}
+*/
+
 main {
 
     struct Enemy {
@@ -13,8 +39,8 @@ main {
         bool alive
         ; no strings or arrays allowed in struct type declarations.
         ; typed pointers are allowed though because these are just a uword:
-        ^float floatptr
-        ^str stringpointer
+        ^^float floatptr
+        ^^str stringpointer
     }
 
     sub start() {
@@ -23,18 +49,18 @@ main {
         struct Node {
             ubyte type
             uword value
-            ^Node nextnode  ; linked list?
+            ^^Node nextnode  ; linked list?
         }
 
         ; declare pointer vars
-        ^bool @shared bool_ptr
-        ^ubyte @shared ubyte_ptr
-        ^word @shared word_ptr
-        ^Node @shared node_ptr
-        ^Enemy @shared enemy_ptr
-        ^bool[5] @shared boolptr_list   ; array of pointers to bools (bit silly, should we even support this)
-        ^Node[5] @shared node_list      ; array of pointers to nodes
-        ^Enemy[5] @shared enemy_list    ; array of pointers to enemies
+        ^^bool @shared bool_ptr
+        ^^ubyte @shared ubyte_ptr
+        ^^word @shared word_ptr
+        ^^Node @shared node_ptr
+        ^^Enemy @shared enemy_ptr
+        ^^bool[5] @shared boolptr_list   ; array of pointers to bools (bit silly, should we even support this)
+        ^^Node[5] @shared node_list      ; array of pointers to nodes
+        ^^Enemy[5] @shared enemy_list    ; array of pointers to enemies
 
         txt.print("sizeofs: ")
         txt.print_ub(sizeof(Enemy))
@@ -46,16 +72,16 @@ main {
 
         ; point to a memory address.
         bool_ptr  = 2000
-        bool_ptr  = 2002 as ^bool
+        bool_ptr  = 2002 as ^^bool
         ubyte_ptr  = 2000
         word_ptr  = 2000
         node_ptr  = 2000
         enemy_ptr  = 2000
-        bool_ptr = enemy_ptr as ^bool   ; cast makes no sense, but hey, programmer knows best right? (without cast would give error)
+        bool_ptr = enemy_ptr as ^^bool   ; cast makes no sense, but hey, programmer knows best right? (without cast would give error)
         ; array elements, point to a memory address
         node_list[0] = 1000
         node_list[1] = 2000
-        node_list[1] = 2002 as ^Node
+        node_list[1] = 2002 as ^^Node
         node_list[2] = 3000
 
         ; dereference
@@ -92,3 +118,4 @@ main {
         ; TODO how to statically allocate/initialize a struct? Difficult.. see TODO in docs
     }
 }
+

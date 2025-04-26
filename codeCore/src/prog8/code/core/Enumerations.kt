@@ -168,10 +168,10 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             }
         }
         BaseDataType.POINTER -> {
-            if(sub!=null) "^${sub.name.lowercase()}" else "^${subIdentifier!!.joinToString(".")}"
+            if(sub!=null) "^^${sub.name.lowercase()}" else "^^${subIdentifier!!.joinToString(".")}"
         }
         BaseDataType.ARRAY_POINTER -> {
-            if(sub!=null) "^${sub.name.lowercase()}[] (split)" else "^${subIdentifier!!.joinToString(".")}[] (split)"
+            if(sub!=null) "^^${sub.name.lowercase()}[] (split)" else "^^${subIdentifier!!.joinToString(".")}[] (split)"
         }
         else -> base.name.lowercase()
     }
@@ -186,10 +186,10 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "str"
         BaseDataType.POINTER -> {
-            if(sub!=null) "^${sub.name.lowercase()}" else "^${subIdentifier!!.joinToString(".")}"
+            if(sub!=null) "^^${sub.name.lowercase()}" else "^^${subIdentifier!!.joinToString(".")}"
         }
         BaseDataType.ARRAY_POINTER -> {
-            if(sub!=null) "^${sub.name.lowercase()}[" else "^${subIdentifier!!.joinToString(".")}["
+            if(sub!=null) "^^${sub.name.lowercase()}[" else "^^${subIdentifier!!.joinToString(".")}["
         }
         BaseDataType.ARRAY -> {
             when(sub) {

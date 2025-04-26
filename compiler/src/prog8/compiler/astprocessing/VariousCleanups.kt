@@ -41,8 +41,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                                 errors.err("value '$constValue' out of range for ${decl.datatype}", constValue.position)
                             else
                                 errors.err("value out of range for ${decl.datatype}", decl.value!!.position)
-                        } else {
-                            throw FatalAstException("value dt differs from decl dt ${decl.position}")
                         }
                     }
                 }
