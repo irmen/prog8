@@ -59,12 +59,17 @@ main {
         node_list[2] = 3000
 
         ; dereference
+        ;;a.b.c.d^^.e^^.f^^ = 99              ; TODO AST check for symbol existence!
+        ;;a.b.c.d^^.e^^.f^^.fieldname = 99    ; TODO AST check for symbol existence!
         bool @shared bvar = bool_ptr^^
         bool_ptr^^ = false
 
         ; BELOW DOESN'T WORK YET:
         ; writing and reading fields
-;        enemy_ptr.x = 42
+        enemy_ptr^^.x = 42
+        ; enemy_ptr.x = 42
+        node_ptr^^.nextnode^^.value = 888
+        ; node_ptr.nextnode.value = 888
 ;        enemy_ptr.alive = true
 ;        node_ptr.nextnode = 2000
 ;        node_ptr.nextnode = enemy_ptr    ; TODO should give type error!

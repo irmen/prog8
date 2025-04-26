@@ -1453,32 +1453,63 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     }
 }
 
-class PtrDereference(val identifier: IdentifierReference, override val position: Position) : Expression() {
+class PtrDereference(val identifier: IdentifierReference, val chain: PtrDereference?, val field: String?, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
         identifier.linkParents(this)
+        chain?.linkParents(this)
     }
 
-    override val isSimple = true
-    override fun copy() = PtrDereference(identifier.copy(), position)
+    override val isSimple = false
+    override fun copy(): PtrDereference = PtrDereference(identifier.copy(), chain?.copy(), field, position)
     override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun inferType(program: Program): InferredTypes.InferredType {
-        return when (val targetStmt = identifier.targetStatement(program)) {
-            is VarDecl -> {
-                if(targetStmt.datatype.isUndefined || !targetStmt.datatype.isPointer)
+        val first = identifier.targetStatement(program)
+        if(first==null)
+            return InferredTypes.unknown()
+        val vardecl = identifier.targetVarDecl()
+        if(vardecl==null || vardecl.datatype.isUndefined || !vardecl.datatype.isPointer)
+            return InferredTypes.unknown()
+
+        if(chain==null) {
+            return if(field==null) {
+                InferredTypes.knownFor(vardecl.datatype.sub!!)
+            } else {
+                // lookup struct field type
+                val structDef = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
+                val fieldinfo = structDef.getField(field)
+                if(fieldinfo==null)
                     InferredTypes.unknown()
-                else {
-                    if(targetStmt.datatype.sub!=null)
-                        InferredTypes.knownFor(targetStmt.datatype.sub!!)
-                    else
-                        InferredTypes.unknown()     // a naked deref'd struct pointer is not supported / has no actual type
-                }
+                else
+                    InferredTypes.knownFor(fieldinfo.first)
             }
-            else -> InferredTypes.InferredType.unknown()
+        } else {
+            // lookup type of field at the end of a dereference chain
+            var nextStructDef = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
+            var nextInChain: PtrDereference? = chain
+            var finalField: String? = null
+            while(nextInChain!=null) {
+                val fieldinfo = nextStructDef.getField(nextInChain.identifier.nameInSource.single())
+                if(fieldinfo==null)
+                    return InferredTypes.unknown()
+                if(!fieldinfo.first.isPointer || fieldinfo.first.subIdentifier==null)
+                    return InferredTypes.unknown()
+                nextStructDef = definingScope.lookup(fieldinfo.first.subIdentifier!!) as StructDecl
+                finalField = nextInChain.field
+                nextInChain = nextInChain.chain
+            }
+            if(finalField==null)
+                return InferredTypes.unknown()  // type of naked deref'd struct pointer is not supported/unknown
+
+            val fieldinfo = nextStructDef.getField(finalField)
+            return if(fieldinfo==null)
+                InferredTypes.unknown()
+            else
+                InferredTypes.knownFor(fieldinfo.first)
         }
     }
 

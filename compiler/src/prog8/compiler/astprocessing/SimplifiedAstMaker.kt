@@ -102,11 +102,18 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
     }
 
-    private fun transform(expr: PtrDereference): PtPointerDeref {
-        val type = expr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val deref = PtPointerDeref(type, null, expr.position)
-        deref.add(transform(expr.identifier))
-        return deref
+    private fun transform(deref: PtrDereference): PtPointerDeref {
+        val type = deref.inferType(program).getOrElse {
+            throw FatalAstException("unknown dt")
+        }
+        TODO("transform")
+        var chain: PtrDereference? = deref.chain
+        while(chain!=null) {
+            chain = chain.chain
+        }
+        val derefPt = PtPointerDeref(type, null, deref.field, deref.position)
+        derefPt.add(transform(deref.identifier))
+        return derefPt
     }
 
     private fun transform(ifExpr: IfExpression): PtIfExpression {
@@ -195,10 +202,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             srcTarget.arrayindexed!=null -> target.add(transform(srcTarget.arrayindexed!!))
             srcTarget.memoryAddress!=null -> target.add(transform(srcTarget.memoryAddress!!))
             srcTarget.pointerDereference!=null -> {
-                val pointerType = srcTarget.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-                val dt = if(pointerType.sub!=null) pointerType.sub!! else throw FatalAstException("cannot dereference a struct value")
-                val deref = PtPointerDeref(DataType.forDt(dt), null, srcTarget.position)
-                deref.add(transform(srcTarget.pointerDereference!!))
+                val deref = transform(srcTarget.pointerDereference!!)
                 target.add(deref)
             }
             !srcTarget.void -> throw FatalAstException("invalid AssignTarget")

@@ -511,33 +511,34 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         else if(targetPointerDeref!=null) {
             require(targetPointerDeref.type.isBasic) { "can only assign to simple types through pointer dereference" }
             if(targetPointerDeref.field==null) {
-                val pointerTr = expressionEval.translateExpression(targetPointerDeref.identifier)
-                result += pointerTr.chunks
-                val instr = when {
-                    targetPointerDeref.type.isByteOrBool -> {
-                        if(zero)
-                            IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerTr.resultReg)
-                        else
-                            IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-                    }
-                    targetPointerDeref.type.isWord -> {
-                        if(zero)
-                            IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
-                        else
-                            IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-                    }
-                    targetPointerDeref.type.isFloat -> {
-                        if(zero)
-                            IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = pointerTr.resultReg)
-                        else
-                            IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = pointerTr.resultReg)
-                    }
-                    else -> throw AssemblyError("weird pointer dereference type ${targetPointerDeref.type}")
-                }
-                addInstr(result, instr, null)
-                return result
+                TODO("traverse deref $targetPointerDeref")
+//                val pointerTr = expressionEval.translateExpression(targetPointerDeref.identifier)
+//                result += pointerTr.chunks
+//                val instr = when {
+//                    targetPointerDeref.type.isByteOrBool -> {
+//                        if(zero)
+//                            IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerTr.resultReg)
+//                        else
+//                            IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueRegister, reg2 = pointerTr.resultReg)
+//                    }
+//                    targetPointerDeref.type.isWord -> {
+//                        if(zero)
+//                            IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
+//                        else
+//                            IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
+//                    }
+//                    targetPointerDeref.type.isFloat -> {
+//                        if(zero)
+//                            IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = pointerTr.resultReg)
+//                        else
+//                            IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = pointerTr.resultReg)
+//                    }
+//                    else -> throw AssemblyError("weird pointer dereference type ${targetPointerDeref.type}")
+//                }
+//                addInstr(result, instr, null)
+//                return result
             } else {
-                TODO("pointer^.field dereference  ${targetPointerDeref.identifier} ${targetPointerDeref.field} ${targetPointerDeref.type}")
+                TODO("pointer^.field dereference  ${targetPointerDeref} ${targetPointerDeref.field} ${targetPointerDeref.type}")
             }
         }
         else

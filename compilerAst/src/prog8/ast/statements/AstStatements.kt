@@ -569,7 +569,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                         val multi: List<AssignTarget>?,
                         val void: Boolean,
                         override val position: Position,    // TODO move to end of param list
-                        val pointerDereference: IdentifierReference? = null) : Node {
+                        val pointerDereference: PtrDereference? = null) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -627,7 +627,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
             arrayindexed != null -> arrayindexed!!.copy()
             memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression.copy(), memoryAddress.position)
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
-            pointerDereference != null -> PtrDereference(pointerDereference.copy(), position)
+            pointerDereference != null -> pointerDereference.copy()
             else -> throw FatalAstException("invalid assignment target")
         }
     }
@@ -649,7 +649,14 @@ data class AssignTarget(var identifier: IdentifierReference?,
                     false
             }
             multi != null -> false
-            pointerDereference!=null -> value is IdentifierReference && value.nameInSource == pointerDereference.nameInSource
+            pointerDereference!=null -> {
+                if(value is PtrDereference) {
+                    if(pointerDereference.identifier!=value.identifier || pointerDereference.field!=value.field)
+                        return false
+                    TODO("compare ptrderef chains")
+                }
+                return false
+            }
             else -> false
         }
     }
@@ -674,7 +681,7 @@ data class AssignTarget(var identifier: IdentifierReference?,
                     return false
             }
             this.pointerDereference!=null && other.pointerDereference!=null -> {
-                return this.pointerDereference.nameInSource == other.pointerDereference.nameInSource
+                return this.pointerDereference isSameAs other.pointerDereference
             }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false

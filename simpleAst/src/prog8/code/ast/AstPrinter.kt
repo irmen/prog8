@@ -175,7 +175,11 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtStructDecl -> {
                 "struct ${node.name} { " + node.members.joinToString("  ") { "${it.first} ${it.second}" } + " }"
             }
-            is PtPointerDeref -> "<deref>"
+            is PtPointerDeref -> {
+                if(node.chain!=null) TODO("chained deref")
+                if(node.field!=null) TODO("deref ending in field")
+                "<deref>"
+            }
         }
     }
 

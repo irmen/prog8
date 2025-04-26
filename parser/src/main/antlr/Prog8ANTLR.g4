@@ -327,7 +327,11 @@ else_part :  'else' EOL? (statement | statement_block) ;   // statement is const
 
 if_expression :  'if' expression EOL? expression EOL? 'else' EOL? expression ;
 
-pointerdereference:  scoped_identifier POINTERDEREF ;
+pointerdereference:  (prefix = scoped_identifier '.')? derefchain ('.' field = identifier)? ;
+
+derefchain :  singlederef ('.' singlederef)* ;
+
+singlederef : identifier POINTERDEREF ;
 
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 

@@ -395,10 +395,7 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 }
 
 
-class PtPointerDeref(type: DataType, val field: String?, position: Position) : PtExpression(type, position) {
-    val identifier: PtIdentifier
-        get() = children.single() as PtIdentifier
-}
+class PtPointerDeref(type: DataType, val chain: PtPointerDeref?, val field: String?, position: Position) : PtExpression(type, position)
 
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code

@@ -395,8 +395,8 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             AssignTarget(null, null, null,null,true, void_().toPosition())
         }
         is PointerDereferenceTargetContext -> {
-            val pointer = this.pointerdereference().scoped_identifier().toAst()
-            AssignTarget(null, null, null, null, false, pointer.position, pointer)
+            val deref = this.pointerdereference().toAst()
+            AssignTarget(null, null, null, null, false, deref.position, deref)
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
@@ -638,12 +638,31 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
         return IfExpression(condition.toAst(), truevalue.toAst(), falsevalue.toAst(), toPosition())
     }
 
-    if(pointerdereference()!=null) {
-        val deref = pointerdereference()
-        return PtrDereference(deref.scoped_identifier().toAst(), toPosition())
-    }
+    val deref = pointerdereference()?.toAst()
+    if(deref!=null) return deref
 
     throw FatalAstException(text)
+}
+
+
+private fun PointerdereferenceContext.toAst(): PtrDereference {
+    val scopeprefix = prefix?.toAst()
+    val derefchain = derefchain()!!.singlederef()!!.map { it.identifier().text }
+    var fieldname = field?.text
+    val firstIdentifier =
+        if(scopeprefix!=null)
+            IdentifierReference(scopeprefix.nameInSource + derefchain.first(), toPosition())
+        else
+            IdentifierReference(listOf(derefchain.first()), toPosition())
+
+    // process the rest of the chain (2nd element to the end)
+    var chain: PtrDereference? = null
+    derefchain.drop(1).reversed().forEach {
+        chain = PtrDereference(IdentifierReference(listOf(it), toPosition()), chain, fieldname, toPosition())
+        fieldname = null
+    }
+
+    return PtrDereference(firstIdentifier, chain, fieldname, toPosition())
 }
 
 private fun CharliteralContext.toAst(): CharLiteral {
