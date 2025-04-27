@@ -42,7 +42,6 @@ internal fun BlockContext.toAst(isInLibrary: Boolean) : Block {
             it.subroutinedeclaration()!=null -> it.subroutinedeclaration().toAst()
             it.directive()!=null -> it.directive().toAst()
             it.inlineasm()!=null -> it.inlineasm().toAst()
-            it.inlineir()!=null -> it.inlineir().toAst()
             it.labeldef()!=null -> it.labeldef().toAst()
             it.alias()!=null -> it.alias().toAst()
             it.structdeclaration()!=null -> it.structdeclaration().toAst()
@@ -135,9 +134,6 @@ private fun StatementContext.toAst() : Statement {
 
     val asm = inlineasm()?.toAst()
     if(asm!=null) return asm
-
-    val ir = inlineir()?.toAst()
-    if(ir!=null) return ir
 
     val branchstmt = branch_stmt()?.toAst()
     if(branchstmt!=null) return branchstmt
@@ -293,13 +289,14 @@ private fun FunctioncallContext.toAst(): FunctionCallExpression {
 }
 
 private fun InlineasmContext.toAst(): InlineAssembly {
+    val type = directivename().NAME().text
+    val isIR = when(type) {
+        "asm" -> false
+        "ir" -> true
+        else -> throw SyntaxError("unknown inline asm type $type", toPosition())
+    }
     val text = INLINEASMBLOCK().text
-    return InlineAssembly(text.substring(2, text.length-2), false, toPosition())
-}
-
-private fun InlineirContext.toAst(): InlineAssembly {
-    val text = INLINEASMBLOCK().text
-    return InlineAssembly(text.substring(2, text.length-2), true, toPosition())
+    return InlineAssembly(text.substring(2, text.length-2), isIR, toPosition())
 }
 
 private fun ReturnstmtContext.toAst() : Return {
@@ -472,12 +469,15 @@ private fun ArrayindexContext.toAst() : ArrayIndex =
         ArrayIndex(expression().toAst(), toPosition())
 
 internal fun DirectiveContext.toAst() : Directive {
+    val pos= toPosition()
+    val position = Position(pos.file, pos.line, pos.startCol,  directivename().NAME().symbol.stopIndex)
     if(directivenamelist() != null) {
         val identifiers = directivenamelist().scoped_identifier().map { DirectiveArg(it.text, null, it.toPosition()) }
-        return Directive(directivename.text, identifiers, toPosition())
+        return Directive(directivename().text, identifiers, position)
     }
-    else
-        return Directive(directivename.text, directivearg().map { it.toAst() }, toPosition())
+    else {
+        return Directive(directivename().text, directivearg().map { it.toAst() }, position)
+    }
 }
 
 private fun DirectiveargContext.toAst() : DirectiveArg {

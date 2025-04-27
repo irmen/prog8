@@ -95,7 +95,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     val opcode = try {
         Opcode.valueOf(instr.uppercase())
     } catch (_: IllegalArgumentException) {
-        throw IRParseException("invalid vmasm instruction: $instr")
+        throw IRParseException("invalid IR instruction: $instr")
     }
     var type: IRDataType? = convertIRType(typestr)
     val formats = instructionFormats.getValue(opcode)

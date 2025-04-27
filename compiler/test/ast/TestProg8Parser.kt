@@ -328,7 +328,7 @@ class TestProg8Parser: FunSpec( {
             val mpf = module.position.file
 
             val targetDirective = module.statements.filterIsInstance<Directive>()[0]
-            assertPositionOf(targetDirective, mpf, 1, 1, 9)
+            assertPositionOf(targetDirective, mpf, 1, 1, 8)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
             assertPositionOf(mainBlock, mpf, 2, 1, 4)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]

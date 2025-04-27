@@ -81,7 +81,6 @@ block_statement:
     | structdeclaration
     | subroutinedeclaration
     | inlineasm
-    | inlineir
     | labeldef
     | alias
     ;
@@ -100,7 +99,6 @@ statement :
     | branch_stmt
     | subroutinedeclaration
     | inlineasm
-    | inlineir
     | returnstmt
     | forloop
     | whileloop
@@ -145,11 +143,9 @@ labeldef :  identifier ':'  ;
 
 unconditionaljump :  'goto'  expression ;
 
-directive :
-    directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%memtop' | '%import' |
-                       '%breakpoint' | '%asminclude' | '%asmbinary' | '%option' | '%encoding' | '%align' | '%jmptable' )
-        (directivenamelist | (directivearg? | directivearg (',' directivearg)*))
-        ;
+directive : directivename (directivenamelist | (directivearg? | directivearg (',' directivearg)*))   ;
+
+directivename: '%' NAME;
 
 directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','? EOL?')' ;
 
@@ -274,9 +270,7 @@ literalvalue :
     | floatliteral
     ;
 
-inlineasm :  '%asm' EOL? INLINEASMBLOCK;
-
-inlineir: '%ir' EOL? INLINEASMBLOCK;
+inlineasm :  directivename EOL? INLINEASMBLOCK;         // directive name should be '%asm' or '%ir'
 
 inline: 'inline';
 
