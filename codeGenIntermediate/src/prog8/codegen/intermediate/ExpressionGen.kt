@@ -100,14 +100,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = translateExpression(deref.start)
         result += tr.chunks
-        result += traverseDerefChainToCalculateFinalAddress(deref, tr.resultReg, false)
+        result += traverseDerefChainToCalculateFinalAddress(deref, tr.resultReg)
         when {
             deref.type.isByteOrBool -> {
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = tr.resultReg), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
-            deref.type.isWord -> {
+            deref.type.isWord || deref.type.isPointer -> {
                 val resultReg = codeGen.registers.next(IRDataType.WORD)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = resultReg, reg2 = tr.resultReg), null)
                 return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
@@ -116,10 +116,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val resultReg = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = tr.resultReg), null)
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
-            }
-            deref.type.isPointer -> {
-                // just return the value of the pointer, a word adress
-                return ExpressionCodeResult(result, IRDataType.WORD, tr.resultReg, -1)
             }
             else -> throw AssemblyError("unsupported dereference type ${deref.type}")
         }
@@ -207,8 +203,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.LOAD, vmDt, reg1 = reg, labelSymbol = identifier.name), null)
         }
 
-        val resultRegister = codeGen.registers.next(vmDt)
-
         if(expr.isFromArrayElement) {
             val indexTr = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr, indexTr.resultReg, -1)
@@ -218,6 +212,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = indexWordReg, reg2 = indexTr.resultReg),
                 null
             )
+            val resultRegister = codeGen.registers.next(vmDt)
             if (identifier!!.type.isUnsignedWord) {
                 require(!expr.isMsbForSplitArray)
                 result += IRCodeChunk(null, null).also {
@@ -234,16 +229,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
                 }
             }
+            return ExpressionCodeResult(result, vmDt, resultRegister, -1)
         } else if(expr.identifier!=null ) {
+            val resultRegister = codeGen.registers.next(vmDt)
             loadAddressOfArrayLabel(resultRegister)
+            return ExpressionCodeResult(result, vmDt, resultRegister, -1)
         } else {
             require(vmDt==IRDataType.WORD)
             val pointerTr = translateExpression(expr.dereference!!.start)
             result += pointerTr.chunks
-            result += traverseDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg, false)
-            addInstr(result, IRInstruction(Opcode.LOADR, IRDataType.WORD, reg1 = resultRegister, reg2 = pointerTr.resultReg), null)
+            result += traverseDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
+            return ExpressionCodeResult(result, vmDt, pointerTr.resultReg, -1)
         }
-        return ExpressionCodeResult(result, vmDt, resultRegister, -1)
     }
 
     private fun translate(mem: PtMemoryByte): ExpressionCodeResult {
@@ -1483,9 +1480,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    internal fun traverseDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int, getLastPointerItselfInsteadOfItsValue: Boolean): IRCodeChunks {
-        if(getLastPointerItselfInsteadOfItsValue)
-            require(targetPointerDeref.field==null)
+    internal fun traverseDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         var struct: StStruct? = null
         if(targetPointerDeref.start.type.subIdentifier!=null)
@@ -1496,13 +1491,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val fieldinfo = struct!!.getField(deref, codeGen.program.memsizer)
                 struct = codeGen.symbolTable.lookup(fieldinfo.first.subIdentifier!!.joinToString(".")) as StStruct
                 // get new pointer from field
-                val newPointerReg = codeGen.registers.next(IRDataType.WORD)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second)
-                    if (!getLastPointerItselfInsteadOfItsValue || idx<targetPointerDeref.chain.size-1) {
-                        // LOADI has an exception to allowallow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
-                        it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg)
-                    }
+                    // LOADI has an exception to allowallow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                    it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg)
                 }
             }
         }

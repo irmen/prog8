@@ -109,14 +109,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         if(type.subIdentifier!=null) {
             // make the sub identifier a fully scoped name
             val struct = deref.definingScope.lookup(type.subIdentifier!!) as StructDecl
-            type = DataType.pointer(struct.scopedName)
+            type = type.copy(struct.scopedName)
         }
         var start = transform(deref.identifier)
         val startType = deref.identifier.inferType(program).getOrUndef()
         if(startType.subIdentifier!=null) {
             // make the sub identifier a fully scoped name
             val struct = deref.definingScope.lookup(startType.subIdentifier!!) as StructDecl
-            val type = DataType.pointer(struct.scopedName)
+            val type = startType.copy(struct.scopedName)
             start = PtIdentifier(start.name, type, start.position)
         }
         return PtPointerDeref(type, start, deref.chain, deref.field,deref.position)

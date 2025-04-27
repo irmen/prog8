@@ -88,6 +88,11 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
 
     override fun hashCode(): Int = Objects.hash(base, sub, subIdentifier)
 
+    fun copy(newSubIdentfier: List<String>): DataType {
+        require(newSubIdentfier.size>1) { "must be fully scoped" }
+        return DataType(base, sub, newSubIdentfier)
+    }
+
     companion object {
 
         val UBYTE = DataType(BaseDataType.UBYTE, null, null)

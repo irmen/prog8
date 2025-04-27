@@ -373,20 +373,15 @@ _after:
                     val restChain = identifier.nameInSource.drop(i)
                     val chain = mutableListOf<String>()
                     var field: String? = null
-                    for(part in restChain) {
+                    for((idx, part) in restChain.withIndex()) {
                         var fieldDt = struct!!.getFieldType(part)
                         if(fieldDt==null) {
                             errors.err("unknown field '${part}' in struct '${struct.name}'", identifier.position)
                             return noModifications
                         }
-                        if(!fieldDt.isPointer || fieldDt.subIdentifier==null) {
-                            // could be the final field
-                            fieldDt = struct.getFieldType(part)
-                            if(fieldDt!=null) {
-                                field = part
-                                break
-                            }
-                            errors.err("weird field type for field '$part' in struct '${struct.name}", identifier.position)
+                        if(idx==restChain.size-1) {
+                            // this is the last field in the chain
+                            field = part
                             break
                         }
                         chain.add(part)

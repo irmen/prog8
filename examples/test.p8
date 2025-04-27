@@ -62,8 +62,7 @@ main {
         node_ptr^^.nextnode^^.value = 888
         node_ptr^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.value = 888
         cx16.r0=node_ptr^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.value
-        node_ptr.nextnode = node_ptr
-        node_ptr^^.nextnode = node_ptr      ; TODO fix type error
+        node_ptr^^.nextnode = node_ptr
 
         ; writing and reading fields using implicit deref
         enemy_ptr.y = 42
@@ -79,17 +78,21 @@ main {
         txt.print_uw(&enemy_ptr.alive)
         txt.nl()
 
+        ; array elements, point to a memory address
+        node_list[0] = 1000
+        node_list[1] = 2000
+        node_list[1] = 2002 as ^^Node
+        node_list[2] = 3000
+
+
         ; BELOW DOESN'T WORK YET:
         ; pointer arithmetic
 ;        ubyte_ptr^^ ++
 ;        enemy_ptr ++        ; add 1*sizeof
 ;        enemy_ptr += 10     ; add 10*sizeof
-        ; array elements, point to a memory address
-;        node_list[0] = 1000
-;        node_list[1] = 2000
-;        node_list[1] = 2002 as ^^Node
-;        node_list[2] = 3000
 
         ; TODO how to statically allocate/initialize a struct? Difficult.. see TODO in docs
     }
 }
+
+

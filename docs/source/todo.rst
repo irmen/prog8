@@ -6,6 +6,7 @@ STRUCTS and TYPED POINTERS
 
 'DONE' means working in the 'virtual' compiler target... (no 6502 codegen has been touched yet)
 
+- store object instead of string in DataType pointer subidentifier?  can store structDecl itself and not worry anymore about the scoping of the subidentifier
 - DONE: add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
 - DONE: declare struct as a separate entity so you can then declare multiple variables (pointers) of the same struct type. Like usual.
 - DONE: struct is a 'packed' struct, fields are placed in order of declaration. This guarantees exact size and place of the fields
@@ -25,7 +26,7 @@ STRUCTS and TYPED POINTERS
 - DONE: implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
 - DONE: implicit cast of pointer to uword in conditional expressions
 - subroutine parameters should be able to accept pointers as well now
-- arrays of structs?  Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
+- arrays of structs? No -> Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
 - existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
@@ -62,6 +63,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- adding LOADFIELD/STOREFIELD instructions that encode the field offset as immediate value so we avoid a separate ADD instruction to calculate the address
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
