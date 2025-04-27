@@ -88,8 +88,10 @@ object InferredTypes {
         type.isPointer -> {
             if(type.sub!=null)
                 InferredType.known(DataType.pointer(type.sub!!))
-            else
+            else if(type.subType!=null)
                 InferredType.known(DataType.pointerToType(type.subType!!))
+            else
+                InferredType.known(DataType.pointerFromAntlr(type.subTypeFromAntlr!!))
         }
         type.isSplitWordArray -> {
             when(type.sub) {

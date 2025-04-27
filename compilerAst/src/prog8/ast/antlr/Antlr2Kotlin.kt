@@ -249,8 +249,12 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_
     val identifiers = vardecl.identifier()
     if(identifiers.size>1)
         throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
-    AsmSubroutineParameter(identifiername.text, datatype, registerorpair, statusregister, toPosition())
+    val identifiername = identifiers.single().name()
+    AsmSubroutineParameter(identifiername, datatype, registerorpair, statusregister, toPosition())
+}
+
+private fun IdentifierContext.name(): String {
+    return (this.UNICODEDNAME().text ?: this.UNDERSCORENAME()?.text)!!
 }
 
 private fun parseParamRegister(registerTok: Token?, pos: Position): Pair<RegisterOrPair?, Statusflag?> {
@@ -289,7 +293,7 @@ private fun FunctioncallContext.toAst(): FunctionCallExpression {
 }
 
 private fun InlineasmContext.toAst(): InlineAssembly {
-    val type = directivename().NAME().text
+    val type = directivename().UNICODEDNAME().text
     val isIR = when(type) {
         "asm" -> false
         "ir" -> true
@@ -349,13 +353,13 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             val identifiers = decl.identifier()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-            val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
+            val identifiername = identifiers.single().name()
 
             val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
             if(statusregister!=null) {
                 throw SyntaxError("can't use status register as param for normal subroutines", Position(toPosition().file, it.register.line, it.register.charPositionInLine, it.register.charPositionInLine+1))
             }
-            SubroutineParameter(identifiername.text, datatype, zp, registerorpair, it.toPosition())
+            SubroutineParameter(identifiername, datatype, zp, registerorpair, it.toPosition())
         }
 
 private fun getZpOption(tags: List<String>): ZeropageWish = when {
@@ -412,7 +416,7 @@ private fun Multi_assign_targetContext.toAst() : AssignTarget {
 }
 
 private fun ClobberContext.toAst() : Set<CpuRegister> {
-    val names = this.NAME().map { it.text }
+    val names = this.UNICODEDNAME().map { it.text }
     try {
         return names.map { CpuRegister.valueOf(it) }.toSet()
     } catch(_: IllegalArgumentException) {
@@ -470,7 +474,7 @@ private fun ArrayindexContext.toAst() : ArrayIndex =
 
 internal fun DirectiveContext.toAst() : Directive {
     val pos= toPosition()
-    val position = Position(pos.file, pos.line, pos.startCol,  directivename().NAME().symbol.stopIndex)
+    val position = Position(pos.file, pos.line, pos.startCol,  directivename().UNICODEDNAME().symbol.stopIndex)
     if(directivenamelist() != null) {
         val identifiers = directivenamelist().scoped_identifier().map { DirectiveArg(it.text, null, it.toPosition()) }
         return Directive(directivename().text, identifiers, position)
@@ -817,7 +821,7 @@ private fun When_choiceContext.toAst(): WhenChoice {
 }
 
 private fun StructfielddeclContext.toAst(): Pair<DataType, String> {
-    val identifier = identifier().NAME().text
+    val identifier = identifier().UNICODEDNAME().text
     val dt = datatype().toAst()
     return dt to identifier
 }
@@ -832,8 +836,8 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val zp = getZpOption(tags)
     val split = getSplitOption(tags)
     val identifiers = identifier()
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
-    val name = if(identifiers.size==1) identifiername.text else "<multiple>"
+    val identifiername = identifiers[0].name()
+    val name = if(identifiers.size==1) identifiername else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val alignword = "@alignword" in tags
     val align64 = "@align64" in tags
@@ -855,10 +859,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             split,
             arrayindex()?.toAst(),
             name,
-            if(identifiers.size==1) emptyList() else identifiers.map {
-                val idname = it.NAME() ?: it.UNDERSCORENAME()
-                idname.text
-            },
+            if(identifiers.size==1) emptyList() else identifiers.map { it.name() },
             value,
             "@shared" in tags,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,

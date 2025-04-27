@@ -7,6 +7,7 @@ main {
     sub start() {
         struct Node {
             bool flag
+            ^^Node next
         }
 
         ^^Node ptr = 2000
@@ -14,7 +15,8 @@ main {
         txt.print_uw(ptr)
         txt.nl()
 
-        bool derp = ptr[10].flag
+        bool derp = ptr[2].flag
+        bool derp2 = ptr.next.next[2].flag
     }
 }
 

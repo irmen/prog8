@@ -24,8 +24,8 @@ BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | . )*? '*/'  -> skip ;
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
-NAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
-UNDERSCORENAME :  '_' NAME ;           // match unicode properties
+UNICODEDNAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
+UNDERSCORENAME :  '_' UNICODEDNAME ;           // match unicode properties
 DEC_INTEGER :  DEC_DIGIT (DEC_DIGIT | '_')* ;
 HEX_INTEGER :  '$' HEX_DIGIT (HEX_DIGIT | '_')* ;
 BIN_INTEGER :  '%' BIN_DIGIT (BIN_DIGIT | '_')* ;
@@ -145,7 +145,7 @@ unconditionaljump :  'goto'  expression ;
 
 directive : directivename (directivenamelist | (directivearg? | directivearg (',' directivearg)*))   ;
 
-directivename: '%' NAME;
+directivename: '%' UNICODEDNAME;
 
 directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','? EOL?')' ;
 
@@ -244,7 +244,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  NAME | UNDERSCORENAME ;
+identifier :  UNICODEDNAME | UNDERSCORENAME ;
 
 scoped_identifier :  identifier ('.' identifier)* ;
 
@@ -254,9 +254,9 @@ booleanliteral :  'true' | 'false' ;
 
 arrayliteral :  '[' EOL? expression (',' EOL? expression)* ','? EOL? ']' ;       // you can split the values over several lines, trailing comma allowed
 
-stringliteral : (encoding=NAME ':')? STRING ;
+stringliteral : (encoding=UNICODEDNAME ':')? STRING ;
 
-charliteral : (encoding=NAME ':')? SINGLECHAR ;
+charliteral : (encoding=UNICODEDNAME ':')? SINGLECHAR ;
 
 floatliteral :  FLOAT_NUMBER ;
 
@@ -289,7 +289,7 @@ statement_block :
 
 sub_params :  sub_param (',' EOL? sub_param)* ;
 
-sub_param: vardecl ('@' register=NAME)? ;
+sub_param: vardecl ('@' register=UNICODEDNAME)? ;
 
 asmsubroutine :
     inline? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
@@ -303,15 +303,15 @@ asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns?
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
-asmsub_param :  vardecl '@' register=NAME ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_param :  vardecl '@' register=UNICODEDNAME ;      // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
 
 asmsub_clobbers : 'clobbers' '(' clobber? ')' ;
 
-clobber :  NAME (',' NAME)* ;       // A,X,Y allowed
+clobber :  UNICODEDNAME (',' UNICODEDNAME)* ;       // A,X,Y allowed
 
 asmsub_returns :  '->' asmsub_return (',' EOL? asmsub_return)* ;
 
-asmsub_return :  datatype '@' register=NAME ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
+asmsub_return :  datatype '@' register=UNICODEDNAME ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv allowed
 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later

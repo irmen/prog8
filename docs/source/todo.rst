@@ -42,6 +42,7 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
