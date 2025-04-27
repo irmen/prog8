@@ -61,14 +61,14 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
             array.forEach {
                 if(it.addressOfSymbol!=null) {
                     val target = variable.lookup(it.addressOfSymbol!!) ?: throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
-                    newArray.add(IRStArrayElement(null, null, target.scopedName))
+                    newArray.add(IRStArrayElement(null, null, target.scopedNameString))
                 } else {
                     newArray.add(convertArrayElt(it))
                 }
             }
             return newArray
         }
-        val scopedName = variable.scopedName
+        val scopedName = variable.scopedNameString
         return IRStStaticVariable(scopedName,
             variable.dt,
             variable.initializationNumericValue,
@@ -92,7 +92,7 @@ private fun convert(variable: StMemVar): IRStMemVar {
         )
     } else {
         val scopedName = try {
-            variable.scopedName
+            variable.scopedNameString
         } catch (_: UninitializedPropertyAccessException) {
             variable.name
         }
@@ -107,7 +107,7 @@ private fun convert(constant: StConstant): IRStConstant {
         constant.name
     } else {
         try {
-            constant.scopedName
+            constant.scopedNameString
         } catch (_: UninitializedPropertyAccessException) {
             constant.name
         }

@@ -200,35 +200,22 @@ class AstPreprocessor(val program: Program,
             return makeUnSplitArray(decl)
         }
 
-        // make all subidentifiers (names of structs, basically) fully scoped
-        val subident = decl.datatype.subIdentifier
-        if(subident!=null && subident.size<2) {
-            val struct = decl.definingScope.lookup(subident) as? StructDecl
-            if(struct!=null) {
-                val newDt = decl.datatype.copy(struct.scopedName)
-                return listOf(IAstModification.ReplaceNode(decl, decl.copy(newDt), decl.parent))
-            }
+        // convert all antlr names to structs
+        if(decl.datatype.subTypeFromAntlr!=null) {
+            decl.datatype.setActualSubType(decl.definingScope.lookup(decl.datatype.subTypeFromAntlr!!) as StructDecl)
         }
 
         return noModifications
     }
 
     override fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> {
-        var changed=false
-        val scopedMembers = struct.members.map {
-            if(it.first.subIdentifier!=null && it.first.subIdentifier!!.size<2) {
-                // make the sub identifier a fully scoped name
-                val struct = struct.definingScope.lookup(it.first.subIdentifier!!) as StructDecl
-                changed = true
-                it.first.copy(struct.scopedName) to it.second
-            } else
-                it
+        // convert all antlr names to structs
+        struct.members.forEach {
+            if(it.first.subTypeFromAntlr!=null) {
+                val struct = struct.definingScope.lookup(it.first.subTypeFromAntlr!!) as StructDecl
+                it.first.setActualSubType(struct)
+            }
         }
-        if(changed) {
-            val newStruct = StructDecl(struct.name, scopedMembers, struct.position)
-            return listOf(IAstModification.ReplaceNode(struct, newStruct, parent))
-        }
-
         return noModifications
     }
 
@@ -308,15 +295,11 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
-        // make all subidentifiers (names of structs, basically) fully scoped
-        val subident = typecast.type.subIdentifier
-        if(subident!=null && subident.size<2) {
-            val struct = typecast.definingScope.lookup(subident) as? StructDecl
-            if(struct!=null) {
-                typecast.type = typecast.type.copy(struct.scopedName)
-            }
+        // convert all antlr names to structs
+        if(typecast.type.subTypeFromAntlr!=null) {
+            val struct = typecast.definingScope.lookup(typecast.type.subTypeFromAntlr!!) as StructDecl
+            typecast.type.setActualSubType(struct)
         }
-
         return noModifications
     }
 

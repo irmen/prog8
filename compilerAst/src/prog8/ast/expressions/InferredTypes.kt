@@ -84,12 +84,12 @@ object InferredTypes {
         type.isFloat -> InferredType.known(BaseDataType.FLOAT)
         type.isString -> InferredType.known(BaseDataType.STR)
         type.isLong -> InferredType.known(BaseDataType.LONG)
-        type.isPointerArray -> InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subIdentifier))
+        type.isPointerArray -> InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subType))
         type.isPointer -> {
             if(type.sub!=null)
                 InferredType.known(DataType.pointer(type.sub!!))
             else
-                InferredType.known(DataType.pointer(type.subIdentifier!!))
+                InferredType.known(DataType.pointerToType(type.subType!!))
         }
         type.isSplitWordArray -> {
             when(type.sub) {

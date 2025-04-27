@@ -17,8 +17,18 @@ fun DataType.irTypeString(length: Int?): String {
         BaseDataType.LONG -> "long"
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
-        BaseDataType.POINTER -> if(sub!=null) "^${sub!!.name.lowercase()}" else "^${subIdentifier!!.joinToString(".")}"
-        BaseDataType.ARRAY_POINTER -> if(sub!=null) "^${sub!!.name.lowercase()}[$lengthStr]" else "^${subIdentifier!!.joinToString(".")}[$lengthStr]"
+        BaseDataType.POINTER -> {
+            if(sub!=null)
+                "^${sub!!.name.lowercase()}"
+            else
+                "^${subType!!.scopedNameString}"
+        }
+        BaseDataType.ARRAY_POINTER -> {
+            if(sub!=null)
+                "^${sub!!.name.lowercase()}[$lengthStr]"
+            else
+                "^${subType!!.scopedNameString}[$lengthStr]"
+        }
         BaseDataType.ARRAY -> {
             when(this.sub) {
                 BaseDataType.UBYTE -> "ubyte[$lengthStr]"

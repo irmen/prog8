@@ -103,22 +103,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(deref: PtrDereference): PtPointerDeref {
-        var type = deref.inferType(program).getOrElse {
+        val type = deref.inferType(program).getOrElse {
             throw FatalAstException("unknown dt")
         }
-        if(type.subIdentifier!=null) {
-            // make the sub identifier a fully scoped name
-            val struct = deref.definingScope.lookup(type.subIdentifier!!) as StructDecl
-            type = type.copy(struct.scopedName)
-        }
-        var start = transform(deref.identifier)
-        val startType = deref.identifier.inferType(program).getOrUndef()
-        if(startType.subIdentifier!=null) {
-            // make the sub identifier a fully scoped name
-            val struct = deref.definingScope.lookup(startType.subIdentifier!!) as StructDecl
-            val type = startType.copy(struct.scopedName)
-            start = PtIdentifier(start.name, type, start.position)
-        }
+        val start = transform(deref.identifier)
         return PtPointerDeref(type, start, deref.chain, deref.field,deref.position)
     }
 
@@ -614,15 +602,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(struct: StructDecl): PtStructDecl {
-        val scopedMembers = struct.members.map { (dt, name) ->
-            if(dt.subIdentifier==null)
-                dt to name
-            else {
-                val structDecl = struct.definingScope.lookup(dt.subIdentifier!!) as StructDecl
-                DataType.pointer(structDecl.scopedName) to name
-            }
-        }
-        return PtStructDecl(struct.name, scopedMembers, struct.position)
+        return PtStructDecl(struct.name, struct.members, struct.position)
     }
 
     private fun transform(srcWhen: When): PtWhen {

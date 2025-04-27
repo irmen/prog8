@@ -372,7 +372,7 @@ internal class ProgramAndVarsGen(
         val varsInBlock = getVars(scope)
 
         // Zeropage Variables
-        val varnames = varsInBlock.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
+        val varnames = varsInBlock.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedNameString }.toSet()
         zeropagevars2asm(varnames)
 
         // MemDefs and Consts
@@ -386,7 +386,7 @@ internal class ProgramAndVarsGen(
 
         // normal statically allocated variables
         val variables = varsInBlock
-            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedNameString) }
             .map { it.value as StStaticVariable }
         nonZpVariables2asm(variables)
     }
@@ -440,7 +440,7 @@ internal class ProgramAndVarsGen(
         val varsInSubroutine = getVars(scope)
 
         // Zeropage Variables
-        val varnames = varsInSubroutine.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedName }.toSet()
+        val varnames = varsInSubroutine.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedNameString }.toSet()
         zeropagevars2asm(varnames)
 
         // MemDefs and Consts
@@ -514,7 +514,7 @@ internal class ProgramAndVarsGen(
 
         // normal statically allocated variables
         val variables = varsInSubroutine
-            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedName) }
+            .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedNameString) }
             .map { it.value as StStaticVariable }
         nonZpVariables2asm(variables)
 

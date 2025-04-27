@@ -36,7 +36,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         val symbol = asmgen.symbolTable.lookup(call.name)!!
         if(symbol.type == StNodeType.LABEL) {
             require(call.void)
-            asmgen.out("  jsr  ${asmgen.asmSymbolName(symbol.scopedName)}")
+            asmgen.out("  jsr  ${asmgen.asmSymbolName(symbol.scopedNameString)}")
             return
         }
 

@@ -60,7 +60,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
 
         varsRequiringZp.forEach { variable ->
             val result = zeropage.allocate(
-                variable.scopedName,
+                variable.scopedNameString,
                 variable.dt,
                 variable.length,
                 variable.astNode?.position ?: Position.DUMMY,
@@ -79,7 +79,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         if(errors.noErrors()) {
             varsPreferringZp.forEach { variable ->
                 val result = zeropage.allocate(
-                    variable.scopedName,
+                    variable.scopedNameString,
                     variable.dt,
                     variable.length,
                     variable.astNode?.position ?: Position.DUMMY,
@@ -92,14 +92,14 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             // try to allocate the "don't care" interger variables into the zeropage until it is full.
             // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
             if(errors.noErrors()) {
-                val sortedList = varsDontCareWithoutAlignment.sortedByDescending { it.scopedName }
+                val sortedList = varsDontCareWithoutAlignment.sortedByDescending { it.scopedNameString }
                 for (variable in sortedList) {
                     if(variable.dt.isIntegerOrBool) {
                         if(zeropage.free.isEmpty()) {
                             break
                         } else {
                             val result = zeropage.allocate(
-                                variable.scopedName,
+                                variable.scopedNameString,
                                 variable.dt,
                                 variable.length,
                                 variable.astNode?.position ?: Position.DUMMY,

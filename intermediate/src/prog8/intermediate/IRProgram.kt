@@ -539,6 +539,12 @@ class IRInlineBinaryChunk(label: String?,
 
 typealias IRCodeChunks = List<IRCodeChunkBase>
 
+
+internal class IRSubtypePlaceholder(val name: String): ISubType {
+    override val scopedNameString = name
+}
+
+
 class RegistersUsed(
     // register num -> number of uses
     val readRegs: Map<Int, Int>,

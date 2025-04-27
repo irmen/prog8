@@ -174,18 +174,18 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             // check chain and field
             val dt = deref.identifier.inferType(program).getOrUndef()
             if(!dt.isUndefined && dt.isPointer) {
-                var struct = deref.definingScope.lookup(dt.subIdentifier!!) as StructDecl
+                var struct = dt.subType as StructDecl
                 for(fieldname in deref.chain) {
                     val fieldDt = struct.getFieldType(fieldname)
                     if(fieldDt==null) {
                         errors.err("unknown field '$fieldname' in struct '${struct.name}'", deref.position)
                         break
                     }
-                    if(!fieldDt.isPointer || fieldDt.subIdentifier==null) {
-                        errors.err("weird field type for field '$fieldname' in struct '${struct.name}", deref.identifier.position)
+                    if(!fieldDt.isPointer || fieldDt.subType==null) {
+                        errors.err("weird field type for field '$fieldname' in struct '${struct.name}'", deref.identifier.position)
                         break
                     }
-                    struct = deref.definingScope.lookup(fieldDt.subIdentifier!!) as StructDecl
+                    struct = fieldDt.subType as StructDecl
                 }
                 val fieldDt = struct.getFieldType(deref.field!!)
                 if(fieldDt==null) {

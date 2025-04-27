@@ -67,6 +67,7 @@ class PtAsmSub(
 }
 
 
+// TODO parameters not as property but as children, for easy AST walking
 class PtSub(
     name: String,
     val parameters: List<PtSubroutineParameter>,
@@ -198,8 +199,6 @@ class PtVariable(
 ) : PtNamedNode(name, position), IPtVariable {
     init {
 
-        require(type.subIdentifier==null || type.subIdentifier!!.size>1) { "subidentifier must be fully scoped" }
-
         if(value!=null) {
             require(value is PtArray || value is PtString) {
                 "variable initializer value must only be array or string"
@@ -219,6 +218,7 @@ class PtVariable(
 
 
 class PtConstant(name: String, override val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position), IPtVariable
+// note: a constant is a value but IS NOT a PtExpression node; all constants must have been replaced by their actual value
 
 
 class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
@@ -228,14 +228,7 @@ class PtMemMapped(name: String, override val type: DataType, val address: UInt, 
 }
 
 
-class PtStructDecl(name: String, val members: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position) {
-    init {
-        members.forEach { (dt, name) ->
-            if (dt.subIdentifier != null)
-                require(dt.subIdentifier!!.size > 1) { "subidentifier must be scoped" }
-        }
-    }
-}
+class PtStructDecl(name: String, val members: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position)
 
 
 class PtWhen(position: Position) : PtNode(position) {

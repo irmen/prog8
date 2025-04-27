@@ -406,15 +406,8 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
     }
 }
 
-
-class PtPointerDeref(type: DataType, val start: PtIdentifier, val chain: List<String>, val field: String?, position: Position) : PtExpression(type, position) {
-    init {
-        if(type.subIdentifier!=null)
-            require(type.subIdentifier!!.size>1) { "subidentifier main type should be scoped" }
-        if(start.type.subIdentifier!=null)
-            require(start.type.subIdentifier!!.size>1) { "subidentifier should be scoped" }
-    }
-}
+// TODO: start, chain and field not as properties; problematic when doing ast walking
+class PtPointerDeref(type: DataType, val start: PtIdentifier, val chain: List<String>, val field: String?, position: Position) : PtExpression(type, position)
 
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code

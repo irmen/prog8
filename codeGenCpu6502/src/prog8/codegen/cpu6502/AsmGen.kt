@@ -317,9 +317,9 @@ class AsmGen6502Internal (
         if(symbolTable.allVariables.isNotEmpty()) {
             println("Static variables (not in ZeroPage):")
             symbolTable.allVariables
-                .filterNot { allocator.isZpVar(it.scopedName) }
-                .sortedBy { it.scopedName }.forEach {
-                    println("  ${it.dt}\t${it.scopedName}\t")
+                .filterNot { allocator.isZpVar(it.scopedNameString) }
+                .sortedBy { it.scopedNameString }.forEach {
+                    println("  ${it.dt}\t${it.scopedNameString}\t")
                 }
         }
         if(allocator.globalFloatConsts.isNotEmpty()) {
@@ -331,9 +331,9 @@ class AsmGen6502Internal (
         if(symbolTable.allMemMappedVariables.isNotEmpty()) {
             println("Memory mapped:")
             symbolTable.allMemMappedVariables
-                .sortedWith( compareBy( {it.address}, {it.scopedName} ))
+                .sortedWith( compareBy( {it.address}, {it.scopedNameString} ))
                 .forEach { mvar ->
-                    println("  $${mvar.address.toString(16).padStart(4, '0')}\t${mvar.dt}\t${mvar.scopedName}")
+                    println("  $${mvar.address.toString(16).padStart(4, '0')}\t${mvar.dt}\t${mvar.scopedNameString}")
                 }
         }
         if(symbolTable.allMemorySlabs.isNotEmpty()) {
@@ -421,7 +421,7 @@ class AsmGen6502Internal (
     }
 
     fun asmVariableName(st: StNode, scope: IPtSubroutine?): String {
-        val name = asmVariableName(st.scopedName)
+        val name = asmVariableName(st.scopedNameString)
         if(scope==null)
             return name
         // remove the whole prefix and just make the variable name locally scoped (64tass scopes it to the proper .proc block)

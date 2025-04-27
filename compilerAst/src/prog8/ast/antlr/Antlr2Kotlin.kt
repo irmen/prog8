@@ -465,7 +465,7 @@ private fun PointertypeContext.toAst(): DataType {
     if(base!=null)
         return DataType.pointer(base)
     val identifier = scoped_identifier().identifier().map { it.text}
-    return DataType.pointer(identifier)
+    return DataType.pointerFromAntlr(identifier)
 }
 
 private fun ArrayindexContext.toAst() : ArrayIndex =
@@ -843,7 +843,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val baseDt = datatype()?.toAst() ?: DataType.UNDEFINED
     val dt = if(!isArray) baseDt else {
         if(baseDt.isPointer)
-            DataType.arrayOfPointersTo(baseDt.sub, baseDt.subIdentifier)
+            DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
         else
             DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
     }

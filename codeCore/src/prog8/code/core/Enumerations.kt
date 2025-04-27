@@ -61,14 +61,18 @@ val BaseDataType.isPassByRef get() = this.isIterable
 val BaseDataType.isPassByValue get() = !this.isIterable
 
 
-class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?, val subIdentifier: List<String>?) {
+interface ISubType {
+    val scopedNameString: String
+}
+
+class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?, var subType: ISubType?, var subTypeFromAntlr: List<String>?=null) {
 
     init {
         if(base.isPointerArray) {
-            require(sub!=null || subIdentifier!=null)
+            require(sub!=null || subType!=null || subTypeFromAntlr!=null)
         }
         else if(base.isArray) {
-            require(sub != null && subIdentifier==null)
+            require(sub != null && subType==null)
             if(base.isSplitWordArray)
                 require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
         }
@@ -77,20 +81,20 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         else if(base!=BaseDataType.POINTER)
             require(sub == null) { "only string, array and pointer base types can have a subtype"}
 
-        require(sub == null || subIdentifier == null) { "subtype and identifier can't both be set" }
+        require(sub == null || (subType == null && subTypeFromAntlr == null)) { "sub and subtype can't both be set" }
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DataType) return false
-        return base == other.base && sub == other.sub && subIdentifier == other.subIdentifier
+        return base == other.base && sub == other.sub && subType == other.subType
     }
 
-    override fun hashCode(): Int = Objects.hash(base, sub, subIdentifier)
+    override fun hashCode(): Int = Objects.hash(base, sub, subType)
 
-    fun copy(newSubIdentfier: List<String>): DataType {
-        require(newSubIdentfier.size>1) { "must be fully scoped" }
-        return DataType(base, sub, newSubIdentfier)
+    fun setActualSubType(actualSubType: ISubType) {
+        subType = actualSubType
+        subTypeFromAntlr = null
     }
 
     companion object {
@@ -132,12 +136,14 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             }
         }
 
-        fun arrayOfPointersTo(sub: BaseDataType?, subIdentifier: List<String>?): DataType =
-            DataType(BaseDataType.ARRAY_POINTER, sub, subIdentifier)
+        fun arrayOfPointersTo(sub: BaseDataType?, subType: ISubType?): DataType =
+            DataType(BaseDataType.ARRAY_POINTER, sub, subType)
+        fun arrayOfPointersFromAntlrTo(sub: BaseDataType?, identifier: List<String>?): DataType =
+            DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
 
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
-
-        fun pointer(scopedIdentifier: List<String>): DataType = DataType(BaseDataType.POINTER, null, scopedIdentifier)
+        fun pointerFromAntlr(identifier: List<String>): DataType = DataType(BaseDataType.POINTER, null, null, identifier)
+        fun pointerToType(type: ISubType): DataType = DataType(BaseDataType.POINTER, null, type)
     }
 
     fun elementToArray(splitwords: Boolean = true): DataType {
@@ -147,7 +153,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
 
     fun elementType(): DataType =
         if(isPointerArray)
-            DataType(BaseDataType.POINTER, sub, subIdentifier)
+            DataType(BaseDataType.POINTER, sub, subType)
         else if(base.isArray || base==BaseDataType.STR)
             forDt(sub!!)
         else
@@ -173,10 +179,10 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             }
         }
         BaseDataType.POINTER -> {
-            if(sub!=null) "^^${sub.name.lowercase()}" else "^^${subIdentifier!!.joinToString(".")}"
+            if(sub!=null) "^^${sub.name.lowercase()}" else "^^${subType!!.scopedNameString}"
         }
         BaseDataType.ARRAY_POINTER -> {
-            if(sub!=null) "^^${sub.name.lowercase()}[] (split)" else "^^${subIdentifier!!.joinToString(".")}[] (split)"
+            if(sub!=null) "^^${sub.name.lowercase()}[] (split)" else "^^${subType!!.scopedNameString}[] (split)"
         }
         else -> base.name.lowercase()
     }
@@ -191,10 +197,10 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "str"
         BaseDataType.POINTER -> {
-            if(sub!=null) "^^${sub.name.lowercase()}" else "^^${subIdentifier!!.joinToString(".")}"
+            if(sub!=null) "^^${sub.name.lowercase()}" else "^^${subType!!.scopedNameString}"
         }
         BaseDataType.ARRAY_POINTER -> {
-            if(sub!=null) "^^${sub.name.lowercase()}[" else "^^${subIdentifier!!.joinToString(".")}["
+            if(sub!=null) "^^${sub.name.lowercase()}[" else "^^${subType!!.scopedNameString}["
         }
         BaseDataType.ARRAY -> {
             when(sub) {
@@ -243,7 +249,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
     fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
 
-    val isBasic = sub==null && subIdentifier==null
+    val isBasic = sub==null && subType==null && subTypeFromAntlr==null
     val isUndefined = base == BaseDataType.UNDEFINED
     val isByte = base.isByte
     val isUnsignedByte = base == BaseDataType.UBYTE

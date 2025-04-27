@@ -1,5 +1,7 @@
 package prog8.compiler.astprocessing
 
+import prog8.ast.FatalAstException
+import prog8.code.StStruct
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -7,6 +9,55 @@ import prog8.code.core.*
 
 internal fun postprocessSimplifiedAst(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
     processDefers(program, st, errors)
+    processSubtypes(program, st)
+}
+
+
+private fun processSubtypes(program: PtProgram, st: SymbolTable) {
+
+    fun getStStruct(subType: ISubType): StStruct {
+        val stNode = st.lookup(subType.scopedNameString) as? StStruct
+        if(stNode != null)
+            return stNode
+        else
+            throw FatalAstException("cannot find in ST: ${subType.scopedNameString} $subType")
+    }
+
+    fun fixSubtype(type: DataType) {
+        if(type.subType!=null && type.subType !is StStruct) {
+            type.subType = getStStruct(type.subType!!)
+        }
+    }
+
+    fun fixSubtypes(node: PtNode) {
+        when(node) {
+            is IPtVariable -> {
+                fixSubtype(node.type)
+            }
+            is PtPointerDeref -> {
+                fixSubtype(node.type)
+                fixSubtype(node.start.type)    // TODO 'start' should not have been a property
+            }
+            is PtStructDecl -> {
+                node.members.forEach { fixSubtype(it.first) }
+            }
+            is PtSub -> {
+                // TODO parameters should not have been a property
+                node.returns.forEach { fixSubtype(it) }
+                node.parameters.forEach { fixSubtype(it.type) }
+            }
+            is PtAsmSub -> {
+                node.returns.forEach { fixSubtype(it.second) }
+            }
+            is PtSubroutineParameter -> fixSubtype(node.type)
+            is PtExpression -> {
+                fixSubtype(node.type)
+            }
+            else -> { /* has no datatype */ }
+        }
+    }
+
+    walkAst(program) { node, _ -> fixSubtypes(node) }
 }
 
 
@@ -159,9 +210,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         popCalls.forEach { newRet.add(it) }
         group.add(PtFunctionCall(ret.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true,DataType.UNDEFINED, ret.position))
         group.add(newRet)
-        group.parent = ret.parent
-        val idx = ret.parent.children.indexOf(ret)
-        ret.parent.children[idx] = group
+        replaceNode(ret, group)
     }
 
     // subroutine ends
@@ -197,9 +246,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
             })
             branchcc.add(PtNodeGroup())
             defersRoutine.add(branchcc)
-            for(c in defer.children) {
-                defersRoutine.add(c)
-            }
+            transferChildren(defer, defersRoutine)
             defersRoutine.add(PtLabel(skiplabel, Position.DUMMY))
         }
 //        val printMask = PtFunctionCall("txt.print_ubbin", true, DataType.UNDEFINED, Position.DUMMY)
@@ -210,4 +257,18 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         defersRoutine.add(PtReturn(Position.DUMMY))
         sub.add(defersRoutine)
     }
+}
+
+
+private fun transferChildren(source: PtNode, target: PtNode) {
+    target.children.clear()
+    for(c in source.children)
+        target.add(c)
+}
+
+
+private fun replaceNode(oldNode: PtNode, newNode: PtNode) {
+    newNode.parent = oldNode.parent
+    val idx = oldNode.parent.children.indexOf(oldNode)
+    oldNode.parent.children[idx] = newNode
 }

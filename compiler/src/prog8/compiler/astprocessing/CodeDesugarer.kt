@@ -367,14 +367,14 @@ _after:
             for(i in identifier.nameInSource.size-1 downTo 1) {
                 val symbol = identifier.definingScope.lookup(identifier.nameInSource.take(i)) as? VarDecl
                 if(symbol!=null) {
-                    var struct = if(symbol.datatype.subIdentifier==null) null else identifier.definingScope.lookup(symbol.datatype.subIdentifier!!) as? StructDecl
+                    var struct = symbol.datatype.subType as? StructDecl
                     if(struct==null)
                         return noModifications
                     val restChain = identifier.nameInSource.drop(i)
                     val chain = mutableListOf<String>()
                     var field: String? = null
                     for((idx, part) in restChain.withIndex()) {
-                        var fieldDt = struct!!.getFieldType(part)
+                        val fieldDt = struct!!.getFieldType(part)
                         if(fieldDt==null) {
                             errors.err("unknown field '${part}' in struct '${struct.name}'", identifier.position)
                             return noModifications
@@ -385,7 +385,7 @@ _after:
                             break
                         }
                         chain.add(part)
-                        struct = identifier.definingScope.lookup(fieldDt.subIdentifier!!) as StructDecl
+                        struct = fieldDt.subType as StructDecl
                     }
                     val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, identifier.position)
                     return listOf(IAstModification.ReplaceNode(identifier, deref, parent))

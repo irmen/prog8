@@ -630,11 +630,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     internal fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
         val callTarget = codeGen.symbolTable.lookup(fcall.name)!!
 
-        if(callTarget.scopedName in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw", "floats.push", "floats.pop")) {
+        if(callTarget.scopedNameString in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw", "floats.push", "floats.pop")) {
             // special case, these should be inlined, or even use specialized instructions. Instead of doing a normal subroutine call.
             return translateStackFunctions(fcall, callTarget)
         }
-        when(callTarget.scopedName) {
+        when(callTarget.scopedNameString) {
             "sys.clear_carry" -> {
                 val chunk = mutableListOf<IRCodeChunkBase>()
                 addInstr(chunk, IRInstruction(Opcode.CLC), null)
@@ -856,7 +856,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translateStackFunctions(fcall: PtFunctionCall, callTarget: StNode): ExpressionCodeResult {
         val chunk = mutableListOf<IRCodeChunkBase>()
-        when(callTarget.scopedName) {
+        when(callTarget.scopedNameString) {
             "sys.push" -> {
                 // push byte
                 val tr = translateExpression(fcall.args.single())
@@ -1483,13 +1483,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     internal fun traverseDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
         var struct: StStruct? = null
-        if(targetPointerDeref.start.type.subIdentifier!=null)
-            struct = codeGen.symbolTable.lookup(targetPointerDeref.start.type.subIdentifier!!.joinToString(".")) as StStruct
+        if(targetPointerDeref.start.type.subType!=null)
+            struct = targetPointerDeref.start.type.subType as StStruct
         if(targetPointerDeref.chain.isNotEmpty()) {
             // traverse deref chain
-            for((idx, deref) in targetPointerDeref.chain.withIndex()) {
+            for(deref in targetPointerDeref.chain) {
                 val fieldinfo = struct!!.getField(deref, codeGen.program.memsizer)
-                struct = codeGen.symbolTable.lookup(fieldinfo.first.subIdentifier!!.joinToString(".")) as StStruct
+                struct = fieldinfo.first.subType as StStruct
                 // get new pointer from field
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second)

@@ -58,7 +58,7 @@ class TestSymbolTable: FunSpec({
 
         val sub1 = st.lookupOrElse("block1.sub1") { fail("should find sub1") }
         sub1.name shouldBe "sub1"
-        sub1.scopedName shouldBe "block1.sub1"
+        sub1.scopedNameString shouldBe "block1.sub1"
         sub1.type shouldBe StNodeType.SUBROUTINE
         sub1.children.size shouldBe 4
 
@@ -80,8 +80,8 @@ class TestSymbolTable: FunSpec({
         val st= makeSt()
 
         st.allVariables.size shouldBe 4
-        st.allMemMappedVariables.single().scopedName shouldBe "block1.sub1.v3"
-        st.allMemorySlabs.single().scopedName shouldBe "block1.sub1.slab1"
+        st.allMemMappedVariables.single().scopedNameString shouldBe "block1.sub1.v3"
+        st.allMemorySlabs.single().scopedNameString shouldBe "block1.sub1.slab1"
     }
 
     test("static vars") {

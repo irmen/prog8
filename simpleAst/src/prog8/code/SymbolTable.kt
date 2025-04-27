@@ -26,7 +26,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
         val result = mutableMapOf<String, StNode>()
         fun collect(node: StNode) {
             for(child in node.children) {
-                result[child.value.scopedName] = child.value
+                result[child.value.scopedNameString] = child.value
                 collect(child.value)
             }
         }
@@ -121,7 +121,7 @@ open class StNode(val name: String,
 
     lateinit var parent: StNode
 
-    val scopedName: String by lazy { scopedNameList.joinToString(".") }
+    val scopedNameString: String by lazy { scopedNameList.joinToString(".") }
 
     open fun lookup(scopedName: String) =
         lookup(scopedName.split('.'))
@@ -255,14 +255,7 @@ class StStruct(
     name: String,
     val members: List<Pair<DataType, String>>,
     astNode: PtStructDecl?
-) : StNode(name, StNodeType.STRUCT, astNode) {
-
-    init {
-        members.forEach { (dt, name) ->
-            if (dt.subIdentifier != null)
-                require(dt.subIdentifier!!.size > 1) { "subidentifier must be scoped" }
-        }
-    }
+) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
     fun memsize(sizer: IMemSizer): Int = members.sumOf { sizer.memorySize(it.first, 1) }
     fun getField(name: String, sizer: IMemSizer): Pair<DataType, Int> {

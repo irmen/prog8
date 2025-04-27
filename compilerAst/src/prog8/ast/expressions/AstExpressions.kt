@@ -1484,26 +1484,27 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
                 InferredTypes.knownFor(vardecl.datatype.sub!!)
             } else {
                 // lookup struct field type
-                val structDef = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
-                val fieldDt = structDef.getFieldType(field)
-                if(fieldDt==null)
+                val struct = vardecl.datatype.subType as StructDecl
+                val fieldDt = struct.getFieldType(field)
+                if (fieldDt == null)
                     InferredTypes.unknown()
                 else
                     InferredTypes.knownFor(fieldDt)
             }
         } else {
             // lookup type of field at the end of a dereference chain
-            var struct = definingScope.lookup(vardecl.datatype.subIdentifier!!) as StructDecl
+            var struct = vardecl.datatype.subType as StructDecl
             chain.forEach { fieldname ->
                 val fieldDt = struct.getFieldType(fieldname)
                 if(fieldDt==null)
                     return InferredTypes.unknown()
-                if(!fieldDt.isPointer || fieldDt.subIdentifier==null)
+                if(!fieldDt.isPointer || fieldDt.subType==null)
                     return InferredTypes.unknown()
-                struct = definingScope.lookup(fieldDt.subIdentifier!!) as StructDecl
+                struct = fieldDt.subType as StructDecl
             }
-            if(field==null)
-                return InferredTypes.knownFor(DataType.pointer(struct.scopedName))
+            if(field==null) {
+                return InferredTypes.knownFor(DataType.pointerToType(struct))
+            }
             val fieldDt = struct.getFieldType(field)
             return if(fieldDt==null)
                 InferredTypes.unknown()

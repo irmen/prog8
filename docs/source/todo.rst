@@ -6,7 +6,6 @@ STRUCTS and TYPED POINTERS
 
 'DONE' means working in the 'virtual' compiler target... (no 6502 codegen has been touched yet)
 
-- store object instead of string in DataType pointer subidentifier?  can store structDecl itself and not worry anymore about the scoping of the subidentifier
 - DONE: add ast type check for assignments to struct fields;  node_ptr.nextnode = enemy_ptr should error
 - DONE: declare struct as a separate entity so you can then declare multiple variables (pointers) of the same struct type. Like usual.
 - DONE: struct is a 'packed' struct, fields are placed in order of declaration. This guarantees exact size and place of the fields
@@ -25,6 +24,7 @@ STRUCTS and TYPED POINTERS
 - DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
 - DONE: implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
 - DONE: implicit cast of pointer to uword in conditional expressions
+- add unit tests for all changes
 - subroutine parameters should be able to accept pointers as well now
 - arrays of structs? No -> Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
@@ -40,6 +40,7 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- PtPointerDeref, PtSub: put properties as children
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?

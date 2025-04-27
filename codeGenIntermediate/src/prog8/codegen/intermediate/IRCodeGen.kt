@@ -65,7 +65,7 @@ class IRCodeGen(
             if(variable.uninitialized && variable.parent.type==StNodeType.BLOCK) {
                 val block = variable.parent.astNode as PtBlock
                 val initialization = (block.children.firstOrNull {
-                    it is PtAssignment && it.isVarInitializer && it.target.identifier?.name==variable.scopedName
+                    it is PtAssignment && it.isVarInitializer && it.target.identifier?.name==variable.scopedNameString
                 } as PtAssignment?)
                 val initValue = initialization?.value
                 when(initValue){
@@ -469,7 +469,7 @@ class IRCodeGen(
                     translateForInNonConstantRange(forLoop, loopvar)
             }
             is PtIdentifier -> {
-                require(forLoop.variable.name == loopvar.scopedName)
+                require(forLoop.variable.name == loopvar.scopedNameString)
                 val iterableLength = symbolTable.getLength(iterable.name)
                 val loopvarSymbol = forLoop.variable.name
                 val indexReg = registers.next(IRDataType.BYTE)
@@ -549,7 +549,7 @@ class IRCodeGen(
         val step = iterable.step.number.toInt()
         if (step==0)
             throw AssemblyError("step 0")
-        require(forLoop.variable.name == loopvar.scopedName)
+        require(forLoop.variable.name == loopvar.scopedNameString)
         val loopvarSymbol = forLoop.variable.name
         val loopvarDt = when(loopvar) {
             is StMemVar -> loopvar.dt
@@ -635,7 +635,7 @@ class IRCodeGen(
 
     private fun translateForInConstantRange(forLoop: PtForLoop, loopvar: StNode): IRCodeChunks {
         val loopLabel = createLabelName()
-        require(forLoop.variable.name == loopvar.scopedName)
+        require(forLoop.variable.name == loopvar.scopedNameString)
         val loopvarSymbol = forLoop.variable.name
         val loopvarDt = when(loopvar) {
             is StMemVar -> loopvar.dt

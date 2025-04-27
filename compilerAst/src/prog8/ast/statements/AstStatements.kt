@@ -374,7 +374,7 @@ class VarDecl(val type: VarDeclType,
     }
 }
 
-class StructDecl(override val name: String, val members: List<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement {
+class StructDecl(override val name: String, val members: List<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -388,6 +388,7 @@ class StructDecl(override val name: String, val members: List<Pair<DataType, Str
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     fun memsize(sizer: IMemSizer): Int = members.sumOf { sizer.memorySize(it.first, 1) }
     fun getFieldType(name: String): DataType? = members.firstOrNull { it.second==name }?.first
+    override val scopedNameString by lazy { scopedName.joinToString(".") }
 }
 
 class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, val type: DataType, override val name: String, override val position: Position): Statement(), INamedStatement {
