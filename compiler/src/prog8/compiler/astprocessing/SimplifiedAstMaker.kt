@@ -107,7 +107,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             throw FatalAstException("unknown dt")
         }
         val start = transform(deref.identifier)
-        return PtPointerDeref(type, start, deref.chain, deref.field,deref.position)
+        val deref = PtPointerDeref(type, deref.chain, deref.field,deref.position)
+        deref.add(start)
+        return deref
     }
 
     private fun transform(ifExpr: IfExpression): PtIfExpression {
@@ -567,11 +569,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             if(it.isString) DataType.UWORD else it
         }
         // do not bother about the 'inline' hint of the source subroutine.
-        val sub = PtSub(srcSub.name,
-            srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position) },
-            returnTypes,
-            srcSub.position)
-        sub.parameters.forEach { it.parent=sub }
+        val sub = PtSub(srcSub.name,srcSub.position)
+        val signature = PtSubSignature( returnTypes, srcSub.position)
+        srcSub.parameters.forEach { signature.add(PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position)) }
+        sub.add(signature)
         makeScopeVarsDecls(vardecls).forEach { sub.add(it) }
         for (statement in statements)
             sub.add(transformStatement(statement))

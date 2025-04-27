@@ -139,15 +139,16 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             }
         }
         else if(sub is PtSub) {
-            if(optimizeIntArgsViaCpuRegisters(sub.parameters)) {
+            val parameters = sub.signature.children.filterIsInstance<PtSubroutineParameter>()
+            if(optimizeIntArgsViaCpuRegisters(parameters)) {
                 // Note that if the args fit into cpu registers, we don't concern ourselves here
                 // if they should be put into regular subroutine parameter variables, or the R0-R15 register variables.
                 // That is now up to the subroutine itself.
                 useCpuRegistersForArgs(call.args, sub)
             } else {
                 // arguments via variables
-                val paramValues = sub.parameters.zip(call.args)
-                val (normalParams, registerParams) = paramValues.partition { it.first.register == null }
+                val paramValues = parameters.zip(call.args)
+                val (normalParams, registerParams) = paramValues.partition { (it.first.register == null) }
                 if (normalParams.isNotEmpty()) {
                     for (p in normalParams)
                         argumentViaVariable(sub, p.first, p.second)
@@ -166,7 +167,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     }
 
     private fun useCpuRegistersForArgs(args: List<PtExpression>, sub: PtSub) {
-        val params = sub.parameters
+        val params = sub.signature.children.filterIsInstance<PtSubroutineParameter>()
         when(params.size) {
             1 -> {
                 val register = if (params[0].type.isByteOrBool) RegisterOrPair.A else RegisterOrPair.AY

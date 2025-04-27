@@ -294,12 +294,12 @@ main {
 }"""
         val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val x = result.codegenAst!!.entrypoint()!!
-        x.children.size shouldBe 6
-        ((x.children[0] as PtVariable).value as PtString).value shouldBe "xyzxyzxyz"
-        val array1 = (x.children[1] as PtVariable).value as PtArray
-        val array2 = (x.children[2] as PtVariable).value as PtArray
-        val array3 = (x.children[3] as PtVariable).value as PtArray
-        val array4 = (x.children[4] as PtVariable).value as PtArray
+        x.children.size shouldBe 7
+        ((x.children[1] as PtVariable).value as PtString).value shouldBe "xyzxyzxyz"
+        val array1 = (x.children[2] as PtVariable).value as PtArray
+        val array2 = (x.children[3] as PtVariable).value as PtArray
+        val array3 = (x.children[4] as PtVariable).value as PtArray
+        val array4 = (x.children[5] as PtVariable).value as PtArray
         array1.children.map { (it as PtBool).value } shouldBe listOf(true, true, true)
         array2.children.map { (it as PtNumber).number } shouldBe listOf(42, 42, 42)
         array3.children.map { (it as PtNumber).number } shouldBe listOf(5555, 5555, 5555)
@@ -319,10 +319,10 @@ main {
 }"""
         val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val x = result.codegenAst!!.entrypoint()!!
-        x.children.size shouldBe 4
-        val array1 = (x.children[0] as PtVariable).value as PtArray
-        val array2 = (x.children[1] as PtVariable).value as PtArray
-        val array3 = (x.children[2] as PtVariable).value as PtArray
+        x.children.size shouldBe 5
+        val array1 = (x.children[1] as PtVariable).value as PtArray
+        val array2 = (x.children[2] as PtVariable).value as PtArray
+        val array3 = (x.children[3] as PtVariable).value as PtArray
         array1.children.map { (it as PtNumber).number } shouldBe listOf(10, 11, 12)
         array2.children.map { (it as PtNumber).number } shouldBe listOf(5000, 5001, 5002)
         array3.children.map { (it as PtNumber).number } shouldBe listOf(100, 101, 102)
@@ -340,9 +340,9 @@ label:
 }"""
         val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         val x = result.codegenAst!!.entrypoint()!!
-        x.children.size shouldBe 5
-        val array1 = (x.children[1] as PtVariable).value as PtArray
-        val array2 = (x.children[2] as PtVariable).value as PtArray
+        x.children.size shouldBe 6
+        val array1 = (x.children[2] as PtVariable).value as PtArray
+        val array2 = (x.children[3] as PtVariable).value as PtArray
         array1.children.forEach {
             it shouldBe instanceOf<PtAddressOf>()
         }

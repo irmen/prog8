@@ -467,8 +467,8 @@ main {
 
         val result = compileText(Cx16Target(), false, src, outputDir)
         val st = result!!.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 3
-        ((st[1] as PtIfElse).condition as PtBool).value shouldBe false
+        st.size shouldBe 4
+        ((st[2] as PtIfElse).condition as PtBool).value shouldBe false
     }
 
     test("containmentcheck type casting") {
@@ -483,8 +483,8 @@ main {
 
         val result = compileText(Cx16Target(), false, src, outputDir)
         val st = result!!.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 4
-        val cond = (st[2] as PtIfElse).condition as PtBinaryExpression
+        st.size shouldBe 5
+        val cond = (st[3] as PtIfElse).condition as PtBinaryExpression
         cond.operator shouldBe "and"
         val left = cond.left as PtBinaryExpression
         val right = cond.right as PtBinaryExpression

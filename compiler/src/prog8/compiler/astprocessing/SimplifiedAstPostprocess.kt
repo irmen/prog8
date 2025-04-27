@@ -31,28 +31,13 @@ private fun processSubtypes(program: PtProgram, st: SymbolTable) {
 
     fun fixSubtypes(node: PtNode) {
         when(node) {
-            is IPtVariable -> {
-                fixSubtype(node.type)
-            }
-            is PtPointerDeref -> {
-                fixSubtype(node.type)
-                fixSubtype(node.start.type)    // TODO 'start' should not have been a property
-            }
-            is PtStructDecl -> {
-                node.members.forEach { fixSubtype(it.first) }
-            }
-            is PtSub -> {
-                // TODO parameters should not have been a property
-                node.returns.forEach { fixSubtype(it) }
-                node.parameters.forEach { fixSubtype(it.type) }
-            }
-            is PtAsmSub -> {
-                node.returns.forEach { fixSubtype(it.second) }
-            }
+            is IPtVariable -> fixSubtype(node.type)
+            is PtPointerDeref -> fixSubtype(node.type)
+            is PtStructDecl -> node.members.forEach { fixSubtype(it.first) }
+            is PtAsmSub -> node.returns.forEach { fixSubtype(it.second) }
+            is PtExpression -> fixSubtype(node.type)
+            is PtSubSignature -> node.returns.forEach { fixSubtype(it) }
             is PtSubroutineParameter -> fixSubtype(node.type)
-            is PtExpression -> {
-                fixSubtype(node.type)
-            }
             else -> { /* has no datatype */ }
         }
     }
@@ -106,8 +91,9 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
             it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, sub.position))
         })
         assignZero.add(PtNumber(BaseDataType.UBYTE, 0.0, sub.position))
-        sub.add(0, assignZero)
-        sub.add(0, deferVariable)
+        val firstIndex = sub.children.indexOfFirst { it !is PtSubSignature }   // first child node is the sub's signature so add below that one
+        sub.add(firstIndex, assignZero)
+        sub.add(firstIndex, deferVariable)
 
         for((deferIndex, defer) in defers.withIndex()) {
             // replace the defer statement with one that enables the bit in the mask for this defer
@@ -246,7 +232,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
             })
             branchcc.add(PtNodeGroup())
             defersRoutine.add(branchcc)
-            transferChildren(defer, defersRoutine)
+            transferChildren(defer, defersRoutine, true)
             defersRoutine.add(PtLabel(skiplabel, Position.DUMMY))
         }
 //        val printMask = PtFunctionCall("txt.print_ubbin", true, DataType.UNDEFINED, Position.DUMMY)
@@ -260,8 +246,9 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
 }
 
 
-private fun transferChildren(source: PtNode, target: PtNode) {
-    target.children.clear()
+private fun transferChildren(source: PtNode, target: PtNode, keepExisting: Boolean = false) {
+    if(!keepExisting)
+        target.children.clear()
     for(c in source.children)
         target.add(c)
 }

@@ -74,11 +74,11 @@ main {
         val start = ast.entrypoint()!!
         start.name shouldBe "p8s_start"
         start.children.size shouldBeGreaterThan 2
-        val seed = start.children[0] as PtVariable
+        val seed = start.children[1] as PtVariable
         seed.name shouldBe "p8v_seed"
         seed.value shouldBe null
         seed.type shouldBe DataType.arrayFor(BaseDataType.UWORD)
-        val assign = start.children[1] as PtAssignment
+        val assign = start.children[2] as PtAssignment
         assign.target.identifier!!.name shouldBe "cx16.r0"
         assign.value shouldBe instanceOf<PtBinaryExpression>()
     }
@@ -535,8 +535,8 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val st = result.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 2
-        val ifelse = st[0] as PtIfElse
+        st.size shouldBe 3
+        val ifelse = st[1] as PtIfElse
         ifelse.hasElse() shouldBe false
         (ifelse.condition as PtPrefix).operator shouldBe "not"
     }
@@ -559,8 +559,8 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val st = result.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 2
-        val ifelse = st[0] as PtIfElse
+        st.size shouldBe 3
+        val ifelse = st[1] as PtIfElse
         ifelse.hasElse() shouldBe true
         ifelse.condition shouldBe instanceOf<PtFunctionCall>()
     }

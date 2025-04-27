@@ -1056,10 +1056,10 @@ main {
 }"""
         val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
         val st = result.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 9
-        (st[2] as PtFunctionCall).name shouldBe "cbm.GETIN"
-        (st[2] as PtFunctionCall).void shouldBe true
-        val a1 = st[3] as PtAssignment
+        st.size shouldBe 10
+        (st[3] as PtFunctionCall).name shouldBe "cbm.GETIN"
+        (st[3] as PtFunctionCall).void shouldBe true
+        val a1 = st[4] as PtAssignment
         (a1.value as PtFunctionCall).name shouldBe "cbm.GETIN"
         a1.multiTarget shouldBe true
         a1.children.size shouldBe 3
@@ -1068,9 +1068,9 @@ main {
         (a1.children[1] as PtAssignTarget).void shouldBe false
         (a1.children[1] as PtAssignTarget).identifier!!.name shouldBe "cx16.r1L"
 
-        (st[4] as PtFunctionCall).name shouldBe "p8b_main.p8s_func1"
-        (st[4] as PtFunctionCall).void shouldBe true
-        val a2 = st[5] as PtAssignment
+        (st[5] as PtFunctionCall).name shouldBe "p8b_main.p8s_func1"
+        (st[5] as PtFunctionCall).void shouldBe true
+        val a2 = st[6] as PtAssignment
         (a2.value as PtFunctionCall).name shouldBe "p8b_main.p8s_func2"
         a2.multiTarget shouldBe true
         a2.children.size shouldBe 4
@@ -1079,9 +1079,9 @@ main {
         (a2.children[1] as PtAssignTarget).identifier!!.name shouldBe "cx16.r2"
         (a2.children[2] as PtAssignTarget).void shouldBe true
 
-        (st[6] as PtFunctionCall).name shouldBe "p8b_main.p8s_func3"
-        (st[6] as PtFunctionCall).void shouldBe true
-        val a3 = st[7] as PtAssignment
+        (st[7] as PtFunctionCall).name shouldBe "p8b_main.p8s_func3"
+        (st[7] as PtFunctionCall).void shouldBe true
+        val a3 = st[8] as PtAssignment
         (a3.value as PtFunctionCall).name shouldBe "p8b_main.p8s_func3"
         a3.multiTarget shouldBe false
         a3.children.size shouldBe 2

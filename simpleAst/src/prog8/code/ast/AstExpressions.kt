@@ -406,8 +406,11 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
     }
 }
 
-// TODO: start, chain and field not as properties; problematic when doing ast walking
-class PtPointerDeref(type: DataType, val start: PtIdentifier, val chain: List<String>, val field: String?, position: Position) : PtExpression(type, position)
+class PtPointerDeref(type: DataType, val chain: List<String>, val field: String?, position: Position) : PtExpression(type, position) {
+    // the start of the chain (PtIdentifier) is the only child node
+    val start: PtIdentifier
+        get() = children.single() as PtIdentifier
+}
 
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code

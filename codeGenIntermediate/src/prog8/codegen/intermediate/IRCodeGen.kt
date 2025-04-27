@@ -260,6 +260,7 @@ class IRCodeGen(
             is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
             is PtSub -> throw AssemblyError("nested subroutines should have been flattened ${node.position}")
             is PtStructDecl -> emptyList()
+            is PtSubSignature -> emptyList()
             else -> TODO("missing codegen for $node")
         }
 
@@ -1837,7 +1838,7 @@ class IRCodeGen(
                 is PtVariable, is PtConstant, is PtMemMapped -> { /* vars should be looked up via symbol table */ }
                 is PtAlign -> TODO("ir support for inline %align")
                 is PtSub -> {
-                    val sub = IRSubroutine(child.name, translate(child.parameters), child.returns, child.position)
+                    val sub = IRSubroutine(child.name, translateParameters(child.signature.children), child.signature.returns, child.position)
                     for (subchild in child.children) {
                         translateNode(subchild).forEach { sub += it }
                     }
@@ -1893,15 +1894,16 @@ class IRCodeGen(
         return irBlock
     }
 
-    private fun translate(parameters: List<PtSubroutineParameter>): List<IRSubroutine.IRParam> {
+    private fun translateParameters(parameters: List<PtNode>): List<IRSubroutine.IRParam> {
         val result = mutableListOf<IRSubroutine.IRParam>()
         parameters.forEach {
+            it as PtSubroutineParameter
             if(it.register==null) {
-                val flattenedName = it.definingISub()!!.name + "." + it.name
-                if (symbolTable.lookup(flattenedName) == null)
-                    TODO("fix missing lookup for: $flattenedName   parameter")
-                val orig = symbolTable.lookup(flattenedName) as StStaticVariable
-                result += IRSubroutine.IRParam(flattenedName, orig.dt)
+                require('.' in it.name) { "even parameter names should have been made fully scoped by now" }
+                val orig = symbolTable.lookup(it.name) as? StStaticVariable
+                if (orig == null)
+                    TODO("fix missing lookup for: ${it.name}   parameter")
+                result += IRSubroutine.IRParam(it.name, orig.dt)
             } else {
                 val reg = it.register
                 require(reg in Cx16VirtualRegisters) { "can only use R0-R15 'registers' here" }

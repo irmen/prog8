@@ -14,6 +14,7 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.IfElse
 import prog8.code.ast.PtAsmSub
 import prog8.code.ast.PtSub
+import prog8.code.ast.PtSubroutineParameter
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
@@ -795,8 +796,8 @@ main {
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
         val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
-        derp.returns shouldBe listOf(DataType.UWORD)
-        derp.parameters.single().type shouldBe DataType.UWORD
+        derp.signature.returns shouldBe listOf(DataType.UWORD)
+        (derp.signature.children.single() as PtSubroutineParameter).type shouldBe DataType.UWORD
         val mult3 = main.children.single { it is PtAsmSub && it.name=="main.mult3"} as PtAsmSub
         mult3.parameters.single().second.type shouldBe DataType.UWORD
         mult3.returns.single().second shouldBe DataType.UWORD

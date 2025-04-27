@@ -407,7 +407,7 @@ main {
 }"""
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val start = result.codegenAst!!.entrypoint()!!
-        start.children.size shouldBe 11
+        start.children.size shouldBe 12
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUW(0xff02) shouldBe 3837u      // $ff02 = cx16.r0
@@ -460,7 +460,7 @@ main {
 }"""
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
         val start = result.codegenAst!!.entrypoint()!!
-        start.children.size shouldBe 22
+        start.children.size shouldBe 23
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
             vm.memory.getUW(0xff02) shouldBe 3837u      // $ff02 = cx16.r0

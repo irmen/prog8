@@ -943,10 +943,10 @@ main {
 
         val ast2 = result.codegenAst!!
         val st2 = ast2.entrypoint()!!.children
-        st2.size shouldBe 3
-        (st2[0] as PtVariable).name shouldBe "p8v_variable"
-        (st2[1] as PtVariable).name shouldBe "p8v_names"
-        val array2 = (st2[1] as PtVariable).value as PtArray
+        st2.size shouldBe 4
+        (st2[1] as PtVariable).name shouldBe "p8v_variable"
+        (st2[2] as PtVariable).name shouldBe "p8v_names"
+        val array2 = (st2[2] as PtVariable).value as PtArray
         array2.type shouldBe DataType.arrayFor(BaseDataType.UWORD, true)
     }
 
@@ -978,25 +978,26 @@ main {
         sub.scopedName shouldBe "p8b_main.p8s_test"
 
         // check the desugaring of the defer statements
-        (sub.children[0] as PtVariable).name shouldBe "p8v_prog8_defers_mask"
+        sub.children[0] shouldBe instanceOf<PtSubSignature>()
+        (sub.children[1] as PtVariable).name shouldBe "p8v_prog8_defers_mask"
 
-        val firstDefer = sub.children[2] as PtAugmentedAssign
+        val firstDefer = sub.children[3] as PtAugmentedAssign
         firstDefer.operator shouldBe "|="
         firstDefer.target.identifier?.name shouldBe "p8b_main.p8s_test.p8v_prog8_defers_mask"
         firstDefer.value.asConstInteger() shouldBe 4
 
-        val firstIf = sub.children[3] as PtIfElse
+        val firstIf = sub.children[4] as PtIfElse
         val deferInIf = firstIf.ifScope.children[0] as PtAugmentedAssign
         deferInIf.operator shouldBe "|="
         deferInIf.target.identifier?.name shouldBe "p8b_main.p8s_test.p8v_prog8_defers_mask"
         deferInIf.value.asConstInteger() shouldBe 2
 
-        val lastDefer = sub.children[5] as PtAugmentedAssign
+        val lastDefer = sub.children[6] as PtAugmentedAssign
         lastDefer.operator shouldBe "|="
         lastDefer.target.identifier?.name shouldBe "p8b_main.p8s_test.p8v_prog8_defers_mask"
         lastDefer.value.asConstInteger() shouldBe 1
 
-        val ifelse = sub.children[4] as PtIfElse
+        val ifelse = sub.children[5] as PtIfElse
         val ifscope = ifelse.ifScope.children[0] as PtNodeGroup
         val ifscope_push = ifscope.children[0] as PtFunctionCall
         val ifscope_defer = ifscope.children[1] as PtFunctionCall
@@ -1005,10 +1006,10 @@ main {
         ifscope_push.name shouldBe "sys.pushw"
         (ifscope_return.children.single() as PtFunctionCall).name shouldBe "sys.popw"
 
-        val ending = sub.children[6] as PtFunctionCall
+        val ending = sub.children[7] as PtFunctionCall
         ending.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"
-        sub.children[7] shouldBe instanceOf<PtReturn>()
-        val handler = sub.children[8] as PtSub
+        sub.children[8] shouldBe instanceOf<PtReturn>()
+        val handler = sub.children[9] as PtSub
         handler.name shouldBe "p8s_prog8_invoke_defers"
     }
 
@@ -1042,23 +1043,23 @@ main {
 }"""
         val result1 = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st1 = result1.codegenAst!!.entrypoint()!!.children
-        st1.size shouldBe 5
-        (st1[0] as PtVariable).name shouldBe "main.start.x"
-        (st1[1] as PtVariable).name shouldBe "main.start.y"
-        (st1[2] as PtVariable).name shouldBe "main.start.z"
-        st1[3].children.size shouldBe 4
-        st1[3].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("main.start.x", "main.start.y", "main.start.z")
-        ((st1[3] as PtAssignment).value as PtFunctionCall).name shouldBe "main.multi"
+        st1.size shouldBe 6
+        (st1[1] as PtVariable).name shouldBe "main.start.x"
+        (st1[2] as PtVariable).name shouldBe "main.start.y"
+        (st1[3] as PtVariable).name shouldBe "main.start.z"
+        st1[4].children.size shouldBe 4
+        st1[4].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("main.start.x", "main.start.y", "main.start.z")
+        ((st1[4] as PtAssignment).value as PtFunctionCall).name shouldBe "main.multi"
 
         val result2 = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st2 = result2.codegenAst!!.entrypoint()!!.children
-        st2.size shouldBe 5
-        (st2[0] as PtVariable).name shouldBe "p8v_x"
-        (st2[1] as PtVariable).name shouldBe "p8v_y"
-        (st2[2] as PtVariable).name shouldBe "p8v_z"
-        st2[3].children.size shouldBe 4
-        st2[3].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("p8b_main.p8s_start.p8v_x", "p8b_main.p8s_start.p8v_y", "p8b_main.p8s_start.p8v_z")
-        ((st2[3] as PtAssignment).value as PtFunctionCall).name shouldBe "p8b_main.p8s_multi"
+        st2.size shouldBe 6
+        (st2[1] as PtVariable).name shouldBe "p8v_x"
+        (st2[2] as PtVariable).name shouldBe "p8v_y"
+        (st2[3] as PtVariable).name shouldBe "p8v_z"
+        st2[4].children.size shouldBe 4
+        st2[4].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("p8b_main.p8s_start.p8v_x", "p8b_main.p8s_start.p8v_y", "p8b_main.p8s_start.p8v_z")
+        ((st2[4] as PtAssignment).value as PtFunctionCall).name shouldBe "p8b_main.p8s_multi"
     }
 }
 

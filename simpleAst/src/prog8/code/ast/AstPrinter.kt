@@ -125,13 +125,14 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 }
             }
             is PtSub -> {
-                val params = node.parameters.joinToString(", ") {
+                val params = node.signature.children.joinToString(", ") {
+                    it as PtSubroutineParameter
                     val reg = if(it.register!=null) "@${it.register}" else ""
                     "${it.type} ${it.name} $reg"
                 }
                 var str = "sub ${node.name}($params) "
-                if(node.returns.isNotEmpty())
-                    str += "-> ${node.returns.joinToString(",")}"
+                if(node.signature.returns.isNotEmpty())
+                    str += "-> ${node.signature.returns.joinToString(",")}"
                 str
             }
             is PtVariable -> {
@@ -167,6 +168,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 val reg = if(node.register!=null) "@${node.register}" else ""
                 "${node.type} ${node.name} $reg"
             }
+            is PtSubSignature -> "(signature)"
             is PtWhen -> "when"
             is PtWhenChoice -> {
                 if(node.isElse)

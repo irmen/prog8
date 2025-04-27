@@ -458,7 +458,7 @@ internal class ProgramAndVarsGen(
         if((sub.name=="start" || sub.name=="p8s_start") && (sub.definingBlock()!!.name=="main" || sub.definingBlock()!!.name=="p8b_main"))
             entrypointInitialization()
 
-        val params = sub.parameters
+        val params = sub.signature.children.filterIsInstance<PtSubroutineParameter>()
         if(functioncallAsmGen.optimizeIntArgsViaCpuRegisters(params)) {
             asmgen.out("; simple int arg(s) passed via cpu register(s)")
 

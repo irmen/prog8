@@ -57,8 +57,11 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StMemVar(node.name, node.type, node.address, node.arraySize?.toInt(), node)
             }
             is PtSub -> {
-                val params = node.parameters.map {StSubroutineParameter(it.name, it.type, it.register) }
-                StSub(node.name, params, node.returns, node)
+                val params = node.signature.children.map {
+                    it as PtSubroutineParameter
+                    StSubroutineParameter(it.name, it.type, it.register)
+                }
+                StSub(node.name, params, node.signature.returns, node)
             }
             is PtStructDecl -> {
                 StStruct(node.name, node.members, node)

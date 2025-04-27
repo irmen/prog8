@@ -22,6 +22,7 @@ sealed interface IPtSubroutine {
                     else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
                 }
 
+                val returns = signature.returns
                 when(returns.size) {
                     0 -> return emptyList()
                     1 -> {
@@ -67,20 +68,24 @@ class PtAsmSub(
 }
 
 
-// TODO parameters not as property but as children, for easy AST walking
-class PtSub(
-    name: String,
-    val parameters: List<PtSubroutineParameter>,
-    val returns: List<DataType>,
-    position: Position
-) : PtNamedNode(name, position), IPtSubroutine {
+class PtSub(name: String, position: Position) : PtNamedNode(name, position), IPtSubroutine {
+
+    constructor(name: String, params: List<PtSubroutineParameter>, returns: List<DataType>, position: Position) : this(name, position) {
+        val signature = PtSubSignature(returns, position)
+        params.forEach { signature.add(it) }
+        add(signature)
+    }
+
+    val signature: PtSubSignature
+        get() = children[0] as PtSubSignature
+}
+
+
+class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(position) {
+    // has all parameters PtSubroutineParameter as children.
     init {
-        // params and return values should not be str
-        if(parameters.any{ !it.type.isNumericOrBool })
-            throw AssemblyError("non-numeric/non-bool parameter")
         if(returns.any { !it.isNumericOrBool })
             throw AssemblyError("non-numeric/non-bool returntype")
-        parameters.forEach { it.parent=this }
     }
 }
 

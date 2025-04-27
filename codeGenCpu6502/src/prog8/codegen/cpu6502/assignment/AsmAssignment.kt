@@ -203,7 +203,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val symbol = asmgen.symbolTable.lookup(value.name) ?: throw AssemblyError("lookup error ${value.name}")
                     val sub = symbol.astNode as IPtSubroutine
                     val returnType =
-                        if(sub is PtSub && sub.returns.size>1)
+                        if(sub is PtSub && sub.signature.returns.size>1)
                             DataType.UNDEFINED      // TODO list of types instead?
                         else
                             sub.returnsWhatWhere().firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
