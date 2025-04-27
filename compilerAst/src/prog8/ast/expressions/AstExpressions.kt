@@ -356,6 +356,12 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
             return when {
                 target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
                 target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
+                target.datatype.isPointer -> {
+                    if(target.datatype.subType!=null)
+                        TODO("indexing on pointer to struct would yield the struct type itself, this is not yet supported (only pointers) at $position")
+                    else
+                        InferredTypes.knownFor(target.datatype.sub!!)
+                }
                 else -> InferredTypes.knownFor(target.datatype)
             }
         }

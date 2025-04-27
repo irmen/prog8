@@ -4,6 +4,22 @@
 %option no_sysinit
 
 main {
+    sub start() {
+        struct Node {
+            bool flag
+        }
+
+        ^^Node ptr = 2000
+
+        txt.print_uw(ptr)
+        txt.nl()
+
+        bool derp = ptr[10].flag
+    }
+}
+
+/*
+main {
 
     struct Enemy {
         ubyte x
@@ -109,3 +125,4 @@ main {
 }
 
 
+*/

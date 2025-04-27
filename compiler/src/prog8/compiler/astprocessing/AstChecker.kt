@@ -1341,7 +1341,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(typecast: TypecastExpression) {
         checkLongType(typecast)
-        if(typecast.type.isIterable)
+        if(typecast.type.isPassByRef)
             errors.err("cannot type cast to string or array type", typecast.position)
 
         if(!typecast.expression.inferType(program).isKnown)
@@ -1796,6 +1796,9 @@ internal class AstChecker(private val program: Program,
         val memsize = struct.memsize(program.memsizer)
         if(memsize>256)
             errors.err("struct contains too many fields, max struct size is 256 bytes (actual: $memsize)", struct.position)
+
+        if(uniqueFields.isEmpty())
+            errors.err("struct must contain at least one field", struct.position)
     }
 
     private fun checkLongType(expression: Expression) {

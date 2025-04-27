@@ -423,6 +423,17 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return noModifications
     }
 
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        if(arrayIndexedExpression.indexer.constIndex()==0) {
+            if(arrayIndexedExpression.arrayvar.inferType(program).isPointer) {
+                // pointer[0]  -->   pointer^^
+                val deref = PtrDereference(arrayIndexedExpression.arrayvar, emptyList(), null, arrayIndexedExpression.position)
+                return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
+            }
+        }
+        return noModifications
+    }
+
     private fun applyAbsorptionLaws(expr: BinaryExpression): Expression? {
         // NOTE: only when the terms are not function calls!!!
         if(expr.left is IFunctionCall || expr.right is IFunctionCall)

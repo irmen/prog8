@@ -382,6 +382,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val result = mutableListOf<IRCodeChunkBase>()
         val arrayVarSymbol = arrayIx.variable.name
         var resultRegister = -1
+        val isPointer = arrayIx.variable.type.isPointer
 
         if(arrayIx.splitWords) {
             require(vmDt==IRDataType.WORD)
@@ -409,32 +410,82 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
 
         var resultFpRegister = -1
-        if(arrayIx.index is PtNumber) {
-            val memOffset = ((arrayIx.index as PtNumber).number.toInt() * eltSize)
-            if(vmDt==IRDataType.FLOAT) {
-                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
-            }
-            else {
-                resultRegister = codeGen.registers.next(vmDt)
-                addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
-            }
-        } else {
-            val tr = translateExpression(arrayIx.index)
-            addToResult(result, tr, tr.resultReg, -1)
-            if(eltSize>1)
-                result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
-            if(vmDt==IRDataType.FLOAT) {
-                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = resultFpRegister, reg1=tr.resultReg, labelSymbol = arrayVarSymbol), null)
-            }
-            else {
-                resultRegister = codeGen.registers.next(vmDt)
-                addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=tr.resultReg, labelSymbol = arrayVarSymbol), null)
+
+        fun getByNumber(index: Int) {
+            val memOffset = index * eltSize
+            if(isPointer) {
+                // indexing a pointer
+                val pointerTr = translateExpression(arrayIx.variable)
+                result += pointerTr.chunks
+                val pointerReg = pointerTr.resultReg
+                if(memOffset>0)
+                    addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = memOffset), null)
+
+                if(vmDt==IRDataType.FLOAT) {
+                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
+                }
+                else {
+                    resultRegister = codeGen.registers.next(vmDt)
+                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
+                }
+            } else {
+                // indexing an array or string type
+                if(vmDt==IRDataType.FLOAT) {
+                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                    addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
+                }
+                else {
+                    resultRegister = codeGen.registers.next(vmDt)
+                    addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
+                }
             }
         }
+
+        fun getByExpression(index: PtExpression) {
+            val indexByteTr = translateExpression(index)
+            addToResult(result, indexByteTr, indexByteTr.resultReg, -1)
+            if(isPointer) {
+                // indexing on a pointer
+                val indexWordReg = codeGen.registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexByteTr.resultReg), null)
+                if(eltSize>1)
+                    result += codeGen.multiplyByConst(IRDataType.WORD, indexWordReg, eltSize)
+                val pointerTr = translateExpression(arrayIx.variable)
+                result += pointerTr.chunks
+                val pointerReg = pointerTr.resultReg
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexWordReg), null)
+
+                if(vmDt==IRDataType.FLOAT) {
+                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
+                }
+                else {
+                    resultRegister = codeGen.registers.next(vmDt)
+                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
+                }
+            } else {
+                // indexing an array or string type
+                if(eltSize>1)
+                    result += codeGen.multiplyByConst(IRDataType.BYTE, indexByteTr.resultReg, eltSize)
+                if(vmDt==IRDataType.FLOAT) {
+                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                    addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = resultFpRegister, reg1=indexByteTr.resultReg, labelSymbol = arrayVarSymbol), null)
+                }
+                else {
+                    resultRegister = codeGen.registers.next(vmDt)
+                    addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=indexByteTr.resultReg, labelSymbol = arrayVarSymbol), null)
+                }
+            }
+        }
+
+        if(arrayIx.index is PtNumber)
+            getByNumber((arrayIx.index as PtNumber).number.toInt())
+        else
+            getByExpression(arrayIx.index)
         return ExpressionCodeResult(result, vmDt, resultRegister, resultFpRegister)
     }
+
 
     private fun translate(expr: PtPrefix): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()

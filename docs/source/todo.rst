@@ -25,17 +25,18 @@ STRUCTS and TYPED POINTERS
 - DONE: implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
 - DONE: implicit cast of pointer to uword in conditional expressions
 - DONE: subroutine parameters and return values should be able to accept pointers as well now
+- DONE (for basic types only): allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
+- allow array syntax on pointers to structs too, but what type will ptr[2] have? And it will require  ptr[2].field  to work as well now. Actually that will be the only thing to work for now.
+- pointer arithmetic should follow C:  ptr=ptr+10 adds 10*sizeof() instead of just 10.
 - add unit tests for all changes
 - arrays of structs? No -> Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
 - existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
 - rather than str or uword parameter types for routines with a string argument, use ^^str  (or ^^ubyte maybe? these are more or less identical..?)
-- same for arrays? pointer-to-array syntax = TBD
+- pointer-to-array syntax = TBD
 - what about pointers to subroutines? should these be typed as well now?
 - asm symbol name prefixing should work for dereferences too.
-- pointer arithmetic is a pain, but need to follow C?  ptr=ptr+10 adds 10*sizeof() instead of just 10.
-- allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
 
 
 Future Things and Ideas

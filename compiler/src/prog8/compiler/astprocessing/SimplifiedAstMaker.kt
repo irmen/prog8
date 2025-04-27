@@ -644,8 +644,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
         val dt = srcArr.arrayvar.targetVarDecl()!!.datatype
-        if(!dt.isArray && !dt.isString)
-            throw FatalAstException("array indexing can only be used on array or string variables ${srcArr.position}")
+        if(!dt.isArray && !dt.isString && !dt.isPointer)
+            throw FatalAstException("array indexing can only be used on array, string or pointer variables ${srcArr.position}")
         val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
         val array = PtArrayIndexer(eltType, srcArr.position)
         array.add(transform(srcArr.arrayvar))

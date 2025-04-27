@@ -119,6 +119,7 @@ verafx {
         ; Returns the 16 bits unsigned result of R0*R1 in AY.
         ; Note: only the lower 16 bits!   (the upper 16 bits are not valid for unsigned word multiplications, only for signed)
         ; Verafx doesn't support unsigned values like this for full 32 bit result.
+        ; Note: clobbers VRAM $1f9bc - $1f9bf (inclusive)
         %asm {{
             lda  cx16.r0
             sta  P8ZP_SCRATCH_W1
@@ -136,6 +137,7 @@ verafx {
     asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> word @AY, word @R0 {
         ; Returns the 32 bits signed result in AY and R0  (lower word, upper word).
         ; Vera Fx multiplication support only works on signed values!
+        ; Note: clobbers VRAM $1f9bc - $1f9bf (inclusive)
         %asm {{
             lda  #(2 << 1)
             sta  cx16.VERA_CTRL        ; $9F25

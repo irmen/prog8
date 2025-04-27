@@ -56,9 +56,9 @@ val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataT
 val BaseDataType.isPointer get() = this == BaseDataType.POINTER
 val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW
-val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
-val BaseDataType.isPassByRef get() = this.isIterable
-val BaseDataType.isPassByValue get() = !this.isIterable
+val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER, BaseDataType.POINTER)
+val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
+val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
 
 
 interface ISubType {
