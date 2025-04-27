@@ -84,8 +84,8 @@ class PtSub(name: String, position: Position) : PtNamedNode(name, position), IPt
 class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(position) {
     // has all parameters PtSubroutineParameter as children.
     init {
-        if(returns.any { !it.isNumericOrBool })
-            throw AssemblyError("non-numeric/non-bool returntype")
+        if(returns.any { !it.isNumericOrBool && !it.isPointer })
+            throw AssemblyError("returntype is not a bool, number or pointer")
     }
 }
 

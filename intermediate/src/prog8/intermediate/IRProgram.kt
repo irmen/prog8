@@ -427,8 +427,8 @@ class IRSubroutine(
         require(!label.startsWith("main.main.")) {"subroutine name invalid main prefix: $label"}
 
         // params and return value should not be str
-        require(parameters.all{ it.dt.isNumericOrBool }) {"non-numeric/non-bool parameter"}
-        require(returns.all { it.isNumericOrBool}) {"non-numeric/non-bool returntype"}
+        require(parameters.all{ it.dt.isNumericOrBool || it.dt.isPointer }) {"parameter is not a bool, number or pointer"}
+        require(returns.all { it.isNumericOrBool || it.isPointer}) {"returntype is not a bool, number or pointer"}
     }
 
     operator fun plusAssign(chunk: IRCodeChunkBase) {

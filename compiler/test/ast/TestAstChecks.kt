@@ -480,7 +480,7 @@ main {
         val errors = ErrorReporterForTests()
         compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
-        errors.errors[0] shouldContain "type of value uword doesn't match target str"
+        errors.errors[0] shouldContain "value type uword doesn't match target type str"
         errors.errors[1] shouldContain "string var must be initialized with a string literal"
         errors.errors[2] shouldContain "string var must be initialized with a string literal"
     }

@@ -201,8 +201,14 @@ class AstPreprocessor(val program: Program,
         }
 
         // convert all antlr names to structs
-        if(decl.datatype.subTypeFromAntlr!=null) {
-            decl.datatype.setActualSubType(decl.definingScope.lookup(decl.datatype.subTypeFromAntlr!!) as StructDecl)
+        val antlrTypeName = decl.datatype.subTypeFromAntlr
+        if(antlrTypeName!=null) {
+            val node = decl.definingScope.lookup(antlrTypeName)
+            if(node==null) {
+                errors.err("cannot find struct type ${antlrTypeName.joinToString(".")}", decl.position)
+            } else {
+                decl.datatype.setActualSubType(node as StructDecl)
+            }
         }
 
         return noModifications

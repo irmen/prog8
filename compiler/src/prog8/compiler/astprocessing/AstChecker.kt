@@ -134,7 +134,7 @@ internal class AstChecker(private val program: Program,
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
                     } else {
-                        errors.err("return value's type $valueDt doesn't match subroutine's return type $expectedDt", actual.position)
+                        errors.err("return value type $valueDt doesn't match subroutine return type $expectedDt", actual.position)
                     }
                 }
             }
@@ -1976,7 +1976,7 @@ internal class AstChecker(private val program: Program,
             }
             targetDt.isBool -> {
                 if (value.type!=BaseDataType.BOOL) {
-                    err("type of value ${value.type.toString().lowercase()} doesn't match target $targetDt")
+                    err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
                 }
             }
             targetDt.isArray -> {
@@ -1985,7 +1985,7 @@ internal class AstChecker(private val program: Program,
             targetDt.isPointer -> {
                 return value.type==BaseDataType.UWORD
             }
-            else -> return err("type of value ${value.type.toString().lowercase()} doesn't match target $targetDt")
+            else -> return err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
         }
         return true
     }
@@ -2097,7 +2097,7 @@ internal class AstChecker(private val program: Program,
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
         else
-            errors.err("type of value $sourceDatatype doesn't match target $targetDatatype", position)
+            errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
 
         return false
     }

@@ -24,8 +24,8 @@ STRUCTS and TYPED POINTERS
 - DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
 - DONE: implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
 - DONE: implicit cast of pointer to uword in conditional expressions
+- DONE: subroutine parameters and return values should be able to accept pointers as well now
 - add unit tests for all changes
-- subroutine parameters should be able to accept pointers as well now
 - arrays of structs? No -> Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
@@ -35,6 +35,7 @@ STRUCTS and TYPED POINTERS
 - what about pointers to subroutines? should these be typed as well now?
 - asm symbol name prefixing should work for dereferences too.
 - pointer arithmetic is a pain, but need to follow C?  ptr=ptr+10 adds 10*sizeof() instead of just 10.
+- allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
 
 
 Future Things and Ideas

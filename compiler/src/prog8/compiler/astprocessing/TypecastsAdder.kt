@@ -66,7 +66,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 if(valueDt isNotAssignableTo decl.datatype)
                     return noModifications
 
-                // uwords are allowed to be assigned to pointers without a cast
+                // uwords are allowed to be assigned to pointers as initialization value without a cast
                 if(decl.datatype.isPointer && valueDt.isUnsignedWord)
                     return noModifications
 
@@ -385,9 +385,15 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if (returnDt istype subReturnType or returnDt.isNotAssignableTo(subReturnType))
                 continue
             if (returnValue is NumericLiteral) {
-                val cast = returnValue.cast(subReturnType.base, true)
-                if(cast.isValid) {
-                    returnStmt.values[index] = cast.valueOrZero()
+                if((returnValue.type == BaseDataType.UWORD || returnValue.type == BaseDataType.UBYTE) && subReturnType.isPointer) {
+                    // cast unsigned integer to the number type
+                    val cast = TypecastExpression(returnValue, subReturnType, true, returnValue.position)
+                    modifications += IAstModification.ReplaceNode(returnValue, cast, returnStmt)
+                } else {
+                    val cast = returnValue.cast(subReturnType.base, true)
+                    if (cast.isValid) {
+                        returnStmt.values[index] = cast.valueOrZero()
+                    }
                 }
             } else {
                 addTypecastOrCastedValueModification(modifications, returnValue, subReturnType.base, returnStmt)

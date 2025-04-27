@@ -192,7 +192,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                     errors.err("unknown field '${deref.field}' in struct '${struct.name}'", deref.position)
                 }
             } else
-                errors.err("undefined type", deref.identifier.position)
+                errors.err("cannot find struct type", deref.identifier.position)
         }
 
         super.visit(deref)

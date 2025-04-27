@@ -197,10 +197,20 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "str"
         BaseDataType.POINTER -> {
-            if(sub!=null) "^^${sub.name.lowercase()}" else "^^${subType!!.scopedNameString}"
+            when {
+                sub!=null -> "^^${sub.name.lowercase()}"
+                subType!=null -> "^^${subType!!.scopedNameString}"
+                subTypeFromAntlr!=null -> "^^${subTypeFromAntlr!!.joinToString(".")}"
+                else -> "?????"
+            }
         }
         BaseDataType.ARRAY_POINTER -> {
-            if(sub!=null) "^^${sub.name.lowercase()}[" else "^^${subType!!.scopedNameString}["
+            when {
+                sub!=null -> "^^${sub.name.lowercase()}["
+                subType!=null -> "^^${subType!!.scopedNameString}["
+                subTypeFromAntlr!=null -> "^^${subTypeFromAntlr!!.joinToString(".")}["
+                else -> "????? ["
+            }
         }
         BaseDataType.ARRAY -> {
             when(sub) {

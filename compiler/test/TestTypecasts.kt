@@ -668,7 +668,7 @@ main {
         val errors=ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
         errors.errors.size shouldBe 12
-        errors.errors.all { "type of value" in it } shouldBe true
+        errors.errors.all { "value type" in it } shouldBe true
         errors.errors.all { "doesn't match" in it } shouldBe true
     }
 
@@ -694,8 +694,8 @@ main {
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain("argument 1 type mismatch")
         errors.errors[1] shouldContain("argument 1 type mismatch")
-        errors.errors[2] shouldContain("type of value bool doesn't match target")
-        errors.errors[3] shouldContain("type of value bool doesn't match target")
+        errors.errors[2] shouldContain("value type bool doesn't match target")
+        errors.errors[3] shouldContain("value type bool doesn't match target")
     }
 
     test("bool function parameters correct typing and implicit casts to bool") {
@@ -723,7 +723,7 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain("type of value bool doesn't match target")
+        errors.errors[0] shouldContain("value type bool doesn't match target")
     }
 
     test("no implicit bool-to-int cast in assignment") {
@@ -737,7 +737,7 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain("type of value bool doesn't match target")
+        errors.errors[0] shouldContain("value type bool doesn't match target")
     }
 
     test("no implicit int-to-bool cast") {
@@ -767,8 +767,8 @@ main {
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain(":4:15: no implicit cast")
         errors.errors[1] shouldContain(":5:15: no implicit cast")
-        errors.errors[2] shouldContain(":8:28: type of value ubyte doesn't match target")
-        errors.errors[3] shouldContain(":9:28: type of value uword doesn't match target")
+        errors.errors[2] shouldContain(":8:28: value type ubyte doesn't match target")
+        errors.errors[3] shouldContain(":9:28: value type uword doesn't match target")
     }
 
     test("str replaced with uword in subroutine params and return types") {
@@ -879,8 +879,8 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "17:16: return value's type ubyte doesn't match subroutine's return type byte"
-        errors.errors[1] shouldContain "20:16: return value's type uword doesn't match subroutine's return type word"
+        errors.errors[0] shouldContain "17:16: return value type ubyte doesn't match subroutine return type byte"
+        errors.errors[1] shouldContain "20:16: return value type uword doesn't match subroutine return type word"
     }
 
     test("if-expression adjusts different value types to common type") {
