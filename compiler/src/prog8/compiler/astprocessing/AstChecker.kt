@@ -62,6 +62,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(identifier: IdentifierReference) {
+
+        val parentExpr = identifier.parent as? BinaryExpression
+        if(parentExpr?.operator=="^^") {
+            return  // identifiers will be checked over at the BinaryExpression itself
+        }
+
         if(identifier.nameInSource.any { it.startsWith('_') }) {
             errors.err("identifiers cannot start with an underscore", identifier.position)
         }
@@ -1228,6 +1234,39 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(expr: BinaryExpression) {
         super.visit(expr)
+
+        if(expr.operator==".")
+            throw FatalAstException("temporary operator '.' should have been replaced by '^^' for 'walking the chain' at ${expr.position}")
+
+        if(expr.operator=="^^") {
+            val leftIdentfier = expr.left as? IdentifierReference
+            val leftIndexer = expr.left as? ArrayIndexedExpression
+            val rightIdentifier = expr.right as? IdentifierReference
+            val rightIndexer = expr.right as? ArrayIndexedExpression
+            if(rightIdentifier!=null) {
+                val struct: StructDecl? =
+                    if (leftIdentfier != null) {
+                        // PTR.FIELD
+                        leftIdentfier.targetVarDecl()?.datatype?.subType as? StructDecl
+                    } else if(leftIndexer!=null) {
+                        // ARRAY[x].NAME --> maybe it's a pointer dereference
+                        leftIndexer.arrayvar.targetVarDecl()?.datatype?.subType as? StructDecl
+                    }
+                    else null
+                if (struct != null) {
+                    val field = struct.getFieldType(rightIdentifier.nameInSource.joinToString("."))
+                    if (field == null)
+                        errors.err("no such field '${rightIdentifier.nameInSource.joinToString(".")}' in struct '${struct.name}'", expr.position)
+                } else
+                    errors.err("cannot find struct type", expr.position)
+            } else if(rightIndexer!=null) {
+                TODO("something.field[y]   at ${expr.position}")
+                // TODO I don't think we can evaluate this because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
+            } else
+                throw FatalAstException("expected identifier or arrayindexer after ^^ operator at ${expr.position})")
+            return
+        }
+
         checkLongType(expr)
 
         val leftIDt = expr.left.inferType(program)

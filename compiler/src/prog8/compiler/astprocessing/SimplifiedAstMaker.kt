@@ -665,10 +665,17 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
         val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
-        expr.add(transformExpression(srcExpr.left))
-        expr.add(transformExpression(srcExpr.right))
-        return expr
+        if(srcExpr.operator=="^^") {
+            if(srcExpr.left is ArrayIndexedExpression) {
+                TODO("ptr[x].field dereference, field type=$type  at ${srcExpr.position}")
+            } else
+                TODO("??? deref something ??? at ${srcExpr.position}")
+        } else {
+            val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
+            expr.add(transformExpression(srcExpr.left))
+            expr.add(transformExpression(srcExpr.right))
+            return expr
+        }
     }
 
     private fun transform(srcCheck: ContainmentCheck): PtExpression {

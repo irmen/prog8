@@ -132,7 +132,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
     checker2.visit(this)
 
     if(errors.noErrors()) {
-        val lit2decl = LiteralsToAutoVars(this, errors)
+        val lit2decl = LiteralsToAutoVarsAndRecombineIdentifiers(this, errors)
         lit2decl.visit(this)
         while(errors.noErrors() && lit2decl.applyModifications()>0)
             lit2decl.visit(this)

@@ -28,6 +28,7 @@ STRUCTS and TYPED POINTERS
 - DONE (for basic types only): allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
 - allow array syntax on pointers to structs too, but what type will ptr[2] have? And it will require  ptr[2].field  to work as well now. Actually that will be the only thing to work for now.
 - pointer arithmetic should follow C:  ptr=ptr+10 adds 10*sizeof() instead of just 10.
+- can we get rid of the '.' -> '^^' operator rewrite?
 - add unit tests for all changes
 - arrays of structs? No -> Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
 - static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.  Syntax = TBD

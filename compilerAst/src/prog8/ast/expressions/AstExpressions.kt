@@ -231,6 +231,36 @@ class BinaryExpression(
             "<=", ">=",
             "==", "!=" -> InferredTypes.knownFor(BaseDataType.BOOL)
             "<<", ">>" -> leftDt
+            "." -> InferredTypes.unknown()      // intermediate operator, will be replaced with '^^' after recombining scoped identifiers
+            "^^" -> {
+                val leftIdentfier = left as? IdentifierReference
+                val leftIndexer = left as? ArrayIndexedExpression
+                val rightIdentifier = right as? IdentifierReference
+                val rightIndexer = right as? ArrayIndexedExpression
+                if(rightIdentifier!=null) {
+                    val struct: StructDecl? =
+                        if (leftIdentfier != null) {
+                            // PTR . FIELD
+                            leftIdentfier.targetVarDecl()?.datatype?.subType as? StructDecl
+                        } else if(leftIndexer!=null) {
+                            // ARRAY[x].NAME --> maybe it's a pointer dereference
+                            leftIndexer.arrayvar.targetVarDecl()?.datatype?.subType as? StructDecl
+                        }
+                        else null
+                    if (struct != null) {
+                        val field = struct.getFieldType(rightIdentifier.nameInSource.joinToString("."))
+                        if (field != null)
+                            InferredTypes.knownFor(field)
+                        else
+                            InferredTypes.unknown()
+                    } else
+                        InferredTypes.unknown()
+                } else if(rightIndexer!=null) {
+                    TODO("something.field[x]  at ${right.position}")
+                    // TODO I don't think we can evaluate this type because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
+                } else
+                    InferredTypes.unknown()
+            }
             else -> throw FatalAstException("resulting datatype check for invalid operator $operator")
         }
     }
@@ -357,8 +387,10 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
                 target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
                 target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
                 target.datatype.isPointer -> {
-                    if(target.datatype.subType!=null)
-                        TODO("indexing on pointer to struct would yield the struct type itself, this is not yet supported (only pointers) at $position")
+                    if(target.datatype.subTypeFromAntlr!=null)
+                        InferredTypes.unknown()
+                    else if(target.datatype.subType!=null)
+                        InferredTypes.unknown()    //  TODO("indexing on pointer to struct would yield the struct type itself, this is not yet supported (only pointers) at $position")
                     else
                         InferredTypes.knownFor(target.datatype.sub!!)
                 }

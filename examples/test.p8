@@ -1,22 +1,25 @@
-%import textio
-%import floats
-%zeropage basicsafe
-%option no_sysinit
 
 main {
     sub start() {
+;        rotatedx[i] = A*shipdata.x[i] + B*shipdata.y[i] + C*shipdata.z[i]
+;        cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx_hires.plot.mask4c[cx16.r2L] | cx16.r12L
+        if cx16.r0[0]!='0' {
+            cx16.r0++
+        }
+
         struct Node {
             bool flag
             ^^Node next
         }
 
-        ^^Node ptr = 2000
+        ^^Node ptr
 
-        txt.print_uw(ptr)
-        txt.nl()
-
-        bool derp = ptr[2].flag
-        bool derp2 = ptr.next.next[2].flag
+        bool zz1, zz2
+        ptr = ptr[10].next
+        zz2 = ptr[10].next.flag         ;; TODO fix
+        zz1 = ptr[10].next.next.flag    ;; TODO fix
+        zz2 = ptr[10].next[2].flag      ;; TODO fix
+        zz1 = ptr[10].next[2].flagz     ;; TODO should complain about flagz only
     }
 }
 

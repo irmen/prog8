@@ -189,6 +189,7 @@ postincrdecr :  assign_target  operator = ('++' | '--') ;
 expression :
     '(' expression ')'
     | functioncall
+    | left = expression EOL? bop = '.' EOL? right = expression          // "scope traversal operator"
     | <assoc=right> prefix = ('+'|'-'|'~') expression
     | left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
     | left = expression EOL? bop = ('+' | '-' ) EOL? right = expression

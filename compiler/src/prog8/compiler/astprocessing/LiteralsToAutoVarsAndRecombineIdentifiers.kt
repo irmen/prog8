@@ -12,7 +12,7 @@ import prog8.code.ast.PtContainmentCheck
 import prog8.code.core.IErrorReporter
 
 
-internal class LiteralsToAutoVars(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
+internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
     override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
         if(string.parent !is VarDecl && string.parent !is WhenChoice) {
@@ -158,6 +158,24 @@ internal class LiteralsToAutoVars(private val program: Program, private val erro
 //                }
 //            }
 //        }
+        return noModifications
+    }
+
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator==".") {
+            val leftIdent = expr.left as? IdentifierReference
+            val rightIndex = expr.right as? ArrayIndexedExpression
+            if (leftIdent != null && rightIndex != null) {
+                // maybe recombine   IDENTIFIER . ARRAY[IDX]  -->  COMBINEDIDENTIFIER[IDX]
+                val leftTarget = leftIdent.targetStatement(null)
+                if(leftTarget==null || leftTarget !is StructDecl) {
+                    val combinedName = leftIdent.nameInSource + rightIndex.arrayvar.nameInSource
+                    val combined = IdentifierReference(combinedName, leftIdent.position)
+                    val indexer = ArrayIndexedExpression(combined, rightIndex.indexer, leftIdent.position)
+                    return listOf(IAstModification.ReplaceNode(expr, indexer, parent))
+                }
+            }
+        }
         return noModifications
     }
 }

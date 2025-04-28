@@ -92,14 +92,17 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(expr: BinaryExpression) {
-        output("(")
+        val isValue = expr.parent is Assignment
+        if(!isValue) output("(")
         expr.left.accept(this)
         if(expr.operator.any { it.isLetter() })
             output(" ${expr.operator} ")
+        else if(expr.operator=="^^")
+            output(".")
         else
             output(expr.operator)
         expr.right.accept(this)
-        output(")")
+        if(!isValue) output(")")
     }
 
     override fun visit(directive: Directive) {
