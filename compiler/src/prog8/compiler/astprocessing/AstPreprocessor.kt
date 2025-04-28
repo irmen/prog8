@@ -218,8 +218,9 @@ class AstPreprocessor(val program: Program,
         // convert all antlr names to structs
         struct.members.forEach {
             if(it.first.subTypeFromAntlr!=null) {
-                val struct = struct.definingScope.lookup(it.first.subTypeFromAntlr!!) as StructDecl
-                it.first.setActualSubType(struct)
+                val struct = struct.definingScope.lookup(it.first.subTypeFromAntlr!!) as? ISubType
+                if(struct!=null)
+                    it.first.setActualSubType(struct)
             }
         }
         return noModifications
@@ -276,6 +277,21 @@ class AstPreprocessor(val program: Program,
             }
         }
 
+        subroutine.returntypes.forEach {
+            if(it.subTypeFromAntlr!=null) {
+                val struct = subroutine.lookup(it.subTypeFromAntlr!!) as? ISubType
+                if(struct!=null)
+                    it.setActualSubType(struct)
+            }
+        }
+        subroutine.parameters.forEach {
+            if(it.type.subTypeFromAntlr!=null) {
+                val struct = subroutine.lookup(it.type.subTypeFromAntlr!!) as? ISubType
+                if(struct!=null)
+                    it.type.setActualSubType(struct)
+            }
+        }
+
         return noModifications
     }
 
@@ -303,11 +319,23 @@ class AstPreprocessor(val program: Program,
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
         // convert all antlr names to structs
         if(typecast.type.subTypeFromAntlr!=null) {
-            val struct = typecast.definingScope.lookup(typecast.type.subTypeFromAntlr!!) as StructDecl
-            typecast.type.setActualSubType(struct)
+            val struct = typecast.definingScope.lookup(typecast.type.subTypeFromAntlr!!) as? ISubType
+            if(struct!=null)
+                typecast.type.setActualSubType(struct)
         }
         return noModifications
     }
+
+    override fun after(field: StructFieldRef, parent: Node): Iterable<IAstModification> {
+        if(field.type.subTypeFromAntlr!=null) {
+            val struct = field.definingScope.lookup(field.type.subTypeFromAntlr!!) as? ISubType
+            if(struct!=null)
+                field.type.setActualSubType(struct)
+        }
+
+        return noModifications
+    }
+
 
     private fun checkStringParam(call: IFunctionCall, stmt: Statement) {
         val targetStatement = call.target.checkFunctionOrLabelExists(program, stmt, errors)

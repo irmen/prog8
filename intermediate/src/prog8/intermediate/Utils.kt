@@ -23,6 +23,12 @@ fun DataType.irTypeString(length: Int?): String {
             else
                 "^${subType!!.scopedNameString}"
         }
+        BaseDataType.STRUCT_INSTANCE -> {
+            if(sub!=null)
+                "INSTANCE:${sub!!.name.lowercase()}"
+            else
+                "INSTANCE:${subType!!.scopedNameString}"
+        }
         BaseDataType.ARRAY_POINTER -> {
             if(sub!=null)
                 "^${sub!!.name.lowercase()}[$lengthStr]"

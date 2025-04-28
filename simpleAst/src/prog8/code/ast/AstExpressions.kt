@@ -10,7 +10,6 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
 
     init {
         if(type.isUndefined) {
-            @Suppress("LeakingThis")
             when(this) {
                 is PtBuiltinFunctionCall -> { /* void function call */ }
                 is PtFunctionCall -> { /* void function call */ }
@@ -117,6 +116,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtRange -> true
             is PtString -> true
             is PtPointerDeref -> true
+            is PtPointerExprDereference -> false
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
         }
@@ -172,7 +172,9 @@ class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(el
         get() = variable.type.isSplitWordArray
 
     init {
-        require(elementType.isNumericOrBool || elementType.isPointer)
+        require(elementType.isNumericOrBool || elementType.isPointer || elementType.isStructInstance) {
+            "invalid array element type $elementType at $position"
+        }
     }
 }
 
@@ -410,6 +412,13 @@ class PtPointerDeref(type: DataType, val chain: List<String>, val field: String?
     // the start of the chain (PtIdentifier) is the only child node
     val start: PtIdentifier
         get() = children.single() as PtIdentifier
+}
+
+
+class PtPointerExprDereference(type: DataType, val chain: List<String>, position: Position) : PtExpression(type, position) {
+    // when something else as a PtIdentifier is dereferenced (most likely, an PtArrayIndexer   pointer[x])
+    val pointer: PtExpression
+        get() = children[0] as PtExpression
 }
 
 

@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("application")
     kotlin("jvm")
@@ -18,7 +16,6 @@ dependencies {
     implementation(project(":codeGenExperimental"))
     implementation(project(":virtualmachine"))
     // implementation(project(":beanshell"))
-    implementation("org.antlr:antlr4-runtime:4.13.2")
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     // implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")

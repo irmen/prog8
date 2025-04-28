@@ -3,9 +3,9 @@ main {
     sub start() {
 ;        rotatedx[i] = A*shipdata.x[i] + B*shipdata.y[i] + C*shipdata.z[i]
 ;        cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx_hires.plot.mask4c[cx16.r2L] | cx16.r12L
-        if cx16.r0[0]!='0' {
-            cx16.r0++
-        }
+;        if cx16.r0[0]!='0' {
+;            cx16.r0++
+;        }
 
         struct Node {
             bool flag
@@ -15,11 +15,20 @@ main {
         ^^Node ptr
 
         bool zz1, zz2
+
         ptr = ptr[10].next
-        zz2 = ptr[10].next.flag         ;; TODO fix
-        zz1 = ptr[10].next.next.flag    ;; TODO fix
-        zz2 = ptr[10].next[2].flag      ;; TODO fix
-        zz1 = ptr[10].next[2].flagz     ;; TODO should complain about flagz only
+;        ptr = func()
+;        zz1 = func().flag
+;        zz2 = func().next.flag
+
+;        ptr = ptr[10].next
+;        zz2 = ptr[10].next.flag         ;; TODO fix
+;        zz1 = ptr[10].next.next.flag    ;; TODO fix
+;        zz2 = ptr[10].next[2].flag      ;; TODO fix
+    }
+
+    sub func() -> ^^main.start.Node {
+        return 999
     }
 }
 

@@ -82,8 +82,15 @@ internal class AstChecker(private val program: Program,
 
         checkLongType(identifier)
         val stmt = identifier.targetStatement(program)
-        if(stmt==null)
+        if(stmt==null) {
+            if(identifier.parent is ArrayIndexedExpression) {
+                // might be a pointer dereference chain
+                val ppExpr = identifier.parent.parent as? BinaryExpression
+                if(ppExpr?.operator=="^^")
+                    return  // identifiers will be checked over at the BinaryExpression itself
+            }
             errors.undefined(identifier.nameInSource, identifier.position)
+        }
         else {
             val target = stmt as? VarDecl
             if (target != null && target.origin == VarDeclOrigin.SUBROUTINEPARAM) {
@@ -537,6 +544,14 @@ internal class AstChecker(private val program: Program,
             if(p.type.isPassByRef && !p.type.isString && !p.type.isUnsignedByteArray) {
                 errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use just 'uword' to receive the address, or maybe don't pass the value via a parameter but access it directly.", p.position)
             }
+
+            if(p.type.isPointer && p.type.subType==null)
+                errors.err("cannot find struct type ${p.type.subTypeFromAntlr?.joinToString(".")}", p.position)
+        }
+
+        for((index, r) in subroutine.returntypes.withIndex()) {
+            if(r.isPointer && r.subType==null)
+                err("return type #${index+1}: cannot find struct type ${r.subTypeFromAntlr?.joinToString(".")}")
         }
     }
 
@@ -1254,14 +1269,51 @@ internal class AstChecker(private val program: Program,
                     }
                     else null
                 if (struct != null) {
-                    val field = struct.getFieldType(rightIdentifier.nameInSource.joinToString("."))
-                    if (field == null)
-                        errors.err("no such field '${rightIdentifier.nameInSource.joinToString(".")}' in struct '${struct.name}'", expr.position)
-                } else
-                    errors.err("cannot find struct type", expr.position)
+                    val fieldDt = if(rightIdentifier.nameInSource.size==1)
+                            struct.getFieldType(rightIdentifier.nameInSource.single())
+                        else
+                            rightIdentifier.traverseDerefChain(struct)
+                    if (fieldDt == null)
+                        errors.err("no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.name}'", rightIdentifier.position)
+                } else {
+                    val leftDt = expr.left.inferType(program)
+                    if(leftDt.isPointer) {
+                        val struct = (leftDt.getOrUndef().subType as? StructDecl)
+                        if(struct!=null) {
+                            if (rightIdentifier.nameInSource.size > 1) {
+                                TODO("astcheck ${struct.name} . $rightIdentifier at ${expr.position}")
+                            }
+                            val fieldDt = struct.getFieldType(rightIdentifier.nameInSource.single())
+                            if (fieldDt == null)
+                                errors.err(
+                                    "no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.name}'",
+                                    rightIdentifier.position
+                                )
+                        }
+                    } else
+                        errors.err("cannot find struct type", expr.left.position)
+                }
             } else if(rightIndexer!=null) {
-                TODO("something.field[y]   at ${expr.position}")
-                // TODO I don't think we can evaluate this because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
+                val leftDt = expr.left.inferType(program)
+                if(leftDt.isStructInstance) {
+                    //  pointer[x].field[y] --> type is the dt of 'field'
+                    var struct = leftDt.getOrUndef().subType as? StructDecl
+                    if (struct==null) {
+                        errors.err("cannot find struct type", expr.position)
+                    } else {
+                        var fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+                        if (fieldDt == null)
+                            errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${(leftDt.getOrUndef().subType as? StructDecl)?.name}'", expr.position)
+                        else {
+                            struct = fieldDt.subType as StructDecl
+                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+                            if(fieldDt==null)
+                                errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${struct.name}'", expr.position)
+                        }
+                    }
+                } else
+                    TODO("something.field[y]   at ${expr.position}")
+                    // TODO I don't think we can evaluate this because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
             } else
                 throw FatalAstException("expected identifier or arrayindexer after ^^ operator at ${expr.position})")
             return
@@ -1691,8 +1743,11 @@ internal class AstChecker(private val program: Program,
             } else if(index!=null && index<0) {
                 errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             }
-        } else
-            errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
+        } else {
+            val parentExpr = arrayIndexedExpression.parent as? BinaryExpression
+            if(parentExpr?.operator!="^^")
+                errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
+        }
 
         // check index value 0..255
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
@@ -1976,10 +2031,10 @@ internal class AstChecker(private val program: Program,
         }
 
         when {
-            targetDt.isFloat -> {
-                val number=value.number
-                if (number > compilerOptions.compTarget.FLOAT_MAX_POSITIVE || number < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE)
-                    return err("value '$number' out of range")
+            targetDt.isBool -> {
+                if (value.type!=BaseDataType.BOOL) {
+                    err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
+                }
             }
             targetDt.isUnsignedByte -> {
                 if(value.type==BaseDataType.FLOAT)
@@ -2009,17 +2064,17 @@ internal class AstChecker(private val program: Program,
                 if (number < -32768 || number > 32767)
                     return err("value '$number' out of range for word")
             }
+            targetDt.isFloat -> {
+                val number=value.number
+                if (number > compilerOptions.compTarget.FLOAT_MAX_POSITIVE || number < compilerOptions.compTarget.FLOAT_MAX_NEGATIVE)
+                    return err("value '$number' out of range")
+            }
             targetDt.isLong -> {
                 if(value.type==BaseDataType.FLOAT)
                     err("integer value expected instead of float; possible loss of precision")
                 val number=value.number
                 if (number < -2147483647 || number > 2147483647)
                     return err("value '$number' out of range for long")
-            }
-            targetDt.isBool -> {
-                if (value.type!=BaseDataType.BOOL) {
-                    err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
-                }
             }
             targetDt.isArray -> {
                 return checkValueTypeAndRange(targetDt.elementType(), value)

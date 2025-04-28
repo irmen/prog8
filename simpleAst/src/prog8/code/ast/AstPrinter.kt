@@ -185,7 +185,11 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtPointerDeref -> {
                 val chain = if(node.chain.isEmpty()) "" else "${node.chain}"
                 val field = if(node.field==null) "" else ".${node.field}"
-                "deref  ${node.start.name} $chain $field ${type(node.type)}"
+                "deref  {child} $chain $field ${type(node.type)}"
+            }
+            is PtPointerExprDereference -> {
+                val chain = if(node.chain.isEmpty()) "" else "${node.chain}"
+                "deref  {child} $chain ${type(node.type)}"
             }
         }
     }

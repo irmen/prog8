@@ -206,7 +206,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         return target
     }
 
-    private fun transform(identifier: IdentifierReference): PtIdentifier {
+    private fun transform(identifier: IdentifierReference): PtExpression {
         val (target, type) = identifier.targetNameAndType(program)
         return PtIdentifier(target, type, identifier.position)
     }
@@ -520,6 +520,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transformAsmSub(srcSub: Subroutine): PtAsmSub {
         val params = srcSub.asmParameterRegisters.zip(srcSub.parameters.map { PtSubroutineParameter(it.name, it.type, it.registerOrPair, it.position) })
         val varbank = if(srcSub.asmAddress?.varbank==null) null else transform(srcSub.asmAddress!!.varbank!!)
+        if(varbank!=null && varbank !is PtIdentifier)
+            throw FatalAstException("varbank must be a regular variable")
         val asmAddr = if(srcSub.asmAddress==null) null else {
             val constAddr = srcSub.asmAddress!!.address.constValue(program)
             if(constAddr==null) throw FatalAstException("extsub address should be a constant")
@@ -663,13 +665,26 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         return arr
     }
 
-    private fun transform(srcExpr: BinaryExpression): PtBinaryExpression {
-        val type = srcExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+    private fun transform(srcExpr: BinaryExpression): PtExpression {
+        val type = srcExpr.inferType(program).getOrElse {
+            throw FatalAstException("unknown dt $srcExpr")
+        }
         if(srcExpr.operator=="^^") {
-            if(srcExpr.left is ArrayIndexedExpression) {
-                TODO("ptr[x].field dereference, field type=$type  at ${srcExpr.position}")
-            } else
-                TODO("??? deref something ??? at ${srcExpr.position}")
+            when (srcExpr.right) {
+                is IdentifierReference -> {
+                    val chain = srcExpr.right as IdentifierReference
+                    val deref = PtPointerExprDereference(type, chain.nameInSource, srcExpr.position)
+                    deref.add(transformExpression(srcExpr.left))
+                    return deref
+                }
+
+                is ArrayIndexedExpression -> {
+                    TODO("transform deref  SOMETHING . FIELD[x]:    $srcExpr")
+                }
+
+                else
+                    -> throw FatalAstException("unknown deref at ${srcExpr.position}")
+            }
         } else {
             val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
             expr.add(transformExpression(srcExpr.left))

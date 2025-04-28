@@ -579,7 +579,7 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
                     val array = litval.arrayliteral().toAst()
                     // the actual type of the arraysize can not yet be determined here
                     // the ConstantFold takes care of that and converts the type if needed.
-                    ArrayLiteral(InferredTypes.InferredType.unknown(), array, position = litval.toPosition())
+                    ArrayLiteral(InferredTypes.unknown(), array, position = litval.toPosition())
                 }
                 else -> throw FatalAstException("invalid parsed literal")
             }

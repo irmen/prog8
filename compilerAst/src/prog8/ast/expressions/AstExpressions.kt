@@ -129,7 +129,7 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
             "~" -> {
                 if(inferred.isBytes) InferredTypes.knownFor(BaseDataType.UBYTE)
                 else if(inferred.isWords) InferredTypes.knownFor(BaseDataType.UWORD)
-                else InferredTypes.InferredType.unknown()
+                else InferredTypes.unknown()
             }
             "-" -> {
                 if(inferred.isBytes) InferredTypes.knownFor(BaseDataType.BYTE)
@@ -233,6 +233,7 @@ class BinaryExpression(
             "<<", ">>" -> leftDt
             "." -> InferredTypes.unknown()      // intermediate operator, will be replaced with '^^' after recombining scoped identifiers
             "^^" -> {
+                val leftExpr = left as? BinaryExpression
                 val leftIdentfier = left as? IdentifierReference
                 val leftIndexer = left as? ArrayIndexedExpression
                 val rightIdentifier = right as? IdentifierReference
@@ -245,19 +246,44 @@ class BinaryExpression(
                         } else if(leftIndexer!=null) {
                             // ARRAY[x].NAME --> maybe it's a pointer dereference
                             leftIndexer.arrayvar.targetVarDecl()?.datatype?.subType as? StructDecl
+                        } else if(leftExpr!=null) {
+                            // SOMEEXPRESSION . NAME
+                            val leftDt = leftExpr.inferType(program)
+                            if(leftDt.isPointer)
+                                leftDt.getOrUndef().subType as StructDecl?
+                            else
+                                null
                         }
                         else null
-                    if (struct != null) {
-                        val field = struct.getFieldType(rightIdentifier.nameInSource.joinToString("."))
-                        if (field != null)
-                            InferredTypes.knownFor(field)
+                    if (struct == null)
+                        InferredTypes.unknown()
+                    else {
+                        val fieldDt = if(rightIdentifier.nameInSource.size==1)
+                                struct.getFieldType(rightIdentifier.nameInSource.single())
+                            else
+                                rightIdentifier.traverseDerefChain(struct)
+                        if (fieldDt != null)
+                            InferredTypes.knownFor(fieldDt)
                         else
                             InferredTypes.unknown()
-                    } else
-                        InferredTypes.unknown()
+                    }
                 } else if(rightIndexer!=null) {
-                    TODO("something.field[x]  at ${right.position}")
-                    // TODO I don't think we can evaluate this type because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
+                    if(leftDt.isStructInstance) {
+                        //  pointer[x].field[y] --> type is the dt of 'field'
+                        var fieldDt = (leftDt.getOrUndef().subType as? StructDecl)?.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+                        if (fieldDt == null)
+                            InferredTypes.unknown()
+                        else {
+                            val struct = fieldDt.subType as StructDecl
+                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+                            if(fieldDt!=null)
+                                InferredTypes.knownFor(fieldDt)
+                            else
+                                InferredTypes.unknown()
+                        }
+                    } else
+                        TODO("something.field[x]  at ${right.position}")
+                        // TODO I don't think we can evaluate this type because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
                 } else
                     InferredTypes.unknown()
             }
@@ -387,10 +413,10 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
                 target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
                 target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
                 target.datatype.isPointer -> {
-                    if(target.datatype.subTypeFromAntlr!=null)
+                    if(target.datatype.subType!=null)
+                        InferredTypes.knownFor(DataType.structInstance(target.datatype.subType))
+                    else if(target.datatype.subTypeFromAntlr!=null)
                         InferredTypes.unknown()
-                    else if(target.datatype.subType!=null)
-                        InferredTypes.unknown()    //  TODO("indexing on pointer to struct would yield the struct type itself, this is not yet supported (only pointers) at $position")
                     else
                         InferredTypes.knownFor(target.datatype.sub!!)
                 }
@@ -1027,7 +1053,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             val loopvarDt = forloop.loopVarDt(program)
             if(loopvarDt.isKnown) {
                 return if(!loopvarDt.isNumericOrBool)
-                    InferredTypes.InferredType.unknown()
+                    InferredTypes.unknown()
                 else
                     InferredTypes.InferredType.known(loopvarDt.getOrUndef().elementToArray())
             }
@@ -1037,7 +1063,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         require(value.isNotEmpty()) { "can't determine type of empty array" }
         val datatypesInArray = value.map { it.inferType(program) }
         if(datatypesInArray.any{ it.isUnknown })
-            return InferredTypes.InferredType.unknown()
+            return InferredTypes.unknown()
         val dts = datatypesInArray.map { it.getOrUndef() }
         return when {
             dts.any { it.isFloat } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT))
@@ -1049,11 +1075,11 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 if(dts.all { it.isBool})
                     InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.BOOL))
                 else
-                    InferredTypes.InferredType.unknown()
+                    InferredTypes.unknown()
             }
             dts.any { it.isUnsignedByte } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE))
             dts.any { it.isArray } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
-            else -> InferredTypes.InferredType.unknown()
+            else -> InferredTypes.unknown()
         }
     }
 
@@ -1287,8 +1313,42 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                 else
                     InferredTypes.knownFor(targetStmt.datatype)
             }
-            else -> InferredTypes.InferredType.unknown()
+            null -> {
+                val fieldType = traverseDerefChain(null)
+                if(fieldType.isUndefined)
+                    InferredTypes.unknown()
+                else
+                    InferredTypes.knownFor(fieldType)
+            }
+            else -> InferredTypes.unknown()
         }
+    }
+
+    fun traverseDerefChain(startStruct: StructDecl?): DataType {
+        var struct: StructDecl
+        var fieldDt: DataType? = null
+        if(startStruct!=null) {
+            struct = startStruct
+        }
+        else {
+            val vardecl = definingScope.lookup(nameInSource.take(1)) as? VarDecl
+            if (vardecl?.datatype?.isPointer != true)
+                return DataType.UNDEFINED
+            struct = vardecl.datatype.subType as StructDecl
+            fieldDt = vardecl.datatype
+        }
+
+        for((idx, field) in nameInSource.drop(1).withIndex()) {
+            fieldDt = struct.getFieldType(field)
+            if(fieldDt==null)
+                return DataType.UNDEFINED
+            if(idx==nameInSource.size-2) {
+                // was last path element
+                return fieldDt
+            }
+            struct = fieldDt.subType as? StructDecl ?: return DataType.UNDEFINED
+        }
+        return fieldDt ?: DataType.UNDEFINED
     }
 
     fun wasStringLiteral(): Boolean {
@@ -1473,7 +1533,7 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     override fun inferType(program: Program): InferredTypes.InferredType {
         val t1 = truevalue.inferType(program)
         val t2 = falsevalue.inferType(program)
-        return if(t1==t2) t1 else InferredTypes.InferredType.unknown()
+        return if(t1==t2) t1 else InferredTypes.unknown()
     }
 
     override fun copy(): Expression = IfExpression(condition.copy(), truevalue.copy(), falsevalue.copy(), position)

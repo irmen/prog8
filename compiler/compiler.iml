@@ -25,6 +25,5 @@
     <orderEntry type="module" module-name="codeGenIntermediate" />
     <orderEntry type="module" module-name="virtualmachine" />
     <orderEntry type="module" module-name="intermediate" />
-    <orderEntry type="library" name="antlr.antlr4" level="project" />
   </component>
 </module>

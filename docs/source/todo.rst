@@ -26,7 +26,7 @@ STRUCTS and TYPED POINTERS
 - DONE: implicit cast of pointer to uword in conditional expressions
 - DONE: subroutine parameters and return values should be able to accept pointers as well now
 - DONE (for basic types only): allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
-- allow array syntax on pointers to structs too, but what type will ptr[2] have? And it will require  ptr[2].field  to work as well now. Actually that will be the only thing to work for now.
+- DONE (?) allow array syntax on pointers to structs too, but what type will ptr[2] have? And it will require  ptr[2].field  to work as well now. Actually that will be the only thing to work for now.
 - pointer arithmetic should follow C:  ptr=ptr+10 adds 10*sizeof() instead of just 10.
 - can we get rid of the '.' -> '^^' operator rewrite?
 - add unit tests for all changes

@@ -57,6 +57,7 @@ object InferredTypes {
         val isBytes = datatype?.isByte==true
         val isWords = datatype?.isWord==true
         val isPointer = datatype?.isPointer==true
+        val isStructInstance = datatype?.isStructInstance==true
         val isUnsignedWord = datatype?.isUnsignedWord==true
         val isInteger = datatype?.isInteger==true
         val isNumeric = datatype?.isNumeric==true
@@ -84,15 +85,6 @@ object InferredTypes {
         type.isFloat -> InferredType.known(BaseDataType.FLOAT)
         type.isString -> InferredType.known(BaseDataType.STR)
         type.isLong -> InferredType.known(BaseDataType.LONG)
-        type.isPointerArray -> InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subType))
-        type.isPointer -> {
-            if(type.sub!=null)
-                InferredType.known(DataType.pointer(type.sub!!))
-            else if(type.subType!=null)
-                InferredType.known(DataType.pointerToType(type.subType!!))
-            else
-                InferredType.known(DataType.pointerFromAntlr(type.subTypeFromAntlr!!))
-        }
         type.isSplitWordArray -> {
             when(type.sub) {
                 BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
@@ -104,6 +96,18 @@ object InferredTypes {
         type.isArray -> {
             InferredType.known(DataType.arrayFor(type.sub!!, false))
         }
-        else -> throw IllegalArgumentException("invalid type")
+        type.isPointer -> {
+            if(type.subType!=null)
+                InferredType.known(DataType.pointerToType(type.subType!!))
+            else if(type.sub!=null)
+                InferredType.known(DataType.pointer(type.sub!!))
+            else
+                InferredType.known(DataType.pointerFromAntlr(type.subTypeFromAntlr!!))
+        }
+        type.isPointerArray -> InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subType))
+        type.isStructInstance -> {
+            InferredType.known(DataType.structInstance(type.subType!!))
+        }
+        else -> throw IllegalArgumentException("invalid type $type")
     }
 }
