@@ -360,9 +360,6 @@ internal fun parseRegisterOrStatusflag(sourceregs: String): RegisterOrStatusflag
 
 
 fun irType(type: DataType): IRDataType {
-    if(type.isPointer)
-        return IRDataType.WORD          // TODO do we need typed pointers in IR? probably not though?
-
     if(type.base.isPassByRef)
         return IRDataType.WORD
 
@@ -370,9 +367,9 @@ fun irType(type: DataType): IRDataType {
         BaseDataType.BOOL,
         BaseDataType.UBYTE,
         BaseDataType.BYTE -> IRDataType.BYTE
-        BaseDataType.UWORD,
-        BaseDataType.WORD -> IRDataType.WORD
+        BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> IRDataType.WORD
         BaseDataType.FLOAT -> IRDataType.FLOAT
+        BaseDataType.STRUCT_INSTANCE -> TODO("no IR datatype for struct instances")
         else -> throw AssemblyError("no IR datatype for $type")
     }
 }

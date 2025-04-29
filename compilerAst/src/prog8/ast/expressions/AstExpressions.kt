@@ -263,7 +263,7 @@ class BinaryExpression(
                             else
                                 rightIdentifier.traverseDerefChain(struct)
                         if (fieldDt != null)
-                            InferredTypes.knownFor(fieldDt)
+                            if(fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
                         else
                             InferredTypes.unknown()
                     }
@@ -277,12 +277,12 @@ class BinaryExpression(
                             val struct = fieldDt.subType as StructDecl
                             fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
                             if(fieldDt!=null)
-                                InferredTypes.knownFor(fieldDt)
+                                if(fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
                             else
                                 InferredTypes.unknown()
                         }
                     } else
-                        TODO("something.field[x]  at ${right.position}")
+                        InferredTypes.unknown() // TODO("something.field[x]  at ${right.position}")
                         // TODO I don't think we can evaluate this type because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
                 } else
                     InferredTypes.unknown()
@@ -1556,6 +1556,37 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     }
 }
 
+class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val position: Position) : Expression() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        indexed.linkParents(this)
+    }
+
+    override val isSimple = false
+    override fun copy() = PtrIndexedDereference(indexed.copy(), position)
+    override fun constValue(program: Program): NumericLiteral? = null
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        val parentExpr = parent as? BinaryExpression
+        if(parentExpr?.operator=="." || parentExpr?.operator=="^^") {
+            TODO("cannot determine type of dereferenced indexed pointer(?) as part of a larger dereference expression")
+        }
+        val vardecl = indexed.arrayvar.targetVarDecl()!!
+        if(vardecl.datatype.isPointer) {
+            if(vardecl.datatype.sub!=null)
+                return InferredTypes.knownFor(vardecl.datatype.sub!!)
+            TODO("cannot determine type of dereferenced indexed pointer(?) that is not a pointer to a basic type")
+        }
+        return InferredTypes.unknown()
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun referencesIdentifier(nameInSource: List<String>) = indexed.referencesIdentifier(nameInSource)
+}
+
 class PtrDereference(val identifier: IdentifierReference, val chain: List<String>, val field: String?, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
@@ -1579,6 +1610,7 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
 
         if(chain.isEmpty()) {
             return if(field==null) {
+                require(vardecl.datatype.sub!=null) { "can only dereference a pointer to a simple datatype " }
                 InferredTypes.knownFor(vardecl.datatype.sub!!)
             } else {
                 // lookup struct field type

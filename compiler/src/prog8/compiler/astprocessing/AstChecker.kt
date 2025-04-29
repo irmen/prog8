@@ -582,7 +582,7 @@ internal class AstChecker(private val program: Program,
         if(ident!=null) {
             val targetVar = ident.targetVarDecl()
             if(targetVar==null)
-                errors.err("invalid assignment value, maybe forgot '&' (address-of)", ident.position)
+                errors.err("invalid assignment value", ident.position)
         }
         super.visit(repeatLoop)
     }
@@ -627,6 +627,21 @@ internal class AstChecker(private val program: Program,
             if(fcallTarget.returntypes.size!=1) {
                 return numberOfReturnValuesError(1, fcallTarget.returntypes, fcall.position)
             }
+        }
+
+        // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
+        if(assignment.value.inferType(program).isUnknown) {
+            val binexpr = assignment.value as? BinaryExpression
+            if(binexpr?.left is PtrDereference) {
+                errors.err("invalid pointer dereference (can't determine type)", binexpr.left.position)
+            }
+            else if(binexpr?.right is PtrDereference) {
+                errors.err("invalid pointer dereference (can't determine type)", binexpr.right.position)
+            }
+            else if(binexpr?.operator=="^^" || binexpr?.operator==".")
+                errors.err("invalid pointer dereference (can't determine type)", assignment.value.position)
+            else if(assignment.target.multi==null)
+                errors.err("invalid assignment value", assignment.value.position)
         }
 
         super.visit(assignment)
@@ -704,7 +719,7 @@ internal class AstChecker(private val program: Program,
                         if(assignment.value is PtrDereference)
                             errors.err("invalid pointer dereference value", assignment.value.position)
                         else
-                            errors.err("invalid assignment value, maybe forgot '&' (address-of)", assignment.value.position)
+                            errors.err("invalid assignment value", assignment.value.position)
                 } else {
                     val dt = targetDatatype.getOrUndef()
                     checkAssignmentCompatible(dt, sourceDatatype.getOrUndef(), assignment.value.position)
@@ -1311,9 +1326,10 @@ internal class AstChecker(private val program: Program,
                                 errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${struct.name}'", expr.position)
                         }
                     }
-                } else
-                    TODO("something.field[y]   at ${expr.position}")
+                } else {
+                    errors.err("at the moment it is not possible to chain array syntax on pointers like  ...p1[x].p2[y]... use separate expressions for the time being", expr.right.position)  // TODO add support for chained array syntax on pointers (rewrite ast?)
                     // TODO I don't think we can evaluate this because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
+                }
             } else
                 throw FatalAstException("expected identifier or arrayindexer after ^^ operator at ${expr.position})")
             return
@@ -1895,6 +1911,12 @@ internal class AstChecker(private val program: Program,
             errors.err("struct must contain at least one field", struct.position)
     }
 
+    override fun visit(deref: PtrDereference) {
+        // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
+        if(deref.inferType(program).isUnknown)
+            errors.err("unable to determine type of dereferenced pointer expression", deref.position)
+    }
+
     private fun checkLongType(expression: Expression) {
         if(expression.inferType(program) issimpletype BaseDataType.LONG) {
             if((expression.parent as? VarDecl)?.type!=VarDeclType.CONST) {
@@ -2152,7 +2174,7 @@ internal class AstChecker(private val program: Program,
         }
         if (sourceDatatype.isArray) {
             if(targetDatatype.isUnsignedWord)
-                errors.err("invalid assignment value, maybe forgot '&' (address-of)", position)
+                errors.err("invalid assignment value", position)
             else
                 errors.err("cannot assign array", position)         // also includes range expressions
             return false

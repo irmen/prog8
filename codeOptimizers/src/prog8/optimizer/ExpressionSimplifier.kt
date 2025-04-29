@@ -425,10 +425,24 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         if(arrayIndexedExpression.indexer.constIndex()==0) {
-            if(arrayIndexedExpression.arrayvar.inferType(program).isPointer) {
+            val dt = arrayIndexedExpression.arrayvar.inferType(program).getOrUndef()
+            if(dt.isPointer) {
                 // pointer[0]  -->   pointer^^
-                val deref = PtrDereference(arrayIndexedExpression.arrayvar, emptyList(), null, arrayIndexedExpression.position)
-                return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
+                if(dt.sub==null) {
+                    val parentExpr = parent as? BinaryExpression
+                    if(parentExpr?.operator=="^^" || parentExpr?.operator=="^" && parentExpr.right is IdentifierReference) {
+                        // we're part of an expression:  pointer[x].ptr.ptr.field
+                        val chain = (parentExpr.right as? IdentifierReference)?.nameInSource?.toMutableList() ?: mutableListOf()
+                        val field = chain.removeLastOrNull()
+                        val deref = PtrDereference(arrayIndexedExpression.arrayvar, chain, field, arrayIndexedExpression.position)
+                        return listOf(IAstModification.ReplaceNode(parent, deref, parent.parent))
+                    } else
+                        throw FatalAstException("cannot dereference a 'bare' pointer to a struct, only to a basic type at ${arrayIndexedExpression.position}")
+                } else {
+                    // points to a simple type, can simply dereference the pointer itself directly
+                    val deref = PtrDereference(arrayIndexedExpression.arrayvar, emptyList(), null, arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
+                }
             }
         }
         return noModifications

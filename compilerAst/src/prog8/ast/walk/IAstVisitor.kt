@@ -211,4 +211,8 @@ interface IAstVisitor {
     fun visit(deref: PtrDereference) {
         deref.identifier.accept(this)
     }
+
+    fun visit(idxderef: PtrIndexedDereference) {
+        idxderef.indexed.accept(this)
+    }
 }

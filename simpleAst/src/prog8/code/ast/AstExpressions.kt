@@ -115,8 +115,8 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtPrefix -> value.isSimple()
             is PtRange -> true
             is PtString -> true
-            is PtPointerDeref -> true
-            is PtPointerExprDereference -> false
+            is PtPointerDeref -> this.startpointer.isSimple() && this.field==null && this.chain.isEmpty()
+            is PtPointerIndexedDeref -> this.indexer.isSimple()
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
         }
@@ -409,18 +409,15 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
 }
 
 class PtPointerDeref(type: DataType, val chain: List<String>, val field: String?, position: Position) : PtExpression(type, position) {
-    // the start of the chain (PtIdentifier) is the only child node
-    val start: PtIdentifier
-        get() = children.single() as PtIdentifier
+    // the start of the chain is the only child node (PtExpression that yields a pointer)
+    val startpointer: PtExpression
+        get() = children.single() as PtExpression
 }
 
-
-class PtPointerExprDereference(type: DataType, val chain: List<String>, position: Position) : PtExpression(type, position) {
-    // when something else as a PtIdentifier is dereferenced (most likely, an PtArrayIndexer   pointer[x])
-    val pointer: PtExpression
-        get() = children[0] as PtExpression
+class PtPointerIndexedDeref(type: DataType, position: Position) : PtExpression(type, position) {
+    val indexer: PtArrayIndexer
+        get() = children.single() as PtArrayIndexer
 }
-
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code
 class PtIrRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)

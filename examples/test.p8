@@ -1,142 +1,181 @@
+%zeropage basicsafe
+%import textio
 
 main {
     sub start() {
-;        rotatedx[i] = A*shipdata.x[i] + B*shipdata.y[i] + C*shipdata.z[i]
-;        cx16.VERA_DATA0 = cx16.VERA_DATA0 & gfx_hires.plot.mask4c[cx16.r2L] | cx16.r12L
-;        if cx16.r0[0]!='0' {
-;            cx16.r0++
-;        }
+
+        uword buf = memory("buffer", 2000, 0)
+        sys.memset(buf, 2000, 0)
+
+        ; put 9 nodes into the buffer sequentially.
+        ; each of the first 3 nodes points to the 4th, 5th, 6th.
+        ; these in turn point to the 7th, 8th and 9th.
 
         struct Node {
-            bool flag
+            ubyte value
             ^^Node next
         }
 
-        ^^Node ptr
+        ^^Node n0,n1,n2,n3,n4,n5,n6,n7,n8
 
-        bool zz1, zz2
+        n0 = buf + 0
+        n1 = buf + sizeof(Node)
+        n2 = buf + sizeof(Node)*2
+        n3 = buf + sizeof(Node)*3
+        n4 = buf + sizeof(Node)*4
+        n5 = buf + sizeof(Node)*5
+        n6 = buf + sizeof(Node)*6
+        n7 = buf + sizeof(Node)*7
+        n8 = buf + sizeof(Node)*8
 
-        ptr = ptr[10].next
-;        ptr = func()
-;        zz1 = func().flag
-;        zz2 = func().next.flag
+        n0.next = n3
+        n1.next = n4
+        n2.next = n5
+        n3.next = n6
+        n4.next = n7
+        n5.next = n8
 
-;        ptr = ptr[10].next
-;        zz2 = ptr[10].next.flag         ;; TODO fix
-;        zz1 = ptr[10].next.next.flag    ;; TODO fix
-;        zz2 = ptr[10].next[2].flag      ;; TODO fix
-    }
+        n0.value = 'a'
+        n1.value = 'b'
+        n2.value = 'c'
+        n3.value = 'd'
+        n4.value = 'e'
+        n5.value = 'f'
+        n6.value = 'g'
+        n7.value = 'h'
+        n8.value = 'i'
 
-    sub func() -> ^^main.start.Node {
-        return 999
-    }
-}
+        txt.print("struct size: ")
+        txt.print_uw(sizeof(Node))
+        txt.nl()
 
-/*
-main {
+        txt.print("pointer values: ")
+        txt.print_uw(n0)
+        txt.spc()
+        txt.print_uw(n1)
+        txt.spc()
+        txt.print_uw(n2)
+        txt.spc()
+        txt.print_uw(n3)
+        txt.spc()
+        txt.print_uw(n4)
+        txt.spc()
+        txt.print_uw(n5)
+        txt.spc()
+        txt.print_uw(n6)
+        txt.spc()
+        txt.print_uw(n7)
+        txt.spc()
+        txt.print_uw(n8)
+        txt.nl()
 
-    struct Enemy {
-        ubyte x
-        ubyte y
-        uword value
-        float rotation
-        bool alive
-        ; no strings or arrays allowed in struct type declarations.
-        ; typed pointers are allowed though because these are just a uword:
-        ^^float floatptr
-        ^^str stringpointer
-    }
+        txt.print("field address: ")
+        txt.print_uw(&n0.value)
+        txt.spc()
+        txt.print_uw(&n1.value)
+        txt.spc()
+        txt.print_uw(&n2.value)
+        txt.nl()
+        txt.print_uw(&n6.value)
+        txt.spc()
+        txt.print_uw(&n7.value)
+        txt.spc()
+        txt.print_uw(&n8.value)
+        txt.nl()
+        txt.print_uw(&n0.next.next.value)
+        txt.spc()
+        txt.print_uw(&n1.next.next.value)
+        txt.spc()
+        txt.print_uw(&n2.next.next.value)
+        txt.nl()
 
-    sub start() {
+        txt.print("node values: ")
+        txt.chrout(n0.value)
+        txt.chrout(n1.value)
+        txt.chrout(n2.value)
+        txt.chrout(n3.value)
+        txt.chrout(n4.value)
+        txt.chrout(n5.value)
+        txt.chrout(n6.value)
+        txt.chrout(n7.value)
+        txt.chrout(n8.value)
+        txt.nl()
 
-        ; struct declarations also allowed inside subroutine scope
-        struct Node {
-            ubyte type
-            uword value
-            ^^Node nextnode  ; linked list?
+        txt.print("linked values:\n")
+        txt.print("n0: ")
+        ^^Node ptr = n0
+        while ptr {
+            txt.chrout(ptr.value)
+            ptr = ptr.next
         }
-
-        ; declare pointer vars
-        ^^bool @shared bool_ptr
-        ^^ubyte @shared ubyte_ptr
-        ^^word @shared word_ptr
-        ^^Node @shared node_ptr
-        ^^Enemy @shared enemy_ptr
-        ^^bool[5] @shared boolptr_list   ; array of pointers to bools (bit silly, should we even support this)
-        ^^Node[5] @shared node_list      ; array of pointers to nodes
-        ^^Enemy[5] @shared enemy_list    ; array of pointers to enemies
-
-        txt.print("sizeofs: ")
-        txt.print_ub(sizeof(Enemy))
-        txt.spc()
-        txt.print_ub(sizeof(Node))
-        txt.spc()
-        txt.print_ub(sizeof(bool_ptr))
+        txt.nl()
+        txt.print("n1: ")
+        ptr = n1
+        while ptr {
+            txt.chrout(ptr.value)
+            ptr = ptr.next
+        }
+        txt.nl()
+        txt.print("n2: ")
+        ptr = n2
+        while ptr {
+            txt.chrout(ptr.value)
+            ptr = ptr.next
+        }
         txt.nl()
 
-        ; point to a memory address.
-        bool_ptr  = 2000
-        bool_ptr  = 2002 as ^^bool
-        ubyte_ptr  = 2000
-        word_ptr  = 2000
-        node_ptr  = 2000
-        enemy_ptr  = 2000
-        bool_ptr = enemy_ptr as ^^bool   ; cast makes no sense, but hey, programmer knows best right? (without cast would give error)
-
-        ; dereference
-        bool @shared bvar = bool_ptr^^
-        bool_ptr^^ = false
-
-        ; writing and reading fields using explicit deref
-        enemy_ptr^^.y = 42
-        node_ptr^^.nextnode^^.value = 888
-        node_ptr^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.value = 888
-        cx16.r0=node_ptr^^.nextnode^^.nextnode^^.nextnode^^.nextnode^^.value
-        node_ptr^^.nextnode = node_ptr
-
-        ; writing and reading fields using implicit deref
-        enemy_ptr.y = 42
-        node_ptr.nextnode.value = 888
-        node_ptr.nextnode.nextnode.nextnode.nextnode.nextnode.value = 888
-        cx16.r0=node_ptr.nextnode.nextnode.nextnode.nextnode.value
-
-        ; address of fields
-        txt.print("address of field: ")
-        txt.print_uw(&enemy_ptr.alive)
-        txt.spc()
-        enemy_ptr = 8000
-        txt.print_uw(&enemy_ptr.alive)
+        txt.print("array syntax on nodes: ")
+        txt.chrout(n0[0].value)
+        txt.chrout(n0[1].value)
+        txt.chrout(n0[2].value)
+        txt.chrout(n0[3].value)
+        txt.chrout(n0[4].value)
+        txt.chrout(n0[5].value)
+        txt.chrout(n0[6].value)
+        txt.chrout(n0[7].value)
+        txt.chrout(n0[8].value)
         txt.nl()
 
-        ; array elements, point to a memory address
-        node_list[0] = 1000
-        node_list[1] = 2000
-        node_list[1] = 2002 as ^^Node
-        node_list[2] = 3000
+        txt.print("array syntax followed by dereference: ")
+        txt.chrout(n0[0].next.next.value)
+        txt.chrout(n0[1].next.next.value)
+        txt.chrout(n0[2].next.next.value)
+        txt.nl()
 
-        ubyte_ptr = thing(ubyte_ptr)
+        txt.print("assigning to fields: ")
+        n0.value = 'q'
+        n1.value = 'w'
+        n2.value = 'e'
+        n0.next.next.value = 'x'
+        n1.next.next.value = 'y'
+        n2.next.next.value = 'z'
+        txt.chrout(n0.value)
+        txt.chrout(n1.value)
+        txt.chrout(n2.value)
         txt.spc()
-        txt.print_uw(ubyte_ptr)
+        txt.chrout(n0.next.next.value)
+        txt.chrout(n1.next.next.value)
+        txt.chrout(n2.next.next.value)
+        txt.spc()
+        txt.chrout(n6.value)
+        txt.chrout(n7.value)
+        txt.chrout(n8.value)
+        txt.nl()
 
-        cx16.r0s = word_ptr[0]
-        cx16.r0s = word_ptr[99]
+        txt.print("ptr to simple types: ")
+        word w_value = -9999
+        txt.print_w(w_value)
+        txt.spc()
+        ^^word w_ptr = &w_value
+        w_ptr^^ = 5555
+        txt.print_w(w_value)
+        txt.nl()
 
-
-        ; BELOW DOESN'T WORK YET:
-        ; pointer arithmetic
-;        ubyte_ptr^^ ++
-;        enemy_ptr ++        ; add 1*sizeof
-;        enemy_ptr += 10     ; add 10*sizeof
-
-        ; TODO how to statically allocate/initialize a struct? Difficult.. see TODO in docs
-    }
-
-    sub thing(^^ubyte pointer) -> ^^ubyte {
-        txt.print("got pointer:")
-        txt.print_uw(pointer)
-        return 9999
+        word[] @nosplit warray = [1111,2222,3333,4444,5555,6666]
+        w_ptr = &warray
+        txt.print_w(w_ptr^^)
+        txt.spc()
+        txt.print_w(w_ptr[4]^^)
+        txt.nl()
     }
 }
-
-
-*/

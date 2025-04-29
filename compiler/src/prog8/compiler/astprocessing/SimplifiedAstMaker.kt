@@ -99,7 +99,17 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is TypecastExpression -> transform(expr)
             is IfExpression -> transform(expr)
             is PtrDereference -> transform(expr)
+            is PtrIndexedDereference -> transform(expr)
         }
+    }
+
+    private fun transform(idxderef: PtrIndexedDereference): PtPointerIndexedDeref {
+        val type = idxderef.inferType(program).getOrElse {
+            throw FatalAstException("unknown dt")
+        }
+        val deref = PtPointerIndexedDeref(type, idxderef.position)
+        deref.add(transform(idxderef.indexed))
+        return deref
     }
 
     private fun transform(deref: PtrDereference): PtPointerDeref {
@@ -673,17 +683,17 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             when (srcExpr.right) {
                 is IdentifierReference -> {
                     val chain = srcExpr.right as IdentifierReference
-                    val deref = PtPointerExprDereference(type, chain.nameInSource, srcExpr.position)
+                    val deref = PtPointerDeref(type, chain.nameInSource, null, srcExpr.position)
                     deref.add(transformExpression(srcExpr.left))
                     return deref
                 }
 
                 is ArrayIndexedExpression -> {
-                    TODO("transform deref  SOMETHING . FIELD[x]:    $srcExpr")
+                    errors.err("at the moment it is not possible to chain array syntax on pointers like  ...p1[x].p2[y]... use separate expressions for the time being", srcExpr.right.position)  // TODO add support for chained array syntax on pointers (rewrite ast?)
+                    return PtIdentifier("<dummy>", DataType.UNDEFINED, Position.DUMMY)
                 }
 
-                else
-                    -> throw FatalAstException("unknown deref at ${srcExpr.position}")
+                else -> throw FatalAstException("unknown deref at ${srcExpr.position}")
             }
         } else {
             val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)

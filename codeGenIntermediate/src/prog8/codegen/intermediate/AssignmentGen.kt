@@ -509,9 +509,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return result
         }
         else if(targetPointerDeref!=null) {
-            val pointerTr = expressionEval.translateExpression(targetPointerDeref.start)
+            val pointerTr = expressionEval.translateExpression(targetPointerDeref.startpointer)
             result += pointerTr.chunks
-            result += expressionEval.traverseDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg)
+            result += expressionEval.traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg)
 
             val instr = when {
                 targetPointerDeref.type.isByteOrBool -> {

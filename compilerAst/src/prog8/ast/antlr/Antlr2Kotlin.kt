@@ -652,9 +652,20 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
     val deref = pointerdereference()?.toAst()
     if(deref!=null) return deref
 
+    val indexedderef = pointerindexedderef()?.toAst()
+    if(indexedderef!=null) return indexedderef
+
     throw FatalAstException(text)
 }
 
+
+private fun PointerindexedderefContext.toAst(): PtrIndexedDereference {
+    val ax = arrayindexed()
+    val arrayvar = ax.scoped_identifier().toAst()
+    val index = ax.arrayindex().toAst()
+    val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
+    return PtrIndexedDereference(arrayindexed, toPosition())
+}
 
 private fun PointerdereferenceContext.toAst(): PtrDereference {
     val scopeprefix = prefix?.toAst()
@@ -666,6 +677,13 @@ private fun PointerdereferenceContext.toAst(): PtrDereference {
             IdentifierReference(listOf(derefchain.first()), toPosition())
     return PtrDereference(firstIdentifier, derefchain.drop(1), field?.text, toPosition())
 }
+
+/* TODO:
+    private fun SinglederefContext.toAst(): Pair<String, ArrayIndex?> {
+    val ident = identifier()!!.name()
+    val index = arrayindex()?.toAst()
+    return ident to index
+}*/
 
 private fun CharliteralContext.toAst(): CharLiteral {
     val text = this.SINGLECHAR().text

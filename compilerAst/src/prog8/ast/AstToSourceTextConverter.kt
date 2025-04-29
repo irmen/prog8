@@ -543,6 +543,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             output(".${deref.field}")
     }
 
+    override fun visit(idxderef: PtrIndexedDereference) {
+        idxderef.indexed.accept(this)
+        output("^^")
+    }
+
     override fun visit(field: StructFieldRef) {
         throw FatalAstException("struct field ref shouldn't occur as part of the AST tree ")
     }
