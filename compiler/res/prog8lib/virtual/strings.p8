@@ -179,7 +179,7 @@ strings {
     sub hash(str st) -> ubyte {
         ; experimental 8 bit hashing function.
         ; hash(-1)=179;  hash(i) = ROL hash(i-1)  XOR  string[i]
-        ; (experimental because the quality of the resulting hash value still has to be determined)
+        ; On the English word list in /usr/share/dict/words it seems to have a pretty even distribution
         ubyte hashcode = 179
         ubyte ix
         sys.clear_carry()

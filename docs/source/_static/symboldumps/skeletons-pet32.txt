@@ -189,7 +189,7 @@ strings  {
     endswith  (str st, str suffix) -> bool 
     find  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
     findstr  (str haystack, str needle) -> ubyte 
-    hash  (str string @R0) -> ubyte @A 
+    hash  (str string @AY) -> ubyte @A 
     isdigit  (ubyte petsciichar @A) -> bool @Pc 
     isletter  (ubyte petsciichar @A) -> bool @Pc 
     islower  (ubyte petsciichar @A) -> bool @Pc 

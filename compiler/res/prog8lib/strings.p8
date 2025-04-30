@@ -391,16 +391,18 @@ fail    clc             ; yes, no match found, return with c=0
 		}}
 	}
 
-    asmsub hash(str string @R0) -> ubyte @A {
+    asmsub hash(str string @AY) -> ubyte @A {
         ; experimental 8 bit hashing function.
         ; hash(-1)=179;  clear carry;  hash(i) = ROL hash(i-1)  XOR  string[i]
         ; On the English word list in /usr/share/dict/words it seems to have a pretty even distribution
         %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
             lda  #179
             sta  P8ZP_SCRATCH_REG
             ldy  #0
             clc
--           lda  (cx16.r0),y
+-           lda  (P8ZP_SCRATCH_W1),y
             beq  +
             rol  P8ZP_SCRATCH_REG
             eor  P8ZP_SCRATCH_REG
