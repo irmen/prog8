@@ -923,6 +923,8 @@ arithmetic: ``+``  ``-``  ``*``  ``/``  ``%``
 bitwise arithmetic: ``&``  ``|``  ``^``  ``~``  ``<<``  ``>>``
     ``&`` is bitwise and, ``|`` is bitwise or, ``^`` is bitwise xor, ``~`` is bitwise invert (this one is an unary operator)
     ``<<`` is bitwise left shift and ``>>`` is bitwise right shift (both will not change the datatype of the value)
+    While the operands can be signed integers (the expression will just consider the underlying bit patterns),
+    the result value of a bitwise expression is always unsigned.
 
 assignment: ``=``
     Sets the target on the LHS (left hand side) of the operator to the value of the expression on the RHS (right hand side).

@@ -185,6 +185,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                 }
             }
+
+            // check if shifts have a positive integer shift type
+            if(expr.operator=="<<" || expr.operator==">>") {
+                if(rightDt.isInteger) {
+                    val rconst = expr.right.constValue(program)
+                    if(rconst!=null && rconst.number<0)
+                        errors.err("can only shift by a positive amount", expr.right.position)
+                } else
+                    errors.err("right operand of bit shift must be an integer", expr.right.position)
+            }
         }
 
         return noModifications
