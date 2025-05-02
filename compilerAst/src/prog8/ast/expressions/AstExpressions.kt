@@ -1574,8 +1574,8 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
         if(parentExpr?.operator=="." || parentExpr?.operator=="^^") {
             TODO("cannot determine type of dereferenced indexed pointer(?) as part of a larger dereference expression")
         }
-        val vardecl = indexed.arrayvar.targetVarDecl()!!
-        if(vardecl.datatype.isPointer) {
+        val vardecl = indexed.arrayvar.targetVarDecl()
+        if(vardecl!=null &&vardecl.datatype.isPointer) {
             if(vardecl.datatype.sub!=null)
                 return InferredTypes.knownFor(vardecl.datatype.sub!!)
             TODO("cannot determine type of dereferenced indexed pointer(?) that is not a pointer to a basic type")

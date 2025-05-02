@@ -1765,10 +1765,13 @@ internal class AstChecker(private val program: Program,
                 errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
         }
 
-        // check index value 0..255
+        // check index value 0..255 if the index variable is not a pointer
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
-        if(dtxNum.isKnown && !(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
-            errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+        if(dtxNum.isKnown) {
+            val arrayVarDt = arrayIndexedExpression.arrayvar.inferType(program)
+            if (!arrayVarDt.isPointer && !(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
+                errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
+        }
 
         super.visit(arrayIndexedExpression)
     }

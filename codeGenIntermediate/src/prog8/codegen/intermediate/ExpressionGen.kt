@@ -107,20 +107,25 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val pointerTr = translateExpression(idx.variable)
         result += pointerTr.chunks
         val pointerReg = pointerTr.resultReg
-        // TODO optimizations like PtArrayIndexed when the index value is a constant etc
-        val indexTr = translateExpression(idx.index)
-        result += indexTr.chunks
-        result += IRCodeChunk(null, null).also {
-            val indexReg: Int
-            if (idx.index.type.isByte) {
-                // extend array index to word
-                indexReg = codeGen.registers.next(IRDataType.WORD)
-                it += IRInstruction(Opcode.EXT, IRDataType.BYTE, indexReg, indexTr.resultReg)
-            } else {
-                indexReg = indexTr.resultReg
+        val constIndex = idx.index.asConstInteger()
+        if(constIndex!=null) {
+            val offset = constIndex * eltSize
+            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
+        } else {
+            val indexTr = translateExpression(idx.index)
+            result += indexTr.chunks
+            result += IRCodeChunk(null, null).also {
+                val indexReg: Int
+                if (idx.index.type.isByte) {
+                    // extend array index to word
+                    indexReg = codeGen.registers.next(IRDataType.WORD)
+                    it += IRInstruction(Opcode.EXT, IRDataType.BYTE, indexReg, indexTr.resultReg)
+                } else {
+                    indexReg = indexTr.resultReg
+                }
+                it += codeGen.multiplyByConst(IRDataType.WORD, indexReg, eltSize)
+                it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
             }
-            it += codeGen.multiplyByConst(IRDataType.WORD, indexReg, eltSize)
-            it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
         }
 
         when {
@@ -165,24 +170,31 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val pointerTr = translateExpression(arrayIndexer.variable)
             result += pointerTr.chunks
             pointerReg = pointerTr.resultReg
-            // TODO optimizations like PtArrayIndexed when the index value is a constant etc
-            val indexTr = translateExpression(arrayIndexer.index)
-            result += indexTr.chunks
-            // multiply the index by the size of the struct and add that to the pointer, then add the offset of the field,
-            // and retrieve the pointer value that is stored there, or the actual value if it's a pointer to simple type
-            result += IRCodeChunk(null, null).also {
-                val indexReg: Int
-                if(arrayIndexer.index.type.isByte) {
-                    // extend array index to word
-                    indexReg = codeGen.registers.next(IRDataType.WORD)
-                    it += IRInstruction(Opcode.EXT, IRDataType.BYTE, indexReg, indexTr.resultReg)
-                } else {
-                    indexReg = indexTr.resultReg
+            val constIndex = arrayIndexer.index.asConstInteger()
+            if(constIndex!=null) {
+                val offset = constIndex * structsize
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
+            } else {
+                val indexTr = translateExpression(arrayIndexer.index)
+                result += indexTr.chunks
+                // multiply the index by the size of the struct and add that to the pointer, then add the offset of the field,
+                // and retrieve the pointer value that is stored there, or the actual value if it's a pointer to simple type
+                result += IRCodeChunk(null, null).also {
+                    val indexReg: Int
+                    if(arrayIndexer.index.type.isByte) {
+                        // extend array index to word
+                        indexReg = codeGen.registers.next(IRDataType.WORD)
+                        it += IRInstruction(Opcode.EXT, IRDataType.BYTE, indexReg, indexTr.resultReg)
+                    } else {
+                        indexReg = indexTr.resultReg
+                    }
+                    it += codeGen.multiplyByConst(IRDataType.WORD, indexReg, structsize)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
                 }
-                it += codeGen.multiplyByConst(IRDataType.WORD, indexReg, structsize)
-                it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
-                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = firstField.second)
+            }
 
+            result += IRCodeChunk(null, null).also {
+                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = firstField.second)
                 if (firstField.first.isPointer) {
                     // get the address stored in the pointer and use that for the rest of the chain
                     // LOADI has an exception to allo reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
@@ -192,6 +204,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     // it's a pointer to a simple value, so keep the pointer as-is
                 }
             }
+
 
             // now use traverseDerefChainToCalculateFinalAddress on b.c.d and finally field  or on b.c.d.field if field isn't a field.
             val derefField = if(deref.type.isPointer) null else chain.removeLastOrNull()
@@ -840,7 +853,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                 }
                 // return value(s)
-                // TODO: for current implemenation of the call convention in case of multiple return values,
+                // TODO: for current implementation of the call convention in case of multiple return values,
                 // a list of Ir virtual registers to hold the results is NOT correct (they're loaded into AY + R15..R0 instead!)
                 // So we use an empty list to avoid confusion here.   This may change in a future version.
                 val returnRegSpecs = if(fcall.void || callTarget.returns.size>1) emptyList() else {
