@@ -50,6 +50,10 @@ Various things:
     of routines to perform tile and sprite transformations and rotation, using
     the VeraFX hardware feature. Includes examples.
 
+`C64 REU Banking <https://github.com/gillham/prog8reu>`_
+    A Prog8 library module that provides Commander X16 style RAM banking on a C64 with an REU.
+    This module provides cx16.rambank(), x16jsrfar() and extsub @bank functionality on a C64.
+
 
 .. image:: _static/curious.png
     :align: center
