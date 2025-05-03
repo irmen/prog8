@@ -342,6 +342,15 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeEndElement()
         xml.writeCharacters("\n")
 
+        val instances = irProgram.st.allStructInstances()
+        for (instance in instances) {
+            if(instance.values.isEmpty())
+                TODO("write to IR: BSS struct instance: ${instance.name}")
+            else
+                TODO("write to IR: static struct instance with values: ${instance.name}  ${instance.values}")
+        }
+
+
         xml.writeStartElement("VARIABLESWITHINIT")
         xml.writeCharacters("\n")
         val (initNotAligned, initAligned) = variablesWithInit.partition { it.align==0 || it.align==1 }

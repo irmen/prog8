@@ -64,7 +64,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StSub(node.name, params, node.signature.returns, node)
             }
             is PtStructDecl -> {
-                StStruct(node.name, node.members, node)
+                StStruct(node.name, node.fields, node)
             }
             is PtVariable -> {
                 val initialNumeric: Double?
@@ -120,9 +120,24 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     // don't add memory slabs in nested scope, just put them in the top level of the ST
                     scope.first().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node))
                 }
-                else if(node.name=="staticalloc") {
+                else if(node.name=="structalloc") {
                     val struct = node.type.subType!!
-                    TODO("symboltable alloc and initialize static struct ${struct.scopedNameString}")
+                    if(struct is StStruct) {
+                        val scopehash = node.parent.hashCode().toUInt().toString(16)
+                        val hash = node.position.toString().hashCode().toUInt().toString(16)
+                        val structname = struct.scopedNameString.substringAfterLast('.')
+                        val label = "prog8_struct_${structname}_${scopehash}_$hash"
+                        val size = struct.memsize(program.memsizer).toUInt()
+                        val initialValues = node.args.map {
+                            when(it) {
+                                is PtAddressOf -> StArrayElement(null, it.identifier!!.name, null)
+                                is PtBool -> StArrayElement(null, null, it.value)
+                                is PtNumber -> StArrayElement(it.number, null, null)
+                                else -> throw AssemblyError("invalid structalloc argument type $it")
+                            }
+                        }
+                        scope.first().add(StStructInstance(label, size, initialValues, null))
+                    }
                 }
                 null
             }

@@ -227,6 +227,7 @@ private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
         StNodeType.CONSTANT -> 'c'
         StNodeType.BUILTINFUNC -> 's'
         StNodeType.MEMORYSLAB -> 'v'
+        StNodeType.STRUCTINSTANCE -> 'i'
         else -> '?'
     }
     val newName = prefixScopedName(name, prefixType)

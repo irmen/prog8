@@ -371,7 +371,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 // a call to a struct yields a struct instance and means: allocate a statically initialized struct instance of that type
                 val struct = iType.getOrUndef().subType!!
                 val pointertype = DataType.pointerToType(struct)
-                PtBuiltinFunctionCall("staticalloc", false, true, pointertype, srcCall.position)
+                PtBuiltinFunctionCall("structalloc", false, true, pointertype, srcCall.position)
             } else {
                 // regular function call
                 PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
@@ -625,7 +625,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(struct: StructDecl): PtStructDecl {
-        return PtStructDecl(struct.name, struct.members, struct.position)
+        return PtStructDecl(struct.name, struct.fields, struct.position)
     }
 
     private fun transform(srcWhen: When): PtWhen {

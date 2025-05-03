@@ -158,7 +158,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(struct: StructDecl) {
         outputln("struct ${struct.name} {")
-        for(member in struct.members) {
+        for(member in struct.fields) {
             outputlni(  "    ${member.first} ${member.second}")
         }
         outputlni("}")

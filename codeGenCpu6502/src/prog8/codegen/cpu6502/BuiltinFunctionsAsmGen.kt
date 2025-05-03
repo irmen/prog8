@@ -44,6 +44,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "setlsb" -> funcSetLsbMsb(fcall, false)
             "setmsb" -> funcSetLsbMsb(fcall, true)
             "memory" -> funcMemory(fcall, discardResult, resultRegister)
+            "structalloc" -> funcStructAlloc(fcall, discardResult, resultRegister)
             "peekw" -> funcPeekW(fcall, resultRegister)
             "peekf" -> funcPeekF(fcall, resultRegister)
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
@@ -389,6 +390,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val assign = AsmAssignment(src, listOf(target), program.memsizer, fcall.position)
         asmgen.translateNormalAssignment(assign, fcall.definingISub())
     }
+
+    private fun funcStructAlloc(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultRegister: RegisterOrPair?) {
+        if(discardResult)
+            throw AssemblyError("should not discard result of struct allocation at $fcall")
+        if(fcall.args.isEmpty())
+            TODO("struct alloc in BSS")
+        else
+            TODO("static struct alloc with values")
+    }
+
 
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         translateArguments(fcall, scope)

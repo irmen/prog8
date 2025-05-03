@@ -1169,7 +1169,7 @@ internal class AstChecker(private val program: Program,
 
         if(array.parent is VarDecl) {
             if (!array.value.all { it is NumericLiteral || it is AddressOf })
-                errors.err("array literal for variable initialization contains non-constant elements", array.position)
+                errors.err("initialization list contains non-constant elements", array.value[0].position)
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
@@ -1721,6 +1721,25 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        if(target is StructDecl) {
+            // it's a static struct inializer, check the values
+            if(args.size!=0) {
+                if (!args.all { it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral)})
+                    errors.err("initialization list contains non-constant elements", args[0].position)
+                if (target.fields.size != args.size)
+                    errors.err("initialization list needs to be same number of values as the struct has fields: expected ${target.fields.size} or 0, got ${args.size}", args[0].position)
+                else
+                    target.fields.zip(args).withIndex().forEach { (index, fv) ->
+                        val (field, value) = fv
+                        val valueDt = value.inferType(program)
+                        if(valueDt isNotAssignableTo field.first) {
+                            errors.err("value #${index+1} has incompatible type $valueDt for field '${field.second}' (${field.first})", value.position)
+                        }
+                    }
+            }
+            // TODO rest
+        }
+
         args.forEach{
             checkLongType(it)
         }
@@ -1904,8 +1923,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(struct: StructDecl) {
-        val uniqueFields = struct.members.map { it.second }.toSet()
-        if(uniqueFields.size!=struct.members.size)
+        val uniqueFields = struct.fields.map { it.second }.toSet()
+        if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
         val memsize = struct.memsize(program.memsizer)
         if(memsize>256)
@@ -2161,7 +2180,7 @@ internal class AstChecker(private val program: Program,
         }
         if (!correct) {
             if (value.parent is VarDecl && !value.value.all { it is NumericLiteral || it is AddressOf })
-                errors.err("array literal for variable initialization contains non-constant elements", value.position)
+                errors.err("initialization list contains non-constant elements", value.value[0].position)
             else
                 errors.err("array element out of range for type $targetDt", value.position)
         }

@@ -91,6 +91,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
             is StMemVar -> node.length
             is StMemorySlab -> node.size.toInt()
             is StStaticVariable -> node.length
+            is StStructInstance -> node.size.toInt()
             else -> null
         }
     }
@@ -109,7 +110,8 @@ enum class StNodeType {
     CONSTANT,
     BUILTINFUNC,
     MEMORYSLAB,
-    STRUCT
+    STRUCT,
+    STRUCTINSTANCE
 }
 
 
@@ -251,6 +253,7 @@ class StMemVar(name: String,
     }
 }
 
+
 class StStruct(
     name: String,
     val fields: List<Pair<DataType, String>>,
@@ -278,6 +281,10 @@ class StMemorySlab(
     astNode: PtNode?
 ):
     StNode(name, StNodeType.MEMORYSLAB, astNode)
+
+
+class StStructInstance(name: String, val size: UInt, val initialValues: StArray, astNode: PtNode?) :
+    StNode(name, StNodeType.STRUCTINSTANCE, astNode)
 
 
 class StSub(name: String, val parameters: List<StSubroutineParameter>, val returns: List<DataType>, astNode: PtNode) :

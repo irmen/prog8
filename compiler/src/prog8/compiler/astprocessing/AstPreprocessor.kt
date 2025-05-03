@@ -216,7 +216,7 @@ class AstPreprocessor(val program: Program,
 
     override fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> {
         // convert all antlr names to structs
-        struct.members.forEach {
+        struct.fields.forEach {
             if(it.first.subTypeFromAntlr!=null) {
                 val struct = struct.definingScope.lookup(it.first.subTypeFromAntlr!!) as? ISubType
                 if(struct!=null)

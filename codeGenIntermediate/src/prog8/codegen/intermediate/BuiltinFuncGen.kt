@@ -45,8 +45,17 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_stringcompare" -> funcStringCompare(call)
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
+            "structalloc" -> funcStructAlloc(call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
+    }
+
+    private fun funcStructAlloc(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val pointerReg = codeGen.registers.next(IRDataType.WORD)
+        val address = 65534  // TODO determine correct address!!
+        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, immediate = address), null)
+        return ExpressionCodeResult(result, IRDataType.WORD, pointerReg, -1)
     }
 
     private fun funcSquare(call: PtBuiltinFunctionCall, resultType: IRDataType): ExpressionCodeResult {

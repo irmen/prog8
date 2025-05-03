@@ -155,9 +155,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if (typecast.type.isBool) {
             val et = typecast.expression.inferType(program)
             if (et.isNumeric) {
-                val zero = defaultZero(et.getOrUndef().base, typecast.position)
-                val cmp = BinaryExpression(typecast.expression, "!=", zero, typecast.position)
-                return listOf(IAstModification.ReplaceNode(typecast, cmp, parent))
+                if(typecast.expression is NumericLiteral) {
+                    val boolean = NumericLiteral.fromBoolean((typecast.expression as NumericLiteral).asBooleanValue, typecast.expression.position)
+                    return listOf(IAstModification.ReplaceNode(typecast, boolean, parent))
+                } else {
+                    val zero = defaultZero(et.getOrUndef().base, typecast.position)
+                    val cmp = BinaryExpression(typecast.expression, "!=", zero, typecast.position)
+                    return listOf(IAstModification.ReplaceNode(typecast, cmp, parent))
+                }
             }
             else if (et.isPointer) {
                 val ptrAsUword = TypecastExpression(typecast.expression, DataType.UWORD, true, typecast.position)

@@ -28,16 +28,18 @@ STRUCTS and TYPED POINTERS
 - DONE (for basic types only): allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
 - DONE (?) allow array syntax on pointers to structs too, but what type will ptr[2] have? And it will require  ptr[2].field  to work as well now. Actually that will be the only thing to work for now.
 - DONE: allow multi-field declarations in structs
-- are the ARRAY_POINTER and ARRAY_STRUCT data type enums realy needed? can just use ARRAY?
+- static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.
+  Syntax could be:  ^^Node ptr = Node(1,2,3,4) statically allocates a Node with fields set to 1,2,3,4 and puts the address in ptr.
+- Node() without arguments could allocate a node in BSS variable space instead.
+- What about static initialization of an array of struct pointers?
+- support @dirty on pointer vars
 - pointer types in subroutine signatures (both normal and asm-subs)
 - support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
+- are the ARRAY_POINTER and ARRAY_STRUCT data type enums realy needed? can't we just use ARRAY?
 - pointer arithmetic should follow C:  ptr=ptr+10 adds 10*sizeof() instead of just 10.
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - add unit tests for all changes
 - arrays of structs? No -> Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
-- static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.
-  Syntax could be:  ^^Node ptr = Node(1,2,3,4) statically allocates a Node with fields set to 1,2,3,4 and puts the address in ptr.
-- Verify the argments to such a static struct initializer 'call' against the fields, and the same check as for static array values (const value or address-of) ?
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
 - existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
 - rather than str or uword parameter types for routines with a string argument, use ^^str  (or ^^ubyte maybe? these are more or less identical..?)
@@ -73,7 +75,7 @@ Future Things and Ideas
 
 IR/VM
 -----
-- adding LOADFIELD/STOREFIELD instructions that encode the field offset as immediate value so we avoid a separate ADD instruction to calculate the address
+- add LOADFIELD/STOREFIELD instructions that encode the field offset as immediate value so we avoid a separate ADD instruction to calculate the address
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)

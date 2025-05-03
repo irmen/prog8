@@ -46,7 +46,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
             is PtBuiltinFunctionCall -> {
-                if(node.name=="staticalloc") {
+                if(node.name=="structalloc") {
                     node.type.subType!!.scopedNameString+"()"
                 } else {
                     val str = if (node.void) "void " else ""
@@ -191,7 +191,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtIfExpression -> "<ifexpr>"
             is PtJmpTable -> "<jmptable>"
             is PtStructDecl -> {
-                "struct ${node.name} { " + node.members.joinToString("  ") { "${it.first} ${it.second}" } + " }"
+                "struct ${node.name} { " + node.fields.joinToString("  ") { "${it.first} ${it.second}" } + " }"
             }
             is PtPointerDeref -> {
                 val chain = if(node.chain.isEmpty()) "" else "${node.chain}"

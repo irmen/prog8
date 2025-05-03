@@ -71,7 +71,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     return noModifications
 
                 val modifications = mutableListOf<IAstModification>()
-                addTypecastOrCastedValueModification(modifications, declValue, decl.datatype.base, decl)
+                addTypecastOrCastedValueModification(modifications, declValue, decl.datatype, decl)
                 return modifications
             }
         }
@@ -180,8 +180,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         } else {
                             val modifications = mutableListOf<IAstModification>()
                             when {
-                                toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt.base, expr)
-                                toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt.base, expr)
+                                toFix===expr.left -> addTypecastOrCastedValueModification(modifications, expr.left, commonDt, expr)
+                                toFix===expr.right -> addTypecastOrCastedValueModification(modifications, expr.right, commonDt, expr)
                                 else -> throw FatalAstException("confused binary expression side")
                             }
                             return modifications
@@ -240,7 +240,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         // special case, don't typecast STR/arrays to UWORD, we support those assignments "directly"
                         return noModifications
                     val modifications = mutableListOf<IAstModification>()
-                    addTypecastOrCastedValueModification(modifications, assignment.value, targettype.base, assignment)
+                    addTypecastOrCastedValueModification(modifications, assignment.value, targettype, assignment)
                     return modifications
                 } else {
                     fun castLiteral(cvalue2: NumericLiteral): List<IAstModification.ReplaceNode> {
@@ -274,11 +274,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val params = when(val sub = call.target.targetStatement(program)) {
             is BuiltinFunctionPlaceholder -> BuiltinFunctions.getValue(sub.name).parameters.toList()
             is Subroutine -> sub.parameters.map { FParam(it.name, it.type.base) }
+            is StructDecl -> sub.fields.map { FParam(it.second, it.first.base) }
             else -> emptyList()
         }
 
         params.zip(call.args).forEach {
-            val targetDt = it.first.possibleDatatypes.first()
+            val possibleTargetDt = it.first.possibleDatatypes.first()
+            val targetDt = if(possibleTargetDt.isPointer) BaseDataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
             val argIdt = it.second.inferType(program)
             if (argIdt.isKnown) {
                 val argDt = argIdt.getOrUndef()
@@ -286,7 +288,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     val identifier = it.second as? IdentifierReference
                     val number = it.second as? NumericLiteral
                     if(number!=null) {
-                        addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
+                        addTypecastOrCastedValueModification(modifications, it.second, DataType.forDt(targetDt), call as Node)
                     } else if(identifier!=null && targetDt==BaseDataType.UWORD && argDt.isPassByRef) {
                         if(!identifier.isSubroutineParameter()) {
                             // We allow STR/ARRAY values for UWORD parameters.
@@ -300,10 +302,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             }
                         }
                     } else if(targetDt==BaseDataType.BOOL) {
-                        addTypecastOrCastedValueModification(modifications, it.second, BaseDataType.BOOL, call as Node)
+                        addTypecastOrCastedValueModification(modifications, it.second, DataType.BOOL, call as Node)
                     } else if(!targetDt.isIterable && argDt isAssignableTo DataType.forDt(targetDt)) {
                         if(!argDt.isString || targetDt!=BaseDataType.UWORD)
-                            addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
+                            addTypecastOrCastedValueModification(modifications, it.second, DataType.forDt(targetDt), call as Node)
                     }
                 }
             } else {
@@ -342,7 +344,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
             else
-                addTypecastOrCastedValueModification(modifications, memread.addressExpression, BaseDataType.UWORD, memread)
+                addTypecastOrCastedValueModification(modifications, memread.addressExpression, DataType.UWORD, memread)
         }
         return modifications
     }
@@ -356,7 +358,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             if(castedValue!=null)
                 modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)
             else
-                addTypecastOrCastedValueModification(modifications, memwrite.addressExpression, BaseDataType.UWORD, memwrite)
+                addTypecastOrCastedValueModification(modifications, memwrite.addressExpression, DataType.UWORD, memwrite)
         }
         return modifications
     }
@@ -396,7 +398,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                 }
             } else {
-                addTypecastOrCastedValueModification(modifications, returnValue, subReturnType.base, returnStmt)
+                addTypecastOrCastedValueModification(modifications, returnValue, subReturnType, returnStmt)
                 continue
             }
         }
@@ -471,7 +473,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             )
             if (toFix != null) {
                 val modifications = mutableListOf<IAstModification>()
-                addTypecastOrCastedValueModification(modifications, toFix, commonDt.base, ifExpr)
+                addTypecastOrCastedValueModification(modifications, toFix, commonDt, ifExpr)
                 return modifications
             }
         }
@@ -600,7 +602,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
         val (commonDt, toChange) = BinaryExpression.commonDatatype(fromDt, toDt, range.from, range.to)
         if(toChange!=null)
-            addTypecastOrCastedValueModification(modifications, toChange, commonDt.base, range)
+            addTypecastOrCastedValueModification(modifications, toChange, commonDt, range)
 
         return modifications
     }
@@ -622,13 +624,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     private fun addTypecastOrCastedValueModification(
         modifications: MutableList<IAstModification>,
         expressionToCast: Expression,
-        requiredType: BaseDataType,     // TODO DataType?
+        requiredType: DataType,
         parent: Node
     ) {
         val sourceDt = expressionToCast.inferType(program).getOrUndef()
-        if(sourceDt.base == requiredType)
+        if(sourceDt.base == requiredType.base)
             return
-        if(requiredType == BaseDataType.BOOL) {
+        if(requiredType.isBool) {
             if(sourceDt.isNumeric || sourceDt.isPointer) {
                 // only allow numerics and pointers to be implicitly cast to bool
                 val cast = TypecastExpression(expressionToCast, DataType.BOOL, true, expressionToCast.position)
@@ -641,8 +643,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         if(requiredType.isPointer && sourceDt.isUnsignedWord)
             return
 
-        if(expressionToCast is NumericLiteral && expressionToCast.type!=BaseDataType.FLOAT) { // refuse to automatically truncate floats
-            val castedValue = expressionToCast.cast(requiredType, true)
+        if(expressionToCast is NumericLiteral && expressionToCast.type!=BaseDataType.FLOAT && requiredType.isNumericOrBool) { // refuse to automatically truncate floats
+            val castedValue = expressionToCast.cast(requiredType.base, true)
             if (castedValue.isValid) {
                 val signOriginal = sign(expressionToCast.number)
                 val signCasted = sign(castedValue.valueOrZero().number)
@@ -653,7 +655,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             }
         }
 
-        val cast = TypecastExpression(expressionToCast, DataType.forDt(requiredType), true, expressionToCast.position)
+        val cast = TypecastExpression(expressionToCast, requiredType, true, expressionToCast.position)
         modifications += IAstModification.ReplaceNode(expressionToCast, cast, parent)
     }
 }

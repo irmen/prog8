@@ -374,7 +374,7 @@ class VarDecl(val type: VarDeclType,
     }
 }
 
-class StructDecl(override val name: String, val members: List<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement, ISubType {
+class StructDecl(override val name: String, val fields: List<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -383,11 +383,11 @@ class StructDecl(override val name: String, val members: List<Pair<DataType, Str
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun copy() = StructDecl(name, members.toList(), position)
+    override fun copy() = StructDecl(name, fields.toList(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    fun memsize(sizer: IMemSizer): Int = members.sumOf { sizer.memorySize(it.first, 1) }
-    fun getFieldType(name: String): DataType? = members.firstOrNull { it.second==name }?.first
+    fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
+    fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second==name }?.first
     override val scopedNameString by lazy { scopedName.joinToString(".") }
 }
 

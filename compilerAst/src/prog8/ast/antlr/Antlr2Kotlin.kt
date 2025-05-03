@@ -78,8 +78,8 @@ private fun VariabledeclarationContext.toAst() : VarDecl {
 
 private fun StructdeclarationContext.toAst(): Statement {
     val name = identifier().text
-    val members: List<Pair<DataType, List<String>>> = structfielddecl().map { it.toAst() }
-    val flattened = members.flatMap { (dt, names) -> names.map { dt to it}}
+    val fields: List<Pair<DataType, List<String>>> = structfielddecl().map { it.toAst() }
+    val flattened = fields.flatMap { (dt, names) -> names.map { dt to it}}
     return StructDecl(name, flattened, toPosition())
 }
 

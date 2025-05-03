@@ -1,7 +1,9 @@
 package prog8.intermediate
 
-import prog8.code.*
-import prog8.code.core.*
+import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.ZeropageWish
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -23,6 +25,9 @@ class IRSymbolTable {
 
     fun allMemorySlabs(): Sequence<IRStMemorySlab> =
         table.asSequence().map { it.value }.filterIsInstance<IRStMemorySlab>()
+
+    fun allStructInstances(): Sequence<IRStStructInstance> =
+        table.asSequence().map { it.value }.filterIsInstance<IRStStructInstance>()
 
     fun lookup(name: String) = table[name]
 
@@ -57,7 +62,8 @@ enum class IRStNodeType {
     STATICVAR,
     MEMVAR,
     MEMORYSLAB,
-    CONST
+    CONST,
+    STRUCTINSTANCE
 }
 
 open class IRStNode(val name: String, val type: IRStNodeType)
@@ -112,6 +118,12 @@ class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSym
         if(bool!=null) require(number==null && addressOfSymbol==null)
         if(number!=null) require(bool==null && addressOfSymbol==null)
         if(addressOfSymbol!=null) require(number==null || bool==null)
+    }
+}
+
+class IRStStructInstance(name: String, val values: IRStArray, val size: Int): IRStNode(name, IRStNodeType.STRUCTINSTANCE) {
+    init {
+        require(size > 0)
     }
 }
 

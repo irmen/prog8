@@ -233,7 +233,7 @@ class PtMemMapped(name: String, override val type: DataType, val address: UInt, 
 }
 
 
-class PtStructDecl(name: String, val members: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position)
+class PtStructDecl(name: String, val fields: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position)
 
 
 class PtWhen(position: Position) : PtNode(position) {

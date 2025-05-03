@@ -1,4 +1,5 @@
 %zeropage basicsafe
+%import math
 %import textio
 
 main {
@@ -12,14 +13,18 @@ main {
         ; these in turn point to the 7th, 8th and 9th.
 
         struct Node {
-            ubyte value, value2, value3
+            bool flag
+            ubyte value
+            uword value2
             ^^Node next
         }
 
         ; proposed static initializer syntax:
-;        ^^Node @shared node3 = Node( 33,2,3, 0 )
-;        ^^Node @shared node2 = Node( 22,2,3, &node3 )
-;        ^^Node @shared node1 = Node( 11,2,3, &node2 )
+        ^^Node @shared node3 = Node( true,222,333, 0 )
+        ^^Node @shared node2 = Node( false,2,3, &node3 )
+        ^^Node @shared node1 = Node( false,2,3, &node2 )
+        ^^Node @shared node0 = Node()
+
 
         ^^Node n0,n1,n2,n3,n4,n5,n6,n7,n8
 

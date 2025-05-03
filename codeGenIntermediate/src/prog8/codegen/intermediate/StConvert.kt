@@ -14,6 +14,7 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
                 StNodeType.MEMVAR -> st.add(convert(it.value as StMemVar))
                 StNodeType.CONSTANT -> st.add(convert(it.value as StConstant))
                 StNodeType.MEMORYSLAB -> st.add(convert(it.value as StMemorySlab))
+                StNodeType.STRUCTINSTANCE -> st.add(convert(it.value as StStructInstance))
                 else -> { }
             }
         }
@@ -37,12 +38,19 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
 }
 
 
-private fun convert(variable: StStaticVariable): IRStStaticVariable {
+private fun convert(instance: StStructInstance): IRStStructInstance {
+    val values = instance.initialValues.map { convertArrayElt(it) }
+    return IRStStructInstance(instance.name, values, instance.size.toInt())
+}
 
-    fun convertArrayElt(elt: StArrayElement): IRStArrayElement = if(elt.boolean!=null)
-        IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
-    else
-        IRStArrayElement(null, elt.number, elt.addressOfSymbol)
+
+private fun convertArrayElt(elt: StArrayElement): IRStArrayElement = if(elt.boolean!=null)
+    IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
+else
+    IRStArrayElement(null, elt.number, elt.addressOfSymbol)
+
+
+private fun convert(variable: StStaticVariable): IRStStaticVariable {
 
     if('.' in variable.name) {
         return IRStStaticVariable(variable.name,
