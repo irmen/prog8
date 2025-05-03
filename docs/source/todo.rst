@@ -28,6 +28,7 @@ STRUCTS and TYPED POINTERS
 - DONE (for basic types only): allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
 - DONE (?) allow array syntax on pointers to structs too, but what type will ptr[2] have? And it will require  ptr[2].field  to work as well now. Actually that will be the only thing to work for now.
 - DONE: allow multi-field declarations in structs
+- is the ARRAY_POINTER data type enum realy needed? can just use ARRAY?
 - pointer types in subroutine signatures (both normal and asm-subs)
 - support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - pointer arithmetic should follow C:  ptr=ptr+10 adds 10*sizeof() instead of just 10.

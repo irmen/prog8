@@ -16,6 +16,11 @@ main {
             ^^Node next
         }
 
+        Node @shared node1,node2,node3
+        node1.value = 42
+        node1.value2 = 55
+        node1.value3 = 66
+
         ^^Node n0,n1,n2,n3,n4,n5,n6,n7,n8
 
         n0 = buf + 0

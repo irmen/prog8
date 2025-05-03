@@ -14,8 +14,9 @@ enum class BaseDataType {
     ARRAY,              // pass by reference, subtype is the element type
     ARRAY_SPLITW,       // pass by reference, split word layout, subtype is the element type (restricted to word types)
     POINTER,            // typed pointer, subtype is whatever type is pointed to
-    STRUCT_INSTANCE,     // the actual instance of a struct (not directly supported in the language yet, but we need its type)
-    ARRAY_POINTER,      // array of pointers (uwords), subtype is whatever type each element points to
+    STRUCT_INSTANCE,    // the actual instance of a struct (not directly supported in the language yet, but we need its type)
+    ARRAY_POINTER,      // array of pointers (uwords), subtype is whatever type each element points to   TODO: is this enum required? can sue ARRAY?
+    ARRAY_STRUCT,       // array of struct instances, subtype is the struct type of each element  TODO: is this enum required? can sue ARRAY?
     UNDEFINED;
 
 
@@ -53,10 +54,11 @@ val BaseDataType.isIntegerOrBool get() = this in arrayOf(BaseDataType.UBYTE, Bas
 val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
 val BaseDataType.isNumericOrBool get() = this == BaseDataType.BOOL || this.isNumeric
 val BaseDataType.isSigned get() = this in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER
+val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER || this == BaseDataType.ARRAY_STRUCT
 val BaseDataType.isPointer get() = this == BaseDataType.POINTER
 val BaseDataType.isStructInstance get() = this == BaseDataType.STRUCT_INSTANCE
 val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
+val BaseDataType.isStructArray get() = this == BaseDataType.ARRAY_STRUCT
 val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW
 val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER, BaseDataType.POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
@@ -70,20 +72,22 @@ interface ISubType {
 class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?, var subType: ISubType?, var subTypeFromAntlr: List<String>?=null) {
 
     init {
-        if(base.isPointerArray) {
-            require(sub!=null || subType!=null || subTypeFromAntlr!=null)
+        when {
+            base.isPointerArray -> {
+                require(sub!=null || subType!=null || subTypeFromAntlr!=null)
+            }
+            base.isStructArray -> {
+                require(sub==null && (subType!=null || subTypeFromAntlr!=null))
+            }
+            base.isArray -> {
+                require(sub != null && subType==null && subTypeFromAntlr==null)
+                if(base.isSplitWordArray)
+                    require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
+            }
+            base==BaseDataType.STR -> require(sub==BaseDataType.UBYTE) { "string subtype should be ubyte" }
+            base!=BaseDataType.POINTER -> require(sub == null) { "only string, array and pointer base types can have a subtype"}
+            else -> require(sub == null || (subType == null && subTypeFromAntlr == null)) { "sub and subtype can't both be set" }
         }
-        else if(base.isArray) {
-            require(sub != null && subType==null)
-            if(base.isSplitWordArray)
-                require(sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
-        }
-        else if(base==BaseDataType.STR)
-            require(sub==BaseDataType.UBYTE) { "string subtype should be ubyte" }
-        else if(base!=BaseDataType.POINTER)
-            require(sub == null) { "only string, array and pointer base types can have a subtype"}
-
-        require(sub == null || (subType == null && subTypeFromAntlr == null)) { "sub and subtype can't both be set" }
     }
 
     override fun equals(other: Any?): Boolean {
@@ -134,20 +138,26 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 if(actualElementDt.isNumericOrBool && actualElementDt != BaseDataType.LONG)
                     DataType(BaseDataType.ARRAY, actualElementDt, null)
                 else
-                    throw NoSuchElementException("invalid element dt $elementDt")
+                    throw NoSuchElementException("invalid basic element dt $elementDt")
             }
         }
 
         fun arrayOfPointersTo(sub: BaseDataType?, subType: ISubType?): DataType =
             DataType(BaseDataType.ARRAY_POINTER, sub, subType)
+        fun arrayOfStructs(subType: ISubType?): DataType =
+            DataType(BaseDataType.ARRAY_STRUCT, null, subType)
         fun arrayOfPointersFromAntlrTo(sub: BaseDataType?, identifier: List<String>?): DataType =
             DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
+        fun arrayOfStructsFromAntlr(identifier: List<String>): DataType =
+            DataType(BaseDataType.ARRAY_STRUCT, null, null, identifier)
 
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
-        fun pointerFromAntlr(identifier: List<String>): DataType = DataType(BaseDataType.POINTER, null, null, identifier)
         fun pointerToType(type: ISubType): DataType = DataType(BaseDataType.POINTER, null, type)
         fun structInstance(type: ISubType?): DataType = DataType(BaseDataType.STRUCT_INSTANCE, sub=null, type)
+        fun pointerFromAntlr(identifier: List<String>): DataType = DataType(BaseDataType.POINTER, null, null, identifier)
+        fun structInstanceFromAntlr(struct: List<String>): DataType = DataType(BaseDataType.STRUCT_INSTANCE, null, null, subTypeFromAntlr = struct)
     }
+
 
     fun elementToArray(splitwords: Boolean = true): DataType {
         return if (base == BaseDataType.UWORD || base == BaseDataType.WORD || base == BaseDataType.STR) arrayFor(base, splitwords)
@@ -155,12 +165,12 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     }
 
     fun elementType(): DataType =
-        if(isPointerArray)
-            DataType(BaseDataType.POINTER, sub, subType)
-        else if(base.isArray || base==BaseDataType.STR)
-            forDt(sub!!)
-        else
-            throw IllegalArgumentException("not an array")
+        when {
+            isPointerArray -> DataType(BaseDataType.POINTER, sub, subType)
+            isStructArray -> DataType(BaseDataType.STRUCT_INSTANCE, sub, subType)
+            base.isArray || base==BaseDataType.STR -> forDt(sub!!)
+            else -> throw IllegalArgumentException("not an array")
+        }
 
     override fun toString(): String = when(base) {
         BaseDataType.ARRAY -> {
@@ -187,6 +197,12 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         BaseDataType.ARRAY_POINTER -> {
             if(sub!=null) "^^${sub.name.lowercase()}[] (split)" else if (subType!=null) "^^${subType!!.scopedNameString}[] (split)" else "^^${subTypeFromAntlr}[] (split)"
         }
+        BaseDataType.ARRAY_STRUCT -> {
+            if(sub!=null) "${sub.name.lowercase()}[]" else if (subType!=null) "${subType!!.scopedNameString}[]" else "${subTypeFromAntlr}[]"
+        }
+        BaseDataType.STRUCT_INSTANCE -> {
+            if(sub!=null) sub.name.lowercase() else if (subType!=null) subType!!.scopedNameString else "$subTypeFromAntlr"
+        }
         else -> base.name.lowercase()
     }
 
@@ -209,9 +225,9 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         }
         BaseDataType.STRUCT_INSTANCE -> {
             when {
-                sub!=null -> "INSTANCE:${sub.name.lowercase()}"
-                subType!=null -> "INSTANCE:${subType!!.scopedNameString}"
-                subTypeFromAntlr!=null -> "INSTANCE:${subTypeFromAntlr!!.joinToString(".")}"
+                sub!=null -> sub.name.lowercase()
+                subType!=null -> subType!!.scopedNameString
+                subTypeFromAntlr!=null -> subTypeFromAntlr!!.joinToString(".")
                 else -> "?????"
             }
         }
@@ -220,6 +236,14 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 sub!=null -> "^^${sub.name.lowercase()}["
                 subType!=null -> "^^${subType!!.scopedNameString}["
                 subTypeFromAntlr!=null -> "^^${subTypeFromAntlr!!.joinToString(".")}["
+                else -> "????? ["
+            }
+        }
+        BaseDataType.ARRAY_STRUCT -> {
+            when {
+                sub!=null -> "${sub.name.lowercase()}["
+                subType!=null -> "${subType!!.scopedNameString}["
+                subTypeFromAntlr!=null -> "${subTypeFromAntlr!!.joinToString(".")}["
                 else -> "????? ["
             }
         }
@@ -265,6 +289,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             }
             BaseDataType.STRUCT_INSTANCE -> false        // we cannot deal with actual struct instances yet in any shape or form (only getting fields from it)
             BaseDataType.ARRAY_POINTER -> TODO("check assignability of array of pointers")
+            BaseDataType.ARRAY_STRUCT -> false  // never assign an array of struct instances to somewhere else
             BaseDataType.UNDEFINED -> false
         }
 
@@ -290,6 +315,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     val isPointer = base.isPointer
     val isStructInstance = base.isStructInstance
     val isPointerArray = base.isPointerArray
+    val isStructArray = base.isStructArray
     val isBoolArray = base.isArray && sub == BaseDataType.BOOL
     val isByteArray = base.isArray && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE)
     val isUnsignedByteArray = base.isArray && sub == BaseDataType.UBYTE

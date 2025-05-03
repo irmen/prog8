@@ -1103,7 +1103,8 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                             return null // abort
                     }
                 } else {
-                    require(elementType.isNumericOrBool)
+                    if(!elementType.isNumericOrBool)
+                        return null     // only a numeric or boolean array can be casted to another value
                     value.map {
                         val cast = (it as NumericLiteral).cast(elementType.base, true)
                         if(cast.isValid)
@@ -1604,7 +1605,7 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
         if(first==null)
             return InferredTypes.unknown()
         val vardecl = identifier.targetVarDecl()
-        if(vardecl==null || vardecl.datatype.isUndefined || !vardecl.datatype.isPointer)
+        if(vardecl==null || vardecl.datatype.isUndefined || (!vardecl.datatype.isPointer && !vardecl.datatype.isStructInstance) )
             return InferredTypes.unknown()
 
         if(chain.isEmpty()) {

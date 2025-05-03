@@ -191,8 +191,11 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 if(fieldDt==null) {
                     errors.err("unknown field '${deref.field}' in struct '${struct.name}'", deref.position)
                 }
-            } else
-                errors.err("cannot find struct type", deref.identifier.position)
+            } else {
+                if (first !is VarDecl || !first.datatype.isStructInstance) {
+                    errors.err("cannot find struct type", deref.identifier.position)
+                }
+            }
         }
 
         super.visit(deref)

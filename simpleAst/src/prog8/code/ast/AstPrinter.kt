@@ -144,16 +144,23 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                     256u -> "@alignpage"
                     else -> throw IllegalArgumentException("invalid alignment size")
                 }
-                val str = if(node.arraySize!=null) {
-                    val eltType = node.type.elementType()
-                    "${eltType}[${node.arraySize}] $split $align ${node.name}"
+                val str = when {
+                    node.arraySize!=null -> {
+                        if (node.type.isArray) {
+                            val eltType = node.type.elementType()
+                            "${eltType}[${node.arraySize}] $split $align ${node.name}"
+                        }
+                        else throw IllegalArgumentException("invalid array dt")
+                    }
+                    node.type.isStructArray -> {
+                        TODO("unsized array of structs")
+                    }
+                    node.type.isArray -> {
+                        val eltType = node.type.elementType()
+                        "${eltType}[] $split $align ${node.name}"
+                    }
+                    else -> "${node.type} ${node.name}"
                 }
-                else if(node.type.isArray) {
-                    val eltType = node.type.elementType()
-                    "${eltType}[] $split $align ${node.name}"
-                }
-                else
-                    "${node.type} ${node.name}"
                 if(node.value!=null)
                     str + " = " + txt(node.value)
                 else

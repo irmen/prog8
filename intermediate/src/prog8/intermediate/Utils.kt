@@ -25,15 +25,21 @@ fun DataType.irTypeString(length: Int?): String {
         }
         BaseDataType.STRUCT_INSTANCE -> {
             if(sub!=null)
-                "INSTANCE:${sub!!.name.lowercase()}"
+                sub!!.name.lowercase()
             else
-                "INSTANCE:${subType!!.scopedNameString}"
+                subType!!.scopedNameString
         }
         BaseDataType.ARRAY_POINTER -> {
             if(sub!=null)
                 "^${sub!!.name.lowercase()}[$lengthStr]"
             else
                 "^${subType!!.scopedNameString}[$lengthStr]"
+        }
+        BaseDataType.ARRAY_STRUCT -> {
+            if(sub!=null)
+                "${sub!!.name.lowercase()}[$lengthStr]"
+            else
+                "${subType!!.scopedNameString}[$lengthStr]"
         }
         BaseDataType.ARRAY -> {
             when(this.sub) {
@@ -369,7 +375,7 @@ fun irType(type: DataType): IRDataType {
         BaseDataType.BYTE -> IRDataType.BYTE
         BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> IRDataType.WORD
         BaseDataType.FLOAT -> IRDataType.FLOAT
-        BaseDataType.STRUCT_INSTANCE -> TODO("no IR datatype for struct instances")
+        BaseDataType.STRUCT_INSTANCE -> TODO("IR datatype for struct instances")
         else -> throw AssemblyError("no IR datatype for $type")
     }
 }

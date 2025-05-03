@@ -99,7 +99,11 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
                 BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.STR -> numElements * 2
                 BaseDataType.FLOAT-> numElements * FLOAT_MEM_SIZE
                 BaseDataType.UNDEFINED -> throw IllegalArgumentException("undefined has no memory size")
-                else -> throw IllegalArgumentException("invalid sub type")
+                else -> {
+                    if(dt.subType!=null)
+                        TODO("support arrays with struct instances as sub-type")
+                    throw IllegalArgumentException("invalid sub type")
+                }
             }
         }
         else if (dt.isString) {
@@ -112,6 +116,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
             dt.isFloat -> FLOAT_MEM_SIZE * (numElements ?: 1)
             dt.isLong -> throw IllegalArgumentException("long can not yet be put into memory")
             dt.isPointer -> 2  // pointer is just a uword
+            dt.isStructInstance -> TODO("support struct instances")
             dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
             else -> 2 * (numElements ?: 1)
         }

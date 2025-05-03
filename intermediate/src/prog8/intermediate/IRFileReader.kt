@@ -564,7 +564,12 @@ class IRFileReader {
                 "uword" -> DataType.arrayFor(BaseDataType.UWORD, false)
                 "float" -> DataType.arrayFor(BaseDataType.FLOAT, false)
                 "long" -> DataType.arrayFor(BaseDataType.LONG, false)
-                else -> throw IRParseException("invalid dt  $type")
+                else -> {
+                    if('.' in type)
+                        DataType.arrayOfStructs(IRSubtypePlaceholder(type))
+                    else
+                        throw IRParseException("invalid dt  $type")
+                }
             }
         } else {
             if(type[0]=='^') {
@@ -590,7 +595,12 @@ class IRFileReader {
                 "float" -> DataType.FLOAT
                 "long" -> DataType.LONG
                 // note: 'str' should not occur anymore in IR. Should be 'uword'
-                else -> throw IRParseException("invalid dt  $type")
+                else -> {
+                    if('.' in type)
+                        DataType.structInstance(IRSubtypePlaceholder(type))
+                    else
+                        throw IRParseException("invalid dt  $type")
+                }
             }
         }
     }

@@ -112,8 +112,8 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
 
             // note: the desugaring of a multi-variable vardecl has to be done here
             // and not in CodeDesugarer, that one is too late (identifiers can't be found otherwise)
-            if(!decl.datatype.isNumericOrBool && !decl.datatype.isPointer)
-                errors.err("can only multi declare numeric, boolean and pointer variables", decl.position)
+            if(!decl.datatype.isNumericOrBool && !decl.datatype.isPointer && !decl.datatype.isStructInstance)
+                errors.err("cannot multi declare variables of this type", decl.position)
             if(decl.alignment != 0u) {
                 errors.err("only single variable declarations can have alignment", decl.position)
                 return noModifications

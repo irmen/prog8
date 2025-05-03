@@ -163,7 +163,7 @@ memoryvardecl: ADDRESS_OF varinitializer;
 
 basedatatype:  'ubyte' | 'byte' | 'uword' | 'word' | 'long' | 'float' | 'str' | 'bool' ;
 
-datatype: pointertype | basedatatype;
+datatype: pointertype | basedatatype | structtype=scoped_identifier;
 
 pointertype: POINTER (scoped_identifier | basedatatype);
 

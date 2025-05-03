@@ -24,6 +24,11 @@ internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncod
                     variable.dt.isString -> variable.onetimeInitializationStringValue!!.first.length + 1  // include the zero byte
                     variable.dt.isNumericOrBool -> memsizer.memorySize(variable.dt, null)
                     variable.dt.isArray -> memsizer.memorySize(variable.dt, variable.length!!)
+                    variable.dt.isStructInstance -> {
+                        TODO("struct instances")
+//                        var name = variable.dt.subType!!.scopedNameString
+//                        var target = st.lookup(name)        // TODO should yield the struct definition, but St doesn't contain those yet?
+                    }
                     else -> throw InternalCompilerException("weird dt")
                 }
 

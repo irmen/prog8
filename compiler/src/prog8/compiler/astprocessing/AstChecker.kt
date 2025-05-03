@@ -2104,6 +2104,9 @@ internal class AstChecker(private val program: Program,
             targetDt.isPointer -> {
                 return value.type==BaseDataType.UWORD
             }
+            targetDt.isStructInstance -> {
+                return err("assigning to struct instance not supported (use pointers)")
+            }
             else -> return err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
         }
         return true
@@ -2215,6 +2218,8 @@ internal class AstChecker(private val program: Program,
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
+        else if(targetDatatype.isStructInstance)
+            errors.err("assigning to struct instance not supported (use pointers)", position)
         else
             errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
 

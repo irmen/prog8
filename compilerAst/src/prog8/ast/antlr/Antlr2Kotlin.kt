@@ -458,8 +458,10 @@ private fun DatatypeContext.toAst(): DataType {
     val base = basedatatype()?.toAst()
     if(base!=null)
         return DataType.forDt(base)
-    val pointer = pointertype().toAst()
-    return pointer
+    val pointer = pointertype()?.toAst()
+    if(pointer!=null) return pointer
+    val struct = this.structtype.identifier().map { it.text }
+    return DataType.structInstanceFromAntlr(struct)
 }
 
 private fun PointertypeContext.toAst(): DataType {
@@ -866,6 +868,8 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val dt = if(!isArray) baseDt else {
         if(baseDt.isPointer)
             DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
+        else if(baseDt.isStructInstance)
+            DataType.arrayOfStructsFromAntlr(baseDt.subTypeFromAntlr!!)
         else
             DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
     }
