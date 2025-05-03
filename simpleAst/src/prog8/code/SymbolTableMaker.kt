@@ -120,6 +120,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     // don't add memory slabs in nested scope, just put them in the top level of the ST
                     scope.first().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node))
                 }
+                else if(node.name=="staticalloc") {
+                    val struct = node.type.subType!!
+                    TODO("symboltable alloc and initialize static struct ${struct.scopedNameString}")
+                }
                 null
             }
             else -> null // node is not present in the ST

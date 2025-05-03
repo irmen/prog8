@@ -252,7 +252,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
                     errors.err("wrong address variable datatype, expected uword", call.target.position)
             }
-            is Alias -> {}
+            is Alias, is StructDecl -> {}
             null -> {}
             else -> errors.err("cannot call this as a subroutine or function", call.target.position)
         }

@@ -227,7 +227,7 @@ internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, st
             else
                 errors.err("cannot call that: ${this.nameInSource.joinToString(".")}", this.position)
         }
-        is Alias -> {
+        is Alias, is StructDecl -> {
             return targetStatement
         }
         null -> {

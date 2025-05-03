@@ -46,8 +46,12 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
             is PtBuiltinFunctionCall -> {
-                val str = if(node.void) "void " else ""
-                str + node.name + "()"
+                if(node.name=="staticalloc") {
+                    node.type.subType!!.scopedNameString+"()"
+                } else {
+                    val str = if (node.void) "void " else ""
+                    str + node.name + "()"
+                }
             }
             is PtContainmentCheck -> "in"
             is PtFunctionCall -> {

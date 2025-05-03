@@ -1433,6 +1433,9 @@ class FunctionCallExpression(override var target: IdentifierReference,
 
                 return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible
             }
+            is StructDecl -> {
+                return InferredTypes.knownFor(DataType.structInstance(stmt))
+            }
             else -> return InferredTypes.unknown()
         }
     }

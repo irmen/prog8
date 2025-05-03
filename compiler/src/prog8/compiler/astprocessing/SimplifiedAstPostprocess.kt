@@ -9,11 +9,11 @@ import prog8.code.core.*
 
 internal fun postprocessSimplifiedAst(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
     processDefers(program, st, errors)
-    processSubtypes(program, st)
+    processSubtypesIntoStReferences(program, st)
 }
 
 
-private fun processSubtypes(program: PtProgram, st: SymbolTable) {
+private fun processSubtypesIntoStReferences(program: PtProgram, st: SymbolTable) {
 
     fun getStStruct(subType: ISubType): StStruct {
         val stNode = st.lookup(subType.scopedNameString) as? StStruct

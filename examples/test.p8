@@ -16,10 +16,10 @@ main {
             ^^Node next
         }
 
-        Node @shared node1,node2,node3
-        node1.value = 42
-        node1.value2 = 55
-        node1.value3 = 66
+        ; proposed static initializer syntax:
+;        ^^Node @shared node3 = Node( 33,2,3, 0 )
+;        ^^Node @shared node2 = Node( 22,2,3, &node3 )
+;        ^^Node @shared node1 = Node( 11,2,3, &node2 )
 
         ^^Node n0,n1,n2,n3,n4,n5,n6,n7,n8
 

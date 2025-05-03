@@ -366,7 +366,17 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         val (target, _) = srcCall.target.targetNameAndType(program)
         val iType = srcCall.inferType(program)
-        val call = PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
+        val call =
+            if(iType.isStructInstance) {
+                // a call to a struct yields a struct instance and means: allocate a statically initialized struct instance of that type
+                val struct = iType.getOrUndef().subType!!
+                val pointertype = DataType.pointerToType(struct)
+                PtBuiltinFunctionCall("staticalloc", false, true, pointertype, srcCall.position)
+            } else {
+                // regular function call
+                PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
+            }
+
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call

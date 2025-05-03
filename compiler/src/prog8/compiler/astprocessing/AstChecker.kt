@@ -629,6 +629,10 @@ internal class AstChecker(private val program: Program,
             }
         }
 
+        if(fcall?.target?.targetStructDecl()!=null)
+            // Struct(...) initializer
+            return super.visit(assignment)
+
         // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
         if(assignment.value.inferType(program).isUnknown) {
             val binexpr = assignment.value as? BinaryExpression
@@ -2213,7 +2217,7 @@ internal class AstChecker(private val program: Program,
             if(sourceDatatype.isPointer) {
                 if(!(sourceDatatype isAssignableTo targetDatatype))
                     errors.err("cannot assign different pointer type", position)
-            } else if(!sourceDatatype.isUnsignedWord)
+            } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)
                 errors.err("can only assign uword or correct pointer type to a pointer", position)
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)

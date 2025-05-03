@@ -253,15 +253,15 @@ class StMemVar(name: String,
 
 class StStruct(
     name: String,
-    val members: List<Pair<DataType, String>>,
+    val fields: List<Pair<DataType, String>>,
     astNode: PtStructDecl?
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
-    fun memsize(sizer: IMemSizer): Int = members.sumOf { sizer.memorySize(it.first, 1) }
+    fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
     fun getField(name: String, sizer: IMemSizer): Pair<DataType, Int> {
         // returns type and byte offset of the given field
         var offset = 0
-        for((dt, definedname) in members) {
+        for((dt, definedname) in fields) {
             if(name==definedname)
                 return dt to offset
             offset += sizer.memorySize(dt, null)
