@@ -217,7 +217,7 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
     init {
         if(operator in ComparisonOperators + LogicalOperators)
             require(type.isBool)
-        else if(operator!="^^")
+        else if(operator!=".")
             require(!type.isBool) { "no bool allowed for this operator $operator"}
     }
 }

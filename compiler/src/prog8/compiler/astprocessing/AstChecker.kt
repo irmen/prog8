@@ -64,7 +64,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(identifier: IdentifierReference) {
 
         val parentExpr = identifier.parent as? BinaryExpression
-        if(parentExpr?.operator=="^^") {
+        if(parentExpr?.operator==".") {
             return  // identifiers will be checked over at the BinaryExpression itself
         }
 
@@ -86,7 +86,7 @@ internal class AstChecker(private val program: Program,
             if(identifier.parent is ArrayIndexedExpression) {
                 // might be a pointer dereference chain
                 val ppExpr = identifier.parent.parent as? BinaryExpression
-                if(ppExpr?.operator=="^^")
+                if(ppExpr?.operator==".")
                     return  // identifiers will be checked over at the BinaryExpression itself
             }
             errors.undefined(identifier.nameInSource, identifier.position)
@@ -638,7 +638,7 @@ internal class AstChecker(private val program: Program,
             else if(binexpr?.right is PtrDereference) {
                 errors.err("invalid pointer dereference (can't determine type)", binexpr.right.position)
             }
-            else if(binexpr?.operator=="^^" || binexpr?.operator==".")
+            else if(binexpr?.operator==".")
                 errors.err("invalid pointer dereference (can't determine type)", assignment.value.position)
             else if(assignment.target.multi==null)
                 errors.err("invalid assignment value", assignment.value.position)
@@ -1265,10 +1265,7 @@ internal class AstChecker(private val program: Program,
     override fun visit(expr: BinaryExpression) {
         super.visit(expr)
 
-        if(expr.operator==".")
-            throw FatalAstException("temporary operator '.' should have been replaced by '^^' for 'walking the chain' at ${expr.position}")
-
-        if(expr.operator=="^^") {
+        if(expr.operator==".") {
             val leftIdentfier = expr.left as? IdentifierReference
             val leftIndexer = expr.left as? ArrayIndexedExpression
             val rightIdentifier = expr.right as? IdentifierReference
@@ -1331,7 +1328,7 @@ internal class AstChecker(private val program: Program,
                     // TODO I don't think we can evaluate this because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
                 }
             } else
-                throw FatalAstException("expected identifier or arrayindexer after ^^ operator at ${expr.position})")
+                throw FatalAstException("expected identifier or arrayindexer after dereference operator at ${expr.position})")
             return
         }
 
@@ -1761,7 +1758,7 @@ internal class AstChecker(private val program: Program,
             }
         } else {
             val parentExpr = arrayIndexedExpression.parent as? BinaryExpression
-            if(parentExpr?.operator!="^^")
+            if(parentExpr?.operator!=".")
                 errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
         }
 

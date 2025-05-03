@@ -231,8 +231,7 @@ class BinaryExpression(
             "<=", ">=",
             "==", "!=" -> InferredTypes.knownFor(BaseDataType.BOOL)
             "<<", ">>" -> leftDt
-            "." -> InferredTypes.unknown()      // intermediate operator, will be replaced with '^^' after recombining scoped identifiers
-            "^^" -> {
+            "." -> {
                 val leftExpr = left as? BinaryExpression
                 val leftIdentfier = left as? IdentifierReference
                 val leftIndexer = left as? ArrayIndexedExpression
@@ -1571,7 +1570,7 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun inferType(program: Program): InferredTypes.InferredType {
         val parentExpr = parent as? BinaryExpression
-        if(parentExpr?.operator=="." || parentExpr?.operator=="^^") {
+        if(parentExpr?.operator==".") {
             TODO("cannot determine type of dereferenced indexed pointer(?) as part of a larger dereference expression")
         }
         val vardecl = indexed.arrayvar.targetVarDecl()

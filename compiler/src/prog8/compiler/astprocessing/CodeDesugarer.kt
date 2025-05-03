@@ -25,7 +25,6 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - flatten chained assignments
     // - remove alias nodes
     // - replace implicit pointer dereference chains (a.b.c.d) with explicit ones (a^^.b^^.c^^.d)
-    // - replace binary expression with "." operator with one that has a "^^" operator, to signify pointer scope traversal
 
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
         return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
@@ -266,10 +265,6 @@ _after:
                 IdentifierReference(listOf(function), expr.position),
                 mutableListOf(expr.left.copy()), expr.position)
             return listOf(IAstModification.ReplaceNode(expr, squareCall, parent))
-        }
-
-        if(expr.operator==".") {
-            expr.operator = "^^"
         }
 
         return noModifications

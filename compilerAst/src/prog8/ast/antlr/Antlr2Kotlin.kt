@@ -78,8 +78,9 @@ private fun VariabledeclarationContext.toAst() : VarDecl {
 
 private fun StructdeclarationContext.toAst(): Statement {
     val name = identifier().text
-    val members = structfielddecl().map { it.toAst() }
-    return StructDecl(name, members, toPosition())
+    val members: List<Pair<DataType, List<String>>> = structfielddecl().map { it.toAst() }
+    val flattened = members.flatMap { (dt, names) -> names.map { dt to it}}
+    return StructDecl(name, flattened, toPosition())
 }
 
 private fun SubroutinedeclarationContext.toAst() : Subroutine {
@@ -246,7 +247,7 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_
     if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
         datatype = datatype.elementToArray()
     val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
-    val identifiers = vardecl.identifier()
+    val identifiers = vardecl.identifierlist()?.identifier() ?: emptyList()
     if(identifiers.size>1)
         throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
     val identifiername = identifiers.single().name()
@@ -350,7 +351,7 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
                 datatype = datatype.elementToArray()
 
-            val identifiers = decl.identifier()
+            val identifiers = decl.identifierlist()?.identifier() ?: emptyList()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
             val identifiername = identifiers.single().name()
@@ -838,10 +839,10 @@ private fun When_choiceContext.toAst(): WhenChoice {
     return WhenChoice(values?.toMutableList(), scope, toPosition())
 }
 
-private fun StructfielddeclContext.toAst(): Pair<DataType, String> {
-    val identifier = identifier().UNICODEDNAME().text
+private fun StructfielddeclContext.toAst(): Pair<DataType, List<String>> {
+    val identifiers = identifierlist()?.identifier() ?: emptyList()
     val dt = datatype().toAst()
-    return dt to identifier
+    return dt to identifiers.map { it.name() }
 }
 
 private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl {
@@ -853,9 +854,8 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     }
     val zp = getZpOption(tags)
     val split = getSplitOption(tags)
-    val identifiers = identifier()
-    val identifiername = identifiers[0].name()
-    val name = if(identifiers.size==1) identifiername else "<multiple>"
+    val identifiers = identifierlist().identifier().map { it.name() }
+    val name = if(identifiers.size==1) identifiers[0] else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val alignword = "@alignword" in tags
     val align64 = "@align64" in tags
@@ -877,7 +877,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             split,
             arrayindex()?.toAst(),
             name,
-            if(identifiers.size==1) emptyList() else identifiers.map { it.name() },
+            if(identifiers.size==1) emptyList() else identifiers,
             value,
             "@shared" in tags,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,

@@ -679,7 +679,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val type = srcExpr.inferType(program).getOrElse {
             throw FatalAstException("unknown dt $srcExpr")
         }
-        if(srcExpr.operator=="^^") {
+        if(srcExpr.operator==".") {
             when (srcExpr.right) {
                 is IdentifierReference -> {
                     val chain = srcExpr.right as IdentifierReference

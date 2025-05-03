@@ -12,7 +12,7 @@ main {
         ; these in turn point to the 7th, 8th and 9th.
 
         struct Node {
-            ubyte value
+            ubyte value, value2, value3
             ^^Node next
         }
 

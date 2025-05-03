@@ -126,7 +126,7 @@ structdeclaration:
     'struct' identifier '{' EOL? (structfielddecl | EOL)+ '}'
     ;
 
-structfielddecl: datatype identifier;
+structfielddecl: datatype identifierlist;
 
 
 subroutinedeclaration :
@@ -151,7 +151,9 @@ directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','?
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype (arrayindex | ARRAYSIG)? TAG* identifier (',' identifier)* ;
+vardecl: datatype (arrayindex | ARRAYSIG)? TAG* identifierlist ;
+
+identifierlist: identifier (',' identifier)* ;
 
 varinitializer : vardecl '=' expression ;
 

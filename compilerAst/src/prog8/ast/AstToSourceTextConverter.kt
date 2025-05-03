@@ -97,8 +97,6 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         expr.left.accept(this)
         if(expr.operator.any { it.isLetter() })
             output(" ${expr.operator} ")
-        else if(expr.operator=="^^")
-            output(".")
         else
             output(expr.operator)
         expr.right.accept(this)

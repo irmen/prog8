@@ -430,7 +430,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 // pointer[0]  -->   pointer^^
                 if(dt.sub==null) {
                     val parentExpr = parent as? BinaryExpression
-                    if(parentExpr?.operator=="^^" || parentExpr?.operator=="^" && parentExpr.right is IdentifierReference) {
+                    if(parentExpr?.operator=="." && parentExpr.right is IdentifierReference) {
                         // we're part of an expression:  pointer[x].ptr.ptr.field
                         val chain = (parentExpr.right as? IdentifierReference)?.nameInSource?.toMutableList() ?: mutableListOf()
                         val field = chain.removeLastOrNull()
