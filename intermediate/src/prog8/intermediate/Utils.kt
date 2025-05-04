@@ -6,8 +6,8 @@ import prog8.left
 import prog8.right
 
 
-fun DataType.irTypeString(length: Int?): String {
-    val lengthStr = if(length==0) "" else length.toString()
+fun DataType.irTypeString(length: UInt?): String {
+    val lengthStr = if(length==0u) "" else length.toString()
     return when (this.base) {
         BaseDataType.BOOL -> "bool"
         BaseDataType.UBYTE -> "ubyte"

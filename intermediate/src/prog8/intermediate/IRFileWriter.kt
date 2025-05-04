@@ -1,8 +1,6 @@
 package prog8.intermediate
 
-import prog8.code.core.InternalCompilerException
-import prog8.code.core.Position
-import prog8.code.core.toHex
+import prog8.code.core.*
 import prog8.code.source.ImportFileSystem
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
@@ -234,17 +232,30 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeCharacters("\n\n")
     }
 
+    private fun initArrayInXml(array: IRStArray, floats: Boolean): String = array.joinToString(",") {
+        if(it.bool==true)
+            "1"
+        else if(it.bool==false)
+            "0"
+        else if(it.number!=null) {
+            if(floats) it.number.toString()
+            else it.number.toInt().toHex()
+        }
+        else
+            "@${it.addressOfSymbol}"
+    }
+
     private fun writeVariables() {
         fun writeNoInitVar(variable: IRStStaticVariable) {
             if(variable.dt.isSplitWordArray) {
                 // split into 2 ubyte arrays lsb+msb
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb zp=${variable.zpwish} split=true")
-                if(variable.align!=0)
+                if(variable.align!=0u)
                     xml.writeCharacters(" align=${variable.align}")
                 xml.writeCharacters("\nubyte[${variable.length}] ${variable.name}_msb zp=${variable.zpwish} split=true\n")
             } else {
                 xml.writeCharacters("${variable.typeString} ${variable.name} zp=${variable.zpwish}")
-                if(variable.align!=0)
+                if(variable.align!=0u)
                     xml.writeCharacters(" align=${variable.align}")
                 xml.writeCharacters("\n")
             }
@@ -283,7 +294,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     }
                 }
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish} split=true")
-                if(variable.align!=0)
+                if(variable.align!=0u)
                     xml.writeCharacters(" align=${variable.align}")
                 xml.writeCharacters("\nubyte[${variable.length}] ${variable.name}_msb=$msbValue zp=${variable.zpwish} split=true\n")
             } else {
@@ -298,23 +309,14 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     }
                     dt.isFloatArray -> {
                         if(variable.onetimeInitializationArrayValue!=null) {
-                            variable.onetimeInitializationArrayValue.joinToString(",") { it.number!!.toString() }
+                            initArrayInXml(variable.onetimeInitializationArrayValue, true)
                         } else {
                             ""     // array will be zero'd out at program start
                         }
                     }
                     dt.isArray -> {
                         if(variable.onetimeInitializationArrayValue!==null) {
-                            variable.onetimeInitializationArrayValue.joinToString(",") {
-                                if(it.bool==true)
-                                    "1"
-                                else if(it.bool==false)
-                                    "0"
-                                else if(it.number!=null)
-                                    it.number.toInt().toHex()
-                                else
-                                    "@${it.addressOfSymbol}"
-                            }
+                            initArrayInXml(variable.onetimeInitializationArrayValue, false)
                         } else {
                             ""     // array will be zero'd out at program start
                         }
@@ -322,7 +324,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     else -> throw InternalCompilerException("weird dt")
                 }
                 xml.writeCharacters("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish}")
-                if(variable.align!=0)
+                if(variable.align!=0u)
                     xml.writeCharacters(" align=${variable.align}")
                 xml.writeCharacters("\n")
             }
@@ -332,7 +334,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
 
         xml.writeStartElement("VARIABLESNOINIT")
         xml.writeCharacters("\n")
-        val (noinitNotAligned, noinitAligned) = variablesNoInit.partition { it.align==0 || it.align==1 }
+        val (noinitNotAligned, noinitAligned) = variablesNoInit.partition { it.align==0u || it.align==1u }
         for (variable in noinitNotAligned) {
             writeNoInitVar(variable)
         }
@@ -342,18 +344,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeEndElement()
         xml.writeCharacters("\n")
 
-        val instances = irProgram.st.allStructInstances()
-        for (instance in instances) {
-            if(instance.values.isEmpty())
-                TODO("write to IR: BSS struct instance: ${instance.name}")
-            else
-                TODO("write to IR: static struct instance with values: ${instance.name}  ${instance.values}")
-        }
-
-
         xml.writeStartElement("VARIABLESWITHINIT")
         xml.writeCharacters("\n")
-        val (initNotAligned, initAligned) = variablesWithInit.partition { it.align==0 || it.align==1 }
+        val (initNotAligned, initAligned) = variablesWithInit.partition { it.align==0u || it.align==1u }
         for (variable in initNotAligned) {
             writeVarWithInit(variable)
         }
@@ -362,6 +355,49 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         }
         xml.writeEndElement()
         xml.writeCharacters("\n")
+
+
+        val (instancesNoInit, instances) = irProgram.st.allStructInstances().partition { it.values.isEmpty() }
+        xml.writeStartElement("STRUCTINSTANCESNOINIT")
+        xml.writeCharacters("\n")
+        for (instance in instancesNoInit) {
+            val struct = irProgram.st.lookup(instance.structName) as IRStStructDef
+            require(struct.size == instance.size)
+            xml.writeCharacters("${instance.structName} ${instance.name} size=${instance.size}\n")
+        }
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+        xml.writeStartElement("STRUCTINSTANCES")
+        xml.writeCharacters("\n")
+        for (instance in instances) {
+            val struct = irProgram.st.lookup(instance.structName) as IRStStructDef
+            require(struct.size == instance.size)
+            require(struct.fields.size == instance.values.size)
+            xml.writeCharacters("${instance.structName} ${instance.name} size=${instance.size} values=")
+            val values = struct.fields.zip(instance.values).map {(field, value) ->
+                val valuestr = when {
+                    value.dt == BaseDataType.BOOL -> {
+                        if(value.value.bool==true) "1" else "0"
+                    }
+                    value.dt.isInteger || value.dt.isPointer -> {
+                        if(value.value.number!=null)
+                            value.value.number.toInt().toHex()
+                        else
+                            "@${value.value.addressOfSymbol}"
+                    }
+                    value.dt == BaseDataType.FLOAT -> {
+                        value.value.number.toString()
+                    }
+                    else -> throw InternalCompilerException("weird dt")
+                }
+                field.first to valuestr
+            }
+            xml.writeCharacters(values.joinToString(",") { "${it.first}:${it.second}" })
+            xml.writeCharacters("\n")
+        }
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+
 
         xml.writeStartElement("CONSTANTS")
         xml.writeCharacters("\n")

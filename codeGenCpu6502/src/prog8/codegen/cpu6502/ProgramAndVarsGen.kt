@@ -569,12 +569,12 @@ internal class ProgramAndVarsGen(
 
         stringVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.name)+"_init_value"
-            outputStringvar(varname, 0, it.value.second, it.value.first)
+            outputStringvar(varname, 0u, it.value.second, it.value.first)
         }
 
         arrayVarsWithInitInZp.forEach {
             val varname = asmgen.asmVariableName(it.name)+"_init_value"
-            arrayVariable2asm(varname, it.alloc.dt, 0, it.value, null)
+            arrayVariable2asm(varname, it.alloc.dt, 0u, it.value, null)
         }
 
         asmgen.out("+")
@@ -639,7 +639,7 @@ internal class ProgramAndVarsGen(
         if(varsNoInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables")
             asmgen.out("  .section BSS")
-            val (notAligned, aligned) = varsNoInit.partition { it.align==0 }
+            val (notAligned, aligned) = varsNoInit.partition { it.align==0u }
             notAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt.base }).forEach {
                 uninitializedVariable2asm(it)
             }
@@ -652,8 +652,8 @@ internal class ProgramAndVarsGen(
         if(varsWithInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables with init value")
             val (stringvars, othervars) = varsWithInit.sortedBy { it.name }.partition { it.dt.isString }
-            val (notAlignedStrings, alignedStrings) = stringvars.partition { it.align==0 }
-            val (notAlignedOther, alignedOther) = othervars.partition { it.align==0 }
+            val (notAlignedStrings, alignedStrings) = stringvars.partition { it.align==0u }
+            val (notAlignedOther, alignedOther) = othervars.partition { it.align==0u }
             notAlignedStrings.forEach {
                 outputStringvar(
                     it.name,
@@ -700,13 +700,13 @@ internal class ProgramAndVarsGen(
             dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.FLOAT_MEM_SIZE}")
             dt.isSplitWordArray -> {
                 alignVar(variable.align)
-                val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!) / 2
+                val numbytesPerHalf = compTarget.memorySize(variable.dt, variable.length!!.toInt()) / 2
                 asmgen.out("${variable.name}_lsb\t.fill  $numbytesPerHalf")
                 asmgen.out("${variable.name}_msb\t.fill  $numbytesPerHalf")
             }
             dt.isArray -> {
                 alignVar(variable.align)
-                val numbytes = compTarget.memorySize(variable.dt, variable.length!!)
+                val numbytes = compTarget.memorySize(variable.dt, variable.length!!.toInt())
                 asmgen.out("${variable.name}\t.fill  $numbytes")
             }
             dt.isPointer -> asmgen.out("${variable.name}\t.word  ?")        // a pointer is just an uword address
@@ -719,8 +719,8 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun alignVar(align: Int) {
-        if(align > 1)
+    private fun alignVar(align: UInt) {
+        if(align > 1u)
             asmgen.out("  .align  ${align.toHex()}")
     }
 
@@ -757,7 +757,7 @@ internal class ProgramAndVarsGen(
                 throw AssemblyError("all string vars should have been interned into prog")
             }
             dt.isArray -> {
-                arrayVariable2asm(variable.name, variable.dt, variable.align, variable.initializationArrayValue, variable.length)
+                arrayVariable2asm(variable.name, variable.dt, variable.align, variable.initializationArrayValue, variable.length?.toInt())
             }
             else -> {
                 throw AssemblyError("weird dt")
@@ -765,7 +765,7 @@ internal class ProgramAndVarsGen(
         }
     }
 
-    private fun arrayVariable2asm(varname: String, dt: DataType, align: Int, value: StArray?, orNumberOfZeros: Int?) {
+    private fun arrayVariable2asm(varname: String, dt: DataType, align: UInt, value: StArray?, orNumberOfZeros: Int?) {
         alignVar(align)
         when {
             dt.isUnsignedByteArray || dt.isBoolArray -> {
@@ -867,7 +867,7 @@ internal class ProgramAndVarsGen(
             }
     }
 
-    private fun outputStringvar(varname: String, align: Int, encoding: Encoding, value: String) {
+    private fun outputStringvar(varname: String, align: UInt, encoding: Encoding, value: String) {
         alignVar(align)
         asmgen.out("$varname\t; $encoding:\"${value.escape().replace("\u0000", "<NULL>")}\"", false)
         val bytes = compTarget.encodeString(value, encoding).plus(0.toUByte())

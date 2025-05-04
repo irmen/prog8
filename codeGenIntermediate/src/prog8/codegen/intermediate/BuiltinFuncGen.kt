@@ -1,5 +1,6 @@
 package prog8.codegen.intermediate
 
+import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.BaseDataType
@@ -48,14 +49,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "structalloc" -> funcStructAlloc(call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
-    }
-
-    private fun funcStructAlloc(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        val result = mutableListOf<IRCodeChunkBase>()
-        val pointerReg = codeGen.registers.next(IRDataType.WORD)
-        val address = 65534  // TODO determine correct address!!
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, immediate = address), null)
-        return ExpressionCodeResult(result, IRDataType.WORD, pointerReg, -1)
     }
 
     private fun funcSquare(call: PtBuiltinFunctionCall, resultType: IRDataType): ExpressionCodeResult {
@@ -502,8 +495,16 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val name = (call.args[0] as PtString).value
         val code = IRCodeChunk(null, null)
         val resultReg = codeGen.registers.next(IRDataType.WORD)
-        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "prog8_slabs.prog8_memoryslab_$name")
-        return ExpressionCodeResult(code, IRDataType.BYTE, resultReg, -1)
+        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "$StMemorySlabPrefix.prog8_memoryslab_$name")
+        return ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
+    }
+
+    private fun funcStructAlloc(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val code = IRCodeChunk(null, null)
+        val resultReg = codeGen.registers.next(IRDataType.WORD)
+        val labelname = SymbolTable.labelnameForStructInstance(call)
+        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = labelname)
+        return ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
     }
 
     private fun funcLsb(call: PtBuiltinFunctionCall): ExpressionCodeResult {

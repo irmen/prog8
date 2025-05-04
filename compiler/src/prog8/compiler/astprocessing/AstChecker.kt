@@ -1724,6 +1724,14 @@ internal class AstChecker(private val program: Program,
         if(target is StructDecl) {
             // it's a static struct inializer, check the values
             if(args.size!=0) {
+                args.forEach {
+                    if(it is IdentifierReference) {
+                        val target = it.targetVarDecl()
+                        if(target!=null && target.datatype.isPointer) {
+                            errors.err("a pointer variable cannot be used in a static initialization list because its value is only known at runtime (use 0 here, and assign it later manually)", it.position)
+                        }
+                    }
+                }
                 if (!args.all { it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral)})
                     errors.err("initialization list contains non-constant elements", args[0].position)
                 if (target.fields.size != args.size)

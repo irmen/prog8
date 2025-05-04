@@ -1,7 +1,7 @@
 package prog8.vm
 
 import prog8.Either
-import prog8.code.core.DataType
+import prog8.code.core.*
 import prog8.intermediate.*
 import prog8.left
 import prog8.right
@@ -200,7 +200,7 @@ class VmProgramLoader {
             if(variable.uninitialized) {
                 val dt = variable.dt
                 if(dt.isArray) {
-                    repeat(variable.length!!) {
+                    repeat(variable.length!!.toInt()) {
                         when {
                             dt.isPointerArray -> {
                                 memory.setUW(addr, 0u)      // array of pointers is just array of word addresses
@@ -213,7 +213,7 @@ class VmProgramLoader {
                             dt.isSplitWordArray -> {
                                 // lo bytes come after the hi bytes
                                 memory.setUB(addr, 0u)
-                                memory.setUB(addr+variable.length!!, 0u)
+                                memory.setUB(addr+variable.length!!.toInt(), 0u)
                                 addr++
                             }
                             dt.isWordArray -> {
@@ -250,10 +250,55 @@ class VmProgramLoader {
                 }
             }
             variable.onetimeInitializationArrayValue?.let { iElts ->
-                require(variable.length==iElts.size)
+                require(variable.length==iElts.size.toUInt())
                 initializeWithValues(variable, iElts, addr, symbolAddresses, memory, program)
             }
             require(variable.onetimeInitializationStringValue==null) { "in vm/ir, strings should have been converted into bytearrays." }
+        }
+
+        program.st.allStructInstances().forEach { instance ->
+            val address = allocations.allocations.getValue(instance.name)
+            var a = address
+            if(instance.values.isEmpty()) {
+                // Zero out BSS for this uninitialized instance
+                // TODO doesn't work yet????
+                repeat(instance.size.toInt()) {
+                    memory.setUB(a, 0u)
+                    a++
+                }
+            } else {
+                instance.values.forEach {
+                    val value: Double = if(it.value.bool==true) 1.0
+                        else if(it.value.bool==false) 0.0
+                        else if(it.value.number!=null) it.value.number!!
+                        else if(it.value.addressOfSymbol!=null) {
+                            val name = it.value.addressOfSymbol!!
+                            val symbolAddress = symbolAddresses[name]
+                                ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                            symbolAddress.toDouble()
+                        }
+                        else throw IRParseException("invalid initializer value")
+
+                    when {
+                        it.dt.isByteOrBool -> {
+                            memory.setUB(a, value.toInt().toUByte())
+                            a++
+                        }
+                        it.dt.isInteger || it.dt.isPointer -> {
+                            memory.setUW(a, value.toInt().toUShort())
+                            a+=2
+                        }
+                        it.dt == BaseDataType.FLOAT -> {
+                            memory.setFloat(a, value)
+                            a += program.options.compTarget.FLOAT_MEM_SIZE
+                        }
+                        else -> throw IRParseException("invalid dt")
+                    }
+                }
+            }
+            require(a-address == instance.size.toInt())  {
+                "invalid struct init size, expected ${instance.size}, got ${a-address}"
+            }
         }
     }
 
@@ -306,7 +351,7 @@ class VmProgramLoader {
                         {
                             val integer = it.toUInt()
                             memory.setUB(address, (integer and 255u).toUByte())
-                            memory.setUB(address + variable.length!!, (integer shr 8).toUByte())
+                            memory.setUB(address + variable.length!!.toInt(), (integer shr 8).toUByte())
                         },
                         { throw IRParseException("didn't expect bool") }
                     )

@@ -1,9 +1,6 @@
 package prog8.code
 
-import prog8.code.ast.PtAsmSub
-import prog8.code.ast.PtNode
-import prog8.code.ast.PtProgram
-import prog8.code.ast.PtStructDecl
+import prog8.code.ast.*
 import prog8.code.core.*
 
 
@@ -11,7 +8,7 @@ import prog8.code.core.*
  * Tree structure containing all symbol definitions in the program
  * (blocks, subroutines, variables (all types), memoryslabs, and labels).
  */
-class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
+class SymbolTable(val astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
     /**
      * The table as a flat mapping of scoped names to the StNode.
      * This gives the fastest lookup possible (no need to traverse tree nodes)
@@ -84,15 +81,42 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
         vars
     }
 
+    val allStructInstances: Collection<StStructInstance> by lazy {
+        val vars = mutableListOf<StStructInstance>()
+        fun collect(node: StNode) {
+            for(child in node.children) {
+                if(child.value.type== StNodeType.STRUCTINSTANCE)
+                    vars.add(child.value as StStructInstance)
+                else
+                    collect(child.value)
+            }
+        }
+        collect(this)
+        vars
+    }
+
     override fun lookup(scopedName: String) = flat[scopedName]
 
     fun getLength(name: String): Int? {
         return when(val node = flat[name]) {
-            is StMemVar -> node.length
+            is StMemVar -> node.length?.toInt()
             is StMemorySlab -> node.size.toInt()
-            is StStaticVariable -> node.length
+            is StStaticVariable -> node.length?.toInt()
             is StStructInstance -> node.size.toInt()
             else -> null
+        }
+    }
+
+    companion object {
+        fun labelnameForStructInstance(call: PtBuiltinFunctionCall): String {
+            require(call.name == "structalloc")
+            val structname = (call.type.subType as StStruct).scopedNameString
+            // each individual call to the pseudo function structalloc(),
+            // needs to generate a separate unique struct instance label.
+            // (unlike memory() where the label is not unique and passed as the first argument)
+            val scopehash = call.parent.hashCode().toUInt().toString(16)
+            val hash = call.position.toString().hashCode().toUInt().toString(16)
+            return "prog8_struct_${structname.replace('.', '_')}_${scopehash}_$hash"
         }
     }
 }
@@ -188,9 +212,9 @@ class StStaticVariable(name: String,
                        val dt: DataType,
                        val initializationStringValue: StString?,
                        val initializationArrayValue: StArray?,
-                       val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                       val length: UInt?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
-                       val align: Int,
+                       val align: UInt,
                        astNode: PtNode?) : StNode(name, StNodeType.STATICVAR, astNode) {
 
     var initializationNumericValue: Double? = null
@@ -214,20 +238,20 @@ class StStaticVariable(name: String,
         if(length!=null) {
             require(initializationNumericValue == null)
             if(initializationArrayValue!=null)
-                require(initializationArrayValue.isEmpty() ||initializationArrayValue.size==length)
+                require(initializationArrayValue.isEmpty() || initializationArrayValue.size==length.toInt())
         }
         if(initializationNumericValue!=null) {
             require(dt.isNumericOrBool)
         }
         if(initializationArrayValue!=null) {
             require(dt.isArray)
-            require(length == initializationArrayValue.size)
+            require(length?.toInt() == initializationArrayValue.size)
         }
         if(initializationStringValue!=null) {
             require(dt.isString)
-            require(length == initializationStringValue.first.length + 1)
+            require(length?.toInt() == initializationStringValue.first.length + 1)
         }
-        if(align > 0) {
+        if(align > 0u) {
             require(dt.isString || dt.isArray)
             require(zpwish != ZeropageWish.REQUIRE_ZEROPAGE && zpwish != ZeropageWish.PREFER_ZEROPAGE)
         }
@@ -242,7 +266,7 @@ class StConstant(name: String, val dt: BaseDataType, val value: Double, astNode:
 class StMemVar(name: String,
                val dt: DataType,
                val address: UInt,
-               val length: Int?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+               val length: UInt?,             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                astNode: PtNode?) :
     StNode(name, StNodeType.MEMVAR, astNode) {
 
@@ -257,16 +281,16 @@ class StMemVar(name: String,
 class StStruct(
     name: String,
     val fields: List<Pair<DataType, String>>,
+    val size: UInt,
     astNode: PtStructDecl?
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
-    fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
-    fun getField(name: String, sizer: IMemSizer): Pair<DataType, Int> {
+    fun getField(name: String, sizer: IMemSizer): Pair<DataType, UInt> {
         // returns type and byte offset of the given field
         var offset = 0
         for((dt, definedname) in fields) {
             if(name==definedname)
-                return dt to offset
+                return dt to offset.toUInt()
             offset += sizer.memorySize(dt, null)
         }
         throw NoSuchElementException("field $name not found in struct ${this.name}")
@@ -274,16 +298,11 @@ class StStruct(
 }
 
 
-class StMemorySlab(
-    name: String,
-    val size: UInt,
-    val align: UInt,
-    astNode: PtNode?
-):
+class StMemorySlab(name: String, val size: UInt, val align: UInt, astNode: PtNode?):
     StNode(name, StNodeType.MEMORYSLAB, astNode)
 
 
-class StStructInstance(name: String, val size: UInt, val initialValues: StArray, astNode: PtNode?) :
+class StStructInstance(name: String, val structName: String, val initialValues: StArray, val size: UInt, astNode: PtNode?) :
     StNode(name, StNodeType.STRUCTINSTANCE, astNode)
 
 

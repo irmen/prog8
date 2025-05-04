@@ -1966,7 +1966,7 @@ $endLabel""")
         val (dt, numElements) = when(symbol) {
             is StStaticVariable  -> symbol.dt to symbol.length!!
             is StMemVar -> symbol.dt to symbol.length!!
-            else -> DataType.UNDEFINED to 0
+            else -> DataType.UNDEFINED to 0u
         }
         when {
             dt.isString -> {
@@ -1974,7 +1974,7 @@ $endLabel""")
                 asmgen.out("  pha")     // need to keep the scratch var safe so we have to do it in this order
                 assignAddressOf(AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, containment.definingISub(), containment.position,"P8ZP_SCRATCH_W1"), symbolName, false, null, null)
                 asmgen.out("  pla")
-                asmgen.out("  ldy  #${numElements-1}")
+                asmgen.out("  ldy  #${numElements-1u}")
                 asmgen.out("  jsr  prog8_lib.containment_bytearray")
             }
             dt.isFloatArray -> {

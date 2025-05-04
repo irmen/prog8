@@ -1,6 +1,7 @@
 package prog8.intermediate
 
 import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.ZeropageWish
@@ -29,7 +30,7 @@ class IRSymbolTable {
     fun allStructInstances(): Sequence<IRStStructInstance> =
         table.asSequence().map { it.value }.filterIsInstance<IRStStructInstance>()
 
-    fun lookup(name: String) = table[name]
+    fun lookup(name: String): IRStNode? = table[name]
 
     fun add(node: IRStNode) {
         table[node.name] = node
@@ -63,6 +64,7 @@ enum class IRStNodeType {
     MEMVAR,
     MEMORYSLAB,
     CONST,
+    STRUCT,
     STRUCTINSTANCE
 }
 
@@ -71,7 +73,7 @@ open class IRStNode(val name: String, val type: IRStNodeType)
 class IRStMemVar(name: String,
                  val dt: DataType,
                  val address: UInt,
-                 val length: Int?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                 val length: UInt?             // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                ) :  IRStNode(name, IRStNodeType.MEMVAR) {
     init {
         require(!dt.isString)
@@ -97,12 +99,12 @@ class IRStStaticVariable(name: String,
                        val onetimeInitializationNumericValue: Double?,      // TODO still needed? Or can go?   regular (every-run-time) initialization is done via regular assignments
                        val onetimeInitializationStringValue: IRStString?,
                        val onetimeInitializationArrayValue: IRStArray?,
-                       val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
+                       val length: UInt?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
-                       val align: Int
+                       val align: UInt
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     init {
-        if(align > 0) {
+        if(align > 0u) {
             require(dt.isString || dt.isArray)
             require(zpwish != ZeropageWish.REQUIRE_ZEROPAGE && zpwish != ZeropageWish.PREFER_ZEROPAGE)
         }
@@ -121,11 +123,15 @@ class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSym
     }
 }
 
-class IRStStructInstance(name: String, val values: IRStArray, val size: Int): IRStNode(name, IRStNodeType.STRUCTINSTANCE) {
+class IRStStructDef(name: String, val fields: List<Pair<DataType, String>>, val size: UInt): IRStNode(name, IRStNodeType.STRUCT)
+
+class IRStStructInstance(name: String, val structName: String, val values: List<IRStructInitValue>, val size: UInt): IRStNode(name, IRStNodeType.STRUCTINSTANCE) {
     init {
-        require(size > 0)
+        require('.' in structName)
     }
 }
+
+class IRStructInitValue(val dt: BaseDataType, val value: IRStArrayElement)
 
 typealias IRStArray = List<IRStArrayElement>
 typealias IRStString = Pair<String, Encoding>

@@ -1095,7 +1095,7 @@ $repeatLabel""")
                     } else {
                         // print a message when more optimal code is possible
                         val variable = symbolTable.lookup(arrayIdx.variable.name)!!
-                        if(variable is StStaticVariable && variable.length!!<=128)
+                        if(variable is StStaticVariable && variable.length!!<=128u)
                             errors.info("the jump address array is @split, but @nosplit would create more efficient code here", jump.position)
                     }
                 }

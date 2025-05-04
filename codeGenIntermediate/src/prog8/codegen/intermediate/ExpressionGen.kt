@@ -164,7 +164,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             // which is: value in pointer + x*sizeof(struct) + offsetof(a)
             // then use traverseDerefChainToCalculateFinalAddress on b.c.d.field
             val struct = deref.startpointer.type.subType as StStruct
-            val structsize = struct.memsize(codeGen.program.memsizer)
             val chain = ArrayDeque(deref.chain)
             val firstField = struct.getField(chain.removeFirst(), codeGen.program.memsizer)
             val pointerTr = translateExpression(arrayIndexer.variable)
@@ -172,7 +171,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             pointerReg = pointerTr.resultReg
             val constIndex = arrayIndexer.index.asConstInteger()
             if(constIndex!=null) {
-                val offset = constIndex * structsize
+                val offset = constIndex * struct.size.toInt()
                 addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
             } else {
                 val indexTr = translateExpression(arrayIndexer.index)
@@ -188,13 +187,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     } else {
                         indexReg = indexTr.resultReg
                     }
-                    it += codeGen.multiplyByConst(IRDataType.WORD, indexReg, structsize)
+                    it += codeGen.multiplyByConst(IRDataType.WORD, indexReg, struct.size.toInt())
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
                 }
             }
 
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = firstField.second)
+                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = firstField.second.toInt())
                 if (firstField.first.isPointer) {
                     // get the address stored in the pointer and use that for the rest of the chain
                     // LOADI has an exception to allo reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
@@ -1665,7 +1664,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 struct = fieldinfo.first.subType as StStruct
                 // get new pointer from field
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second)
+                    it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt())
                     // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
                     it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg)
                 }
@@ -1674,9 +1673,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(targetPointerDeref.field!=null) {
             val fieldinfo = struct!!.getField(targetPointerDeref.field!!, codeGen.program.memsizer)
             require(fieldinfo.first == targetPointerDeref.type)
-            if(fieldinfo.second>0) {
+            if(fieldinfo.second>0u) {
                 // add the field offset
-                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second), null)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)
             }
         }
         return result

@@ -52,7 +52,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
         val varsRequiringZp = allVariables.filter { it.zpwish == ZeropageWish.REQUIRE_ZEROPAGE }
         val varsPreferringZp = allVariables.filter { it.zpwish == ZeropageWish.PREFER_ZEROPAGE }
         val varsNotZp = allVariables.filter { it.zpwish == ZeropageWish.NOT_IN_ZEROPAGE }
-        val (varsDontCareWithoutAlignment, varsDontCareWithAlignment) = allVariables.filter { it.zpwish == ZeropageWish.DONTCARE }.partition { it.align == 0 }
+        val (varsDontCareWithoutAlignment, varsDontCareWithAlignment) = allVariables.filter { it.zpwish == ZeropageWish.DONTCARE }.partition { it.align == 0u }
         require(varsDontCareWithAlignment.size + varsDontCareWithoutAlignment.size + varsRequiringZp.size + varsPreferringZp.size + varsNotZp.size == numberOfAllocatableVariables)
 
         var numVariablesAllocatedInZP = 0
@@ -62,7 +62,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             val result = zeropage.allocate(
                 variable.scopedNameString,
                 variable.dt,
-                variable.length,
+                variable.length?.toInt(),
                 variable.astNode?.position ?: Position.DUMMY,
                 errors
             )
@@ -81,7 +81,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                 val result = zeropage.allocate(
                     variable.scopedNameString,
                     variable.dt,
-                    variable.length,
+                    variable.length?.toInt(),
                     variable.astNode?.position ?: Position.DUMMY,
                     errors
                 )
@@ -101,7 +101,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                             val result = zeropage.allocate(
                                 variable.scopedNameString,
                                 variable.dt,
-                                variable.length,
+                                variable.length?.toInt(),
                                 variable.astNode?.position ?: Position.DUMMY,
                                 errors
                             )

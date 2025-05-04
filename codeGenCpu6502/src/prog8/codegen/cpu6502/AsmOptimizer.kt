@@ -475,7 +475,7 @@ private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
                 val identifier = identMatch.value
                 when (val symbol = symbolTable.flat[identifier]) {
                     is StConstant -> symbol.value.toUInt()
-                    is StMemVar -> symbol.address
+                    is StMemVar -> symbol.address.toUInt()
                     else -> null
                 }
             } else null

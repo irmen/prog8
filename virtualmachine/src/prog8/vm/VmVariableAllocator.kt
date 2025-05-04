@@ -23,9 +23,9 @@ internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncod
                     variable.dt.isPointer -> memsizer.memorySize(DataType.UWORD, null)  // a pointer is just a word address
                     variable.dt.isString -> variable.onetimeInitializationStringValue!!.first.length + 1  // include the zero byte
                     variable.dt.isNumericOrBool -> memsizer.memorySize(variable.dt, null)
-                    variable.dt.isArray -> memsizer.memorySize(variable.dt, variable.length!!)
+                    variable.dt.isArray -> memsizer.memorySize(variable.dt, variable.length!!.toInt())
                     variable.dt.isStructInstance -> {
-                        TODO("struct instances")
+                        TODO("struct instances")  //  needed or not???
 //                        var name = variable.dt.subType!!.scopedNameString
 //                        var target = st.lookup(name)        // TODO should yield the struct definition, but St doesn't contain those yet?
                     }
@@ -39,6 +39,10 @@ internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncod
             // we ignore the alignment for the VM.
             allocations[slab.name] = nextLocation
             nextLocation += slab.size.toInt()
+        }
+        for(struct in st.allStructInstances()) {
+            allocations[struct.name] = nextLocation
+            nextLocation += struct.size.toInt()
         }
 
         freeMemoryStart = nextLocation

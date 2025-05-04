@@ -381,6 +381,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             throw AssemblyError("should not discard result of memory allocation at $fcall")
         val name = (fcall.args[0] as PtString).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}
+
         val slabname = PtIdentifier("prog8_slabs.prog8_memoryslab_$name", DataType.UWORD, fcall.position)
         val addressOf = PtAddressOf(fcall.position)
         addressOf.add(slabname)

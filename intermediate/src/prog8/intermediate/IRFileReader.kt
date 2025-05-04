@@ -50,6 +50,8 @@ class IRFileReader {
         val asmsymbols = parseAsmSymbols(reader)
         val varsWithoutInit = parseVarsWithoutInit(reader)
         val variables = parseVariables(reader)
+        val structsWithoutInit = parseStructInstancesNoInit(reader)
+        val structs = parseStructInstances(reader)
         val constants = parseConstants(reader)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
@@ -63,6 +65,8 @@ class IRFileReader {
         constants.forEach { st.add(it) }
         memorymapped.forEach { st.add(it) }
         slabs.forEach { st.add(it) }
+        structs.forEach { st.add(it) }
+        structsWithoutInit.forEach { st.add(it) }
 
         val program = IRProgram(programName, st, options, options.compTarget)
         program.addGlobalInits(initGlobals)
@@ -176,12 +180,12 @@ class IRFileReader {
                 val alignment = match.groups["align"]?.value ?: ""
                 if('.' !in name)
                     throw IRParseException("unscoped name: $name")
-                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
+                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 // val isSplit = if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-                val newVar = IRStStaticVariable(name, dt, null, null, null, arraysize, zp, align.toInt())
+                val newVar = IRStStaticVariable(name, dt, null, null, null, arraysize, zp, align)
                 variables.add(newVar)
             }
             return variables
@@ -241,7 +245,7 @@ class IRFileReader {
                 val alignment = match.groups["align"]?.value ?: ""
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
-                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
+                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 if(split.isBlank()) false else split.toBoolean()
@@ -270,12 +274,76 @@ class IRFileReader {
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align.toInt())
+                val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align)
                 variables.add(stVar)
             }
             return variables
         }
     }
+
+    private fun parseStructInstancesNoInit(reader: XMLEventReader): List<IRStStructInstance> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart == "STRUCTINSTANCESNOINIT") { "missing STRUCTINSTANCESNOINIT" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if (text.isBlank())
+            emptyList()
+        else {
+            text.lines().map {
+                val (structName, name, sizeStr1) = it.split(' ')
+                val sizeStr = sizeStr1.split('=')
+                require(sizeStr[0]=="size")
+                val size = sizeStr[1].toUInt()
+                IRStStructInstance(name, structName, emptyList(), size)
+            }
+        }
+    }
+
+    private fun parseStructInstances(reader: XMLEventReader): List<IRStStructInstance> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart == "STRUCTINSTANCES") { "missing STRUCTINSTANCES" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+
+        return if (text.isBlank())
+            emptyList()
+        else {
+            text.lines().map {
+                val (structName, name, sizeStr1, valuesStr1) = it.split(' ')
+                val sizeStr = sizeStr1.split('=')
+                require(sizeStr[0]=="size")
+                val size = sizeStr[1].toUInt()
+                require(valuesStr1.startsWith("values="))
+                val valuesStr = valuesStr1.drop(7).split(',')
+                val values = valuesStr.map {
+                    val (type, value) = it.split(':')
+                    val dt = parseDatatype(type, false)
+                    var booleanValue: Boolean? = null
+                    var numberValue: Double? = null
+                    var addressOfValue: String? = null
+                    if(dt.isBool)
+                        booleanValue = parseIRValue(value) != 0.0
+                    else if(dt.isNumeric)
+                        numberValue = parseIRValue(value)
+                    else if(dt.isPointer) {
+                        if(value.startsWith('@'))
+                            addressOfValue = value.drop(1)
+                        else
+                            numberValue = parseIRValue(value)
+                    }
+                    else
+                        throw IRParseException("unexpected field datatype $dt")
+                    IRStructInitValue(dt.base, IRStArrayElement(booleanValue, numberValue, addressOfValue))
+                }
+
+                IRStStructInstance(name, structName, values, size)
+            }
+        }
+    }
+
 
     private fun parseMemMapped(reader: XMLEventReader): List<IRStMemVar> {
         skipText(reader)
@@ -295,7 +363,7 @@ class IRFileReader {
                 // @ubyte[20] main.start.mappedarray=49408
                 val match = mappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPEDVARIABLES $line")
                 val (type, arrayspec, name, address) = match.destructured
-                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toInt() else null
+                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 memvars.add(IRStMemVar(name, dt, parseIRValue(address).toUInt(), arraysize))
             }

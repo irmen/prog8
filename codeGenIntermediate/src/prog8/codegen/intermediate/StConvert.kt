@@ -14,7 +14,12 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
                 StNodeType.MEMVAR -> st.add(convert(it.value as StMemVar))
                 StNodeType.CONSTANT -> st.add(convert(it.value as StConstant))
                 StNodeType.MEMORYSLAB -> st.add(convert(it.value as StMemorySlab))
-                StNodeType.STRUCTINSTANCE -> st.add(convert(it.value as StStructInstance))
+                StNodeType.STRUCTINSTANCE -> {
+                    val instance = it.value as StStructInstance
+                    val struct = st.lookup(instance.structName) as IRStStructDef
+                    st.add(convert(instance, struct))
+                }
+                StNodeType.STRUCT -> st.add(convert(it.value as StStruct))
                 else -> { }
             }
         }
@@ -38,10 +43,8 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
 }
 
 
-private fun convert(instance: StStructInstance): IRStStructInstance {
-    val values = instance.initialValues.map { convertArrayElt(it) }
-    return IRStStructInstance(instance.name, values, instance.size.toInt())
-}
+private fun convert(struct: StStruct): IRStStructDef =
+    IRStStructDef(struct.scopedNameString, struct.fields, struct.size)
 
 
 private fun convertArrayElt(elt: StArrayElement): IRStArrayElement = if(elt.boolean!=null)
@@ -128,12 +131,17 @@ private fun convert(variable: StMemorySlab): IRStMemorySlab {
     return if('.' in variable.name)
         IRStMemorySlab(variable.name, variable.size, variable.align)
     else
-        IRStMemorySlab("prog8_slabs.${variable.name}", variable.size, variable.align)
+        IRStMemorySlab("$StMemorySlabPrefix.${variable.name}", variable.size, variable.align)
 }
 
-/*
+
+private fun convert(instance: StStructInstance, struct: IRStStructDef): IRStStructInstance {
+    val values = struct.fields.zip(instance.initialValues).map { (field, value) ->
+        val elt = convertArrayElt(value)
+        IRStructInitValue(field.first.base, elt)
+    }
+    return IRStStructInstance(instance.name, instance.structName, values, instance.size)
+}
 
 
-
-
- */
+internal const val StMemorySlabPrefix = "prog8_slabs"       // TODO also add  ".prog8_memoryslab_"  ?

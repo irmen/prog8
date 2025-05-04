@@ -116,7 +116,7 @@ class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by Nor
             dt.isFloat -> FLOAT_MEM_SIZE * (numElements ?: 1)
             dt.isLong -> throw IllegalArgumentException("long can not yet be put into memory")
             dt.isPointer -> 2  // pointer is just a uword
-            dt.isStructInstance -> TODO("support struct instances")
+            dt.isStructInstance -> TODO("memory size of struct instances")
             dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
             else -> 2 * (numElements ?: 1)
         }

@@ -29,7 +29,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 PtMemMapped("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.zeropage.SCRATCH_W2, null, Position.DUMMY),
             ).forEach {
                 it.parent = program
-                st.add(StMemVar(it.name, it.type, it.address, it.arraySize?.toInt(), it))
+                st.add(StMemVar(it.name, it.type, it.address, it.arraySize, it))
             }
         }
 
@@ -54,7 +54,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StNode(node.name, StNodeType.LABEL, node)
             }
             is PtMemMapped -> {
-                StMemVar(node.name, node.type, node.address, node.arraySize?.toInt(), node)
+                StMemVar(node.name, node.type, node.address, node.arraySize, node)
             }
             is PtSub -> {
                 val params = node.signature.children.map {
@@ -64,13 +64,14 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StSub(node.name, params, node.signature.returns, node)
             }
             is PtStructDecl -> {
-                StStruct(node.name, node.fields, node)
+                val size = node.fields.sumOf { program.memsizer.memorySize(it.first, 1) }
+                StStruct(node.name, node.fields, size.toUInt(), node)
             }
             is PtVariable -> {
                 val initialNumeric: Double?
                 val initialString: StString?
                 val initialArray: StArray?
-                val numElements: Int?
+                val numElements: UInt?
                 val value = node.value
                 if(value!=null) {
                     when (value) {
@@ -78,14 +79,14 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             initialString = StString(value.value, value.encoding)
                             initialArray = null
                             initialNumeric = null
-                            numElements = value.value.length + 1   // include the terminating 0-byte
+                            numElements = (value.value.length + 1).toUInt()   // include the terminating 0-byte
                         }
                         is PtArray -> {
                             initialArray = makeInitialArray(value)
                             initialString = null
                             initialNumeric = null
-                            numElements = initialArray.size
-                            require(node.arraySize?.toInt()==numElements)
+                            numElements = initialArray.size.toUInt()
+                            require(node.arraySize==numElements)
                         }
                         else -> {
                             require(value is PtNumber)
@@ -93,19 +94,19 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             initialArray = null
                             val number = value.number
                             initialNumeric = number
-                            numElements = node.arraySize?.toInt()
+                            numElements = node.arraySize
                         }
                     }
                 } else {
                     initialNumeric = null
                     initialArray = null
                     initialString = null
-                    numElements = node.arraySize?.toInt()
+                    numElements = node.arraySize
                 }
 //                if(node.type in SplitWordArrayTypes) {
 //                    ... split array also add _lsb and _msb to symboltable?
 //                }
-                val stVar = StStaticVariable(node.name, node.type, initialString, initialArray, numElements, node.zeropage, node.align.toInt(), node)
+                val stVar = StStaticVariable(node.name, node.type, initialString, initialArray, numElements, node.zeropage, node.align, node)
                 if(initialNumeric!=null)
                     stVar.setOnetimeInitNumeric(initialNumeric)
                 stVar
@@ -123,11 +124,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 else if(node.name=="structalloc") {
                     val struct = node.type.subType!!
                     if(struct is StStruct) {
-                        val scopehash = node.parent.hashCode().toUInt().toString(16)
-                        val hash = node.position.toString().hashCode().toUInt().toString(16)
-                        val structname = struct.scopedNameString.substringAfterLast('.')
-                        val label = "prog8_struct_${structname}_${scopehash}_$hash"
-                        val size = struct.memsize(program.memsizer).toUInt()
+                        val label =  SymbolTable.labelnameForStructInstance(node)
                         val initialValues = node.args.map {
                             when(it) {
                                 is PtAddressOf -> StArrayElement(null, it.identifier!!.name, null)
@@ -136,7 +133,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                                 else -> throw AssemblyError("invalid structalloc argument type $it")
                             }
                         }
-                        scope.first().add(StStructInstance(label, size, initialValues, null))
+                        scope.first().add(StStructInstance(label, struct.scopedNameString, initialValues, struct.size, null))
                     }
                 }
                 null
