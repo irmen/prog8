@@ -353,13 +353,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
 
     override fun visit(assignment: Assignment) {
         val binExpr = assignment.value as? BinaryExpression
-        if(binExpr!=null && binExpr.left isSameAs assignment.target
-                && binExpr.operator !in ComparisonOperators) {
-            // we only support the inplace assignments of the form A = A <operator> <value>
+        if(binExpr!=null && assignment.isAugmentable) {
             assignment.target.accept(this)
             output(" ${binExpr.operator}= ")
             binExpr.right.accept(this)
         } else {
+            val whyNot = assignment.isAugmentable
             assignment.target.accept(this)
             output(" = ")
             assignment.value.accept(this)

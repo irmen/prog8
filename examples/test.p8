@@ -4,9 +4,8 @@
 
 main {
     sub start() {
-
-        uword buf = memory("buffer", 2000, 0)
-        sys.memset(buf, 2000, 0)
+;        uword buf = memory("buffer", 2000, 0)
+;        sys.memset(buf, 2000, 0)
 
         ; put 9 nodes into the buffer sequentially.
         ; each of the first 3 nodes points to the 4th, 5th, 6th.
@@ -18,29 +17,49 @@ main {
             ^^Node next
         }
 
+
+; TODO (Borked:)
+        ^^Node @shared ptr = 2000
+        ptr++
+        ptr += 2
+        ptr = cx16.r0 + ptr
+        ptr = cx16.r0 + ptr + 10
+;        ptr.value++
+;        ptr.value += 30
+;        ptr.value = ptr.value + 20
+;        ptr.value = cx16.r0L+20+ptr.value
+
         ; static initializer syntax:
-        ^^Node @shared node0 = Node()     ; no initialization (will be in BSS and zeroed out at startup)
-        ^^Node @shared node1 = Node( false, 11, 0 )
-        ^^Node @shared node2 = Node( false, 22, 0 )
-        ^^Node @shared node3 = Node( true, 33, 0 )
-
-        ; link up
-        node0.next = node1
-        node1.next = node2
-        node2.next = node3
-
-        ^^Node nptr = node0
-        while nptr {
-            txt.print("node at ")
-            txt.print_uw(nptr)
-            txt.print("\n flag=")
-            txt.print_bool(nptr.flag)
-            txt.print("\n value=")
-            txt.print_ub(nptr.value)
-            txt.nl()
-            nptr = nptr.next
-        }
-
+;        ^^Node @shared node0 = Node()     ; no initialization (will be in BSS and zeroed out at startup)
+;        ^^Node @shared node1 = Node( false, 11, 0 )
+;        ^^Node @shared node2 = Node( false, 22, 0 )
+;        ^^Node @shared node3 = Node( true, 33, 0 )
+;
+;        ; list of pointers:   (W.I.P.):
+;;        ^^Node[5] @shared nodes
+;;        for nptr in nodes {
+;;            txt.print_uw(nptr)
+;;            txt.spc()
+;;        }
+;;        txt.nl()
+;
+;        ; link up
+;        node0.next = node1
+;        node1.next = node2
+;        node2.next = node3
+;
+;        ^^Node nptr = node0
+;        while nptr {
+;            txt.print("node at ")
+;            txt.print_uw(nptr)
+;            txt.print("\n flag=")
+;            txt.print_bool(nptr.flag)
+;            txt.print("\n value=")
+;            txt.print_ub(nptr.value)
+;            txt.nl()
+;            nptr = nptr.next
+;        }
+;
 ;        ^^Node n0,n1,n2,n3,n4,n5,n6,n7,n8
 ;
 ;        n0 = buf + 0

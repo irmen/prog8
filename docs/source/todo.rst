@@ -28,24 +28,28 @@ STRUCTS and TYPED POINTERS
 - DONE (for basic types only): allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
 - DONE (?) allow array syntax on pointers to structs too, but what type will ptr[2] have? And it will require  ptr[2].field  to work as well now. Actually that will be the only thing to work for now.
 - DONE: allow multi-field declarations in structs
-- static initialization of structs may be allowed only at block scope and then behaves like arrays; it won't reset to the original value when program is restarted, so beware.
-  Syntax could be:  ^^Node ptr = Node(1,2,3,4) statically allocates a Node with fields set to 1,2,3,4 and puts the address in ptr.
-- Node() without arguments could allocate a node in BSS variable space instead.
-- What about static initialization of an array of struct pointers?
-- support @dirty on pointer vars
+- DONE: static initialization of structs. It behaves like arrays; it won't reset to the original value when program is restarted, so beware.
+  Syntax:  ^^Node ptr = Node(1,2,3,4) statically allocates a Node with fields set to 1,2,3,4 and puts the address in ptr.
+  Node() without arguments allocates a node in BSS variable space instead that gets zeroed out at startup.
+- DONE: pointer arrays are split-words only, enforce this (variable dt + initializer array dt)
+- DONE: make an error message for all pointer expressions (prefixed, binary) so we can start implementing the ones we need one by one.
+- start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for --  DON'T FORGET C POINTER SEMANTICS
+- fix actual _msb/_lsb storage of the split-words pointer-arrays
+- support @dirty on pointer vars -> uninitialized pointer placed in BSS_noclear segment
 - pointer types in subroutine signatures (both normal and asm-subs)
 - support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - are the ARRAY_POINTER and ARRAY_STRUCT data type enums realy needed? can't we just use ARRAY?
 - pointer arithmetic should follow C:  ptr=ptr+10 adds 10*sizeof() instead of just 10.
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - add unit tests for all changes
-- arrays of structs? No -> Just an array of uword pointers to said structs. Can even be @split as the only representation form because that's the default for word arrays.
+- arrays of structs? No -> Just an array of uword pointers to said structs.
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
 - existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
 - rather than str or uword parameter types for routines with a string argument, use ^^str  (or ^^ubyte maybe? these are more or less identical..?)
 - pointer-to-array syntax = TBD
 - what about pointers to subroutines? should these be typed as well now?
-- asm symbol name prefixing should work for dereferences too.
+- What about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not contants
+- 6502 asm symbol name prefixing should work for dereferences too.
 
 
 Future Things and Ideas

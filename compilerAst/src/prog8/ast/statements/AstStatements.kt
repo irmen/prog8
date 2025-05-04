@@ -668,7 +668,7 @@ data class AssignTarget(
             multi != null -> false
             pointerDereference !=null -> {
                 if(value is PtrDereference) {
-                    return if(pointerDereference!!.identifier!=value.identifier || pointerDereference!!.field!=value.field)
+                    return if(!(pointerDereference!!.identifier isSameAs value.identifier) || pointerDereference!!.field!=value.field)
                         false
                     else
                         pointerDereference!!.chain == value.chain

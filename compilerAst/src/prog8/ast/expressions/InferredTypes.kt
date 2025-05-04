@@ -93,6 +93,9 @@ object InferredTypes {
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
+        type.isPointerArray -> {
+            InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subType))
+        }
         type.isArray -> {
             InferredType.known(DataType.arrayFor(type.sub!!, false))
         }

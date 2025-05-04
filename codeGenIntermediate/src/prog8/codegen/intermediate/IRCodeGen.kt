@@ -493,10 +493,10 @@ class IRCodeGen(
                         result += jumpChunk
                         result += IRCodeChunk(endLabel, null)
                     }
-                    iterable.type.isSplitWordArray -> {
-                        // iterate over lsb/msb split word array
+                    iterable.type.isSplitWordArray || iterable.type.isPointerArray -> {
+                        // iterate over lsb/msb split word/pointer array
                         val elementDt = iterable.type.elementType()
-                        if(!elementDt.isWord)
+                        if(!elementDt.isWord && !elementDt.isPointer)
                             throw AssemblyError("weird dt")
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {

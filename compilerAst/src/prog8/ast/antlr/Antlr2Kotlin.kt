@@ -874,11 +874,16 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
     }
 
+    val splitWords = if(split==SplitWish.DONTCARE) {
+        if(dt.isPointerArray) SplitWish.SPLIT       // pointer arrays are always @split by default
+        else split
+    } else split
+
     return VarDecl(
             type, VarDeclOrigin.USERCODE,
             dt,
             zp,
-            split,
+            splitWords,
             arrayindex()?.toAst(),
             name,
             if(identifiers.size==1) emptyList() else identifiers,

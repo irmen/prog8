@@ -100,8 +100,8 @@ class TestVariables: FunSpec({
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "value has incompatible type"
-        errors.errors[1] shouldContain "value has incompatible type"
+        errors.errors[0] shouldContain "undefined array type"
+        errors.errors[1] shouldContain "undefined array type"
     }
 
     test("global var init with array lookup should sometimes be const") {

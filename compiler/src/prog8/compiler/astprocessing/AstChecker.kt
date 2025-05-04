@@ -206,43 +206,64 @@ internal class AstChecker(private val program: Program,
             if(loopvar==null || loopvar.type== VarDeclType.CONST) {
                 errors.err("for loop requires a variable to loop with", forLoop.position)
             } else {
-                require(loopvar.datatype.isNumericOrBool)
                 when (loopvar.datatype.base) {
                     BaseDataType.UBYTE -> {
-                        if(!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString)      // TODO remove ubyte check?
+                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString)      // TODO remove ubyte check?
                             errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
+
                     BaseDataType.BOOL -> {
-                        if(!iterableDt.isBoolArray)
+                        if (!iterableDt.isBoolArray)
                             errors.err("bool loop variable can only loop over boolean array", forLoop.position)
                     }
+
                     BaseDataType.UWORD -> {
-                        if(!iterableDt.isUnsignedByte && !iterableDt.isUnsignedWord && !iterableDt.isString &&      // TODO remove byte and word check?
-                                !iterableDt.isUnsignedByteArray && !iterableDt.isUnsignedWordArray &&
-                                !iterableDt.isSplitWordArray)
+                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedWord && !iterableDt.isString &&      // TODO remove byte and word check?
+                            !iterableDt.isUnsignedByteArray && !iterableDt.isUnsignedWordArray &&
+                            !iterableDt.isSplitWordArray
+                        )
                             errors.err("uword loop variable can only loop over unsigned bytes, words or strings", forLoop.position)
 
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
+
                     BaseDataType.BYTE -> {
-                        if(!iterableDt.isSignedByte && !iterableDt.isSignedByteArray)       // TODO remove byte check?
+                        if (!iterableDt.isSignedByte && !iterableDt.isSignedByteArray)       // TODO remove byte check?
                             errors.err("byte loop variable can only loop over bytes", forLoop.position)
                     }
+
                     BaseDataType.WORD -> {
-                        if(!iterableDt.isSignedByte && !iterableDt.isSignedWord &&
-                                !iterableDt.isSignedByteArray && !iterableDt.isUnsignedByteArray &&
-                                !iterableDt.isSignedWordArray && !iterableDt.isUnsignedWordArray)
+                        if (!iterableDt.isSignedByte && !iterableDt.isSignedWord &&
+                            !iterableDt.isSignedByteArray && !iterableDt.isUnsignedByteArray &&
+                            !iterableDt.isSignedWordArray && !iterableDt.isUnsignedWordArray
+                        )
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
+
                     BaseDataType.FLOAT -> {
                         // Looping over float variables is very inefficient because the loopvar is going to
                         // get copied over with new values all the time. We don't support this for now.
                         // Loop with an integer index variable if you really need to... or write different code.
                         errors.err("for loop only supports integers", forLoop.position)
                     }
-                    else -> errors.err("loop variable must be numeric type", forLoop.position)
+
+                    BaseDataType.POINTER -> {
+                        if (!iterableDt.isUnsignedWord) {
+                            if (iterableDt.isPointerArray) {
+                                val elementDt = iterableDt.elementType()
+                                if(loopvar.datatype != elementDt)
+                                    errors.err("loopvar type differs from the pointer types in the collection", forLoop.position)
+                            } else
+                                errors.err("pointer loop variable can only loop over pointers or unsigned words", forLoop.position)
+                        }
+
+                        checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
+                    }
+
+                    else -> errors.err("loop variable must be numeric or pointer type", forLoop.position)
                 }
+
                 if(errors.noErrors()) {
                     // check loop range values
                     val range = forLoop.iterable as? RangeExpression
@@ -885,19 +906,23 @@ internal class AstChecker(private val program: Program,
         if(declValue!=null && decl.type==VarDeclType.VAR) {
             val iDt = declValue.inferType(program)
             if (!(iDt istype decl.datatype)) {
-                if(decl.isArray) {
+                if(decl.datatype.isPointerArray) {
+                    if(!iDt.getOrUndef().isWordArray)
+                        valueerr("initialization value for pointer array must be a word array")
+                }
+                else if(decl.isArray) {
                     val eltDt = decl.datatype.elementType()
-                    if(!(iDt istype eltDt))
-                        valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                    if(!(iDt istype eltDt) && iDt.isKnown)
+                        valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
                 } else if(!decl.datatype.isString) {
                     if(!(iDt.isBool && decl.datatype.isUnsignedByte || iDt issimpletype BaseDataType.UBYTE && decl.datatype.isBool)) {
                         // pointer variables can be initialized with a compatible pointer or with a uword
                         if(decl.datatype.isPointer) {
                             if (!iDt.isAssignableTo(decl.datatype))
-                                valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                                valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
                         }
                         else
-                            valueerr("initialisation value has incompatible type ($iDt) for the variable (${decl.datatype})")
+                            valueerr("initialization value has incompatible type ($iDt) for the variable (${decl.datatype})")
                     }
                 }
             }
@@ -991,6 +1016,11 @@ internal class AstChecker(private val program: Program,
             } else if(decl.alignment>64u) {
                 errors.info("large alignment might waste a lot of memory (check Gaps in assembler output)", decl.position)
             }
+        }
+
+        if(decl.datatype.isPointerArray) {
+            if(decl.splitwordarray!= SplitWish.SPLIT)
+                errors.err("pointer arrays can only be @split", decl.position)
         }
 
 
@@ -1165,11 +1195,13 @@ internal class AstChecker(private val program: Program,
             }
             val arrayspec = ArrayIndex.forArray(array)
             checkValueTypeAndRangeArray(array.type.getOrUndef(), arrayspec, array)
+        } else {
+            errors.err("undefined array type (multiple element types?)", array.position)
         }
 
         if(array.parent is VarDecl) {
             if (!array.value.all { it is NumericLiteral || it is AddressOf })
-                errors.err("initialization list contains non-constant elements", array.value[0].position)
+                errors.err("initialization value contains non-constant elements", array.value[0].position)
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
@@ -1214,6 +1246,12 @@ internal class AstChecker(private val program: Program,
         checkLongType(expr)
         val dt = expr.expression.inferType(program).getOrUndef()
         if(!dt.isUndefined) {
+
+            if(dt.isPointerArray || dt.isPointer) {
+                errors.err("pointers don't support prefix operators", expr.position)
+                return
+            }
+
             when (expr.operator) {
                 "-" -> {
                     if (!(dt.isSigned && dt.isNumeric)) {
@@ -1265,6 +1303,9 @@ internal class AstChecker(private val program: Program,
         if(s.count>0)
             errors.err("defer cannot contain jumps or returns", defer.position)
     }
+
+    private val supportedPointerOperatorsVirtual: Set<String> = emptySet()
+    private val supportedPointerOperators6502: Set<String> = emptySet()
 
     override fun visit(expr: BinaryExpression) {
         super.visit(expr)
@@ -1352,6 +1393,20 @@ internal class AstChecker(private val program: Program,
 
         val leftDt = leftIDt.getOrUndef()
         val rightDt = rightIDt.getOrUndef()
+
+        // gate off non-functioning pointer arithmetic
+        if(compilerOptions.compTarget.name == VMTarget.NAME) {
+            if (expr.operator !in supportedPointerOperatorsVirtual) {
+                if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
+                    errors.err("pointer arithmetic operator '${expr.operator}' is not yet supported, will be added piecemeal", expr.position)
+                }
+            }
+        }
+        else if(expr.operator !in supportedPointerOperators6502) {
+            if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
+                errors.err("pointer arithmetic operator '${expr.operator}' is not yet supported, will be added piecemeal", expr.position)
+            }
+        }
 
         if(expr.operator=="+" || expr.operator=="-") {
             if(leftDt.isString || rightDt.isString || leftDt.isArray || rightDt.isArray) {
@@ -1728,14 +1783,14 @@ internal class AstChecker(private val program: Program,
                     if(it is IdentifierReference) {
                         val target = it.targetVarDecl()
                         if(target!=null && target.datatype.isPointer) {
-                            errors.err("a pointer variable cannot be used in a static initialization list because its value is only known at runtime (use 0 here, and assign it later manually)", it.position)
+                            errors.err("a pointer variable cannot be used in a static initialization value because its value is only known at runtime (use 0 here, and assign it later manually)", it.position)
                         }
                     }
                 }
                 if (!args.all { it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral)})
-                    errors.err("initialization list contains non-constant elements", args[0].position)
+                    errors.err("initialization value contains non-constant elements", args[0].position)
                 if (target.fields.size != args.size)
-                    errors.err("initialization list needs to be same number of values as the struct has fields: expected ${target.fields.size} or 0, got ${args.size}", args[0].position)
+                    errors.err("initialization value needs to have same number of values as the struct has fields: expected ${target.fields.size} or 0, got ${args.size}", args[0].position)
                 else
                     target.fields.zip(args).withIndex().forEach { (index, fv) ->
                         val (field, value) = fv
@@ -1763,8 +1818,8 @@ internal class AstChecker(private val program: Program,
         checkLongType(arrayIndexedExpression)
         val target = arrayIndexedExpression.arrayvar.targetStatement(program)
         if(target is VarDecl) {
-            if(!target.datatype.isIterable && !target.datatype.isUnsignedWord)
-                errors.err("indexing requires an iterable or address uword variable", arrayIndexedExpression.position)
+            if(!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)
+                errors.err("indexing requires an iterable, address uword, or pointer variable", arrayIndexedExpression.position)
             val indexVariable = arrayIndexedExpression.indexer.indexExpr as? IdentifierReference
             if(indexVariable!=null) {
                 if(indexVariable.targetVarDecl()?.datatype?.isSigned==true) {
@@ -2188,7 +2243,7 @@ internal class AstChecker(private val program: Program,
         }
         if (!correct) {
             if (value.parent is VarDecl && !value.value.all { it is NumericLiteral || it is AddressOf })
-                errors.err("initialization list contains non-constant elements", value.value[0].position)
+                errors.err("initialization value contains non-constant elements", value.value[0].position)
             else
                 errors.err("array element out of range for type $targetDt", value.position)
         }

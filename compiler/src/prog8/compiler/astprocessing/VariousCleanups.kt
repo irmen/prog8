@@ -24,10 +24,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         // check and possibly adjust value datatype vs decl datatype
         val valueType = decl.value?.inferType(program)
         if(valueType!=null && !valueType.istype(decl.datatype)) {
-            if(valueType.isUnknown) {
-                errors.err("value has incompatible type for ${decl.datatype}", decl.value!!.position)
+            if(valueType.isUnknown)
                 return noModifications
-            }
             val valueDt = valueType.getOrUndef()
             when(decl.type) {
                 VarDeclType.VAR -> {
@@ -68,11 +66,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         // check splitting of word arrays
-        if(!decl.datatype.isWordArray && decl.splitwordarray != SplitWish.DONTCARE) {
+        if(decl.splitwordarray != SplitWish.DONTCARE && !decl.datatype.isWordArray && !decl.datatype.isPointerArray) {
             if(decl.origin != VarDeclOrigin.ARRAYLITERAL)
-                errors.err("@split and @nosplit are for word arrays only", decl.position)
+                errors.err("@split and @nosplit are for word or pointer arrays only", decl.position)
         }
-        else if(decl.datatype.isWordArray) {
+
+        if(decl.datatype.isWordArray) {
             var changeDataType: DataType?
             var changeSplit: SplitWish = decl.splitwordarray
             when(decl.splitwordarray) {

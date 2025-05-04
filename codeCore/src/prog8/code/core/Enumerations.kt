@@ -60,7 +60,7 @@ val BaseDataType.isStructInstance get() = this == BaseDataType.STRUCT_INSTANCE
 val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isStructArray get() = this == BaseDataType.ARRAY_STRUCT
 val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW
-val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER, BaseDataType.POINTER)
+val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
 val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
 

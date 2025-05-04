@@ -1054,7 +1054,7 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
                 return if(!loopvarDt.isNumericOrBool)
                     InferredTypes.unknown()
                 else
-                    InferredTypes.InferredType.known(loopvarDt.getOrUndef().elementToArray())
+                    InferredTypes.knownFor(loopvarDt.getOrUndef().elementToArray())
             }
         }
 
@@ -1064,20 +1064,27 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
         if(datatypesInArray.any{ it.isUnknown })
             return InferredTypes.unknown()
         val dts = datatypesInArray.map { it.getOrUndef() }
+        if(dts.all { it.isPointer }) {
+            val unique = dts.toSet()
+            if(unique.size==1) {
+                val dt = unique.single()
+                return InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.sub, dt.subType))
+            }
+        }
         return when {
-            dts.any { it.isFloat } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.FLOAT))
-            dts.any { it.isString } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
-            dts.any { it.isSignedWord } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.WORD))
-            dts.any { it.isUnsignedWord } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
-            dts.any { it.isSignedByte } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.BYTE))
+            dts.any { it.isFloat } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.FLOAT))
+            dts.any { it.isString } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
+            dts.any { it.isSignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.WORD))
+            dts.any { it.isUnsignedWord } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
+            dts.any { it.isSignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BYTE))
             dts.any { it.isBool } -> {
                 if(dts.all { it.isBool})
-                    InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.BOOL))
+                    InferredTypes.knownFor(DataType.arrayFor(BaseDataType.BOOL))
                 else
                     InferredTypes.unknown()
             }
-            dts.any { it.isUnsignedByte } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UBYTE))
-            dts.any { it.isArray } -> InferredTypes.InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
+            dts.any { it.isUnsignedByte } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UBYTE))
+            dts.any { it.isArray } -> InferredTypes.knownFor(DataType.arrayFor(BaseDataType.UWORD))
             else -> InferredTypes.unknown()
         }
     }
