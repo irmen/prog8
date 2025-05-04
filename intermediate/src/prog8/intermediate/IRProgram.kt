@@ -540,8 +540,8 @@ class IRInlineBinaryChunk(label: String?,
 typealias IRCodeChunks = List<IRCodeChunkBase>
 
 
-internal class IRSubtypePlaceholder(val name: String): ISubType {
-    override val scopedNameString = name
+internal class IRSubtypePlaceholder(override val scopedNameString: String, val size: Int = 999999999): ISubType {
+    override fun memsize(sizer: IMemSizer) = size
 }
 
 

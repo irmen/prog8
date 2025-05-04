@@ -295,6 +295,8 @@ class StStruct(
         }
         throw NoSuchElementException("field $name not found in struct ${this.name}")
     }
+
+    override fun memsize(sizer: IMemSizer): Int = size.toInt()
 }
 
 

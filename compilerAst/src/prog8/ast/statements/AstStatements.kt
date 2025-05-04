@@ -386,7 +386,7 @@ class StructDecl(override val name: String, val fields: List<Pair<DataType, Stri
     override fun copy() = StructDecl(name, fields.toList(), position)
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
+    override fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
     fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second==name }?.first
     override val scopedNameString by lazy { scopedName.joinToString(".") }
 }
@@ -503,6 +503,7 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
 
     /**
      * Is the assigment value an expression that references the assignment target itself?
+     * Note it doesn't have to be the first term in the expression!
      * The expression can be a BinaryExpression, PrefixExpression or TypecastExpression (possibly with one sub-cast).
      */
     val isAugmentable: Boolean

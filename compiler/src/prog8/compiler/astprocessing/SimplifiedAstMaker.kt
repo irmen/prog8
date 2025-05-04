@@ -180,6 +180,38 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 else -> Pair("", null)
             }
             if(augmentedValue!=null) {
+
+                if(srcAssign.target.inferType(program).isPointer) {
+                    val expr = srcExpr as BinaryExpression
+                    if(expr.operator=="+") {
+                        // pointer arithmetic: add the size of the struct times the argument
+                        val leftDt = expr.left.inferType(program).getOrUndef()
+                        require(leftDt.isPointer && !expr.right.inferType(program).isPointer)
+                        val structSize = leftDt.size(program.memsizer)
+                        val constValue = augmentedValue.constValue(program)
+                        if(constValue!=null) {
+                            val total = constValue.number*structSize
+                            if (total == 0.0)
+                                return PtNop(srcAssign.position)
+                            else {
+                                val assign = PtAugmentedAssign(operator, srcAssign.position)
+                                assign.add(transform(srcAssign.target))
+                                assign.add(PtNumber(BaseDataType.UWORD, total, srcAssign.position))
+                                return assign
+                            }
+                        } else {
+                            val multiplication = PtBinaryExpression("*", DataType.UWORD, srcAssign.position)
+                            multiplication.add(transformExpression(augmentedValue))
+                            multiplication.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), srcAssign.position))
+                            val assign = PtAugmentedAssign(operator, srcAssign.position)
+                            assign.add(transform(srcAssign.target))
+                            assign.add(multiplication)
+                            return assign
+                        }
+                    } else
+                        throw FatalAstException("unexpected augmented assignment operator on pointer ${expr.operator}")
+                }
+
                 val assign = PtAugmentedAssign(operator, srcAssign.position)
                 assign.add(transform(srcAssign.target))
                 assign.add(transformExpression(augmentedValue))
@@ -706,10 +738,53 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 else -> throw FatalAstException("unknown deref at ${srcExpr.position}")
             }
         } else {
-            val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
-            expr.add(transformExpression(srcExpr.left))
-            expr.add(transformExpression(srcExpr.right))
-            return expr
+            if(srcExpr.left.inferType(program).isPointer || srcExpr.right.inferType(program).isPointer) {
+                if(srcExpr.operator=="+") {
+                    // pointer arithmetic:  ptr + value
+                    val leftDt = srcExpr.left.inferType(program).getOrUndef()
+                    val rightDt = srcExpr.right.inferType(program).getOrUndef()
+                    if(leftDt.isPointer && !rightDt.isPointer) {
+                        val structSize = leftDt.size(program.memsizer)
+                        val constValue = srcExpr.right.constValue(program)
+                        if(constValue!=null) {
+                            TODO("ptr +  $constValue * $structSize")
+                        } else {
+                            TODO("ptr +  ${srcExpr.right} * $structSize")
+                        }
+                    } else if(!leftDt.isPointer && rightDt.isPointer) {
+                        val structSize = rightDt.size(program.memsizer)
+                        val constValue = srcExpr.left.constValue(program)
+                        if(constValue!=null) {
+                            val total = constValue.number*structSize
+                            if (total == 0.0)
+                                return transformExpression(srcExpr.left)
+                            else {
+                                TODO("ptr +  $constValue * $structSize")
+//                                val assign = PtAugmentedAssign(operator, srcAssign.position)
+//                                assign.add(transform(srcAssign.target))
+//                                assign.add(PtNumber(BaseDataType.UWORD, total, srcAssign.position))
+//                                return assign
+                            }
+                        } else {
+                            val total = PtBinaryExpression("*", DataType.UWORD, srcExpr.position)
+                            total.add(transformExpression(srcExpr.left))
+                            total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), srcExpr.position))
+                            val addition = PtBinaryExpression("+", DataType.UWORD, srcExpr.position)
+                            addition.add(transformExpression(srcExpr.right))
+                            addition.add(total)
+                            return addition
+                        }
+                    } else {
+                        throw FatalAstException("weird pointer arithmetic ${srcExpr.position}")
+                    }
+                } else
+                    throw FatalAstException("unsupported operator on pointer: ${srcExpr.operator} at ${srcExpr.position}")
+            } else {
+                val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
+                expr.add(transformExpression(srcExpr.left))
+                expr.add(transformExpression(srcExpr.right))
+                return expr
+            }
         }
     }
 

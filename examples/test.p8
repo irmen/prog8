@@ -20,10 +20,50 @@ main {
 
 ; TODO (Borked:)
         ^^Node @shared ptr = 2000
-        ptr++
-        ptr += 2
-        ptr = cx16.r0 + ptr
+;        ^^bool bptr = 3000
+;        ^^float fptr = 3000
+;
+;        bptr++
+;        fptr++
+;
+;        txt.print_uw(ptr)
+;        txt.nl()
+;
+;        ptr++
+;        txt.print_uw(ptr)
+;        txt.nl()
+;
+;        ptr += 2
+;        txt.print_uw(ptr)
+;        txt.nl()
+;
+;        cx16.r0 = 5
+;        ptr = cx16.r0 + ptr
+;        txt.print_uw(ptr)
+;        txt.nl()
+
+        cx16.r0 = 4
+
+        ptr = cx16.r0 + ptr + 1
+        txt.print_uw(ptr)
+        txt.nl()
+        ptr = cx16.r0 + 1 + ptr
+        txt.print_uw(ptr)
+        txt.nl()
+        ptr = ptr + 1 + cx16.r0
+        txt.print_uw(ptr)
+        txt.nl()
+
         ptr = cx16.r0 + ptr + 10
+        txt.print_uw(ptr)
+        txt.nl()
+        ptr = cx16.r0 + 10 + ptr
+        txt.print_uw(ptr)
+        txt.nl()
+        ptr = ptr + 10 + cx16.r0
+        txt.print_uw(ptr)
+        txt.nl()
+
 ;        ptr.value++
 ;        ptr.value += 30
 ;        ptr.value = ptr.value + 20

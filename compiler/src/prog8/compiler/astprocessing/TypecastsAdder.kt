@@ -211,6 +211,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                     return modifications
                 }
+
+
+                // pointer arithmetic
+                if(leftDt.isPointer) {
+                    val cast = TypecastExpression(expr.right, DataType.UWORD, true, expr.right.position)
+                    return listOf(IAstModification.ReplaceNode(expr.right, cast, expr))
+                } else if(rightDt.isPointer) {
+                    val cast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                    return listOf(IAstModification.ReplaceNode(expr.left, cast, expr))
+                }
             }
 
             // check if shifts have a positive integer shift type

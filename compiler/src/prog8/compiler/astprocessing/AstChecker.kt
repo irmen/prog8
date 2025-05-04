@@ -1304,7 +1304,7 @@ internal class AstChecker(private val program: Program,
             errors.err("defer cannot contain jumps or returns", defer.position)
     }
 
-    private val supportedPointerOperatorsVirtual: Set<String> = emptySet()
+    private val supportedPointerOperatorsVirtual: Set<String> = setOf("+")
     private val supportedPointerOperators6502: Set<String> = emptySet()
 
     override fun visit(expr: BinaryExpression) {
@@ -1437,12 +1437,22 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(!leftDt.isNumeric && !leftDt.isString && !leftDt.isBool)
-            errors.err("left operand is not numeric or str", expr.left.position)
-        if(!rightDt.isNumeric && !rightDt.isString && !rightDt.isBool)
-            errors.err("right operand is not numeric or str", expr.right.position)
+        if(!leftDt.isNumeric && !leftDt.isString && !leftDt.isBool && !leftDt.isPointer)
+            errors.err("invalid left operand type", expr.left.position)
+        if(!rightDt.isNumeric && !rightDt.isString && !rightDt.isBool && !rightDt.isPointer)
+            errors.err("invalid right operand type", expr.right.position)
         if(leftDt!=rightDt) {
-            if(leftDt.isString && rightDt.isInteger && expr.operator=="*") {
+            if(leftDt.isPointer) {
+                if(!rightDt.isUnsignedWord) {
+                    errors.err("pointer arithmetic requires unsigned word operand", expr.right.position)
+                }
+            }
+            else if(rightDt.isPointer) {
+                if(!leftDt.isUnsignedWord) {
+                    errors.err("pointer arithmetic requires unsigned word operand", expr.left.position)
+                }
+            }
+            else if(leftDt.isString && rightDt.isInteger && expr.operator=="*") {
                 // exception allowed: str * constvalue
                 if(expr.right.constValue(program)==null)
                     errors.err("can only use string repeat with a constant number value", expr.left.position)

@@ -1454,10 +1454,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, -1, rightTr.resultFpReg)
                 addInstr(result, if(signed)
-                        IRInstruction(Opcode.DIVSR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2=rightTr.resultFpReg)
-                    else
-                        IRInstruction(Opcode.DIVR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2=rightTr.resultFpReg)
-                        , null)
+                    IRInstruction(Opcode.DIVSR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2=rightTr.resultFpReg)
+                else
+                    IRInstruction(Opcode.DIVR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2=rightTr.resultFpReg)
+                    , null)
                 return ExpressionCodeResult(result, vmDt, -1, leftTr.resultFpReg)
             }
         } else {
@@ -1472,10 +1472,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, leftTr.resultReg, -1)
                     addInstr(result, if (signed)
-                            IRInstruction(Opcode.DIVS, vmDt, reg1 = leftTr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt())
-                        else
-                            IRInstruction(Opcode.DIV, vmDt, reg1 = leftTr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt())
-                            , null)
+                        IRInstruction(Opcode.DIVS, vmDt, reg1 = leftTr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt())
+                    else
+                        IRInstruction(Opcode.DIV, vmDt, reg1 = leftTr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt())
+                        , null)
                     ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
                 } else {
                     val leftTr = translateExpression(binExpr.left)
@@ -1483,10 +1483,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val rightTr = translateExpression(binExpr.right)
                     addToResult(result, rightTr, rightTr.resultReg, -1)
                     addInstr(result, if (signed)
-                            IRInstruction(Opcode.DIVSR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg)
-                        else
-                            IRInstruction(Opcode.DIVR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg)
-                            , null)
+                        IRInstruction(Opcode.DIVSR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg)
+                    else
+                        IRInstruction(Opcode.DIVR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg)
+                        , null)
                     ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
                 }
             }

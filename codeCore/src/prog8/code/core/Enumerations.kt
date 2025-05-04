@@ -67,6 +67,7 @@ val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
 
 interface ISubType {
     val scopedNameString: String
+    fun memsize(sizer: IMemSizer): Int
 }
 
 class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?, var subType: ISubType?, var subTypeFromAntlr: List<String>?=null) {
@@ -296,6 +297,14 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
     fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
 
+    fun size(memsizer: IMemSizer): Int = if(sub!=null) {
+            memsizer.memorySize(sub)
+        } else if(subType!=null) {
+            subType!!.memsize(memsizer)
+        } else {
+            memsizer.memorySize(base)
+        }
+
     val isBasic = sub==null && subType==null && subTypeFromAntlr==null
     val isUndefined = base == BaseDataType.UNDEFINED
     val isByte = base.isByte
@@ -382,7 +391,7 @@ enum class RegisterOrPair {
             BaseDataType.BYTE -> "sL"
             BaseDataType.WORD -> "s"
             BaseDataType.UWORD, null -> ""
-            else -> throw kotlin.IllegalArgumentException("invalid register param type")
+            else -> throw IllegalArgumentException("invalid register param type")
         }
         return listOf("cx16", name.lowercase()+suffix)
     }

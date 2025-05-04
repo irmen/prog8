@@ -34,6 +34,7 @@ STRUCTS and TYPED POINTERS
 - DONE: pointer arrays are split-words only, enforce this (variable dt + initializer array dt)
 - DONE: make an error message for all pointer expressions (prefixed, binary) so we can start implementing the ones we need one by one.
 - start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for --  DON'T FORGET C POINTER SEMANTICS
+- don't do pointer arith in the codegen, do it in Pt translation!
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
 - support @dirty on pointer vars -> uninitialized pointer placed in BSS_noclear segment
 - pointer types in subroutine signatures (both normal and asm-subs)
@@ -49,6 +50,7 @@ STRUCTS and TYPED POINTERS
 - pointer-to-array syntax = TBD
 - what about pointers to subroutines? should these be typed as well now?
 - What about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not contants
+- 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
 
 
