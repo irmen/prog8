@@ -12,8 +12,12 @@ comment ";"
 color teal "\]"
 color teal "\["
 
+# Struct definitions and pointers
+color crimson "struct[[:blank:]]+[[:alpha:]][[:alnum:]_]*"
+color crimson "\^\^[[:blank:]]*[[:alpha:]][[:alnum:]_]*"
+
 # Scope Parents
-color lightblack "[[:alpha:]][[:alnum:]_]*\."
+color latte "[[:alpha:]][[:alnum:]_]*\."
 
 # function
 color brightyellow "[[:alpha:]][[:alnum:]_]*[[:blank:]]*\("
@@ -22,13 +26,13 @@ color brightyellow "[[:alpha:]][[:alnum:]_]*[[:blank:]]*\("
 color lightgreen "\<(true|if_cs|if_eq|if_mi|if_vs|if_z|if_neg)\>"
 color lightred "\<(false|if_cc|if_ne|if_pl|if_vc|if_nz|if_pos)\>"
 color red "\<if(\>|_)"
-color red "\<(sub|(inline[[:space:]]+)?asmsub|extsub|else|void|not|and|x?or|for|in|(down)?to|return|while|repeat|break|continue|step|goto|when|as|const|do|until|unroll)\>"
+color red "\<(sub|(inline[[:space:]]+)?asmsub|extsub|else|void|not|and|x?or|for|in|(down)?to|return|while|repeat|break|continue|step|goto|when|as|const|do|until|unroll|struct)\>"
 
 # Labels
 color sky "^[[:alpha:]][[:alnum:]_]*:"
 
 # Data Types
-color crimson "\<(u?byte|u?word|str|bool|float)\>"
+color crimson "\<(u?byte|u?word|str|bool|float|long)\>"
 
 # Brackets
 color yellow "[()]"
@@ -36,8 +40,8 @@ color yellow "[()]"
 # @
 color brightmagenta "@[[:blank:]]*[[:alnum:]_]*"
 
-# &
-color brick "&"
+# & and ^^
+color brick "&|\^\^"
 
 # Arrows
 color lagoon "->"
