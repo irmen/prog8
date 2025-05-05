@@ -18,29 +18,28 @@ main {
         }
 
 
-; TODO (Borked:)
         ^^Node @shared ptr = 2000
-;        ^^bool bptr = 3000
-;        ^^float fptr = 3000
-;
-;        bptr++
-;        fptr++
-;
-;        txt.print_uw(ptr)
-;        txt.nl()
-;
-;        ptr++
-;        txt.print_uw(ptr)
-;        txt.nl()
-;
-;        ptr += 2
-;        txt.print_uw(ptr)
-;        txt.nl()
-;
-;        cx16.r0 = 5
-;        ptr = cx16.r0 + ptr
-;        txt.print_uw(ptr)
-;        txt.nl()
+        ^^bool bptr = 3000
+        ^^float fptr = 3000
+
+        bptr++
+        fptr++
+
+        txt.print_uw(ptr)
+        txt.nl()
+
+        ptr++
+        txt.print_uw(ptr)
+        txt.nl()
+
+        ptr += 2
+        txt.print_uw(ptr)
+        txt.nl()
+
+        cx16.r0 = 5
+        ptr = cx16.r0 + ptr
+        txt.print_uw(ptr)
+        txt.nl()
 
         cx16.r0 = 4
 
@@ -64,10 +63,6 @@ main {
         txt.print_uw(ptr)
         txt.nl()
 
-;        ptr.value++
-;        ptr.value += 30
-;        ptr.value = ptr.value + 20
-;        ptr.value = cx16.r0L+20+ptr.value
 
         ; static initializer syntax:
 ;        ^^Node @shared node0 = Node()     ; no initialization (will be in BSS and zeroed out at startup)

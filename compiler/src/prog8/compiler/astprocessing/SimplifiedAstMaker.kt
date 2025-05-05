@@ -739,52 +739,73 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         } else {
             if(srcExpr.left.inferType(program).isPointer || srcExpr.right.inferType(program).isPointer) {
-                if(srcExpr.operator=="+") {
-                    // pointer arithmetic:  ptr + value
-                    val leftDt = srcExpr.left.inferType(program).getOrUndef()
-                    val rightDt = srcExpr.right.inferType(program).getOrUndef()
-                    if(leftDt.isPointer && !rightDt.isPointer) {
-                        val structSize = leftDt.size(program.memsizer)
-                        val constValue = srcExpr.right.constValue(program)
-                        if(constValue!=null) {
-                            TODO("ptr +  $constValue * $structSize")
-                        } else {
-                            TODO("ptr +  ${srcExpr.right} * $structSize")
-                        }
-                    } else if(!leftDt.isPointer && rightDt.isPointer) {
-                        val structSize = rightDt.size(program.memsizer)
-                        val constValue = srcExpr.left.constValue(program)
-                        if(constValue!=null) {
-                            val total = constValue.number*structSize
-                            if (total == 0.0)
-                                return transformExpression(srcExpr.left)
-                            else {
-                                TODO("ptr +  $constValue * $structSize")
-//                                val assign = PtAugmentedAssign(operator, srcAssign.position)
-//                                assign.add(transform(srcAssign.target))
-//                                assign.add(PtNumber(BaseDataType.UWORD, total, srcAssign.position))
-//                                return assign
-                            }
-                        } else {
-                            val total = PtBinaryExpression("*", DataType.UWORD, srcExpr.position)
-                            total.add(transformExpression(srcExpr.left))
-                            total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), srcExpr.position))
-                            val addition = PtBinaryExpression("+", DataType.UWORD, srcExpr.position)
-                            addition.add(transformExpression(srcExpr.right))
-                            addition.add(total)
-                            return addition
-                        }
-                    } else {
-                        throw FatalAstException("weird pointer arithmetic ${srcExpr.position}")
-                    }
-                } else
-                    throw FatalAstException("unsupported operator on pointer: ${srcExpr.operator} at ${srcExpr.position}")
+                when (srcExpr.operator) {
+                    "+" -> return transformWithPointerArithmeticPlus(srcExpr)
+                    else -> throw FatalAstException("unsupported operator on pointer: ${srcExpr.operator} at ${srcExpr.position}")
+                }
             } else {
                 val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
                 expr.add(transformExpression(srcExpr.left))
                 expr.add(transformExpression(srcExpr.right))
                 return expr
             }
+        }
+    }
+
+    private fun transformWithPointerArithmeticPlus(expr: BinaryExpression): PtExpression {
+        // pointer arithmetic:  ptr + value
+        val leftDt = expr.left.inferType(program).getOrUndef()
+        val rightDt = expr.right.inferType(program).getOrUndef()
+        if(leftDt.isPointer && !rightDt.isPointer) {
+            val structSize = leftDt.size(program.memsizer)
+            val constValue = expr.right.constValue(program)
+            if(constValue!=null) {
+                // ptr + constvalue * structsize
+                val total = constValue.number*structSize
+                if (total == 0.0)
+                    return transformExpression(expr.left)
+                else {
+                    val addition = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                    addition.add(transformExpression(expr.left))
+                    addition.add(PtNumber(BaseDataType.UWORD, total, expr.position))
+                    return addition
+                }
+            } else {
+                // ptr + right * structSize
+                val total = PtBinaryExpression("*", DataType.UWORD, expr.position).also { it.add(transformExpression(expr.right)) }
+                total.add(transformExpression(expr.right))
+                total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                val addition = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                addition.add(transformExpression(expr.left))
+                addition.add(total)
+                return addition
+            }
+        } else if(!leftDt.isPointer && rightDt.isPointer) {
+            val structSize = rightDt.size(program.memsizer)
+            val constValue = expr.left.constValue(program)
+            if(constValue!=null) {
+                // ptr + constvalue * structsize
+                val total = constValue.number*structSize
+                if (total == 0.0)
+                    return transformExpression(expr.right)
+                else {
+                    val addition = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                    addition.add(transformExpression(expr.right))
+                    addition.add(PtNumber(BaseDataType.UWORD, total, expr.position))
+                    return addition
+                }
+            } else {
+                // ptr + left  * structSize
+                val total = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                total.add(transformExpression(expr.left))
+                total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                val addition = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                addition.add(transformExpression(expr.right))
+                addition.add(total)
+                return addition
+            }
+        } else {
+            throw FatalAstException("weird pointer arithmetic ${expr.position}")
         }
     }
 

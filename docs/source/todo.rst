@@ -33,7 +33,8 @@ STRUCTS and TYPED POINTERS
   Node() without arguments allocates a node in BSS variable space instead that gets zeroed out at startup.
 - DONE: pointer arrays are split-words only, enforce this (variable dt + initializer array dt)
 - DONE: make an error message for all pointer expressions (prefixed, binary) so we can start implementing the ones we need one by one.
-- start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for --  DON'T FORGET C POINTER SEMANTICS
+- DONE: start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for --  DON'T FORGET C POINTER SEMANTICS
+- what other pointer arithmetic do we need? "-", but anything else that makes logical sense?
 - don't do pointer arith in the codegen, do it in Pt translation!
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
 - support @dirty on pointer vars -> uninitialized pointer placed in BSS_noclear segment

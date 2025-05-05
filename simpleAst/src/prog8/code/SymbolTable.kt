@@ -8,7 +8,7 @@ import prog8.code.core.*
  * Tree structure containing all symbol definitions in the program
  * (blocks, subroutines, variables (all types), memoryslabs, and labels).
  */
-class SymbolTable(val astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
+class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
     /**
      * The table as a flat mapping of scoped names to the StNode.
      * This gives the fastest lookup possible (no need to traverse tree nodes)

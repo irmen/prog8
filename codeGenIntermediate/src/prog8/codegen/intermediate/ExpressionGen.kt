@@ -147,7 +147,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
             }
 
-            else -> throw AssemblyError("unsupported dereference type ${idxderef.type}")
+            else -> throw AssemblyError("unsupported dereference type ${idxderef.type} at ${idxderef.position}")
         }
     }
 
@@ -232,7 +232,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = pointerReg), null)
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
             }
-            else -> throw AssemblyError("unsupported dereference type ${actualDeref.type}")
+            else -> throw AssemblyError("unsupported dereference type ${actualDeref.type} at ${actualDeref.position}")
         }
     }
 
