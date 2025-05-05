@@ -298,6 +298,13 @@ class BinaryExpression(
             if(leftDt.isUndefined || rightDt.isUndefined)
                 return DataType.UNDEFINED to null
 
+            // anything combined with a pointer type -> pointer type.
+            if(leftDt.isPointer)
+                return leftDt to null
+            if(rightDt.isPointer)
+                return rightDt to null
+
+
             // byte + byte -> byte
             // byte + word -> word
             // word + byte -> word

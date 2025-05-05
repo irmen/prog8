@@ -1304,9 +1304,6 @@ internal class AstChecker(private val program: Program,
             errors.err("defer cannot contain jumps or returns", defer.position)
     }
 
-    private val supportedPointerOperatorsVirtual: Set<String> = setOf("+")
-    private val supportedPointerOperators6502: Set<String> = emptySet()
-
     override fun visit(expr: BinaryExpression) {
         super.visit(expr)
 
@@ -1394,17 +1391,18 @@ internal class AstChecker(private val program: Program,
         val leftDt = leftIDt.getOrUndef()
         val rightDt = rightIDt.getOrUndef()
 
-        // gate off non-functioning pointer arithmetic
+        // gate off nonsensical pointer arithmetic
         if(compilerOptions.compTarget.name == VMTarget.NAME) {
-            if (expr.operator !in supportedPointerOperatorsVirtual) {
+            if (expr.operator !in setOf("+", "-")) {
                 if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
-                    errors.err("pointer arithmetic operator '${expr.operator}' is not yet supported, will be added piecemeal", expr.position)
+                    errors.err("pointer arithmetic only supported for + and - operators", expr.position)
                 }
             }
         }
-        else if(expr.operator !in supportedPointerOperators6502) {
+        else if(expr.operator !in emptySet<String>()) {     // TODO add + and - operators support
             if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
                 errors.err("pointer arithmetic operator '${expr.operator}' is not yet supported, will be added piecemeal", expr.position)
+                // TODO final error should be: errors.err("pointer arithmetic only supported for + and - operators", expr.position)
             }
         }
 

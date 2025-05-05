@@ -29,7 +29,7 @@ class TestTypecasts: FunSpec({
     val outputDir = tempdir().toPath()
 
     test("integer args for builtin funcs") {
-        val text="""
+        val text = """
             %import floats
             main {
                 sub start() {
@@ -38,14 +38,14 @@ class TestTypecasts: FunSpec({
                 }
             }"""
         val errors = ErrorReporterForTests()
-        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors)
+        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors = errors)
         result shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "type mismatch, was: float expected one of: [UWORD, WORD, LONG]"
     }
 
     test("not casting bool operands to logical operators") {
-        val text="""
+        val text = """
             main {
                 sub start() {
                     bool @shared bb2=true
@@ -71,7 +71,7 @@ class TestTypecasts: FunSpec({
     }
 
     test("bool expressions with functioncalls") {
-        val text="""
+        val text = """
 main {
     sub ftrue(ubyte arg) -> ubyte {
         arg++
@@ -138,7 +138,7 @@ main {
     }
 
     test("correct handling of bool parameters") {
-        val text="""
+        val text = """
             main  {
             
                 sub thing(bool b1, bool b2) -> bool {
@@ -172,7 +172,7 @@ main {
     }
 
     test("correct evaluation of words in boolean expressions") {
-        val text= """
+        val text = """
             main {
                 sub start() {
                     uword camg
@@ -195,7 +195,7 @@ main {
     }
 
     test("word to byte casts") {
-        val text="""
+        val text = """
             %import textio
             main {
                 sub func(ubyte arg) -> word {
@@ -214,7 +214,7 @@ main {
     }
 
     test("ubyte to word casts") {
-        val src="""
+        val src = """
 main {
     sub start() {
         ubyte @shared bb = 255
@@ -237,7 +237,7 @@ main {
     }
 
     test("add missing & to function arguments") {
-        val text="""
+        val text = """
             main  {
             
                 sub handler(uword fptr) {
@@ -313,7 +313,7 @@ main {
             }
         """
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "no cast"
         errors.errors[1] shouldContain "no cast"
@@ -329,7 +329,7 @@ main {
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "refused"
         errors.errors[1] shouldContain "refused"
@@ -346,7 +346,7 @@ main {
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "in-place makes no sense"
     }
@@ -362,7 +362,7 @@ main {
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
+        compileText(C64Target(), false, text, outputDir, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "refused"
         errors.errors[1] shouldContain "refused"
@@ -522,7 +522,7 @@ main {
     }
 
     test("various floating point casts don't crash the compiler") {
-        val text="""
+        val text = """
             %import floats
             
             main {
@@ -552,7 +552,7 @@ main {
     }
 
     test("byte when choices silently converted to word for convenience") {
-        val text="""
+        val text = """
 main {
   sub start() {
     uword z = 3
@@ -567,7 +567,7 @@ main {
     }
 
     test("returning smaller dt than returndt is ok") {
-        val text="""
+        val text = """
 main {
     sub start() {
         void test()
@@ -581,7 +581,7 @@ main {
     }
 
     test("returning bigger dt than returndt is not ok") {
-        val text="""
+        val text = """
 main {
     sub start() {
         void test()
@@ -591,13 +591,13 @@ main {
         return cx16.r0
     }
 }"""
-        val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.single() shouldContain "doesn't match"
     }
 
     test("long type okay in const expr but otherwise overflow") {
-        val src="""
+        val src = """
 main {
     sub start() {
         const ubyte HEIGHT=240
@@ -613,8 +613,8 @@ main {
         value++
     }
 }"""
-        val errors=ErrorReporterForTests()
-        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain ":9:"
         errors.errors[0] shouldContain "no cast"
@@ -625,7 +625,7 @@ main {
     }
 
     test("various bool typecasts and type mismatches") {
-        val src="""
+        val src = """
 %option enable_floats
 
 main {
@@ -665,15 +665,15 @@ main {
         bflags = fl as bool
     }
 }"""
-        val errors=ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 12
         errors.errors.all { "value type" in it } shouldBe true
         errors.errors.all { "doesn't match" in it } shouldBe true
     }
 
     test("bool to byte cast in expression is not allowed") {
-        val text="""
+        val text = """
 main {
     sub start() {
         ubyte[3] values
@@ -692,10 +692,10 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain("argument 1 type mismatch")
-        errors.errors[1] shouldContain("argument 1 type mismatch")
-        errors.errors[2] shouldContain("value type bool doesn't match target")
-        errors.errors[3] shouldContain("value type bool doesn't match target")
+        errors.errors[0] shouldContain ("argument 1 type mismatch")
+        errors.errors[1] shouldContain ("argument 1 type mismatch")
+        errors.errors[2] shouldContain ("value type bool doesn't match target")
+        errors.errors[3] shouldContain ("value type bool doesn't match target")
     }
 
     test("bool function parameters correct typing and implicit casts to bool") {
@@ -723,11 +723,11 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain("value type bool doesn't match target")
+        errors.errors[0] shouldContain ("value type bool doesn't match target")
     }
 
     test("no implicit bool-to-int cast in assignment") {
-        val src="""
+        val src = """
 main {
     sub start() {
         cx16.r0L = true
@@ -737,11 +737,11 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain("value type bool doesn't match target")
+        errors.errors[0] shouldContain ("value type bool doesn't match target")
     }
 
     test("no implicit int-to-bool cast") {
-        val src="""
+        val src = """
 main {
     sub start() {
         func1(true)
@@ -765,14 +765,14 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain(":4:15: no implicit cast")
-        errors.errors[1] shouldContain(":5:15: no implicit cast")
-        errors.errors[2] shouldContain(":8:28: value type ubyte doesn't match target")
-        errors.errors[3] shouldContain(":9:28: value type uword doesn't match target")
+        errors.errors[0] shouldContain (":4:15: no implicit cast")
+        errors.errors[1] shouldContain (":5:15: no implicit cast")
+        errors.errors[2] shouldContain (":8:28: value type ubyte doesn't match target")
+        errors.errors[3] shouldContain (":9:28: value type uword doesn't match target")
     }
 
     test("str replaced with uword in subroutine params and return types") {
-        val src="""
+        val src = """
 main {
     sub start() {
         derp("hello")
@@ -795,16 +795,16 @@ main {
         compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
-        val derp = main.children.single { it is PtSub && it.name=="main.derp"} as PtSub
+        val derp = main.children.single { it is PtSub && it.name == "main.derp" } as PtSub
         derp.signature.returns shouldBe listOf(DataType.UWORD)
         (derp.signature.children.single() as PtSubroutineParameter).type shouldBe DataType.UWORD
-        val mult3 = main.children.single { it is PtAsmSub && it.name=="main.mult3"} as PtAsmSub
+        val mult3 = main.children.single { it is PtAsmSub && it.name == "main.mult3" } as PtAsmSub
         mult3.parameters.single().second.type shouldBe DataType.UWORD
         mult3.returns.single().second shouldBe DataType.UWORD
     }
 
     test("return 0 for str converted to uword") {
-        val src="""
+        val src = """
 main {
     sub start() {
         cx16.r0 = test()
@@ -822,7 +822,7 @@ main {
     }
 
     test("bool to word cast") {
-        val src="""
+        val src = """
 main {
     sub start() {
         bool @shared flag, flag2
@@ -836,7 +836,7 @@ main {
     }
 
     test("undefined symbol error instead of type cast error") {
-        val src="""
+        val src = """
 main {
     const ubyte foo = 0
     ubyte bar = 0
@@ -884,7 +884,7 @@ main {
     }
 
     test("if-expression adjusts different value types to common type") {
-        val src="""
+        val src = """
 main {
     sub start() {
         cx16.r0sL = if cx16.r0L < cx16.r1L -1 else 1
@@ -922,13 +922,13 @@ main {
         st.size shouldBe 6
         val v1 = (st[2] as Assignment).value as BinaryExpression
         v1.operator shouldBe "+"
-        (v1.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0")
+        (v1.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0")
         (v1.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v1.right as NumericLiteral).number shouldBe 39
 
         val v2 = (st[3] as Assignment).value as BinaryExpression
         v2.operator shouldBe "+"
-        (v2.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0")
+        (v2.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0")
         (v2.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v2.right as NumericLiteral).number shouldBe 399
 
@@ -936,7 +936,7 @@ main {
         v3.type shouldBe DataType.UWORD
         val v3e = v3.expression as BinaryExpression
         v3e.operator shouldBe "*"
-        (v3e.left as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
+        (v3e.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0L")
         (v3e.right as NumericLiteral).type shouldBe BaseDataType.UBYTE
         (v3e.right as NumericLiteral).number shouldBe 5
 
@@ -944,7 +944,7 @@ main {
         v4.operator shouldBe "*"
         val v4t = v4.left as TypecastExpression
         v4t.type shouldBe DataType.UWORD
-        (v4t.expression as IdentifierReference).nameInSource shouldBe listOf("cx16","r0L")
+        (v4t.expression as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0L")
         (v4.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v4.right as NumericLiteral).number shouldBe 5
     }
@@ -960,5 +960,19 @@ main {
     }
 }"""
         compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("common subtypes") {
+        BinaryExpression.commonDatatype(DataType.WORD, DataType.UWORD, null, null).first shouldBe DataType.WORD
+
+        BinaryExpression.commonDatatype(DataType.pointer(BaseDataType.BOOL), DataType.UBYTE, null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
+        BinaryExpression.commonDatatype(DataType.pointer(BaseDataType.BOOL), DataType.UWORD, null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
+        BinaryExpression.commonDatatype(DataType.pointer(BaseDataType.BOOL), DataType.BYTE, null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
+        BinaryExpression.commonDatatype(DataType.pointer(BaseDataType.BOOL), DataType.WORD, null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
+
+        BinaryExpression.commonDatatype(DataType.UBYTE, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
+        BinaryExpression.commonDatatype(DataType.UWORD, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
+        BinaryExpression.commonDatatype(DataType.BYTE, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
+        BinaryExpression.commonDatatype(DataType.WORD, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
     }
 })

@@ -33,26 +33,26 @@ STRUCTS and TYPED POINTERS
   Node() without arguments allocates a node in BSS variable space instead that gets zeroed out at startup.
 - DONE: pointer arrays are split-words only, enforce this (variable dt + initializer array dt)
 - DONE: make an error message for all pointer expressions (prefixed, binary) so we can start implementing the ones we need one by one.
-- DONE: start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for --  DON'T FORGET C POINTER SEMANTICS
-- what other pointer arithmetic do we need? "-", but anything else that makes logical sense?
-- don't do pointer arith in the codegen, do it in Pt translation!
+- DONE: start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for subtraction.  DON'T FORGET C POINTER SEMANTICS.   Other operators are nonsensical for ptr arith
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
 - support @dirty on pointer vars -> uninitialized pointer placed in BSS_noclear segment
 - pointer types in subroutine signatures (both normal and asm-subs)
 - support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - are the ARRAY_POINTER and ARRAY_STRUCT data type enums realy needed? can't we just use ARRAY?
-- pointer arithmetic should follow C:  ptr=ptr+10 adds 10*sizeof() instead of just 10.
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - add unit tests for all changes
 - arrays of structs? No -> Just an array of uword pointers to said structs.
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
-- existing STR and ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them
+- STR should become asssignment compatible with ubyte^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer
+- existing ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them.
 - rather than str or uword parameter types for routines with a string argument, use ^^str  (or ^^ubyte maybe? these are more or less identical..?)
 - pointer-to-array syntax = TBD
+- pointer-to-string syntax = TBD
 - what about pointers to subroutines? should these be typed as well now?
 - What about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not contants
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
+- update syntax highlighting files
 
 
 Future Things and Ideas
