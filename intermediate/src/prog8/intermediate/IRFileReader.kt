@@ -48,7 +48,8 @@ class IRFileReader {
         val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
         val options = parseOptions(reader)
         val asmsymbols = parseAsmSymbols(reader)
-        val varsWithoutInit = parseVarsWithoutInit(reader)
+        val varsWithoutInitClean = parseVarsWithoutInit("VARIABLESNOINIT", false, reader)
+        val varsWithoutInitDirty = parseVarsWithoutInit("VARIABLESNOINITDIRTY", true, reader)
         val variables = parseVariables(reader)
         val constants = parseConstants(reader)
         val memorymapped = parseMemMapped(reader)
@@ -58,7 +59,8 @@ class IRFileReader {
 
         val st = IRSymbolTable()
         asmsymbols.forEach { (name, value) -> st.addAsmSymbol(name, value)}
-        varsWithoutInit.forEach { st.add(it) }
+        varsWithoutInitClean.forEach { st.add(it) }
+        varsWithoutInitDirty.forEach { st.add(it) }
         variables.forEach { st.add(it) }
         constants.forEach { st.add(it) }
         memorymapped.forEach { st.add(it) }
@@ -153,10 +155,10 @@ class IRFileReader {
             }
     }
 
-    private fun parseVarsWithoutInit(reader: XMLEventReader): List<IRStStaticVariable> {
+    private fun parseVarsWithoutInit(segmentname: String, dirty: Boolean, reader: XMLEventReader): List<IRStStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="VARIABLESNOINIT") { "missing VARIABLESNOINIT" }
+        require(start.name.localPart==segmentname) { "missing $segmentname" }
         val text = readText(reader).trim()
         require(reader.nextEvent().isEndElement)
 
@@ -167,7 +169,7 @@ class IRFileReader {
             val variables = mutableListOf<IRStStaticVariable>()
             text.lineSequence().forEach { line ->
                 // example:  uword main.start.qq2 zp=DONTCARE
-                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLESNOINIT $line")
+                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid $segmentname $line")
                 val type = match.groups["type"]!!.value
                 val arrayspec = match.groups["arrayspec"]?.value ?: ""
                 val name = match.groups["name"]!!.value
@@ -181,7 +183,7 @@ class IRFileReader {
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 // val isSplit = if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-                val newVar = IRStStaticVariable(name, dt, null, null, null, arraysize, zp, align.toInt())
+                val newVar = IRStStaticVariable(name, dt, null, null, null, arraysize, zp, align.toInt(), dirty)
                 variables.add(newVar)
             }
             return variables
@@ -246,6 +248,7 @@ class IRFileReader {
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
                 if(split.isBlank()) false else split.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
+                val dirty = false // these variables have initialization values.
                 var initNumeric: Double? = null
                 var initArray: IRStArray? = null
                 when {
@@ -270,7 +273,7 @@ class IRFileReader {
                 if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
-                val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align.toInt())
+                val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align.toInt(), dirty)
                 variables.add(stVar)
             }
             return variables

@@ -328,19 +328,25 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             }
         }
 
+        fun writeNoInitVars(segmentname: String, variables: List<IRStStaticVariable>) {
+            xml.writeStartElement(segmentname)
+            xml.writeCharacters("\n")
+            val (noinitNotAligned, noinitAligned) = variables.partition { it.align==0 || it.align==1 }
+            for (variable in noinitNotAligned) {
+                writeNoInitVar(variable)
+            }
+            for (variable in noinitAligned.sortedBy { it.align }) {
+                writeNoInitVar(variable)
+            }
+            xml.writeEndElement()
+            xml.writeCharacters("\n")
+        }
+
         val (variablesNoInit, variablesWithInit) = irProgram.st.allVariables().partition { it.uninitialized }
 
-        xml.writeStartElement("VARIABLESNOINIT")
-        xml.writeCharacters("\n")
-        val (noinitNotAligned, noinitAligned) = variablesNoInit.partition { it.align==0 || it.align==1 }
-        for (variable in noinitNotAligned) {
-            writeNoInitVar(variable)
-        }
-        for (variable in noinitAligned.sortedBy { it.align }) {
-            writeNoInitVar(variable)
-        }
-        xml.writeEndElement()
-        xml.writeCharacters("\n")
+        val (dirtyvars, cleanvars) = variablesNoInit.partition { it.dirty }
+        writeNoInitVars("VARIABLESNOINIT", cleanvars)
+        writeNoInitVars("VARIABLESNOINITDIRTY", dirtyvars)
 
         xml.writeStartElement("VARIABLESWITHINIT")
         xml.writeCharacters("\n")

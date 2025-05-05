@@ -578,6 +578,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     srcVar.datatype,
                     srcVar.zeropage,
                     srcVar.alignment,
+                    srcVar.dirty,
                     value,
                     srcVar.arraysize?.constIndex()?.toUInt(),
                     srcVar.position

@@ -46,6 +46,7 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
             DataType.UBYTE,
             ZeropageWish.NOT_IN_ZEROPAGE,
             0u,
+            true,
             null,
             null,
             sub.position

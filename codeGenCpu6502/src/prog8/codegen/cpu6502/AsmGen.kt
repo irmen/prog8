@@ -186,7 +186,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                 else -> throw AssemblyError("weird array value element $elt")
             }
         }
-        val result = PtVariable(name, type, zeropage, align, newValue, arraySize, position)
+        val result = PtVariable(name, type, zeropage, align, dirty, newValue, arraySize, position)
         result.parent = parent
         result
     }

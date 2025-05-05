@@ -1,7 +1,9 @@
 package prog8.intermediate
 
-import prog8.code.*
-import prog8.code.core.*
+import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.core.DataType
+import prog8.code.core.Encoding
+import prog8.code.core.ZeropageWish
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -93,7 +95,8 @@ class IRStStaticVariable(name: String,
                        val onetimeInitializationArrayValue: IRStArray?,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
-                       val align: Int
+                       val align: Int,
+                       val dirty: Boolean
 ) : IRStNode(name, IRStNodeType.STATICVAR) {
     init {
         if(align > 0) {

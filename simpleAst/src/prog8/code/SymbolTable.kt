@@ -187,6 +187,7 @@ class StStaticVariable(name: String,
                        val length: Int?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        val align: Int,
+                       val dirty: Boolean,
                        astNode: PtNode?) : StNode(name, StNodeType.STATICVAR, astNode) {
 
     var initializationNumericValue: Double? = null
