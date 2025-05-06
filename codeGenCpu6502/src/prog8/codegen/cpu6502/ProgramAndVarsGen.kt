@@ -657,8 +657,11 @@ internal class ProgramAndVarsGen(
                 generate("BSS", clean)
             }
             if(dirty.isNotEmpty()) {
-                // dirty vars end up in BSS_NOCLEAR so they're left at whatever value is in there on startup
-                generate("BSS_NOCLEAR", dirty)
+                // Dirty vars actually are ALSO are put into BSS so they're cleared to 0 at program startup,
+                // but NOT at each entry of the subroutine they're declared in.
+                // This saves the STZ's instructions in the subroutine, while still having deterministic start state.
+                // So there is no actual difference here when compared to the way non-dirty variables are allocated.
+                generate("BSS", dirty)
             }
         }
 

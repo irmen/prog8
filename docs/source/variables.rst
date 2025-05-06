@@ -65,7 +65,7 @@ Tag         Effect
 @alignword  aligns string or array variable on an even memory address
 @align64    aligns string or array variable on a 64 byte address interval (example: for C64 sprite data)
 @alignpage  aligns string or array variable on a 256 byte address interval (example: to avoid page boundaries)
-@dirty      the variable won't be initialized by Prog8 which means that its value is undefined. You'll have to set it yourself before using the variable. Used to reduce overhead in certain scenarios. 🦶🔫 Footgun warning.
+@dirty      the variable won't be set to zero when entering the subroutine (note: it will still be set to zero once on program startup, like all other uninitialized variables). You'll usually have to make sure to assign a value yourself before using the variable! This is used to reduce overhead in certain scenarios. 🦶🔫 Footgun warning.
 ==========  ======
 
 
@@ -122,9 +122,9 @@ it's trivial that it is not being read between the variable's declaration and th
 you declare a variable immediately before a for loop where it is the loop variable. However Prog8 is not yet very smart
 at detecting these redundant initializations. If you want to be sure, check the generated assembly output.
 
-In any case, you can use the ``@dirty`` tag on the variable declaration to make the variable *not* being (re)initialized by Prog8.
-This means its value will be undefined (it can be anything) until you assign a value yourself! Don't use such
-a variable before you have done so. 🦶🔫 Footgun warning.
+In any case, you can use the ``@dirty`` tag on the variable declaration to make the variable *not* being reinitialized
+when entering the subroutine (it will still be set to 0 once at program startup).
+This means you usually have to make sure to assign a value yourself, before using the variable. 🦶🔫 Footgun warning.
 
 
 **memory alignment:**

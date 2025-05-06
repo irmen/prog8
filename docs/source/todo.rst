@@ -1,6 +1,8 @@
 TODO
 ====
 
+Fix Type check error regression introduced in 11.3.1 see unit test "bitwise operator on signed values"
+
 ...
 
 
