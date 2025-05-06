@@ -1395,13 +1395,13 @@ internal class AstChecker(private val program: Program,
         if(compilerOptions.compTarget.name == VMTarget.NAME) {
             if (expr.operator !in setOf("+", "-")) {
                 if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
-                    errors.err("pointer arithmetic only supported for + and - operators", expr.position)
+                    errors.err("pointer arithmetic only supported for + and - operators", expr.right.position)
                 }
             }
         }
         else if(expr.operator !in emptySet<String>()) {     // TODO add + and - operators support
             if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
-                errors.err("pointer arithmetic operator '${expr.operator}' is not yet supported, will be added piecemeal", expr.position)
+                errors.err("pointer arithmetic only supported for + and - operators (but these are currently not yet supported for this target, will be fixed later)", expr.right.position)
                 // TODO final error should be: errors.err("pointer arithmetic only supported for + and - operators", expr.position)
             }
         }
