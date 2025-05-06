@@ -220,7 +220,8 @@ internal class ProgramAndVarsGen(
     }
 
     private fun tempVars() {
-        asmgen.out("; expression temp vars\n  .section BSS")
+        // these can be in the no clear section because they'll always get assigned a new value
+        asmgen.out("; expression temp vars\n  .section BSS_NOCLEAR")
         for((dt, count) in asmgen.tempVarsCounters) {
             if(count>0) {
                 for(num in 1..count) {
@@ -238,7 +239,7 @@ internal class ProgramAndVarsGen(
                 }
             }
         }
-        asmgen.out("  .send BSS")
+        asmgen.out("  .send BSS_NOCLEAR")
     }
 
     private fun footer() {
@@ -494,7 +495,7 @@ internal class ProgramAndVarsGen(
         sub.children.forEach { asmgen.translate(it) }
 
         asmgen.out("; variables")
-        asmgen.out("    .section BSS")
+        asmgen.out("    .section BSS_NOCLEAR")      // these extra vars are initialized before use
         val asmGenInfo = asmgen.subroutineExtra(sub)
         for((dt, name, addr) in asmGenInfo.extraVars) {
             if(addr!=null)
@@ -510,7 +511,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("$subroutineFloatEvalResultVar1    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
         if(asmGenInfo.usedFloatEvalResultVar2)
             asmgen.out("$subroutineFloatEvalResultVar2    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
-        asmgen.out("  .send BSS")
+        asmgen.out("  .send BSS_NOCLEAR")
 
         // normal statically allocated variables
         val variables = varsInSubroutine
@@ -638,15 +639,27 @@ internal class ProgramAndVarsGen(
         val (varsNoInit, varsWithInit) = variables.partition { it.uninitialized }
         if(varsNoInit.isNotEmpty()) {
             asmgen.out("; non-zeropage variables")
-            asmgen.out("  .section BSS")
-            val (notAligned, aligned) = varsNoInit.partition { it.align==0u }
-            notAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt.base }).forEach {
-                uninitializedVariable2asm(it)
+            val (dirty, clean) = varsNoInit.partition { it.dirty }
+
+            fun generate(section: String, variables: List<StStaticVariable>) {
+                asmgen.out("  .section $section")
+                val (notAligned, aligned) = variables.partition { it.align == 0u }
+                notAligned.sortedWith(compareBy<StStaticVariable> { it.name }.thenBy { it.dt.base }).forEach {
+                    uninitializedVariable2asm(it)
+                }
+                aligned.sortedWith(compareBy<StStaticVariable> { it.align }.thenBy { it.name }.thenBy { it.dt.base })
+                    .forEach { uninitializedVariable2asm(it) }
+                asmgen.out("  .send $section")
             }
-            aligned.sortedWith(compareBy<StStaticVariable> { it.align }.thenBy { it.name }.thenBy { it.dt.base }).forEach {
-                uninitializedVariable2asm(it)
+
+            if(clean.isNotEmpty()) {
+                // clean vars end up in BSS so they're at least cleared to 0 at startup
+                generate("BSS", clean)
             }
-            asmgen.out("  .send BSS")
+            if(dirty.isNotEmpty()) {
+                // dirty vars end up in BSS_NOCLEAR so they're left at whatever value is in there on startup
+                generate("BSS_NOCLEAR", dirty)
+            }
         }
 
         if(varsWithInit.isNotEmpty()) {

@@ -63,7 +63,8 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
             variable.initializationArrayValue?.map { convertArrayElt(it) },
             variable.length,
             variable.zpwish,
-            variable.align)
+            variable.align,
+            variable.dirty)
     } else {
         fun fixupAddressOfInArray(array: List<StArrayElement>?): List<IRStArrayElement>? {
             if(array==null)
@@ -87,7 +88,8 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
             fixupAddressOfInArray(variable.initializationArrayValue),
             variable.length,
             variable.zpwish,
-            variable.align
+            variable.align,
+            variable.dirty
         )
     }
 }

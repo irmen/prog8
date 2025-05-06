@@ -196,10 +196,10 @@ class VmProgramLoader {
         program.st.allVariables().forEach { variable ->
             var addr = allocations.allocations.getValue(variable.name)
 
-            // zero out uninitialized ('bss') variables.
-            if(variable.uninitialized) {
+            // zero out uninitialized non-dirty ('bss') variables.
+            if(variable.uninitialized && !variable.dirty) {
                 val dt = variable.dt
-                if(dt.isArray) {
+                if(variable.dt.isArray) {
                     repeat(variable.length!!.toInt()) {
                         when {
                             dt.isPointerArray -> {

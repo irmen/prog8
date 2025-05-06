@@ -58,6 +58,7 @@ class TestCodegen: FunSpec({
             DataType.UBYTE,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -67,6 +68,7 @@ class TestCodegen: FunSpec({
             DataType.arrayFor(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             3u,
             Position.DUMMY
@@ -76,6 +78,7 @@ class TestCodegen: FunSpec({
             DataType.arrayFor(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             3u,
             Position.DUMMY
@@ -85,6 +88,7 @@ class TestCodegen: FunSpec({
             DataType.WORD,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY

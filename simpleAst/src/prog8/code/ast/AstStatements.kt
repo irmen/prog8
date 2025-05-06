@@ -198,6 +198,7 @@ class PtVariable(
     override val type: DataType,
     val zeropage: ZeropageWish,
     val align: UInt,
+    val dirty: Boolean,
     val value: PtExpression?,
     val arraySize: UInt?,
     position: Position
@@ -215,6 +216,8 @@ class PtVariable(
             // The IR codegen however is different it has a special section <VARIABLESWITHINIT> for all variables
             // that have a non-zero initialization value, regardless of the datatype. It removes the initialization
             // assignment and puts the value back into the variable (but only in the symboltable).
+
+            require(!dirty) { "dirty var cannot have init value" }
         }
 
         value?.let {it.parent=this}

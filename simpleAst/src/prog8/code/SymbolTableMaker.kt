@@ -106,7 +106,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 //                if(node.type in SplitWordArrayTypes) {
 //                    ... split array also add _lsb and _msb to symboltable?
 //                }
-                val stVar = StStaticVariable(node.name, node.type, initialString, initialArray, numElements, node.zeropage, node.align, node)
+                val stVar = StStaticVariable(node.name, node.type, initialString, initialArray, numElements, node.zeropage, node.align, node.dirty,node)
                 if(initialNumeric!=null)
                     stVar.setOnetimeInitNumeric(initialNumeric)
                 stVar

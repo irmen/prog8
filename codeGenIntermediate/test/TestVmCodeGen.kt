@@ -52,6 +52,7 @@ class TestVmCodeGen: FunSpec({
             DataType.UBYTE,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -61,6 +62,7 @@ class TestVmCodeGen: FunSpec({
             DataType.arrayFor(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             3u,
             Position.DUMMY
@@ -70,6 +72,7 @@ class TestVmCodeGen: FunSpec({
             DataType.arrayFor(BaseDataType.UBYTE),
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             3u,
             Position.DUMMY
@@ -79,6 +82,7 @@ class TestVmCodeGen: FunSpec({
             DataType.WORD,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -167,6 +171,7 @@ class TestVmCodeGen: FunSpec({
             DataType.FLOAT,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -238,6 +243,7 @@ class TestVmCodeGen: FunSpec({
             DataType.FLOAT,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -305,6 +311,7 @@ class TestVmCodeGen: FunSpec({
             DataType.FLOAT,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -360,6 +367,7 @@ class TestVmCodeGen: FunSpec({
             DataType.BYTE,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -431,6 +439,7 @@ class TestVmCodeGen: FunSpec({
             DataType.BYTE,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY
@@ -498,6 +507,7 @@ class TestVmCodeGen: FunSpec({
             DataType.BYTE,
             ZeropageWish.DONTCARE,
             0u,
+            false,
             null,
             null,
             Position.DUMMY

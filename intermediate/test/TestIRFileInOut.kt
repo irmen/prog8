@@ -55,6 +55,8 @@ loadAddress=$0000
 <VARIABLESNOINIT>
 uword sys.bssvar zp=DONTCARE align=0
 </VARIABLESNOINIT>
+<VARIABLESNOINITDIRTY>
+</VARIABLESNOINITDIRTY>
 <VARIABLESWITHINIT>
 uword sys.wait.jiffies=10 zp=DONTCARE align=0
 ubyte[3] sys.emptystring=0,0,0 zp=DONTCARE align=0
