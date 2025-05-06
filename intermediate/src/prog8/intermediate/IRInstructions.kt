@@ -833,7 +833,8 @@ data class IRInstruction(
         if(type!=IRDataType.FLOAT)
             require(fpReg1==null && fpReg2==null) {"int instruction can't use fp reg"}
         if(format.address!=OperandDirection.UNUSED)
-            require(address!=null || labelSymbol!=null) {"missing an address or labelsymbol"}
+            require(address!=null || labelSymbol!=null) {
+                "missing an address or labelsymbol"}
         if(format.immediate && (immediate!=null || immediateFp!=null)) {
             if(opcode!=Opcode.SYSCALL) {
                 when (type) {

@@ -740,8 +740,11 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         } else {
             if(srcExpr.left.inferType(program).isPointer || srcExpr.right.inferType(program).isPointer) {
-                if(srcExpr.operator=="+" || srcExpr.operator=="-") return transformWithPointerArithmetic(srcExpr)
-                else throw FatalAstException("unsupported operator on pointer: ${srcExpr.operator} at ${srcExpr.position}")
+                return when (srcExpr.operator) {
+                    "+", "-" -> transformWithPointerArithmetic(srcExpr)
+                    in ComparisonOperators -> transformWithPointerComparison(srcExpr)
+                    else -> throw FatalAstException("unsupported operator on pointer: ${srcExpr.operator} at ${srcExpr.position}")
+                }
             } else {
                 val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
                 expr.add(transformExpression(srcExpr.left))
@@ -749,6 +752,17 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 return expr
             }
         }
+    }
+
+    private fun transformWithPointerComparison(expr: BinaryExpression): PtBinaryExpression {
+        val leftDt = expr.left.inferType(program)
+        val rightDt = expr.right.inferType(program)
+        require(leftDt.isPointer || leftDt.isWords)
+        require(rightDt.isPointer || rightDt.isWords)
+        val comparison = PtBinaryExpression(expr.operator, DataType.BOOL, expr.position)
+        comparison.add(transformExpression(expr.left))
+        comparison.add(transformExpression(expr.right))
+        return comparison
     }
 
     private fun transformWithPointerArithmetic(expr: BinaryExpression): PtExpression {

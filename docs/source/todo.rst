@@ -35,6 +35,9 @@ STRUCTS and TYPED POINTERS
 - DONE: make an error message for all pointer expressions (prefixed, binary) so we can start implementing the ones we need one by one.
 - DONE: start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for subtraction.  DON'T FORGET C POINTER SEMANTICS.   Other operators are nonsensical for ptr arith
 - DONE: support @dirty on pointer vars -> uninitialized pointer placed in BSS_noclear segment
+- DONE: support comparison operators on pointers
+- fix REGRESSION: passing adress to array element errors with "at the moment it is not possible to chain array syntax" see unit test "block scoping still parsed correctly"   https://discord.com/channels/547559626024157184/926342257290903552/1369394392980263022
+- implement augmented assignment on pointer dereference;  ptr^^ += 10
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
 - pointer types in subroutine signatures (both normal and asm-subs)
 - support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)

@@ -566,12 +566,13 @@ internal class AstChecker(private val program: Program,
                 errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use just 'uword' to receive the address, or maybe don't pass the value via a parameter but access it directly.", p.position)
             }
 
-            if(p.type.isPointer && p.type.subType==null)
-                errors.err("cannot find struct type ${p.type.subTypeFromAntlr?.joinToString(".")}", p.position)
+            if (p.type.isPointer) {
+                if (p.type.subType == null && p.type.subTypeFromAntlr!=null) errors.err("cannot find struct type ${p.type.subTypeFromAntlr?.joinToString(".")}", p.position)
+            }
         }
 
         for((index, r) in subroutine.returntypes.withIndex()) {
-            if(r.isPointer && r.subType==null)
+            if(r.isPointer && r.subType==null && r.subTypeFromAntlr!=null)
                 err("return type #${index+1}: cannot find struct type ${r.subTypeFromAntlr?.joinToString(".")}")
         }
     }
@@ -1393,7 +1394,7 @@ internal class AstChecker(private val program: Program,
 
         // gate off nonsensical pointer arithmetic
         if(compilerOptions.compTarget.name == VMTarget.NAME) {
-            if (expr.operator !in setOf("+", "-")) {
+            if (expr.operator !in arrayOf("+", "-") + ComparisonOperators) {
                 if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
                     errors.err("pointer arithmetic only supported for + and - operators", expr.right.position)
                 }

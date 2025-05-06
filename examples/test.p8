@@ -231,5 +231,46 @@ main {
         txt.spc()
         txt.print_w(w_ptr[4]^^)
         txt.nl()
+
+        txt.print("function call and pointer comparisons: ")
+        cx16.r10=9998
+        ^^uword uw_ptr = &cx16.r10
+        uw_ptr^^ = 4444
+        txt.print_uw(cx16.r10)
+        txt.spc()
+        ^^uword uw_ptr2 = func(uw_ptr, 9000)
+        txt.print_uw(cx16.r10)
+        txt.spc()
+        txt.print_uw(uw_ptr2^^)
+        txt.nl()
+        uw_ptr2++
+        txt.print_bool(uw_ptr2 == uw_ptr)
+        txt.spc()
+        txt.print_bool(uw_ptr2 != uw_ptr)
+        txt.spc()
+        txt.print_bool(uw_ptr2 < uw_ptr)
+        txt.spc()
+        txt.print_bool(uw_ptr2 > uw_ptr)
+        txt.spc()
+        txt.print_bool(uw_ptr2 <= uw_ptr)
+        txt.spc()
+        txt.print_bool(uw_ptr2 >= uw_ptr)
+        txt.nl()
+
+        ;readbyte(&thing.name)
+        ;readbyte(&thing.name[1])
+    }
+
+    sub func(^^uword ptr, uword value) -> ^^uword {
+        ptr^^ = value * 2
+        return ptr
+    }
+
+    sub readbyte(uword ptr) {
+        @(ptr) = 99
     }
 }
+
+;thing {
+;    str name = "irmen"
+;}

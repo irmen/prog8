@@ -100,11 +100,15 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
         val target = augAssign.target
         val targetDt = irType(target.type)
+        val value = augAssign.value
+        if(target.pointerDeref!=null) {
+            TODO("augmented assignment with pointer dereference ${augAssign.position}")
+        }
+
         val memTarget = target.memory
         val constAddress = (memTarget?.address as? PtNumber)?.number?.toInt()
         val symbol = target.identifier?.name
         val array = target.array
-        val value = augAssign.value
         val signed = target.type.isSigned
 
         val chunks = when (augAssign.operator) {
