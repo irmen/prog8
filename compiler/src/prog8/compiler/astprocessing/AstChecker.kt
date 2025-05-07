@@ -747,8 +747,7 @@ internal class AstChecker(private val program: Program,
                         else
                             errors.err("invalid assignment value", assignment.value.position)
                 } else {
-                    val dt = targetDatatype.getOrUndef()
-                    checkAssignmentCompatible(dt, sourceDatatype.getOrUndef(), assignment.value.position)
+                    checkAssignmentCompatible(targetDatatype.getOrUndef(),sourceDatatype.getOrUndef(), assignment.value, assignment.value.position)
                 }
             }
         }
@@ -2261,6 +2260,7 @@ internal class AstChecker(private val program: Program,
 
     private fun checkAssignmentCompatible(targetDatatype: DataType,
                                           sourceDatatype: DataType,
+                                          sourceValue: Expression,
                                           position: Position) : Boolean {
 
         if (targetDatatype.isArray) {
@@ -2297,12 +2297,16 @@ internal class AstChecker(private val program: Program,
         if(result)
             return true
 
+        val sourceIsBitwiseOperatorExpression = (sourceValue as? BinaryExpression)?.operator in BitwiseOperators
         if(sourceDatatype.isWord && targetDatatype.isByte)
             errors.err("cannot assign word to byte, maybe use msb() or lsb()", position)
         else if(sourceDatatype.isFloat&& targetDatatype.isInteger)
             errors.err("cannot assign float to ${targetDatatype}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else if(targetDatatype.isUnsignedWord && sourceDatatype.isPassByRef) {
             // this is allowed: a pass-by-reference datatype into an uword (pointer value).
+        }
+        else if(sourceIsBitwiseOperatorExpression && targetDatatype.equalsSize(sourceDatatype)) {
+            // this is allowed: bitwise operation between different types as long as they're the same size.
         }
         else if (targetDatatype.isPointer) {
             if(sourceDatatype.isPointer) {
