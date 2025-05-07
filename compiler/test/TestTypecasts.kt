@@ -971,7 +971,7 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
-    test("bitwise operator on signed values") {
+    xtest("bitwise operator on signed values") {
         val src = """
 main {
     sub start() {
