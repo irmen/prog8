@@ -975,4 +975,36 @@ main {
         BinaryExpression.commonDatatype(DataType.BYTE, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
         BinaryExpression.commonDatatype(DataType.WORD, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
     }
+
+    xtest("bitwise operator on signed values") {
+        val src = """
+main {
+    sub start() {
+        word[5] xpos
+
+        xpos[4] &= ${'$'}fff8            ; TODO fix type error
+        xpos[4] &= ${'$'}fff8 as word    ; TODO fix type error
+        xpos[4] = xpos[4] & ${'$'}fff8   ; TODO fix type error
+        xpos[4] = xpos[4] & ${'$'}fff8 as word   ; this one works, oddly enough
+
+        xpos[4] &= $7000            ; TODO fix type error
+        xpos[4] &= $7000 as word    ; TODO fix type error
+        xpos[4] = xpos[4] & $7000   ; TODO fix type error
+        xpos[4] = xpos[4] & $7000 as word   ; this one works, oddly enough
+
+        xpos[4] |= $7000            ; TODO fix type error
+        xpos[4] |= $7000 as word    ; TODO fix type error
+        xpos[4] = xpos[4] | $7000   ; TODO fix type error
+        xpos[4] = xpos[4] | $7000 as word   ; this one works, oddly enough
+
+        ; the error doesn't occur with other operators:
+        xpos[4] += $7000
+        xpos[4] += $7000 as word
+        xpos[4] = xpos[4] + $7000
+        xpos[4] = xpos[4] + $7000 as word   ; this one works, oddly enough
+    }
+}"""
+
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
 })

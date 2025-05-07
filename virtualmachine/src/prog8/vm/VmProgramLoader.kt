@@ -196,8 +196,11 @@ class VmProgramLoader {
         program.st.allVariables().forEach { variable ->
             var addr = allocations.allocations.getValue(variable.name)
 
-            // zero out uninitialized non-dirty ('bss') variables.
-            if(variable.uninitialized && !variable.dirty) {
+            // Zero out uninitialized both clean AND dirty variables.
+            // Dirty vars actually are ALSO are zero'd out here at program startup,
+            // but NOT at each entry of the subroutine they're declared in.
+            // This saves the clear to zero overhead in the subroutine, while still having deterministic start state.
+            if(variable.uninitialized) {
                 val dt = variable.dt
                 if(variable.dt.isArray) {
                     repeat(variable.length!!.toInt()) {
