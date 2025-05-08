@@ -31,6 +31,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- fix bug: label not found error (see unit test "typed address-of a const pointer with non-const array indexing")
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)

@@ -1060,6 +1060,24 @@ main {
         st2[3].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("p8b_main.p8s_start.p8v_x", "p8b_main.p8s_start.p8v_y", "p8b_main.p8s_start.p8v_z")
         ((st2[3] as PtAssignment).value as PtFunctionCall).name shouldBe "p8b_main.p8s_multi"
     }
+
+    test("address-of a uword pointer with word index should not overflow") {
+        val src= """
+main {
+    sub start() {
+        const uword cbuffer = $2000
+        uword @shared buffer = $2000
+
+        cx16.r1 = &cbuffer[2000]
+        cx16.r5 = &buffer[2000]
+        
+        cx16.r3 = &cbuffer[cx16.r0]
+        cx16.r4 = &buffer[cx16.r0]
+    }
+}"""
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
+    }
 }
 
 })

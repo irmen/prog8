@@ -2,26 +2,7 @@
 
 main {
     sub start() {
-        word[5] xpos
-
-        xpos[4] &= $fff8
-        xpos[4] &= $fff8 as word
-        xpos[4] = xpos[4] & $fff8
-        xpos[4] = xpos[4] & $fff8 as word
-
-        xpos[4] &= $7000
-        xpos[4] &= $7000 as word
-        xpos[4] = xpos[4] & $7000
-        xpos[4] = xpos[4] & $7000 as word
-
-        xpos[4] |= $7000
-        xpos[4] |= $7000 as word
-        xpos[4] = xpos[4] | $7000
-        xpos[4] = xpos[4] | $7000 as word
-
-        xpos[4] += $7000
-        xpos[4] += $7000 as word
-        xpos[4] = xpos[4] + $7000
-        xpos[4] = xpos[4] + $7000 as word
+        const uword cbuffer = $2000
+        cx16.r1 = &cbuffer[cx16.r0]        ; ERROR
     }
 }

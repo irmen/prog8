@@ -1,9 +1,6 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StExtSub
-import prog8.code.StNode
-import prog8.code.StNodeType
-import prog8.code.StSub
+import prog8.code.*
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.BaseDataType
@@ -184,12 +181,19 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(expr.isFromArrayElement) {
             val indexTr = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexWordReg = codeGen.registers.next(IRDataType.WORD)
-            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexTr.resultReg), null)
+            val indexWordReg = if(indexTr.dt==IRDataType.BYTE) {
+                val ixWord = codeGen.registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=ixWord, reg2=indexTr.resultReg), null)
+                ixWord
+            } else indexTr.resultReg
             if(expr.identifier.type.isUnsignedWord) {
                 require(!expr.isMsbForSplitArray)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
+                    val ptr = codeGen.symbolTable.lookup(expr.identifier.name)
+                    it += if(ptr is StConstant)
+                        IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, immediate = ptr.value.toInt())
+                    else
+                        IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = symbol)
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
                 }
             } else {

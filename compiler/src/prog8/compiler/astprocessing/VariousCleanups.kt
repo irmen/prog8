@@ -429,5 +429,24 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
         return noModifications
     }
+
+    override fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
+        if(addressOf.arrayIndex!=null) {
+            val tgt = addressOf.identifier.constValue(program)
+            if (tgt != null && tgt.type.isWord) {
+                // &constant[idx]  -->  constant + idx
+                val indexExpr = addressOf.arrayIndex!!.indexExpr
+                val right = if(indexExpr.inferType(program) issimpletype tgt.type)
+                    indexExpr
+                else
+                    TypecastExpression(indexExpr, tgt.type, true, indexExpr.position)
+                val add = BinaryExpression(tgt, "+", right, addressOf.position)
+                return listOf(
+                    IAstModification.ReplaceNode(addressOf, add, parent)
+                )
+            }
+        }
+        return noModifications
+    }
 }
 

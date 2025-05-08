@@ -6,7 +6,6 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.NumericLiteral
@@ -261,16 +260,16 @@ main {
     }
 
     test("const address-of memory mapped arrays") {
-        val src="""
+        val src= """
 main {
     sub start() {
-        &uword[30] @nosplit wb = ${'$'}2000
-        &uword[100] @nosplit array1 = ${'$'}9e00
+        &uword[30] @nosplit wb = $2000
+        &uword[100] @nosplit array1 = $9e00
         &uword[30] @nosplit array2 = &array1[len(wb)]
 
-        cx16.r0 = &array1           ; ${'$'}9e00
-        cx16.r1 = &array1[len(wb)]  ; ${'$'}9e3c
-        cx16.r2 = &array2           ; ${'$'}9e3c
+        cx16.r0 = &array1           ; $9e00
+        cx16.r1 = &array1[len(wb)]  ; $9e3c
+        cx16.r2 = &array2           ; $9e3c
     }
 }"""
         val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
@@ -307,10 +306,10 @@ main {
     }
 
     test("address of a const uword pointer array expression") {
-        val src="""
+        val src= """
 main {
     sub start() {
-        const uword buffer = ${'$'}2000
+        const uword buffer = 2000
         uword @shared addr = &buffer[2]
         
         const ubyte width = 100
@@ -323,10 +322,9 @@ main {
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 11
         val assignAddr = (st[2] as Assignment).value
-        (assignAddr as NumericLiteral).number shouldBe 8194.0
-        val assignAddr2 = ((st[9] as Assignment).value as AddressOf)
-        assignAddr2.identifier.nameInSource shouldBe listOf("buffer")
-        assignAddr2.arrayIndex!!.indexExpr shouldBe instanceOf<BinaryExpression>()
+        (assignAddr as NumericLiteral).number shouldBe 2002.0
+        val assignAddr2 = (st[9] as Assignment).value as BinaryExpression
+        assignAddr2.operator shouldBe "+"
     }
 
     test("out of range const byte and word give correct error") {

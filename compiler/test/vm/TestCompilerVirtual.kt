@@ -532,4 +532,22 @@ main {
         instructions[10].type shouldBe IRDataType.WORD
     }
 
+    test("typed address-of a const pointer with non-const array indexing") {
+        val src= """
+main {
+    sub start() {
+        const uword cbuffer = $2000
+        uword @shared buffer = $2000
+
+        cx16.r2 = @(cbuffer + cx16.r0)
+        cx16.r1 = &cbuffer[cx16.r0]
+
+        cx16.r3 = @(buffer + cx16.r0)
+        cx16.r4 = &buffer[cx16.r0]     
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runProgram(virtfile.readText(), true)
+    }
 })
