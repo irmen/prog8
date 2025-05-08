@@ -635,14 +635,14 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
 
     if(addressof()!=null) {
         val addressOf = addressof()
-        val identifier = addressOf.scoped_identifier()
+        val identifier = addressOf.scoped_identifier().toAst()
         val msb = addressOf.ADDRESS_OF_MSB()!=null
         // note: &<  (ADDRESS_OF_LSB)  is equivalent to a regular &.
-        return if (identifier != null)
-            AddressOf(addressof().scoped_identifier().toAst(),null, null, msb, toPosition())
-        else {
-            val array = addressOf.arrayindexed()
-            AddressOf(array.scoped_identifier().toAst(), array.arrayindex().toAst(), null, msb, toPosition())
+        val index = addressOf.arrayindex()?.toAst()
+        return if(index!=null) {
+            AddressOf(identifier, index, null, msb, toPosition())
+        } else {
+            AddressOf(identifier,null, null, msb, toPosition())
         }
     }
 

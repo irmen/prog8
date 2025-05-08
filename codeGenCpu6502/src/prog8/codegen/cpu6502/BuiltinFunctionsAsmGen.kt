@@ -383,7 +383,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}
 
         val slabname = PtIdentifier("prog8_slabs.prog8_memoryslab_$name", DataType.UWORD, fcall.position)
-        val addressOf = PtAddressOf(fcall.position)
+        val addressOf = PtAddressOf(DataType.pointer(BaseDataType.UBYTE), fcall.position)
         addressOf.add(slabname)
         addressOf.parent = fcall
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = addressOf)
@@ -1288,7 +1288,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         fun getSourceForFloat(value: PtExpression): AsmAssignSource {
             return when (value) {
                 is PtIdentifier -> {
-                    val addr = PtAddressOf(value.position)
+                    val addr = PtAddressOf(DataType.pointer(BaseDataType.FLOAT), value.position)
                     addr.add(value)
                     addr.parent = call
                     AsmAssignSource.fromAstSource(addr, program, asmgen)
@@ -1302,7 +1302,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
                     asmgen.subroutineExtra(scope).usedFloatEvalResultVar2 = true
                     val variable = PtIdentifier(subroutineFloatEvalResultVar2, DataType.FLOAT, value.position)
-                    val addr = PtAddressOf(value.position)
+                    val addr = PtAddressOf(DataType.pointer(BaseDataType.FLOAT), value.position)
                     addr.add(variable)
                     addr.parent = call
                     asmgen.assignExpressionToVariable(value, asmgen.asmVariableName(variable), DataType.FLOAT)
@@ -1322,7 +1322,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         conv.dt==BaseDataType.FLOAT -> getSourceForFloat(value)
                         conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
-                            val addr = PtAddressOf(value.position)
+                            val addr = PtAddressOf(DataType.forDt(conv.dt).typeForAddressOf(false), value.position)
                             addr.add(value)
                             addr.parent = call
                             AsmAssignSource.fromAstSource(addr, program, asmgen)
@@ -1340,7 +1340,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         conv.dt==BaseDataType.FLOAT -> getSourceForFloat(value)
                         conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
-                            val addr = PtAddressOf(value.position)
+                            val addr = PtAddressOf(DataType.forDt(conv.dt).typeForAddressOf(false),value.position)
                             addr.add(value)
                             addr.parent = call
                             AsmAssignSource.fromAstSource(addr, program, asmgen)

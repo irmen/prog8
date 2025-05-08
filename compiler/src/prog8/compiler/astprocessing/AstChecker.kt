@@ -1994,6 +1994,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(struct: StructDecl) {
+
+        if(compilerOptions.compTarget.name != VMTarget.NAME)
+            TODO("struct types are not yet supported in the 6502 compilation targets (only virtual)  ${struct.position}")
+
         val uniqueFields = struct.fields.map { it.second }.toSet()
         if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
@@ -2006,9 +2010,20 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: PtrDereference) {
+
+        if(compilerOptions.compTarget.name != VMTarget.NAME)
+            TODO("typed pointers are not yet supported in the 6502 compilation targets (only virtual)  ${deref.position}")
+
         // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
         if(deref.inferType(program).isUnknown)
             errors.err("unable to determine type of dereferenced pointer expression", deref.position)
+    }
+
+    override fun visit(deref: PtrIndexedDereference) {
+        if(compilerOptions.compTarget.name != VMTarget.NAME)
+            TODO("typed pointers are not yet supported in the 6502 compilation targets (only virtual)  ${deref.position}")
+
+        // TODO ast checks for this one?
     }
 
     private fun checkLongType(expression: Expression) {

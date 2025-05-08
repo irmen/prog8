@@ -687,7 +687,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(src: AddressOf): PtAddressOf {
-        val addr = PtAddressOf(src.position, src.msb)
+        val addr = PtAddressOf(src.inferType(program).getOrUndef(), src.position, src.msb)
         if(src.identifier!=null)
             addr.add(transform(src.identifier!!))
         if (src.arrayIndex != null)
@@ -945,7 +945,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     private fun transform(srcCast: TypecastExpression): PtTypeCast {
         val cast = PtTypeCast(srcCast.type, srcCast.position)
         cast.add(transformExpression(srcCast.expression))
-        require(cast.type!=cast.value.type)
+        require(cast.type!=cast.value.type) {
+            "bogus typecast shouldn't occur at ${srcCast.position}" }
         return cast
     }
 

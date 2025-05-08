@@ -231,7 +231,7 @@ typecast : 'as' datatype;
 
 directmemory : '@' '(' expression ')';
 
-addressof : <assoc=right> (ADDRESS_OF | ADDRESS_OF_LSB | ADDRESS_OF_MSB) (scoped_identifier | arrayindexed) ;
+addressof : <assoc=right> (ADDRESS_OF | ADDRESS_OF_LSB | ADDRESS_OF_MSB) scoped_identifier arrayindex? ;
 
 functioncall : scoped_identifier '(' expression_list? ')'  ;
 

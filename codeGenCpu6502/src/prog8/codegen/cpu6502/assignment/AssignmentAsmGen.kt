@@ -2129,7 +2129,7 @@ $endLabel""")
                     assignExpressionToRegister(value, RegisterOrPair.A, valueDt.isSigned)
                     assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.A, valueDt.base)
                 }
-                valueDt.isWord -> {
+                valueDt.isWord || valueDt.isPointer -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, valueDt.isSigned)
                     assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.AY, valueDt.base)
                 }
@@ -2607,6 +2607,18 @@ $endLabel""")
                 }
             }
             BaseDataType.STR -> throw AssemblyError("cannot typecast a string value")
+            BaseDataType.POINTER -> {
+                if(targetDt.isWord || targetDt.isPointer) {
+                    when(regs) {
+                        RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
+                        RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                        RegisterOrPair.XY -> asmgen.out("  stx  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                        else -> throw AssemblyError("non-word regs")
+                    }
+                } else {
+                    throw AssemblyError("cannot assign pointer to $targetDt")
+                }
+            }
             else -> throw AssemblyError("weird type")
         }
     }

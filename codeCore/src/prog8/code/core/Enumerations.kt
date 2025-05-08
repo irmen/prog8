@@ -173,6 +173,28 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             else -> throw IllegalArgumentException("not an array")
         }
 
+    fun typeForAddressOf(msb: Boolean): DataType {
+        // TODO implement typed address-of.
+        // TODO  no typed pointer possible yet that points to an array
+        if (isUndefined)
+            return if(msb) pointer(BaseDataType.UBYTE) else UWORD
+        else {
+            // TODO implement these as well:
+//            if(isBasic)
+//                return pointer(base)
+//            if(isString)
+//                return pointer(BaseDataType.UBYTE)
+            if (subType != null)
+                return pointerToType(subType!!)
+            else if (isArray) {
+                if (msb || isSplitWordArray)
+                    return pointer(BaseDataType.UBYTE)
+                return UWORD
+            } else
+                return UWORD            //  TODO("address-of type for $this")
+        }
+    }
+
     override fun toString(): String = when(base) {
         BaseDataType.ARRAY -> {
             when(sub) {

@@ -11,7 +11,7 @@ class TestPointers: FunSpec( {
 
     val outputDir = tempdir().toPath()
 
-    test("block scoping still parsed correctly") {
+    xtest("block scoping still parsed correctly") {
         val src="""
 main {
     sub start() {

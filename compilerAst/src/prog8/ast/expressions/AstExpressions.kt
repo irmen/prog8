@@ -553,7 +553,17 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         return null
     }
     override fun referencesIdentifier(nameInSource: List<String>) = identifier?.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true || dereference?.referencesIdentifier(nameInSource)==true
-    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UWORD)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        if(identifier!=null) {
+            val type = identifier!!.inferType(program).getOrUndef()
+            val addrofDt = type.typeForAddressOf(msb)
+            if(addrofDt.isUndefined) return InferredTypes.unknown()
+            else return InferredTypes.knownFor(addrofDt)
+        } else if(dereference!=null) {
+            TODO("address-of struct ptr deref field -> ptr type itself?")
+        } else
+            throw FatalAstException("invalid addressof")
+    }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 }

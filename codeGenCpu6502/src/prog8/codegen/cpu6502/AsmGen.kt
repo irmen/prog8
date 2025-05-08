@@ -175,10 +175,10 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                     if(elt.definingBlock()?.options?.noSymbolPrefixing==true)
                         newValue.add(elt)
                     else {
-                        val newAddr = PtAddressOf(elt.position)
-                        newAddr.children.add(elt.identifier!!.prefix(newAddr, st))
+                        val newAddr = PtAddressOf(elt.type, elt.position)
+                        newAddr.add(elt.identifier!!.prefix(newAddr, st))
                         if (elt.arrayIndexExpr != null)
-                            newAddr.children.add(elt.arrayIndexExpr!!)
+                            newAddr.add(elt.arrayIndexExpr!!)
                         newAddr.parent = arrayValue
                         newValue.add(newAddr)
                     }
@@ -1109,17 +1109,18 @@ $repeatLabel""")
     }
 
     private fun translate(ret: PtReturn) {
-        val returnvalue = ret.children.singleOrNull()
+        val returnvalue = ret.children.singleOrNull() as? PtExpression
         val sub = ret.definingSub()!!
         val returnRegs = sub.returnsWhatWhere()
 
         if(returnvalue!=null) {
             if (sub.signature.returns.single().isNumericOrBool) {
-                assignExpressionToRegister(returnvalue as PtExpression, returnRegs.single().first.registerOrPair!!)
+                assignExpressionToRegister(returnvalue, returnRegs.single().first.registerOrPair!!)
             }
             else {
                 // all else take its address and assign that also to AY register pair
-                val addrofValue = PtAddressOf(returnvalue.position)
+                val addrOfDt = returnvalue.type.typeForAddressOf(false)
+                val addrofValue = PtAddressOf(addrOfDt, returnvalue.position)
                 addrofValue.add(returnvalue as PtIdentifier)
                 addrofValue.parent = ret.parent
                 assignmentAsmGen.assignExpressionToRegister(addrofValue, returnRegs.single().first.registerOrPair!!, false)

@@ -261,16 +261,16 @@ main {
     }
 
     test("const address-of memory mapped arrays") {
-        val src="""
+        val src= """
 main {
     sub start() {
-        &uword[30] @nosplit wb = ${'$'}2000
-        &uword[100] @nosplit array1 = ${'$'}9e00
+        &uword[30] @nosplit wb = $2000
+        &uword[100] @nosplit array1 = $9e00
         &uword[30] @nosplit array2 = &array1[len(wb)]
 
-        cx16.r0 = &array1           ; ${'$'}9e00
-        cx16.r1 = &array1[len(wb)]  ; ${'$'}9e3c
-        cx16.r2 = &array2           ; ${'$'}9e3c
+        cx16.r0 = &array1           ; $9e00
+        cx16.r1 = &array1[len(wb)]  ; $9e3c
+        cx16.r2 = &array2           ; $9e3c
     }
 }"""
         val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
@@ -307,10 +307,10 @@ main {
     }
 
     test("address of a const uword pointer array expression") {
-        val src="""
+        val src= """
 main {
     sub start() {
-        const uword buffer = ${'$'}2000
+        const uword buffer = $2000
         uword @shared addr = &buffer[2]
         
         const ubyte width = 100
