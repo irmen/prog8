@@ -14,7 +14,7 @@ color teal "\["
 
 # Struct definitions and pointers
 color crimson "struct[[:blank:]]+[[:alpha:]][[:alnum:]_]*"
-color crimson "\^\^[[:blank:]]*[[:alpha:]][[:alnum:]_]*"
+color crimson "\^\^[[:blank:]]*[[:alpha:]][[:alnum:]_.]*"
 
 # Scope Parents
 color latte "[[:alpha:]][[:alnum:]_]*\."

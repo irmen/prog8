@@ -101,33 +101,59 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val target = augAssign.target
         val targetDt = irType(target.type)
         val value = augAssign.value
-        if(target.pointerDeref!=null) {
-            TODO("augmented assignment with pointer dereference ${augAssign.position}")
-        }
-
         val memTarget = target.memory
         val constAddress = (memTarget?.address as? PtNumber)?.number?.toInt()
         val symbol = target.identifier?.name
         val array = target.array
         val signed = target.type.isSigned
+        val pointerDeref = target.pointerDeref
+        val chunks: IRCodeChunks
 
-        val chunks = when (augAssign.operator) {
-            "+=" -> operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "-=" -> operatorMinusInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "*=" -> operatorMultiplyInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "/=" -> operatorDivideInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
-            "|=" -> operatorOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "or=" -> operatorLogicalOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "&=" -> operatorAndInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "and=" -> operatorLogicalAndInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "^=", "xor=" -> operatorXorInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "<<=" -> operatorShiftLeftInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            ">>=" -> operatorShiftRightInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
-            "%=" -> operatorModuloInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            in PrefixOperators -> inplacePrefix(augAssign.operator, symbol, array, constAddress, memTarget, targetDt)
+        if(pointerDeref!=null) {
+            chunks = when(augAssign.operator) {
+                "+=" -> {
+                    // TODO optimize this to not dereference the pointer twice
+                    val result = mutableListOf<IRCodeChunkBase>()
+                    val derefTr = expressionEval.translateExpression(pointerDeref)
+                    result += derefTr.chunks
+                    val valueTr = expressionEval.translateExpression(value)
+                    result += valueTr.chunks
+                    addInstr(result, IRInstruction(Opcode.ADDR, targetDt, reg1=derefTr.resultReg, reg2=valueTr.resultReg), null)
+                    storeValueAtPointersLocation(result, pointerDeref, false, derefTr.resultReg)
+                    result
+                }
+                "-=" -> {
+                    // TODO optimize this to not dereference the pointer twice
+                    val result = mutableListOf<IRCodeChunkBase>()
+                    val derefTr = expressionEval.translateExpression(pointerDeref)
+                    result += derefTr.chunks
+                    val valueTr = expressionEval.translateExpression(value)
+                    result += valueTr.chunks
+                    addInstr(result, IRInstruction(Opcode.SUBR, targetDt, reg1=derefTr.resultReg, reg2=valueTr.resultReg), null)
+                    storeValueAtPointersLocation(result, pointerDeref, false, derefTr.resultReg)
+                    result
+                }
+                else -> TODO("unimplemented operator in augmented assignment with pointer dereference ${augAssign.position}")
+            }
+        } else {
+            chunks = when (augAssign.operator) {
+                "+=" -> operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "-=" -> operatorMinusInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "*=" -> operatorMultiplyInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "/=" -> operatorDivideInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+                "|=" -> operatorOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "or=" -> operatorLogicalOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "&=" -> operatorAndInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "and=" -> operatorLogicalAndInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "^=", "xor=" -> operatorXorInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "<<=" -> operatorShiftLeftInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                ">>=" -> operatorShiftRightInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
+                "%=" -> operatorModuloInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                in PrefixOperators -> inplacePrefix(augAssign.operator, symbol, array, constAddress, memTarget, targetDt)
+                else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
+            } ?: fallbackAssign(augAssign)
+        }
 
-            else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
-        } ?: fallbackAssign(augAssign)
         chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(augAssign.position)
         return chunks
     }
@@ -513,43 +539,52 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return result
         }
         else if(targetPointerDeref!=null) {
-            val pointerTr = expressionEval.translateExpression(targetPointerDeref.startpointer)
-            result += pointerTr.chunks
-            result += expressionEval.traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg)
-
-            val instr = when {
-                targetPointerDeref.type.isByteOrBool -> {
-                    if(zero)
-                        IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerTr.resultReg)
-                    else
-                        IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-                }
-                targetPointerDeref.type.isWord -> {
-                    if(zero)
-                        IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
-                    else
-                        IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-                }
-                targetPointerDeref.type.isFloat -> {
-                    if(zero)
-                        IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = pointerTr.resultReg)
-                    else
-                        IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = pointerTr.resultReg)
-                }
-                targetPointerDeref.type.isPointer -> {
-                    // stores value into the pointer itself
-                    if(zero)
-                        IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
-                    else
-                        IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-                }
-                else -> throw AssemblyError("weird pointer dereference type ${targetPointerDeref.type}")
-            }
-            addInstr(result, instr, null)
+            storeValueAtPointersLocation(result, targetPointerDeref, zero, valueRegister)
             return result
         }
         else
             throw AssemblyError("weird assigntarget")
+    }
+
+    private fun storeValueAtPointersLocation(
+        result: MutableList<IRCodeChunkBase>,
+        targetPointerDeref: PtPointerDeref,
+        valueIsZero: Boolean,
+        valueRegister: Int
+    ) {
+        val pointerTr = expressionEval.translateExpression(targetPointerDeref.startpointer)
+        result += pointerTr.chunks
+        result += expressionEval.traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg)
+
+        val instr = when {
+            targetPointerDeref.type.isByteOrBool -> {
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerTr.resultReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueRegister, reg2 = pointerTr.resultReg)
+            }
+            targetPointerDeref.type.isWord -> {
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
+            }
+            targetPointerDeref.type.isFloat -> {
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = pointerTr.resultReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = pointerTr.resultReg)
+            }
+            targetPointerDeref.type.isPointer -> {
+                // stores value into the pointer itself
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
+            }
+            else -> throw AssemblyError("weird pointer dereference type ${targetPointerDeref.type}")
+        }
+        addInstr(result, instr, null)
     }
 
     private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int): Pair<IRCodeChunks, Int> {
@@ -959,7 +994,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         return null  // fallback to slow method   // TODO("inplace split word array -")
     }
 
-    private fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?,
+                                    vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
             val result = mutableListOf<IRCodeChunkBase>()
             if(array.splitWords)
@@ -986,6 +1022,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return null  // TODO("optimized memory in-place +"")
 
         val result = mutableListOf<IRCodeChunkBase>()
+
         if(vmDt==IRDataType.FLOAT) {
             if((operand as? PtNumber)?.number==1.0) {
                 addInstr(result, if (constAddress != null)
@@ -1011,10 +1048,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             else {
                 val tr = expressionEval.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, if (constAddress != null)
-                    IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, address = constAddress)
+                if (constAddress != null)
+                    addInstr(result, IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, address = constAddress), null)
                 else
-                    IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol) , null)
+                    addInstr(result, IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol) , null)
             }
         }
         return result
