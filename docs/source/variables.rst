@@ -412,7 +412,7 @@ change it for the whole file at once. Here are examples of the possible encoding
     - ``iso5:"Хозяин и Работник"``      string in iso-8859-5 encoding (Cyrillic)
     - ``iso16:"zażółć gęślą jaźń"``     string in iso-8859-16 encoding (Eastern Europe)
     - ``atascii:"I am Atari!"``         string in "atascii" encoding (Atari 8-bit)
-    - ``cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"``     string in "cp437" encoding (IBM PC codepage 437)
+    - ``cp437:"≈ IBM Pc ≈ ♂♀♪☺¶"``     string in "cp437" encoding (IBM PC codepage 437) See note below!
     - ``kata:"ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ｡ # が # ガ"``  string in "kata" encoding (Katakana)
     - ``c64os:"^Hello_World! \\ ~{_}~"`` string in "c64os" encoding (C64 OS)
 
@@ -489,6 +489,13 @@ for a character in such strings (one that stops at the first 0 byte)
     it is okay to treat those strings as mutable; you can safely change the contents
     of such a string without destroying other occurrences (as long as you stay within
     the size of the allocated string!)
+
+.. note:: printing **cp437** encoded strings
+
+    To print strings in the **cp437** encoding, you will probably need ``txt.print_lit(message)`` to properly print
+    them to the screen. This is because this encoding has symbols in place of where normally ASCII
+    control characters such as Line feed would be. A regular ``txt.print(message)`` will likely get confused
+    by such symbols and print them as control characters, messing up the output.
 
 
 .. _range-expression:

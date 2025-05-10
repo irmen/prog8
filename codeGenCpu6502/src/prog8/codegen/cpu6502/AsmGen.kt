@@ -1087,7 +1087,7 @@ $repeatLabel""")
                 if (isTargetCpu(CpuType.CPU65C02) && arrayIdx!=null) {
                     if (!arrayIdx.splitWords) {
                         // if the jump target is an address in a non-split array (like a jump table of only pointers),
-                        // on the 65c02, more optimal assembly can be generated using JMP address,X
+                        // on the 65c02, more optimal assembly can be generated using JMP (address,X)
                         assignExpressionToRegister(arrayIdx.index, RegisterOrPair.A)
                         out("  asl  a |  tax")
                         return JumpTarget(asmSymbolName(arrayIdx.variable), true, true, false)

@@ -7,8 +7,11 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- for version 12.0 (branch pre12) : translate '\n' to char code 13 in ISO encoding as well (and all others that don't do it yet, EXCEPT cp437, because it has no control chars) so you don't have to use \r anymore as newline
+- for version 12.0 (branch pre12) : on <expr> goto label1, label2, label3   and  'call' instead of 'goto' to make it a JSR.  Faster jump tables than a when, and much easier to write than a call + an array.  Number starts at 0. If number too large, no jump is taken. (or add 'else failLabel' ?)  else @dirty to skip all checks?
 - STRUCTS: are now being developed in their own separate branch "structs". This will be for the next major version of the compiler (v12)
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
+- enums?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
@@ -31,7 +34,6 @@ Future Things and Ideas
 
 IR/VM
 -----
-- fix bug: label not found error (see unit test "typed address-of a const pointer with non-const array indexing")
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
@@ -44,6 +46,7 @@ IR/VM
      cx16.r0sL = cx16.r1s as byte }
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
+- apparently for SSA form, the IRCodeChunk is not a proper "basic block" yet because the last operation should be a branch or return, and no other branches
 - reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
   don't forget to take into account the data type of the register when it's going to be reused!
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
@@ -67,6 +70,7 @@ Libraries
 Optimizations
 -------------
 
+- when choices that end with a goto create a redundant bra, get rid of it. Also some redundant RTS somewhere?
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - can the for loop temp var be replaced by the same logic that createRepeatCounterVar() uses for repeat loops? Take care of nested for/repeat loops to not use the same var
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
