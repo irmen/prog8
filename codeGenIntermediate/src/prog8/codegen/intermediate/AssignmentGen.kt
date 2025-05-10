@@ -110,33 +110,34 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val chunks: IRCodeChunks
 
         if(pointerDeref!=null) {
-            chunks = when(augAssign.operator) {
-                "+=" -> {
-                    // TODO optimize this to not dereference the pointer twice
-                    val result = mutableListOf<IRCodeChunkBase>()
-                    val derefTr = expressionEval.translateExpression(pointerDeref)
-                    result += derefTr.chunks
-                    val valueTr = expressionEval.translateExpression(value)
-                    result += valueTr.chunks
-                    addInstr(result, IRInstruction(Opcode.ADDR, targetDt, reg1=derefTr.resultReg, reg2=valueTr.resultReg), null)
-                    val addressReg = codeGen.evaluatePointerAddressIntoReg(result, pointerDeref)
-                    codeGen.storeValueAtPointersLocation(result, addressReg, pointerDeref.type, false, derefTr.resultReg)
-                    result
-                }
-                "-=" -> {
-                    // TODO optimize this to not dereference the pointer twice
-                    val result = mutableListOf<IRCodeChunkBase>()
-                    val derefTr = expressionEval.translateExpression(pointerDeref)
-                    result += derefTr.chunks
-                    val valueTr = expressionEval.translateExpression(value)
-                    result += valueTr.chunks
-                    addInstr(result, IRInstruction(Opcode.SUBR, targetDt, reg1=derefTr.resultReg, reg2=valueTr.resultReg), null)
-                    val addressReg = codeGen.evaluatePointerAddressIntoReg(result, pointerDeref)
-                    codeGen.storeValueAtPointersLocation(result, addressReg, pointerDeref.type, false, derefTr.resultReg)
-                    result
-                }
-                else -> TODO("unimplemented operator in augmented assignment with pointer dereference ${augAssign.position}")
+            val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
+            val addressReg = codeGen.evaluatePointerAddressIntoReg(inplaceInstrs, pointerDeref)
+            val operandTr = expressionEval.translateExpression(value)
+            val oldvalueReg = codeGen.registers.next(targetDt)
+            inplaceInstrs += operandTr.chunks
+            addInstr(inplaceInstrs, IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg), null)
+            when(augAssign.operator) {
+                "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "|=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                ">>=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSRN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                "or=" -> TODO("or= on pointer dereference, with short-circuit")
+                "and=" -> TODO("and= on pointer dereference, with short-circuit")
+                "-" -> addInstr(inplaceInstrs, IRInstruction(Opcode.NEG, targetDt, reg1 = oldvalueReg), null)
+                "~" -> addInstr(inplaceInstrs, IRInstruction(Opcode.INV, targetDt, reg1 = oldvalueReg), null)
+                "not" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XOR, targetDt, reg1 = oldvalueReg, immediate = 1), null)
+                "+" -> { /* inplace + is a no-op */ }
+                else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
             }
+            // TODO this could probably be omitted if we had indirect addressing modes for all above inplace instructions:
+            codeGen.storeValueAtPointersLocation(inplaceInstrs, addressReg, pointerDeref.type, false, oldvalueReg)
+            chunks = inplaceInstrs
         } else {
             chunks = when (augAssign.operator) {
                 "+=" -> operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)

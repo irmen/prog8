@@ -36,12 +36,12 @@ STRUCTS and TYPED POINTERS
 - DONE: start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for subtraction.  DON'T FORGET C POINTER SEMANTICS.   Other operators are nonsensical for ptr arith
 - DONE: support @dirty on pointer vars -> uninitialized pointer placed in BSS_noclear segment
 - DONE: support comparison operators on pointers
-- optimize augmented assignment on pointer dereference;  ptr^^ += value  (and -=)  to avoid dereferencing calculation twice
-- implement augmented assignment on pointer dereference;  remaining operators
-- pointer types in subroutine signatures (both normal and asm-subs, paramters and return values)
+- DONE: implement augmented assignment on pointer dereference
+- pointer types in subroutine signatures (both normal and asm-subs, parameters and return values)
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
 - support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.
+- implement inplace logical and & or, with short-cirtuit, on dereferenced pointer (see TODO "or= on pointer dereference, with short-circuit")
 - are the ARRAY_POINTER and ARRAY_STRUCT data type enums realy needed? can't we just use ARRAY?
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - add unit tests for all changes
