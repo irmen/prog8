@@ -1458,7 +1458,8 @@ class FunctionCallExpression(override var target: IdentifierReference,
                 return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible
             }
             is StructDecl -> {
-                return InferredTypes.knownFor(DataType.structInstance(stmt))
+                // calling a struct is syntax for allocating a static instance, and returns a pointer to that (not the instance itself)
+                return InferredTypes.knownFor(DataType.pointerToType(stmt))
             }
             else -> return InferredTypes.unknown()
         }

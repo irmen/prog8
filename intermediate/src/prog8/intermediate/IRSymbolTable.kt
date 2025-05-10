@@ -1,10 +1,10 @@
 package prog8.intermediate
 
 import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.ZeropageWish
-import prog8.code.core.BaseDataType
 
 
 // In the Intermediate Representation, all nesting has been removed.
@@ -29,6 +29,9 @@ class IRSymbolTable {
 
     fun allStructInstances(): Sequence<IRStStructInstance> =
         table.asSequence().map { it.value }.filterIsInstance<IRStStructInstance>()
+
+    fun allStructDefs(): Sequence<IRStStructDef> =
+        table.asSequence().map { it.value }.filterIsInstance<IRStStructDef>()
 
     fun lookup(name: String): IRStNode? = table[name]
 

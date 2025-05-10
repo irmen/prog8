@@ -73,7 +73,7 @@ class TestSubroutines: FunSpec({
         func.statements.isEmpty() shouldBe true
     }
 
-    test("cannot call a subroutine via pointer") {
+    test("cannot call a subroutine via a pointer") {
         val src="""
 main {
     sub start() {

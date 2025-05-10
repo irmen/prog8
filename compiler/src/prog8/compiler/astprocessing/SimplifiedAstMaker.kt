@@ -398,11 +398,11 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         val (target, _) = srcCall.target.targetNameAndType(program)
         val iType = srcCall.inferType(program)
+        val subtypeStruct = iType.getOrUndef().subType
         val call =
-            if(iType.isStructInstance) {
-                // a call to a struct yields a struct instance and means: allocate a statically initialized struct instance of that type
-                val struct = iType.getOrUndef().subType!!
-                val pointertype = DataType.pointerToType(struct)
+            if(subtypeStruct!=null) {
+                // a call to a struct yields a pointer to a struct instance and means: allocate a statically initialized struct instance of that type
+                val pointertype = DataType.pointerToType(subtypeStruct)
                 PtBuiltinFunctionCall("structalloc", false, true, pointertype, srcCall.position)
             } else {
                 // regular function call

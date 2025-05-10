@@ -1889,7 +1889,7 @@ class IRCodeGen(
                         }
                     }
                 }
-                is PtStructDecl -> { /* do nothing */ }
+                is PtStructDecl -> { /* do nothing, should be found in the symbol table */ }
                 else -> TODO("weird block child node $child")
             }
         }

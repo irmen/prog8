@@ -181,14 +181,20 @@ class UnusedCodeRemover(private val program: Program,
                                         val declIndex = (parent as IStatementContainer).statements.indexOf(decl)
                                         val singleUseIndex = (parent as IStatementContainer).statements.indexOf(singleUse.parent)
                                         if(declIndex==singleUseIndex-1) {
-                                            if("ignore_unused" !in decl.definingBlock.options())
-                                                errors.info("replaced unused variable '${decl.name}' with void call, maybe this can be removed altogether", decl.position)
-                                            val fcall = assignment.value as IFunctionCall
-                                            val voidCall = FunctionCallStatement(fcall.target, fcall.args, true, fcall.position)
-                                            return listOf(
-                                                IAstModification.ReplaceNode(decl, voidCall, parent),
-                                                IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
-                                            )
+                                            val callStruct = (assignment.value as IFunctionCall).target.targetStructDecl()
+                                            if(callStruct!=null) {
+                                                // don't turn a struct instance allocation call to a void call, instead, remove everything
+                                                return listOf(IAstModification.Remove(assignment, assignment.parent as IStatementContainer))
+                                            } else {
+                                                if("ignore_unused" !in decl.definingBlock.options())
+                                                    errors.info("replaced unused variable '${decl.name}' with void call, maybe this can be removed altogether", decl.position)
+                                                val fcall = assignment.value as IFunctionCall
+                                                val voidCall = FunctionCallStatement(fcall.target, fcall.args, true, fcall.position)
+                                                return listOf(
+                                                    IAstModification.ReplaceNode(decl, voidCall, parent),
+                                                    IAstModification.Remove(assignment, assignment.parent as IStatementContainer)
+                                                )
+                                            }
                                         }
                                     }
                                 } else {

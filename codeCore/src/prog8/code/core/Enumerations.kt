@@ -128,7 +128,11 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             BaseDataType.UNDEFINED to DataType(BaseDataType.UNDEFINED, null, null)
         )
 
-        fun forDt(dt: BaseDataType) = simpletypes.getValue(dt)
+        fun forDt(dt: BaseDataType): DataType {
+            if(dt.isStructInstance)
+                TODO("cannot use struct instance as a data type (yet) - use a pointer instead")
+            return simpletypes.getValue(dt)
+        }
 
         fun arrayFor(elementDt: BaseDataType, splitwordarray: Boolean=true): DataType {
             require(!elementDt.isPointer) { "use other array constructor for arrays of pointers" }
@@ -224,7 +228,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             if(sub!=null) "${sub.name.lowercase()}[]" else if (subType!=null) "${subType!!.scopedNameString}[]" else "${subTypeFromAntlr}[]"
         }
         BaseDataType.STRUCT_INSTANCE -> {
-            if(sub!=null) sub.name.lowercase() else if (subType!=null) subType!!.scopedNameString else "$subTypeFromAntlr"
+            sub?.name?.lowercase() ?: if (subType!=null) subType!!.scopedNameString else "$subTypeFromAntlr"
         }
         else -> base.name.lowercase()
     }

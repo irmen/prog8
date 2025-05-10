@@ -27,6 +27,9 @@ class IRUnusedCodeRemover(
         // we could clean up the SymbolTable as well, but ONLY if these symbols aren't referenced somewhere still in an instruction or variable initializer value
         val prefix = "$blockLabel."
         val blockVars = irprog.st.allVariables().filter { it.name.startsWith(prefix) }
+
+        // check if there are symbols referenced elsewhere that we should not prune (even though the rest of the block is empty)
+
         blockVars.forEach { stVar ->
             irprog.allSubs().flatMap { it.chunks }.forEach { chunk ->
                 chunk.instructions.forEach { ins ->
@@ -44,6 +47,19 @@ class IRUnusedCodeRemover(
                     })
                         return   // symbol occurs in an initializer value (address-of this symbol)_
                 }
+            }
+        }
+
+        val blockStructs = irprog.st.allStructDefs().filter { it.name.startsWith(prefix) }
+        blockStructs.forEach { struct ->
+            irprog.st.allStructInstances().forEach { instance ->
+                if(instance.structName == struct.name)
+                    return  // a struct instance is declared using this struct type
+            }
+            irprog.st.allVariables().forEach { variable ->
+                if(variable.dt.isPointer || variable.dt.isStructInstance)
+                    if(struct.name == variable.dt.subType!!.scopedNameString)
+                        return   // a variable exists with the struct as (pointer) type
             }
         }
 

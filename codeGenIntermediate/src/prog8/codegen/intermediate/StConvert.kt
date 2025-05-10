@@ -16,8 +16,8 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
                 StNodeType.MEMORYSLAB -> st.add(convert(it.value as StMemorySlab))
                 StNodeType.STRUCTINSTANCE -> {
                     val instance = it.value as StStructInstance
-                    val struct = st.lookup(instance.structName) as IRStStructDef
-                    st.add(convert(instance, struct))
+                    val struct = sourceSt.lookup(instance.structName) as StStruct
+                    st.add(convert(instance, struct.fields))
                 }
                 StNodeType.STRUCT -> st.add(convert(it.value as StStruct))
                 else -> { }
@@ -137,8 +137,8 @@ private fun convert(variable: StMemorySlab): IRStMemorySlab {
 }
 
 
-private fun convert(instance: StStructInstance, struct: IRStStructDef): IRStStructInstance {
-    val values = struct.fields.zip(instance.initialValues).map { (field, value) ->
+private fun convert(instance: StStructInstance, fields: List<Pair<DataType, String>>): IRStStructInstance {
+    val values = fields.zip(instance.initialValues).map { (field, value) ->
         val elt = convertArrayElt(value)
         IRStructInitValue(field.first.base, elt)
     }

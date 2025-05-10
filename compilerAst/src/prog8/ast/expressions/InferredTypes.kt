@@ -109,7 +109,10 @@ object InferredTypes {
         }
         type.isPointerArray -> InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subType))
         type.isStructInstance -> {
-            InferredType.known(DataType.structInstance(type.subType!!))
+            if(type.subType!=null)
+                InferredType.known(DataType.structInstance(type.subType!!))
+            else
+                InferredType.known(DataType.structInstanceFromAntlr(type.subTypeFromAntlr!!))
         }
         else -> throw IllegalArgumentException("invalid type $type")
     }

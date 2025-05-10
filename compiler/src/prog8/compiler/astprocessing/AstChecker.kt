@@ -569,11 +569,17 @@ internal class AstChecker(private val program: Program,
             if (p.type.isPointer) {
                 if (p.type.subType == null && p.type.subTypeFromAntlr!=null) errors.err("cannot find struct type ${p.type.subTypeFromAntlr?.joinToString(".")}", p.position)
             }
+
+            if(p.type.isStructInstance)
+                errors.err("structs can only be passed via a pointer", p.position)
         }
 
         for((index, r) in subroutine.returntypes.withIndex()) {
             if(r.isPointer && r.subType==null && r.subTypeFromAntlr!=null)
                 err("return type #${index+1}: cannot find struct type ${r.subTypeFromAntlr?.joinToString(".")}")
+
+            if(r.isStructInstance)
+                err("structs can only be returned via a pointer")
         }
     }
 
@@ -1603,6 +1609,10 @@ internal class AstChecker(private val program: Program,
                     errors.err("function doesn't return a value", functionCallExpr.position)
             }
         }
+        else if(targetStatement is StructDecl) {
+            if(functionCallExpr.parent is IStatementContainer)
+                errors.err("static struct instance allocation can only occur as an initializer for a pointer variable", functionCallExpr.position)
+        }
 
         if(builtinFunctionName in listOf("peek", "peekw")) {
             val pointervar = functionCallExpr.args[0] as? IdentifierReference
@@ -1631,6 +1641,10 @@ internal class AstChecker(private val program: Program,
         if(targetStatement!=null) {
             checkFunctionCall(targetStatement, functionCallStatement.args, functionCallStatement.position)
             checkUnusedReturnValues(functionCallStatement, targetStatement, errors)
+
+            if(targetStatement is StructDecl) {
+                errors.err("static struct instance allocation can only occur as an initializer for a pointer variable", functionCallStatement.position)
+            }
 
             if(functionCallStatement.void) {
                 when(targetStatement) {
@@ -1808,11 +1822,14 @@ internal class AstChecker(private val program: Program,
                         }
                     }
             }
-            // TODO rest
+
+            // TODO rest?
         }
 
         args.forEach{
             checkLongType(it)
+            if(it.inferType(program).isStructInstance)
+                errors.err("structs can only be passed via a pointer", it.position)
         }
     }
 
@@ -2019,9 +2036,9 @@ internal class AstChecker(private val program: Program,
             errors.err("unable to determine type of dereferenced pointer expression", deref.position)
     }
 
-    override fun visit(deref: PtrIndexedDereference) {
+    override fun visit(idxderef: PtrIndexedDereference) {
         if(compilerOptions.compTarget.name != VMTarget.NAME)
-            TODO("typed pointers are not yet supported in the 6502 compilation targets (only virtual)  ${deref.position}")
+            TODO("typed pointers are not yet supported in the 6502 compilation targets (only virtual)  ${idxderef.position}")
 
         // TODO ast checks for this one?
     }

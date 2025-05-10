@@ -989,6 +989,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 else
                     ExpressionCodeResult(result, returnRegSpec!!.dt, finalReturnRegister, -1)
             }
+            is StStruct -> {
+                throw AssemblyError("stray struct constructor should have been removed (normally it can only occur as initialization expression for a pointer variable)")
+            }
             else -> {
                 if(callTarget.type == StNodeType.LABEL) {
                     require(fcall.void)
@@ -998,7 +1001,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 }
                 else {
-                    throw AssemblyError("invalid node type")
+                    throw AssemblyError("invalid node type ${callTarget.type} at ${callTarget.astNode?.position}")
                 }
             }
         }

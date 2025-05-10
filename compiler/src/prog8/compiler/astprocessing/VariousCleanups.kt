@@ -447,6 +447,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
             }
         }
+
+        if(parent is IStatementContainer) {
+            val targetStruct = functionCallExpr.target.targetStructDecl()
+            if (targetStruct != null) {
+                // static struct instance allocation can only occur as an initializer for a pointer variable
+                return listOf(IAstModification.Remove(functionCallExpr, parent as IStatementContainer))
+            }
+        }
         return noModifications
     }
 

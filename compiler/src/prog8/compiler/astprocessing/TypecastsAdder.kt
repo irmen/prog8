@@ -292,7 +292,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val possibleTargetDt = it.first.possibleDatatypes.first()
             val targetDt = if(possibleTargetDt.isPointer) BaseDataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
             val argIdt = it.second.inferType(program)
-            if (argIdt.isKnown) {
+            if (argIdt.isKnown && !targetDt.isStructInstance) {
                 val argDt = argIdt.getOrUndef()
                 if (argDt.base !in it.first.possibleDatatypes) {
                     val identifier = it.second as? IdentifierReference
