@@ -27,36 +27,3 @@ main {
 ;        txt.print_uw(addr)
     }
 }
-
-/*
-main {
-    sub start() {
-        readbyte(&thing.name)          ; ok
-        readbyte(&thing.name[1])       ; ok
-        readbyte(&thing.array)         ; ok
-        cx16.r0 = &thing.array[1]       ; TODO with typed &: fix error, register multiple types
-        readbyte(&thing.array[1])      ; TODO with typed &: fix error, register multiple types
-    }
-
-    sub readbyte(uword @requirezp ptr) {
-        thing.printpointer()
-        txt.spc()
-        txt.print_uw(ptr)
-        txt.nl()
-        ptr=0
-    }
-}
-
-thing {
-    str name = "error"
-    ubyte[10] array
-
-    sub printpointer() {
-        txt.print("&name=")
-        txt.print_uw(&name)
-        txt.print(" &array=")
-        txt.print_uw(&array)
-        txt.nl()
-    }
-}
-*/

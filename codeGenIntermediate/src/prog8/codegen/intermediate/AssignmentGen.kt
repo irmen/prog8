@@ -119,7 +119,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     val valueTr = expressionEval.translateExpression(value)
                     result += valueTr.chunks
                     addInstr(result, IRInstruction(Opcode.ADDR, targetDt, reg1=derefTr.resultReg, reg2=valueTr.resultReg), null)
-                    storeValueAtPointersLocation(result, pointerDeref, false, derefTr.resultReg)
+                    val addressReg = codeGen.evaluatePointerAddressIntoReg(result, pointerDeref)
+                    codeGen.storeValueAtPointersLocation(result, addressReg, pointerDeref.type, false, derefTr.resultReg)
                     result
                 }
                 "-=" -> {
@@ -130,7 +131,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     val valueTr = expressionEval.translateExpression(value)
                     result += valueTr.chunks
                     addInstr(result, IRInstruction(Opcode.SUBR, targetDt, reg1=derefTr.resultReg, reg2=valueTr.resultReg), null)
-                    storeValueAtPointersLocation(result, pointerDeref, false, derefTr.resultReg)
+                    val addressReg = codeGen.evaluatePointerAddressIntoReg(result, pointerDeref)
+                    codeGen.storeValueAtPointersLocation(result, addressReg, pointerDeref.type, false, derefTr.resultReg)
                     result
                 }
                 else -> TODO("unimplemented operator in augmented assignment with pointer dereference ${augAssign.position}")
@@ -539,52 +541,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return result
         }
         else if(targetPointerDeref!=null) {
-            storeValueAtPointersLocation(result, targetPointerDeref, zero, valueRegister)
+            val addressReg = codeGen.evaluatePointerAddressIntoReg(result, targetPointerDeref)
+            codeGen.storeValueAtPointersLocation(result, addressReg, targetPointerDeref.type, zero, valueRegister)
             return result
         }
         else
             throw AssemblyError("weird assigntarget")
-    }
-
-    private fun storeValueAtPointersLocation(
-        result: MutableList<IRCodeChunkBase>,
-        targetPointerDeref: PtPointerDeref,
-        valueIsZero: Boolean,
-        valueRegister: Int
-    ) {
-        val pointerTr = expressionEval.translateExpression(targetPointerDeref.startpointer)
-        result += pointerTr.chunks
-        result += expressionEval.traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref, pointerTr.resultReg)
-
-        val instr = when {
-            targetPointerDeref.type.isByteOrBool -> {
-                if(valueIsZero)
-                    IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerTr.resultReg)
-                else
-                    IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-            }
-            targetPointerDeref.type.isWord -> {
-                if(valueIsZero)
-                    IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
-                else
-                    IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-            }
-            targetPointerDeref.type.isFloat -> {
-                if(valueIsZero)
-                    IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = pointerTr.resultReg)
-                else
-                    IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = pointerTr.resultReg)
-            }
-            targetPointerDeref.type.isPointer -> {
-                // stores value into the pointer itself
-                if(valueIsZero)
-                    IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = pointerTr.resultReg)
-                else
-                    IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = pointerTr.resultReg)
-            }
-            else -> throw AssemblyError("weird pointer dereference type ${targetPointerDeref.type}")
-        }
-        addInstr(result, instr, null)
     }
 
     private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int): Pair<IRCodeChunks, Int> {

@@ -56,6 +56,8 @@ class IRCodeGen(
         return irProg
     }
 
+    fun registerTypes(): Map<Int, IRDataType> = registers.getTypes()
+
     private fun changeGlobalVarInits(symbolTable: SymbolTable) {
         // Normally, block level (global) variables that have a numeric initialization value
         // are initialized via an assignment statement.
@@ -1928,7 +1930,7 @@ class IRCodeGen(
 
     internal fun isOne(expression: PtExpression): Boolean = (expression as? PtNumber)?.number==1.0 || (expression as? PtBool)?.value==true
 
-    fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
+    internal fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
         return IRCodeChunk(label, null).also {
             val args = params.map { (dt, reg)->
                 FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, reg, null))
@@ -1939,9 +1941,7 @@ class IRCodeGen(
         }
     }
 
-    fun registerTypes(): Map<Int, IRDataType> = registers.getTypes()
-
-    fun setCpuRegister(registerOrFlag: RegisterOrStatusflag, paramDt: IRDataType, resultReg: Int, resultFpReg: Int): IRCodeChunk {
+    internal fun setCpuRegister(registerOrFlag: RegisterOrStatusflag, paramDt: IRDataType, resultReg: Int, resultFpReg: Int): IRCodeChunk {
         val chunk = IRCodeChunk(null, null)
         when(registerOrFlag.registerOrPair) {
             RegisterOrPair.A -> chunk += IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1=resultReg)
@@ -1963,5 +1963,44 @@ class IRCodeGen(
             else -> throw AssemblyError("unsupported register arg")
         }
         return chunk
+    }
+
+    internal fun evaluatePointerAddressIntoReg(result: MutableList<IRCodeChunkBase>, deref: PtPointerDeref): Int {
+        val pointerTr = expressionEval.translateExpression(deref.startpointer)
+        result += pointerTr.chunks
+        result += expressionEval.traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerTr.resultReg)
+        return pointerTr.resultReg
+    }
+
+    internal fun storeValueAtPointersLocation(result: MutableList<IRCodeChunkBase>, addressReg: Int, type: DataType, valueIsZero: Boolean, valueRegister: Int) {
+        val instr = when {
+            type.isByteOrBool -> {
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = addressReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueRegister, reg2 = addressReg)
+            }
+            type.isWord -> {
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = addressReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = addressReg)
+            }
+            type.isFloat -> {
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = addressReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg)
+            }
+            type.isPointer -> {
+                // stores value into the pointer itself
+                if(valueIsZero)
+                    IRInstruction(Opcode.STOREZI, IRDataType.WORD, reg1 = addressReg)
+                else
+                    IRInstruction(Opcode.STOREI, IRDataType.WORD, reg1 = valueRegister, reg2 = addressReg)
+            }
+            else -> throw AssemblyError("weird pointer dereference type $type")
+        }
+        addInstr(result, instr, null)
     }
 }
