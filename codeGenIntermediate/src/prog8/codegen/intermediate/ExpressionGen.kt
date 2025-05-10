@@ -321,18 +321,21 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(expr.isFromArrayElement) {
             val indexTr = translateExpression(expr.arrayIndexExpr!!)
             addToResult(result, indexTr, indexTr.resultReg, -1)
-            val indexWordReg = codeGen.registers.next(IRDataType.WORD)
-            addInstr(
-                result,
-                IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1 = indexWordReg, reg2 = indexTr.resultReg),
-                null
-            )
+            val indexWordReg = if(indexTr.dt==IRDataType.BYTE) {
+                val ixWord = codeGen.registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=ixWord, reg2=indexTr.resultReg), null)
+                ixWord
+            } else indexTr.resultReg
             val resultRegister = codeGen.registers.next(vmDt)
-            if (identifier!!.type.isUnsignedWord) {
+            if(identifier!!.type.isUnsignedWord) {
                 require(!expr.isMsbForSplitArray)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
-                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
+                    val ptr = codeGen.symbolTable.lookup(identifier.name)
+                    it += if(ptr is StConstant)
+                        IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, immediate = ptr.value.toInt())
+                    else
+                        IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
                 }
             } else {
                 val eltSize = codeGen.program.memsizer.memorySize(identifier.type, 1)

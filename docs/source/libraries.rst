@@ -771,8 +771,8 @@ but perhaps the provided ones can be of service too.
 
 ``crc16 (uword data, uword length) -> uword``
     Returns a CRC-16 (XMODEM) checksum over the given data buffer.
-    Note: on the Commander X16, there is a CRC-16 routine in the kernal: cx16.memory_crc().
-    That one is faster, but yields different results. It is unclear to me what flavour of crc it is calculating.
+    Note: on the Commander X16, there is a CRC-16/IBM-3740 routine in the kernal: cx16.memory_crc().
+    That one is faster, but yields different results.
 
 ``crc16_start() / crc16_update(ubyte value) / crc16_end() -> uword``
     "streaming" crc16 calculation routines, when the data doesn't fit in a single buffer.

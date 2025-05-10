@@ -438,19 +438,21 @@ internal class AssignmentAsmGen(
     private fun assignExpression(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(val value = assign.source.expression!!) {
             is PtAddressOf -> {
-                if(value.identifier!=null) {
-                    val arrayDt = value.identifier!!.type
+                val identifier = value.identifier
+                if(identifier==null)      TODO("read &dereference")
+                else {
+                    val source = asmgen.symbolTable.lookup(identifier.name)
+                    require(source !is StConstant) { "addressOf of a constant should have been rewritten to a simple addition expression" }
+                    val arrayDt = identifier.type
                     val sourceName =
                         if (value.isMsbForSplitArray)
-                            asmgen.asmSymbolName(value.identifier!!) + "_msb"
+                            asmgen.asmSymbolName(identifier) + "_msb"
                         else if (arrayDt.isSplitWordArray)
-                            asmgen.asmSymbolName(value.identifier!!) + "_lsb"  // the _lsb split array comes first in memory
+                            asmgen.asmSymbolName(identifier) + "_lsb"  // the _lsb split array comes first in memory
                         else
-                            asmgen.asmSymbolName(value.identifier!!)
+                            asmgen.asmSymbolName(identifier)
                     assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, arrayDt, value.arrayIndexExpr)
-                } else {
-                    TODO("read &dereference")
-                }
+ }
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")
             is PtNumber -> throw AssemblyError("source kind should have been literalnumber")
@@ -1573,8 +1575,8 @@ internal class AssignmentAsmGen(
             if(ptrVar!=null && asmgen.isZpVar(ptrVar)) {
                 assignExpressionToRegister(value, RegisterOrPair.A, false)
                 val pointername = asmgen.asmVariableName(ptrVar)
-                if (constOffset != null && constOffset < 256) {
-                    // we have value + @(zpptr + 255), or value - @(zpptr+255)
+                if (constOffset != null) {
+                    // we have value + @(zpptr + 255), or value - @(zpptr+255).   the offset is always <256.
                     asmgen.out("  ldy  #$constOffset")
                     if (operator == "+")
                         asmgen.out("  clc |  adc  ($pointername),y")
@@ -2631,13 +2633,23 @@ $endLabel""")
                 if (arrayDt.isUnsignedWord) {
                     require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
-                    if(constIndex>0)
+                    if(constIndex in 1..255)
                         asmgen.out("""
                             clc
                             adc  #$constIndex
                             bcc  +
                             iny
 +""")
+                    else if(constIndex>=256) {
+                        asmgen.out("""
+                            clc
+                            adc  #<$constIndex
+                            pha
+                            tya
+                            adc  #>$constIndex
+                            tay
+                            pla""")
+                    }
                 }
                 else {
                     if(constIndex>0) {
@@ -2655,15 +2667,33 @@ $endLabel""")
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
                     asmgen.saveRegisterStack(CpuRegister.Y, false)
-                    assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.UBYTE)
-                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                    asmgen.restoreRegisterStack(CpuRegister.A, false)
-                    asmgen.out("""
-                        clc
-                        adc  P8ZP_SCRATCH_REG
-                        bcc  +
-                        iny                            
+                    if(arrayIndexExpr.type.isWord) {
+                        assignExpressionToRegister(arrayIndexExpr, RegisterOrPair.AY, false)
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_W1
+                            sty  P8ZP_SCRATCH_W1+1
+                            pla
+                            tay
+                            pla
+                            clc
+                            adc  P8ZP_SCRATCH_W1
+                            pha
+                            tya
+                            adc  P8ZP_SCRATCH_W1+1
+                            tay
+                            pla""")
+                    }
+                    else {
+                        assignExpressionToVariable(arrayIndexExpr, "P8ZP_SCRATCH_REG", DataType.UBYTE)
+                        asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                        asmgen.restoreRegisterStack(CpuRegister.A, false)
+                        asmgen.out("""
+                            clc
+                            adc  P8ZP_SCRATCH_REG
+                            bcc  +
+                            iny                            
 +""")
+                    }
                 }
                 else {
                     assignExpressionToRegister(arrayIndexExpr, RegisterOrPair.A, false)
