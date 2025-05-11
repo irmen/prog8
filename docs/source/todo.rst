@@ -7,7 +7,6 @@ TODO
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- for version 12.0 (branch pre12) : translate '\n' to char code 13 in ISO encoding as well (and all others that don't do it yet, EXCEPT cp437, because it has no control chars) so you don't have to use \r anymore as newline
 - for version 12.0 (branch pre12) : on <expr> goto label1, label2, label3   and  'call' instead of 'goto' to make it a JSR.  Faster jump tables than a when, and much easier to write than a call + an array.  Number starts at 0. If number too large, no jump is taken. (or add 'else failLabel' ?)  else @dirty to skip all checks?
 - STRUCTS: are now being developed in their own separate branch "structs". This will be for the next major version of the compiler (v12)
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?

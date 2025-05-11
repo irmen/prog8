@@ -19,11 +19,7 @@ import prog8.code.core.Position
 import prog8.code.core.unescape
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
-import prog8.code.target.encodings.Encoder
-import prog8.code.target.encodings.AtasciiEncoding
-import prog8.code.target.encodings.C64osEncoding
-import prog8.code.target.encodings.IsoEncoding
-import prog8.code.target.encodings.PetsciiEncoding
+import prog8.code.target.encodings.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import java.io.CharConversionException
@@ -227,7 +223,7 @@ class TestStringEncodings: FunSpec({
 
     context("iso") {
         test("iso accepts iso-characters") {
-            val result = IsoEncoding.encode("a_~ëç")
+            val result = IsoEncoding.encode("a_~ëç", false)
             result.getOrElse { throw it }.map {it.toInt()} shouldBe listOf(97, 95, 126, 235, 231)
         }
 
@@ -276,13 +272,13 @@ class TestStringEncodings: FunSpec({
         passthrough[1] shouldBe '\u801b'
         passthrough[2] shouldBe '\u8099'
         passthrough[3] shouldBe '\u80ff'
-        var encoded = Encoder.encodeString(passthrough, Encoding.PETSCII)
+        var encoded = Encoder(false).encodeString(passthrough, Encoding.PETSCII)
         encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
-        encoded = Encoder.encodeString(passthrough, Encoding.ATASCII)
+        encoded = Encoder(false).encodeString(passthrough, Encoding.ATASCII)
         encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
-        encoded = Encoder.encodeString(passthrough, Encoding.SCREENCODES)
+        encoded = Encoder(false).encodeString(passthrough, Encoding.SCREENCODES)
         encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
-        encoded = Encoder.encodeString(passthrough, Encoding.ISO)
+        encoded = Encoder(false).encodeString(passthrough, Encoding.ISO)
         encoded shouldBe listOf<UByte>(0u, 0x1bu, 0x99u, 0xffu)
     }
 
@@ -412,6 +408,40 @@ class TestStringEncodings: FunSpec({
         char1.number shouldBe 100.0
         val char2 = (main.statements[5] as Assignment).value as NumericLiteral
         char2.number shouldBe 80.0
+    }
+
+    test("with newline conversion") {
+        val encoder = Encoder(true)
+        encoder.encodeString("\n\r", Encoding.PETSCII) shouldBe listOf<UByte>(13u, 13u)
+        encoder.encodeString("\n\r", Encoding.SCREENCODES) shouldBe listOf<UByte>(141u, 141u)
+        encoder.encodeString("\n\r", Encoding.ATASCII) shouldBe listOf<UByte>(155u, 155u)
+        encoder.encodeString("\n\r", Encoding.ISO) shouldBe listOf<UByte>(13u, 13u)
+        encoder.encodeString("\n\r", Encoding.ISO5) shouldBe listOf<UByte>(13u, 13u)
+        encoder.encodeString("\n\r", Encoding.ISO16) shouldBe listOf<UByte>(13u, 13u)
+        encoder.encodeString("\n\r", Encoding.CP437) shouldBe listOf<UByte>(10u, 13u)
+        encoder.encodeString("\n\r", Encoding.KATAKANA) shouldBe listOf<UByte>(13u, 13u)
+        encoder.encodeString("\n\r", Encoding.C64OS) shouldBe listOf<UByte>(13u, 13u)
+
+        encoder.decodeString(listOf<UByte>(10u, 13u), Encoding.PETSCII).map { it.code } shouldBe listOf(10, 10)
+        encoder.decodeString(listOf<UByte>(10u, 13u), Encoding.ISO).map { it.code } shouldBe listOf(10, 10)
+        encoder.decodeString(listOf<UByte>(10u, 13u), Encoding.CP437).map { it.code } shouldBe listOf(10, 13)
+    }
+
+    test("without newline conversion") {
+        val encoder = Encoder(false)
+        encoder.encodeString("\n\r", Encoding.PETSCII) shouldBe listOf<UByte>(13u, 13u)
+        encoder.encodeString("\n\r", Encoding.SCREENCODES) shouldBe listOf<UByte>(141u, 141u)
+        encoder.encodeString("\n\r", Encoding.ATASCII) shouldBe listOf<UByte>(155u, 155u)
+        encoder.encodeString("\n\r", Encoding.ISO) shouldBe listOf<UByte>(10u, 13u)
+        encoder.encodeString("\n\r", Encoding.ISO5) shouldBe listOf<UByte>(10u, 13u)
+        encoder.encodeString("\n\r", Encoding.ISO16) shouldBe listOf<UByte>(10u, 13u)
+        encoder.encodeString("\n\r", Encoding.CP437) shouldBe listOf<UByte>(10u, 13u)
+        encoder.encodeString("\n\r", Encoding.KATAKANA) shouldBe listOf<UByte>(10u, 13u)
+        encoder.encodeString("\n\r", Encoding.C64OS) shouldBe listOf<UByte>(13u, 13u)
+
+        encoder.decodeString(listOf<UByte>(10u, 13u), Encoding.PETSCII).map { it.code } shouldBe listOf(10, 10)
+        encoder.decodeString(listOf<UByte>(10u, 13u), Encoding.ISO).map { it.code } shouldBe listOf(10, 13)
+        encoder.decodeString(listOf<UByte>(10u, 13u), Encoding.CP437).map { it.code } shouldBe listOf(10, 13)
     }
 })
 

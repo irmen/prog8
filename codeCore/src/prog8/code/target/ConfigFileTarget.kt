@@ -37,7 +37,7 @@ class ConfigFileTarget(
     val zpFullsafe: List<UIntRange>,
     val zpKernalsafe: List<UIntRange>,
     val zpBasicsafe: List<UIntRange>
-): ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(8) {
+): ICompilationTarget, IStringEncoding by Encoder(true), IMemSizer by NormalMemSizer(8) {
 
     companion object {
 

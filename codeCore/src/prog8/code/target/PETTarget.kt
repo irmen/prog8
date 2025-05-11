@@ -6,7 +6,10 @@ import prog8.code.target.zp.PETZeropage
 import java.nio.file.Path
 
 
-class PETTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(Mflpt5.Companion.FLOAT_MEM_SIZE) {
+class PETTarget: ICompilationTarget,
+    IStringEncoding by Encoder(true),
+    IMemSizer by NormalMemSizer(Mflpt5.Companion.FLOAT_MEM_SIZE) {
+
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null

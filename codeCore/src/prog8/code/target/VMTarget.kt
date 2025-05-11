@@ -7,7 +7,10 @@ import kotlin.io.path.isReadable
 import kotlin.io.path.name
 import kotlin.io.path.readText
 
-class VMTarget: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
+class VMTarget: ICompilationTarget,
+    IStringEncoding by Encoder(false),
+    IMemSizer by NormalMemSizer(FLOAT_MEM_SIZE) {
+
     override val name = NAME
     override val defaultEncoding = Encoding.ISO
     override val libraryPath = null

@@ -197,6 +197,7 @@ object AtasciiEncoding {
     fun encode(str: String): Result<List<UByte>, CharConversionException> {
         val mapped = str.map { chr ->
             when (chr) {
+                '\r' -> 0x9bu
                 '\u0000' -> 0u
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
