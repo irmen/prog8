@@ -76,6 +76,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is VarDecl -> transform(statement)
             is When -> transform(statement)
             is WhileLoop -> throw FatalAstException("while loops must have been converted to jumps")
+            is OnGoto -> throw FatalAstException("ongoto must have been converted to array and separate call/goto")
         }
     }
 
@@ -771,7 +772,6 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         require(cast.type!=cast.value.type)
         return cast
     }
-
 
     private fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
         return if (SourceCode.isLibraryResource(filename)) {

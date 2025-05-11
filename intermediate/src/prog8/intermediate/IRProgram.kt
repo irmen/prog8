@@ -192,7 +192,7 @@ class IRProgram(val name: String,
 
         blocks.forEach { block ->
             block.children.forEachIndexed { index, child ->
-                val next = if(index<block.children.size-1) block.children[index+1] as? IRCodeChunkBase else null
+                val next = if(index<block.children.lastIndex) block.children[index+1] as? IRCodeChunkBase else null
                 when (child) {
                     is IRAsmSubroutine -> child.asmChunk.next = next
                     is IRCodeChunk -> child.next = next

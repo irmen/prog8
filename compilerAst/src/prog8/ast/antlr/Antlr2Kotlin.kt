@@ -165,11 +165,14 @@ private fun StatementContext.toAst() : Statement {
     val aliasstmt = alias()?.toAst()
     if(aliasstmt!=null) return aliasstmt
 
+    val ongotostmt = ongoto()?.toAst()
+    if(ongotostmt!=null) return ongotostmt
+
     throw FatalAstException("unprocessed source text (are we missing ast conversion rules for parser elements?): $text")
 }
 
 private fun AsmsubroutineContext.toAst(): Subroutine {
-    val inline = this.inline()!=null
+    val inline = this.INLINE()!=null
     val subdecl = asmsub_decl().toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf()
     return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes.toMutableList(),
@@ -249,9 +252,18 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_
     val identifiers = vardecl.identifier()
     if(identifiers.size>1)
         throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
-    AsmSubroutineParameter(identifiername.text, datatype, registerorpair, statusregister, toPosition())
+    val identifiername = getname(identifiers)
+    AsmSubroutineParameter(identifiername, datatype, registerorpair, statusregister, toPosition())
 }
+
+private fun getname(identifiers: MutableList<IdentifierContext>): String = identifiers[0].children[0].text
+
+private fun getname(identifier: IdentifierContext): String = identifier.children[0].text
+//    return if (identifier == null) null
+//    else identifier.children[0].text
+//    //else (identifier.NAME() ?: identifier.UNDERSCORENAME() ?: identifier.ON() ?: identifier.CALL()).text
+//}
+
 
 private fun parseParamRegister(registerTok: Token?, pos: Position): Pair<RegisterOrPair?, Statusflag?> {
     if(registerTok==null)
@@ -349,13 +361,13 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             val identifiers = decl.identifier()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-            val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
+            val identifiername = getname(identifiers)
 
             val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
             if(statusregister!=null) {
                 throw SyntaxError("can't use status register as param for normal subroutines", Position(toPosition().file, it.register.line, it.register.charPositionInLine, it.register.charPositionInLine+1))
             }
-            SubroutineParameter(identifiername.text, datatype, zp, registerorpair, it.toPosition())
+            SubroutineParameter(identifiername, datatype, zp, registerorpair, it.toPosition())
         }
 
 private fun getZpOption(tags: List<String>): ZeropageWish = when {
@@ -389,7 +401,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             AssignTarget(null, arrayindexed, null, null, false, toPosition())
         }
         is VoidTargetContext -> {
-            AssignTarget(null, null, null, null, true, void_().toPosition())
+            AssignTarget(null, null, null, null, true, voidtarget().toPosition())
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
@@ -782,8 +794,8 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     val zp = getZpOption(tags)
     val split = getSplitOption(tags)
     val identifiers = identifier()
-    val identifiername = identifiers[0].NAME() ?: identifiers[0].UNDERSCORENAME()
-    val name = if(identifiers.size==1) identifiername.text else "<multiple>"
+    val identifiername = getname(identifiers)
+    val name = if(identifiers.size==1) identifiername else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val alignword = "@alignword" in tags
     val align64 = "@align64" in tags
@@ -800,14 +812,20 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             split,
             arrayindex()?.toAst(),
             name,
-            if(identifiers.size==1) emptyList() else identifiers.map {
-                val idname = it.NAME() ?: it.UNDERSCORENAME()
-                idname.text
-            },
+            if(identifiers.size==1) emptyList() else identifiers.map { getname(it) },
             value,
             "@shared" in tags,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
             "@dirty" in tags,
             toPosition()
     )
+}
+
+private fun OngotoContext.toAst(): Statement {
+    val elseStatements = this.else_part()?.toAst()
+    val elseScope = if(elseStatements==null) null else AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
+    val isCall = this.kind.text == "call"
+    val index = this.expression().toAst()
+    val labels = directivenamelist().scoped_identifier().map { it.toAst() }
+    return OnGoto(isCall, index, labels, elseScope, toPosition())
 }

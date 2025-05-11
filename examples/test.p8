@@ -1,46 +1,40 @@
 %import textio
+%import math
 %zeropage basicsafe
 
 main {
-    str buf = "?" * 20
-
     sub start() {
-        latin()
-        wait()
-        cyrillic()
-        wait()
-        eastern()
-        wait()
-        kata()
-        wait()
+        cx16.r13L = 1
+        cx16.r12L = 0
+
+        on math.randrange(5) call (
+            thing.func1,
+            thing.func2,
+            thing.func3)
+        else {
+            txt.print("not jumped\n")
+        }
+
+        on math.randrange(5) goto (thing.func1, thing.func2, thing.func3)
+    }
+}
+
+thing {
+    sub func1() {
+        cx16.r10++
+        txt.print("one\n")
+    }
+    sub func2() {
+        cx16.r10++
+        txt.print("two\n")
+    }
+    sub func3() {
+        cx16.r10++
+        txt.print("three\n")
+    }
+    sub other() {
+        cx16.r10++
+        txt.print("other\n")
     }
 
-    sub latin() {
-        txt.iso()
-        repeat 3 txt.nl()
-        txt.print(iso:"Latin: Le garçon\nn'a pas acheté\nd'œuf.")
-    }
-
-    sub cyrillic() {
-        txt.iso5()
-        repeat 3 txt.nl()
-        txt.print(iso5:"Cyrillic: 'Хозяин и Работник'\nнаписана Лев\nТолстой.")
-    }
-
-    sub eastern() {
-        txt.iso16()
-        repeat 3 txt.nl()
-        txt.print(iso16:"Eastern European: zażółć \ngęślą\njaźń")
-    }
-
-    sub kata() {
-        txt.kata()
-        repeat 3 txt.nl()
-        txt.print(kata:"Katakana: ｱﾉ ﾆﾎﾝｼﾞﾝ ﾜ ｶﾞｲｺｸｼﾞﾝ \nﾉ ﾆﾎﾝｺﾞ ｶﾞ ｼﾞｮｳｽﾞ \nﾀﾞｯﾃ ﾕｯﾀ｡ ## がが ## ガガ")
-    }
-
-    sub wait() {
-        txt.print("\r\rpress enter: ")
-        void txt.input_chars(buf)
-    }
 }

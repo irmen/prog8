@@ -1085,18 +1085,24 @@ $repeatLabel""")
         else {
             if(evaluateAddressExpression) {
                 val arrayIdx = jump.target as? PtArrayIndexer
-                if (isTargetCpu(CpuType.CPU65C02) && arrayIdx!=null) {
-                    if (!arrayIdx.splitWords) {
-                        // if the jump target is an address in a non-split array (like a jump table of only pointers),
-                        // on the 65c02, more optimal assembly can be generated using JMP (address,X)
-                        assignExpressionToRegister(arrayIdx.index, RegisterOrPair.A)
-                        out("  asl  a |  tax")
-                        return JumpTarget(asmSymbolName(arrayIdx.variable), true, true, false)
+                if (arrayIdx!=null) {
+                    if (isTargetCpu(CpuType.CPU65C02)) {
+                        if (!arrayIdx.splitWords) {
+                            // if the jump target is an address in a non-split array (like a jump table of only pointers),
+                            // on the 65c02, more optimal assembly can be generated using JMP (address,X)
+                            assignExpressionToRegister(arrayIdx.index, RegisterOrPair.A)
+                            out("  asl  a |  tax")
+                            return JumpTarget(asmSymbolName(arrayIdx.variable), true, true, false)
+                        } else {
+                            // print a message when more optimal code is possible for 65C02 cpu
+                            val variable = symbolTable.lookup(arrayIdx.variable.name)!!
+                            if(variable is StStaticVariable && variable.length!!<=128)
+                                errors.info("the jump address array is @split, but @nosplit would create more efficient code here", jump.position)
+                        }
                     } else {
-                        // print a message when more optimal code is possible
-                        val variable = symbolTable.lookup(arrayIdx.variable.name)!!
-                        if(variable is StStaticVariable && variable.length!!<=128)
-                            errors.info("the jump address array is @split, but @nosplit would create more efficient code here", jump.position)
+                        // print a message when more optimal code is possible for 6502 cpu
+                        if(!arrayIdx.splitWords)
+                            errors.info("the jump address array is @nosplit, but @split would create more efficient code here", jump.position)
                     }
                 }
                 // we can do the address evaluation right now and just use a temporary pointer variable

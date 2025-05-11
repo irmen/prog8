@@ -24,6 +24,12 @@ BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | . )*? '*/'  -> skip ;
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
+ON: 'on';
+GOTO: 'goto';
+CALL: 'call';
+INLINE: 'inline';
+ELSE: 'else';
+
 NAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
 UNDERSCORENAME :  '_' NAME ;           // match unicode properties
 DEC_INTEGER :  DEC_DIGIT (DEC_DIGIT | '_')* ;
@@ -108,6 +114,7 @@ statement :
     | breakstmt
     | continuestmt
     | labeldef
+    | ongoto
     | defer
     | alias
     ;
@@ -133,7 +140,7 @@ defer: 'defer' (statement | statement_block) ;
 
 labeldef :  identifier ':'  ;
 
-unconditionaljump :  'goto'  expression ;
+unconditionaljump :  GOTO  expression ;
 
 directive :
     directivename=('%output' | '%launcher' | '%zeropage' | '%zpreserved' | '%zpallowed' | '%address' | '%memtop' | '%import' |
@@ -167,8 +174,10 @@ assign_target:
     scoped_identifier               #IdentifierTarget
     | arrayindexed                  #ArrayindexedTarget
     | directmemory                  #MemoryTarget
-    | void                          #VoidTarget
+    | voidtarget                    #VoidTarget
     ;
+
+voidtarget : VOID ;
 
 multi_assign_target:
     assign_target (',' assign_target)+ ;
@@ -208,8 +217,6 @@ arrayindexed:
     ;
 
 
-void : VOID ;
-
 typecast : 'as' datatype;
 
 directmemory : '@' '(' expression ')';
@@ -232,7 +239,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  NAME | UNDERSCORENAME ;
+identifier :  NAME | UNDERSCORENAME | ON | CALL | INLINE ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
 
 scoped_identifier :  identifier ('.' identifier)* ;
 
@@ -262,8 +269,6 @@ inlineasm :  '%asm' EOL? INLINEASMBLOCK;
 
 inlineir: '%ir' EOL? INLINEASMBLOCK;
 
-inline: 'inline';
-
 subroutine :
     'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
     ;
@@ -282,7 +287,7 @@ sub_params :  sub_param (',' EOL? sub_param)* ;
 sub_param: vardecl ('@' register=NAME)? ;
 
 asmsubroutine :
-    inline? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
+    INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
     ;
 
 extsubroutine :
@@ -306,9 +311,9 @@ asmsub_return :  datatype '@' register=NAME ;     // A,X,Y,AX,AY,XY,Pc,Pz,Pn,Pv 
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later
 
-else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
+else_part :  ELSE EOL? (statement | statement_block) ;   // statement is constrained later
 
-if_expression :  'if' expression EOL? expression EOL? 'else' EOL? expression ;
+if_expression :  'if' expression EOL? expression EOL? ELSE EOL? expression ;
 
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 
@@ -327,4 +332,6 @@ unrollloop:  'unroll' expression EOL? (statement | statement_block) ;      // no
 
 whenstmt: 'when' expression EOL? '{' EOL? (when_choice | EOL) * '}' EOL? ;
 
-when_choice:  (expression_list | 'else' ) '->' (statement | statement_block ) ;
+when_choice:  (expression_list | ELSE ) '->' (statement | statement_block ) ;
+
+ongoto: ON expression kind=(GOTO | CALL) directivenamelist EOL? else_part? ;

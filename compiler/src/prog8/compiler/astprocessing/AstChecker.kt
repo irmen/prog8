@@ -2063,6 +2063,12 @@ internal class AstChecker(private val program: Program,
 
         return false
     }
+
+    override fun visit(onGoto: OnGoto) {
+        if(!onGoto.index.inferType(program).getOrUndef().isUnsignedByte) {
+            errors.err("on..goto index must be an unsigned byte", onGoto.index.position)
+        }
+    }
 }
 
 internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statement, errors: IErrorReporter) {

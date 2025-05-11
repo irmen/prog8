@@ -101,6 +101,7 @@ Features
 - Programs can be configured to execute in ROM
 - Conditional branches for status flags that map 1:1 to processor branch instructions for optimal efficiency
 - ``when`` statement to avoid if-else chains
+- ``on .. goto`` statement for fast jump tables
 - ``in`` expression for concise and efficient multi-value/containment test
 - ``defer`` statement to help write concise and robust subroutine cleanup logic
 - Several specialized built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``

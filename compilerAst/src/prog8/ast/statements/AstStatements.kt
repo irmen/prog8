@@ -284,7 +284,7 @@ class VarDecl(val type: VarDeclType,
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             var arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             if(arrayDt.isSplitWordArray) {
-                // autovars for array literals are NOT stored as a split word array!
+                // autovars for array literals are NEVER stored as a split word array!
                 when(arrayDt.sub) {
                     BaseDataType.WORD -> arrayDt = DataType.arrayFor(BaseDataType.WORD, false)
                     BaseDataType.UWORD -> arrayDt = DataType.arrayFor(BaseDataType.UWORD, false)
@@ -295,6 +295,24 @@ class VarDecl(val type: VarDeclType,
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
                 SplitWish.NOSPLIT, arraysize, autoVarName, emptyList(), array,
                     sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
+        }
+
+        fun createAutoOptionalSplit(array: ArrayLiteral): VarDecl {
+            val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
+            val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
+            val split = if(arrayDt.isSplitWordArray) SplitWish.SPLIT else if(arrayDt.isWordArray) SplitWish.NOSPLIT else SplitWish.DONTCARE
+            val arraysize = ArrayIndex.forArray(array)
+            return VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
+                split, arraysize, autoVarName, emptyList(), array,
+                sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
+        }
+
+        fun createAuto(dt: DataType): VarDecl {
+            val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
+            val vardecl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, dt, ZeropageWish.NOT_IN_ZEROPAGE,
+                SplitWish.DONTCARE, null, autoVarName, emptyList(), null,
+                sharedWithAsm = false, alignment = 0u, dirty = false, position = Position.DUMMY)
+            return vardecl
         }
     }
 
@@ -1232,4 +1250,30 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun copy() = DirectMemoryWrite(addressExpression.copy(), position)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = addressExpression.referencesIdentifier(nameInSource)
+}
+
+class OnGoto(
+    val isCall: Boolean,
+    val index: Expression,
+    val labels: List<IdentifierReference>,
+    val elsepart: AnonymousScope?,
+    override val position: Position
+) : Statement() {
+
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        index.linkParents(this)
+        labels.forEach { it.linkParents(this) }
+        elsepart?.linkParents(this)
+    }
+
+    override fun copy(): OnGoto = OnGoto(isCall, index.copy(), labels.map { it.copy() }, elsepart?.copy(), position)
+    override fun referencesIdentifier(nameInSource: List<String>) = index.referencesIdentifier(nameInSource) || labels.any { it.referencesIdentifier(nameInSource) } || elsepart?.referencesIdentifier(nameInSource) == true
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace")
+    }
 }

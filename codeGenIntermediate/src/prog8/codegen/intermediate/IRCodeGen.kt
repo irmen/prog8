@@ -256,8 +256,8 @@ class IRCodeGen(
             is PtBool,
             is PtArray,
             is PtBlock,
-            is PtDefer -> throw AssemblyError("should have been transformed")
-            is PtString -> throw AssemblyError("should not occur as separate statement node ${node.position}")
+            is PtDefer -> throw AssemblyError("defer should have been transformed")
+            is PtString -> throw AssemblyError("string should not occur as separate statement node ${node.position}")
             is PtSub -> throw AssemblyError("nested subroutines should have been flattened ${node.position}")
             else -> TODO("missing codegen for $node")
         }
