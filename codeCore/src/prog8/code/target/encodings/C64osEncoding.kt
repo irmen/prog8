@@ -285,6 +285,7 @@ object C64osEncoding {
             val screencode = encodingC64os[chr]
             return screencode?.toUByte() ?: when (chr) {
                 '\u0000' -> 0u
+                '\n' -> 13u
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
                     (chr.code - 0x8000).toUByte()

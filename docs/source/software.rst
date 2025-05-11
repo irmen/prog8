@@ -54,6 +54,17 @@ Various things:
     A Prog8 library module that provides Commander X16 style RAM banking on a C64 with an REU.
     This module provides cx16.rambank(), x16jsrfar() and extsub @bank functionality on a C64.
 
+`Library blob link example <https://github.com/FearLabsAudio/Prog8_blobLink_example/>`_
+    An example of a simple utility that can link symbols in a main Prog8 program
+    so that they are accessable from an externally loaded library blob.
+    It pre-processes the debug symbols list file at compile time,
+    and substitutes references in a template module file.
+
+`XLink: an alternative library blob link example <https://github.com/gillham/X16/tree/main/xlink>`_
+    This is another approach to access routines from a banked loaded library,
+    and it does it at run time. In this demo a jump table is not only created in the library,
+    but also in the main program and copied into the library for its use.
+
 
 .. image:: _static/curious.png
     :align: center

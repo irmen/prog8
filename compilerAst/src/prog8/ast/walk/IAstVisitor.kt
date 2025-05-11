@@ -208,6 +208,12 @@ interface IAstVisitor {
         chainedAssignment.nested.accept(this)
     }
 
+    fun visit(onGoto: OnGoto) {
+        onGoto.index.accept(this)
+        onGoto.labels.forEach { it.accept(this) }
+        onGoto.elsepart?.accept(this)
+    }
+
     fun visit(deref: PtrDereference) {
         deref.identifier.accept(this)
     }

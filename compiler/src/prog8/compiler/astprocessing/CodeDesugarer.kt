@@ -8,7 +8,7 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 
 
-internal class CodeDesugarer(val program: Program, private val errors: IErrorReporter) : AstWalker() {
+internal class CodeDesugarer(val program: Program, private val target: ICompilationTarget, private val errors: IErrorReporter) : AstWalker() {
 
     // Some more code shuffling to simplify the Ast that the codegenerator has to process.
     // Several changes have already been done by the StatementReorderer !
@@ -24,6 +24,7 @@ internal class CodeDesugarer(val program: Program, private val errors: IErrorRep
     // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
     // - flatten chained assignments
     // - remove alias nodes
+    // - convert on..goto/call to jumpaddr array and separate goto/call
     // - replace implicit pointer dereference chains (a.b.c.d) with explicit ones (a^^.b^^.c^^.d)
 
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
@@ -393,5 +394,61 @@ _after:
             }
         }
         return noModifications
+    }
+
+    override fun after(ongoto: OnGoto, parent: Node): Iterable<IAstModification> {
+        val indexDt = ongoto.index.inferType(program).getOrUndef()
+        if(!indexDt.isUnsignedByte)
+            return noModifications
+
+        val numlabels = ongoto.labels.size
+        val split = if(ongoto.isCall)
+            true    // for calls (indirect JSR), split array is always the optimal choice
+        else
+            target.cpu==CpuType.CPU6502    // for goto (indirect JMP), split array is optimal for 6502, but NOT for the 65C02 (it has a different JMP addressing mode available)
+        val arrayDt = DataType.arrayFor(BaseDataType.UWORD, split)
+        val labelArray = ArrayLiteral(InferredTypes.knownFor(arrayDt), ongoto.labels.toTypedArray(), ongoto.position)
+        val jumplistArray = VarDecl.createAutoOptionalSplit(labelArray)
+
+        val indexValue: Expression
+        val conditionVar: VarDecl?
+        val assignIndex: Assignment?
+
+        // put condition in temp var, if it is not simple; to avoid evaluating expression multiple times
+        if (ongoto.index.isSimple) {
+            indexValue = ongoto.index
+            assignIndex = null
+            conditionVar = null
+        } else {
+            conditionVar = VarDecl.createAuto(indexDt)
+            indexValue = IdentifierReference(listOf(conditionVar.name), conditionVar.position)
+            val varTarget = AssignTarget(indexValue, null, null, null, false, position=conditionVar.position)
+            assignIndex = Assignment(varTarget, ongoto.index, AssignmentOrigin.USERCODE, ongoto.position)
+        }
+
+        val callTarget = ArrayIndexedExpression(IdentifierReference(listOf(jumplistArray.name), jumplistArray.position), ArrayIndex(indexValue.copy(), indexValue.position), ongoto.position)
+        val callIndexed = AnonymousScope(mutableListOf(), ongoto.position)
+        if(ongoto.isCall) {
+            callIndexed.statements.add(FunctionCallStatement(IdentifierReference(listOf("call"), ongoto.position), mutableListOf(callTarget), true, ongoto.position))
+        } else {
+            callIndexed.statements.add(Jump(callTarget, ongoto.position))
+        }
+
+        val ifSt = if(ongoto.elsepart==null || ongoto.elsepart!!.isEmpty()) {
+            // if index<numlabels call(labels[index])
+            val compare = BinaryExpression(indexValue.copy(), "<", NumericLiteral.optimalInteger(numlabels, ongoto.position), ongoto.position)
+            IfElse(compare, callIndexed, AnonymousScope(mutableListOf(), ongoto.position), ongoto.position)
+        } else {
+            // if index>=numlabels elselabel() else call(labels[index])
+            val compare = BinaryExpression(indexValue.copy(), ">=", NumericLiteral.optimalInteger(numlabels, ongoto.position), ongoto.position)
+            IfElse(compare, ongoto.elsepart!!, callIndexed, ongoto.position)
+        }
+
+        val replacementScope = AnonymousScope(if(conditionVar==null)
+                mutableListOf(ifSt, jumplistArray)
+            else
+                mutableListOf(conditionVar, assignIndex!!, ifSt, jumplistArray)
+            , ongoto.position)
+        return listOf(IAstModification.ReplaceNode(ongoto, replacementScope, parent))
     }
 }

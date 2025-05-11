@@ -532,6 +532,22 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         output("alias ${alias.alias} = ${alias.target.nameInSource.joinToString(".")}")
     }
 
+    override fun visit(onGoto: OnGoto) {
+        output(if(onGoto.isCall) "selectcall " else "selectgoto ")
+        onGoto.index.accept(this)
+        output(" from (")
+        onGoto.labels.forEachIndexed { idx, label ->
+            label.accept(this)
+            if(idx!=onGoto.labels.lastIndex)
+                output(", ")
+        }
+        outputln(")")
+        if(onGoto.elsepart!=null && onGoto.elsepart.isNotEmpty()) {
+            output(" else ")
+            onGoto.elsepart.accept(this)
+        }
+    }
+
     override fun visit(deref: PtrDereference) {
         output("${deref.identifier.nameInSource.joinToString(".")}^^")
         deref.chain.forEach {

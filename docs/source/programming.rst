@@ -744,9 +744,30 @@ An example, to select the number of cards to use depending on what game is playe
         numcards = 52
 
 
+on .. goto / on .. call statement (jump table)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-when statement ('jump table')
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The ``on goto / call`` statement is suitable to create a fast call of a subroutine from a list based on an index value.
+it selects a function to jump to in O(1) whereas a similar when-statement, runs in O(n) because that one checks each index value.
+The ``on goto / call`` instead simply gets the correct entry from an array of function pointers and jumps to it directly.
+The index value that is used is 0-based; 0 will jump to the first entry in the list, 1 to the second, and so on.
+If the value is too large (i.e. outside the list of functions), no call is performed, and execution continues.
+In this case you can optionally add an ``else`` block that is then executed instead. Here's an example::
+
+    on math.randrange(5) call (
+            routines.func1,
+            routines.func2,
+            routines.func3 )
+        else {
+            txt.print("no call was done")
+        }
+
+    on math.randrange(5) goto (routines.func1, routines.func2, routines.func3)
+    txt.print("no jump was taken")
+
+
+when statement
+^^^^^^^^^^^^^^
 
 Instead of writing a bunch of sequential if-elseif statements, it is more readable to
 use a ``when`` statement. (It will also result in greatly improved assembly code generation)
@@ -767,7 +788,8 @@ datatype as the when-value, otherwise no efficient comparison can be done.
 You can explicitly put a list of numbers that all should result in the same case,
 or even use any *range expression* as long as it denotes a constant list of numbers.
 Be aware that every number is compared individually so using long lists of numbers and/or
-many choice cases will result in poor performance.
+many choice cases will result in poor performance. If you need to call a certain function
+based on some sequential index number, look at the ``on .. goto / call`` statement instead.
 
 Choices can result in a single statement or a block of multiple statements in which
 case you have to use { } to enclose them.
@@ -1231,7 +1253,7 @@ just before exiting of the current subroutine. That can be via a return statemen
 or just the normal ending of the subroutine. This is often useful to "not forget" to clean up stuff,
 and if the subroutine has multiple ways or places where it can exit, it saves you from repeating
 the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to a maximum of 8).
-They are handled in reversed order. Return values are evaluated before any deferred code is executed.
+The defers are handled in reversed (LIFO) order. Return values are evaluated before any deferred code is executed.
 You write defers like so::
 
     sub example() -> bool {

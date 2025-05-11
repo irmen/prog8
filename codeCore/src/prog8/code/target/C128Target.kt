@@ -6,7 +6,10 @@ import prog8.code.target.zp.C128Zeropage
 import java.nio.file.Path
 
 
-class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by NormalMemSizer(Mflpt5.FLOAT_MEM_SIZE) {
+class C128Target: ICompilationTarget,
+    IStringEncoding by Encoder(true),
+    IMemSizer by NormalMemSizer(Mflpt5.FLOAT_MEM_SIZE) {
+
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null
@@ -28,10 +31,10 @@ class C128Target: ICompilationTarget, IStringEncoding by Encoder, IMemSizer by N
     override val PROGRAM_LOAD_ADDRESS = 0x1c01u
     override val PROGRAM_MEMTOP_ADDRESS = 0xc000u
 
-    override val BSSHIGHRAM_START = 0u    // TODO
-    override val BSSHIGHRAM_END = 0u      // TODO
-    override val BSSGOLDENRAM_START = 0u  // TODO
-    override val BSSGOLDENRAM_END = 0u    // TODO
+    override val BSSHIGHRAM_START = 0u    // TODO address?
+    override val BSSHIGHRAM_END = 0u      // TODO address?
+    override val BSSGOLDENRAM_START = 0u  // TODO address?
+    override val BSSGOLDENRAM_END = 0u    // TODO address?
 
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam

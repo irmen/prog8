@@ -169,6 +169,9 @@ private fun StatementContext.toAst() : Statement {
     val aliasstmt = alias()?.toAst()
     if(aliasstmt!=null) return aliasstmt
 
+    val ongotostmt = ongoto()?.toAst()
+    if(ongotostmt!=null) return ongotostmt
+
     val structdecl = structdeclaration()?.toAst()
     if(structdecl!=null) return structdecl
 
@@ -176,7 +179,7 @@ private fun StatementContext.toAst() : Statement {
 }
 
 private fun AsmsubroutineContext.toAst(): Subroutine {
-    val inline = this.inline()!=null
+    val inline = this.INLINE()!=null
     val subdecl = asmsub_decl().toAst()
     val statements = statement_block()?.toAst() ?: mutableListOf()
     return Subroutine(subdecl.name, subdecl.parameters.toMutableList(), subdecl.returntypes.toMutableList(),
@@ -250,13 +253,17 @@ private fun Asmsub_paramsContext.toAst(): List<AsmSubroutineParameter> = asmsub_
     val identifiers = vardecl.identifierlist()?.identifier() ?: emptyList()
     if(identifiers.size>1)
         throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-    val identifiername = identifiers.single().name()
+    val identifiername = getname(identifiers.single())
     AsmSubroutineParameter(identifiername, datatype, registerorpair, statusregister, toPosition())
 }
 
-private fun IdentifierContext.name(): String {
-    return (this.UNICODEDNAME().text ?: this.UNDERSCORENAME()?.text)!!
-}
+
+private fun getname(identifier: IdentifierContext): String = identifier.children[0].text
+//    return if (identifier == null) null
+//    else identifier.children[0].text
+//    //else (identifier.NAME() ?: identifier.UNDERSCORENAME() ?: identifier.ON() ?: identifier.CALL()).text
+//}
+
 
 private fun parseParamRegister(registerTok: Token?, pos: Position): Pair<RegisterOrPair?, Statusflag?> {
     if(registerTok==null)
@@ -354,7 +361,7 @@ private fun Sub_paramsContext.toAst(): List<SubroutineParameter> =
             val identifiers = decl.identifierlist()?.identifier() ?: emptyList()
             if(identifiers.size>1)
                 throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-            val identifiername = identifiers.single().name()
+            val identifiername = getname(identifiers.single())
 
             val (registerorpair, statusregister) = parseParamRegister(it.register, it.toPosition())
             if(statusregister!=null) {
@@ -401,7 +408,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             AssignTarget(null, arrayindexed, null, null, false, position = toPosition())
         }
         is VoidTargetContext -> {
-            AssignTarget(null, null, null, null, true, position = void_().toPosition())
+            AssignTarget(null, null, null, null, true, position = voidtarget().toPosition())
         }
         is PointerDereferenceTargetContext -> {
             val deref = this.pointerdereference().toAst()
@@ -844,7 +851,7 @@ private fun When_choiceContext.toAst(): WhenChoice {
 private fun StructfielddeclContext.toAst(): Pair<DataType, List<String>> {
     val identifiers = identifierlist()?.identifier() ?: emptyList()
     val dt = datatype().toAst()
-    return dt to identifiers.map { it.name() }
+    return dt to identifiers.map { getname(it) }
 }
 
 private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl {
@@ -856,7 +863,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     }
     val zp = getZpOption(tags)
     val split = getSplitOption(tags)
-    val identifiers = identifierlist().identifier().map { it.name() }
+    val identifiers = identifierlist().identifier().map { getname(it) }
     val name = if(identifiers.size==1) identifiers[0] else "<multiple>"
     val isArray = ARRAYSIG() != null || arrayindex() != null
     val alignword = "@alignword" in tags
@@ -893,4 +900,13 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
             "@dirty" in tags,
             toPosition()
     )
+}
+
+private fun OngotoContext.toAst(): Statement {
+    val elseStatements = this.else_part()?.toAst()
+    val elseScope = if(elseStatements==null) null else AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
+    val isCall = this.kind.text == "call"
+    val index = this.expression().toAst()
+    val labels = directivenamelist().scoped_identifier().map { it.toAst() }
+    return OnGoto(isCall, index, labels, elseScope, toPosition())
 }

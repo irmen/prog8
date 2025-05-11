@@ -64,10 +64,11 @@ object JapaneseCharacterConverter {
 object KatakanaEncoding {
     val charset: Charset = Charset.forName("JIS_X0201")
 
-    fun encode(str: String): Result<List<UByte>, CharConversionException> {
+    fun encode(str: String, newlineToCarriageReturn: Boolean): Result<List<UByte>, CharConversionException> {
         return try {
             val mapped = str.map { chr ->
                 when (chr) {
+                    '\n' -> if(newlineToCarriageReturn) 13u else 10u
 
                     '\u0000' -> 0u
                     '\u00a0' -> 0xa0u // $a0 isn't technically a part of JIS X 0201 spec, and so we need to handle this ourselves
@@ -112,9 +113,14 @@ object KatakanaEncoding {
         }
     }
 
-    fun decode(bytes: Iterable<UByte>): Result<String, CharConversionException> {
+    fun decode(bytes: Iterable<UByte>, newlineToCarriageReturn: Boolean): Result<String, CharConversionException> {
         return try {
-            Ok(String(bytes.map { it.toByte() }.toByteArray(), charset))
+            Ok(String(bytes.map {
+                when(it) {
+                    13u.toUByte() -> if(newlineToCarriageReturn) 10 else 13
+                    else -> it.toByte()
+                }
+            }.toByteArray(), charset))
         } catch (ce: CharConversionException) {
             Err(ce)
         }

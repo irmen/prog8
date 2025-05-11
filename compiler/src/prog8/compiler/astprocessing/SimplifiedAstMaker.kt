@@ -77,6 +77,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is StructDecl -> transform(statement)
             is When -> transform(statement)
             is WhileLoop -> throw FatalAstException("while loops must have been converted to jumps")
+            is OnGoto -> throw FatalAstException("ongoto must have been converted to array and separate call/goto")
             is StructFieldRef -> throw FatalAstException("should not occur as part of the actual AST")
         }
     }
@@ -949,7 +950,6 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             "bogus typecast shouldn't occur at ${srcCast.position}" }
         return cast
     }
-
 
     private fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
         return if (SourceCode.isLibraryResource(filename)) {

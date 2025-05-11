@@ -24,6 +24,12 @@ BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | . )*? '*/'  -> skip ;
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
+ON: 'on';
+GOTO: 'goto';
+CALL: 'call';
+INLINE: 'inline';
+ELSE: 'else';
+
 UNICODEDNAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
 UNDERSCORENAME :  '_' UNICODEDNAME ;           // match unicode properties
 DEC_INTEGER :  DEC_DIGIT (DEC_DIGIT | '_')* ;
@@ -109,6 +115,7 @@ statement :
     | breakstmt
     | continuestmt
     | labeldef
+    | ongoto
     | defer
     | alias
     ;
@@ -141,7 +148,7 @@ defer: 'defer' (statement | statement_block) ;
 
 labeldef :  identifier ':'  ;
 
-unconditionaljump :  'goto'  expression ;
+unconditionaljump :  GOTO  expression ;
 
 directive : directivename (directivenamelist | (directivearg? | directivearg (',' directivearg)*))   ;
 
@@ -181,8 +188,10 @@ assign_target:
     | directmemory                  #MemoryTarget
     | pointerdereference            #PointerDereferenceTarget
     | pointerindexedderef           #PointerIndexedDerefTarget
-    | void                          #VoidTarget
+    | voidtarget                    #VoidTarget
     ;
+
+voidtarget : VOID ;
 
 multi_assign_target:
     assign_target (',' assign_target)+ ;
@@ -225,8 +234,6 @@ arrayindexed:
     ;
 
 
-void : VOID ;
-
 typecast : 'as' datatype;
 
 directmemory : '@' '(' expression ')';
@@ -249,7 +256,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  UNICODEDNAME | UNDERSCORENAME ;
+identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
 
 scoped_identifier :  identifier ('.' identifier)* ;
 
@@ -277,8 +284,6 @@ literalvalue :
 
 inlineasm :  directivename EOL? INLINEASMBLOCK;         // directive name should be '%asm' or '%ir'
 
-inline: 'inline';
-
 subroutine :
     'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
     ;
@@ -297,7 +302,7 @@ sub_params :  sub_param (',' EOL? sub_param)* ;
 sub_param: vardecl ('@' register=UNICODEDNAME)? ;
 
 asmsubroutine :
-    inline? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
+    INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
     ;
 
 extsubroutine :
@@ -321,9 +326,9 @@ asmsub_return :  datatype '@' register=UNICODEDNAME ;     // A,X,Y,AX,AY,XY,Pc,P
 
 if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ; // statement is constrained later
 
-else_part :  'else' EOL? (statement | statement_block) ;   // statement is constrained later
+else_part :  ELSE EOL? (statement | statement_block) ;   // statement is constrained later
 
-if_expression :  'if' expression EOL? expression EOL? 'else' EOL? expression ;
+if_expression :  'if' expression EOL? expression EOL? ELSE EOL? expression ;
 
 // This is a cursed mix of IdentifierReference (scoped identifiers) and binary expressions with '.' dereference operators.
 // but it is needed for now to not have to rewrite all of Prog8's dependence on how the IdentifierReference now works (fully qualified identifier string inside)
@@ -356,4 +361,6 @@ unrollloop:  'unroll' expression EOL? (statement | statement_block) ;      // no
 
 whenstmt: 'when' expression EOL? '{' EOL? (when_choice | EOL) * '}' EOL? ;
 
-when_choice:  (expression_list | 'else' ) '->' (statement | statement_block ) ;
+when_choice:  (expression_list | ELSE ) '->' (statement | statement_block ) ;
+
+ongoto: ON expression kind=(GOTO | CALL) directivenamelist EOL? else_part? ;

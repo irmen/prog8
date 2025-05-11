@@ -6,14 +6,16 @@ import com.github.michaelbull.result.Result
 import java.io.CharConversionException
 import java.nio.charset.Charset
 
+
 open class IsoEncodingBase(charsetName: String) {
     val charset: Charset = Charset.forName(charsetName)
 
-    fun encode(str: String): Result<List<UByte>, CharConversionException> {
+    fun encode(str: String, newlineToCarriageReturn: Boolean): Result<List<UByte>, CharConversionException> {
         return try {
             val mapped = str.map { chr ->
                 when (chr) {
                     '\u0000' -> 0u
+                    '\n' -> if(newlineToCarriageReturn) 13u else 10u
                     in '\u8000'..'\u80ff' -> {
                         // special case: take the lower 8 bit hex value directly
                         (chr.code - 0x8000).toUByte()
@@ -27,9 +29,14 @@ open class IsoEncodingBase(charsetName: String) {
         }
     }
 
-    fun decode(bytes: Iterable<UByte>): Result<String, CharConversionException> {
+    fun decode(bytes: Iterable<UByte>, newlineToCarriageReturn: Boolean): Result<String, CharConversionException> {
         return try {
-            Ok(String(bytes.map { it.toByte() }.toByteArray(), charset))
+            Ok(String(bytes.map {
+                when(it) {
+                    13u.toUByte() -> if(newlineToCarriageReturn) 10 else 13
+                    else -> it.toByte()
+                }
+            }.toByteArray(), charset))
         } catch (ce: CharConversionException) {
             Err(ce)
         }

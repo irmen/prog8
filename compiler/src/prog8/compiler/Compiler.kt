@@ -424,7 +424,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.reorderStatements(errors)
     errors.report()
-    program.desugaring(errors)
+    program.desugaring(errors, compilerOptions)
     errors.report()
     program.changeNotExpressionAndIfComparisonExpr(errors, compilerOptions.compTarget)
     errors.report()
@@ -486,7 +486,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
 }
 
 private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-    program.desugaring(errors)
+    program.desugaring(errors, compilerOptions)
     program.addTypecasts(errors, compilerOptions)
     errors.report()
     program.variousCleanups(errors, compilerOptions)

@@ -64,6 +64,7 @@ Future Things and Ideas
 
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
+- enums?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
@@ -100,6 +101,7 @@ IR/VM
      cx16.r0sL = cx16.r1s as byte }
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
+- apparently for SSA form, the IRCodeChunk is not a proper "basic block" yet because the last operation should be a branch or return, and no other branches
 - reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
   don't forget to take into account the data type of the register when it's going to be reused!
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
@@ -123,11 +125,11 @@ Libraries
 Optimizations
 -------------
 
+- when choices that are only a goto -> avoid the double branch, can branch to the label directly
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - can the for loop temp var be replaced by the same logic that createRepeatCounterVar() uses for repeat loops? Take care of nested for/repeat loops to not use the same var
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
-  those checks should probably be removed, or be made permanent
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those checks should probably be removed, or be made permanent

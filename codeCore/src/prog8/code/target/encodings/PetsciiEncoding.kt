@@ -21,7 +21,7 @@ object PetsciiEncoding {
         '\ufffe',    //       0x07 -> UNDEFINED
         '\uf118',    //       0x08 -> DISABLE CHARACTER SET SWITCHING (CUS)
         '\uf119',    //       0x09 -> ENABLE CHARACTER SET SWITCHING (CUS)
-        '\ufffe',    //       0x0A -> UNDEFINED
+        '\n',        //       0x0A -> LINE FEED (RETURN)
         '\ufffe',    //       0x0B -> UNDEFINED
         '\ufffe',    //       0x0C -> UNDEFINED
         '\n'    ,    //       0x0D -> LINE FEED (RETURN)
@@ -1117,6 +1117,8 @@ object PetsciiEncoding {
             val screencode = if(lowercase) encodingScreencodeLowercase[chr] else encodingScreencodeUppercase[chr]
             return screencode?.toUByte() ?: when (chr) {
                 '\u0000' -> 0u
+                '\n' -> 141u
+                '\r' -> 141u
                 in '\u8000'..'\u80ff' -> {
                     // special case: take the lower 8 bit hex value directly
                     (chr.code - 0x8000).toUByte()

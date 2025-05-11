@@ -141,6 +141,7 @@ abstract class AstWalker {
     open fun before(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(ongoto: OnGoto, parent: Node): Iterable<IAstModification> = noModifications
 
     open fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
@@ -190,6 +191,7 @@ abstract class AstWalker {
     open fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(ongoto: OnGoto, parent: Node): Iterable<IAstModification> = noModifications
 
     protected val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
 
@@ -521,6 +523,14 @@ abstract class AstWalker {
         chainedAssignment.target.accept(this, chainedAssignment)
         chainedAssignment.nested.accept(this, chainedAssignment)
         track(after(chainedAssignment, parent), chainedAssignment, parent)
+    }
+
+    fun visit(ongoto: OnGoto, parent: Node) {
+        track(before(ongoto, parent), ongoto, parent)
+        ongoto.index.accept(this, ongoto)
+        ongoto.labels.forEach { it.accept(this, ongoto) }
+        ongoto.elsepart?.accept(this, ongoto)
+        track(after(ongoto, parent), ongoto, parent)
     }
 
     fun visit(deref: PtrDereference, parent: Node) {

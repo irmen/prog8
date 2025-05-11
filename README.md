@@ -71,6 +71,7 @@ What does Prog8 provide?
 - high-level program optimizations
 - conditional branches that map 1:1 to cpu status flags
 - ``when`` statement to provide a concise jump table alternative to if/elseif chains
+- ``on .. goto`` statement for fast jump tables
 - ``in`` expression for concise and efficient multi-value/containment check 
 - ``defer`` statement to help write concise and robust subroutine cleanup logic
 - several specialized built-in functions such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``

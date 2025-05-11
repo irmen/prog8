@@ -475,7 +475,7 @@ private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
                 val identifier = identMatch.value
                 when (val symbol = symbolTable.flat[identifier]) {
                     is StConstant -> symbol.value.toUInt()
-                    is StMemVar -> symbol.address.toUInt()
+                    is StMemVar -> symbol.address
                     else -> null
                 }
             } else null
@@ -512,6 +512,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
     // rts + jmp -> remove jmp
     // rts + bxx -> remove bxx
     // lda  + cmp #0 -> remove cmp,  same for cpy and cpx.
+    // bra/jmp + bra/jmp -> remove second bra/jmp
     // and some other optimizations.
 
     val mods = mutableListOf<Modification>()
@@ -565,6 +566,12 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
                     if(" $instr" in first || "\t$instr" in first) {
                         mods.add(Modification(lines[1].index, true, null))
                     }
+                }
+            }
+
+            if(" bra" in first || "\tbra" in first || " jmp" in first || "\tjmp" in first ) {
+                if(" bra" in second || "\tbra" in second || " jmp" in second || "\tjmp" in second ) {
+                    mods.add(Modification(lines[1].index, true, null))
                 }
             }
         }

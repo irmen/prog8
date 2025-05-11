@@ -1079,6 +1079,44 @@ main {
         compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
         compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
     }
+
+
+    test("on..goto") {
+        val src="""
+main {
+    sub start() {
+        cx16.r13L = 1
+        cx16.r12L = 0
+
+        on cx16.r12L+1 call (
+            thing.func1,
+            thing.func2,
+            thing.func3)
+        else {
+            ; not jumped
+            cx16.r0++
+        }
+
+        on cx16.r13L+1 goto (thing.func1, thing.func2, thing.func3)
+    }
+}
+
+thing {
+    sub func1() {
+        cx16.r10 += 1
+    }
+    sub func2() {
+        cx16.r10 += 2
+    }
+    sub func3() {
+        cx16.r10 += 3
+    }
+}"""
+
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
+    }
 }
 
 })
