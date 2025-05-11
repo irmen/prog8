@@ -1033,6 +1033,7 @@ $repeatLabel""")
             val target = getJumpTarget(jump)
             require(!target.needsExpressionEvaluation)
             if(target.indirect) {
+                require(!target.indexedX)
                 val complementedInstruction = branchInstruction(stmt.condition, true)
                 out("""
                     $complementedInstruction +

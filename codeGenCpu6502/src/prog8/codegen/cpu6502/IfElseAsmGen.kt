@@ -38,7 +38,6 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 // use a BIT instruction to test for bit 7 or 6 set/clear
                 val (testBitSet, variable, bitmask) = useBIT
                 return translateIfBIT(stmt, jumpAfterIf, testBitSet, variable, bitmask)
-                return
             }
 
             val rightDt = compareCond.right.type
@@ -87,6 +86,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 if(testForBitSet) {
                     if(jumpAfterIf!=null) {
                         val target = asmgen.getJumpTarget(jumpAfterIf)
+                        require(!target.indexedX)
                         branch("bmi", target)
                     }
                     else
@@ -94,6 +94,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 } else {
                     if(jumpAfterIf!=null) {
                         val target = asmgen.getJumpTarget(jumpAfterIf)
+                        require(!target.indexedX)
                         branch("bpl", target)
                     }
                     else
@@ -107,6 +108,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 if(testForBitSet) {
                     if(jumpAfterIf!=null) {
                         val target = asmgen.getJumpTarget(jumpAfterIf)
+                        require(!target.indexedX)
                         branch("bvs", target)
                     }
                     else
@@ -114,6 +116,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 } else {
                     if(jumpAfterIf!=null) {
                         val target = asmgen.getJumpTarget(jumpAfterIf)
+                        require(!target.indexedX)
                         branch("bvc", target)
                     }
                     else
@@ -172,9 +175,8 @@ internal class IfElseAsmGen(private val program: PtProgram,
             asmgen.out("  $falseBranch  +")
             if(target.needsExpressionEvaluation)
                 target = asmgen.getJumpTarget(jump)
-            asmgen.out("""
-                jmp  (${target.asmLabel})
-+""")
+            asmgen.jmp(target.asmLabel, target.indirect, target.indexedX)
+            asmgen.out("+")
         } else {
             require(!target.needsExpressionEvaluation)
             asmgen.out("  $branchInstr  ${target.asmLabel}")
@@ -287,6 +289,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             asmgen.out("  bmi  + |  beq +")
                             if(target.needsExpressionEvaluation)
                                 target = asmgen.getJumpTarget(jumpAfterIf)
+                            require(!target.indexedX)
                             asmgen.out("""
                                 jmp  (${target.asmLabel})
 +""")
@@ -354,6 +357,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             asmgen.out("  bmi  + |  bne  ++")
                             if(target.needsExpressionEvaluation)
                                 target = asmgen.getJumpTarget(jumpAfterIf)
+                            require(!target.indexedX)
                             asmgen.out("""
 +                               jmp  (${target.asmLabel})
 +""")
@@ -435,6 +439,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     asmgen.out("  bcc  + |  beq  +")
                     if(target.needsExpressionEvaluation)
                         target = asmgen.getJumpTarget(jumpAfterIf)
+                    require(!target.indexedX)
                     asmgen.out("""
                         jmp  (${target.asmLabel})
 +""")
@@ -536,6 +541,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 +                           bpl  +""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
@@ -591,6 +597,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                             bcs  +""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
 _jump                       jmp  (${target.asmLabel})
 +""")
@@ -668,6 +675,7 @@ _jump                       jmp  (${target.asmLabel})
 +                           bpl  +""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
                            jmp  (${target.asmLabel})
 +""")
@@ -722,6 +730,7 @@ _jump                       jmp  (${target.asmLabel})
                             bcc  +""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
@@ -830,6 +839,7 @@ _jump                       jmp  (${target.asmLabel})
                             bne  ++""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -909,6 +919,7 @@ _jump                       jmp  (${target.asmLabel})
                         bne  ++""")
                     if(target.needsExpressionEvaluation)
                         target = asmgen.getJumpTarget(jump)
+                    require(!target.indexedX)
                     asmgen.out("""
 +                       jmp  (${target.asmLabel})
 +""")
@@ -974,6 +985,7 @@ _jump                       jmp  (${target.asmLabel})
                             beq  ++""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -1054,6 +1066,7 @@ _jump                       jmp  (${target.asmLabel})
                         beq  ++""")
                     if(target.needsExpressionEvaluation)
                         target = asmgen.getJumpTarget(jump)
+                    require(!target.indexedX)
                     asmgen.out("""
 +                       jmp  (${target.asmLabel})
 +""")
@@ -1197,6 +1210,7 @@ _jump                       jmp  (${target.asmLabel})
                         beq  ++""")
                     if(target.needsExpressionEvaluation)
                         target = asmgen.getJumpTarget(jump)
+                    require(!target.indexedX)
                     asmgen.out("""
 +                       jmp  (${target.asmLabel})
 +""")
@@ -1249,6 +1263,7 @@ _jump                       jmp  (${target.asmLabel})
                         bne  +""")
                     if(target.needsExpressionEvaluation)
                         target = asmgen.getJumpTarget(jump)
+                    require(!target.indexedX)
                     asmgen.out("""
                         jmp  (${target.asmLabel})
 +""")
@@ -1303,6 +1318,7 @@ _jump                       jmp  (${target.asmLabel})
                             beq  ++""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -1362,6 +1378,7 @@ _jump                       jmp  (${target.asmLabel})
                             bne  +""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
@@ -1424,6 +1441,7 @@ _jump                       jmp  (${target.asmLabel})
                             beq  ++""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
 +                           jmp  (${target.asmLabel})
 +""")
@@ -1482,6 +1500,7 @@ _jump                       jmp  (${target.asmLabel})
                             bne  +""")
                         if(target.needsExpressionEvaluation)
                             target = asmgen.getJumpTarget(jump)
+                        require(!target.indexedX)
                         asmgen.out("""
                             jmp  (${target.asmLabel})
 +""")
