@@ -1344,6 +1344,9 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                 else
                     InferredTypes.knownFor(fieldType)
             }
+            is StructDecl -> {
+                InferredTypes.unknown()     // the type of a structdecl itself is actually not defined
+            }
             else -> InferredTypes.unknown()
         }
     }

@@ -37,7 +37,7 @@ STRUCTS and TYPED POINTERS
 - DONE: support @dirty on pointer vars -> uninitialized pointer placed in BSS_noclear segment
 - DONE: support comparison operators on pointers
 - DONE: implement augmented assignment on pointer dereference
-- pointer types in subroutine signatures (both normal and asm-subs, parameters and return values)
+- DONE: pointer types in subroutine signatures (both normal and asm-subs, parameters and return values)
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
 - support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.

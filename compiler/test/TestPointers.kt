@@ -95,6 +95,44 @@ thing {
         // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("pointers in subroutine parameters") {
+        val src="""
+main {
+    struct MNode {
+        bool flag
+        ^^MNode next
+    }
+
+    sub func(^^MNode pointer) -> ^^MNode {
+        cx16.r0++
+        return pointer.next
+    }
+
+    sub start() {
+        ^^MNode mn1 = MNode()
+        mn1 = func(mn1)
+
+        ^^thing.Node n1 = thing.Node()
+        n1 = thing.func(n1)
+    }
+}
+
+thing {
+    struct Node {
+        bool flag
+        ^^Node next
+    }
+
+    sub func(^^Node pointer) -> ^^Node {
+        cx16.r0++
+        return pointer.next
+    }
+
+}"""
+
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
 
     test("creating instances") {
         val src="""
@@ -126,8 +164,7 @@ thing {
         // TODO compileText(C64Target(), true, src, outputDir) shouldNotBe null
     }
 
-
-    test("creating instances with optimization should all be removed") {
+    test("creating instances for unused vars should all be removed") {
         val src="""
 main {
     struct MyNode {
@@ -161,7 +198,6 @@ thing {
         // TODO compileText(C64Target(), true, src, outputDir) shouldNotBe null
     }
 
-
     test("creating instances should have correct number of args") {
         val src="""
 main {
@@ -182,7 +218,6 @@ main {
         err.size shouldBe 1
         err[0] shouldContain("expected 3 or 0, got 1")
     }
-
 
     test("pointer uword compatibility") {
         val src="""

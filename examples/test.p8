@@ -1,16 +1,32 @@
 main {
-    struct MyNode {
+    struct MNode {
         bool flag
-        ^^MyNode next
+        ^^MNode next
+    }
+
+    sub func(^^MNode pointer) -> ^^MNode {
+        cx16.r0++
+        return pointer.next
     }
 
     sub start() {
-        cx16.r0 = MyNode()
+        ^^MNode mn1 = MNode()
+        mn1 = func(mn1)
 
-        ^^MyNode @shared ptr1 = cx16.r0
-
-        ptr1 = 2000
-        ptr1 = 20
-        ptr1 = 20.2222
+        ^^thing.Node n1 = thing.Node()
+        n1 = thing.func(n1)
     }
+}
+
+thing {
+    struct Node {
+        bool flag
+        ^^Node next
+    }
+
+    sub func(^^Node pointer) -> ^^Node {
+        cx16.r0++
+        return pointer.next
+    }
+
 }

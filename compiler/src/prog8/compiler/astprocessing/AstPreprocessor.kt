@@ -273,7 +273,8 @@ class AstPreprocessor(val program: Program,
                                 errors.err("can only use R0-R15 as register param for normal subroutines", it.position)
                         }
                 }
-                return mods
+                if(mods.isNotEmpty())
+                    return mods
             }
         }
 

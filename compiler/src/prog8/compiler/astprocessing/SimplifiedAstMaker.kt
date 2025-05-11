@@ -396,16 +396,16 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         }
 
-        val (target, _) = srcCall.target.targetNameAndType(program)
-        val iType = srcCall.inferType(program)
-        val subtypeStruct = iType.getOrUndef().subType
+        val targetStruct = srcCall.target.targetStructDecl()
         val call =
-            if(subtypeStruct!=null) {
+            if(targetStruct!=null) {
                 // a call to a struct yields a pointer to a struct instance and means: allocate a statically initialized struct instance of that type
-                val pointertype = DataType.pointerToType(subtypeStruct)
+                val pointertype = DataType.pointerToType(targetStruct)
                 PtBuiltinFunctionCall("structalloc", false, true, pointertype, srcCall.position)
             } else {
                 // regular function call
+                val (target, _) = srcCall.target.targetNameAndType(program)
+                val iType = srcCall.inferType(program)
                 PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
             }
 
