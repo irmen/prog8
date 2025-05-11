@@ -70,9 +70,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 else
                     "%asm {{ ...${node.assembly.length} characters... }}"
             }
-            is PtJump -> {
-                "goto ${txt(node.target)}"
-            }
+            is PtJump -> "goto"
             is PtAsmSub -> {
                 val params = node.parameters.joinToString(", ") {
                     val register = it.first.registerOrPair

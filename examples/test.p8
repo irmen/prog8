@@ -1,21 +1,15 @@
 %import textio
-%import math
 %zeropage basicsafe
 
 main {
     sub start() {
-        cx16.r13L = 1
-        cx16.r12L = 0
 
-        on math.randrange(5) call (
-            thing.func1,
-            thing.func2,
-            thing.func3)
-        else {
-            txt.print("not jumped\n")
+        when cx16.r0L {
+            1 -> goto thing.func1
+            2 -> goto thing.func2
+            3 -> goto thing.func3
+            else -> cx16.r0++
         }
-
-        on math.randrange(5) goto (thing.func1, thing.func2, thing.func3)
     }
 }
 

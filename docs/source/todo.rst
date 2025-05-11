@@ -1,13 +1,15 @@
 TODO
 ====
 
+STRUCTS: are being developed in their own separate branch for now, called "structs".
+Idea is to make it feature complete in the IR/Virtual target, then merge it to master?, and then start building the 6502 code generation for it.
+
 ...
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- STRUCTS: are now being developed in their own separate branch "structs". This will be for the next major version of the compiler (v12)
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - enums?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
@@ -68,12 +70,11 @@ Libraries
 Optimizations
 -------------
 
-- when choices that end with a goto create a redundant bra, get rid of it. Also some redundant RTS somewhere?
+- when choices that are only a goto -> avoid the double branch, can branch to the label directly
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - can the for loop temp var be replaced by the same logic that createRepeatCounterVar() uses for repeat loops? Take care of nested for/repeat loops to not use the same var
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code,
-  those checks should probably be removed, or be made permanent
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those checks should probably be removed, or be made permanent
