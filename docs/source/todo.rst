@@ -87,6 +87,7 @@ Future Things and Ideas
 IR/VM
 -----
 - add LOADFIELD/STOREFIELD instructions that encode the field offset as immediate value so we avoid a separate ADD instruction to calculate the address
+- change the instruction format so an indirect register (a pointer) can be used, at least for the inplace assignment operators that operate on pointer
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
