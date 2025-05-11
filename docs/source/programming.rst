@@ -1231,7 +1231,7 @@ just before exiting of the current subroutine. That can be via a return statemen
 or just the normal ending of the subroutine. This is often useful to "not forget" to clean up stuff,
 and if the subroutine has multiple ways or places where it can exit, it saves you from repeating
 the cleanup code at every exit spot. Multiple defers can be scheduled in a single subroutine (up to a maximum of 8).
-They are handled in reversed order. Return values are evaluated before any deferred code is executed.
+The defers are handled in reversed (LIFO) order. Return values are evaluated before any deferred code is executed.
 You write defers like so::
 
     sub example() -> bool {
