@@ -1195,6 +1195,30 @@ class When(var condition: Expression,
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         condition.referencesIdentifier(nameInSource) || choices.any { it.referencesIdentifier(nameInSource) }
+
+    fun betterAsOnGoto(program: Program, compilerOptions: CompilationOptions): Boolean {
+        // a when that has only goto's and the values 0,1,2,3,4... is better written as a on..goto
+        val sizeLimit = if(compilerOptions.compTarget.cpu == CpuType.CPU65C02) 4 else 6
+        if(choices.size >= sizeLimit) {
+            if (condition.inferType(program).isBytes) {
+                if (choices.all { (it.statements.statements.singleOrNull() as? Jump)?.target is IdentifierReference }) {
+                    val values = choices.flatMap {
+                        it.values ?: mutableListOf()
+                    }.map {
+                        it.constValue(program)?.number?.toInt()
+                    }
+                    if(null !in values) {
+                        val sortedValues = values.filterNotNull().sorted()
+                        val range = IntRange(sortedValues.first(), sortedValues.last())
+                        if(range.toList() == sortedValues) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+        return false
+    }
 }
 
 class WhenChoice(var values: MutableList<Expression>?,           // if null,  this is the 'else' part

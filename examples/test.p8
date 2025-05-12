@@ -16,12 +16,14 @@ main {
             1 -> goto second
             2 -> goto third
             3 -> goto fourth
+            4 -> goto third
             else -> goto other
         }
 
-        ; TODO 3+ options better as on:
+        ; 65c02: 3+ options better as on:
+        ; 6502: 5+ options better as on:
 
-        ;on value goto (first, second, third, fourth) else goto other
+        ;on value goto (first, second, third, fourth, third, fourth)
 
         sub first() {
             cx16.r0++
