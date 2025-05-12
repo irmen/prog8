@@ -1216,6 +1216,7 @@ _vsync_vec   .word  ?
 _line_vec    .word  ?
 _aflow_vec   .word  ?
 _sprcol_vec  .word  ?
+_continue_with_system_handler   .byte  ?
         .send BSS
 
 _irq_dispatcher
@@ -1224,44 +1225,42 @@ _irq_dispatcher
         cld
         lda  cx16.VERA_ISR
         and  cx16.VERA_IEN          ; only consider the bits for sources that can actually raise the IRQ
+        sta  cx16.VERA_ISR          ; note: AFLOW can only be cleared by filling the audio FIFO for at least 1/4. Not via the ISR bit.
 
-        bit  #2
+        stz  _continue_with_system_handler
+
+        bit  #2         ; make sure to test for LINE IRQ first to handle that as soon as we can
         beq  +
+        pha
         jsr  _line_handler
-        ldy  #2
-        sty  cx16.VERA_ISR
-        bra  _dispatch_end
-+
-        bit  #4
-        beq  +
-        jsr  _sprcol_handler
-        ldy  #4
-        sty  cx16.VERA_ISR
-        bra  _dispatch_end
-+
-        bit  #8
-        beq  +
-        jsr  _aflow_handler
-        ; note: AFLOW can only be cleared by filling the audio FIFO for at least 1/4. Not via the ISR bit.
-        bra  _dispatch_end
-+
-        bit  #1
-        beq  +
+        tsb  _continue_with_system_handler
+        pla
+
++       lsr  a
+        bcc  +
+        pha
         jsr  _vsync_handler
-        cmp  #0
-        bne  _dispatch_end
-        ldy  #1
-        sty  cx16.VERA_ISR
-        bra  _return_irq
-+
-        lda  #0
-_dispatch_end
-        cmp  #0
-        beq  _return_irq
-        jsr  sys.restore_prog8_internals
+        tsb  _continue_with_system_handler
+        pla
+
++       lsr  a
+        lsr  a
+        bcc  +
+        pha
+        jsr  _sprcol_handler
+        tsb  _continue_with_system_handler
+        pla
+
++       lsr  a
+        bcc  +
+        jsr  _aflow_handler
+        tsb  _continue_with_system_handler
+
++       jsr  sys.restore_prog8_internals
+        lda  _continue_with_system_handler
+        beq  _no_sys_handler
 		jmp  (sys.restore_irq._orig_irqvec)   ; continue with normal kernal irq routine
-_return_irq
-        jsr  sys.restore_prog8_internals
+_no_sys_handler
 		ply
 		plx
 		pla
