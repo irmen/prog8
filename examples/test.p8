@@ -1,13 +1,47 @@
+%import textio
+%zeropage basicsafe
+
 main {
     sub start() {
-        when cx16.r1L {
-            2 -> goto first
-            3 -> goto second
+        test(0)
+        test(1)
+        test(2)
+        test(3)
+        test(42)
+    }
+
+    sub test(ubyte value)  {
+        when value {
+            0 -> goto first
+            1 -> goto second
+            2 -> goto third
+            3 -> goto fourth
             else -> goto other
         }
 
-        first:
-        second:
-        other:
+        ; TODO 3+ options better as on:
+
+        ;on value goto (first, second, third, fourth) else goto other
+
+        sub first() {
+            cx16.r0++
+            txt.print("first\n")
+        }
+        sub second() {
+            cx16.r0++
+            txt.print("second\n")
+        }
+        sub third() {
+            cx16.r0++
+            txt.print("third\n")
+        }
+        sub fourth() {
+            cx16.r0++
+            txt.print("fourth\n")
+        }
+        sub other() {
+            cx16.r0++
+            txt.print("other\n")
+        }
     }
 }

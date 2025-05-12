@@ -966,7 +966,7 @@ $repeatLabel""")
 
     private fun translate(stmt: PtWhen) {
         val endLabel = makeLabel("when_end")
-        val choiceBlocks = mutableListOf<Pair<String, PtNodeGroup>>()
+        val choiceBlocks = mutableListOf<Pair<String, PtWhenChoice>>()
         val conditionDt = stmt.value.type
         if(conditionDt.isByte)
             assignExpressionToRegister(stmt.value, RegisterOrPair.A)
@@ -977,13 +977,20 @@ $repeatLabel""")
             val choice = choiceNode as PtWhenChoice
             var choiceLabel = makeLabel("choice")
             if(choice.isElse) {
+                require(choice.parent.children.last() === choice)
                 translate(choice.statements)
+                // is always the last node so can fall through
             } else {
                 if(choice.statements.children.isEmpty()) {
                     // no statements for this choice value, jump to the end immediately
                     choiceLabel = endLabel
                 } else {
-                    choiceBlocks.add(choiceLabel to choice.statements)
+                    val onlyJumpLabel = ((choice.statements.children.singleOrNull() as? PtJump)?.target as? PtIdentifier)?.name
+                    if(onlyJumpLabel==null) {
+                        choiceBlocks.add(choiceLabel to choice)
+                    } else {
+                        choiceLabel = onlyJumpLabel
+                    }
                 }
                 for (cv in choice.values.children) {
                     val value = (cv as PtNumber).number.toInt()
@@ -1000,11 +1007,14 @@ $repeatLabel""")
                 }
             }
         }
-        jmp(endLabel)
+
+        if(choiceBlocks.isNotEmpty())
+            jmp(endLabel)
+
         for(choiceBlock in choiceBlocks.withIndex()) {
             out(choiceBlock.value.first)
-            translate(choiceBlock.value.second)
-            if (choiceBlock.index < choiceBlocks.size - 1)
+            translate(choiceBlock.value.second.statements)
+            if (choiceBlock.index < choiceBlocks.size - 1 && !choiceBlock.value.second.isOnlyGotoOrReturn())
                 jmp(endLabel)
         }
         out(endLabel)

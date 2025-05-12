@@ -237,6 +237,16 @@ class PtWhenChoice(val isElse: Boolean, position: Position) : PtNode(position) {
         get() = children[0] as PtNodeGroup
     val statements: PtNodeGroup
         get() = children[1] as PtNodeGroup
+
+    fun isOnlyGotoOrReturn(): Boolean {
+        val c = statements.children
+        if(c.size!=1)
+            return false
+        if(c[0] is PtJump || c[0] is PtReturn)
+            return true
+        val group = c[0] as? PtNodeGroup
+        return group != null && group.children.size == 1 && (group.children[0] is PtJump || group.children[0] is PtReturn)
+    }
 }
 
 

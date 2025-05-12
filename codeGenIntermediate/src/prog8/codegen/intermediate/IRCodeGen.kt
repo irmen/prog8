@@ -420,8 +420,9 @@ class IRCodeGen(
         whenStmt.choices.children.forEach {
             val choice = it as PtWhenChoice
             if(choice.isElse) {
+                require(choice.parent.children.last() === choice)
                 result += translateNode(choice.statements)
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+                // is always the last node so can fall through
             } else {
                 if(choice.statements.children.isEmpty()) {
                     // no statements for this choice value, jump to the end immediately
@@ -433,22 +434,30 @@ class IRCodeGen(
                     }
                 } else {
                     val choiceLabel = createLabelName()
-                    choices.add(choiceLabel to choice)
+                    val onlyJumpLabel = ((choice.statements.children.singleOrNull() as? PtJump)?.target as? PtIdentifier)?.name
+                    val branchLabel: String
+                    if(onlyJumpLabel==null) {
+                        choices.add(choiceLabel to choice)
+                        branchLabel = choiceLabel
+                    } else {
+                        branchLabel = onlyJumpLabel
+                    }
                     choice.values.children.map { v -> v as PtNumber }.sortedBy { v -> v.number }.forEach { value ->
                         result += IRCodeChunk(null, null).also { chunk ->
                             chunk += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
-                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = choiceLabel)
+                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = branchLabel)
                         }
                     }
                 }
             }
         }
-        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+
+        if(choices.isNotEmpty())
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
 
         choices.forEach { (label, choice) ->
             result += labelFirstChunk(translateNode(choice.statements), label)
-            val lastStatement = choice.statements.children.last()
-            if(lastStatement !is PtReturn && lastStatement !is PtJump)
+            if(!choice.isOnlyGotoOrReturn())
                 addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
         }
 

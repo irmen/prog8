@@ -70,7 +70,6 @@ Libraries
 Optimizations
 -------------
 
-- when choices that are only a goto -> avoid the double branch, can branch to the label directly (both IR and 6502.  Take care that no redundant choice labels are generated anymore too.)
 - Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
 - can the for loop temp var be replaced by the same logic that createRepeatCounterVar() uses for repeat loops? Take care of nested for/repeat loops to not use the same var
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)

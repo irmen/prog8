@@ -1669,6 +1669,27 @@ internal class AstChecker(private val program: Program,
         if(whenStmt.condition.constValue(program)!=null)
             errors.warn("when-value is a constant and will always result in the same choice", whenStmt.condition.position)
 
+
+        // a when that has only goto's and the values 0,1,2,3,4... is better written as a on..goto
+        if(whenStmt.choices.size>=3) {
+            if (whenStmt.condition.inferType(program).isBytes) {
+                if (whenStmt.choices.all { it.statements.statements.singleOrNull() is Jump }) {
+                    val values = whenStmt.choices.flatMap {
+                        it.values ?: mutableListOf()
+                    }.map {
+                        it.constValue(program)?.number?.toInt()
+                    }
+                    if(null !in values) {
+                        val sortedValues = values.filterNotNull().sorted()
+                        val range = IntRange(sortedValues.first(), sortedValues.last())
+                        if(range.toList() == sortedValues) {
+                            errors.info("when statement can be replaced with on..goto", whenStmt.position)
+                        }
+                    }
+                }
+            }
+        }
+
         super.visit(whenStmt)
     }
 
