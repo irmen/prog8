@@ -115,6 +115,7 @@ IR/VM
 Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
+- Add double-array sorting routines to sorting module? (that allows you to sort a second array in sync with the array of numbers)
 - cx16: _irq_dispatcher  now only dispatches a single irq source, better to ROL/BCC to handle *all* possible (multiple) sources.
 - See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - pet32 target: make syslib more complete (missing kernal routines)?
@@ -125,9 +126,6 @@ Libraries
 Optimizations
 -------------
 
-- when choices that are only a goto -> avoid the double branch, can branch to the label directly
-- Sorting module gnomesort_uw could be optimized more by fully rewriting it in asm? Shellshort seems consistently faster even if most of the words are already sorted.
-- can the for loop temp var be replaced by the same logic that createRepeatCounterVar() uses for repeat loops? Take care of nested for/repeat loops to not use the same var
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?

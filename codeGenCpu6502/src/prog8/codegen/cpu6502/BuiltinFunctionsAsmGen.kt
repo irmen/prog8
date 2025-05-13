@@ -751,7 +751,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 asmgen.assignConstFloatToPointerAY(number)
             }
             else -> {
-                val tempvar = asmgen.getTempVarName(BaseDataType.FLOAT)
+                val tempvar = asmgen.createTempVarReused(BaseDataType.FLOAT, false, fcall)
                 asmgen.assignExpressionToVariable(fcall.args[1], tempvar, DataType.FLOAT)
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
                 asmgen.out("""

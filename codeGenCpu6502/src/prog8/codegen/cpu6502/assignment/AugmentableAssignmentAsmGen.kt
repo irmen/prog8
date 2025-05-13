@@ -205,7 +205,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 asmgen.out("  ldx  P8ZP_SCRATCH_B1")
                             }
                             SourceStorageKind.EXPRESSION -> {
-                                val tempVar = asmgen.getTempVarName(BaseDataType.UBYTE)
+                                val tempVar = asmgen.createTempVarReused(BaseDataType.UBYTE, false, memory)
                                 asmgen.out("  sta  $tempVar")
                                 if(value.expression is PtTypeCast)
                                     inplacemodificationByteWithValue(tempVar, DataType.UBYTE, operator, value.expression)
@@ -356,7 +356,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
 
                                 SourceStorageKind.EXPRESSION -> {
-                                    val tempVar = asmgen.getTempVarName(BaseDataType.UBYTE)
+                                    val tempVar = asmgen.createTempVarReused(BaseDataType.UBYTE, false, target.array)
                                     asmgen.out("  sta  $tempVar")
                                     if(value.expression is PtTypeCast)
                                         inplacemodificationByteWithValue(tempVar, target.datatype, operator, value.expression)
@@ -439,7 +439,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
 
                                 SourceStorageKind.EXPRESSION -> {
-                                    val tempVar = asmgen.getTempVarName(BaseDataType.UWORD)
+                                    val tempVar = asmgen.createTempVarReused(BaseDataType.UWORD, false, target.array)
                                     asmgen.out("  sta  $tempVar |  stx  $tempVar+1")
                                     if(value.expression is PtTypeCast)
                                         inplacemodificationWordWithValue(tempVar, target.datatype, operator, value.expression, block)
@@ -457,7 +457,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 
                         target.datatype.isFloat -> {
                             // copy array value into tempvar
-                            val tempvar = asmgen.getTempVarName(BaseDataType.FLOAT)
+                            val tempvar = asmgen.createTempVarReused(BaseDataType.FLOAT, false, target.array)
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.A)
                             asmgen.out("""
                                                 ldy  #>${target.asmVarname}

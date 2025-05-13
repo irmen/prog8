@@ -424,8 +424,9 @@ class IRCodeGen(
         whenStmt.choices.children.forEach {
             val choice = it as PtWhenChoice
             if(choice.isElse) {
+                require(choice.parent.children.last() === choice)
                 result += translateNode(choice.statements)
-                addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+                // is always the last node so can fall through
             } else {
                 if(choice.statements.children.isEmpty()) {
                     // no statements for this choice value, jump to the end immediately
@@ -437,22 +438,30 @@ class IRCodeGen(
                     }
                 } else {
                     val choiceLabel = createLabelName()
-                    choices.add(choiceLabel to choice)
+                    val onlyJumpLabel = ((choice.statements.children.singleOrNull() as? PtJump)?.target as? PtIdentifier)?.name
+                    val branchLabel: String
+                    if(onlyJumpLabel==null) {
+                        choices.add(choiceLabel to choice)
+                        branchLabel = choiceLabel
+                    } else {
+                        branchLabel = onlyJumpLabel
+                    }
                     choice.values.children.map { v -> v as PtNumber }.sortedBy { v -> v.number }.forEach { value ->
                         result += IRCodeChunk(null, null).also { chunk ->
                             chunk += IRInstruction(Opcode.CMPI, valueDt, reg1=valueTr.resultReg, immediate = value.number.toInt())
-                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = choiceLabel)
+                            chunk += IRInstruction(Opcode.BSTEQ, labelSymbol = branchLabel)
                         }
                     }
                 }
             }
         }
-        addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+
+        if(choices.isNotEmpty())
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
 
         choices.forEach { (label, choice) ->
             result += labelFirstChunk(translateNode(choice.statements), label)
-            val lastStatement = choice.statements.children.last()
-            if(lastStatement !is PtReturn && lastStatement !is PtJump)
+            if(!choice.isOnlyGotoOrReturn())
                 addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
         }
 
@@ -473,10 +482,11 @@ class IRCodeGen(
             }
             is PtIdentifier -> {
                 require(forLoop.variable.name == loopvar.scopedNameString)
+                val elementDt = irType(iterable.type.elementType())
                 val iterableLength = symbolTable.getLength(iterable.name)
                 val loopvarSymbol = forLoop.variable.name
                 val indexReg = registers.next(IRDataType.BYTE)
-                val tmpReg = registers.next(IRDataType.BYTE)
+                val tmpReg = registers.next(elementDt)
                 val loopLabel = createLabelName()
                 val endLabel = createLabelName()
                 when {
@@ -484,9 +494,9 @@ class IRCodeGen(
                         // iterate over a zero-terminated string
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
-                            it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
+                            it += IRInstruction(Opcode.LOADX, elementDt, reg1 = tmpReg, reg2 = indexReg, labelSymbol = iterable.name)
                             it += IRInstruction(Opcode.BSTEQ, labelSymbol = endLabel)
-                            it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tmpReg, labelSymbol = loopvarSymbol)
+                            it += IRInstruction(Opcode.STOREM, elementDt, reg1 = tmpReg, labelSymbol = loopvarSymbol)
                         }
                         result += translateNode(forLoop.statements)
                         val jumpChunk = IRCodeChunk(null, null)
@@ -496,9 +506,8 @@ class IRCodeGen(
                         result += IRCodeChunk(endLabel, null)
                     }
                     iterable.type.isSplitWordArray || iterable.type.isPointerArray -> {
-                        // iterate over lsb/msb split word/pointer array
-                        val elementDt = iterable.type.elementType()
-                        if(!elementDt.isWord && !elementDt.isPointer)
+                        // iterate over lsb/msb split word array
+                        if(elementDt!=IRDataType.WORD)
                             throw AssemblyError("weird dt")
                         addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=indexReg, immediate = 0), null)
                         result += IRCodeChunk(loopLabel, null).also {
@@ -508,7 +517,7 @@ class IRCodeGen(
                             it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegMsb, reg2=indexReg, labelSymbol=iterable.name+"_msb")
                             it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=tmpRegLsb, reg2=indexReg, labelSymbol=iterable.name+"_lsb")
                             it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=concatReg, reg2=tmpRegMsb, reg3=tmpRegLsb)
-                            it += IRInstruction(Opcode.STOREM, irType(elementDt), reg1=concatReg, labelSymbol = loopvarSymbol)
+                            it += IRInstruction(Opcode.STOREM, elementDt, reg1=concatReg, labelSymbol = loopvarSymbol)
                         }
                         result += translateNode(forLoop.statements)
                         result += IRCodeChunk(null, null).also {

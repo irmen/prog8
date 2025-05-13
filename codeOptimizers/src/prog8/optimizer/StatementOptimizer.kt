@@ -522,6 +522,27 @@ class StatementOptimizer(private val program: Program,
             }
         }
 
+        if(whenStmt.betterAsOnGoto(program, options)) {
+            // rewrite when into a on..goto , which is faster and also smaller for ~5+ cases
+            var elseJump: Jump? = null
+            val jumps = mutableListOf<Pair<Int, Jump>>()
+            whenStmt.choices.forEach { choice ->
+                if(choice.values==null) {
+                    elseJump = choice.statements.statements.single() as Jump
+                } else {
+                    choice.values!!.forEach { value ->
+                        jumps.add(value.constValue(program)!!.number.toInt() to choice.statements.statements.single() as Jump)
+                    }
+                }
+            }
+
+            val jumpLabels = jumps.sortedBy { it.first }.map { it.second.target as IdentifierReference }
+
+            val elsePart = if(elseJump==null) null else AnonymousScope(mutableListOf(elseJump), elseJump.position)
+            val onGoto = OnGoto(false, whenStmt.condition, jumpLabels, elsePart, whenStmt.position)
+            return listOf(IAstModification.ReplaceNode(whenStmt, onGoto, parent))
+        }
+
         return noModifications
     }
 
