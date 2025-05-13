@@ -1,49 +1,82 @@
 %import textio
 %zeropage basicsafe
+%option romable
+
 
 main {
     sub start() {
-        test(0)
-        test(1)
-        test(2)
-        test(3)
-        test(42)
-    }
-
-    sub test(ubyte value)  {
-        when value {
-            0 -> goto first
-            1 -> goto second
-            2 -> goto third
-            3 -> goto fourth
-            4 -> goto third
-            else -> goto other
+        for cx16.r0L in "irmen" {
+            txt.nl()
+            txt.chrout(cx16.r0L)
+            for cx16.r1L in "green" {
+                txt.chrout(cx16.r1L)
+            }
         }
 
-        ; 65c02: 3+ options better as on:
-        ; 6502: 5+ options better as on:
+        for cx16.r0L in "irmen" {
+            txt.nl()
+            txt.chrout(cx16.r0L)
+            for cx16.r1L in "blue" {
+                txt.chrout(cx16.r1L)
+            }
+        }
 
-        ;on value goto (first, second, third, fourth, third, fourth)
+        for cx16.r0L in "irmen" {
+            txt.nl()
+            txt.chrout(cx16.r0L)
+            for cx16.r1L in "red" {
+                txt.chrout(cx16.r1L)
+            }
+        }
 
-        sub first() {
-            cx16.r0++
-            txt.print("first\n")
-        }
-        sub second() {
-            cx16.r0++
-            txt.print("second\n")
-        }
-        sub third() {
-            cx16.r0++
-            txt.print("third\n")
-        }
-        sub fourth() {
-            cx16.r0++
-            txt.print("fourth\n")
-        }
-        sub other() {
-            cx16.r0++
-            txt.print("other\n")
-        }
+        for cx16.r0L in [11,22,33,44]
+            cx16.r1L++
+        for cx16.r0L in [11,22,33,44]
+            cx16.r1L++
+        for cx16.r0L in [11,22,33,44]
+            cx16.r1L++
+
+        bool z
+
+        for z in [true, true, false, false]
+            cx16.r1L++
+        for z in [true, true, false, false]
+            cx16.r1L++
+        for z in [true, true, false, false]
+            cx16.r1L++
+
+        for cx16.r0 in [1111,2222,3333]
+            cx16.r1L++
+        for cx16.r0 in [1111,2222,3333]
+            cx16.r1L++
+        for cx16.r0 in [1111,2222,3333]
+            cx16.r1L++
+
+;        repeat 2 {
+;            repeat 2 {
+;                repeat 260 {
+;                    repeat 260 {
+;                        cx16.r0++
+;                    }
+;                }
+;            }
+;        }
+;
+;        txt.print_uw(cx16.r0)
+;        txt.nl()
+;        cx16.r0=0
+;
+;        repeat 2 {
+;            repeat 2 {
+;                repeat 260 {
+;                    repeat 260 {
+;                        cx16.r0++
+;                    }
+;                }
+;            }
+;        }
+;
+;        txt.print_uw(cx16.r0)
+;        txt.nl()
     }
 }

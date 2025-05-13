@@ -442,7 +442,7 @@ class AsmGen6502Internal (
         BaseDataType.FLOAT to 0
     )
 
-    internal fun buildTempVarName(dt: BaseDataType, counter: Int): String = "prog8_tmpvar_${dt.toString().lowercase()}_$counter"
+    internal fun buildTempVarName(dt: BaseDataType, counter: Int): String = "prog8_tmpvar_${dt.toString().lowercase()}_${counter}"
 
     internal fun getTempVarName(dt: BaseDataType): String {
         tempVarsCounters[dt] = tempVarsCounters.getValue(dt)+1
@@ -854,7 +854,7 @@ class AsmGen6502Internal (
     private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {
         require(iterations in 257..65536) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createRepeatCounterVar(BaseDataType.UWORD, isTargetCpu(CpuType.CPU65C02), stmt)
+        val counterVar = createTempVarReused(BaseDataType.UWORD, isTargetCpu(CpuType.CPU65C02), stmt)
         val loopcount = if(iterations==65536) 0 else if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
         out("""
             ldy  #>$loopcount
@@ -874,7 +874,7 @@ $repeatLabel""")
         // note: A/Y must have been loaded with the number of iterations!
         // the iny + double dec is microoptimization of the 16 bit loop
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createRepeatCounterVar(BaseDataType.UWORD, false, stmt)
+        val counterVar = createTempVarReused(BaseDataType.UWORD, false, stmt)
         out("""
             cmp  #0
             beq  +
@@ -897,13 +897,13 @@ $repeatLabel""")
         require(count in 2..256) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
         if(isTargetCpu(CpuType.CPU65C02)) {
-            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, true, stmt)
+            val counterVar = createTempVarReused(BaseDataType.UBYTE, true, stmt)
             out("  lda  #${count and 255} |  sta  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
             out("  dec  $counterVar |  bne  $repeatLabel")
         } else {
-            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, false, stmt)
+            val counterVar = createTempVarReused(BaseDataType.UBYTE, false, stmt)
             out("  lda  #${count and 255} |  sta  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
@@ -915,53 +915,19 @@ $repeatLabel""")
         val repeatLabel = makeLabel("repeat")
         out("  cpy  #0")
         if(isTargetCpu(CpuType.CPU65C02)) {
-            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, true, stmt)
+            val counterVar = createTempVarReused(BaseDataType.UBYTE, true, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
             out("  dec  $counterVar |  bne  $repeatLabel")
         } else {
-            val counterVar = createRepeatCounterVar(BaseDataType.UBYTE, false, stmt)
+            val counterVar = createTempVarReused(BaseDataType.UBYTE, false, stmt)
             out("  beq  $endLabel |  sty  $counterVar")
             out(repeatLabel)
             translate(stmt.statements)
             out("  dec  $counterVar |  bne  $repeatLabel")
         }
         out(endLabel)
-    }
-
-    private fun createRepeatCounterVar(dt: BaseDataType, preferZeropage: Boolean, stmt: PtRepeatLoop): String {
-        val scope = stmt.definingISub()!!
-        val asmInfo = subroutineExtra(scope)
-        var parent = stmt.parent
-        while(parent !is PtProgram) {
-            if(parent is PtRepeatLoop)
-                break
-            parent = parent.parent
-        }
-        val isNested = parent is PtRepeatLoop
-
-        if(!isNested) {
-            // we can re-use a counter var from the subroutine if it already has one for that datatype
-            val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt && it.second.endsWith("counter") }
-            if(existingVar!=null) {
-                if(!preferZeropage || existingVar.third!=null)
-                    return existingVar.second
-            }
-        }
-
-        val counterVar = makeLabel("counter")
-        when(dt) {
-            BaseDataType.UBYTE, BaseDataType.UWORD -> {
-                val result = zeropage.allocate(counterVar, DataType.forDt(dt), null, stmt.position, errors)
-                result.fold(
-                    success = { (address, _, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
-                    failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
-                )
-                return counterVar
-            }
-            else -> throw AssemblyError("invalidt dt")
-        }
     }
 
     private fun translate(stmt: PtWhen) {
@@ -1571,6 +1537,51 @@ $repeatLabel""")
     internal fun makeLabel(postfix: String): String {
         generatedLabelSequenceNumber++
         return "$GENERATED_LABEL_PREFIX${generatedLabelSequenceNumber}_$postfix"
+    }
+
+    internal fun createTempVarReused(dt: BaseDataType, preferZeropage: Boolean, stmt: PtNode): String {
+        val scope = stmt.definingISub()!!
+        val asmInfo = subroutineExtra(scope)
+        var parent = stmt.parent
+        while(parent !is PtProgram) {
+            if(parent is PtRepeatLoop || parent is PtForLoop)
+                break
+            parent = parent.parent
+        }
+        val isNested = parent is PtRepeatLoop || parent is PtForLoop
+
+        if(!isNested) {
+            // we can re-use a counter var from the subroutine if it already has one for that datatype
+            val existingVar = asmInfo.extraVars.firstOrNull { it.first==dt && it.second.endsWith("tempv") }
+            if(existingVar!=null) {
+                if(!preferZeropage || existingVar.third!=null) {
+                    // println("reuse temp counter var: $dt ${existingVar.second}  @${stmt.position}")
+                    return existingVar.second
+                }
+            }
+        }
+
+        val counterVar = makeLabel("tempv")
+        // println("new temp counter var: $dt $counterVar  @${stmt.position}")
+        when {
+            dt.isIntegerOrBool -> {
+                if(preferZeropage) {
+                    val result = zeropage.allocate(counterVar, DataType.forDt(dt), null, stmt.position, errors)
+                    result.fold(
+                        success = { (address, _, _) -> asmInfo.extraVars.add(Triple(dt, counterVar, address)) },
+                        failure = { asmInfo.extraVars.add(Triple(dt, counterVar, null)) }  // allocate normally
+                    )
+                } else {
+                    asmInfo.extraVars.add(Triple(dt, counterVar, null))  // allocate normally
+                }
+                return counterVar
+            }
+            dt == BaseDataType.FLOAT -> {
+                asmInfo.extraVars.add(Triple(dt, counterVar, null)) // allocate normally, floats never on zeropage
+                return counterVar
+            }
+            else -> throw AssemblyError("invalid dt")
+        }
     }
 
     internal fun assignConstFloatToPointerAY(number: PtNumber) {
