@@ -1,82 +1,23 @@
 %import textio
 %zeropage basicsafe
-%option romable
 
 
 main {
+    uword[100] @nosplit array1 = 1 to 100
+    uword[100] @split array2 = 100 downto 1
+
     sub start() {
-        for cx16.r0L in "irmen" {
-            txt.nl()
-            txt.chrout(cx16.r0L)
-            for cx16.r1L in "green" {
-                txt.chrout(cx16.r1L)
-            }
+        for cx16.r2 in array1 {
+            txt.print_uw(cx16.r2)
+            txt.spc()
         }
-
-        for cx16.r0L in "irmen" {
-            txt.nl()
-            txt.chrout(cx16.r0L)
-            for cx16.r1L in "blue" {
-                txt.chrout(cx16.r1L)
-            }
+        txt.nl()
+        txt.nl()
+        for cx16.r2 in array2 {
+            txt.print_uw(cx16.r2)
+            txt.spc()
         }
-
-        for cx16.r0L in "irmen" {
-            txt.nl()
-            txt.chrout(cx16.r0L)
-            for cx16.r1L in "red" {
-                txt.chrout(cx16.r1L)
-            }
-        }
-
-        for cx16.r0L in [11,22,33,44]
-            cx16.r1L++
-        for cx16.r0L in [11,22,33,44]
-            cx16.r1L++
-        for cx16.r0L in [11,22,33,44]
-            cx16.r1L++
-
-        bool z
-
-        for z in [true, true, false, false]
-            cx16.r1L++
-        for z in [true, true, false, false]
-            cx16.r1L++
-        for z in [true, true, false, false]
-            cx16.r1L++
-
-        for cx16.r0 in [1111,2222,3333]
-            cx16.r1L++
-        for cx16.r0 in [1111,2222,3333]
-            cx16.r1L++
-        for cx16.r0 in [1111,2222,3333]
-            cx16.r1L++
-
-;        repeat 2 {
-;            repeat 2 {
-;                repeat 260 {
-;                    repeat 260 {
-;                        cx16.r0++
-;                    }
-;                }
-;            }
-;        }
-;
-;        txt.print_uw(cx16.r0)
-;        txt.nl()
-;        cx16.r0=0
-;
-;        repeat 2 {
-;            repeat 2 {
-;                repeat 260 {
-;                    repeat 260 {
-;                        cx16.r0++
-;                    }
-;                }
-;            }
-;        }
-;
-;        txt.print_uw(cx16.r0)
-;        txt.nl()
+        txt.nl()
+        txt.nl()
     }
 }

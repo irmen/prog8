@@ -65,7 +65,10 @@ _done
     */
 
     sub gnomesort_uw(uword values, ubyte num_elements) {
-        ; TODO optimize this more, rewrite in asm?
+        ; When written in asm this is 10-20% faster, but unreadable. Not worth it.
+        ; Also, sorting just an array of word numbers is very seldomly used, most often you
+        ; need to sort other things associated with it as well and that is not done here anyway,
+        ; so requires a custom user coded sorting routine anyway.
         ubyte @zp pos = 1
         uword @requirezp ptr = values+2
         while pos != num_elements {

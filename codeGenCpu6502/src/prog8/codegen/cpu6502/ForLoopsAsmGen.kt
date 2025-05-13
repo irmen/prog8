@@ -622,7 +622,6 @@ $loopLabel          sty  $indexVar
                 asmgen.out(endLabel)
             }
             iterableDt.isWordArray -> {
-                val length = numElements * 2
                 val indexVar = if(asmgen.options.romable)
                     asmgen.createTempVarReused(BaseDataType.UBYTE, false, stmt)
                 else
@@ -636,16 +635,16 @@ $loopLabel          sty  $indexVar
                     lda  $iterableName+1,y
                     sta  $loopvarName+1""")
                 asmgen.translate(stmt.statements)
-                if(length<=127) {
+                if(numElements<=127) {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
                         iny
-                        cpy  #$length
+                        cpy  #${numElements*2}
                         beq  $endLabel
                         bne  $loopLabel""")
                 } else {
-                    // length is 128 words, 256 bytes
+                    // array size is 128 words, 256 bytes
                     asmgen.out("""
                         ldy  $indexVar
                         iny
@@ -654,7 +653,7 @@ $loopLabel          sty  $indexVar
                         beq  $endLabel""")
                 }
                 if(!asmgen.options.romable) {
-                    if(length>=16) {
+                    if(numElements>=16) {
                         // allocate index var on ZP if possible, otherwise inline
                         val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
                         result.fold(
