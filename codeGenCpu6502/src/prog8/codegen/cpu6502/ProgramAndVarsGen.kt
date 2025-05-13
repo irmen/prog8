@@ -45,7 +45,6 @@ internal class ProgramAndVarsGen(
             }
 
             memorySlabs()
-            tempVars()
             footer()
         }
     }
@@ -217,29 +216,6 @@ internal class ProgramAndVarsGen(
             }
             asmgen.out("\t.bend\n  .send slabs_BSS")
         }
-    }
-
-    private fun tempVars() {
-        // these can be in the no clear section because they'll always get assigned a new value
-        asmgen.out("; expression temp vars\n  .section BSS_NOCLEAR")
-        for((dt, count) in asmgen.tempVarsCounters) {
-            if(count>0) {
-                for(num in 1..count) {
-                    val name = asmgen.buildTempVarName(dt, num)
-                    when (dt) {
-                        BaseDataType.BOOL  -> asmgen.out("$name    .byte  ?")
-                        BaseDataType.BYTE  -> asmgen.out("$name    .char  ?")
-                        BaseDataType.UBYTE -> asmgen.out("$name    .byte  ?")
-                        BaseDataType.WORD  -> asmgen.out("$name    .sint  ?")
-                        BaseDataType.UWORD -> asmgen.out("$name    .word  ?")
-                        BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
-                        BaseDataType.LONG -> throw AssemblyError("should not have a variable with long dt only constants")
-                        else -> throw AssemblyError("weird dt for extravar $dt")
-                    }
-                }
-            }
-        }
-        asmgen.out("  .send BSS_NOCLEAR")
     }
 
     private fun footer() {

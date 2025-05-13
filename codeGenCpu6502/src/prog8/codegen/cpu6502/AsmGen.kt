@@ -432,23 +432,6 @@ class AsmGen6502Internal (
     }
 
 
-    internal val tempVarsCounters = mutableMapOf(
-        BaseDataType.BOOL to 0,
-        BaseDataType.BYTE to 0,
-        BaseDataType.UBYTE to 0,
-        BaseDataType.WORD to 0,
-        BaseDataType.UWORD to 0,
-        BaseDataType.LONG to 0,
-        BaseDataType.FLOAT to 0
-    )
-
-    internal fun buildTempVarName(dt: BaseDataType, counter: Int): String = "prog8_tmpvar_${dt.toString().lowercase()}_${counter}"
-
-    internal fun getTempVarName(dt: BaseDataType): String {
-        tempVarsCounters[dt] = tempVarsCounters.getValue(dt)+1
-        return buildTempVarName(dt, tempVarsCounters.getValue(dt))
-    }
-
     internal fun loadByteFromPointerIntoA(pointervar: PtIdentifier): String {
         // returns the source name of the zero page pointervar if it's already in the ZP,
         // otherwise returns "P8ZP_SCRATCH_W1" which is the intermediary
