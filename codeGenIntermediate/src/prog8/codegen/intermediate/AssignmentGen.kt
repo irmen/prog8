@@ -112,9 +112,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(pointerDeref!=null) {
             val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
             val addressReg = codeGen.evaluatePointerAddressIntoReg(inplaceInstrs, pointerDeref)
-            val operandTr = expressionEval.translateExpression(value)
             val oldvalueReg = codeGen.registers.next(targetDt)
-            inplaceInstrs += operandTr.chunks
+            var operandTr = ExpressionCodeResult(emptyList(), IRDataType.BYTE, -1, -1)
+            if(augAssign.operator!="or=" && augAssign.operator!="and=") {
+                // for everything except the shortcircuit boolean operators, we can evaluate the value here unconditionally
+                operandTr = expressionEval.translateExpression(value)
+                inplaceInstrs += operandTr.chunks
+            }
             addInstr(inplaceInstrs, IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg), null)
             when(augAssign.operator) {
                 "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
@@ -127,8 +131,22 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                 "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                 ">>=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSRN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "or=" -> TODO("or= on pointer dereference, with short-circuit")
-                "and=" -> TODO("and= on pointer dereference, with short-circuit")
+                "or=" -> {
+                    val shortcutLabel = codeGen.createLabelName()
+                    addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
+                    val valueTr = expressionEval.translateExpression(value)
+                    inplaceInstrs += valueTr.chunks
+                    addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
+                    inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+                }
+                "and=" -> {
+                    val shortcutLabel = codeGen.createLabelName()
+                    addInstr(inplaceInstrs, IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel), null)
+                    val valueTr = expressionEval.translateExpression(value)
+                    inplaceInstrs += valueTr.chunks
+                    addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
+                    inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+                }
                 "-" -> addInstr(inplaceInstrs, IRInstruction(Opcode.NEG, targetDt, reg1 = oldvalueReg), null)
                 "~" -> addInstr(inplaceInstrs, IRInstruction(Opcode.INV, targetDt, reg1 = oldvalueReg), null)
                 "not" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XOR, targetDt, reg1 = oldvalueReg, immediate = 1), null)

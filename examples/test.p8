@@ -36,6 +36,21 @@ main {
 
         ^^thing.Node n1 = thing.Node()
         n1 = thing.func(n1)
+
+        n1.flag = true
+        n1.flag = n1.flag or boolfunc()
+        txt.print_bool(n1.flag)
+        txt.nl()
+        n1.flag = false
+        n1.flag = n1.flag and boolfunc()
+        txt.print_bool(n1.flag)
+        txt.nl()
+    }
+
+    sub boolfunc() -> bool {
+        cx16.r0++
+        txt.print("func()\n")
+        return true
     }
 }
 
