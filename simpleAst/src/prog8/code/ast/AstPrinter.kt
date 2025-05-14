@@ -154,9 +154,6 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                         }
                         else throw IllegalArgumentException("invalid array dt")
                     }
-                    node.type.isStructArray -> {
-                        TODO("unsized array of structs")
-                    }
                     node.type.isArray -> {
                         val eltType = node.type.elementType()
                         "${eltType}[] $split $align ${node.name}"

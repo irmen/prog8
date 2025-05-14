@@ -35,12 +35,6 @@ fun DataType.irTypeString(length: UInt?): String {
             else
                 "^${subType!!.scopedNameString}[$lengthStr]"
         }
-        BaseDataType.ARRAY_STRUCT -> {
-            if(sub!=null)
-                "${sub!!.name.lowercase()}[$lengthStr]"
-            else
-                "${subType!!.scopedNameString}[$lengthStr]"
-        }
         BaseDataType.ARRAY -> {
             when(this.sub) {
                 BaseDataType.UBYTE -> "ubyte[$lengthStr]"

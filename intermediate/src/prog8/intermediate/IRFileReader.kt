@@ -636,10 +636,7 @@ class IRFileReader {
                 "float" -> DataType.arrayFor(BaseDataType.FLOAT, false)
                 "long" -> DataType.arrayFor(BaseDataType.LONG, false)
                 else -> {
-                    if('.' in type)
-                        DataType.arrayOfStructs(IRSubtypePlaceholder(type))
-                    else
-                        throw IRParseException("invalid dt  $type")
+                    throw IRParseException("invalid dt  $type")
                 }
             }
         } else {

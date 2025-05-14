@@ -38,24 +38,23 @@ STRUCTS and TYPED POINTERS
 - DONE: support comparison operators on pointers
 - DONE: implement augmented assignment on pointer dereference
 - DONE: pointer types in subroutine signatures (both normal and asm-subs, parameters and return values)
+- DONE: arrays of structs? No -> Just an array of uword pointers to said structs.
+- DONE: what about pointers to subroutines? should these be typed as well now? Probably not, just stick with UWORD untyped pointer to avoid needless complexity.
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
-- support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.
 - implement inplace logical and & or, with short-cirtuit, on dereferenced pointer (see TODO "or= on pointer dereference, with short-circuit")
-- are the ARRAY_POINTER and ARRAY_STRUCT data type enums realy needed? can't we just use ARRAY?
-- fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
-- add unit tests for all changes
-- arrays of structs? No -> Just an array of uword pointers to said structs.
-- allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
 - STR should become asssignment compatible with ubyte^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer
+- make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though...
+- fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
+- (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
+- allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identically to a typed pointer, but the address is immutable as usual
 - existing ARRAY remain unchanged (don't become typed pointers) so we can keep doing register-indexed addressing directly on them.
 - rather than str or uword parameter types for routines with a string argument, use ^^str  (or ^^ubyte maybe? these are more or less identical..?)
 - pointer-to-array syntax = TBD
 - pointer-to-string syntax = TBD
-- what about pointers to subroutines? should these be typed as well now?
-- What about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not contants
+- add more unit tests for all changes (pointers and structs)
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
+- What about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants
 - update syntax highlighting files
 
 

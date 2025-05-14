@@ -767,9 +767,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             BaseDataType.ARRAY_POINTER -> {
                 TODO("typecast to array of pointers $valueDt -> ${cast.type}")
             }
-            BaseDataType.ARRAY_STRUCT -> {
-                TODO("typecast to array of structs $valueDt -> ${cast.type}")
-            }
             else -> throw AssemblyError("weird cast type")
         }
 

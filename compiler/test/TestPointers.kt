@@ -64,10 +64,11 @@ main {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors)
         val err = errors.errors
-        err.size shouldBe 3
-        err[0] shouldContain "uword doesn't match"
-        err[1] shouldContain "structs can only be passed via a pointer"
-        err[2] shouldContain "structs can only be returned via a pointer"
+        err.size shouldBe 4
+        err[0] shouldContain "struct instances cannot be declared"
+        err[1] shouldContain "uword doesn't match"
+        err[2] shouldContain "structs can only be passed via a pointer"
+        err[3] shouldContain "structs can only be returned via a pointer"
     }
 
     test("pointers in subroutine return values") {

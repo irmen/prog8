@@ -1029,6 +1029,9 @@ internal class AstChecker(private val program: Program,
                 errors.err("pointer arrays can only be @split", decl.position)
         }
 
+        if(decl.datatype.isStructInstance) {
+            errors.err("struct instances cannot be declared directly, use pointer and allocation call instead", decl.position)
+        }
 
         if (decl.dirty) {
             if(decl.datatype.isString)
@@ -1405,10 +1408,10 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
-        else if(expr.operator !in emptySet<String>()) {     // TODO add + and - operators support
+        else if(expr.operator !in emptyArray<String>()) {     // TODO add + and - operators support for pointer arithmetic
             if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
-                errors.err("pointer arithmetic only supported for + and - operators (but these are currently not yet supported for this target, will be fixed later)", expr.right.position)
-                // TODO final error should be: errors.err("pointer arithmetic only supported for + and - operators", expr.position)
+                errors.err("pointer arithmetic not yet supported for this target (will be fixed later)", expr.right.position)
+                // TODO final error should be different:  pointer arithmetic only supported for + and - operators
             }
         }
 

@@ -1,3 +1,5 @@
+%import textio
+
 main {
     struct MNode {
         bool flag
@@ -10,6 +12,25 @@ main {
     }
 
     sub start() {
+        ^^MNode[5] @shared nodes
+
+        nodes[0] = MNode()
+        nodes[1] = MNode()
+        nodes[2] = MNode()
+        nodes[3] = MNode()
+        nodes[4] = MNode()
+
+        txt.print_uw(nodes[0])
+        txt.spc()
+        txt.print_uw(nodes[1])
+        txt.spc()
+        txt.print_uw(nodes[2])
+        txt.spc()
+        txt.print_uw(nodes[3])
+        txt.spc()
+        txt.print_uw(nodes[4])
+        txt.nl()
+
         ^^MNode mn1 = MNode()
         mn1 = func(mn1)
 

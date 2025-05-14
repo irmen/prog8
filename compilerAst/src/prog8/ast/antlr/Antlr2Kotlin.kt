@@ -876,7 +876,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
         if(baseDt.isPointer)
             DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
         else if(baseDt.isStructInstance)
-            DataType.arrayOfStructsFromAntlr(baseDt.subTypeFromAntlr!!)
+            throw SyntaxError("array of structures not allowed (use array of pointers)", toPosition())
         else
             DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
     }
