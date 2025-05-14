@@ -2030,6 +2030,11 @@ internal class AstChecker(private val program: Program,
 
         if(uniqueFields.isEmpty())
             errors.err("struct must contain at least one field", struct.position)
+
+        struct.fields.forEach {
+            if(!it.first.isBasic && !it.first.base.isNumericOrBool && !it.first.isPointer)
+                errors.err("only booleans, numeric and pointer fields allowed in a struct: '${it.second}'", struct.position)
+        }
     }
 
     override fun visit(deref: PtrDereference) {

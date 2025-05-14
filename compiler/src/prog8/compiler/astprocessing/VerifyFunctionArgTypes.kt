@@ -83,12 +83,21 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             if(argDt==paramDt)
                 return true
 
-            // there are some exceptions that are considered compatible, such as STR <> UWORD
-            if(argDt.isString && paramDt.isUnsignedWord ||
-                    argDt.isUnsignedWord && paramDt.isString ||
-                    argDt.isUnsignedWord && paramDt.isUnsignedByteArray ||
-                    argDt.isString && paramDt.isUnsignedByteArray)
-                return true
+            // there are some exceptions that are considered compatible, such as STR <> UWORD,  UWORD <> pointer
+            if(argDt.isUnsignedWord)
+                if((paramDt.isString || paramDt.isUnsignedByteArray || paramDt.isPointer))
+                    return true
+            if(argDt.isString) {
+                if(paramDt.isUnsignedWord || paramDt.isUnsignedByteArray)
+                    return true
+                if(paramDt.isPointer && paramDt.sub==BaseDataType.UBYTE)
+                    return true
+            }
+
+            // if uword is passed, check if the parameter type is pointer to array element type
+            if(argDt.isArray && paramDt.isPointer) {
+                TODO("array vs element pointer check")
+            }
 
             return false
         }

@@ -135,6 +135,25 @@ class CallGraph(private val program: Program) : IAstVisitor {
         }
     }
 
+    override fun visit(decl: VarDecl) {
+        // make sure the location where a struct definition is (can be block scope or subroutine scope), gets registered so it is seen as in use
+        if(decl.datatype.isPointer) {
+            if(decl.datatype.subType!=null) {
+                val struct = decl.definingScope.lookup(decl.datatype.subType!!.scopedNameString.split(".")) as? StructDecl
+                if (struct != null) {
+                    allIdentifiersAndTargets.add(IdentifierReference(listOf(struct.name), struct.position) to struct)
+                    val declSub = decl.definingSubroutine
+                    val structSub = struct.definingSubroutine
+                    if (declSub != null && structSub != null) {
+                        calls[declSub] = calls.getValue(declSub) + structSub
+                        calledBy[structSub] = calledBy.getValue(structSub) + declSub
+                    }
+                }
+            }
+        }
+        super.visit(decl)
+    }
+
     override fun visit(inlineAssembly: InlineAssembly) {
         allAssemblyNodes.add(inlineAssembly)
     }

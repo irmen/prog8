@@ -42,11 +42,11 @@ STRUCTS and TYPED POINTERS
 - DONE: what about pointers to subroutines? should these be typed as well now? Probably not, just stick with UWORD untyped pointer to avoid needless complexity.
 - DONE: implement inplace logical and & or, with short-cirtuit, on dereferenced pointer
 - DONE: existing ARRAY type remains unchanged (it doesn't become a typed pointer) so we can keep doing register-indexed LDA array,Y addressing directly on them.
+- DONE: passing STR to a subroutine: parameter type becomes ^^UBYTE  (rather than UWORD)  (we still lose the bounds check)
+- DONE: passing ARRAY to a subroutine: parameter type becomes ^^ElementDt  (rather than UWORD)  (we still lose the bounds check)
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
-- passing STR to a subroutine: parameter type becomes ^^UBYTE  (rather than UWORD)  (we still lose the bounds check)
-- passing ARRAY to a subroutine: parameter type becomes ^^ElementDt  (rather than UWORD)  (we still lose the bounds check)
 - STR should be asssignment compatible with UBYTE^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer, like arrays.
-- make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though...
+- make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though... (also recheck passing STR and ARRAY types to subroutines)
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identical to a typed pointer, but the address is immutable as usual
