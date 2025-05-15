@@ -68,28 +68,52 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun assignCpuRegister(returns: StExtSubParameter, regNum: Int, target: PtAssignTarget): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
-        val loadCpuRegInstr = when(returns.register.registerOrPair) {
-            RegisterOrPair.A -> IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum)
-            RegisterOrPair.X -> IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=regNum)
-            RegisterOrPair.Y -> IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=regNum)
-            RegisterOrPair.AX -> IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum)
-            RegisterOrPair.AY -> IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum)
-            RegisterOrPair.XY -> IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum)
-            in Cx16VirtualRegisters -> IRInstruction(Opcode.LOADM, irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}")
-            RegisterOrPair.FAC1 -> IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = regNum)
-            RegisterOrPair.FAC2 -> IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = regNum)
-            null -> {
-                TODO("assign CPU status flag ${returns.register.statusflag!!}")
-            }
-            else -> throw AssemblyError("cannot load register")
+        when(returns.register.registerOrPair) {
+            RegisterOrPair.A -> addInstr(result, IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=regNum), null)
+            RegisterOrPair.X -> addInstr(result, IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=regNum), null)
+            RegisterOrPair.Y -> addInstr(result, IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=regNum), null)
+            RegisterOrPair.AX -> addInstr(result, IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=regNum), null)
+            RegisterOrPair.AY -> addInstr(result, IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=regNum), null)
+            RegisterOrPair.XY -> addInstr(result, IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=regNum), null)
+            in Cx16VirtualRegisters -> addInstr(result, IRInstruction(Opcode.LOADM, irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}"), null)
+            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = regNum), null)
+            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = regNum), null)
+            null -> if(returns.register.statusflag!=null)
+                result += assignCpuStatusFlagReturnvalue(returns.register.statusflag!!, regNum)
+            else
+                throw AssemblyError("weird CPU register")
+            else -> throw AssemblyError("weird CPU register")
         }
-        addInstr(result, loadCpuRegInstr, null)
 
         // build an assignment to store the value in the actual target.
         val assign = PtAssignment(target.position)
         assign.add(target)
         assign.add(PtIrRegister(regNum, target.type, target.position))
         result += translate(assign)
+        return result
+    }
+
+    private fun assignCpuStatusFlagReturnvalue(statusflag: Statusflag, regNum: Int): IRCodeChunks {
+        val result = mutableListOf<IRCodeChunkBase>()
+        when(statusflag) {
+            Statusflag.Pc -> {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=regNum, immediate = 0)
+                    it += IRInstruction(Opcode.ROXL, IRDataType.BYTE, reg1=regNum)
+                }
+            }
+            Statusflag.Pz -> TODO("find a way to assign cpu Z status bit to reg $regNum but it can already be clobbered by other return values")
+            Statusflag.Pn -> TODO("find a way to assign cpu Z status bit to reg $regNum but it can already be clobbered by other return values")
+            Statusflag.Pv -> {
+                val skipLabel = codeGen.createLabelName()
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=regNum, immediate = 0)
+                    it += IRInstruction(Opcode.BSTVC, labelSymbol = skipLabel)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=regNum, immediate = 1)
+                }
+                result += IRCodeChunk(skipLabel, null)
+            }
+        }
         return result
     }
 

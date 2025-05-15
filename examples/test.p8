@@ -3,21 +3,19 @@
 
 
 main {
-    uword[100] @nosplit array1 = 1 to 100
-    uword[100] @split array2 = 100 downto 1
-
     sub start() {
-        for cx16.r2 in array1 {
-            txt.print_uw(cx16.r2)
-            txt.spc()
+        bool status
+        cx16.r0L, status = func()
+        if_cs {
+            cx16.r0L++
         }
-        txt.nl()
-        txt.nl()
-        for cx16.r2 in array2 {
-            txt.print_uw(cx16.r2)
-            txt.spc()
-        }
-        txt.nl()
-        txt.nl()
+    }
+
+    asmsub func() -> ubyte @A, bool @Pv {
+        %asm {{
+            lda  #99
+            sec
+            rts
+        }}
     }
 }
