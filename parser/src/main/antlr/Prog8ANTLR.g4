@@ -188,10 +188,9 @@ assign_target:
     | directmemory                  #MemoryTarget
     | pointerdereference            #PointerDereferenceTarget
     | pointerindexedderef           #PointerIndexedDerefTarget
-    | voidtarget                    #VoidTarget
+    | VOID                          #VoidTarget
     ;
 
-voidtarget : VOID ;
 
 multi_assign_target:
     assign_target (',' assign_target)+ ;

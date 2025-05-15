@@ -408,7 +408,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             AssignTarget(null, arrayindexed, null, null, false, position = toPosition())
         }
         is VoidTargetContext -> {
-            AssignTarget(null, null, null, null, true, position = voidtarget().toPosition())
+            AssignTarget(null, null, null, null, true, position = this.toPosition())
         }
         is PointerDereferenceTargetContext -> {
             val deref = this.pointerdereference().toAst()
