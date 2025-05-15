@@ -2,6 +2,14 @@
 
 main {
     sub start() {
+        ^^ubyte @shared wptr
+
+        ; three ways to write the exact same operation (getting the byte at the address this pointer points to)
+        cx16.r0L = wptr^^
+        cx16.r1L = wptr[0]
+        cx16.r2L = @(wptr)
+
+
         ^^thing.Node n1 = thing.Node(true, -42, 0)
         ^^thing.Node n2 = thing.Node(false, 99, 0)
         n1.next = n2
@@ -14,6 +22,8 @@ main {
         ^^ubyte @shared ubptr
 
         str name = "irmen"
+        bptr = &name
+        ubptr = &name
         stringinfo1("hello")
         stringinfo2(name)
         stringinfo3("apple")

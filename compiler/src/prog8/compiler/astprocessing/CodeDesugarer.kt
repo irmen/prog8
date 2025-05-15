@@ -209,7 +209,7 @@ _after:
         // "array indexing is limited to byte size 0..255" error for pointervariables.
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl()
-        if(arrayVar!=null && arrayVar.datatype.isUnsignedWord) {
+        if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || (arrayVar.datatype.isPointer && arrayVar.datatype.sub==BaseDataType.UBYTE))) {
             val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
             val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", wordIndex, arrayIndexedExpression.position)
             return if(parent is AssignTarget) {

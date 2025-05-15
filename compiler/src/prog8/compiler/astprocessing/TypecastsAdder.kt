@@ -280,26 +280,27 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     private fun afterFunctionCallArgs(call: IFunctionCall): Iterable<IAstModification> {
         // see if a typecast is needed to convert the arguments into the required parameter type
+
         val modifications = mutableListOf<IAstModification>()
-        val params = when(val sub = call.target.targetStatement(program)) {
-            is BuiltinFunctionPlaceholder -> BuiltinFunctions.getValue(sub.name).parameters.toList()
-            is Subroutine -> sub.parameters.map { FParam(it.name, it.type.base) }
-            is StructDecl -> sub.fields.map { FParam(it.second, it.first.base) }
+        val paramsPossibleDatatypes = when(val sub = call.target.targetStatement(program)) {
+            is BuiltinFunctionPlaceholder -> BuiltinFunctions.getValue(sub.name).parameters.map { it.possibleDatatypes.map { dt -> DataType.forDt(dt)} }
+            is Subroutine -> sub.parameters.map { listOf(it.type) }
+            is StructDecl -> sub.fields.map { listOf(it.first) }
             else -> emptyList()
         }
 
-        params.zip(call.args).forEach {
-            val possibleTargetDt = it.first.possibleDatatypes.first()
-            val targetDt = if(possibleTargetDt.isPointer) BaseDataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
+        paramsPossibleDatatypes.zip(call.args).forEach {
+            val possibleTargetDt = it.first.first()
+            val targetDt = if(possibleTargetDt.isPointer) DataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
             val argIdt = it.second.inferType(program)
             if (argIdt.isKnown && !targetDt.isStructInstance) {
                 val argDt = argIdt.getOrUndef()
-                if (argDt.base !in it.first.possibleDatatypes) {
+                if (argDt !in it.first) {
                     val identifier = it.second as? IdentifierReference
                     val number = it.second as? NumericLiteral
                     if(number!=null) {
-                        addTypecastOrCastedValueModification(modifications, it.second, DataType.forDt(targetDt), call as Node)
-                    } else if(identifier!=null && targetDt==BaseDataType.UWORD && argDt.isPassByRef) {
+                        addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
+                    } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
                         if(!identifier.isSubroutineParameter()) {
                             // We allow STR/ARRAY values for UWORD parameters.
                             // If it's an array (not STR), take the address.
@@ -311,16 +312,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                                 )
                             }
                         }
-                    } else if(targetDt==BaseDataType.BOOL) {
+                    } else if(targetDt.isBool) {
                         addTypecastOrCastedValueModification(modifications, it.second, DataType.BOOL, call as Node)
-                    } else if(!targetDt.isIterable && argDt isAssignableTo DataType.forDt(targetDt)) {
-                        if(!argDt.isString || targetDt!=BaseDataType.UWORD)
-                            addTypecastOrCastedValueModification(modifications, it.second, DataType.forDt(targetDt), call as Node)
+                    } else if(!targetDt.isIterable && argDt isAssignableTo targetDt) {
+                        if(!argDt.isString || !targetDt.isUnsignedWord)
+                            addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
                     }
                 }
             } else {
                 val identifier = it.second as? IdentifierReference
-                if(identifier!=null && targetDt==BaseDataType.UWORD) {
+                if(identifier!=null && targetDt.isUnsignedWord) {
                     // take the address of the identifier
                     modifications += IAstModification.ReplaceNode(
                         identifier,

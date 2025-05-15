@@ -45,9 +45,9 @@ STRUCTS and TYPED POINTERS
 - DONE: passing STR to a subroutine: parameter type becomes ^^UBYTE  (rather than UWORD)  (we still lose the bounds check)
 - DONE: passing ARRAY to a subroutine: parameter type becomes ^^ElementDt  (rather than UWORD)  (we still lose the bounds check)
 - DONE: @(ptr) complains that ptr is not uword when ptr is ^^ubyte (should be allowed)
+- DONE: pointer[0] should be replaced with @(pointer)  if pointer is ^^ubyte,   so these are now all identical:  ptr[0], ptr^^, @(ptr)   if ptr is ^^ubyte
+- DONE: STR should be asssignment compatible with UBYTE^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer, like arrays.
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
-- STR should be asssignment compatible with UBYTE^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer, like arrays.
-- FParam's class PossibleDatatypes should be able to include pointer types too such as ^^ubyte, but maybe not for builtin functions only for user defined subroutines?
 - make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though... (also recheck passing STR and ARRAY types to subroutines)
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
