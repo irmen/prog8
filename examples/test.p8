@@ -10,9 +10,25 @@ main {
 
         word[] @nosplit values = [111,222,-999,-888]
 
-        stringinfo("hello")
+        ^^byte @shared bptr
+        ^^ubyte @shared ubptr
+
+        str name = "irmen"
+        stringinfo1("hello")
+        stringinfo2(name)
+        stringinfo3("apple")
         arrayinfo(values)
         arrayinfo(&values[2])
+
+
+        bptr = name
+        ubptr = name
+        txt.print_uw(&name)
+        txt.spc()
+        txt.print_uw(bptr)
+        txt.spc()
+        txt.print_uw(ubptr)
+        txt.nl()
     }
 
     sub info(^^thing.Node node) {
@@ -32,7 +48,8 @@ main {
         txt.nl()
     }
 
-    sub stringinfo(^^ubyte message) {
+    sub stringinfo1(^^ubyte message) {
+        txt.print("string1: ")
         txt.print_uw(message)
         txt.spc()
         txt.print(message)
@@ -41,6 +58,32 @@ main {
             txt.chrout(message^^)
             message++
         } until message^^==0
+        txt.nl()
+    }
+
+    sub stringinfo2(str message) {
+        txt.print("string2: ")
+        txt.print_uw(message)
+        txt.spc()
+        txt.print(message)
+        txt.spc()
+        do {
+            txt.chrout(message^^)
+            message++
+        } until message^^==0
+        txt.nl()
+    }
+
+    sub stringinfo3(uword message) {
+        txt.print("string3: ")
+        txt.print_uw(message)
+        txt.spc()
+        txt.print(message)
+        txt.spc()
+        do {
+            txt.chrout(message^^)       ; equivalent to @(message) in this case
+            message++
+        } until message^^==0    ; equivalent to @(message) in this case
         txt.nl()
     }
 

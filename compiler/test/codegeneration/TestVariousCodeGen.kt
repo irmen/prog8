@@ -131,7 +131,7 @@ main {
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, text, outputDir, writeAssembly = true, errors = errors)
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "isn't uword"
+        errors.errors[0] shouldContain "invalid address type"
         errors.errors[1] shouldContain "undefined symbol: doesnotexist"
     }
 

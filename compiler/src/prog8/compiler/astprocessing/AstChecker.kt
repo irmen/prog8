@@ -1970,15 +1970,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(memread: DirectMemoryRead) {
-        if(!(memread.addressExpression.inferType(program) issimpletype BaseDataType.UWORD)) {
-            errors.err("address for memory access isn't uword", memread.position)
-        }
-        val tc = memread.addressExpression as? TypecastExpression
-        if(tc!=null && tc.implicit) {
-            if(!(tc.expression.inferType(program) issimpletype BaseDataType.UWORD)) {
-                errors.err("address for memory access isn't uword", memread.position)
-            }
-        }
+        if(!allowedMemoryAccessAddressExpression(memread.addressExpression, program))
+            errors.err("invalid address type for memory access", memread.position)
 
         val pointervar = memread.addressExpression as? IdentifierReference
         if(pointervar!=null)
@@ -1990,16 +1983,22 @@ internal class AstChecker(private val program: Program,
         super.visit(memread)
     }
 
-    override fun visit(memwrite: DirectMemoryWrite) {
-        if(!(memwrite.addressExpression.inferType(program) issimpletype BaseDataType.UWORD)) {
-            errors.err("address for memory access isn't uword", memwrite.position)
-        }
-        val tc = memwrite.addressExpression as? TypecastExpression
+    private fun allowedMemoryAccessAddressExpression(addressExpression: Expression, program: Program): Boolean {
+        val dt = addressExpression.inferType(program)
+        if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub==BaseDataType.UBYTE))
+            return true
+        val tc = addressExpression as? TypecastExpression
         if(tc!=null && tc.implicit) {
-            if(!(tc.expression.inferType(program) issimpletype BaseDataType.UWORD)) {
-                errors.err("address for memory access isn't uword", memwrite.position)
-            }
+            val dt = tc.expression.inferType(program)
+            if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub==BaseDataType.UBYTE))
+                return true
         }
+        return false
+    }
+
+    override fun visit(memwrite: DirectMemoryWrite) {
+        if(!allowedMemoryAccessAddressExpression(memwrite.addressExpression, program))
+            errors.err("invalid address type for memory access", memwrite.position)
 
         val pointervar = memwrite.addressExpression as? IdentifierReference
         if(pointervar!=null)
@@ -2355,8 +2354,10 @@ internal class AstChecker(private val program: Program,
             if(sourceDatatype.isPointer) {
                 if(!(sourceDatatype isAssignableTo targetDatatype))
                     errors.err("cannot assign different pointer type", position)
+            } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
+                // assigning a string to a byte pointer is allowed.
             } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)
-                errors.err("can only assign uword or correct pointer type to a pointer", position)
+                errors.err("incompatible value type, can only assign uword or correct pointer type", position)
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)

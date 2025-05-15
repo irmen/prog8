@@ -243,7 +243,7 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors=errors)
         val err = errors.errors
         err.size shouldBe 1
-        err[0] shouldContain("15:16: can only assign uword or correct pointer type to a pointer")
+        err[0] shouldContain("15:16: incompatible value type, can only assign uword or correct pointer")
     }
 
 })

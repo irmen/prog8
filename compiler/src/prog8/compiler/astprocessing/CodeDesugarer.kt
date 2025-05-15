@@ -26,6 +26,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
     // - remove alias nodes
     // - convert on..goto/call to jumpaddr array and separate goto/call
     // - replace implicit pointer dereference chains (a.b.c.d) with explicit ones (a^^.b^^.c^^.d)
+    // - replace ptr^^ by @(ptr) if ptr is just an uword.
 
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
         return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
@@ -450,5 +451,18 @@ _after:
                 mutableListOf(conditionVar, assignIndex!!, ifSt, jumplistArray)
             , ongoto.position)
         return listOf(IAstModification.ReplaceNode(ongoto, replacementScope, parent))
+    }
+
+    override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
+        // TODO what about DirectMemoryWrite ?? (LHS of assignment?)
+        if(deref.field==null && deref.chain.isEmpty()) {
+            val varDt = deref.identifier.targetVarDecl()?.datatype
+            if(varDt?.isUnsignedWord==true || (varDt?.isPointer==true && varDt.sub==BaseDataType.UBYTE)) {
+                // replace  ptr^^   by  @(ptr)    when ptr is uword or ^^byte
+                val memread = DirectMemoryRead(deref.identifier, deref.position)
+                return listOf(IAstModification.ReplaceNode(deref, memread, parent))
+            }
+        }
+        return noModifications
     }
 }
