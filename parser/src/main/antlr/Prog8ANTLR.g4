@@ -174,10 +174,9 @@ assign_target:
     scoped_identifier               #IdentifierTarget
     | arrayindexed                  #ArrayindexedTarget
     | directmemory                  #MemoryTarget
-    | voidtarget                    #VoidTarget
+    | VOID                          #VoidTarget
     ;
 
-voidtarget : VOID ;
 
 multi_assign_target:
     assign_target (',' assign_target)+ ;

@@ -401,7 +401,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             AssignTarget(null, arrayindexed, null, null, false, toPosition())
         }
         is VoidTargetContext -> {
-            AssignTarget(null, null, null, null, true, voidtarget().toPosition())
+            AssignTarget(null, null, null, null, true, this.toPosition())
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
