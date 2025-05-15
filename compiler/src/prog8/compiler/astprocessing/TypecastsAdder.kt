@@ -346,30 +346,32 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     override fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
-        // make sure the memory address is an uword
+        // make sure the memory address is an uword or a pointer (to whatever type), otherwise cast
+        val dt = memread.addressExpression.inferType(program).getOr(DataType.UWORD)
+        if(dt.isUndefined || dt.isUnsignedWord || dt.isPointer)
+            return noModifications
+
         val modifications = mutableListOf<IAstModification>()
-        val dt = memread.addressExpression.inferType(program)
-        if(dt.isKnown && !dt.getOr(DataType.UWORD).isUnsignedWord) {
-            val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
-            if(castedValue!=null)
-                modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
-            else
-                addTypecastOrCastedValueModification(modifications, memread.addressExpression, DataType.UWORD, memread)
-        }
+        val castedValue = (memread.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
+        if(castedValue!=null)
+            modifications += IAstModification.ReplaceNode(memread.addressExpression, castedValue, memread)
+        else
+            addTypecastOrCastedValueModification(modifications, memread.addressExpression, DataType.UWORD, memread)
         return modifications
     }
 
     override fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> {
-        // make sure the memory address is an uword
+        // make sure the memory address is an uword or a pointer (to whatever type), otherwise cast
+        val dt = memwrite.addressExpression.inferType(program).getOr(DataType.UWORD)
+        if(dt.isUndefined || dt.isUnsignedWord || dt.isPointer)
+            return noModifications
+
         val modifications = mutableListOf<IAstModification>()
-        val dt = memwrite.addressExpression.inferType(program)
-        if(dt.isKnown && !dt.getOr(DataType.UWORD).isUnsignedWord) {
-            val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
-            if(castedValue!=null)
-                modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)
-            else
-                addTypecastOrCastedValueModification(modifications, memwrite.addressExpression, DataType.UWORD, memwrite)
-        }
+        val castedValue = (memwrite.addressExpression as? NumericLiteral)?.cast(BaseDataType.UWORD, true)?.valueOrZero()
+        if(castedValue!=null)
+            modifications += IAstModification.ReplaceNode(memwrite.addressExpression, castedValue, memwrite)
+        else
+            addTypecastOrCastedValueModification(modifications, memwrite.addressExpression, DataType.UWORD, memwrite)
         return modifications
     }
 
