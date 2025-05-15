@@ -3,14 +3,14 @@
 %option no_sysinit
 
 ; The documentation for custom key handlers can be found here:
-; https://github.com/X16Community/x16-docs/blob/101759f3bfa5e6cce4e8c5a0b67cb0f2f1c6341e/X16%20Reference%20-%2003%20-%20Editor.md#custom-keyboard-keynum-code-handler
+; https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2003%20-%20Editor.md#custom-keyboard-keynum-code-handler
 
 main {
 
-    bool stop_program = false
+    bool stop_program
 
     sub start() {
-
+        stop_program = false
         txt.print("custom key handler test - press keys! esc to quit!\n")
 
         sys.set_irqd()
@@ -32,6 +32,7 @@ main {
         ;       which is thankfully how prog8 translates this subroutine's calling convention.
         ; NOTE: it may be better to store the keynum somewhere else and let the main program
         ;       loop figure out what to do with it, rather than putting it all in the handler routine
+
         txt.print_ubhex(keynum, true)
         txt.spc()
         if keynum & $80 !=0
