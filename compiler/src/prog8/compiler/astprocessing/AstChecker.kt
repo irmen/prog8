@@ -142,8 +142,8 @@ internal class AstChecker(private val program: Program,
                     if(valueDt.isBool && expectedDt.isUnsignedByte) {
                         // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
                         errors.info("return type of the subroutine should probably be bool instead of ubyte", actual.position)
-                    } else if(valueDt.isIterable && expectedDt.isUnsignedWord) {
-                        // you can return a string or array when an uword (pointer) is returned
+                    } else if(expectedDt.isUnsignedWord && (valueDt.isIterable || valueDt.isPointer)) {
+                        // you can return a string or array or pointer when an uword (pointer) is returned
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
                     } else if(valueDt.isUnsignedWord && expectedDt.isPointer) {
@@ -2346,8 +2346,8 @@ internal class AstChecker(private val program: Program,
             errors.err("cannot assign word to byte, maybe use msb() or lsb()", position)
         else if(sourceDatatype.isFloat&& targetDatatype.isInteger)
             errors.err("cannot assign float to ${targetDatatype}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
-        else if(targetDatatype.isUnsignedWord && sourceDatatype.isPassByRef) {
-            // this is allowed: a pass-by-reference datatype into an uword (pointer value).
+        else if(targetDatatype.isUnsignedWord && (sourceDatatype.isPassByRef || sourceDatatype.isPointer)) {
+            // this is allowed: a pass-by-reference or pointer datatype into an uword (untyped pointer value).
         }
         else if(sourceIsBitwiseOperatorExpression && targetDatatype.equalsSize(sourceDatatype)) {
             // this is allowed: bitwise operation between different types as long as they're the same size.

@@ -655,6 +655,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // uwords are allowed to be assigned to pointers without a cast
         if(requiredType.isPointer && sourceDt.isUnsignedWord)
             return
+        // & (address-of) is allowed to be assigned to an uword without a cast
+        if(requiredType.isUnsignedWord && expressionToCast is AddressOf)
+            return
 
         if(expressionToCast is NumericLiteral && expressionToCast.type!=BaseDataType.FLOAT && requiredType.isNumericOrBool) { // refuse to automatically truncate floats
             val castedValue = expressionToCast.cast(requiredType.base, true)

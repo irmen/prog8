@@ -29,6 +29,7 @@ enum class BaseDataType {
             this.isArray && other.isArray -> false
             this.isArray -> other != FLOAT
             this == STR -> other != FLOAT
+            this.isPointer -> other.isByteOrBool
             else -> true
         }
 
@@ -37,7 +38,8 @@ enum class BaseDataType {
             this == other -> true
             this.isArray && other.isArray -> true
             this.isByteOrBool -> other.isByteOrBool
-            this.isWord -> other.isWord
+            this.isWord -> other.isWord || other.isPointer
+            this.isPointer -> other.isWord
             this == STR && other== UWORD || this== UWORD && other== STR -> true
             this == STR && other.isArray -> true
             this.isArray && other == STR -> true
