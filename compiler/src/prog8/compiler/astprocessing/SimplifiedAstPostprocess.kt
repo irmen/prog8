@@ -7,9 +7,38 @@ import prog8.code.ast.*
 import prog8.code.core.*
 
 
-internal fun postprocessSimplifiedAst(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
+internal fun postprocessSimplifiedAst(
+    program: PtProgram,
+    st: SymbolTable,
+    option: CompilationOptions,
+    errors: IErrorReporter
+) {
     processDefers(program, st, errors)
     processSubtypesIntoStReferences(program, st)
+
+    if(option.compTarget.cpu!=CpuType.VIRTUAL)
+        checkForPointerTypesOn6502(program, errors)     // TODO remove this once the 6502 codegen can deal with pointer types and structs
+}
+
+private fun checkForPointerTypesOn6502(program: PtProgram, errors: IErrorReporter) {
+    fun check(node: PtNode) {
+        when(node) {
+            //is PtAddressOf -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtAssignTarget -> if(!node.void && node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtBinaryExpression -> if(node.left.type.isPointer || node.right.type.isPointer) errors.err("cannot do pointer arithmetic yet on 6502 target  $node", node.position)
+            is PtIdentifier -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtPointerDeref -> errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtPointerIndexedDeref -> errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtPrefix -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtTypeCast -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtStructDecl -> errors.err("cannot use struct type yet on 6502 target  $node", node.position)
+            is PtSubroutineParameter -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtVariable -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            is PtSubSignature -> if(node.returns.any{it.isPointer}) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
+            else -> {}
+        }
+    }
+    walkAst(program) { node, _ -> check(node) }
 }
 
 

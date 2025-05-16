@@ -1403,17 +1403,9 @@ internal class AstChecker(private val program: Program,
         val rightDt = rightIDt.getOrUndef()
 
         // gate off nonsensical pointer arithmetic
-        if(compilerOptions.compTarget.name == VMTarget.NAME) {
-            if (expr.operator !in arrayOf("+", "-") + ComparisonOperators) {
-                if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
-                    errors.err("pointer arithmetic only supported for + and - operators", expr.right.position)
-                }
-            }
-        }
-        else if(expr.operator !in emptyArray<String>()) {     // TODO add + and - operators support for pointer arithmetic
+        if (expr.operator !in arrayOf("+", "-") + ComparisonOperators) {
             if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
-                errors.err("pointer arithmetic not yet supported for this target (will be fixed later)", expr.right.position)
-                // TODO final error should be different:  pointer arithmetic only supported for + and - operators
+                errors.err("pointer arithmetic only supported for + and - operators", expr.right.position)
             }
         }
 
@@ -2018,10 +2010,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(struct: StructDecl) {
-
-        if(compilerOptions.compTarget.name != VMTarget.NAME)
-            TODO("struct types are not yet supported in the 6502 compilation targets (only virtual)  ${struct.position}")
-
         val uniqueFields = struct.fields.map { it.second }.toSet()
         if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
@@ -2039,20 +2027,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: PtrDereference) {
-
-        if(compilerOptions.compTarget.name != VMTarget.NAME)
-            TODO("typed pointers are not yet supported in the 6502 compilation targets (only virtual)  ${deref.position}")
-
         // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
         if(deref.inferType(program).isUnknown)
             errors.err("unable to determine type of dereferenced pointer expression", deref.position)
-    }
-
-    override fun visit(idxderef: PtrIndexedDereference) {
-        if(compilerOptions.compTarget.name != VMTarget.NAME)
-            TODO("typed pointers are not yet supported in the 6502 compilation targets (only virtual)  ${idxderef.position}")
-
-        // TODO ast checks for this one?
     }
 
     private fun checkLongType(expression: Expression) {

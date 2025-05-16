@@ -50,13 +50,14 @@ STRUCTS and TYPED POINTERS
 - DONE: replace ^^str by ^^ubyte
 - DONE: allow return ubyte/uword when pointer type is expected as return value type
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
-- make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though... (also recheck passing STR and ARRAY types to subroutines)
-- fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
-- (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
+- DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - add unit tests for all changes (pointers and structs)
+- make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though... (also recheck passing STR and ARRAY types to subroutines)
+- 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
-- What about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants
+- fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
+- (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - update syntax highlighting files
 
 

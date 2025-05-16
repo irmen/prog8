@@ -22,7 +22,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter) {
+class SimplifiedAstMaker(private val program: Program, private val target: ICompilationTarget, private val errors: IErrorReporter) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,

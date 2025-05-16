@@ -37,9 +37,6 @@ main {
         arrayinfo(values)
         arrayinfo(&values[2])
 
-        arrayinfo2(values)
-
-
         bptr = name
         ubptr = name
         txt.print_uw(&name)
