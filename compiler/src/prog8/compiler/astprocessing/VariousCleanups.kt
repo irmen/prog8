@@ -81,15 +81,29 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         changeSplit = SplitWish.NOSPLIT
                     }
                     else {
-                        changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base)
+                        changeDataType = if(decl.datatype.isSplitWordArray) null else {
+                            val eltDt = decl.datatype.elementType()
+                            if(eltDt.isPointer)
+                                DataType.arrayOfPointersTo(eltDt.base, eltDt.subType)
+                            else
+                                DataType.arrayFor(eltDt.base)
+                        }
                         changeSplit = SplitWish.SPLIT
                     }
                 }
                 SplitWish.SPLIT -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray) null else DataType.arrayFor(decl.datatype.elementType().base)
+                    changeDataType = if(decl.datatype.isSplitWordArray) null else {
+                        val eltDt = decl.datatype.elementType()
+                        if(eltDt.isPointer)
+                            DataType.arrayOfPointersTo(eltDt.base, eltDt.subType)
+                        else
+                            DataType.arrayFor(eltDt.base)
+                    }
                 }
                 SplitWish.NOSPLIT -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray) DataType.arrayFor(decl.datatype.elementType().base, false) else null
+                    changeDataType = if(decl.datatype.isSplitWordArray && !decl.datatype.elementType().isPointer)
+                        DataType.arrayFor(decl.datatype.elementType().base, false)
+                    else null
                 }
             }
             if(changeDataType!=null) {

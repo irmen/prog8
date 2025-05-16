@@ -49,7 +49,7 @@ STRUCTS and TYPED POINTERS
 - DONE: STR should be asssignment compatible with UBYTE^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer, like arrays.
 - DONE: replace ^^str by ^^ubyte
 - DONE: allow return ubyte/uword when pointer type is expected as return value type
-- fix actual _msb/_lsb storage of the split-words pointer-arrays
+- DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though... (also recheck passing STR and ARRAY types to subroutines)
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)

@@ -17,6 +17,12 @@ main {
         info(n1)
 
         word[] @nosplit values = [111,222,-999,-888]
+        ^^word[10] @shared wordpointers
+
+        wordpointers[0] = 1000
+        wordpointers[1] = 2000
+        wordpointers[2] = 3000
+        wordpointers[3] = 4000
 
         ^^byte @shared bptr
         ^^ubyte @shared ubptr
