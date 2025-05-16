@@ -46,6 +46,12 @@ internal class AnyExprAsmGen(
                 }
                 return assignFloatBinExpr(expr, assign)
             }
+            expr.type.isPointer -> {
+                require((expr.left.type.isPointer || expr.left.type.isUnsignedWord) && (expr.right.type.isPointer || expr.right.type.isUnsignedWord)) {
+                    "both operands must be pointers or uwords"
+                }
+                throw AssemblyError("expression should have been handled otherwise: pointer ${expr.operator} at ${expr.position}")
+            }
             else -> throw AssemblyError("weird expression type in assignment")
         }
     }

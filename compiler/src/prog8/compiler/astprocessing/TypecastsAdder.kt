@@ -283,7 +283,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
         val modifications = mutableListOf<IAstModification>()
         val paramsPossibleDatatypes = when(val sub = call.target.targetStatement(program)) {
-            is BuiltinFunctionPlaceholder -> BuiltinFunctions.getValue(sub.name).parameters.map { it.possibleDatatypes.map { dt -> DataType.forDt(dt)} }
+            is BuiltinFunctionPlaceholder -> {
+                BuiltinFunctions.getValue(sub.name).parameters.map {
+                    it.possibleDatatypes.map { dt ->
+                        if(dt.isArray)
+                            DataType.arrayFor(BaseDataType.BOOL, false)     // the builtin function signature doesn't tell us the element type....
+                        else
+                            DataType.forDt(dt)
+                    }
+                }
+            }
             is Subroutine -> sub.parameters.map { listOf(it.type) }
             is StructDecl -> sub.fields.map { listOf(it.first) }
             else -> emptyList()
@@ -655,9 +664,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // uwords are allowed to be assigned to pointers without a cast
         if(requiredType.isPointer && sourceDt.isUnsignedWord)
             return
-        // & (address-of) is allowed to be assigned to an uword without a cast
-        if(requiredType.isUnsignedWord && expressionToCast is AddressOf)
-            return
+        if (requiredType.isUnsignedWord) {
+            // & (address-of) is allowed to be assigned to an uword without a cast
+            if (expressionToCast is AddressOf) return
+            // casting a pointer to an uword is not needed
+            if (expressionToCast.inferType(program).isPointer) return
+        }
 
         if(expressionToCast is NumericLiteral && expressionToCast.type!=BaseDataType.FLOAT && requiredType.isNumericOrBool) { // refuse to automatically truncate floats
             val castedValue = expressionToCast.cast(requiredType.base, true)

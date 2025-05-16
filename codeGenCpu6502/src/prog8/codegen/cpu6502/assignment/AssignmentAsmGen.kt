@@ -1361,7 +1361,7 @@ internal class AssignmentAsmGen(
                     return true
                 }
             }
-        } else if(dt.isWord) {
+        } else if(dt.isWord || dt.isPointer) {
 
             fun doAddOrSubWordExpr() {
                 asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
@@ -2281,6 +2281,12 @@ $endLabel""")
                 asmgen.out("  jsr  floats.MOVEF")
                 asmgen.popFAC1()
             }
+            return
+        }
+
+        if(targetDt.isUnsignedWord && valueDt.isPointer) {
+            assignExpressionToRegister(value, RegisterOrPair.AY, false)
+            assignRegisterpairWord(target, RegisterOrPair.AY)
             return
         }
 

@@ -144,7 +144,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
                     allIdentifiersAndTargets.add(IdentifierReference(listOf(struct.name), struct.position) to struct)
                     val declSub = decl.definingSubroutine
                     val structSub = struct.definingSubroutine
-                    if (declSub != null && structSub != null) {
+                    if (declSub != null && structSub != null && declSub!=structSub) {
                         calls[declSub] = calls.getValue(declSub) + structSub
                         calledBy[structSub] = calledBy.getValue(structSub) + declSub
                     }

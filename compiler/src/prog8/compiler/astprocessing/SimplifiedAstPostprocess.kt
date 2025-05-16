@@ -25,7 +25,7 @@ private fun checkForPointerTypesOn6502(program: PtProgram, errors: IErrorReporte
         when(node) {
             //is PtAddressOf -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
             is PtAssignTarget -> if(!node.void && node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
-            is PtBinaryExpression -> if(node.left.type.isPointer || node.right.type.isPointer) errors.err("cannot do pointer arithmetic yet on 6502 target  $node", node.position)
+            //is PtBinaryExpression -> if(node.left.type.isPointer || node.right.type.isPointer) errors.err("cannot do pointer arithmetic yet on 6502 target  $node", node.position)
             is PtIdentifier -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
             is PtPointerDeref -> errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
             is PtPointerIndexedDeref -> errors.err("cannot use pointer type yet on 6502 target  $node", node.position)

@@ -9,6 +9,10 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.PtReturn
 import prog8.code.ast.PtSubSignature
+import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
+import prog8.code.core.IMemSizer
+import prog8.code.core.ISubType
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
@@ -244,6 +248,33 @@ main {
         val err = errors.errors
         err.size shouldBe 1
         err[0] shouldContain("15:16: incompatible value type, can only assign uword or correct pointer")
+    }
+
+
+    class Struct(override val scopedNameString: String) : ISubType {
+        override fun memsize(sizer: IMemSizer): Int {
+            TODO("Not yet implemented")
+        }
+    }
+
+    test("type of & operator (address-of)") {
+        DataType.BYTE.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.BYTE)
+        DataType.WORD.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.WORD)
+        DataType.FLOAT.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.FLOAT)
+        DataType.UNDEFINED.typeForAddressOf(false) shouldBe DataType.UWORD
+        DataType.UNDEFINED.typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.STR.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.FLOAT, false).typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.FLOAT)
+        DataType.arrayFor(BaseDataType.FLOAT, false).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, false).typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.UWORD)
+        DataType.arrayFor(BaseDataType.UWORD, true).typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, false).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
+        DataType.arrayFor(BaseDataType.UWORD, true).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
+
+        DataType.pointerToType(Struct("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
+        DataType.pointerFromAntlr(listOf("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
+
+        DataType.pointer(BaseDataType.BOOL).typeForAddressOf(false) shouldBe DataType.UWORD
     }
 
 })

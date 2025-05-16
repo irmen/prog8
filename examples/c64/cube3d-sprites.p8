@@ -112,9 +112,9 @@ main {
 
             ; because we want speed, we don't use the dynamic c64.set_sprite_ptr() here
             if(zc < 30*128)
-                c64.SPRPTR[i] = lsb(&spritedata.sprite_large/64)
+                c64.SPRPTR[i] = lsb(&spritedata.sprite_large as uword / 64)
             else
-                c64.SPRPTR[i] = lsb(&spritedata.sprite_small/64)
+                c64.SPRPTR[i] = lsb(&spritedata.sprite_small as uword / 64)
 
             c64.SPCOL[i] = spritecolors[(zc>>13) as ubyte + 4]      ; further away=darker color
         }

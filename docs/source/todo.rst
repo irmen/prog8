@@ -1,6 +1,10 @@
 TODO
 ====
 
+Fix this: Assembler suddenly is a lot larger than before. (rockrunner seems fine?)
+also: cx16 examples: bobs, cobra, fileseek, showbmx, tehtriz
+
+
 STRUCTS and TYPED POINTERS
 --------------------------
 
@@ -51,8 +55,9 @@ STRUCTS and TYPED POINTERS
 - DONE: allow return ubyte/uword when pointer type is expected as return value type
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
+- DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
+- fix the ptr.uword[index] = 333 assignment problem (on a shelf)
 - add unit tests for all changes (pointers and structs)
-- make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though... (also recheck passing STR and ARRAY types to subroutines)
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.

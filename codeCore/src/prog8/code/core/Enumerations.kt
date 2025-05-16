@@ -173,21 +173,21 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         if (isUndefined)
             return if(msb) pointer(BaseDataType.UBYTE) else UWORD
         else {
-            if(isBasic)
+            if (isBasic)
                 return pointer(base)
-//            if(isString)      // TODO return this typed pointer instead, but that breaks 6502 codegen now:
-//                return pointer(BaseDataType.UBYTE)
-            if (subType != null)
-                return pointerToType(subType!!)
+            if (isString)
+                return pointer(BaseDataType.UBYTE)
+            if (isPointer)
+                return UWORD
             if (isArray) {
                 if (msb || isSplitWordArray)
                     return pointer(BaseDataType.UBYTE)
-                return UWORD
-                // TODO return this typed pointer instead, but that breaks 6502 codegen now:
-//                val elementDt = elementType()
-//                require(elementDt.isBasic)
-//                return pointer(elementDt.base)
+                val elementDt = elementType()
+                require(elementDt.isBasic)
+                return pointer(elementDt.base)
             }
+            if (subType != null)
+                return pointerToType(subType!!)
             return UWORD
         }
     }

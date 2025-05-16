@@ -1405,7 +1405,7 @@ internal class AstChecker(private val program: Program,
         // gate off nonsensical pointer arithmetic
         if (expr.operator !in arrayOf("+", "-") + ComparisonOperators) {
             if (leftDt.isPointer || leftDt.isPointerArray || rightDt.isPointer || rightDt.isPointerArray) {
-                errors.err("pointer arithmetic only supported for + and - operators", expr.right.position)
+                errors.err("pointer arithmetic only supported for + and - operators, maybe cast to uword?", expr.right.position)
             }
         }
 
