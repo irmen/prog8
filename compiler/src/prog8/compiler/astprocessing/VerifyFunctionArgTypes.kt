@@ -99,6 +99,10 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 TODO("array vs element pointer check")
             }
 
+            // if expected is UWORD and actual is any pointer, we allow it (uword is untyped pointer, for backwards compatibility)
+            if(paramDt.isUnsignedWord && argDt.isPointer)
+                return true
+
             return false
         }
 

@@ -48,12 +48,12 @@ STRUCTS and TYPED POINTERS
 - DONE: pointer[0] should be replaced with @(pointer)  if pointer is ^^ubyte,   so these are now all identical:  ptr[0], ptr^^, @(ptr)   if ptr is ^^ubyte
 - DONE: STR should be asssignment compatible with UBYTE^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer, like arrays.
 - fix actual _msb/_lsb storage of the split-words pointer-arrays
+- rather than str or uword parameter types for routines with a string argument, use ^^str  (or ^^ubyte maybe? these are more or less identical..?)
+- allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identical to a typed pointer, but the address is immutable as usual
 - make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator. + unit test.  Needs fixes in 6502 codegen too though... (also recheck passing STR and ARRAY types to subroutines)
 - fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- allow memory-mapped structs?  Something like &Sprite sprite0 = $9000   basically behaves identical to a typed pointer, but the address is immutable as usual
-- rather than str or uword parameter types for routines with a string argument, use ^^str  (or ^^ubyte maybe? these are more or less identical..?)
-- add more unit tests for all changes (pointers and structs)
+- add unit tests for all changes (pointers and structs)
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
 - What about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants

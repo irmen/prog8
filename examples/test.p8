@@ -22,13 +22,15 @@ main {
         ^^ubyte @shared ubptr
 
         str name = "irmen"
-        bptr = &name
+        bptr = &name as ^^byte
         ubptr = &name
         stringinfo1("hello")
         stringinfo2(name)
         stringinfo3("apple")
         arrayinfo(values)
         arrayinfo(&values[2])
+
+        arrayinfo2(values)
 
 
         bptr = name
@@ -107,6 +109,10 @@ main {
         txt.spc()
         txt.print_w(valueptr^^)
         txt.nl()
+    }
+
+    sub arrayinfo2(uword ptr) {
+        cx16.r0++
     }
 }
 

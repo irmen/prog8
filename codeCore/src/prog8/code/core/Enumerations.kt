@@ -171,20 +171,22 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         if (isUndefined)
             return if(msb) pointer(BaseDataType.UBYTE) else UWORD
         else {
-//            if(isBasic)
-//                return pointer(base)  // TODO breaks 6502 codegen atm
-//            if(isString)      // TODO pointer to string == ptr to ubyte?  breaks 6502 codegen atm.
+            if(isBasic)
+                return pointer(base)
+//            if(isString)      // TODO return this typed pointer instead, but that breaks 6502 codegen now:
 //                return pointer(BaseDataType.UBYTE)
-//            if(isArray)       // TODO pointer to array == ptr to element type?   breaks 6502 codegen atm.
-//                return pointer(elementType().base)
             if (subType != null)
                 return pointerToType(subType!!)
-            else if (isArray) {
+            if (isArray) {
                 if (msb || isSplitWordArray)
                     return pointer(BaseDataType.UBYTE)
                 return UWORD
-            } else
-                return UWORD            //  TODO("address-of type for $this")
+                // TODO return this typed pointer instead, but that breaks 6502 codegen now:
+//                val elementDt = elementType()
+//                require(elementDt.isBasic)
+//                return pointer(elementDt.base)
+            }
+            return UWORD
         }
     }
 
