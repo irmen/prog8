@@ -892,6 +892,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                 when(targetDt) {
                     BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
                     BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.POINTER -> return cast(targetDt, false)
                     else -> {}
                 }
             }
@@ -908,6 +909,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     BaseDataType.BYTE -> if(number<=127.0) return cast(targetDt, false)
                     BaseDataType.WORD -> if(number<=32767.0) return cast(targetDt, false)
                     BaseDataType.LONG, BaseDataType.FLOAT -> return cast(targetDt, false)
+                    BaseDataType.POINTER -> return cast(targetDt, false)
                     else -> {}
                 }
             }

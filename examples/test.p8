@@ -20,6 +20,7 @@ main {
 
         ^^byte @shared bptr
         ^^ubyte @shared ubptr
+        ^^str namepointer = "hellaur"
 
         str name = "irmen"
         bptr = &name as ^^byte
@@ -111,8 +112,9 @@ main {
         txt.nl()
     }
 
-    sub arrayinfo2(uword ptr) {
+    sub arrayinfo2(^^str ptr) -> ^^str {
         cx16.r0++
+        return 0
     }
 }
 

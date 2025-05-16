@@ -146,6 +146,8 @@ internal class AstChecker(private val program: Program,
                         // you can return a string or array when an uword (pointer) is returned
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
+                    } else if(valueDt.isUnsignedWord && expectedDt.isPointer) {
+                        // you can return an uword value when a pointer is required
                     } else {
                         errors.err("return value type $valueDt doesn't match subroutine return type $expectedDt", actual.position)
                     }
