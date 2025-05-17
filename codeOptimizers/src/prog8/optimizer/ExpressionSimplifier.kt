@@ -424,6 +424,9 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+        if(parent is PtrIndexedDereference)
+            return noModifications
+
         if(arrayIndexedExpression.indexer.constIndex()==0) {
             val dt = arrayIndexedExpression.arrayvar.inferType(program).getOrUndef()
             if(dt.isPointer) {

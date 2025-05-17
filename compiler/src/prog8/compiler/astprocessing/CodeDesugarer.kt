@@ -220,8 +220,13 @@ _after:
         val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl()
         if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || (arrayVar.datatype.isPointer && arrayVar.datatype.sub==BaseDataType.UBYTE))) {
             val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
-            val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", wordIndex, arrayIndexedExpression.position)
-            return if(parent is AssignTarget) {
+            val address = BinaryExpression(
+                arrayIndexedExpression.arrayvar.copy(),
+                "+",
+                wordIndex,
+                arrayIndexedExpression.position
+            )
+            return if (parent is AssignTarget) {
                 // assignment to array
                 val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
                 val newtarget = AssignTarget(
@@ -238,6 +243,8 @@ _after:
                 val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
                 listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
             }
+        } else if(arrayVar!=null && (arrayVar.datatype.isPointer || arrayVar.datatype.isArray)) {
+            return noModifications
         } else {
             // it could be a pointer dereference instead of a simple array variable
             val dt = arrayIndexedExpression.arrayvar.traverseDerefChainForDt(null)

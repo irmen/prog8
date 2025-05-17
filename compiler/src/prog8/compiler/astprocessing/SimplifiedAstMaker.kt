@@ -108,7 +108,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val type = idxderef.inferType(program).getOrElse {
             throw FatalAstException("unknown dt")
         }
-        val deref = PtPointerIndexedDeref(type, idxderef.position)
+        require(type.isPointer && type.sub!=null)
+        val deref = PtPointerIndexedDeref(DataType.forDt(type.sub!!), idxderef.position)
         deref.add(transform(idxderef.indexed))
         return deref
     }
@@ -697,7 +698,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
-        val dt = srcArr.arrayvar.targetVarDecl()!!.datatype
+        val dt = srcArr.arrayvar.inferType(program)
         if(!dt.isArray && !dt.isString && !dt.isPointer)
             throw FatalAstException("array indexing can only be used on array, string or pointer variables ${srcArr.position}")
         val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }

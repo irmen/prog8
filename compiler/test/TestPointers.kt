@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
+import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtReturn
 import prog8.code.ast.PtSubSignature
 import prog8.code.core.BaseDataType
@@ -290,6 +291,27 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("uword as pointer versus pointer to uword difference") {
+        val src="""
+main {
+    sub start() {
+        uword  @shared ptr1
+        ^^uword  @shared ptr2
+
+        ptr1[2] = 1
+        ptr2[2] = 1
+    }
+}"""
+
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val st = result.codegenAst!!.entrypoint()!!.children
+        st.size shouldBe 8
+        val a1 = st[5] as PtAssignment
+        val a2 = st[6] as PtAssignment
+        a1.target.memory shouldNotBe null
+        a2.target.array shouldNotBe null
     }
 
 })

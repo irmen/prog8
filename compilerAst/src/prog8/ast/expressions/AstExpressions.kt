@@ -428,6 +428,12 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
                 }
                 else -> InferredTypes.knownFor(target.datatype)
             }
+        } else {
+            val dt = arrayvar.inferType(program).getOrUndef()
+            if(dt.isPointer) {
+                if(dt.sub!=null)
+                    return InferredTypes.knownFor(dt.sub!!)
+            }
         }
         return InferredTypes.unknown()
     }
@@ -1340,6 +1346,9 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                     InferredTypes.knownFor(targetStmt.datatype)
             }
             null -> {
+                val param = definingSubroutine?.parameters?.find { it.name==nameInSource.singleOrNull() }
+                if(param!=null)
+                    return InferredTypes.knownFor(param.type)
                 val fieldType = traverseDerefChainForDt(null)
                 if(fieldType.isUndefined)
                     InferredTypes.unknown()
@@ -1363,6 +1372,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             val vardecl = definingScope.lookup(nameInSource.take(1)) as? VarDecl
             if (vardecl?.datatype?.isPointer != true)
                 return DataType.UNDEFINED
+            require(vardecl.datatype.subType!=null) { "pointer type should point to a struct ${vardecl.position}" }
             struct = vardecl.datatype.subType as StructDecl
             fieldDt = vardecl.datatype
         }
@@ -1625,7 +1635,8 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
         return InferredTypes.unknown()
     }
 
-    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun replaceChildNode(node: Node, replacement: Node) =
+        throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = indexed.referencesIdentifier(nameInSource)
 }
 
