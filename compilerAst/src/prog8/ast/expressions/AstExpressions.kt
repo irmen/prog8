@@ -1624,12 +1624,17 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
             TODO("cannot determine type of dereferenced indexed pointer(?) that is not a pointer to a basic type")
         }
 
-        if(parent is AssignTarget) {
+        if(parent is AssignTarget || parent is Assignment) {
             val dt = indexed.arrayvar.traverseDerefChainForDt(null)
-            return if(dt.isUndefined)
-                InferredTypes.unknown()
-            else
-                InferredTypes.knownFor(dt)
+            return when {
+                dt.isUndefined -> InferredTypes.unknown()
+                dt.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                dt.isPointer -> {
+                    return if(dt.sub!=null) InferredTypes.knownFor(dt.sub!!)
+                    else InferredTypes.unknown()
+                }
+                else -> InferredTypes.unknown()
+            }
         }
 
         return InferredTypes.unknown()

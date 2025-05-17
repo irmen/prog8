@@ -2362,6 +2362,12 @@ internal class AstChecker(private val program: Program,
             errors.err("on..goto index must be an unsigned byte", onGoto.index.position)
         }
     }
+
+    override fun visit(idxderef: PtrIndexedDereference) {
+        val dt = idxderef.indexed.arrayvar.inferType(program)
+        if(!dt.isUnsignedWord && !dt.isPointer)
+            errors.err("cannot array index on this field type", idxderef.indexed.position)
+    }
 }
 
 internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statement, errors: IErrorReporter) {

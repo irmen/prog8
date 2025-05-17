@@ -314,4 +314,28 @@ main {
         a2.target.array shouldNotBe null
     }
 
+    test("array indexing on non pointer fields give correct error messages") {
+        val src="""
+main {
+    struct List {
+        bool s
+        ubyte n
+        uword ptr
+    }
+    sub start() {
+        ^^List @shared l1 = List()
+        l1.s[1] = 4444
+        l1.n[1] = true
+        l1.ptr[1] = 4444
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "cannot array index"
+        errors.errors[1] shouldContain "cannot array index"
+        errors.errors[2] shouldContain "out of range"
+    }
+
 })

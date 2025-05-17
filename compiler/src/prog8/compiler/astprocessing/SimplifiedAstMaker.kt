@@ -108,14 +108,18 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val type = idxderef.inferType(program).getOrElse {
             throw FatalAstException("unknown dt")
         }
-        require(type.isPointer && type.sub!=null)
-        val deref = PtPointerIndexedDeref(DataType.forDt(type.sub!!), idxderef.position)
-        val indexer = PtArrayIndexer(DataType.forDt(type.sub!!), idxderef.position)
-        val identifier = PtIdentifier(idxderef.indexed.arrayvar.nameInSource.joinToString("."), type, idxderef.indexed.arrayvar.position)
-        indexer.add(identifier)
-        indexer.add(transformExpression(idxderef.indexed.indexer.indexExpr))
-        deref.add(indexer)
-        return deref
+        require(type.isPointer || type.isUnsignedWord)
+        if(type.isUnsignedWord) {
+            TODO("indexing uword field $idxderef")      // TODO hmm, wasn't there code elsewhere for this already?
+        } else {
+            val deref = PtPointerIndexedDeref(DataType.forDt(type.sub!!), idxderef.position)
+            val indexer = PtArrayIndexer(DataType.forDt(type.sub!!), idxderef.position)
+            val identifier = PtIdentifier(idxderef.indexed.arrayvar.nameInSource.joinToString("."), type, idxderef.indexed.arrayvar.position)
+            indexer.add(identifier)
+            indexer.add(transformExpression(idxderef.indexed.indexer.indexExpr))
+            deref.add(indexer)
+            return deref
+        }
     }
 
     private fun transform(deref: PtrDereference): PtPointerDeref {
