@@ -395,6 +395,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val targetMemory = assignment.target.memory
         val targetArray = assignment.target.array
         val targetPointerDeref = assignment.target.pointerDeref
+        val targetPointerIndexedDeref = assignment.target.pointerIndexedDeref
         val valueDt = irType(assignment.value.type)
         val targetDt = irType(assignment.target.type)
         val result = mutableListOf<IRCodeChunkBase>()
@@ -587,6 +588,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val addressReg = codeGen.evaluatePointerAddressIntoReg(result, targetPointerDeref)
             codeGen.storeValueAtPointersLocation(result, addressReg, targetPointerDeref.type, zero, valueRegister)
             return result
+        }
+        else if(targetPointerIndexedDeref!=null) {
+            TODO("assign to pointer indexed $targetPointerIndexedDeref")
         }
         else
             throw AssemblyError("weird assigntarget")

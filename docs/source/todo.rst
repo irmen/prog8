@@ -53,6 +53,7 @@ STRUCTS and TYPED POINTERS
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
+- fix ptr indexed problems (see todo.p8)
 - add unit tests for all changes (pointers and structs)
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"

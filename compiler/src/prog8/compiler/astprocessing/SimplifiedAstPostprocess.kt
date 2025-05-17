@@ -62,6 +62,7 @@ private fun processSubtypesIntoStReferences(program: PtProgram, st: SymbolTable)
         when(node) {
             is IPtVariable -> fixSubtype(node.type)
             is PtPointerDeref -> fixSubtype(node.type)
+            is PtPointerIndexedDeref -> fixSubtype(node.type)
             is PtStructDecl -> node.fields.forEach { fixSubtype(it.first) }
             is PtAsmSub -> node.returns.forEach { fixSubtype(it.second) }
             is PtExpression -> fixSubtype(node.type)

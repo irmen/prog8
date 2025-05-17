@@ -110,7 +110,11 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
         require(type.isPointer && type.sub!=null)
         val deref = PtPointerIndexedDeref(DataType.forDt(type.sub!!), idxderef.position)
-        deref.add(transform(idxderef.indexed))
+        val indexer = PtArrayIndexer(DataType.forDt(type.sub!!), idxderef.position)
+        val identifier = PtIdentifier(idxderef.indexed.arrayvar.nameInSource.joinToString("."), type, idxderef.indexed.arrayvar.position)
+        indexer.add(identifier)
+        indexer.add(transformExpression(idxderef.indexed.indexer.indexExpr))
+        deref.add(indexer)
         return deref
     }
 
