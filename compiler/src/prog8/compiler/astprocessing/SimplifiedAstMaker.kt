@@ -22,7 +22,7 @@ import kotlin.io.path.isRegularFile
 /**
  *  Convert 'old' compiler-AST into the 'new' simplified AST with baked types.
  */
-class SimplifiedAstMaker(private val program: Program, private val target: ICompilationTarget, private val errors: IErrorReporter) {
+class SimplifiedAstMaker(private val program: Program, private val errors: IErrorReporter) {
     fun transform(): PtProgram {
         val ptProgram = PtProgram(
             program.name,
@@ -790,14 +790,22 @@ class SimplifiedAstMaker(private val program: Program, private val target: IComp
                     return plusorminus
                 }
             } else {
-                // ptr + right * structSize
-                val total = PtBinaryExpression("*", DataType.UWORD, expr.position).also { it.add(transformExpression(expr.right)) }
-                total.add(transformExpression(expr.right))
-                total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
-                val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
-                plusorminus.add(transformExpression(expr.left))
-                plusorminus.add(total)
-                return plusorminus
+                if(structSize==1) {
+                    // ptr + right, just keep it as it is
+                    val plus = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                    plus.add(transformExpression(expr.left))
+                    plus.add(transformExpression(expr.right))
+                    return plus
+                } else {
+                    // ptr + right * structSize
+                    val total = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                    total.add(transformExpression(expr.right))
+                    total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                    val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
+                    plusorminus.add(transformExpression(expr.left))
+                    plusorminus.add(total)
+                    return plusorminus
+                }
             }
         } else if(!leftDt.isPointer && rightDt.isPointer) {
             val resultDt = rightDt
@@ -815,14 +823,22 @@ class SimplifiedAstMaker(private val program: Program, private val target: IComp
                     return plusorminus
                 }
             } else {
-                // ptr + left  * structSize
-                val total = PtBinaryExpression("*", DataType.UWORD, expr.position)
-                total.add(transformExpression(expr.left))
-                total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
-                val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
-                plusorminus.add(transformExpression(expr.right))
-                plusorminus.add(total)
-                return plusorminus
+                if(structSize==1) {
+                    // ptr + left, just keep it as it is
+                    val plus = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                    plus.add(transformExpression(expr.left))
+                    plus.add(transformExpression(expr.right))
+                    return plus
+                } else {
+                    // ptr + left  * structSize
+                    val total = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                    total.add(transformExpression(expr.left))
+                    total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                    val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
+                    plusorminus.add(transformExpression(expr.right))
+                    plusorminus.add(total)
+                    return plusorminus
+                }
             }
         } else {
             throw FatalAstException("weird pointer arithmetic ${expr.position}")

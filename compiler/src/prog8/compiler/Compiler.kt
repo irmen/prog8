@@ -154,7 +154,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     println("*********** COMPILER AST END *************\n")
                 }
 
-                val intermediateAst = SimplifiedAstMaker(program, options.compTarget, args.errors).transform()
+                val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
                 val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                 val symbolTable = stMaker.make()
 

@@ -838,7 +838,7 @@ class AsmGen6502Internal (
     private fun repeatWordCount(iterations: Int, stmt: PtRepeatLoop) {
         require(iterations in 257..65536) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createTempVarReused(BaseDataType.UWORD, isTargetCpu(CpuType.CPU65C02), stmt)
+        val counterVar = createTempVarReused(BaseDataType.UWORD, true, stmt)
         val loopcount = if(iterations==65536) 0 else if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
         out("""
             ldy  #>$loopcount
@@ -858,7 +858,7 @@ $repeatLabel""")
         // note: A/Y must have been loaded with the number of iterations!
         // the iny + double dec is microoptimization of the 16 bit loop
         val repeatLabel = makeLabel("repeat")
-        val counterVar = createTempVarReused(BaseDataType.UWORD, false, stmt)
+        val counterVar = createTempVarReused(BaseDataType.UWORD, true, stmt)
         out("""
             cmp  #0
             beq  +

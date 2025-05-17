@@ -1,9 +1,6 @@
 TODO
 ====
 
-Fix this: Assembler suddenly is a lot larger than before. (rockrunner seems fine?)
-also: cx16 examples: bobs, cobra, fileseek, showbmx, tehtriz
-
 
 STRUCTS and TYPED POINTERS
 --------------------------

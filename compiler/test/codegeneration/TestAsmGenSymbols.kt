@@ -92,7 +92,7 @@ class TestAsmGenSymbols: StringSpec({
         val astchecker = AstChecker(program, errors, options)
         astchecker.visit(program)
         errors.report()
-        val ptProgram = SimplifiedAstMaker(program, options.compTarget, errors).transform()
+        val ptProgram = SimplifiedAstMaker(program, errors).transform()
         val st = SymbolTableMaker(ptProgram, options).make()
         return AsmGen6502Internal(ptProgram, st, options, errors, 0)
     }
