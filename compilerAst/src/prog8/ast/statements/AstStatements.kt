@@ -586,10 +586,11 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
 data class AssignTarget(
     var identifier: IdentifierReference?,
     var arrayindexed: ArrayIndexedExpression?,
-    val memoryAddress: DirectMemoryWrite?,
+    var memoryAddress: DirectMemoryWrite?,
     val multi: List<AssignTarget>?,
     val void: Boolean,
     var pointerDereference: PtrDereference? = null,
+    var pointerIndexedDeref : PtrIndexedDereference? = null,
     override val position: Position
 ) : Node {
     override lateinit var parent: Node
@@ -600,25 +601,36 @@ data class AssignTarget(
         arrayindexed?.linkParents(this)
         memoryAddress?.linkParents(this)
         pointerDereference?.linkParents(this)
+        pointerIndexedDeref?.linkParents(this)
         multi?.forEach { it.linkParents(this) }
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
             node === identifier -> {
-                if(replacement is IdentifierReference) {
-                    identifier = replacement
-                    arrayindexed = null
-                } else {
-                    pointerDereference = replacement as PtrDereference
-                    identifier = null
-                    arrayindexed = null
+                identifier = null
+                arrayindexed = null
+                pointerDereference = null
+                pointerIndexedDeref = null
+                when (replacement) {
+                    is IdentifierReference -> identifier = replacement
+                    is PtrDereference -> pointerDereference = replacement
+                    is PtrIndexedDereference -> pointerIndexedDeref = replacement
+                    else -> throw FatalAstException("invalid replacement for AssignTarget.identifier: $replacement")
                 }
             }
             node === arrayindexed -> {
-                arrayindexed = replacement as ArrayIndexedExpression
                 identifier = null
                 pointerDereference = null
+                pointerIndexedDeref = null
+                arrayindexed = null
+                memoryAddress = null
+                when (replacement) {
+                    is PtrIndexedDereference -> pointerIndexedDeref = replacement
+                    is ArrayIndexedExpression -> arrayindexed = replacement
+                    is DirectMemoryWrite -> memoryAddress = replacement
+                    else -> throw FatalAstException("invalid replacement for AssignTarget.arrayindexed: $replacement")
+                }
             }
             node === multi -> throw FatalAstException("can't replace multi assign targets")
             else -> throw FatalAstException("invalid replace")
@@ -635,12 +647,15 @@ data class AssignTarget(
         multi?.toList(),
         void,
         pointerDereference?.copy(),
+        pointerIndexedDeref?.copy(),
         position
     )
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         identifier?.referencesIdentifier(nameInSource)==true ||
                 arrayindexed?.referencesIdentifier(nameInSource)==true ||
                 memoryAddress?.referencesIdentifier(nameInSource)==true ||
+                pointerDereference?.referencesIdentifier(nameInSource)==true ||
+                pointerIndexedDeref?.referencesIdentifier(nameInSource)==true ||
                 multi?.any { it.referencesIdentifier(nameInSource)}==true
 
     fun inferType(program: Program): InferredTypes.InferredType {
@@ -652,6 +667,7 @@ data class AssignTarget(
             arrayindexed != null -> arrayindexed!!.inferType(program)
             memoryAddress != null -> InferredTypes.knownFor(BaseDataType.UBYTE)
             pointerDereference != null -> pointerDereference!!.inferType(program)
+            pointerIndexedDeref != null -> pointerIndexedDeref!!.inferType(program)
             else -> InferredTypes.unknown()   // a multi-target has no 1 particular type
         }
     }
@@ -661,9 +677,10 @@ data class AssignTarget(
         return when {
             identifier != null -> identifier!!.copy()
             arrayindexed != null -> arrayindexed!!.copy()
-            memoryAddress != null -> DirectMemoryRead(memoryAddress.addressExpression.copy(), memoryAddress.position)
+            memoryAddress != null -> DirectMemoryRead(memoryAddress!!.addressExpression.copy(), memoryAddress!!.position)
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
             pointerDereference != null -> pointerDereference!!.copy()
+            pointerIndexedDeref != null -> pointerIndexedDeref!!.copy()
             else -> throw FatalAstException("invalid assignment target")
         }
     }
@@ -673,7 +690,7 @@ data class AssignTarget(
             memoryAddress != null -> {
                 // if the target is a memory write, and the value is a memory read, they're the same if the address matches
                 if (value is DirectMemoryRead)
-                    this.memoryAddress.addressExpression isSameAs value.addressExpression
+                    memoryAddress!!.addressExpression isSameAs value.addressExpression
                 else
                     false
             }
@@ -694,6 +711,11 @@ data class AssignTarget(
                 }
                 return false
             }
+            pointerIndexedDeref !=null -> {
+                if(value is PtrIndexedDereference)
+                    return pointerIndexedDeref!!.indexed == value.indexed
+                return false
+            }
             else -> false
         }
     }
@@ -704,8 +726,8 @@ data class AssignTarget(
             void && other.void -> return true
             this.identifier != null && other.identifier != null -> return this.identifier!!.nameInSource == other.identifier!!.nameInSource
             this.memoryAddress != null && other.memoryAddress != null -> {
-                val addr1 = this.memoryAddress.addressExpression.constValue(program)
-                val addr2 = other.memoryAddress.addressExpression.constValue(program)
+                val addr1 = memoryAddress!!.addressExpression.constValue(program)
+                val addr2 = other.memoryAddress!!.addressExpression.constValue(program)
                 return addr1 != null && addr2 != null && addr1 == addr2
             }
             this.arrayindexed != null && other.arrayindexed != null -> {
@@ -719,6 +741,9 @@ data class AssignTarget(
             }
             pointerDereference !=null && other.pointerDereference !=null -> {
                 return pointerDereference!! isSameAs other.pointerDereference!!
+            }
+            pointerIndexedDeref !=null && other.pointerIndexedDeref !=null -> {
+                return pointerIndexedDeref!! isSameAs other.pointerIndexedDeref!!
             }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false

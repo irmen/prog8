@@ -238,6 +238,21 @@ _after:
                 val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
                 listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
             }
+        } else {
+            // it could be a pointer dereference instead of a simple array variable
+            val dt = arrayIndexedExpression.arrayvar.traverseDerefChainForDt(null)
+            if(dt.isUnsignedWord) {
+                // ptr.field[index] -->  @(ptr.field + index)
+                val index = arrayIndexedExpression.indexer.indexExpr
+                val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", index, arrayIndexedExpression.position)
+                if(parent is AssignTarget) {
+                    val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memwrite, parent))
+                } else {
+                    val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+                }
+            }
         }
         return noModifications
     }
@@ -373,6 +388,10 @@ _after:
     }
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
+
+        if(parent is PtrIndexedDereference || parent.parent is PtrIndexedDereference)
+            return noModifications
+
         if(identifier.nameInSource.size>1 && identifier.targetStatement(program)==null) {
             // the a.b.c.d could be a pointer dereference chain a^^.b^^^.c^^^.d
             for(i in identifier.nameInSource.size-1 downTo 1) {
@@ -398,8 +417,17 @@ _after:
                         chain.add(part)
                         struct = fieldDt.subType as StructDecl
                     }
-                    val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, identifier.position)
-                    return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
+
+                    if(parent is ArrayIndexedExpression) {
+                        if(struct.getFieldType(field!!)!!.isUnsignedWord) {
+                            return noModifications
+                        }
+                        val deref = PtrIndexedDereference(parent, parent.position)
+                        return listOf(IAstModification.ReplaceNode(parent, deref, parent.parent))
+                    } else {
+                        val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, identifier.position)
+                        return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
+                    }
                 }
             }
         }

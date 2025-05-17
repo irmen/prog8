@@ -88,6 +88,9 @@ internal class AstChecker(private val program: Program,
                 val ppExpr = identifier.parent.parent as? BinaryExpression
                 if(ppExpr?.operator==".")
                     return  // identifiers will be checked over at the BinaryExpression itself
+                val ppIdxExpr = identifier.parent.parent as? PtrIndexedDereference
+                if(ppIdxExpr!=null)
+                    return  // identifiers will be checked over at the PtrIndexedDereference itself
             }
             errors.undefined(identifier.nameInSource, identifier.position)
         }
@@ -1337,7 +1340,7 @@ internal class AstChecker(private val program: Program,
                     val fieldDt = if(rightIdentifier.nameInSource.size==1)
                             struct.getFieldType(rightIdentifier.nameInSource.single())
                         else
-                            rightIdentifier.traverseDerefChain(struct)
+                            rightIdentifier.traverseDerefChainForDt(struct)
                     if (fieldDt == null)
                         errors.err("no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.name}'", rightIdentifier.position)
                 } else {
@@ -1865,9 +1868,15 @@ internal class AstChecker(private val program: Program,
                 errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             }
         } else {
-            val parentExpr = arrayIndexedExpression.parent as? BinaryExpression
-            if(parentExpr?.operator!=".")
+            val parentExpr = arrayIndexedExpression.parent
+            if(parentExpr is BinaryExpression) {
+                if (parentExpr.operator != ".")
+                    errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
+            } else if(parentExpr is PtrIndexedDereference) {
+                // all is fine
+            } else {
                 errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
+            }
         }
 
         // check index value 0..255 if the index variable is not a pointer

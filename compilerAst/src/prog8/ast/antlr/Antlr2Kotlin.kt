@@ -412,7 +412,11 @@ private fun Assign_targetContext.toAst() : AssignTarget {
         }
         is PointerDereferenceTargetContext -> {
             val deref = this.pointerdereference().toAst()
-            AssignTarget(null, null, null, null, false, deref, deref.position)
+            AssignTarget(null, null, null, null, false, deref, null, deref.position)
+        }
+        is PointerIndexedDerefTargetContext -> {
+            val deref = this.pointerindexedderef().toAst()
+            AssignTarget(null, null, null, null, false, null, deref, deref.position)
         }
         else -> throw FatalAstException("weird assign target node $this")
     }

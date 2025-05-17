@@ -277,4 +277,19 @@ main {
         DataType.pointer(BaseDataType.BOOL).typeForAddressOf(false) shouldBe DataType.UWORD
     }
 
+    test("uword struct field array indexing") {
+        val src="""
+main {
+    sub start() {
+        struct List {
+            uword s
+            uword n
+        }
+        ^^List  l = List()
+        l.s[2] = 42
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
 })

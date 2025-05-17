@@ -260,7 +260,7 @@ class BinaryExpression(
                         val fieldDt = if(rightIdentifier.nameInSource.size==1)
                                 struct.getFieldType(rightIdentifier.nameInSource.single())
                             else
-                                rightIdentifier.traverseDerefChain(struct)
+                                rightIdentifier.traverseDerefChainForDt(struct)
                         if (fieldDt != null)
                             if(fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
                         else
@@ -1340,7 +1340,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                     InferredTypes.knownFor(targetStmt.datatype)
             }
             null -> {
-                val fieldType = traverseDerefChain(null)
+                val fieldType = traverseDerefChainForDt(null)
                 if(fieldType.isUndefined)
                     InferredTypes.unknown()
                 else
@@ -1353,7 +1353,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    fun traverseDerefChain(startStruct: StructDecl?): DataType {
+    fun traverseDerefChainForDt(startStruct: StructDecl?): DataType {
         var struct: StructDecl
         var fieldDt: DataType? = null
         if(startStruct!=null) {
@@ -1613,6 +1613,15 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
                 return InferredTypes.knownFor(vardecl.datatype.sub!!)
             TODO("cannot determine type of dereferenced indexed pointer(?) that is not a pointer to a basic type")
         }
+
+        if(parent is AssignTarget) {
+            val dt = indexed.arrayvar.traverseDerefChainForDt(null)
+            return if(dt.isUndefined)
+                InferredTypes.unknown()
+            else
+                InferredTypes.knownFor(dt)
+        }
+
         return InferredTypes.unknown()
     }
 
