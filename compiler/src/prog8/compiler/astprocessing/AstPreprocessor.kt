@@ -310,7 +310,7 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
-        val tgt = alias.target.targetStatement(program)
+        val tgt = alias.target.targetStatement(program.builtinFunctions)
         if(tgt is Block) {
             errors.err("cannot alias blocks", alias.target.position)
         }

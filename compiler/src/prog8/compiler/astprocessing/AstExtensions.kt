@@ -215,7 +215,7 @@ internal fun Subroutine.hasRtsInAsm(checkOnlyLastInstruction: Boolean): Boolean 
 }
 
 internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, statement: Statement, errors: IErrorReporter): Statement? {
-    when (val targetStatement = this.targetStatement(program)) {
+    when (val targetStatement = targetStatement(program.builtinFunctions)) {
         is Label, is Subroutine, is BuiltinFunctionPlaceholder -> return targetStatement
         is VarDecl -> {
             if(statement is Jump) {
@@ -227,7 +227,7 @@ internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, st
             else
                 errors.err("cannot call that: ${this.nameInSource.joinToString(".")}", this.position)
         }
-        is Alias, is StructDecl -> {
+        is Alias, is StructDecl, is StructFieldRef -> {
             return targetStatement
         }
         null -> {

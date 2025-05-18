@@ -107,7 +107,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             TODO("expression: indexing non-pointer field ${idxderef.variable}")
         }
 
-        TODO("evaluate address of pointer dereference ${idxderef.position}")
+        TODO("expression: evaluate address of pointer dereference ${idxderef.position}")
 
         val pointerReg = -1 // pointerTr.resultReg
         val constIndex = idxderef.index.asConstInteger()

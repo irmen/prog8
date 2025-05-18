@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
+import prog8.ast.expressions.PtrDereference
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.VarDecl
 import prog8.code.ast.PtAssignment
@@ -362,5 +363,62 @@ main {
         (st[2] as VarDecl).name shouldBe "l2"
         st[4] shouldBe instanceOf<Assignment>()
         st[5] shouldBe instanceOf<Assignment>()
+    }
+
+    test("indexing pointers with index 0 is just a direct pointer dereference") {
+        val src="""
+main {
+    struct List {
+        ^^uword s
+        ubyte n
+    }
+    sub start() {
+        ^^List l1 = List()
+        cx16.r0 = l1.s[0]
+        l1.s[0] = 4242
+        cx16.r1 = l1.s^^ 
+
+        ^^word @shared wptr
+        cx16.r0s = wptr[0]
+        cx16.r1s = wptr^^        
+        wptr[0] = 4242
+    }
+    
+}"""
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 10
+        val dr0 = (st[2] as Assignment).value as PtrDereference
+        val dr1 = (st[3] as Assignment).target.pointerDereference!!
+        val dr2 = (st[4] as Assignment).value as PtrDereference
+
+        val dr3 = (st[6] as Assignment).value as PtrDereference
+        val dr4 = (st[7] as Assignment).value as PtrDereference
+        val dr5 = (st[8] as Assignment).target.pointerDereference!!
+
+        dr0.identifier.nameInSource shouldBe listOf("l1", "s")
+        dr0.chain.size shouldBe 0
+        dr0.field shouldBe null
+
+        dr1.identifier.nameInSource shouldBe listOf("l1", "s")
+        dr1.chain.size shouldBe 0
+        dr1.field shouldBe null
+
+        dr2.identifier.nameInSource shouldBe listOf("l1", "s")
+        dr2.chain.size shouldBe 0
+        dr2.field shouldBe null
+
+        dr3.identifier.nameInSource shouldBe listOf("wptr")
+        dr3.chain.size shouldBe 0
+        dr3.field shouldBe null
+
+        dr4.identifier.nameInSource shouldBe listOf("wptr")
+        dr4.chain.size shouldBe 0
+        dr4.field shouldBe null
+
+        dr5.identifier.nameInSource shouldBe listOf("wptr")
+        dr5.chain.size shouldBe 0
+        dr5.field shouldBe null
     }
 })

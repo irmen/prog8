@@ -155,20 +155,29 @@ interface INameScope: IStatementContainer, INamedStatement {
     }
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
-        // a scoped name refers to a name in another namespace, and always starts from the root.
+        val localSymbol = this.searchSymbol(scopedName[0])
+        if(localSymbol is VarDecl && localSymbol.datatype.isPointer) {
+            var struct = localSymbol.datatype.subType as? StructDecl
+            if(struct!=null) {
+                for ((idx, field) in scopedName.drop(1).withIndex()) {
+                    val fieldDt = struct!!.getFieldType(field)
+                    if (fieldDt == null)
+                        break
+                    if (idx == scopedName.size - 2) {
+                        // was last path element
+                        val pointer = IdentifierReference(scopedName, Position.DUMMY)
+                        val ref = StructFieldRef(pointer, struct, fieldDt, field, Position.DUMMY)
+                        ref.linkParents(this as Node)
+                        return ref
+                    }
+                    struct = fieldDt.subType as? StructDecl
+                    if(struct==null)
+                        break
+                }
+            }
+        }
 
-// TODO experimental code to be able to alias blocks too:
-//        val stmt = this.lookup(listOf(scopedName[0])) ?: return null
-//        if(stmt is Alias) {
-//            val block = this.lookup(stmt.target.nameInSource) ?: return null
-//            var statement = block as Statement?
-//            for(name in scopedName.drop(1)) {
-//                statement = (statement as? IStatementContainer)?.searchSymbol(name)
-//                if(statement==null)
-//                    return null
-//            }
-//            return statement
-//        }
+        // a scoped name refers to a name in another namespace, and always starts from the root.
         for(module in (this as Node).definingModule.program.modules) {
             val block = module.searchSymbol(scopedName[0])
             if(block!=null) {

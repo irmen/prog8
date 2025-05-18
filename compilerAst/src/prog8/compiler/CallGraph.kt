@@ -117,7 +117,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(identifier: IdentifierReference) {
-        val target = identifier.targetStatement(program)
+        val target = identifier.targetStatement(program.builtinFunctions)
         if(target!=null) {
             allIdentifiersAndTargets.add(identifier to target)
             if(target is Subroutine)
@@ -135,6 +135,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
             else if(scopeTarget is VarDecl) {
                 allIdentifiersAndTargets.add(identifier to scopeTarget)
                 break
+            } else if(scopeTarget is StructFieldRef) {
+                TODO("register struct field ref in callgraph? $scopeTarget")
             }
         }
     }

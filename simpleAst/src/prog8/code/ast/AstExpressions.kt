@@ -412,6 +412,10 @@ class PtPointerDeref(type: DataType, val chain: List<String>, val field: String?
     // the start of the chain is the only child node (PtExpression that yields a pointer)
     val startpointer: PtExpression
         get() = children.single() as PtExpression
+
+    init {
+        require(!type.isUndefined)
+    }
 }
 
 class PtPointerIndexedDeref(type: DataType, position: Position) : PtExpression(type, position) {
@@ -419,6 +423,10 @@ class PtPointerIndexedDeref(type: DataType, position: Position) : PtExpression(t
         get() = children[0] as PtIdentifier
     val index: PtExpression
         get() = children[1] as PtExpression
+
+    init {
+        require(!type.isUndefined)
+    }
 }
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code

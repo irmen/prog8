@@ -102,7 +102,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
         if(args[0] is NumericLiteral)
             return NumericLiteral.optimalInteger(program.memsizer.memorySize(dt.getOrUndef(), null), position)
 
-        val target = (args[0] as IdentifierReference).targetStatement(program)
+        val target = (args[0] as IdentifierReference).targetStatement()
             ?: throw CannotEvaluateException("sizeof", "no target")
 
         return when {

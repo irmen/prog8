@@ -112,13 +112,13 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             if(firstUnknownDt>=0) {
                 // if an uword is expected but a pointer is provided, that is okay without a cast
                 val identifier = call.args[0] as? IdentifierReference
-                return if(identifier==null || identifier.targetStatement(program)!=null)
+                return if(identifier==null || identifier.targetStatement(program.builtinFunctions)!=null)
                     Pair("argument ${firstUnknownDt + 1} invalid argument type", call.args[firstUnknownDt].position)
                 else
                     null
             }
             val argtypes = argITypes.map { it.getOrUndef() }
-            val target = call.target.targetStatement(program)
+            val target = call.target.targetStatement(program.builtinFunctions)
             if (target is Subroutine) {
                 val consideredParamTypes: List<DataType> = target.parameters.map { it.type }
                 if(argtypes.size != consideredParamTypes.size)

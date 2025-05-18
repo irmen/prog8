@@ -282,7 +282,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         // see if a typecast is needed to convert the arguments into the required parameter type
 
         val modifications = mutableListOf<IAstModification>()
-        val paramsPossibleDatatypes = when(val sub = call.target.targetStatement(program)) {
+        val paramsPossibleDatatypes = when(val sub = call.target.targetStatement(program.builtinFunctions)) {
             is BuiltinFunctionPlaceholder -> {
                 BuiltinFunctions.getValue(sub.name).parameters.map {
                     it.possibleDatatypes.map { dt ->
@@ -465,7 +465,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         for((index, elt) in array.value.withIndex()) {
             if (elt is IdentifierReference) {
                 val eltType = elt.inferType(program)
-                val tgt = elt.targetStatement(program)
+                val tgt = elt.targetStatement()
                 if(eltType.isIterable || tgt is Subroutine || tgt is Label || tgt is Block)  {
                     val addressof = AddressOf(elt, null, null, false, elt.position)
                     addressof.linkParents(array)

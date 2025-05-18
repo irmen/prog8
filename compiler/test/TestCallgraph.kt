@@ -7,6 +7,7 @@ import io.kotest.matchers.collections.shouldContain
 import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.maps.shouldNotContainKey
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
 import prog8.ast.statements.Block
@@ -311,5 +312,21 @@ xyz {
         val result2 = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
         val blocks2 = result2.codegenAst!!.allBlocks().toList()
         blocks2.any { it.name=="xyz" } shouldBe false
+    }
+
+    test("symbol lookup of pointer fields should mark variable as used in callgraph") {
+        val src = """
+main {
+    struct List {
+        ^^uword s
+        ubyte n
+    }
+    sub start() {
+        ^^List l1 = List()
+        l1.s^^ = 2 
+    }
+}"""
+
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 })

@@ -81,7 +81,7 @@ internal class AstChecker(private val program: Program,
         }
 
         checkLongType(identifier)
-        val stmt = identifier.targetStatement(program)
+        val stmt = identifier.targetStatement(program.builtinFunctions)
         if(stmt==null) {
             if(identifier.parent is ArrayIndexedExpression) {
                 // might be a pointer dereference chain
@@ -106,7 +106,7 @@ internal class AstChecker(private val program: Program,
 
         if(identifier.nameInSource.size>1) {
             val lookupModule = identifier.definingScope.lookup(identifier.nameInSource.take(1))
-            if(lookupModule is VarDecl) {
+            if(lookupModule is VarDecl && !lookupModule.datatype.isPointer) {
                 errors.err("ambiguous symbol name, block name expected but found variable", identifier.position)
             }
         }
@@ -340,7 +340,7 @@ internal class AstChecker(private val program: Program,
                 is InlineAssembly,
                 is IStatementContainer -> true
                 is Assignment -> {
-                    val target = statement.target.identifier!!.targetStatement(program)
+                    val target = statement.target.identifier!!.targetStatement()
                     target === statement.previousSibling()      // an initializer assignment is okay
                 }
                 else -> false
@@ -378,7 +378,7 @@ internal class AstChecker(private val program: Program,
                 count++
             }
             override fun visit(jump: Jump) {
-                val jumpTarget = (jump.target as? IdentifierReference)?.targetStatement(program)
+                val jumpTarget = (jump.target as? IdentifierReference)?.targetStatement()
                 if(jumpTarget!=null) {
                     val sub = jump.definingSubroutine
                     val targetSub = jumpTarget as? Subroutine ?: jumpTarget.definingSubroutine
@@ -613,8 +613,8 @@ internal class AstChecker(private val program: Program,
 
         val ident = repeatLoop.iterations as? IdentifierReference
         if(ident!=null) {
-            val targetVar = ident.targetVarDecl()
-            if(targetVar==null)
+            val target = ident.targetStatement()
+            if(target !is VarDecl && target !is StructFieldRef)
                 errors.err("invalid assignment value", ident.position)
         }
         super.visit(repeatLoop)
@@ -627,7 +627,7 @@ internal class AstChecker(private val program: Program,
             if(valueDt.isKnown && !(valueDt isAssignableTo targetDt) && !targetDt.isIterable) {
                 if(!(valueDt issimpletype  BaseDataType.STR && targetDt issimpletype BaseDataType.UWORD)) {
                     if(targetDt.isUnknown) {
-                        if(assignment.target.identifier?.targetStatement(program)!=null)
+                        if(assignment.target.identifier?.targetStatement(program.builtinFunctions)!=null)
                             errors.err("target datatype is unknown", assignment.target.position)
                         // otherwise, another error about missing symbol is already reported.
                     }
@@ -733,6 +733,9 @@ internal class AstChecker(private val program: Program,
                 null -> {
                     errors.undefined(targetIdentifier.nameInSource, targetIdentifier.position)
                     return
+                }
+                is StructFieldRef -> {
+                    // all is well
                 }
                 !is VarDecl -> {
                     errors.err("assignment LHS must be register or variable", assignment.position)
@@ -1297,7 +1300,7 @@ internal class AstChecker(private val program: Program,
                 count++
             }
             override fun visit(jump: Jump) {
-                val jumpTarget = (jump.target as? IdentifierReference)?.targetStatement(program)
+                val jumpTarget = (jump.target as? IdentifierReference)?.targetStatement()
                 if(jumpTarget!=null) {
                     val sub = jump.definingSubroutine
                     val targetSub = jumpTarget as? Subroutine ?: jumpTarget.definingSubroutine
@@ -1727,7 +1730,7 @@ internal class AstChecker(private val program: Program,
                 if(args[0] is AddressOf)
                     errors.err("can't call this indirectly, just use normal function call syntax", args[0].position)
                 else if(args[0] is IdentifierReference) {
-                    val callTarget = (args[0] as IdentifierReference).targetStatement(program)
+                    val callTarget = (args[0] as IdentifierReference).targetStatement(program.builtinFunctions)
                     if(callTarget !is VarDecl)
                         errors.err("can't call this indirectly, just use normal function call syntax", args[0].position)
                 }
@@ -1841,32 +1844,41 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
         checkLongType(arrayIndexedExpression)
-        val target = arrayIndexedExpression.arrayvar.targetStatement(program)
+        val target = arrayIndexedExpression.arrayvar.targetStatement(program.builtinFunctions)
         if(target is VarDecl) {
-            if(!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)
-                errors.err("indexing requires an iterable, address uword, or pointer variable", arrayIndexedExpression.position)
+            if (!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)
+                errors.err(
+                    "indexing requires an iterable, address uword, or pointer variable",
+                    arrayIndexedExpression.position
+                )
             val indexVariable = arrayIndexedExpression.indexer.indexExpr as? IdentifierReference
-            if(indexVariable!=null) {
-                if(indexVariable.targetVarDecl()?.datatype?.isSigned==true) {
-                    errors.err("variable array indexing can't be performed with signed variables", indexVariable.position)
+            if (indexVariable != null) {
+                if (indexVariable.targetVarDecl()?.datatype?.isSigned == true) {
+                    errors.err(
+                        "variable array indexing can't be performed with signed variables",
+                        indexVariable.position
+                    )
                     return
                 }
             }
             val arraysize = target.arraysize?.constIndex()
             val index = arrayIndexedExpression.indexer.constIndex()
-            if(arraysize!=null) {
-                if(index!=null && (index<0 || index>=arraysize))
+            if (arraysize != null) {
+                if (index != null && (index < 0 || index >= arraysize))
                     errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
-            } else if(target.datatype.isString) {
-                if(target.value is StringLiteral) {
+            } else if (target.datatype.isString) {
+                if (target.value is StringLiteral) {
                     // check string lengths for non-memory mapped strings
                     val stringLen = (target.value as StringLiteral).value.length
                     if (index != null && (index < 0 || index >= stringLen))
                         errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
                 }
-            } else if(index!=null && index<0) {
+            } else if (index != null && index < 0) {
                 errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             }
+        } else if(target is StructFieldRef) {
+            if(!target.type.isPointer && !target.type.isUnsignedWord)
+                errors.err("cannot array index on this field type", arrayIndexedExpression.indexer.position)
         } else {
             val parentExpr = arrayIndexedExpression.parent
             if(parentExpr is BinaryExpression) {
@@ -2036,7 +2048,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: PtrDereference) {
-        // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
         if(deref.inferType(program).isUnknown)
             errors.err("unable to determine type of dereferenced pointer expression", deref.position)
     }

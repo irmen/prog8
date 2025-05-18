@@ -413,7 +413,7 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun referencesIdentifier(nameInSource: List<String>) = arrayvar.referencesIdentifier(nameInSource) || indexer.referencesIdentifier(nameInSource)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
-        val target = arrayvar.targetStatement(program)
+        val target = arrayvar.targetStatement(program.builtinFunctions)
         if (target is VarDecl) {
             return when {
                 target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
@@ -527,7 +527,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
     override fun constValue(program: Program): NumericLiteral? {
         if(msb)
             return null
-        val target = this.identifier?.targetStatement(program)
+        val target = this.identifier?.targetStatement()
         val targetVar = target as? VarDecl
         if(targetVar!=null) {
             if (targetVar.type == VarDeclType.MEMORY || targetVar.type == VarDeclType.CONST) {
@@ -1274,18 +1274,18 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
 
     override val isSimple = true
 
-    fun targetStatement(program: Program?): Statement? =
-        if(program!=null && nameInSource.singleOrNull() in program.builtinFunctions.names)
+    fun targetStatement(builtins: IBuiltinFunctions? = null): Statement? =
+        if(builtins!=null && nameInSource.singleOrNull() in builtins.names)
             BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
         else
             definingScope.lookup(nameInSource)
-
-    fun targetVarDecl(): VarDecl? = targetStatement(null) as? VarDecl
-    fun targetSubroutine(): Subroutine? = targetStatement(null) as? Subroutine
-    fun targetStructDecl(): StructDecl? = targetStatement(null) as? StructDecl
+    fun targetVarDecl(): VarDecl? = targetStatement() as? VarDecl
+    fun targetSubroutine(): Subroutine? = targetStatement() as? Subroutine
+    fun targetStructDecl(): StructDecl? = targetStatement() as? StructDecl
+    fun targetStructFieldRef(): StructFieldRef? = targetStatement() as? StructFieldRef
 
     fun targetNameAndType(program: Program): Pair<String, DataType> {
-        val target = targetStatement(program) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
+        val target = targetStatement(program.builtinFunctions) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
         val targetname: String = if(target.name in program.builtinFunctions.names)
             "<builtin>.${target.name}"
         else
@@ -1313,6 +1313,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             }
             return null
         }
+
+        if(node is StructFieldRef)
+            return null
+
         val vardecl = node as? VarDecl
         if(vardecl==null) {
             return null
@@ -1341,7 +1345,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = this.nameInSource==nameInSource
 
     override fun inferType(program: Program): InferredTypes.InferredType {
-        return when (val targetStmt = targetStatement(program)) {
+        return when (val targetStmt = targetStatement(program.builtinFunctions)) {
             is VarDecl -> {
                 if(targetStmt.datatype.isUndefined)
                     InferredTypes.unknown()
@@ -1360,6 +1364,9 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             }
             is StructDecl -> {
                 InferredTypes.unknown()     // the type of a structdecl itself is actually not defined
+            }
+            is StructFieldRef -> {
+                InferredTypes.knownFor(targetStmt.type)
             }
             else -> InferredTypes.unknown()
         }
@@ -1462,7 +1469,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
         val constVal = constValue(program ,false)
         if(constVal!=null)
             return InferredTypes.knownFor(constVal.type)
-        val stmt = target.targetStatement(program) ?: return InferredTypes.unknown()
+        val stmt = target.targetStatement(program.builtinFunctions) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionPlaceholder -> {
                 return program.builtinFunctions.returnType(target.nameInSource[0])
@@ -1479,6 +1486,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
                 // calling a struct is syntax for allocating a static instance, and returns a pointer to that (not the instance itself)
                 return InferredTypes.knownFor(DataType.pointer(stmt))
             }
+            is StructFieldRef -> throw FatalAstException("cannot call a struct field $stmt")
             else -> return InferredTypes.unknown()
         }
     }
@@ -1662,9 +1670,12 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun inferType(program: Program): InferredTypes.InferredType {
-        val first = identifier.targetStatement(program)
+        val first = identifier.targetStatement()
         if(first==null)
             return InferredTypes.unknown()
+        if(first is StructFieldRef) {
+            return InferredTypes.knownFor(first.type)
+        }
         val vardecl = identifier.targetVarDecl()
         if(vardecl==null || vardecl.datatype.isUndefined || (!vardecl.datatype.isPointer && !vardecl.datatype.isStructInstance) )
             return InferredTypes.unknown()

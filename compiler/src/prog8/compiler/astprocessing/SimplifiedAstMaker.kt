@@ -121,9 +121,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             throw FatalAstException("unknown dt")
         }
         val start = transform(deref.identifier)
-        val deref = PtPointerDeref(type, deref.chain, deref.field,deref.position)
-        deref.add(start)
-        return deref
+        val result = PtPointerDeref(type, deref.chain, deref.field,deref.position)
+        result.add(start)
+        return result
     }
 
     private fun transform(ifExpr: IfExpression): PtIfExpression {

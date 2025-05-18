@@ -399,7 +399,7 @@ _after:
         if(parent is PtrIndexedDereference || parent.parent is PtrIndexedDereference)
             return noModifications
 
-        if(identifier.nameInSource.size>1 && identifier.targetStatement(program)==null) {
+        if(identifier.nameInSource.size>1 && identifier.targetStatement()==null) {
             // the a.b.c.d could be a pointer dereference chain a^^.b^^^.c^^^.d
             for(i in identifier.nameInSource.size-1 downTo 1) {
                 val symbol = identifier.definingScope.lookup(identifier.nameInSource.take(i)) as? VarDecl

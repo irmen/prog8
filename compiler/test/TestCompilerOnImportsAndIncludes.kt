@@ -62,7 +62,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             str0.definingScope.name shouldBe "main"
 
             val id1 = (args[1] as AddressOf).identifier!!
-            val lbl1 = id1.targetStatement(program) as Label
+            val lbl1 = id1.targetStatement() as Label
             lbl1.name shouldBe "foo_bar"
             lbl1.definingScope.name shouldBe "main"
         }

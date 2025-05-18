@@ -130,7 +130,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     }
 
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
-        val target = alias.target.targetStatement(program)
+        val target = alias.target.targetStatement()
         if(target is Alias) {
             val newAlias = Alias(alias.alias, target.target, alias.position)
             return listOf(IAstModification.ReplaceNode(alias, newAlias, parent))
@@ -139,11 +139,11 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     }
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
-        val target = identifier.targetStatement(program)
+        val target = identifier.targetStatement()
 
         // don't replace an identifier in an Alias or when the alias points to another alias (that will be resolved first elsewhere)
         if(target is Alias && parent !is Alias) {
-            if(target.target.targetStatement(program) !is Alias)
+            if(target.target.targetStatement() !is Alias)
                 return listOf(IAstModification.ReplaceNode(identifier, target.target.copy(position = identifier.position), parent))
         }
 
@@ -167,7 +167,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             val rightIndex = expr.right as? ArrayIndexedExpression
             if (leftIdent != null && rightIndex != null) {
                 // maybe recombine   IDENTIFIER . ARRAY[IDX]  -->  COMBINEDIDENTIFIER[IDX]
-                val leftTarget = leftIdent.targetStatement(null)
+                val leftTarget = leftIdent.targetStatement()
                 if(leftTarget==null || leftTarget !is StructDecl) {
                     val combinedName = leftIdent.nameInSource + rightIndex.arrayvar.nameInSource
                     val combined = IdentifierReference(combinedName, leftIdent.position)

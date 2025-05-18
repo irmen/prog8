@@ -113,7 +113,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         private fun makeFullyScoped(identifier: IdentifierReference) {
-            identifier.targetStatement(program)?.let { target ->
+            identifier.targetStatement()?.let { target ->
                 val scoped = (target as INamedStatement).scopedName
                 val scopedIdent = IdentifierReference(scoped, identifier.position)
                 modifications += IAstModification.ReplaceNode(identifier, scopedIdent, identifier.parent)
@@ -149,7 +149,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 when (it) {
                     is NumericLiteral -> it.copy()
                     is IdentifierReference -> {
-                        val target = it.targetStatement(program) ?: return emptyList()
+                        val target = it.targetStatement() ?: return emptyList()
                         val scoped = (target as INamedStatement).scopedName
                         IdentifierReference(scoped, it.position)
                     }
@@ -205,7 +205,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>  {
-        val sub = functionCallStatement.target.targetStatement(program) as? Subroutine
+        val sub = functionCallStatement.target.targetStatement(program.builtinFunctions) as? Subroutine
         return if(sub==null || !canInline(sub, functionCallStatement))
             noModifications
         else
@@ -213,7 +213,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        val sub = functionCallExpr.target.targetStatement(program) as? Subroutine
+        val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine
         if(sub!=null && sub.inline && sub.parameters.isEmpty() && canInline(sub, functionCallExpr)) {
             require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
                 "invalid inline sub at ${sub.position}"
@@ -249,7 +249,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             val stmt = sub.statements.single()
             if (stmt is IFunctionCall) {
                 val existing = (fcall as Node).definingScope.lookup(stmt.target.nameInSource.take(1))
-                return existing !is VarDecl
+                return existing !is VarDecl && existing !is StructFieldRef
             }
         }
         return true

@@ -63,11 +63,11 @@ class TestIdentifierRef: FunSpec({
         val mainref = ((stmts[1] as Assignment).value as AddressOf).identifier!!
         wwref.nameInSource shouldBe listOf("ww")
         wwref.wasStringLiteral() shouldBe false
-        wwref.targetStatement(program) shouldBe instanceOf<VarDecl>()
+        wwref.targetStatement() shouldBe instanceOf<VarDecl>()
         wwref.targetVarDecl()!!.name shouldBe "ww"
         wwref.targetVarDecl()!!.parent shouldBe instanceOf<Block>()
         mainref.nameInSource shouldBe listOf("main")
         mainref.wasStringLiteral() shouldBe false
-        mainref.targetStatement(program) shouldBe instanceOf<Block>()
+        mainref.targetStatement() shouldBe instanceOf<Block>()
     }
 })

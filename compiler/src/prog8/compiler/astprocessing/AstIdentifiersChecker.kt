@@ -41,7 +41,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     override fun visit(alias: Alias) {
-        if(alias.target.targetStatement(program)==null)
+        if(alias.target.targetStatement(program.builtinFunctions)==null)
             errors.err("undefined symbol: ${alias.target.nameInSource.joinToString(".") }", alias.target.position)
     }
 
@@ -166,7 +166,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     override fun visit(deref: PtrDereference) {
-        val first = deref.identifier.targetStatement(program)
+        val first = deref.identifier.targetStatement()
         if(first==null)
             errors.undefined(deref.identifier.nameInSource, deref.identifier.position)
 
@@ -206,13 +206,13 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
     private fun visitFunctionCall(call: IFunctionCall) {
         if(call.target.nameInSource==listOf("rnd") || call.target.nameInSource==listOf("rndw")) {
-            val target = call.target.targetStatement(program)
+            val target = call.target.targetStatement(program.builtinFunctions)
             if(target==null) {
                 errors.err("rnd() and rndw() builtin functions have been moved into the math module", call.position)
                 return
             }
         }
-        when (val target = call.target.targetStatement(program)) {
+        when (val target = call.target.targetStatement(program.builtinFunctions)) {
             is Subroutine -> {
                 val expectedNumberOfArgs: Int = target.parameters.size
                 if(call.args.size != expectedNumberOfArgs) {
@@ -252,7 +252,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
                     errors.err("wrong address variable datatype, expected uword", call.target.position)
             }
-            is Alias, is StructDecl -> {}
+            is Alias, is StructDecl, is StructFieldRef -> {}
             null -> {}
             else -> errors.err("cannot call this as a subroutine or function", call.target.position)
         }

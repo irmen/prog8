@@ -414,8 +414,11 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        // pointer and struct are not our property!
+        pointer.linkParents(this)
     }
+
+    override val scopedName: List<String>
+        get() = pointer.nameInSource
 
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
 
@@ -629,6 +632,7 @@ data class AssignTarget(
                     is PtrIndexedDereference -> pointerIndexedDeref = replacement
                     is ArrayIndexedExpression -> arrayindexed = replacement
                     is DirectMemoryWrite -> memoryAddress = replacement
+                    is PtrDereference -> pointerDereference = replacement
                     else -> throw FatalAstException("invalid replacement for AssignTarget.arrayindexed: $replacement")
                 }
             }
@@ -662,6 +666,7 @@ data class AssignTarget(
         if (identifier != null) {
             val symbol = definingScope.lookup(identifier!!.nameInSource) ?: return InferredTypes.unknown()
             if (symbol is VarDecl) return InferredTypes.knownFor(symbol.datatype)
+            if (symbol is StructFieldRef) return InferredTypes.knownFor(symbol.type)
         }
         return when {
             arrayindexed != null -> arrayindexed!!.inferType(program)
