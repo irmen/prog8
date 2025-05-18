@@ -93,27 +93,10 @@ object InferredTypes {
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
-        type.isPointerArray -> {
-            InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subType))
-        }
-        type.isArray -> {
-            InferredType.known(DataType.arrayFor(type.sub!!, false))
-        }
-        type.isPointer -> {
-            if(type.subType!=null)
-                InferredType.known(DataType.pointerToType(type.subType!!))
-            else if(type.sub!=null)
-                InferredType.known(DataType.pointer(type.sub!!))
-            else
-                InferredType.known(DataType.pointerFromAntlr(type.subTypeFromAntlr!!))
-        }
-        type.isPointerArray -> InferredType.known(DataType.arrayOfPointersTo(type.sub, type.subType))
-        type.isStructInstance -> {
-            if(type.subType!=null)
-                InferredType.known(DataType.structInstance(type.subType!!))
-            else
-                InferredType.known(DataType.structInstanceFromAntlr(type.subTypeFromAntlr!!))
-        }
+        type.isPointerArray -> InferredType.known(type)
+        type.isArray -> InferredType.known(type)
+        type.isPointer -> InferredType.known(type)
+        type.isStructInstance -> InferredType.known(type)
         else -> throw IllegalArgumentException("invalid type $type")
     }
 }

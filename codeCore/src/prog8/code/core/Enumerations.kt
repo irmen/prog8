@@ -84,7 +84,11 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             }
             base==BaseDataType.STR -> require(sub==BaseDataType.UBYTE) { "string subtype should be ubyte" }
             base!=BaseDataType.POINTER -> require(sub == null) { "only string, array and pointer base types can have a subtype"}
-            else -> require(sub == null || (subType == null && subTypeFromAntlr == null)) { "sub and subtype can't both be set" }
+            else -> {
+                require(sub == null || (subType == null && subTypeFromAntlr == null)) {
+                    "sub and subtype can't both be set"
+                }
+            }
         }
     }
 
@@ -144,15 +148,21 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             }
         }
 
-        fun arrayOfPointersTo(sub: BaseDataType?, subType: ISubType?): DataType =
-            DataType(BaseDataType.ARRAY_POINTER, sub, subType)
+        fun arrayOfPointersTo(sub: BaseDataType): DataType = DataType(BaseDataType.ARRAY_POINTER, sub, null)
+        fun arrayOfPointersTo(structType: ISubType?): DataType = DataType(BaseDataType.ARRAY_POINTER, null, structType)
         fun arrayOfPointersFromAntlrTo(sub: BaseDataType?, identifier: List<String>?): DataType =
             DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
 
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
-        fun pointerToType(type: ISubType): DataType = DataType(BaseDataType.POINTER, null, type)
-        fun structInstance(type: ISubType?): DataType = DataType(BaseDataType.STRUCT_INSTANCE, sub=null, type)
+        fun pointer(dt: DataType): DataType {
+            if(dt.isBasic)
+                return DataType(BaseDataType.POINTER, dt.base, null)
+            else
+                return DataType(BaseDataType.POINTER, null, dt.subType, dt.subTypeFromAntlr)
+        }
+        fun pointer(structType: ISubType): DataType = DataType(BaseDataType.POINTER, null, structType, null)
         fun pointerFromAntlr(identifier: List<String>): DataType = DataType(BaseDataType.POINTER, null, null, identifier)
+        fun structInstance(type: ISubType?): DataType = DataType(BaseDataType.STRUCT_INSTANCE, sub=null, type)
         fun structInstanceFromAntlr(struct: List<String>): DataType = DataType(BaseDataType.STRUCT_INSTANCE, null, null, subTypeFromAntlr = struct)
     }
 
@@ -184,10 +194,10 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                     return pointer(BaseDataType.UBYTE)
                 val elementDt = elementType()
                 require(elementDt.isBasic)
-                return pointer(elementDt.base)
+                return pointer(elementDt)
             }
             if (subType != null)
-                return pointerToType(subType!!)
+                return pointer(this)
             return UWORD
         }
     }

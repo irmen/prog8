@@ -1093,7 +1093,10 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
             val unique = dts.toSet()
             if(unique.size==1) {
                 val dt = unique.single()
-                return InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.sub, dt.subType))
+                return if(dt.subType!=null)
+                    InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.subType!!))
+                else
+                    InferredTypes.knownFor(DataType.arrayOfPointersTo(dt.sub!!))
             }
         }
         return when {
@@ -1474,7 +1477,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
             }
             is StructDecl -> {
                 // calling a struct is syntax for allocating a static instance, and returns a pointer to that (not the instance itself)
-                return InferredTypes.knownFor(DataType.pointerToType(stmt))
+                return InferredTypes.knownFor(DataType.pointer(stmt))
             }
             else -> return InferredTypes.unknown()
         }
@@ -1691,7 +1694,7 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
                 struct = fieldDt.subType as StructDecl
             }
             if(field==null) {
-                return InferredTypes.knownFor(DataType.pointerToType(struct))
+                return InferredTypes.knownFor(DataType.pointer(struct))
             }
             val fieldDt = struct.getFieldType(field)
             return if(fieldDt==null)

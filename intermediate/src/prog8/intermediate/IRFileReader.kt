@@ -617,14 +617,14 @@ class IRFileReader {
         if(isArray) {
             if(type[0]=='^') {
                 return when(type.drop(1)) {
-                    "bool" -> DataType.arrayOfPointersTo(BaseDataType.BOOL, null)
-                    "byte" -> DataType.arrayOfPointersTo(BaseDataType.BYTE, null)
-                    "ubyte", "str" -> DataType.arrayOfPointersTo(BaseDataType.UBYTE, null)
-                    "word" -> DataType.arrayOfPointersTo(BaseDataType.WORD, null)
-                    "uword" -> DataType.arrayOfPointersTo(BaseDataType.UWORD, null)
-                    "float" -> DataType.arrayOfPointersTo(BaseDataType.FLOAT, null)
-                    "long" -> DataType.arrayOfPointersTo(BaseDataType.LONG, null)
-                    else -> DataType.arrayOfPointersTo(null, IRSubtypePlaceholder(type.drop(1)))
+                    "bool" -> DataType.arrayOfPointersTo(BaseDataType.BOOL)
+                    "byte" -> DataType.arrayOfPointersTo(BaseDataType.BYTE)
+                    "ubyte", "str" -> DataType.arrayOfPointersTo(BaseDataType.UBYTE)
+                    "word" -> DataType.arrayOfPointersTo(BaseDataType.WORD)
+                    "uword" -> DataType.arrayOfPointersTo(BaseDataType.UWORD)
+                    "float" -> DataType.arrayOfPointersTo(BaseDataType.FLOAT)
+                    "long" -> DataType.arrayOfPointersTo(BaseDataType.LONG)
+                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(1)))
                 }
             }
             return when(type) {
@@ -651,7 +651,7 @@ class IRFileReader {
                     "float" -> DataType.pointer(BaseDataType.FLOAT)
                     "long" -> DataType.pointer(BaseDataType.LONG)
                     // note: 'str' should not occur anymore in IR. Should be 'uword'
-                    else -> DataType.pointerToType(IRSubtypePlaceholder(type.drop(1)))
+                    else -> DataType.pointer(IRSubtypePlaceholder(type.drop(1)))
                 }
             }
             return when(type) {

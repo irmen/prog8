@@ -274,7 +274,7 @@ main {
         DataType.arrayFor(BaseDataType.UWORD, false).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
         DataType.arrayFor(BaseDataType.UWORD, true).typeForAddressOf(true) shouldBe DataType.pointer(BaseDataType.UBYTE)
 
-        DataType.pointerToType(Struct("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
+        DataType.pointer(Struct("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
         DataType.pointerFromAntlr(listOf("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
 
         DataType.pointer(BaseDataType.BOOL).typeForAddressOf(false) shouldBe DataType.UWORD

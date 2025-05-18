@@ -108,21 +108,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val type = idxderef.inferType(program).getOrElse {
             throw FatalAstException("unknown dt")
         }
-        require(type.isPointer || type.isUnsignedWord)
-        if(type.isUnsignedWord) {
-            if(idxderef.parent is AssignTarget)
-                TODO("as assignment target: indexing uword field $idxderef")      // TODO hmm, wasn't there code elsewhere for this already?
-            else
-                TODO("as value: indexing uword field $idxderef")      // TODO hmm, wasn't there code elsewhere for this already?
-        } else {
-            val deref = PtPointerIndexedDeref(DataType.forDt(type.sub!!), idxderef.position)
-            val indexer = PtArrayIndexer(DataType.forDt(type.sub!!), idxderef.position)
-            val identifier = PtIdentifier(idxderef.indexed.arrayvar.nameInSource.joinToString("."), type, idxderef.indexed.arrayvar.position)
-            indexer.add(identifier)
-            indexer.add(transformExpression(idxderef.indexed.indexer.indexExpr))
-            deref.add(indexer)
-            return deref
-        }
+        val derefType = if(type.isPointer) DataType.forDt(type.sub!!) else type
+        val deref = PtPointerIndexedDeref(derefType, idxderef.position)
+        val identifier = PtIdentifier(idxderef.indexed.arrayvar.nameInSource.joinToString("."), DataType.pointer(derefType), idxderef.indexed.arrayvar.position)
+        deref.add(identifier)
+        deref.add(transformExpression(idxderef.indexed.indexer.indexExpr))
+        return deref
     }
 
     private fun transform(deref: PtrDereference): PtPointerDeref {
@@ -411,8 +402,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val call =
             if(targetStruct!=null) {
                 // a call to a struct yields a pointer to a struct instance and means: allocate a statically initialized struct instance of that type
-                val pointertype = DataType.pointerToType(targetStruct)
-                PtBuiltinFunctionCall("structalloc", false, true, pointertype, srcCall.position)
+                PtBuiltinFunctionCall("structalloc", false, true, DataType.pointer(targetStruct), srcCall.position)
             } else {
                 // regular function call
                 val (target, _) = srcCall.target.targetNameAndType(program)

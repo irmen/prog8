@@ -84,7 +84,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         changeDataType = if(decl.datatype.isSplitWordArray) null else {
                             val eltDt = decl.datatype.elementType()
                             if(eltDt.isPointer)
-                                DataType.arrayOfPointersTo(eltDt.base, eltDt.subType)
+                                TODO("convert array of pointers to split words array type")
                             else
                                 DataType.arrayFor(eltDt.base)
                         }
@@ -95,7 +95,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     changeDataType = if(decl.datatype.isSplitWordArray) null else {
                         val eltDt = decl.datatype.elementType()
                         if(eltDt.isPointer)
-                            DataType.arrayOfPointersTo(eltDt.base, eltDt.subType)
+                            TODO("convert array of pointers to split words array type")
                         else
                             DataType.arrayFor(eltDt.base)
                     }

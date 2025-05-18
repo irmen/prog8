@@ -98,25 +98,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(idxderef: PtPointerIndexedDeref): ExpressionCodeResult {
-        val idx = idxderef.indexer
         if (idxderef.type.isStructInstance)
             throw AssemblyError("cannot translate POINTER[x] resulting in a struct instance (only when it results in a basic type); this is likely part of a larger expression POINTER[x].field and that has to be translated earlier as a whole")
 
         val eltSize = codeGen.program.memsizer.memorySize(idxderef.type, null)
         val result = mutableListOf<IRCodeChunkBase>()
-        val pointerTr = translateExpression(idx.variable)
-        result += pointerTr.chunks
-        val pointerReg = pointerTr.resultReg
-        val constIndex = idx.index.asConstInteger()
+        if(!idxderef.variable.type.isPointer) {
+            TODO("expression: indexing non-pointer field ${idxderef.variable}")
+        }
+
+        TODO("evaluate address of pointer dereference ${idxderef.position}")
+
+        val pointerReg = -1 // pointerTr.resultReg
+        val constIndex = idxderef.index.asConstInteger()
         if(constIndex!=null) {
             val offset = constIndex * eltSize
             addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
         } else {
-            val indexTr = translateExpression(idx.index)
+            val indexTr = translateExpression(idxderef.index)
             result += indexTr.chunks
             result += IRCodeChunk(null, null).also {
                 val indexReg: Int
-                if (idx.index.type.isByte) {
+                if (idxderef.index.type.isByte) {
                     // extend array index to word
                     indexReg = codeGen.registers.next(IRDataType.WORD)
                     it += IRInstruction(Opcode.EXT, IRDataType.BYTE, indexReg, indexTr.resultReg)
