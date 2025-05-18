@@ -7,6 +7,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
+import prog8.ast.statements.Assignment
+import prog8.ast.statements.VarDecl
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtReturn
 import prog8.code.ast.PtSubSignature
@@ -338,4 +340,27 @@ main {
         errors.errors[2] shouldContain "out of range"
     }
 
+    test("dereferences of ptr variables mark those as used in the callgraph") {
+        val src="""
+main {
+    struct List {
+        ^^uword s
+        ubyte n
+    }
+    sub start() {
+        ^^List l1 = List()  
+        ^^List l2 = List()  
+        l1.s[2] = 1
+        l2.n=10
+    }
+}"""
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 6
+        (st[0] as VarDecl).name shouldBe "l1"
+        (st[2] as VarDecl).name shouldBe "l2"
+        st[4] shouldBe instanceOf<Assignment>()
+        st[5] shouldBe instanceOf<Assignment>()
+    }
 })

@@ -132,6 +132,10 @@ class CallGraph(private val program: Program) : IAstVisitor {
             val scopeTarget = scope.lookup(name)
             if(scopeTarget is Subroutine)
                 notCalledButReferenced += scopeTarget
+            else if(scopeTarget is VarDecl) {
+                allIdentifiersAndTargets.add(identifier to scopeTarget)
+                break
+            }
         }
     }
 

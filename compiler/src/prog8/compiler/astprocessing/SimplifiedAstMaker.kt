@@ -110,7 +110,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
         require(type.isPointer || type.isUnsignedWord)
         if(type.isUnsignedWord) {
-            TODO("indexing uword field $idxderef")      // TODO hmm, wasn't there code elsewhere for this already?
+            if(idxderef.parent is AssignTarget)
+                TODO("as assignment target: indexing uword field $idxderef")      // TODO hmm, wasn't there code elsewhere for this already?
+            else
+                TODO("as value: indexing uword field $idxderef")      // TODO hmm, wasn't there code elsewhere for this already?
         } else {
             val deref = PtPointerIndexedDeref(DataType.forDt(type.sub!!), idxderef.position)
             val indexer = PtArrayIndexer(DataType.forDt(type.sub!!), idxderef.position)
