@@ -689,15 +689,9 @@ private fun PointerdereferenceContext.toAst(): PtrDereference {
             IdentifierReference(scopeprefix.nameInSource + derefchain.first(), toPosition())
         else
             IdentifierReference(listOf(derefchain.first()), toPosition())
-    return PtrDereference(firstIdentifier, derefchain.drop(1), field?.text, toPosition())
+    val actualDereference = field==null
+    return PtrDereference(firstIdentifier, derefchain.drop(1), field?.text, actualDereference, toPosition())
 }
-
-/* TODO:
-    private fun SinglederefContext.toAst(): Pair<String, ArrayIndex?> {
-    val ident = identifier()!!.name()
-    val index = arrayindex()?.toAst()
-    return ident to index
-}*/
 
 private fun CharliteralContext.toAst(): CharLiteral {
     val text = this.SINGLECHAR().text

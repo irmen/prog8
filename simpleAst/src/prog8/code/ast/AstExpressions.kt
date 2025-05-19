@@ -414,7 +414,7 @@ class PtPointerDeref(type: DataType, val chain: List<String>, val field: String?
         get() = children.single() as PtExpression
 
     init {
-        require(!type.isUndefined && !type.isPointer) { "no support for pointer to pointer" }
+        require(!type.isUndefined)
     }
 }
 

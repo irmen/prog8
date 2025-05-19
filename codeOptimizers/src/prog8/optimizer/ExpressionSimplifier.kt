@@ -437,13 +437,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                         // we're part of an expression:  pointer[x].ptr.ptr.field
                         val chain = (parentExpr.right as? IdentifierReference)?.nameInSource?.toMutableList() ?: mutableListOf()
                         val field = chain.removeLastOrNull()
-                        val deref = PtrDereference(arrayIndexedExpression.arrayvar, chain, field, arrayIndexedExpression.position)
+                        val deref = PtrDereference(arrayIndexedExpression.arrayvar, chain, field, field==null, arrayIndexedExpression.position)
                         return listOf(IAstModification.ReplaceNode(parent, deref, parent.parent))
                     } else
                         throw FatalAstException("cannot dereference a 'bare' pointer to a struct, only to a basic type at ${arrayIndexedExpression.position}")
                 } else {
                     // points to a simple type, can simply dereference the pointer itself directly
-                    val deref = PtrDereference(arrayIndexedExpression.arrayvar, emptyList(), null, arrayIndexedExpression.position)
+                    val deref = PtrDereference(arrayIndexedExpression.arrayvar, emptyList(), null, true,arrayIndexedExpression.position)
                     return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
                 }
             }

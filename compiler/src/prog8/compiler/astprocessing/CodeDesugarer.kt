@@ -399,8 +399,8 @@ _after:
         if(parent is PtrIndexedDereference || parent.parent is PtrIndexedDereference)
             return noModifications
 
-        if(identifier.nameInSource.size>1 && identifier.targetStatement()==null) {
-            // the a.b.c.d could be a pointer dereference chain a^^.b^^^.c^^^.d
+        if(identifier.targetStatement()==null) {
+            // the a.b.c.d could be a pointer dereference chain a^^.b^^.c^^.d
             for(i in identifier.nameInSource.size-1 downTo 1) {
                 val symbol = identifier.definingScope.lookup(identifier.nameInSource.take(i)) as? VarDecl
                 if(symbol!=null) {
@@ -431,8 +431,8 @@ _after:
                         }
                         val deref = PtrIndexedDereference(parent, parent.position)
                         return listOf(IAstModification.ReplaceNode(parent, deref, parent.parent))
-                    } else {
-                        val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, identifier.position)
+                    } else if (parent !is PtrDereference)  {
+                        val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, false, identifier.position)
                         return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
                     }
                 }
@@ -508,17 +508,17 @@ _after:
             }
         }
 
-        if(deref.chain.isEmpty() && deref.field==null) {
-            val expr = deref.parent as? BinaryExpression
-            if (expr != null && expr.operator == ".") {
-                if (expr.left is IdentifierReference && expr.right === deref) {
-                    // replace  (a) . (b^^)  by (a.b)^^
-                    val identifier = IdentifierReference((expr.left as IdentifierReference).nameInSource + deref.identifier.nameInSource, expr.left.position)
-                    val replacement = PtrDereference(identifier, emptyList(), null, deref.position)
-                    return listOf(IAstModification.ReplaceNode(expr, replacement, expr.parent))
-                }
+        val expr = deref.parent as? BinaryExpression
+        if (expr != null && expr.operator == ".") {
+            if (expr.left is IdentifierReference && expr.right === deref) {
+                // replace  (a) . (b^^)  by (a.b)^^
+                val name = (expr.left as IdentifierReference).nameInSource + deref.identifier.nameInSource
+                val identifier = IdentifierReference(name, expr.left.position)
+                val replacement = PtrDereference(identifier, deref.chain, deref.field, deref.derefPointerValue, deref.position)
+                return listOf(IAstModification.ReplaceNode(expr, replacement, expr.parent))
             }
         }
+
         return noModifications
     }
 

@@ -1,12 +1,12 @@
 main {
-    struct List {
-        ^^uword s
-        ubyte n
-    }
+    ^^uword g_wptr
+
     sub start() {
-        ^^List l1 = List()
-        cx16.r1 = l1.s^^
+        ^^uword l_wptr
+
+        cx16.r0 = g_wptr
+        cx16.r1 = g_wptr^^
+        cx16.r0 = l_wptr
+        cx16.r1 = l_wptr^^
     }
 }
-
-; TODO also fix the compilation error in re.p8

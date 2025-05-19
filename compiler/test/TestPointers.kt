@@ -421,4 +421,63 @@ main {
         dr5.chain.size shouldBe 0
         dr5.field shouldBe null
     }
+
+    test("global and local pointer vars") {
+        val src="""
+main {
+    ^^uword g_wptr
+
+    sub start() {
+        ^^uword l_wptr
+
+        cx16.r0 = g_wptr
+        cx16.r1 = g_wptr^^
+        cx16.r0 = l_wptr
+        cx16.r1 = l_wptr^^
+    }
+}"""
+        compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+    }
+
+    test("global struct var deref type") {
+        val src="""
+main {
+    struct State {
+        uword c
+        ^^uword ptr
+    }
+
+    ^^State matchstate
+
+    sub start() {
+        cx16.r0 = matchstate.ptr
+        cx16.r1 = matchstate.ptr^^
+        cx16.r2 = matchstate^^.ptr^^        ; equivalent to previous
+        cx16.r3 = matchstate.c
+    }
+}"""
+
+        compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+    }
+
+
+    test("local struct var deref type") {
+        val src="""
+main {
+    struct State {
+        uword c
+        ^^uword ptr
+    }
+
+    sub start() {
+        ^^State matchstate
+        cx16.r0 = matchstate.ptr
+        cx16.r1 = matchstate.ptr^^
+        cx16.r2 = matchstate^^.ptr^^        ; equivalent to previous
+        cx16.r3 = matchstate.c
+    }
+}"""
+
+        compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+    }
 })

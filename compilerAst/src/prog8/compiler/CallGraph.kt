@@ -136,7 +136,8 @@ class CallGraph(private val program: Program) : IAstVisitor {
                 allIdentifiersAndTargets.add(identifier to scopeTarget)
                 break
             } else if(scopeTarget is StructFieldRef) {
-                TODO("register struct field ref in callgraph? $scopeTarget")
+                allIdentifiersAndTargets.add(identifier to scopeTarget)
+                break
             }
         }
     }

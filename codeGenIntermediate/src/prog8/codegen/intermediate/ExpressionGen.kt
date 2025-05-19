@@ -1678,7 +1678,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
         if(targetPointerDeref.field!=null) {
             val fieldinfo = struct!!.getField(targetPointerDeref.field!!, codeGen.program.memsizer)
-            require(fieldinfo.first == targetPointerDeref.type)
+            require(fieldinfo.first == targetPointerDeref.type) {
+                "field type mismatch: expected ${targetPointerDeref.type}, got ${fieldinfo.first} ${targetPointerDeref.position}"
+            }
             if(fieldinfo.second>0u) {
                 // add the field offset
                 addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)

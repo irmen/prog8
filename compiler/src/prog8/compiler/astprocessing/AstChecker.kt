@@ -1351,15 +1351,14 @@ internal class AstChecker(private val program: Program,
                     if(leftDt.isPointer) {
                         val struct = (leftDt.getOrUndef().subType as? StructDecl)
                         if(struct!=null) {
-                            if (rightIdentifier.nameInSource.size > 1) {
-                                TODO("astcheck ${struct.name} . $rightIdentifier at ${expr.position}")
+                            if (rightIdentifier.nameInSource.size == 1) {
+                                val fieldDt = struct.getFieldType(rightIdentifier.nameInSource.single())
+                                if (fieldDt == null)
+                                    errors.err(
+                                        "no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.name}'",
+                                        rightIdentifier.position
+                                    )
                             }
-                            val fieldDt = struct.getFieldType(rightIdentifier.nameInSource.single())
-                            if (fieldDt == null)
-                                errors.err(
-                                    "no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.name}'",
-                                    rightIdentifier.position
-                                )
                         }
                     } else
                         errors.err("cannot find struct type", expr.left.position)
