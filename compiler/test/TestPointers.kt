@@ -393,9 +393,9 @@ main {
         val dr1 = (st[3] as Assignment).target.pointerDereference!!
         val dr2 = (st[4] as Assignment).value as PtrDereference
 
-        val dr3 = (st[6] as Assignment).value as PtrDereference
-        val dr4 = (st[7] as Assignment).value as PtrDereference
-        val dr5 = (st[8] as Assignment).target.pointerDereference!!
+        val dr3 = (st[7] as Assignment).value as PtrDereference
+        val dr4 = (st[8] as Assignment).value as PtrDereference
+        val dr5 = (st[9] as Assignment).target.pointerDereference!!
 
         dr0.identifier.nameInSource shouldBe listOf("l1", "s")
         dr0.chain.size shouldBe 0

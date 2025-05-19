@@ -5,7 +5,7 @@ main {
     }
     sub start() {
         ^^List l1 = List()
-        cx16.r1 = l1.s^^            ; TODO fix "undefined symbol" error (and fix the unit test too)
+        cx16.r1 = l1.s^^
     }
 }
 

@@ -202,6 +202,17 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
         }
     }
 
+    fun dereference(): DataType {
+        require(isPointer || isUnsignedWord)
+        return when {
+            isUnsignedWord -> forDt(BaseDataType.UBYTE)
+            sub!=null -> forDt(sub)
+            subType!=null -> DataType(BaseDataType.STRUCT_INSTANCE, null, subType)
+            subTypeFromAntlr!=null -> DataType(BaseDataType.STRUCT_INSTANCE, null, null, subTypeFromAntlr)
+            else -> throw IllegalArgumentException("cannot dereference this pointer type")
+        }
+    }
+
     override fun toString(): String = when(base) {
         BaseDataType.ARRAY -> {
             when(sub) {

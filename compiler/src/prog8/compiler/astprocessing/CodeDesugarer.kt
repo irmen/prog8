@@ -507,6 +507,18 @@ _after:
                 return listOf(IAstModification.ReplaceNode(deref, memread, parent))
             }
         }
+
+        if(deref.chain.isEmpty() && deref.field==null) {
+            val expr = deref.parent as? BinaryExpression
+            if (expr != null && expr.operator == ".") {
+                if (expr.left is IdentifierReference && expr.right === deref) {
+                    // replace  (a) . (b^^)  by (a.b)^^
+                    val identifier = IdentifierReference((expr.left as IdentifierReference).nameInSource + deref.identifier.nameInSource, expr.left.position)
+                    val replacement = PtrDereference(identifier, emptyList(), null, deref.position)
+                    return listOf(IAstModification.ReplaceNode(expr, replacement, expr.parent))
+                }
+            }
+        }
         return noModifications
     }
 

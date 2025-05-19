@@ -1631,7 +1631,7 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
         val vardecl = indexed.arrayvar.targetVarDecl()
         if(vardecl!=null &&vardecl.datatype.isPointer) {
             if(vardecl.datatype.sub!=null)
-                return InferredTypes.knownFor(vardecl.datatype.sub!!)
+                return InferredTypes.knownFor(vardecl.datatype.dereference())
             TODO("cannot determine type of dereferenced indexed pointer(?) that is not a pointer to a basic type")
         }
 
@@ -1641,7 +1641,7 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
                 dt.isUndefined -> InferredTypes.unknown()
                 dt.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
                 dt.isPointer -> {
-                    return if(dt.sub!=null) InferredTypes.knownFor(dt.sub!!)
+                    return if(dt.sub!=null) InferredTypes.knownFor(dt.dereference())
                     else InferredTypes.unknown()
                 }
                 else -> InferredTypes.unknown()
@@ -1657,6 +1657,8 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
 }
 
 class PtrDereference(val identifier: IdentifierReference, val chain: List<String>, val field: String?, override val position: Position) : Expression() {
+    // TODO why both identifier and chain?
+
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -1674,7 +1676,7 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
         if(first==null)
             return InferredTypes.unknown()
         if(first is StructFieldRef) {
-            return InferredTypes.knownFor(first.type)
+            return InferredTypes.knownFor(first.type.dereference())
         }
         val vardecl = identifier.targetVarDecl()
         if(vardecl==null || vardecl.datatype.isUndefined || (!vardecl.datatype.isPointer && !vardecl.datatype.isStructInstance) )
@@ -1683,7 +1685,7 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
         if(chain.isEmpty()) {
             return if(field==null) {
                 require(vardecl.datatype.sub!=null) { "can only dereference a pointer to a simple datatype " }
-                InferredTypes.knownFor(vardecl.datatype.sub!!)
+                InferredTypes.knownFor(vardecl.datatype.dereference())
             } else {
                 // lookup struct field type
                 val struct = vardecl.datatype.subType as StructDecl
@@ -1691,7 +1693,7 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
                 if (fieldDt == null)
                     InferredTypes.unknown()
                 else
-                    InferredTypes.knownFor(fieldDt)
+                    InferredTypes.knownFor(fieldDt.dereference())
             }
         } else {
             // lookup type of field at the end of a dereference chain
@@ -1705,13 +1707,13 @@ class PtrDereference(val identifier: IdentifierReference, val chain: List<String
                 struct = fieldDt.subType as StructDecl
             }
             if(field==null) {
-                return InferredTypes.knownFor(DataType.pointer(struct))
+                return InferredTypes.knownFor(DataType.structInstance(struct))
             }
             val fieldDt = struct.getFieldType(field)
             return if(fieldDt==null)
                 InferredTypes.unknown()
             else
-                InferredTypes.knownFor(fieldDt)
+                InferredTypes.knownFor(fieldDt.dereference())
         }
     }
 

@@ -7,10 +7,13 @@ build/
 dist/
 output/
 out/
+out-new/
+out-old/
 .*cache/
 *.directory
 *.prg
 *.bin
+*.p8ir
 *.labels.txt
 *.vm.txt
 *.vice-mon-list

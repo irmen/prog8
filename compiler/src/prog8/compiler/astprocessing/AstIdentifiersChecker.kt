@@ -166,10 +166,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     override fun visit(deref: PtrDereference) {
-        val first = deref.identifier.targetStatement()
-        if(first==null)
-            errors.undefined(deref.identifier.nameInSource, deref.identifier.position)
-
         if(deref.field!=null) {
             // check chain and field
             val dt = deref.identifier.inferType(program).getOrUndef()
@@ -190,10 +186,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                 val fieldDt = struct.getFieldType(deref.field!!)
                 if(fieldDt==null) {
                     errors.err("unknown field '${deref.field}' in struct '${struct.name}'", deref.position)
-                }
-            } else {
-                if (first !is VarDecl || !first.datatype.isStructInstance) {
-                    errors.err("cannot find struct type", deref.identifier.position)
                 }
             }
         }
