@@ -712,8 +712,15 @@ invert:
                     lda  p8v_xx
                     and  #7
                     pha     ; xbits
+
+                    ; xx /= 8
+                    lsr  p8v_xx+1
+                    ror  p8v_xx
+                    lsr  p8v_xx+1
+                    ror  p8v_xx
+                    lsr  p8v_xx
                 }}
-                xx /= 8
+                ;xx /= 8
                 xx += yy*(640/8)
                 %asm {{
                     lda  p8v_xx+1
@@ -948,7 +955,30 @@ _doplot         beq  +
         }
         else {
             cx16.r0 = yy*(640/8)
-            cx16.vaddr(0, cx16.r0+(xx/8), 0, 1)
+            ;cx16.r0 += xx/8
+            %asm {{
+            	ldy  p8v_xx+1
+                lda  p8v_xx
+                sty  P8ZP_SCRATCH_B1
+                lsr  P8ZP_SCRATCH_B1
+                ror  a
+                lsr  P8ZP_SCRATCH_B1
+                ror  a
+                lsr  a
+                clc
+                adc  cx16.r0
+                sta  cx16.r0
+                bcc  +
+                inc  cx16.r0+1
++
+                stz  cx16.VERA_CTRL
+                lda  cx16.r0L
+                sta  cx16.VERA_ADDR_L
+                lda  cx16.r0H
+                sta  cx16.VERA_ADDR_M
+                lda  #%00010000     ; autoincr
+                sta  cx16.VERA_ADDR_H
+            }}
         }
         return
     }
