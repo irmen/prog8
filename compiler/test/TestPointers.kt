@@ -505,17 +505,19 @@ main {
         l2.n=10
         
         ^^List l3 = List()
-        cx16.r0L = n.next.n        
+        cx16.r0L = l3.next.n        
     }
 }"""
 
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 6
+        st.size shouldBe 9
         (st[0] as VarDecl).name shouldBe "l1"
         (st[2] as VarDecl).name shouldBe "l2"
         st[4] shouldBe instanceOf<Assignment>()
         st[5] shouldBe instanceOf<Assignment>()
+        (st[6] as VarDecl).name shouldBe "l3"
+        st[8] shouldBe instanceOf<Assignment>()
     }
 
     test("indexing pointers with index 0 is just a direct pointer dereference") {

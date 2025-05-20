@@ -4,6 +4,7 @@ import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
 import prog8.code.core.BaseDataType
+import prog8.code.core.DataType
 import prog8.intermediate.*
 
 
@@ -672,7 +673,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                             addToResult(result, indexTr, indexTr.resultReg, -1)
                             result += IRCodeChunk(null, null).also {
                                 if(eltSize>1)
-                                    it += codeGen.multiplyByConst(IRDataType.BYTE, indexTr.resultReg, eltSize)
+                                    it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb)
                                     it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexTr.resultReg)
                                 it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = target.variable.name)
@@ -693,7 +694,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                             addToResult(result, indexTr, indexTr.resultReg, -1)
                             result += IRCodeChunk(null, null).also {
                                 if(eltSize>1)
-                                    it += codeGen.multiplyByConst(IRDataType.BYTE, indexTr.resultReg, eltSize)
+                                    it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb)
                                     it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexTr.resultReg)
                                 it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = target.variable.name)

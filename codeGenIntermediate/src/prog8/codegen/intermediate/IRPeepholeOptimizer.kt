@@ -357,7 +357,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             when (ins.opcode) {
-                Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MOD -> {
+                Opcode.DIV, Opcode.DIVS, Opcode.MUL, Opcode.MULS, Opcode.MOD -> {
                     if (ins.immediate == 1) {
                         chunk.instructions.removeAt(idx)
                         changed = true
