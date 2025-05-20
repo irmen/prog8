@@ -907,7 +907,7 @@ class TestProg8Parser: FunSpec( {
         """
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val start = result.compilerAst.entrypoint
-        val containmentChecks = start.statements.takeLast(4)
+        val containmentChecks = start.statements.takeLast(5)
         (containmentChecks[0] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
         (containmentChecks[1] as IfElse).condition shouldBe instanceOf<ContainmentCheck>()
         (containmentChecks[2] as Assignment).value shouldBe instanceOf<ContainmentCheck>()
@@ -948,7 +948,7 @@ class TestProg8Parser: FunSpec( {
         """
         val result = compileText(C64Target(),  false, text, outputDir, writeAssembly = false)!!
         val stmt = result.compilerAst.entrypoint.statements
-        stmt.size shouldBe 12
+        stmt.size shouldBe 13
         val var1 = stmt[0] as VarDecl
         var1.sharedWithAsm shouldBe true
         var1.zeropage shouldBe ZeropageWish.REQUIRE_ZEROPAGE
@@ -998,7 +998,7 @@ main {
     ; curly braces without newline
     sub start () { foo() derp() other() }
     sub foo() { cx16.r0++ }
-    asmsub derp() { %asm {{ nop }} %ir {{ load.b r0,1 }} }
+    asmsub derp() { %asm {{ nop rts }} %ir {{ load.b r0,1 return }} }
 
     ; curly braces on next line
     sub other()
@@ -1014,6 +1014,7 @@ main {
         {{
             txa
             tay
+            rts
         }}
     }
 
@@ -1022,6 +1023,7 @@ main {
         %ir
         {{
             load.b r0,1
+            return
         }}
     }
 }"""
@@ -1042,7 +1044,7 @@ main {
 }"""
         val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
+        st.size shouldBe 9
         val assigns = st.filterIsInstance<Assignment>()
         (assigns[0].value as NumericLiteral).number shouldBe 12345
         (assigns[1].value as NumericLiteral).number shouldBe 0xffee
@@ -1053,11 +1055,11 @@ main {
     test("oneliner") {
         val src="""
             main { sub start() { cx16.r0++ cx16.r1++ } }
-            other { asmsub thing() { %asm {{ inx }} } }
+            other { asmsub thing() { %asm {{ inx  rts }} } }
         """
         val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 2
+        st.size shouldBe 3
     }
 
 })

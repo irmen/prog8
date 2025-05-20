@@ -55,7 +55,7 @@ class TestTypecasts: FunSpec({
             }"""
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 6
+        stmts.size shouldBe 7
         val expr = (stmts[5] as Assignment).value as BinaryExpression
         expr.operator shouldBe "and"
         (expr.left as IdentifierReference).nameInSource shouldBe listOf("bb2")  // no cast
@@ -158,7 +158,7 @@ main {
             }"""
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 8
         val fcall1 = ((stmts[4] as Assignment).value as IFunctionCall)
         fcall1.args[0] shouldBe NumericLiteral(BaseDataType.BOOL, 1.0, Position.DUMMY)
         fcall1.args[1] shouldBe NumericLiteral(BaseDataType.BOOL, 0.0, Position.DUMMY)
@@ -210,7 +210,7 @@ main {
             }"""
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 3
+        stmts.size shouldBe 4
     }
 
     test("ubyte to word casts") {
@@ -225,7 +225,7 @@ main {
 
         val result = compileText(C64Target(), true, src, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 4
+        stmts.size shouldBe 5
         val assign1tc = (stmts[2] as Assignment).value as TypecastExpression
         val assign2tc = (stmts[3] as Assignment).value as TypecastExpression
         assign1tc.type shouldBe DataType.WORD
@@ -256,7 +256,7 @@ main {
             }"""
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 8
+        stmts.size shouldBe 9
         val arg1 = (stmts[2] as IFunctionCall).args.single()
         val arg2 = (stmts[3] as IFunctionCall).args.single()
         val arg3 = (stmts[4] as IFunctionCall).args.single()
@@ -894,7 +894,7 @@ main {
         val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!
         val program = result.compilerAst
         val st = program.entrypoint.statements
-        st.size shouldBe 1
+        st.size shouldBe 2
         val assign = st[0] as Assignment
         assign.target.inferType(program).getOrUndef().base shouldBe BaseDataType.BYTE
         val ifexpr = assign.value as IfExpression
@@ -919,7 +919,7 @@ main {
         val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!
         val program = result.compilerAst
         val st = program.entrypoint.statements
-        st.size shouldBe 6
+        st.size shouldBe 7
         val v1 = (st[2] as Assignment).value as BinaryExpression
         v1.operator shouldBe "+"
         (v1.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0")

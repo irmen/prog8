@@ -206,7 +206,7 @@ main {
 }"""
         val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!.compilerAst
         val st = result.entrypoint.statements
-        st.size shouldBe 8
+        st.size shouldBe 9
         st[0] shouldBe instanceOf<VarDecl>()
         st[1] shouldBe instanceOf<VarDecl>()
         st[2] shouldBe instanceOf<VarDecl>()

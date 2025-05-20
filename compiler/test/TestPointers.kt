@@ -511,7 +511,7 @@ main {
 
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 9
+        st.size shouldBe 10
         (st[0] as VarDecl).name shouldBe "l1"
         (st[2] as VarDecl).name shouldBe "l2"
         st[4] shouldBe instanceOf<Assignment>()
@@ -543,7 +543,7 @@ main {
 
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 10
+        st.size shouldBe 11
         val dr0 = (st[2] as Assignment).value as PtrDereference
         val dr1 = (st[3] as Assignment).target.pointerDereference!!
         val dr2 = (st[4] as Assignment).value as PtrDereference

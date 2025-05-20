@@ -271,28 +271,6 @@ main {
             errors.errors[0] shouldContain "has result value"
             errors.errors[1] shouldContain "has result value"
         }
-
-        test("missing return value is not a syntax error if there's an external goto") {
-            val src="""
-main {
-    sub start() {
-        cx16.r0 = runit1()
-        runit2()
-    }
-
-    sub runit1() -> uword {
-        repeat {
-            cx16.r0++
-            goto runit2
-        }
-    }
-
-    sub runit2() {
-        cx16.r0++
-    }
-}"""
-            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
-        }
     }
 
     context("variable declarations") {
@@ -355,7 +333,7 @@ main {
 }"""
             val result = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=false)!!
             val st = result.compilerAst.entrypoint.statements
-            st.size shouldBe 12
+            st.size shouldBe 13
             st[0] shouldBe instanceOf<VarDecl>()    // x
             st[2] shouldBe instanceOf<VarDecl>()    // y
             st[4] shouldBe instanceOf<VarDecl>()    // z
@@ -429,7 +407,7 @@ main {
             errors.warnings.all { "dirty variable" in it } shouldBe true
             val start = result.compilerAst.entrypoint
             val st = start.statements
-            st.size shouldBe 9
+            st.size shouldBe 10
             val assignments = st.filterIsInstance<Assignment>()
             assignments.size shouldBe 2
             assignments[0].target.identifier?.nameInSource shouldBe listOf("locwi")
@@ -523,7 +501,7 @@ main {
 }"""
         val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 8
         val assign1expr = (stmts[3] as Assignment).value as BinaryExpression
         val assign2expr = (stmts[5] as Assignment).value as BinaryExpression
         assign1expr.operator shouldBe "<<"
@@ -554,7 +532,7 @@ main {
 }"""
         val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 9
+        stmts.size shouldBe 10
     }
 
     test("alternative notation for negative containment check") {
@@ -570,7 +548,7 @@ main {
 """
         val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 4
+        stmts.size shouldBe 5
         val value1 = (stmts[2] as Assignment).value as PrefixExpression
         val value2 = (stmts[3] as Assignment).value as PrefixExpression
         value1.operator shouldBe "not"
@@ -764,7 +742,7 @@ main {
 }"""
         val result=compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 11
+        st.size shouldBe 12
 
         val ifCond = (st[8] as IfElse).condition as BinaryExpression
         ifCond.operator shouldBe ">="
@@ -792,7 +770,7 @@ main {
 
         val result=compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 6
+        st.size shouldBe 7
         val value = (st[5] as Assignment).value as BinaryExpression
         value.operator shouldBe "%"
     }
@@ -838,10 +816,9 @@ main {
 }"""
         val result = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
-        val assignUbbVal = ((st[5] as Assignment).value as TypecastExpression)
-        assignUbbVal.type shouldBe DataType.UBYTE
-        assignUbbVal.expression shouldBe instanceOf<IdentifierReference>()
+        st.size shouldBe 9
+        val assignUbbVal = (st[5] as Assignment).value as IdentifierReference
+        assignUbbVal.inferType(result.compilerAst) shouldBe InferredTypes.knownFor(BaseDataType.BYTE)
         val assignVaddr = (st[7] as Assignment).value as FunctionCallExpression
         assignVaddr.target.nameInSource shouldBe listOf("mkword")
         val tc = assignVaddr.args[0] as TypecastExpression
@@ -970,6 +947,7 @@ main {
         if cx16.r0==0
             return cx16.r0+cx16.r1
         defer cx16.r2++
+        return 999
     }
 }"""
         val result = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=true)!!

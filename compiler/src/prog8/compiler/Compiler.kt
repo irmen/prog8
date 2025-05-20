@@ -145,8 +145,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
                 // re-initialize memory areas with final compilationOptions
                 compilationOptions.compTarget.initializeMemoryAreas(compilationOptions)
-                program.processAstBeforeAsmGeneration(compilationOptions, args.errors)
-                args.errors.report()
 
                 if(args.printAst1) {
                     println("\n*********** COMPILER AST *************")
@@ -495,8 +493,21 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
     program.verifyFunctionArgTypes(errors, compilerOptions)
     errors.report()
     program.moveMainBlockAsFirst(compilerOptions.compTarget)
+
+    val fixer = BeforeAsmAstChanger(program, compilerOptions, errors)
+    fixer.visit(program)
+    while (errors.noErrors() && fixer.applyModifications() > 0) {
+        fixer.visit(program)
+    }
+
     program.checkValid(errors, compilerOptions)          // check if final tree is still valid
     errors.report()
+
+    val cleaner = BeforeAsmTypecastCleaner(program, errors)
+    cleaner.visit(program)
+    while (errors.noErrors() && cleaner.applyModifications() > 0) {
+        cleaner.visit(program)
+    }
 }
 
 private fun createAssemblyAndAssemble(program: PtProgram,
