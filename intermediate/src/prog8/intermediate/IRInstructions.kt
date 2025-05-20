@@ -146,13 +146,16 @@ subr        reg1, reg2                      - reg1 -= reg2
 sub         reg1,              value        - reg1 -= value 
 subm        reg1,              address      - memory at address -= reg1 
 mulr        reg1, reg2                      - unsigned multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
+mulsr       reg1, reg2                      - signed multiply reg1 *= reg2  note: byte*byte->byte, no type extension to word!
 mul         reg1,              value        - unsigned multiply reg1 *= value  note: byte*byte->byte, no type extension to word!
-mulm        reg1,              address      - memory at address  *= reg2  note: byte*byte->byte, no type extension to word!
+muls        reg1,              value        - signed multiply reg1 *= value  note: byte*byte->byte, no type extension to word!
+mulm        reg1,              address      - unsigned memory at address  *= reg2  note: byte*byte->byte, no type extension to word!
+mulsm       reg1,              address      - signed memory at address  *= reg2  note: byte*byte->byte, no type extension to word!
 divr        reg1, reg2                      - unsigned division reg1 /= reg2  note: division by zero yields max int $ff/$ffff
-div         reg1,              value        - unsigned division reg1 /= value  note: division by zero yields max int $ff/$ffff
-divm        reg1,              address      - memory at address /= reg2  note: division by zero yields max int $ff/$ffff
 divsr       reg1, reg2                      - signed division reg1 /= reg2  note: division by zero yields max signed int 127 / 32767
+div         reg1,              value        - unsigned division reg1 /= value  note: division by zero yields max int $ff/$ffff
 divs        reg1,              value        - signed division reg1 /= value  note: division by zero yields max signed int 127 / 32767
+divm        reg1,              address      - memory at address /= reg2  note: division by zero yields max int $ff/$ffff
 divsm       reg1,              address      - signed memory at address /= reg2  note: division by zero yields max signed int 127 / 32767
 modr        reg1, reg2                      - remainder (modulo) of unsigned division reg1 %= reg2  note: division by zero yields max signed int $ff/$ffff
 mod         reg1,              value        - remainder (modulo) of unsigned division reg1 %= value  note: division by zero yields max signed int $ff/$ffff
@@ -327,6 +330,9 @@ enum class Opcode {
     MULR,
     MUL,
     MULM,
+    MULSR,
+    MULS,
+    MULSM,
     DIVR,
     DIV,
     DIVM,
@@ -664,9 +670,12 @@ val instructionFormats = mutableMapOf(
     Opcode.SUBR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.SUB        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
     Opcode.SUBM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2"),
+    Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a"),
+    Opcode.MULSR      to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
+    Opcode.MULS       to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.MULSM      to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
     Opcode.DIVR       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.DIV        to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.DIVM       to InstructionFormat.from("BW,<r1,<>a"),

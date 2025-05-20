@@ -258,6 +258,9 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.MULR -> InsMULR(ins)
             Opcode.MUL -> InsMUL(ins)
             Opcode.MULM -> InsMULM(ins)
+            Opcode.MULSR -> InsMULSR(ins)
+            Opcode.MULS -> InsMULS(ins)
+            Opcode.MULSM -> InsMULSM(ins)
             Opcode.DIVR -> InsDIVR(ins)
             Opcode.DIV -> InsDIV(ins)
             Opcode.DIVM -> InsDIVM(ins)
@@ -1118,6 +1121,48 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
+    private fun InsMULSR(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> plusMinusMultAnyByteSigned("*", i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> plusMinusMultAnyWordSigned("*", i.reg1!!, i.reg2!!)
+            IRDataType.FLOAT -> {
+                val left = registers.getFloat(i.fpReg1!!)
+                val right = registers.getFloat(i.fpReg2!!)
+                val result = arithFloat(left, "*", right)
+                registers.setFloat(i.fpReg1!!, result)
+            }
+        }
+        nextPc()
+    }
+
+    private fun InsMULS(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> plusMinusMultConstByteSigned("*", i.reg1!!, i.immediate!!.toByte())
+            IRDataType.WORD -> plusMinusMultConstWordSigned("*", i.reg1!!, i.immediate!!.toShort())
+            IRDataType.FLOAT -> {
+                val left = registers.getFloat(i.fpReg1!!)
+                val result = arithFloat(left, "*", i.immediateFp!!)
+                registers.setFloat(i.fpReg1!!, result)
+            }
+        }
+        nextPc()
+    }
+
+    private fun InsMULSM(i: IRInstruction) {
+        val address = i.address!!
+        when(i.type!!) {
+            IRDataType.BYTE -> plusMinusMultAnyByteSignedInplace("*", i.reg1!!, address)
+            IRDataType.WORD -> plusMinusMultAnyWordSignedInplace("*", i.reg1!!, address)
+            IRDataType.FLOAT -> {
+                val left = memory.getFloat(address)
+                val right = registers.getFloat(i.fpReg1!!)
+                val result = arithFloat(left, "*", right)
+                memory.setFloat(address, result)
+            }
+        }
+        nextPc()
+    }
+
     private fun InsDIVR(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> divOrModByteUnsigned("/", i.reg1!!, i.reg2!!)
@@ -1355,6 +1400,18 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUB(reg1, result.toUByte())
     }
 
+    private fun plusMinusMultAnyByteSigned(operator: String, reg1: Int, reg2: Int) {
+        val left = registers.getSB(reg1)
+        val right = registers.getSB(reg2)
+        val result = when(operator) {
+            "+" -> left + right
+            "-" -> left - right
+            "*" -> left * right
+            else -> throw IllegalArgumentException("operator byte $operator")
+        }
+        registers.setSB(reg1, result.toByte())
+    }
+
     private fun plusMinusMultConstByte(operator: String, reg1: Int, value: UByte) {
         val left = registers.getUB(reg1)
         val result = when(operator) {
@@ -1364,6 +1421,17 @@ class VirtualMachine(irProgram: IRProgram) {
             else -> throw IllegalArgumentException("operator byte $operator")
         }
         registers.setUB(reg1, result.toUByte())
+    }
+
+    private fun plusMinusMultConstByteSigned(operator: String, reg1: Int, value: Byte) {
+        val left = registers.getSB(reg1)
+        val result = when(operator) {
+            "+" -> left + value
+            "-" -> left - value
+            "*" -> left * value
+            else -> throw IllegalArgumentException("operator byte $operator")
+        }
+        registers.setSB(reg1, result.toByte())
     }
 
     private fun plusMinusMultAnyByteInplace(operator: String, reg1: Int, address: Int) {
@@ -1376,6 +1444,18 @@ class VirtualMachine(irProgram: IRProgram) {
             else -> throw IllegalArgumentException("operator byte $operator")
         }
         memory.setUB(address, result.toUByte())
+    }
+
+    private fun plusMinusMultAnyByteSignedInplace(operator: String, reg1: Int, address: Int) {
+        val memvalue = memory.getSB(address)
+        val operand = registers.getSB(reg1)
+        val result = when(operator) {
+            "+" -> memvalue + operand
+            "-" -> memvalue - operand
+            "*" -> memvalue * operand
+            else -> throw IllegalArgumentException("operator byte $operator")
+        }
+        memory.setSB(address, result.toByte())
     }
 
     private fun divModByteSigned(operator: String, reg1: Int, reg2: Int) {
@@ -1528,6 +1608,22 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUW(reg1, result.toUShort())
     }
 
+    private fun plusMinusMultAnyWordSigned(operator: String, reg1: Int, reg2: Int) {
+        val left = registers.getSW(reg1)
+        val right = registers.getSW(reg2)
+        val result: Int
+        when(operator) {
+            "+" -> result = left + right
+            "-" -> result = left - right
+            "*" -> {
+                result = left.toInt() * right
+                mul16LastUpper = result.toUInt() shr 16
+            }
+            else -> throw IllegalArgumentException("operator word $operator")
+        }
+        registers.setSW(reg1, result.toShort())
+    }
+
     private fun plusMinusMultConstWord(operator: String, reg1: Int, value: UShort) {
         val left = registers.getUW(reg1)
         val result: UInt
@@ -1541,6 +1637,21 @@ class VirtualMachine(irProgram: IRProgram) {
             else -> throw IllegalArgumentException("operator word $operator")
         }
         registers.setUW(reg1, result.toUShort())
+    }
+
+    private fun plusMinusMultConstWordSigned(operator: String, reg1: Int, value: Short) {
+        val left = registers.getSW(reg1)
+        val result: Int
+        when(operator) {
+            "+" -> result = left + value
+            "-" -> result = left - value
+            "*" -> {
+                result = left.toInt() * value
+                mul16LastUpper = result.toUInt() shr 16
+            }
+            else -> throw IllegalArgumentException("operator word $operator")
+        }
+        registers.setSW(reg1, result.toShort())
     }
 
     private fun plusMinusMultAnyWordInplace(operator: String, reg1: Int, address: Int) {
@@ -1557,6 +1668,22 @@ class VirtualMachine(irProgram: IRProgram) {
             else -> throw IllegalArgumentException("operator word $operator")
         }
         memory.setUW(address, result.toUShort())
+    }
+
+    private fun plusMinusMultAnyWordSignedInplace(operator: String, reg1: Int, address: Int) {
+        val memvalue = memory.getSW(address)
+        val operand = registers.getSW(reg1)
+        val result: Int
+        when(operator) {
+            "+" -> result = memvalue + operand
+            "-" -> result = memvalue - operand
+            "*" -> {
+                result = memvalue.toInt() * operand
+                mul16LastUpper = result.toUInt() shr 16
+            }
+            else -> throw IllegalArgumentException("operator word $operator")
+        }
+        memory.setSW(address, result.toShort())
     }
 
     private fun divOrModWordUnsigned(operator: String, reg1: Int, reg2: Int) {

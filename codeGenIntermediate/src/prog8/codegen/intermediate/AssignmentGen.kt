@@ -134,7 +134,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val chunks = when (augAssign.operator) {
             "+=" -> operatorPlusInplace(symbol, array, constAddress, memTarget, targetDt, value)
             "-=" -> operatorMinusInplace(symbol, array, constAddress, memTarget, targetDt, value)
-            "*=" -> operatorMultiplyInplace(symbol, array, constAddress, memTarget, targetDt, value)
+            "*=" -> operatorMultiplyInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
             "/=" -> operatorDivideInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
             "|=" -> operatorOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
             "or=" -> operatorLogicalOrInplace(symbol, array, constAddress, memTarget, targetDt, value)
@@ -231,7 +231,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val tr = expressionEval.translateExpression(array.index)
             addToResult(result, tr, tr.resultReg, -1)
             if(!array.splitWords && eltSize>1)
-                result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
+                result += codeGen.multiplyByConst(DataType.UBYTE, tr.resultReg, eltSize)
             return tr.resultReg
         }
 
@@ -793,7 +793,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         return result
     }
 
-    private fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
             val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             val result = mutableListOf<IRCodeChunkBase>()
@@ -807,7 +807,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     val valueReg=codeGen.registers.next(eltDt)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOAD, eltDt, reg1=valueReg, immediate = constValue)
-                        it += IRInstruction(Opcode.MULM, eltDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
+                        val opcode = if(signed) Opcode.MULSM else Opcode.MULM
+                        it += IRInstruction(opcode, eltDt, reg1=valueReg, labelSymbol = array.variable.name, symbolOffset = constIndex*eltSize)
                     }
                 }
                 return result
@@ -827,22 +828,23 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val tr = expressionEval.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
+                    IRInstruction(Opcode.MULSM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
                 else
-                    IRInstruction(Opcode.MULM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
+                    IRInstruction(Opcode.MULSM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol)
                     , null)
             }
         } else {
             if(constFactorRight!=null && !constFactorRight.type.isFloat) {
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.multiplyByConstInplace(vmDt, constAddress, symbol, factor)
+                result += codeGen.multiplyByConstInplace(vmDt, signed, constAddress, symbol, factor)
             } else {
                 val tr = expressionEval.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
+                val opcode = if(signed) Opcode.MULSM else Opcode.MULM
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, address = constAddress)
+                    IRInstruction(opcode, vmDt, reg1=tr.resultReg, address = constAddress)
                 else
-                    IRInstruction(Opcode.MULM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
+                    IRInstruction(opcode, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
                     , null)
             }
         }

@@ -780,7 +780,7 @@ class IRCodeGen(
         code += if(factor==0.0) {
             IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = 0.0)
         } else {
-            IRInstruction(Opcode.MUL, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = factor)
+            IRInstruction(Opcode.MULS, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = factor)
         }
         return code
     }
@@ -798,38 +798,40 @@ class IRCodeGen(
             val factorReg = registers.next(IRDataType.FLOAT)
             code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=factorReg, immediateFp = factor)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.MULM, IRDataType.FLOAT, fpReg1 = factorReg, address = knownAddress)
+                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = factorReg, address = knownAddress)
             else
-                IRInstruction(Opcode.MULM, IRDataType.FLOAT, fpReg1 = factorReg, labelSymbol = symbol)
+                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = factorReg, labelSymbol = symbol)
         }
         return code
     }
 
-    internal fun multiplyByConst(dt: IRDataType, reg: Int, factor: Int): IRCodeChunk {
+    internal fun multiplyByConst(dt: DataType, reg: Int, factor: Int): IRCodeChunk {
+        val irdt = irType(dt)
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
         val pow2 = powersOfTwoInt.indexOf(factor)
         if(pow2==1) {
             // just shift 1 bit
-            code += IRInstruction(Opcode.LSL, dt, reg1=reg)
+            code += IRInstruction(Opcode.LSL, irdt, reg1=reg)
         }
         else if(pow2>=1) {
             // just shift multiple bits
             val pow2reg = registers.next(IRDataType.BYTE)
             code += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=pow2reg, immediate = pow2)
-            code += IRInstruction(Opcode.LSLN, dt, reg1=reg, reg2=pow2reg)
+            code += IRInstruction(Opcode.LSLN, irdt, reg1=reg, reg2=pow2reg)
         } else {
             code += if (factor == 0) {
-                IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0)
+                IRInstruction(Opcode.LOAD, irdt, reg1=reg, immediate = 0)
             } else {
-                IRInstruction(Opcode.MUL, dt, reg1=reg, immediate = factor)
+                val opcode = if(dt.isSigned) Opcode.MULS else Opcode.MUL
+                IRInstruction(opcode, irdt, reg1=reg, immediate = factor)
             }
         }
         return code
     }
 
-    internal fun multiplyByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int): IRCodeChunk {
+    internal fun multiplyByConstInplace(dt: IRDataType, signed: Boolean, knownAddress: Int?, symbol: String?, factor: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
@@ -859,10 +861,11 @@ class IRCodeGen(
             else {
                 val factorReg = registers.next(dt)
                 code += IRInstruction(Opcode.LOAD, dt, reg1=factorReg, immediate = factor)
+                val opcode = if(signed) Opcode.MULSM else Opcode.MULM
                 code += if(knownAddress!=null)
-                    IRInstruction(Opcode.MULM, dt, reg1=factorReg, address = knownAddress)
+                    IRInstruction(opcode, dt, reg1=factorReg, address = knownAddress)
                 else
-                    IRInstruction(Opcode.MULM, dt, reg1=factorReg, labelSymbol = symbol)
+                    IRInstruction(opcode, dt, reg1=factorReg, labelSymbol = symbol)
             }
         }
         return code

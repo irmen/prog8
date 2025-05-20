@@ -2,10 +2,7 @@ package prog8.codegen.intermediate
 
 import prog8.code.*
 import prog8.code.ast.*
-import prog8.code.core.AssemblyError
-import prog8.code.core.BaseDataType
-import prog8.code.core.Cx16VirtualRegisters
-import prog8.code.core.Statusflag
+import prog8.code.core.*
 import prog8.intermediate.*
 
 
@@ -392,7 +389,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val tr = translateExpression(arrayIx.index)
             addToResult(result, tr, tr.resultReg, -1)
             if(eltSize>1)
-                result += codeGen.multiplyByConst(IRDataType.BYTE, tr.resultReg, eltSize)
+                result += codeGen.multiplyByConst(DataType.UBYTE, tr.resultReg, eltSize)
             if(vmDt==IRDataType.FLOAT) {
                 resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = resultFpRegister, reg1=tr.resultReg, labelSymbol = arrayVarSymbol), null)
@@ -565,8 +562,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return when(binExpr.operator) {
             "+" -> operatorPlus(binExpr, vmDt)
             "-" -> operatorMinus(binExpr, vmDt)
-            "*" -> operatorMultiply(binExpr, vmDt)
-            "/" -> operatorDivide(binExpr, vmDt, signed)
+            "*" -> operatorMultiply(binExpr, binExpr.left.type)
+            "/" -> operatorDivide(binExpr, binExpr.left.type)
             "%" -> operatorModulo(binExpr, vmDt)
             "|" -> operatorOr(binExpr, vmDt, true)
             "&" -> operatorAnd(binExpr, vmDt, true)
@@ -1224,7 +1221,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorDivide(binExpr: PtBinaryExpression, vmDt: IRDataType, signed: Boolean): ExpressionCodeResult {
+    private fun operatorDivide(binExpr: PtBinaryExpression, dt: DataType): ExpressionCodeResult {
+        val vmDt = irType(dt)
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorRight = binExpr.right as? PtNumber
         if(vmDt==IRDataType.FLOAT) {
@@ -1239,7 +1237,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, leftTr, -1, leftTr.resultFpReg)
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, -1, rightTr.resultFpReg)
-                addInstr(result, if(signed)
+                addInstr(result, if(dt.isSigned)
                         IRInstruction(Opcode.DIVSR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2=rightTr.resultFpReg)
                     else
                         IRInstruction(Opcode.DIVR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2=rightTr.resultFpReg)
@@ -1251,13 +1249,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val tr = translateExpression(binExpr.left)
                 addToResult(result, tr, tr.resultReg, -1)
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.divideByConst(vmDt, tr.resultReg, factor, signed)
+                result += codeGen.divideByConst(vmDt, tr.resultReg, factor, dt.isSigned)
                 ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             } else {
                 if(binExpr.right is PtNumber) {
                     val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, leftTr.resultReg, -1)
-                    addInstr(result, if (signed)
+                    addInstr(result, if (dt.isSigned)
                             IRInstruction(Opcode.DIVS, vmDt, reg1 = leftTr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt())
                         else
                             IRInstruction(Opcode.DIV, vmDt, reg1 = leftTr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt())
@@ -1268,7 +1266,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     addToResult(result, leftTr, leftTr.resultReg, -1)
                     val rightTr = translateExpression(binExpr.right)
                     addToResult(result, rightTr, rightTr.resultReg, -1)
-                    addInstr(result, if (signed)
+                    addInstr(result, if (dt.isSigned)
                             IRInstruction(Opcode.DIVSR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg)
                         else
                             IRInstruction(Opcode.DIVR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg)
@@ -1279,7 +1277,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorMultiply(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorMultiply(binExpr: PtBinaryExpression, dt: DataType): ExpressionCodeResult {
+        val vmDt = irType(dt)
         val result = mutableListOf<IRCodeChunkBase>()
         val constFactorLeft = binExpr.left as? PtNumber
         val constFactorRight = binExpr.right as? PtNumber
@@ -1301,7 +1300,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addToResult(result, leftTr, -1, leftTr.resultFpReg)
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, -1, rightTr.resultFpReg)
-                addInstr(result, IRInstruction(Opcode.MULR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
+                addInstr(result, IRInstruction(Opcode.MULSR, vmDt, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
                 ExpressionCodeResult(result, vmDt, -1, leftTr.resultFpReg)
             }
         } else {
@@ -1309,20 +1308,21 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 val tr = translateExpression(binExpr.right)
                 addToResult(result, tr, tr.resultReg, -1)
                 val factor = constFactorLeft.number.toInt()
-                result += codeGen.multiplyByConst(vmDt, tr.resultReg, factor)
+                result += codeGen.multiplyByConst(dt, tr.resultReg, factor)
                 ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             } else if(constFactorRight!=null && !constFactorRight.type.isFloat) {
                 val tr = translateExpression(binExpr.left)
                 addToResult(result, tr, tr.resultReg, -1)
                 val factor = constFactorRight.number.toInt()
-                result += codeGen.multiplyByConst(vmDt, tr.resultReg, factor)
+                result += codeGen.multiplyByConst(dt, tr.resultReg, factor)
                 ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
             } else {
                 val leftTr = translateExpression(binExpr.left)
                 addToResult(result, leftTr, leftTr.resultReg, -1)
                 val rightTr = translateExpression(binExpr.right)
                 addToResult(result, rightTr, rightTr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.MULR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
+                val opcode = if(dt.isSigned) Opcode.MULSR else Opcode.MULR
+                addInstr(result, IRInstruction(opcode, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
                 ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
             }
         }
