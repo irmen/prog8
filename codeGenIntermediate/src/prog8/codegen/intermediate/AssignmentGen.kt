@@ -143,40 +143,54 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 operandTr = expressionEval.translateExpression(value)
                 inplaceInstrs += operandTr.chunks
             }
-            addInstr(inplaceInstrs, IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg), null)
-            when(augAssign.operator) {
-                "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "|=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                ">>=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSRN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                "or=" -> {
-                    val shortcutLabel = codeGen.createLabelName()
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
-                    val valueTr = expressionEval.translateExpression(value)
-                    inplaceInstrs += valueTr.chunks
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
-                    inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+            if(targetDt== IRDataType.FLOAT) {
+                addInstr(inplaceInstrs, IRInstruction(Opcode.LOADI, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg), null)
+                when(augAssign.operator) {
+                    "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                    "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                    "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                    "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVSR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                    "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                    "+" -> { /* inplace + is a no-op */ }
+                    else -> throw AssemblyError("invalid augmented assign operator for floats ${augAssign.operator}")
                 }
-                "and=" -> {
-                    val shortcutLabel = codeGen.createLabelName()
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel), null)
-                    val valueTr = expressionEval.translateExpression(value)
-                    inplaceInstrs += valueTr.chunks
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
-                    inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+            } else {
+                addInstr(inplaceInstrs, IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg), null)
+                when(augAssign.operator) {
+                    "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "|=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    ">>=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSRN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                    "or=" -> {
+                        val shortcutLabel = codeGen.createLabelName()
+                        addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
+                        val valueTr = expressionEval.translateExpression(value)
+                        inplaceInstrs += valueTr.chunks
+                        addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
+                        inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+                    }
+                    "and=" -> {
+                        val shortcutLabel = codeGen.createLabelName()
+                        addInstr(inplaceInstrs, IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel), null)
+                        val valueTr = expressionEval.translateExpression(value)
+                        inplaceInstrs += valueTr.chunks
+                        addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
+                        inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+                    }
+                    "-" -> addInstr(inplaceInstrs, IRInstruction(Opcode.NEG, targetDt, reg1 = oldvalueReg), null)
+                    "~" -> addInstr(inplaceInstrs, IRInstruction(Opcode.INV, targetDt, reg1 = oldvalueReg), null)
+                    "not" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XOR, targetDt, reg1 = oldvalueReg, immediate = 1), null)
+                    "+" -> { /* inplace + is a no-op */ }
+                    else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
                 }
-                "-" -> addInstr(inplaceInstrs, IRInstruction(Opcode.NEG, targetDt, reg1 = oldvalueReg), null)
-                "~" -> addInstr(inplaceInstrs, IRInstruction(Opcode.INV, targetDt, reg1 = oldvalueReg), null)
-                "not" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XOR, targetDt, reg1 = oldvalueReg, immediate = 1), null)
-                "+" -> { /* inplace + is a no-op */ }
-                else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
             }
+
             // TODO this could probably be omitted if we had indirect addressing modes for all above inplace instructions:
             codeGen.storeValueAtPointersLocation(inplaceInstrs, addressReg, pointerDeref.type, false, oldvalueReg)
             chunks = inplaceInstrs
@@ -586,7 +600,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         }
         else if(targetPointerDeref!=null) {
             val addressReg = codeGen.evaluatePointerAddressIntoReg(result, targetPointerDeref)
-            codeGen.storeValueAtPointersLocation(result, addressReg, targetPointerDeref.type, zero, valueRegister)
+            val actualValueReg = if(targetPointerDeref.type.isFloat) valueFpRegister else valueRegister
+            codeGen.storeValueAtPointersLocation(result, addressReg, targetPointerDeref.type, zero, actualValueReg)
             return result
         }
         else if(targetPointerIndexedDeref!=null) {

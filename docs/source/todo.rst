@@ -53,7 +53,8 @@ STRUCTS and TYPED POINTERS
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
-- fix ptr problems in re.p8
+- fix ptr problems in re.p8 and unit tests
+- add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
 - clean up pointerdereference in the grammar, regarding dealing with final ^^ or not
 - Can we now get rid of PtPointerIndexedDeref ?  Both for expression (value) as assigntarget? All code for translate(idxderef: PtPointerIndexedDeref)  in ExpressionGen?
 - why does PtrDereference have both identifier and chain property? what goes where? is the distinction needed?
