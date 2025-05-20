@@ -225,7 +225,7 @@ other {
             }
         """
         val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly = false)!!
-        val assignFF = result.compilerAst.entrypoint.statements.last() as Assignment
+        val assignFF = result.compilerAst.entrypoint.statements.dropLast(1).last() as Assignment
         assignFF.isAugmentable shouldBe true
         assignFF.target.identifier!!.nameInSource shouldBe listOf("ff")
         val value = assignFF.value as BinaryExpression
@@ -252,7 +252,7 @@ other {
             }
         """
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 7
+        result.compilerAst.entrypoint.statements.size shouldBe 8
         val alldecls = result.compilerAst.entrypoint.allDefinedSymbols.toList()
         alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
     }
@@ -276,12 +276,12 @@ other {
                 }
             }"""
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 3
+        result.compilerAst.entrypoint.statements.size shouldBe 4
         val ifstmt = result.compilerAst.entrypoint.statements[0] as IfElse
         ifstmt.truepart.statements.size shouldBe 1
         (ifstmt.truepart.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
-        val func2 = result.compilerAst.entrypoint.statements[2] as Subroutine
-        func2.statements.size shouldBe 2
+        val func2 = result.compilerAst.entrypoint.statements.last() as Subroutine
+        func2.statements.size shouldBe 3
         (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
     }
 
@@ -312,7 +312,7 @@ main {
     }
 }"""
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 0
+        result.compilerAst.entrypoint.statements.size shouldBe 1
         result.compilerAst.entrypoint.definingScope.statements.size shouldBe 1
     }
 
@@ -350,7 +350,7 @@ main {
         z6 = z1 - 5
         */
         val statements = result.compilerAst.entrypoint.statements
-        statements.size shouldBe 12
+        statements.size shouldBe 13
         val z1decl = statements[0] as VarDecl
         val z1init = statements[1] as Assignment
         val z2decl = statements[2] as VarDecl
@@ -395,8 +395,8 @@ main {
 
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 5
-        val assign=stmts.last() as Assignment
+        stmts.size shouldBe 6
+        val assign=stmts[4] as Assignment
         (assign.target.memoryAddress?.addressExpression as IdentifierReference).nameInSource shouldBe listOf("aa")
     }
 
@@ -412,8 +412,8 @@ main {
         """
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 5
-        val assign=stmts.last() as Assignment
+        stmts.size shouldBe 6
+        val assign=stmts[4] as Assignment
         (assign.target.memoryAddress?.addressExpression as IdentifierReference).nameInSource shouldBe listOf("aa")
     }
 
@@ -431,7 +431,7 @@ main {
         """
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 10
+        stmts.size shouldBe 11
         stmts.filterIsInstance<VarDecl>().size shouldBe 5
         stmts.filterIsInstance<Assignment>().size shouldBe 5
     }
@@ -508,7 +508,7 @@ main {
         xx += 6
          */
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 6
+        stmts.size shouldBe 7
         stmts.filterIsInstance<VarDecl>().size shouldBe 3
         stmts.filterIsInstance<Assignment>().size shouldBe 3
     }
@@ -537,13 +537,13 @@ main {
         xx += 10
          */
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 8
         stmts.filterIsInstance<VarDecl>().size shouldBe 2
         stmts.filterIsInstance<Assignment>().size shouldBe 5
         val assignXX1 = stmts[1] as Assignment
         assignXX1.target.identifier!!.nameInSource shouldBe listOf("xx")
         assignXX1.value shouldBe NumericLiteral(BaseDataType.UWORD, 20.0, Position.DUMMY)
-        val assignXX2 = stmts.last() as Assignment
+        val assignXX2 = stmts[6] as Assignment
         assignXX2.target.identifier!!.nameInSource shouldBe listOf("xx")
         val xxValue = assignXX2.value as BinaryExpression
         xxValue.operator shouldBe "+"
@@ -577,7 +577,7 @@ main {
             thingy++
          */
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 6
+        stmts.size shouldBe 7
         val ifStmt = stmts[5] as IfElse
         val containment = ifStmt.condition as ContainmentCheck
         (containment.element as IdentifierReference).nameInSource shouldBe listOf("source")
@@ -612,7 +612,7 @@ main {
 
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 5
+        stmts.size shouldBe 6
         val ifStmt = stmts[4] as IfElse
         val containment = ifStmt.condition as ContainmentCheck
         (containment.element as IdentifierReference).nameInSource shouldBe listOf("source")
@@ -634,7 +634,7 @@ main {
         }"""
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 5
+        stmts.size shouldBe 6
         val ifStmt = stmts[4] as IfElse
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
     }
@@ -652,7 +652,7 @@ main {
         }"""
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 5
+        stmts.size shouldBe 6
         val ifStmt = stmts[4] as IfElse
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
     }
@@ -670,7 +670,7 @@ main {
         }"""
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 5
+        stmts.size shouldBe 6
         val ifStmt = stmts[4] as IfElse
         ifStmt.condition shouldBe instanceOf<BinaryExpression>()
     }
@@ -687,7 +687,7 @@ main {
             }"""
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 3
+        stmts.size shouldBe 4
     }
 
     test("repeated assignments to IO register should remain") {
@@ -828,7 +828,7 @@ main {
         val errors = ErrorReporterForTests()
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false, errors = errors)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 4
+        st.size shouldBe 5
         val xxConst = st[0] as VarDecl
         xxConst.type shouldBe VarDeclType.CONST
         xxConst.name shouldBe "xx"
@@ -872,7 +872,7 @@ main {
 }"""
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
+        st.size shouldBe 9
         val if1c = (st[4] as IfElse).condition as PrefixExpression
         val if2c = (st[5] as IfElse).condition as PrefixExpression
         val if3c = (st[6] as IfElse).condition as PrefixExpression
@@ -915,7 +915,7 @@ main {
 }"""
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 12
+        st.size shouldBe 13
         val if1 = st[4] as IfElse
         val if2 = st[5] as IfElse
         val if3 = st[6] as IfElse
@@ -970,7 +970,7 @@ main {
 
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 17
+        st.size shouldBe 18
 
         val answerValue = (st[3] as Assignment).value
         answerValue shouldBe NumericLiteral(BaseDataType.UWORD, 0.0, Position.DUMMY)
@@ -1019,7 +1019,7 @@ main {
 }"""
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 3
+        st.size shouldBe 4
         val ifCond1 = (st[0] as IfElse).condition as BinaryExpression
         val ifCond2 = (st[1] as IfElse).condition as BinaryExpression
         val ifCond3 = (st[2] as IfElse).condition as BinaryExpression

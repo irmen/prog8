@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
+import prog8.ast.defaultZero
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
@@ -51,15 +52,24 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         // and if an assembly block doesn't contain a rts/rti.
         if (!subroutine.isAsmSubroutine) {
             if(subroutine.isEmpty()) {
-                val returnStmt = Return(arrayOf(), subroutine.position)
-                mods += IAstModification.InsertLast(returnStmt, subroutine)
+                if(subroutine.returntypes.isNotEmpty())
+                    errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
+                else {
+                    val returnStmt = Return(arrayOf(), subroutine.position)
+                    mods += IAstModification.InsertLast(returnStmt, subroutine)
+                }
             } else {
                 val last = subroutine.statements.last()
                 if((last !is InlineAssembly || !last.hasReturnOrRts()) && last !is Return) {
                     val lastStatement = subroutine.statements.reversed().firstOrNull { it !is Subroutine }
                     if(lastStatement !is Return) {
-                        val returnStmt = Return(arrayOf(), subroutine.position)
-                        mods += IAstModification.InsertLast(returnStmt, subroutine)
+                        if(subroutine.returntypes.isNotEmpty()) {
+                            // .... we cannot return this as an error, because that also breaks legitimate cases where the return is done from within a nested scope somewhere
+                            // errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
+                        } else {
+                            val returnStmt = Return(arrayOf(), subroutine.position)
+                            mods += IAstModification.InsertLast(returnStmt, subroutine)
+                        }
                     }
                 }
             }
@@ -76,8 +86,20 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 && prevStmt !is Subroutine
                 && prevStmt !is Return
             ) {
-                val returnStmt = Return(arrayOf(), subroutine.position)
-                mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
+                if(!subroutine.inline) {
+                    if(outerScope is Subroutine && outerScope.returntypes.isNotEmpty()) {
+                        if(outerScope.returntypes.size>1 || !outerScope.returntypes[0].isNumericOrBool) {
+                            errors.err("subroutine is missing a return statement to avoid falling through into nested subroutine", outerStatements[subroutineStmtIdx-1].position)
+                        } else {
+                            val zero = defaultZero(outerScope.returntypes[0].base, Position.DUMMY)
+                            val returnStmt = Return(arrayOf(zero), outerStatements[subroutineStmtIdx - 1].position)
+                            mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
+                        }
+                    } else {
+                        val returnStmt = Return(arrayOf(), outerStatements[subroutineStmtIdx - 1].position)
+                        mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
+                    }
+                }
             }
         }
 

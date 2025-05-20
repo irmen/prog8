@@ -52,7 +52,7 @@ class TestConst: FunSpec({
 //        cx16.r5s = llw - 1899
 //        cx16.r7s = llw + 99
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 9
+        stmts.size shouldBe 10
 
         val addR0value = (stmts[4] as Assignment).value
         val binexpr0 = addR0value as BinaryExpression
@@ -109,7 +109,7 @@ class TestConst: FunSpec({
 //        result++
 //        result = llw * 18.0
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 12
+        stmts.size shouldBe 13
 
         val mulR0Value = (stmts[3] as Assignment).value
         val binexpr0 = mulR0Value as BinaryExpression
@@ -157,7 +157,7 @@ class TestConst: FunSpec({
 //        cx16.r3s = llw /2 *10
 //        cx16.r4s = llw *90 /5
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 8
 
         val mulR0Value = (stmts[2] as Assignment).value
         val binexpr0 = mulR0Value as BinaryExpression
@@ -251,7 +251,7 @@ main {
 }"""
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 5
+        st.size shouldBe 6
         (st[0] as VarDecl).type shouldBe VarDeclType.CONST
         val assignv1 = (st[2] as Assignment).value
         val assignv2 = (st[4] as Assignment).value
@@ -274,7 +274,7 @@ main {
 }"""
         val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 6
+        st.size shouldBe 7
         ((st[0] as VarDecl).value as NumericLiteral).number shouldBe 0x2000
         ((st[1] as VarDecl).value as NumericLiteral).number shouldBe 0x9e00
         ((st[2] as VarDecl).value as NumericLiteral).number shouldBe 0x9e00+2*30

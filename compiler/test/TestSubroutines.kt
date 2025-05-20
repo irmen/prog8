@@ -54,6 +54,9 @@ class TestSubroutines: FunSpec({
                 }
                 
                 asmsub asmfunc(str thing @AY) {
+                    %asm {{
+                        rts
+                    }}
                 }
 
                 sub func(str thing) {
@@ -67,12 +70,12 @@ class TestSubroutines: FunSpec({
         val asmfunc = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="asmfunc"}
         val func = mainBlock.statements.filterIsInstance<Subroutine>().single { it.name=="func"}
         asmfunc.isAsmSubroutine shouldBe true
-        asmfunc.statements.isEmpty() shouldBe true
+        asmfunc.statements.size shouldBe 1
         func.isAsmSubroutine shouldBe false
         withClue("str param for subroutines should be changed into UWORD") {
             asmfunc.parameters.single().type shouldBe DataType.UWORD
             func.parameters.single().type shouldBe DataType.UWORD
-            func.statements.size shouldBe 4
+            func.statements.size shouldBe 5
             val paramvar = func.statements[0] as VarDecl
             paramvar.name shouldBe "thing"
             paramvar.datatype shouldBe DataType.UWORD
@@ -174,6 +177,9 @@ class TestSubroutines: FunSpec({
                 }
                 
                 asmsub asmfunc(ubyte[] thing @AY) {
+                    %asm {{
+                        rts
+                    }}
                 }
 
                 sub func(ubyte[] thing) {

@@ -77,7 +77,7 @@ main {
 }"""
         val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)
         val statements = result!!.compilerAst.entrypoint.statements
-        statements.size shouldBe 7
+        statements.size shouldBe 8
         val a1 = statements[2] as Assignment
         val a2 = statements[3] as Assignment
         val a3 = statements[4] as Assignment

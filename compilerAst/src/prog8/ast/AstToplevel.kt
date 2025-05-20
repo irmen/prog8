@@ -7,7 +7,9 @@ import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstVisitor
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.Encoding
+import prog8.code.core.Position
 import prog8.code.source.SourceCode
 
 
@@ -133,6 +135,26 @@ interface IStatementContainer {
         }
 
         return null
+    }
+
+    fun hasReturnStatement(): Boolean {
+        fun hasReturnStatement(stmt: Statement): Boolean {
+            when(stmt) {
+                is AnonymousScope -> return stmt.statements.any { hasReturnStatement(it) }
+                is ForLoop -> return stmt.body.hasReturnStatement()
+                is IfElse -> return stmt.truepart.hasReturnStatement() || stmt.elsepart.hasReturnStatement()
+                is WhileLoop -> return stmt.body.hasReturnStatement()
+                is RepeatLoop -> return stmt.body.hasReturnStatement()
+                is UntilLoop -> return stmt.body.hasReturnStatement()
+                is When -> return stmt.choices.any { it.statements.hasReturnStatement() }
+                is ConditionalBranch -> return stmt.truepart.hasReturnStatement() || stmt.elsepart.hasReturnStatement()
+                is UnrollLoop -> return stmt.body.hasReturnStatement()
+                is Return -> return true
+                else -> return false
+            }
+        }
+
+        return statements.any { hasReturnStatement(it) }
     }
 
     val allDefinedSymbols: Sequence<Pair<String, Statement>>
