@@ -246,7 +246,7 @@ doublebuffer {
             monogfx.circle(cx, 219, 20, true)
             monogfx.text(cx+20, 225, true, conv.str_uw(cx))
             cx++
-            monogfx.swap_buffers()
+            monogfx.swap_buffers(true)
         }
     }
 }
