@@ -1,58 +1,21 @@
-%import textio
-%zeropage basicsafe
-
+%import math
+%import monogfx
 
 main {
     sub start() {
-        word w1, w2, w3, w4
-        uword uw1, uw2, uw3
+        monogfx.hires()
+        monogfx.fillrect(100, 100, 200, 100, true)
 
-        w1 = -111
-        w2 = 222
-        w3 = -333
-        w4 = -20
+        sys.wait(60)
 
-        uw1 = 111
-        uw2 = 222
-        uw3 = 333
+        monogfx.drawmode(monogfx.MODE_INVERT)
+        monogfx.circle(150, 120, 80, true)           ; TODO INVERT is BROKEN
+        monogfx.line(10, 20, 250, 160, true)        ; TODO INVERT is BROKEN
 
-        txt.print_w(w2*w3)
-        txt.spc()
-        w1 = w2 * w3
-        txt.print_w(w1)
-        txt.nl()
-        txt.print_w(w3*w4)
-        txt.nl()
+        repeat 500 {
+            monogfx.plot( math.rnd(), math.rnd(), true)     ; TODO INVERT is BROKEN
+        }
 
-        txt.print_uw(uw2*uw3)
-        txt.spc()
-        uw1 = uw2 * uw3
-        txt.print_uw(uw1)
-        txt.nl()
-        txt.nl()
-
-
-        w1 = -111
-        w2 = 22222
-        w3 = -333
-        w4 = -17
-
-        uw1 = 111
-        uw2 = 22222
-        uw3 = 333
-
-        txt.print_w(w2/w3)
-        txt.spc()
-        w1 = w2 / w3
-        txt.print_w(w1)
-        txt.nl()
-        txt.print_w(w3/w4)
-        txt.nl()
-
-        txt.print_uw(uw2/uw3)
-        txt.spc()
-        uw1 = uw2 / uw3
-        txt.print_uw(uw1)
-        txt.nl()
+        repeat  {}
     }
 }

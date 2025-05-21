@@ -1,6 +1,6 @@
 %import monogfx
-%import textio
 %import math
+%import conv
 
 %option no_sysinit
 %zeropage basicsafe
@@ -18,8 +18,7 @@ main {
         sys.wait(2*60)
         demo2()
 
-        monogfx.textmode()
-        txt.print("done!\n")
+        doublebuffer.demo()
     }
 
     sub demofill() {
@@ -212,5 +211,42 @@ main {
             monogfx.text(19+tp, 20+tp*11, true, sc:"ScreenCODE text! 1234![]<>#$%&*()")
         }
 
+    }
+}
+
+
+
+
+doublebuffer {
+    sub demo() {
+        monogfx.lores()
+        monogfx.text_charset(1)
+        monogfx.enable_doublebuffer()
+        uword cx = 100
+
+        repeat {
+            monogfx.clear_screen(false)
+            monogfx.text(50, 10, true, iso:"Double Buffered")
+            monogfx.circle(160, 120, 100, true)
+            monogfx.disc(160, 120, 40, true)
+
+            monogfx.rect(40, 40, 240, 180, true)
+            monogfx.drawmode(monogfx.MODE_STIPPLE)
+            monogfx.fill(50, 50, true, 1)
+
+            monogfx.drawmode(monogfx.MODE_NORMAL)
+            monogfx.fill(250, 50, true, 1)
+            monogfx.fillrect( 10, 50, 20, 100, true)
+            monogfx.line(10, 10, 300, 200, true)
+
+            repeat 200 {
+                monogfx.plot($00e0 + math.randrange(64), 20 + math.randrange(20), true)
+            }
+
+            monogfx.circle(cx, 219, 20, true)
+            monogfx.text(cx+20, 225, true, conv.str_uw(cx))
+            cx++
+            monogfx.swap_buffers()
+        }
     }
 }
