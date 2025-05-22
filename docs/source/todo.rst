@@ -61,7 +61,6 @@ Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
 - Add double-array sorting routines to sorting module? (that allows you to sort a second array in sync with the array of numbers)
-- cx16: _irq_dispatcher  now only dispatches a single irq source, better to ROL/BCC to handle *all* possible (multiple) sources.
 - See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
