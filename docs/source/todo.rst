@@ -1,10 +1,6 @@
 TODO
 ====
 
-Bug: monogfx circle, plot and line drawing with INVERT mode is broken (garbage pixels)
-     broken since commit "optimize monogfx.plot() to use a *40 lookup table in lores mode."
-
-
 STRUCTS: are being developed in their own separate branch for now, called "structs".
 Idea is to make it feature complete in the IR/Virtual target, then merge it to master?, and then start building the 6502 code generation for it.
 

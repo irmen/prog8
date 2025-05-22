@@ -705,8 +705,7 @@ nostipple:
 invert:
         prepare()
         %asm {{
-            lda  cx16.VERA_DATA0
-            eor  p8v_maskbits,y
+            eor  cx16.VERA_DATA0
             sta  cx16.VERA_DATA0
         }}
         return
