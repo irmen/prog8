@@ -1035,7 +1035,7 @@ data class IRInstruction(
         if(opcode==Opcode.CONCAT)
             return when(type) {
                 IRDataType.BYTE -> IRDataType.WORD
-                IRDataType.WORD -> TODO("concat.w from long type")
+                IRDataType.WORD -> TODO("concat.w into long type")
                 else -> null
             }
         if(opcode==Opcode.ASRNM || opcode==Opcode.LSRNM || opcode==Opcode.LSLNM || opcode==Opcode.SQRT)

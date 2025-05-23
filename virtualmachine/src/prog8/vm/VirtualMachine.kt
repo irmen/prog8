@@ -400,7 +400,8 @@ class VirtualMachine(irProgram: IRProgram) {
             status = status or 0b00000010u
         if(statusCarry)
             status = status or 0b00000001u
-        // TODO overflow not yet supported
+        if(statusOverflow)
+            status = status or 0b01000000u
         valueStack.add(status)
         nextPc()
     }
@@ -410,7 +411,7 @@ class VirtualMachine(irProgram: IRProgram) {
         statusNegative = status and 0b10000000 != 0
         statusZero = status and 0b00000010 != 0
         statusCarry = status and 0b00000001 != 0
-        // TODO overflow not yet supported
+        statusOverflow = status and 0b01000000 != 0
         nextPc()
     }
 
@@ -1385,7 +1386,7 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.WORD -> statusNegative = (comparison and 0x8000)!=0
             IRDataType.FLOAT -> { /* floats don't change the status bits */ }
         }
-        // TODO statusOverflow
+        // TODO determine statusOverflow in comparison
     }
 
     private fun plusMinusMultAnyByte(operator: String, reg1: Int, reg2: Int) {

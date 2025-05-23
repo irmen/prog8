@@ -1046,7 +1046,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun loadStatusAsBooleanResult(branchForTrue: Opcode, result: MutableList<IRCodeChunkBase>): Int {
-        // TODO this used to be a single instruction like SCC, SCS, SZ etc but those were problematic
+        // TODO this used to be a single instruction like SCC, SCS, SZ etc
         val other = codeGen.createLabelName()
         val after = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
@@ -1061,7 +1061,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun compareRegisterAsBooleanResult(branchForTrue: Opcode, dt: IRDataType, reg1: Int, reg2: Int, result: MutableList<IRCodeChunkBase>): Int {
-        // TODO this used to be a single instruction like SCC, SCS, SZ etc but those were problematic
+        // TODO this used to be a single instruction like SCC, SCS, SZ etc
         val other = codeGen.createLabelName()
         val after = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)

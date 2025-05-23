@@ -128,8 +128,8 @@ class IRFileReader {
             zeropage,
             zpReserved,
             zpAllowed,
-            false,  // TODO always false?
-            false,  // TODO always false?
+            false,
+            false,
             romable,
             target,
             loadAddress,
