@@ -231,9 +231,8 @@ sys {
 
         if_cs
             cx16.r0L |= 1
-; TODO: overflow flag not yet supported
-;        if_vs
-;            cx16.r0L |= %01000000
+        if_vs
+            cx16.r0L |= %01000000
 
         return cx16.r0L
     }

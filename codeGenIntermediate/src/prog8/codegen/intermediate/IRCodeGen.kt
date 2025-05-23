@@ -1970,7 +1970,7 @@ class IRCodeGen(
             null -> when(registerOrFlag.statusflag) {
                 // TODO: do the statusflag argument as last
                 Statusflag.Pc -> chunk += IRInstruction(Opcode.LSR, paramDt, reg1=resultReg)
-                else -> throw AssemblyError("weird statusflag as param")
+                else -> throw AssemblyError("unsupported statusflag as param")
             }
             else -> throw AssemblyError("unsupported register arg")
         }

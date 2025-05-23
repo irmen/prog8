@@ -402,7 +402,7 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
         if(children[0] is PtIdentifier) {
             copy.add((children[0] as PtIdentifier).copy())
         } else {
-            TODO("cannot copy node ${children[0]}")
+            TODO("copy node ${children[0]}")
         }
         return copy
     }

@@ -1,12 +1,10 @@
-%import textio
 %import syslib
 %import conv
 %import math
+%import monogfx
 %import verafx
-; %import gfx_lores
 
 ; TODO add FPS counter
-; TODO add double buffering
 ; TODO fix the camera normal calculation for the hidden surface removal
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
 ; TODO embed pre calculated surface normals???
@@ -17,23 +15,25 @@ main {
         uword angley
         uword anglez
 
-        cx16.set_screen_mode($80)
-        cx16.GRAPH_init(0)
-        cx16.GRAPH_set_colors(13, 6, 6)
-        cx16.GRAPH_clear()
+        monogfx.lores()
+        monogfx.text_charset(1)
+        monogfx.clear_screen(false)
+        print_ship_name()
+        monogfx.enable_doublebuffer()
+        monogfx.clear_screen(false)
         print_ship_name()
 
         repeat {
             matrix_math.rotate_vertices(msb(anglex), msb(angley), msb(anglez))
 
-             verafx.clear(0, 320*10, 0, 320*(220/4))
-             ; cx16.GRAPH_set_colors(0, 0, 0)
-             ; cx16.GRAPH_draw_rect(32, 10, 256, 220, 0, true)
+            ; We use verafx to clear the screen during animation, instead of
+            ; the regular routine. This speeds up the frame rate a bit.
+            verafx.clear(0, monogfx.buffer_back + 320*16/8, 0, 320/8*220/4)
+            ; monogfx.clear_screen(false)
 
-            ; sys.waitvsync()
-            cx16.GRAPH_set_colors(1, 0, 0)
             draw_lines_hiddenremoval()
             ; draw_lines()
+            monogfx.swap_buffers(true)
 
             anglex += 317
             angley -= 505
@@ -42,33 +42,19 @@ main {
     }
 
     sub print_ship_name() {
-        cx16.r0 = 32
-        cx16.r1 = 8
-        ubyte c
-        for c in "ship: "
-            cx16.GRAPH_put_next_char(c)
-        for c in shipdata.shipName
-            cx16.GRAPH_put_next_char(c)
+        monogfx.text(20, 0, true, "3d ship model: ")
+        monogfx.text(140, 0, true, shipdata.shipName)
 
-        cx16.r0 += 16
-        print_number_gfx(shipdata.totalNumberOfPoints)
-        for c in " vertices, "
-            cx16.GRAPH_put_next_char(c)
-        print_number_gfx(shipdata.totalNumberOfEdges)
-        for c in " edges, "
-            cx16.GRAPH_put_next_char(c)
-        print_number_gfx(shipdata.totalNumberOfFaces)
-        for c in " faces"
-            cx16.GRAPH_put_next_char(c)
+        monogfx.text(60, 8, true, conv.str_ub(shipdata.totalNumberOfPoints))
+        monogfx.text(80, 8, true, "vertices,")
+
+        monogfx.text(160, 8, true, conv.str_ub(shipdata.totalNumberOfEdges))
+        monogfx.text(180, 8, true, "edges,")
+
+        monogfx.text(240, 8, true, conv.str_ub(shipdata.totalNumberOfFaces))
+        monogfx.text(260, 8, true, "faces")
     }
 
-    sub print_number_gfx(ubyte num) {
-        uword num_str = conv.str_ub(num)
-        do {
-            cx16.GRAPH_put_next_char(@(num_str))
-            num_str++
-        } until @(num_str)==0
-    }
 
     const uword screen_width = 320
     const ubyte screen_height = 240
@@ -81,15 +67,11 @@ main {
             ubyte @zp vTo = shipdata.edgesTo[i]
             word persp1 = 200 + matrix_math.rotatedz[vFrom]/256
             word persp2 = 200 + matrix_math.rotatedz[vTo]/256
-            cx16.GRAPH_draw_line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+            monogfx.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
                 matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
                 matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
-                matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword)
-;            gfx_lores.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-;                matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as ubyte,
-;                matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
-;                matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as ubyte,
-;                1)
+                matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword,
+                true)
         }
     }
 
@@ -149,15 +131,11 @@ main {
         ubyte vTo = shipdata.edgesTo[edgeidx]
         word persp1 = 170 + matrix_math.rotatedz[vFrom]/256
         word persp2 = 170 + matrix_math.rotatedz[vTo]/256
-        cx16.GRAPH_draw_line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
+        monogfx.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
             matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as uword,
             matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
-            matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword)
-;        gfx_lores.line(matrix_math.rotatedx[vFrom] / persp1 + screen_width/2 as uword,
-;            matrix_math.rotatedy[vFrom] / persp1 + screen_height/2 as ubyte,
-;            matrix_math.rotatedx[vTo] / persp2 + screen_width/2 as uword,
-;            matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as ubyte,
-;            1)
+            matrix_math.rotatedy[vTo] / persp2 + screen_height/2 as uword,
+            true)
     }
 }
 

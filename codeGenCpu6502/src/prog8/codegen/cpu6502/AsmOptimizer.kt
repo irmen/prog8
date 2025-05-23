@@ -512,7 +512,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
     // rts + jmp -> remove jmp
     // rts + bxx -> remove bxx
     // lda  + cmp #0 -> remove cmp,  same for cpy and cpx.
-    // bra/jmp + bra/jmp -> remove second bra/jmp
+    // bra/jmp + bra/jmp -> remove second bra/jmp   (bra bra / jmp jmp are not removed because this is likely a jump table!)
     // and some other optimizations.
 
     val mods = mutableListOf<Modification>()
@@ -569,10 +569,13 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
                 }
             }
 
-            if(" bra" in first || "\tbra" in first || " jmp" in first || "\tjmp" in first ) {
-                if(" bra" in second || "\tbra" in second || " jmp" in second || "\tjmp" in second ) {
-                    mods.add(Modification(lines[1].index, true, null))
-                }
+            // only remove bra followed by jmp or jmp followed by bra
+            // bra bra or jmp jmp is likely part of a jump table, which should keep all entries!
+            if((" bra" in first || "\tbra" in first) && (" jmp" in second || "\tjmp" in second)) {
+                mods.add(Modification(lines[1].index, true, null))
+            }
+            if((" jmp" in first || "\tjmp" in first) && (" bra" in second || "\tbra" in second)) {
+                mods.add(Modification(lines[1].index, true, null))
             }
         }
 

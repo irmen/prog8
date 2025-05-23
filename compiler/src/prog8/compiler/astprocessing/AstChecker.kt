@@ -200,7 +200,7 @@ internal class AstChecker(private val program: Program,
 
         val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
 
-        if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric!? "+forLoop.position)
+        if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric "+forLoop.position)
 
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
@@ -213,7 +213,7 @@ internal class AstChecker(private val program: Program,
             } else {
                 when (loopvar.datatype.base) {
                     BaseDataType.UBYTE -> {
-                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString)      // TODO remove ubyte check?
+                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedByteArray && !iterableDt.isString)
                             errors.err("ubyte loop variable can only loop over unsigned bytes or strings", forLoop.position)
                         checkUnsignedLoopDownto0(forLoop.iterable as? RangeExpression)
                     }
@@ -224,7 +224,7 @@ internal class AstChecker(private val program: Program,
                     }
 
                     BaseDataType.UWORD -> {
-                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedWord && !iterableDt.isString &&      // TODO remove byte and word check?
+                        if (!iterableDt.isUnsignedByte && !iterableDt.isUnsignedWord && !iterableDt.isString &&
                             !iterableDt.isUnsignedByteArray && !iterableDt.isUnsignedWordArray &&
                             !iterableDt.isSplitWordArray
                         )
@@ -234,7 +234,7 @@ internal class AstChecker(private val program: Program,
                     }
 
                     BaseDataType.BYTE -> {
-                        if (!iterableDt.isSignedByte && !iterableDt.isSignedByteArray)       // TODO remove byte check?
+                        if (!iterableDt.isSignedByte && !iterableDt.isSignedByteArray)
                             errors.err("byte loop variable can only loop over bytes", forLoop.position)
                     }
 

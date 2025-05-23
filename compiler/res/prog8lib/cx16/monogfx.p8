@@ -22,18 +22,23 @@ monogfx {
     const ubyte MODE_STIPPLE = %00000001
     const ubyte MODE_INVERT  = %00000010
 
+    uword buffer_visible, buffer_back
+
+
     sub lores() {
         ; enable 320*240 bitmap mode
+        buffer_visible = buffer_back = $0000
         cx16.VERA_CTRL=0
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
         cx16.VERA_DC_HSCALE = 64
         cx16.VERA_DC_VSCALE = 64
         cx16.VERA_L1_CONFIG = %00000100
         cx16.VERA_L1_MAPBASE = 0
-        cx16.VERA_L1_TILEBASE = 0
+        cx16.VERA_L1_TILEBASE = 0           ; lores
         width = 320
         height = 240
         lores_mode = true
+        buffer_visible = buffer_back = $0000
         mode = MODE_NORMAL
         clear_screen(false)
     }
@@ -46,13 +51,39 @@ monogfx {
         cx16.VERA_DC_VSCALE = 128
         cx16.VERA_L1_CONFIG = %00000100
         cx16.VERA_L1_MAPBASE = 0
-        cx16.VERA_L1_TILEBASE = %00000001
+        cx16.VERA_L1_TILEBASE = %00000001       ; hires
         width = 640
         height = 480
         lores_mode = false
+        buffer_visible = buffer_back = $0000
         mode = MODE_NORMAL
         clear_screen(false)
     }
+
+    sub enable_doublebuffer() {
+        ; enable double buffering mode
+        if lores_mode {
+            buffer_visible = $0000
+            buffer_back = $2800
+        } else {
+            buffer_visible = $0000
+            buffer_back = $9800
+        }
+    }
+
+    sub swap_buffers(bool wait_for_vsync) {
+        ; flip the buffers: make the back buffer visible and the other one now the backbuffer.
+        ; to avoid any screen tearing it is advised to call this during the vertical blank (pass true)
+        if wait_for_vsync
+            sys.waitvsync()
+        cx16.r0 = buffer_back
+        buffer_back = buffer_visible
+        buffer_visible = cx16.r0
+        cx16.VERA_CTRL = 0
+        cx16.r0 &= %1111110000000000
+        cx16.VERA_L1_TILEBASE = cx16.VERA_L1_TILEBASE & 1 | (cx16.r0H >>1 )
+    }
+
 
     sub textmode() {
         ; back to normal text mode
@@ -559,6 +590,7 @@ drawmode:               ora  cx16.r15L
     sub disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, bool draw) {
         ; Warning: NO BOUNDS CHECKS. Make sure circle fits in the screen.
         ; Midpoint algorithm, filled
+        ; Note: has problems with INVERT draw mode because of horizontal span overdrawing. Horizontal lines may occur.
         if radius==0
             return
         ubyte @zp yy = 0
@@ -597,6 +629,7 @@ drawmode:               ora  cx16.r15L
     sub safe_disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, bool draw) {
         ; Does bounds checking and clipping.
         ; Midpoint algorithm, filled
+        ; Note: has problems with INVERT draw mode because of horizontal span overdrawing. Horizontal lines may occur.
         if radius==0
             return
         ubyte @zp yy = 0
@@ -672,8 +705,7 @@ nostipple:
 invert:
         prepare()
         %asm {{
-            lda  cx16.VERA_DATA0
-            eor  p8v_maskbits,y
+            eor  cx16.VERA_DATA0
             sta  cx16.VERA_DATA0
         }}
         return
@@ -696,7 +728,7 @@ invert:
                     adc  p8v_times40_lsb,y
                     sta  cx16.VERA_ADDR_L
                     lda  p8v_times40_msb,y
-                    adc  #0
+                    adc  p8v_buffer_back+1
                     sta  cx16.VERA_ADDR_M
 
                     lda  p8v_xx
@@ -708,18 +740,29 @@ invert:
                 ; width=640 (hires)
                 %asm {{
                     stz  cx16.VERA_CTRL
-                    stz  cx16.VERA_ADDR_H
                     lda  p8v_xx
                     and  #7
                     pha     ; xbits
+
+                    ; xx /= 8
+                    lsr  p8v_xx+1
+                    ror  p8v_xx
+                    lsr  p8v_xx+1
+                    ror  p8v_xx
+                    lsr  p8v_xx
                 }}
-                xx /= 8
+                ;xx /= 8
                 xx += yy*(640/8)
                 %asm {{
-                    lda  p8v_xx+1
-                    sta  cx16.VERA_ADDR_M
                     lda  p8v_xx
                     sta  cx16.VERA_ADDR_L
+                    lda  p8v_xx+1
+                    clc
+                    adc  p8v_buffer_back+1
+                    sta  cx16.VERA_ADDR_M
+                    lda  #0
+                    rol  a   ; hi bit carry also needed when double-buffering
+                    sta  cx16.VERA_ADDR_H
                     plx     ; xbits
                     lda  p8v_maskbits,x
                 }}
@@ -761,11 +804,15 @@ invert:
 
         %asm {{
             stz  cx16.VERA_CTRL
-            stz  cx16.VERA_ADDR_H
-            lda  p8v_xx+1
-            sta  cx16.VERA_ADDR_M
             lda  p8v_xx
             sta  cx16.VERA_ADDR_L
+            lda  p8v_xx+1
+            clc
+            adc  p8v_buffer_back+1
+            sta  cx16.VERA_ADDR_M
+            lda  #0
+            rol  a   ; hi bit carry also needed when double-buffering
+            sta  cx16.VERA_ADDR_H
             ply         ; xbits
             lda  p8s_plot.p8v_maskbits,y
             and  cx16.VERA_DATA0
@@ -848,8 +895,8 @@ skip:
         }
 
         sub fill_scanline_right() {
-             ; TODO maybe this could use vera auto increment, but that requires some clever masking calculations
-             cx16.r9s = xx
+            ; TODO maybe this could use vera auto increment, but that requires some clever masking calculations
+            cx16.r9s = xx
             while xx <= width-1 {
                 if pgetset()
                     break
@@ -884,11 +931,15 @@ skip:
 
             %asm {{
                 stz  cx16.VERA_CTRL
-                stz  cx16.VERA_ADDR_H
-                lda  p8v_xpos+1
-                sta  cx16.VERA_ADDR_M
                 lda  p8v_xpos
                 sta  cx16.VERA_ADDR_L
+                lda  p8v_xpos+1
+                clc
+                adc  p8v_buffer_back+1
+                sta  cx16.VERA_ADDR_M
+                lda  #0
+                rol  a   ; hi bit carry also needed when double-buffering
+                sta  cx16.VERA_ADDR_H
                 ply         ; xbits
                 lda  p8s_plot.p8v_maskbits,y
                 and  cx16.VERA_DATA0
@@ -935,12 +986,12 @@ _doplot         beq  +
                 ror  a
                 lsr  a
                 lsr  a
-                clc
                 ldy  p8v_yy
+                clc
                 adc  p8v_times40_lsb,y
                 sta  cx16.VERA_ADDR_L
                 lda  p8v_times40_msb,y
-                adc  #0
+                adc  p8v_buffer_back+1
                 sta  cx16.VERA_ADDR_M
                 lda  #%00010000     ; autoincr
                 sta  cx16.VERA_ADDR_H
@@ -948,7 +999,33 @@ _doplot         beq  +
         }
         else {
             cx16.r0 = yy*(640/8)
-            cx16.vaddr(0, cx16.r0+(xx/8), 0, 1)
+            ;cx16.r0 += xx/8
+            %asm {{
+            	ldy  p8v_xx+1
+                lda  p8v_xx
+                sty  P8ZP_SCRATCH_B1
+                lsr  P8ZP_SCRATCH_B1
+                ror  a
+                lsr  P8ZP_SCRATCH_B1
+                ror  a
+                lsr  a
+                clc
+                adc  cx16.r0
+                sta  cx16.r0
+                bcc  +
+                inc  cx16.r0+1
++
+                stz  cx16.VERA_CTRL
+                lda  cx16.r0L
+                sta  cx16.VERA_ADDR_L
+                lda  cx16.r0H
+                clc
+                adc  p8v_buffer_back+1
+                sta  cx16.VERA_ADDR_M
+                lda  #%00001000     ; autoincr (1 bit shifted)
+                rol  a              ; hi bit carry also needed when double-buffering
+                sta  cx16.VERA_ADDR_H
+            }}
         }
         return
     }
@@ -1116,15 +1193,11 @@ cdraw_mod2              ora  cx16.VERA_DATA1
             cmp  #0
             beq  +
             lda  #255
-+           ldy  #80
--           sta  cx16.VERA_DATA0
++           ldy  #40
+-
+            .rept  16
             sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
-            sta  cx16.VERA_DATA0
+            .endrept
             dey
             bne  -
             rts

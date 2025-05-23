@@ -816,6 +816,7 @@ Full-screen lores or hires monochrome bitmap graphics routines, available on the
 - two resolutions: lores 320*240 or hires 640*480 bitmap mode
 - optimized routines for monochrome (2-color) graphics
 - clearing screen, switching screen mode, also back to text mode
+- doublebuffering option to avoid flicker
 - drawing and reading individual pixels
 - drawing lines, rectangles, filled rectangles, circles, discs
 - flood fill
@@ -823,7 +824,7 @@ Full-screen lores or hires monochrome bitmap graphics routines, available on the
 - can draw using a stipple pattern (alternate black/white pixels) and in invert mode (toggle pixels)
 
 Read the `monogfx source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/monogfx.p8>`_
-to see what's in there.
+and the `testmonogfx` example program, to see what's in there.
 
 
 palette  (cx16 only)

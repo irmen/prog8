@@ -1,5 +1,6 @@
 
-Prog8 compiler v11.3.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit cc063124 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -530,6 +531,7 @@ LIBRARY MODULE NAME: monogfx
 ----------------------------
 
 monogfx  {
+    uword  buffer_visible, buffer_back
     const ubyte  MODE_INVERT 
     const ubyte  MODE_NORMAL 
     const ubyte  MODE_STIPPLE 
@@ -545,6 +547,7 @@ monogfx  {
     cs_innerloop640  (bool draw @A) -> clobbers (Y) 
     disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
     drawmode  (ubyte dm) 
+    enable_doublebuffer  () 
     fill  (uword x, uword y, bool draw, ubyte stack_rambank) 
     fillrect  (uword xx, uword yy, uword rwidth, uword rheight, bool draw) 
     hires  () 
@@ -560,6 +563,7 @@ monogfx  {
     safe_disc  (uword xcenter, uword ycenter, ubyte radius, bool draw) 
     safe_horizontal_line  (uword xx, uword yy, uword length, bool draw) 
     safe_plot  (uword xx, uword yy, bool draw) 
+    swap_buffers  (bool wait_for_vsync) 
     text  (uword xx, uword yy, bool draw, str sctextptr) 
     text_charset  (ubyte charset) 
     textmode  () 
@@ -1093,6 +1097,8 @@ cx16  {
     iso_cursor_char  (ubyte character @X) -> clobbers (A,X,Y) 
     joystick_get  (ubyte joynr @A) -> uword @AX, bool @Y  = $ff56
     joystick_scan  () -> clobbers (A,X,Y)  = $ff53
+    joysticks_detect  () -> ubyte 
+    joysticks_getall  (bool also_keyboard_js) -> uword 
     kbdbuf_get_modifiers  () -> ubyte @A  = $fec0
     kbdbuf_peek  () -> ubyte @A, ubyte @X  = $febd
     kbdbuf_put  (ubyte key @A) -> clobbers (X)  = $fec3

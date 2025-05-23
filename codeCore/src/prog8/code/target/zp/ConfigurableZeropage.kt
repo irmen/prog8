@@ -19,7 +19,7 @@ class ConfigurableZeropage(
 
     init {
         if (options.floats) {
-            TODO("floats")
+            TODO("floats in configurable target zp")
         }
 
         if(SCRATCH_REG!=SCRATCH_B1+1u)
@@ -30,7 +30,7 @@ class ConfigurableZeropage(
             ZeropageType.FULL -> fullsafe.forEach { free.addAll(it) }
             ZeropageType.BASICSAFE -> basicsafe.forEach { free.addAll(it) }
             ZeropageType.KERNALSAFE -> kernalsafe.forEach { free.addAll(it) }
-            ZeropageType.FLOATSAFE -> TODO("floatsafe")
+            ZeropageType.FLOATSAFE -> TODO("floatsafe in configurable target zp")
         }
 
         val distinctFree = free.distinct()

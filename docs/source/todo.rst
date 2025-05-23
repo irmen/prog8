@@ -74,6 +74,7 @@ Future Things and Ideas
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - enums?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
+- romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
 - Kotlin: can we use inline value classes in certain spots?
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
@@ -124,7 +125,6 @@ Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
 - Add double-array sorting routines to sorting module? (that allows you to sort a second array in sync with the array of numbers)
-- cx16: _irq_dispatcher  now only dispatches a single irq source, better to ROL/BCC to handle *all* possible (multiple) sources.
 - See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)

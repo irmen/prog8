@@ -474,7 +474,7 @@ extsub $ff68 = mouse_config(byte shape @A, ubyte resX @X, ubyte resY @Y)  clobbe
 extsub $ff6b = mouse_get(ubyte zdataptr @X) -> ubyte @A, byte @X    ;  use mouse_pos() instead
 extsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 extsub $ff53 = joystick_scan()  clobbers(A, X, Y)
-extsub $ff56 = joystick_get(ubyte joynr @A) -> uword @AX, bool @Y   ; note: everything is inverted
+extsub $ff56 = joystick_get(ubyte joynr @A) -> uword @AX, bool @Y   ; note: everything is inverted even the boolean present flag.  Also see detect_joysticks() and get_all_joysticks()
 
 ; X16Edit (rom bank 13/14 but you ideally should use the routine search_x16edit() to search for the correct bank)
 extsub $C000 = x16edit_default() clobbers(A,X,Y)
@@ -1168,8 +1168,39 @@ asmsub restore_vera_context() clobbers(A) {
         }}
     }
 
+    sub joysticks_detect() -> ubyte {
+        ; returns bits 0-4,  set to 1 if that joystick is present.
+        ; bit 0 = keyboard joystick, bit 1 - 4 = joypads 1 to 4
+        cx16.r0H = 255
+        for cx16.r0L in 4 downto 0 {
+            void cx16.joystick_get(cx16.r0L)
+            %asm {{
+                cpy  #1     ; present?
+            }}
+            rol(cx16.r0H)
+        }
+        return ~cx16.r0H
+    }
 
-    ; Commander X16 IRQ dispatcher routines
+    sub joysticks_getall(bool also_keyboard_js) -> uword {
+        ; returns combined pressed buttons from all connected joysticks
+        ; note: returns the 'normal' not inverted status bits for the buttons (1 = button pressed.)
+        cx16.r0H = 1
+        if also_keyboard_js
+            cx16.r0H = 0
+        cx16.r1 = $ffff
+        for cx16.r0L in cx16.r0H to 4 {
+            bool notpresent
+            cx16.r2, notpresent = cx16.joystick_get(cx16.r0L)
+            if not notpresent {
+                cx16.r1 &= cx16.r2
+            }
+        }
+        return ~cx16.r1
+    }
+
+
+; Commander X16 IRQ dispatcher routines
 
 inline asmsub  disable_irqs() clobbers(A) {
     ; Disable all Vera IRQ sources. Note that it does NOT set the CPU IRQ disabled status bit!
