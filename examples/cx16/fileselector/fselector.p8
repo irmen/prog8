@@ -14,7 +14,6 @@
 ; ZERO PAGE LOCATIONS USED: R0-R5,R15 ($02-$0d and $20-$21), $7a-$7f are used but are saved and restored.  (can be checked with -dumpvars)
 
 
-; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
 
 main {
@@ -38,7 +37,7 @@ main {
 
 fileselector {
     ; these buffer sizes are chosen to fill up the rest of the hiram bank after the fileselector code
-    const uword filenamesbuf_size = $e40
+    const uword filenamesbuf_size = $d80
     const ubyte max_num_files = 128
 
     uword @shared filenamesbuffer = memory("filenames_buffer", filenamesbuf_size, 0)
@@ -191,6 +190,27 @@ fileselector {
                 return 0
 
             ubyte key = cbm.GETIN2()
+            cx16.r0 = cx16.joysticks_getall(false)
+            if cx16.r0L!=0
+                sys.wait(4)
+            ror(cx16.r0L)
+            if_cs
+                key = ']'   ; right
+            ror(cx16.r0L)
+            if_cs
+                key = '['   ; left
+            ror(cx16.r0L)
+            if_cs
+                key = 17    ; down
+            ror(cx16.r0L)
+            if_cs
+                key = 145   ; up
+            if cx16.r0L & $0f != 0
+                key = '\n'  ; select file
+            if cx16.r0H != 0
+                key = 27    ; cancel
+
+
             when key {
                 3, 27 -> return 0      ; STOP and ESC  aborts
                 '\n',' ' -> {

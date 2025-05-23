@@ -11,7 +11,6 @@
 ; Returns the name of the selected file.  If it is a directory instead, the name will start and end with a slash '/'.
 ; Works in PETSCII mode and in ISO mode as well (no case folding in ISO mode!)
 
-; TODO joystick control? mouse control?
 ; TODO keyboard typing; jump to the first entry that starts with that character?  (but 'q' for quit stops working then, plus scrolling with pageup/down is already pretty fast)
 
 
@@ -186,6 +185,27 @@ fileselector {
                 return 0
 
             ubyte key = cbm.GETIN2()
+            cx16.r0 = cx16.joysticks_getall(false)
+            if cx16.r0L!=0
+                sys.wait(4)
+            ror(cx16.r0L)
+            if_cs
+                key = ']'   ; right
+            ror(cx16.r0L)
+            if_cs
+                key = '['   ; left
+            ror(cx16.r0L)
+            if_cs
+                key = 17    ; down
+            ror(cx16.r0L)
+            if_cs
+                key = 145   ; up
+            if cx16.r0L & $0f != 0
+                key = '\n'  ; select file
+            if cx16.r0H != 0
+                key = 27    ; cancel
+
+
             when key {
                 3, 27 -> return 0      ; STOP and ESC  aborts
                 '\n',' ' -> {
