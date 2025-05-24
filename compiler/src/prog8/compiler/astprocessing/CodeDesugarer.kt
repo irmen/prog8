@@ -399,8 +399,9 @@ _after:
         if(parent is PtrIndexedDereference || parent.parent is PtrIndexedDereference)
             return noModifications
 
-        if(identifier.targetStatement()==null) {
-            // the a.b.c.d could be a pointer dereference chain a^^.b^^.c^^.d
+        if(identifier.nameInSource.size>1 && (identifier.firstTarget() as? VarDecl)?.datatype?.isPointer==true) {
+            // the a.b.c.d is be a pointer dereference chain ending in a struct field;  a^^.b^^.c^^.d
+
             for(i in identifier.nameInSource.size-1 downTo 1) {
                 val symbol = identifier.definingScope.lookup(identifier.nameInSource.take(i)) as? VarDecl
                 if(symbol!=null) {

@@ -178,6 +178,81 @@ other {
         // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("pointer walking using simple dot notation should be equivalent to explicit dereference chain") {
+        val src="""
+main {
+    struct State {
+        uword c
+        ^^uword ptr
+        ^^State next
+    }
+
+    sub start() {
+        ^^State matchstate
+        cx16.r0 = matchstate^^.ptr
+        cx16.r1 = matchstate^^.next^^.next^^.ptr
+        cx16.r2 = matchstate.ptr
+        cx16.r3 = matchstate.next.next.ptr
+
+        matchstate^^.ptr = 2222
+        matchstate^^.next^^.next^^.ptr = 2222
+        matchstate.ptr = 2222
+        matchstate.next.next.ptr = 2222
+    }
+}"""
+
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 11
+        val a0v = (st[2] as Assignment).value as PtrDereference
+        a0v.identifier.nameInSource shouldBe listOf("matchstate")
+        a0v.chain.size shouldBe 0
+        a0v.field shouldBe "ptr"
+        a0v.derefPointerValue shouldBe false
+
+        val a1v = (st[3] as Assignment).value as PtrDereference
+        a1v.identifier.nameInSource shouldBe listOf("matchstate")
+        a1v.chain shouldBe listOf("next", "next")
+        a1v.field shouldBe "ptr"
+        a1v.derefPointerValue shouldBe false
+
+        val a2v = (st[4] as Assignment).value as PtrDereference
+        a2v.identifier.nameInSource shouldBe listOf("matchstate")
+        a2v.chain.size shouldBe 0
+        a2v.field shouldBe "ptr"
+        a2v.derefPointerValue shouldBe false
+
+        val a3v = (st[5] as Assignment).value as PtrDereference
+        a3v.identifier.nameInSource shouldBe listOf("matchstate")
+        a3v.chain shouldBe listOf("next", "next")
+        a3v.field shouldBe "ptr"
+        a3v.derefPointerValue shouldBe false
+
+        val t0 = (st[6] as Assignment).target.pointerDereference!!
+        t0.derefPointerValue shouldBe false
+        t0.identifier.nameInSource shouldBe listOf("matchstate")
+        t0.chain.size shouldBe 0
+        t0.field shouldBe "ptr"
+
+        val t1 = (st[7] as Assignment).target.pointerDereference!!
+        t1.derefPointerValue shouldBe false
+        t1.identifier.nameInSource shouldBe listOf("matchstate")
+        t1.chain shouldBe listOf("next", "next")
+        t1.field shouldBe "ptr"
+
+        val t2 = (st[8] as Assignment).target.pointerDereference!!
+        t2.derefPointerValue shouldBe false
+        t2.identifier.nameInSource shouldBe listOf("matchstate")
+        t2.chain.size shouldBe 0
+        t2.field shouldBe "ptr"
+
+        val t3 = (st[9] as Assignment).target.pointerDereference!!
+        t3.derefPointerValue shouldBe false
+        t3.identifier.nameInSource shouldBe listOf("matchstate")
+        t3.chain shouldBe listOf("next", "next")
+        t3.field shouldBe "ptr"
+    }
+
     test("block scoping still parsed correctly") {
         val src="""
 main {

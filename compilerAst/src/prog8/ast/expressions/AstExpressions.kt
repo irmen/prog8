@@ -1282,7 +1282,15 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     fun targetVarDecl(): VarDecl? = targetStatement() as? VarDecl
     fun targetSubroutine(): Subroutine? = targetStatement() as? Subroutine
     fun targetStructDecl(): StructDecl? = targetStatement() as? StructDecl
-    fun targetStructFieldRef(): StructFieldRef? = targetStatement() as? StructFieldRef
+    fun targetStructFieldRef(): StructFieldRef? {
+        if(nameInSource.size<2) return null
+        return targetStatement() as? StructFieldRef
+    }
+    fun firstTarget(builtins: IBuiltinFunctions? = null): Statement? =
+        if(builtins!=null && nameInSource.singleOrNull() in builtins.names)
+            BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
+        else
+            definingScope.lookup(nameInSource.take(1))
 
     fun targetNameAndType(program: Program): Pair<String, DataType> {
         val target = targetStatement(program.builtinFunctions) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
@@ -1629,26 +1637,15 @@ class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val po
             TODO("cannot determine type of dereferenced indexed pointer(?) as part of a larger dereference expression")
         }
         val vardecl = indexed.arrayvar.targetVarDecl()
-        if(vardecl!=null &&vardecl.datatype.isPointer) {
-            if(vardecl.datatype.sub!=null) {
-                TODO("is this type correct?")
-                return InferredTypes.knownFor(vardecl.datatype.dereference())
-            }
-            TODO("cannot determine type of dereferenced indexed pointer(?) that is not a pointer to a basic type")
-        }
+        if(vardecl!=null &&vardecl.datatype.isPointer)
+            return InferredTypes.knownFor(vardecl.datatype.dereference())
 
         if(parent is AssignTarget || parent is Assignment) {
             val dt = indexed.arrayvar.traverseDerefChainForDt(null)
             return when {
                 dt.isUndefined -> InferredTypes.unknown()
                 dt.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
-                dt.isPointer -> {
-                    return if(dt.sub!=null) {
-                        TODO("is this type correct?")
-                        InferredTypes.knownFor(dt.dereference())
-                    }
-                    else InferredTypes.unknown()
-                }
+                dt.isPointer -> InferredTypes.knownFor(dt.dereference())
                 else -> InferredTypes.unknown()
             }
         }
