@@ -152,7 +152,8 @@ interface IAstVisitor {
     }
 
     fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        arrayIndexedExpression.arrayvar.accept(this)
+        arrayIndexedExpression.plainarrayvar?.accept(this)
+        arrayIndexedExpression.pointerderef?.accept(this)
         arrayIndexedExpression.indexer.accept(this)
     }
 
@@ -161,7 +162,6 @@ interface IAstVisitor {
         assignTarget.identifier?.accept(this)
         assignTarget.memoryAddress?.accept(this)
         assignTarget.pointerDereference?.accept(this)
-        assignTarget.pointerIndexedDeref?.accept(this)
         assignTarget.multi?.forEach { it.accept(this) }
     }
 
@@ -217,9 +217,5 @@ interface IAstVisitor {
 
     fun visit(deref: PtrDereference) {
         deref.identifier.accept(this)
-    }
-
-    fun visit(idxderef: PtrIndexedDereference) {
-        idxderef.indexed.accept(this)
     }
 }

@@ -7,6 +7,8 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
+import prog8.ast.expressions.ArrayIndexedExpression
+import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.PtrDereference
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.VarDecl
@@ -193,6 +195,8 @@ main {
         cx16.r1 = matchstate^^.next^^.next^^.ptr
         cx16.r2 = matchstate.ptr
         cx16.r3 = matchstate.next.next.ptr
+        cx16.r4 = matchstate.ptr^^
+        cx16.r5 = matchstate.next.next.ptr^^
 
         matchstate^^.ptr = 2222
         matchstate^^.next^^.next^^.ptr = 2222
@@ -203,7 +207,7 @@ main {
 
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 11
+        st.size shouldBe 13
         val a0v = (st[2] as Assignment).value as PtrDereference
         a0v.identifier.nameInSource shouldBe listOf("matchstate")
         a0v.chain.size shouldBe 0
@@ -228,29 +232,96 @@ main {
         a3v.field shouldBe "ptr"
         a3v.derefPointerValue shouldBe false
 
-        val t0 = (st[6] as Assignment).target.pointerDereference!!
+        val a4v = (st[6] as Assignment).value as PtrDereference
+        a4v.identifier.nameInSource shouldBe listOf("matchstate")
+        a4v.chain shouldBe listOf("ptr")
+        a4v.field shouldBe null
+        a4v.derefPointerValue shouldBe true
+
+        val a5v = (st[7] as Assignment).value as PtrDereference
+        a5v.identifier.nameInSource shouldBe listOf("matchstate")
+        a5v.chain shouldBe listOf("next", "next", "ptr")
+        a5v.field shouldBe null
+        a5v.derefPointerValue shouldBe true
+
+        val t0 = (st[8] as Assignment).target.pointerDereference!!
         t0.derefPointerValue shouldBe false
         t0.identifier.nameInSource shouldBe listOf("matchstate")
         t0.chain.size shouldBe 0
         t0.field shouldBe "ptr"
 
-        val t1 = (st[7] as Assignment).target.pointerDereference!!
+        val t1 = (st[9] as Assignment).target.pointerDereference!!
         t1.derefPointerValue shouldBe false
         t1.identifier.nameInSource shouldBe listOf("matchstate")
         t1.chain shouldBe listOf("next", "next")
         t1.field shouldBe "ptr"
 
-        val t2 = (st[8] as Assignment).target.pointerDereference!!
+        val t2 = (st[10] as Assignment).target.pointerDereference!!
         t2.derefPointerValue shouldBe false
         t2.identifier.nameInSource shouldBe listOf("matchstate")
         t2.chain.size shouldBe 0
         t2.field shouldBe "ptr"
 
-        val t3 = (st[9] as Assignment).target.pointerDereference!!
+        val t3 = (st[11] as Assignment).target.pointerDereference!!
         t3.derefPointerValue shouldBe false
         t3.identifier.nameInSource shouldBe listOf("matchstate")
         t3.chain shouldBe listOf("next", "next")
         t3.field shouldBe "ptr"
+    }
+
+    test("word size pointer indexing on pointers") {
+        val src="""
+%option enable_floats
+
+main {
+
+    struct List {
+        ^^uword s
+        ubyte n
+        ^^List next
+    }
+
+    sub start() {
+        ubyte[10] array
+        uword @shared wordptr
+        ^^bool @shared boolptr
+        ^^float @shared floatptr
+        ^^byte @shared byteptr
+        ^^ubyte @shared ubyteptr
+        ^^List @shared listptr
+        ^^List @shared listptr2
+
+        bool @shared zz
+        float @shared fl
+        byte @shared bb
+
+        zz = boolptr[999]
+        fl = floatptr[999]
+        bb = byteptr[999]
+        cx16.r0L = ubyteptr[999]
+        cx16.r1L = wordptr[999]
+        cx16.r2L = array[9]
+        listptr2 = listptr[999]        
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 28
+
+        val a_zz = (st[20] as Assignment).value
+        a_zz shouldBe instanceOf<ArrayIndexedExpression>()
+        val a_fl = (st[21] as Assignment).value
+        a_fl shouldBe instanceOf<ArrayIndexedExpression>()
+        val a_bb = (st[22] as Assignment).value
+        a_bb shouldBe instanceOf<ArrayIndexedExpression>()
+        val a_r0 = (st[23] as Assignment).value
+        a_r0 shouldBe instanceOf<DirectMemoryRead>()
+        val a_r1 = (st[24] as Assignment).value
+        a_r1 shouldBe instanceOf<DirectMemoryRead>()
+        val a_r2 = (st[25] as Assignment).value
+        a_r2 shouldBe instanceOf<ArrayIndexedExpression>()
+        val a_lptr2 = (st[25] as Assignment).value
+        a_lptr2 shouldBe instanceOf<ArrayIndexedExpression>()
     }
 
     test("block scoping still parsed correctly") {
@@ -551,6 +622,9 @@ main {
     }
     sub start() {
         ^^List @shared l1 = List()
+        bool ss = l1.s[1]
+        ubyte ub = l1.n[1]
+        uword uw = l1.ptr[1]        
         l1.s[1] = 4444
         l1.n[1] = true
         l1.ptr[1] = 4444
@@ -559,10 +633,15 @@ main {
 
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain "cannot array index"
+        errors.errors.size shouldBe 8
+        errors.errors[0] shouldContain "invalid assignment value"
         errors.errors[1] shouldContain "cannot array index"
-        errors.errors[2] shouldContain "out of range"
+        errors.errors[2] shouldContain "invalid assignment value"
+        errors.errors[3] shouldContain "cannot array index"
+        errors.errors[4] shouldContain "cannot array index"
+        errors.errors[5] shouldContain "cannot array index"
+        errors.errors[6] shouldContain "out of range"
+        errors.errors[7] shouldContain "cannot assign word to byte"
     }
 
     test("dereferences of ptr variables mark those as used in the callgraph") {
@@ -604,24 +683,26 @@ main {
     }
     sub start() {
         ^^List l1 = List()
-        cx16.r0 = l1.s[0]
-        l1.s[0] = 4242
-        cx16.r1 = l1.s^^ 
-
         ^^word @shared wptr
+
+        cx16.r1 = l1.s^^
+        cx16.r0 = l1.s[0]
+        cx16.r2 = l1^^.s^^
+        l1.s[0] = 4242
+        cx16.r1 = l1.s^^
+
         cx16.r0s = wptr[0]
-        cx16.r1s = wptr^^        
-        wptr[0] = 4242
+        cx16.r1s = wptr^^
+        wptr[0] = 4242 
     }
-    
 }"""
 
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 11
-        val dr0 = (st[2] as Assignment).value as PtrDereference
-        val dr1 = (st[3] as Assignment).target.pointerDereference!!
-        val dr2 = (st[4] as Assignment).value as PtrDereference
+        val dr0 = (st[4] as Assignment).value as PtrDereference
+        val dr1 = (st[5] as Assignment).target.pointerDereference!!
+        val dr2 = (st[6] as Assignment).value as PtrDereference
 
         val dr3 = (st[7] as Assignment).value as PtrDereference
         val dr4 = (st[8] as Assignment).value as PtrDereference

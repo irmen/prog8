@@ -87,67 +87,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
             is PtPointerDeref -> translate(expr)
-            is PtPointerIndexedDeref -> translate(expr)
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")
-        }
-    }
-
-    private fun translate(idxderef: PtPointerIndexedDeref): ExpressionCodeResult {
-        if (idxderef.type.isStructInstance)
-            throw AssemblyError("cannot translate POINTER[x] resulting in a struct instance (only when it results in a basic type); this is likely part of a larger expression POINTER[x].field and that has to be translated earlier as a whole")
-
-        val eltSize = codeGen.program.memsizer.memorySize(idxderef.type, null)
-        val result = mutableListOf<IRCodeChunkBase>()
-        if(!idxderef.variable.type.isPointer) {
-            TODO("expression: indexing non-pointer field ${idxderef.variable}")
-        }
-
-        TODO("expression: evaluate address of pointer dereference ${idxderef.position}")
-
-        val pointerReg = -1 // pointerTr.resultReg
-        val constIndex = idxderef.index.asConstInteger()
-        if(constIndex!=null) {
-            val offset = constIndex * eltSize
-            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
-        } else {
-            val indexTr = translateExpression(idxderef.index)
-            result += indexTr.chunks
-            result += IRCodeChunk(null, null).also {
-                val indexReg: Int
-                if (idxderef.index.type.isByte) {
-                    // extend array index to word
-                    indexReg = codeGen.registers.next(IRDataType.WORD)
-                    it += IRInstruction(Opcode.EXT, IRDataType.BYTE, indexReg, indexTr.resultReg)
-                } else {
-                    indexReg = indexTr.resultReg
-                }
-                it += codeGen.multiplyByConst(DataType.UWORD, indexReg, eltSize)
-                it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg)
-            }
-        }
-
-        when {
-            idxderef.type.isByteOrBool -> {
-                val resultReg = codeGen.registers.next(IRDataType.BYTE)
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = pointerReg), null)
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
-            }
-
-            idxderef.type.isWord || idxderef.type.isPointer -> {
-                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
-                return ExpressionCodeResult(result, IRDataType.WORD, pointerReg, -1)
-            }
-
-            idxderef.type.isFloat -> {
-                val resultReg = codeGen.registers.next(IRDataType.FLOAT)
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = pointerReg), null)
-                return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
-            }
-
-            else -> throw AssemblyError("unsupported dereference type ${idxderef.type} at ${idxderef.position}")
         }
     }
 

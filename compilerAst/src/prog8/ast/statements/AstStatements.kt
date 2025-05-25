@@ -593,7 +593,6 @@ data class AssignTarget(
     val multi: List<AssignTarget>?,
     val void: Boolean,
     var pointerDereference: PtrDereference? = null,
-    var pointerIndexedDeref : PtrIndexedDereference? = null,
     override val position: Position
 ) : Node {
     override lateinit var parent: Node
@@ -604,7 +603,6 @@ data class AssignTarget(
         arrayindexed?.linkParents(this)
         memoryAddress?.linkParents(this)
         pointerDereference?.linkParents(this)
-        pointerIndexedDeref?.linkParents(this)
         multi?.forEach { it.linkParents(this) }
     }
 
@@ -614,22 +612,18 @@ data class AssignTarget(
                 identifier = null
                 arrayindexed = null
                 pointerDereference = null
-                pointerIndexedDeref = null
                 when (replacement) {
                     is IdentifierReference -> identifier = replacement
                     is PtrDereference -> pointerDereference = replacement
-                    is PtrIndexedDereference -> pointerIndexedDeref = replacement
                     else -> throw FatalAstException("invalid replacement for AssignTarget.identifier: $replacement")
                 }
             }
             node === arrayindexed -> {
                 identifier = null
                 pointerDereference = null
-                pointerIndexedDeref = null
                 arrayindexed = null
                 memoryAddress = null
                 when (replacement) {
-                    is PtrIndexedDereference -> pointerIndexedDeref = replacement
                     is ArrayIndexedExpression -> arrayindexed = replacement
                     is DirectMemoryWrite -> memoryAddress = replacement
                     is PtrDereference -> pointerDereference = replacement
@@ -651,7 +645,6 @@ data class AssignTarget(
         multi?.toList(),
         void,
         pointerDereference?.copy(),
-        pointerIndexedDeref?.copy(),
         position
     )
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
@@ -659,7 +652,6 @@ data class AssignTarget(
                 arrayindexed?.referencesIdentifier(nameInSource)==true ||
                 memoryAddress?.referencesIdentifier(nameInSource)==true ||
                 pointerDereference?.referencesIdentifier(nameInSource)==true ||
-                pointerIndexedDeref?.referencesIdentifier(nameInSource)==true ||
                 multi?.any { it.referencesIdentifier(nameInSource)}==true
 
     fun inferType(program: Program): InferredTypes.InferredType {
@@ -672,7 +664,6 @@ data class AssignTarget(
             arrayindexed != null -> arrayindexed!!.inferType(program)
             memoryAddress != null -> InferredTypes.knownFor(BaseDataType.UBYTE)
             pointerDereference != null -> pointerDereference!!.inferType(program)
-            pointerIndexedDeref != null -> pointerIndexedDeref!!.inferType(program)
             else -> InferredTypes.unknown()   // a multi-target has no 1 particular type
         }
     }
@@ -685,7 +676,6 @@ data class AssignTarget(
             memoryAddress != null -> DirectMemoryRead(memoryAddress!!.addressExpression.copy(), memoryAddress!!.position)
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
             pointerDereference != null -> pointerDereference!!.copy()
-            pointerIndexedDeref != null -> pointerIndexedDeref!!.copy()
             else -> throw FatalAstException("invalid assignment target")
         }
     }
@@ -700,12 +690,7 @@ data class AssignTarget(
                     false
             }
             identifier != null -> value is IdentifierReference && value.nameInSource == identifier!!.nameInSource
-            arrayindexed != null -> {
-                if(value is ArrayIndexedExpression && value.arrayvar.nameInSource == arrayindexed!!.arrayvar.nameInSource)
-                    arrayindexed!!.indexer isSameAs value.indexer
-                else
-                    false
-            }
+            arrayindexed != null -> value is ArrayIndexedExpression && arrayindexed!!.isSameArrayIndexedAs(value)
             multi != null -> false
             pointerDereference !=null -> {
                 if(value is PtrDereference) {
@@ -714,11 +699,6 @@ data class AssignTarget(
                     else
                         pointerDereference!!.chain == value.chain
                 }
-                return false
-            }
-            pointerIndexedDeref !=null -> {
-                if(value is PtrIndexedDereference)
-                    return pointerIndexedDeref!!.indexed == value.indexed
                 return false
             }
             else -> false
@@ -736,19 +716,18 @@ data class AssignTarget(
                 return addr1 != null && addr2 != null && addr1 == addr2
             }
             this.arrayindexed != null && other.arrayindexed != null -> {
-                if (this.arrayindexed!!.arrayvar.nameInSource == other.arrayindexed!!.arrayvar.nameInSource) {
+                if(this.arrayindexed!!.plainarrayvar!=null && this.arrayindexed!!.plainarrayvar?.nameInSource == other.arrayindexed!!.plainarrayvar?.nameInSource) {
                     val x1 = this.arrayindexed!!.indexer.constIndex()
                     val x2 = other.arrayindexed!!.indexer.constIndex()
                     return x1 != null && x2 != null && x1 == x2
                 }
+                else if(this.pointerDereference != null && other.pointerDereference != null && this.pointerDereference!!.isSamePointerDeref(other.pointerDereference))
+                    return true
                 else
                     return false
             }
             pointerDereference !=null && other.pointerDereference !=null -> {
                 return pointerDereference!! isSameAs other.pointerDereference!!
-            }
-            pointerIndexedDeref !=null && other.pointerIndexedDeref !=null -> {
-                return pointerIndexedDeref!! isSameAs other.pointerIndexedDeref!!
             }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false
@@ -777,14 +756,18 @@ data class AssignTarget(
                 }
             }
             arrayIdx != null -> {
-                val targetStmt = arrayIdx.arrayvar.targetVarDecl()
-                return if (targetStmt?.type == VarDeclType.MEMORY) {
-                    val addr = targetStmt.value as? NumericLiteral
-                    if (addr != null)
-                        target.isIOAddress(addr.number.toUInt())
-                    else
-                        false
-                } else false
+                if(arrayIdx.plainarrayvar!=null) {
+                    val targetStmt = arrayIdx.plainarrayvar!!.targetVarDecl()
+                    return if (targetStmt?.type == VarDeclType.MEMORY) {
+                        val addr = targetStmt.value as? NumericLiteral
+                        if (addr != null)
+                            target.isIOAddress(addr.number.toUInt())
+                        else
+                            false
+                    } else false
+                }
+                // can't really tell for the other types... assume false.
+                return false
             }
             ident != null -> {
                 val decl = ident.targetVarDecl() ?: throw FatalAstException("invalid identifier ${ident.nameInSource}")

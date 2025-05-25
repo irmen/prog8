@@ -124,16 +124,17 @@ class TestAstChecks: FunSpec({
             main {
                 sub start() {
                     &ubyte a = 10000
-                    uword @shared z = 500
-                    a[4] = (z % 3) as ubyte
+                    cx16.r0L = a[4]
+                    a[4] = cx16.r1L
                 }
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), true, text, outputDir, writeAssembly = true, errors=errors)
-        errors.errors.size shouldBe 1
+        errors.errors.size shouldBe 2
         errors.warnings.size shouldBe 0
         errors.errors[0] shouldContain "indexing requires"
+        errors.errors[1] shouldContain "indexing requires"
     }
 
     test("unicode in identifier names is working") {

@@ -187,7 +187,6 @@ assign_target:
     | arrayindexed                  #ArrayindexedTarget
     | directmemory                  #MemoryTarget
     | pointerdereference            #PointerDereferenceTarget
-    | pointerindexedderef           #PointerIndexedDerefTarget
     | VOID                          #VoidTarget
     ;
 
@@ -225,7 +224,6 @@ expression :
     | expression typecast
     | if_expression
     | pointerdereference
-    | pointerindexedderef
     ;
 
 arrayindexed:
@@ -338,9 +336,6 @@ pointerdereference:  (prefix = scoped_identifier '.')? derefchain ('.' field = i
 derefchain :  singlederef ('.' singlederef)* ;
 
 singlederef : identifier POINTER ;
-
-pointerindexedderef : arrayindexed POINTER ;
-
 
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 

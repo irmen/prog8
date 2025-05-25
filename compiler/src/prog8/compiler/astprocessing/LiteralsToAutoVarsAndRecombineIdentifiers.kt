@@ -1,9 +1,6 @@
 package prog8.compiler.astprocessing
 
-import prog8.ast.IFunctionCall
-import prog8.ast.IStatementContainer
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
@@ -169,10 +166,14 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                 // maybe recombine   IDENTIFIER . ARRAY[IDX]  -->  COMBINEDIDENTIFIER[IDX]
                 val leftTarget = leftIdent.targetStatement()
                 if(leftTarget==null || leftTarget !is StructDecl) {
-                    val combinedName = leftIdent.nameInSource + rightIndex.arrayvar.nameInSource
-                    val combined = IdentifierReference(combinedName, leftIdent.position)
-                    val indexer = ArrayIndexedExpression(combined, rightIndex.indexer, leftIdent.position)
-                    return listOf(IAstModification.ReplaceNode(expr, indexer, parent))
+                    if(rightIndex.plainarrayvar!=null) {
+                        val combinedName = leftIdent.nameInSource + rightIndex.plainarrayvar!!.nameInSource
+                        val combined = IdentifierReference(combinedName, leftIdent.position)
+                        val indexer = ArrayIndexedExpression(combined, null, rightIndex.indexer, leftIdent.position)
+                        return listOf(IAstModification.ReplaceNode(expr, indexer, parent))
+                    } else {
+                        throw FatalAstException("didn't expect pointer[idx] in this phase already")
+                    }
                 }
             }
         }

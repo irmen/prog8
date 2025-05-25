@@ -332,15 +332,19 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
             val constIndex = arrayIndexedExpression.indexer.constIndex()
             if (constIndex != null) {
-                val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl()
-                if(arrayVar!=null) {
-                    val array =arrayVar.value as? ArrayLiteral
-                    if(array!=null) {
-                        val value = array.value[constIndex].constValue(program)
-                        if(value!=null) {
-                            return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, value, parent))
+                if(arrayIndexedExpression.plainarrayvar!=null) {
+                    val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
+                    if(arrayVar!=null) {
+                        val array =arrayVar.value as? ArrayLiteral
+                        if(array!=null) {
+                            val value = array.value[constIndex].constValue(program)
+                            if(value!=null) {
+                                return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, value, parent))
+                            }
                         }
                     }
+                } else if(arrayIndexedExpression.pointerderef!=null) {
+                    TODO("constant fold pointer[i]")
                 }
             }
         }

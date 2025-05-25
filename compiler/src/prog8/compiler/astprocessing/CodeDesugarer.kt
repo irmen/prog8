@@ -216,12 +216,17 @@ _after:
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         // replace pointervar[word] by @(pointervar+word) to avoid the
         // "array indexing is limited to byte size 0..255" error for pointervariables.
+
+        if(arrayIndexedExpression.pointerderef!=null) {
+            return noModifications
+        }
+
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
-        val arrayVar = arrayIndexedExpression.arrayvar.targetVarDecl()
+        val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
         if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || (arrayVar.datatype.isPointer && arrayVar.datatype.sub==BaseDataType.UBYTE))) {
             val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
             val address = BinaryExpression(
-                arrayIndexedExpression.arrayvar.copy(),
+                arrayIndexedExpression.plainarrayvar!!.copy(),
                 "+",
                 wordIndex,
                 arrayIndexedExpression.position
@@ -243,23 +248,24 @@ _after:
                 val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
                 listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
             }
-        } else if(arrayVar!=null && (arrayVar.datatype.isPointer || arrayVar.datatype.isArray)) {
+        } else if(arrayVar!=null && (arrayVar.type==VarDeclType.MEMORY || arrayVar.datatype.isString || arrayVar.datatype.isPointer || arrayVar.datatype.isArray)) {
             return noModifications
-        } else {
+        } else if(arrayVar!=null) {
             // it could be a pointer dereference instead of a simple array variable
-            val dt = arrayIndexedExpression.arrayvar.traverseDerefChainForDt(null)
-            if(dt.isUnsignedWord) {
-                // ptr.field[index] -->  @(ptr.field + index)
-                val index = arrayIndexedExpression.indexer.indexExpr
-                val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", index, arrayIndexedExpression.position)
-                if(parent is AssignTarget) {
-                    val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
-                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memwrite, parent))
-                } else {
-                    val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
-                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
-                }
-            }
+            TODO("deref[word] rewrite ????  $arrayIndexedExpression")
+//            val dt = arrayIndexedExpression.plainarrayvar!!.traverseDerefChainForDt(null)
+//            if(dt.isUnsignedWord) {
+//                // ptr.field[index] -->  @(ptr.field + index)
+//                val index = arrayIndexedExpression.indexer.indexExpr
+//                val address = BinaryExpression(arrayIndexedExpression.arrayvar.copy(), "+", index, arrayIndexedExpression.position)
+//                if(parent is AssignTarget) {
+//                    val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
+//                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memwrite, parent))
+//                } else {
+//                    val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
+//                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+//                }
+//            }
         }
         return noModifications
     }
@@ -396,9 +402,6 @@ _after:
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
 
-        if(parent is PtrIndexedDereference || parent.parent is PtrIndexedDereference)
-            return noModifications
-
         if(identifier.nameInSource.size>1 && (identifier.firstTarget() as? VarDecl)?.datatype?.isPointer==true) {
             // the a.b.c.d is be a pointer dereference chain ending in a struct field;  a^^.b^^.c^^.d
 
@@ -426,13 +429,7 @@ _after:
                         struct = fieldDt.subType as StructDecl
                     }
 
-                    if(parent is ArrayIndexedExpression) {
-                        if(struct.getFieldType(field!!)!!.isUnsignedWord) {
-                            return noModifications
-                        }
-                        val deref = PtrIndexedDereference(parent, parent.position)
-                        return listOf(IAstModification.ReplaceNode(parent, deref, parent.parent))
-                    } else if (parent !is PtrDereference)  {
+                    if (parent !is PtrDereference)  {
                         val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, false, identifier.position)
                         return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
                     }
@@ -472,7 +469,12 @@ _after:
             assignIndex = Assignment(varTarget, ongoto.index, AssignmentOrigin.USERCODE, ongoto.position)
         }
 
-        val callTarget = ArrayIndexedExpression(IdentifierReference(listOf(jumplistArray.name), jumplistArray.position), ArrayIndex(indexValue.copy(), indexValue.position), ongoto.position)
+        val callTarget = ArrayIndexedExpression(
+            IdentifierReference(listOf(jumplistArray.name), jumplistArray.position),
+            null,
+            ArrayIndex(indexValue.copy(), indexValue.position),
+            ongoto.position
+        )
         val callIndexed = AnonymousScope(mutableListOf(), ongoto.position)
         if(ongoto.isCall) {
             callIndexed.statements.add(FunctionCallStatement(IdentifierReference(listOf("call"), ongoto.position), mutableListOf(callTarget), true, ongoto.position))

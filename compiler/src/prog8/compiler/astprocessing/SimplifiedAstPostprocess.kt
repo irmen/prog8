@@ -28,7 +28,6 @@ private fun checkForPointerTypesOn6502(program: PtProgram, errors: IErrorReporte
             //is PtBinaryExpression -> if(node.left.type.isPointer || node.right.type.isPointer) errors.err("cannot do pointer arithmetic yet on 6502 target  $node", node.position)
             is PtIdentifier -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
             is PtPointerDeref -> errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
-            is PtPointerIndexedDeref -> errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
             is PtPrefix -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
             is PtTypeCast -> if(node.type.isPointer) errors.err("cannot use pointer type yet on 6502 target  $node", node.position)
             is PtStructDecl -> errors.err("cannot use struct type yet on 6502 target  $node", node.position)
@@ -62,7 +61,6 @@ private fun processSubtypesIntoStReferences(program: PtProgram, st: SymbolTable)
         when(node) {
             is IPtVariable -> fixSubtype(node.type)
             is PtPointerDeref -> fixSubtype(node.type)
-            is PtPointerIndexedDeref -> fixSubtype(node.type)
             is PtStructDecl -> node.fields.forEach { fixSubtype(it.first) }
             is PtAsmSub -> node.returns.forEach { fixSubtype(it.second) }
             is PtExpression -> fixSubtype(node.type)

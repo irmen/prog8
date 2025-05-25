@@ -420,7 +420,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        arrayIndexedExpression.arrayvar.accept(this)
+        arrayIndexedExpression.plainarrayvar?.accept(this)
+        arrayIndexedExpression.pointerderef?.accept(this)
         output("[")
         arrayIndexedExpression.indexer.indexExpr.accept(this)
         output("]")
@@ -434,7 +435,6 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
             assignTarget.identifier?.accept(this)
             assignTarget.arrayindexed?.accept(this)
             assignTarget.pointerDereference?.accept(this)
-            assignTarget.pointerIndexedDeref?.accept(this)
             val multi = assignTarget.multi
             if (multi != null) {
                 multi.dropLast(1).forEach { target ->
@@ -556,11 +556,6 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
         if(deref.field!=null)
             output(".${deref.field}")
-    }
-
-    override fun visit(idxderef: PtrIndexedDereference) {
-        idxderef.indexed.accept(this)
-        output("^^")
     }
 
     override fun visit(field: StructFieldRef) {

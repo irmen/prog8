@@ -424,27 +424,26 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
-        if(parent is PtrIndexedDereference)
-            return noModifications
-
         if(arrayIndexedExpression.indexer.constIndex()==0) {
-            val dt = arrayIndexedExpression.arrayvar.inferType(program).getOrUndef()
-            if(dt.isPointer) {
-                // pointer[0]  -->   pointer^^
-                if(dt.sub==null) {
-                    val parentExpr = parent as? BinaryExpression
-                    if(parentExpr?.operator=="." && parentExpr.right is IdentifierReference) {
-                        // we're part of an expression:  pointer[x].ptr.ptr.field
-                        val chain = (parentExpr.right as? IdentifierReference)?.nameInSource?.toMutableList() ?: mutableListOf()
-                        val field = chain.removeLastOrNull()
-                        val deref = PtrDereference(arrayIndexedExpression.arrayvar, chain, field, field==null, arrayIndexedExpression.position)
-                        return listOf(IAstModification.ReplaceNode(parent, deref, parent.parent))
-                    } else
-                        throw FatalAstException("cannot dereference a 'bare' pointer to a struct, only to a basic type at ${arrayIndexedExpression.position}")
-                } else {
-                    // points to a simple type, can simply dereference the pointer itself directly
-                    val deref = PtrDereference(arrayIndexedExpression.arrayvar, emptyList(), null, true,arrayIndexedExpression.position)
-                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
+            if(arrayIndexedExpression.plainarrayvar!=null) {
+                val dt = arrayIndexedExpression.plainarrayvar!!.inferType(program).getOrUndef()
+                if(dt.isPointer) {
+                    // pointer[0]  -->   pointer^^
+                    val deref = PtrDereference(arrayIndexedExpression.plainarrayvar!!, emptyList(), null, true, arrayIndexedExpression.plainarrayvar!!.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression,deref, parent))
+                }
+            }
+            val ptrDeref = arrayIndexedExpression.pointerderef
+            if(ptrDeref!=null) {
+                val dt = ptrDeref.inferType(program).getOrUndef()
+                if(dt.isPointer) {
+                    if(ptrDeref.field!=null) {
+                        // pointer[0]  -->   pointer^^
+                        val deref = PtrDereference(ptrDeref.identifier, ptrDeref.chain + ptrDeref.field!!, null, true, ptrDeref.position)
+                        return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
+                    } else {
+                        TODO("ptr[0] rewrite")
+                    }
                 }
             }
         }

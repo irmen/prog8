@@ -2,15 +2,20 @@ main {
     struct List {
         ^^uword s
         ubyte n
-        ^^List next
     }
     sub start() {
         ^^List l1 = List()
-        ^^List l2 = List()
-        l1.s[2] = 1
-        l2.n=10
+        ^^word @shared wptr
 
-        ^^List l3 = List()
-        cx16.r0L = l3.next.n
+        cx16.r1 = l1.s^^
+        cx16.r0 = l1.s[0]
+        cx16.r2 = l1^^.s^^
+        l1.s[0] = 4242
+        cx16.r1 = l1.s^^
+
+        cx16.r0s = wptr[0]
+        cx16.r1s = wptr^^
+        wptr[0] = 4242
     }
+
 }

@@ -88,9 +88,6 @@ internal class AstChecker(private val program: Program,
                 val ppExpr = identifier.parent.parent as? BinaryExpression
                 if(ppExpr?.operator==".")
                     return  // identifiers will be checked over at the BinaryExpression itself
-                val ppIdxExpr = identifier.parent.parent as? PtrIndexedDereference
-                if(ppIdxExpr!=null)
-                    return  // identifiers will be checked over at the PtrIndexedDereference itself
             }
             errors.undefined(identifier.nameInSource, identifier.position)
         }
@@ -770,10 +767,13 @@ internal class AstChecker(private val program: Program,
         fun checkRomTarget(target: AssignTarget) {
             val idx=target.arrayindexed
             if(idx!=null) {
-                val decl = idx.arrayvar.targetVarDecl()!!
-                if(decl.type!=VarDeclType.MEMORY && decl.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE) {
-                    // memory mapped arrays are assumed to be in RAM. If they're not.... well, POOF
-                    errors.err("cannot assign to an array or string that is located in ROM (option romable is enabled)", assignTarget.position)
+                // cannot check pointer deref for rom target, assume no there.
+                if(idx.plainarrayvar!=null) {
+                    val decl = idx.plainarrayvar!!.targetVarDecl()!!
+                    if(decl.type!=VarDeclType.MEMORY && decl.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE) {
+                        // memory mapped arrays are assumed to be in RAM. If they're not.... well, POOF
+                        errors.err("cannot assign to an array or string that is located in ROM (option romable is enabled)", assignTarget.position)
+                    }
                 }
             }
         }
@@ -1336,7 +1336,8 @@ internal class AstChecker(private val program: Program,
                         leftIdentfier.targetVarDecl()?.datatype?.subType as? StructDecl
                     } else if(leftIndexer!=null) {
                         // ARRAY[x].NAME --> maybe it's a pointer dereference
-                        leftIndexer.arrayvar.targetVarDecl()?.datatype?.subType as? StructDecl
+                        TODO("array[x].name pointer check?")
+                        // leftIndexer.arrayvar.targetVarDecl()?.datatype?.subType as? StructDecl
                     }
                     else null
                 if (struct != null) {
@@ -1366,21 +1367,22 @@ internal class AstChecker(private val program: Program,
             } else if(rightIndexer!=null) {
                 val leftDt = expr.left.inferType(program)
                 if(leftDt.isStructInstance) {
-                    //  pointer[x].field[y] --> type is the dt of 'field'
-                    var struct = leftDt.getOrUndef().subType as? StructDecl
-                    if (struct==null) {
-                        errors.err("cannot find struct type", expr.position)
-                    } else {
-                        var fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-                        if (fieldDt == null)
-                            errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${(leftDt.getOrUndef().subType as? StructDecl)?.name}'", expr.position)
-                        else {
-                            struct = fieldDt.subType as StructDecl
-                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-                            if(fieldDt==null)
-                                errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${struct.name}'", expr.position)
-                        }
-                    }
+                    TODO("pointer[x].field[y] ??")
+//                    //  pointer[x].field[y] --> type is the dt of 'field'
+//                    var struct = leftDt.getOrUndef().subType as? StructDecl
+//                    if (struct==null) {
+//                        errors.err("cannot find struct type", expr.position)
+//                    } else {
+//                        var fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+//                        if (fieldDt == null)
+//                            errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${(leftDt.getOrUndef().subType as? StructDecl)?.name}'", expr.position)
+//                        else {
+//                            struct = fieldDt.subType as StructDecl
+//                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+//                            if(fieldDt==null)
+//                                errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${struct.name}'", expr.position)
+//                        }
+//                    }
                 } else {
                     errors.err("at the moment it is not possible to chain array syntax on pointers like  ...p1[x].p2[y]... use separate expressions for the time being", expr.right.position)  // TODO add support for chained array syntax on pointers (rewrite ast?)
                     // TODO I don't think we can evaluate this because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
@@ -1843,7 +1845,7 @@ internal class AstChecker(private val program: Program,
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
         checkLongType(arrayIndexedExpression)
-        val target = arrayIndexedExpression.arrayvar.targetStatement(program.builtinFunctions)
+        val target = arrayIndexedExpression.plainarrayvar?.targetStatement(program.builtinFunctions)
         if(target is VarDecl) {
             if (!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)
                 errors.err(
@@ -1875,26 +1877,36 @@ internal class AstChecker(private val program: Program,
             } else if (index != null && index < 0) {
                 errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             }
-        } else if(target is StructFieldRef) {
-            if(!target.type.isPointer && !target.type.isUnsignedWord)
+        } else if(target!=null) {
+            throw FatalAstException("target is not a variable")
+        }
+
+        if(arrayIndexedExpression.pointerderef!=null) {
+            val dt = arrayIndexedExpression.pointerderef!!.inferType(program)
+            if(!dt.isPointer && !dt.isUnsignedWord && !dt.isIterable) {
                 errors.err("cannot array index on this field type", arrayIndexedExpression.indexer.position)
-        } else {
-            val parentExpr = arrayIndexedExpression.parent
-            if(parentExpr is BinaryExpression) {
-                if (parentExpr.operator != ".")
-                    errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
-            } else if(parentExpr is PtrIndexedDereference) {
-                // all is fine
-            } else {
-                errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
             }
+//            else if(target is StructFieldRef) {
+//                if(!target.type.isPointer && !target.type.isUnsignedWord)
+//                    errors.err("cannot array index on this field type", arrayIndexedExpression.indexer.position)
+//            } else {
+//                val parentExpr = arrayIndexedExpression.parent
+//                if(parentExpr is BinaryExpression) {
+//                    if (parentExpr.operator != ".")
+//                        errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
+//                } else if(parentExpr is PtrIndexedDereference) {
+//                    // all is fine
+//                } else {
+//                    errors.err("indexing requires a variable to act upon", arrayIndexedExpression.position)
+//                }
+//            }
         }
 
         // check index value 0..255 if the index variable is not a pointer
         val dtxNum = arrayIndexedExpression.indexer.indexExpr.inferType(program)
         if(dtxNum.isKnown) {
-            val arrayVarDt = arrayIndexedExpression.arrayvar.inferType(program)
-            if (!arrayVarDt.isPointer && !(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
+            val arrayVarDt = arrayIndexedExpression.plainarrayvar?.inferType(program)
+            if (arrayVarDt!=null && !arrayVarDt.isPointer && !(dtxNum issimpletype BaseDataType.UBYTE) && !(dtxNum issimpletype BaseDataType.BYTE))
                 errors.err("array indexing is limited to byte size 0..255", arrayIndexedExpression.position)
         }
 
@@ -1999,12 +2011,12 @@ internal class AstChecker(private val program: Program,
 
     private fun allowedMemoryAccessAddressExpression(addressExpression: Expression, program: Program): Boolean {
         val dt = addressExpression.inferType(program)
-        if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub==BaseDataType.UBYTE))
+        if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByte==true))
             return true
         val tc = addressExpression as? TypecastExpression
         if(tc!=null && tc.implicit) {
             val dt = tc.expression.inferType(program)
-            if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub==BaseDataType.UBYTE))
+            if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByte==true))
                 return true
         }
         return false
@@ -2371,12 +2383,6 @@ internal class AstChecker(private val program: Program,
         if(!onGoto.index.inferType(program).getOrUndef().isUnsignedByte) {
             errors.err("on..goto index must be an unsigned byte", onGoto.index.position)
         }
-    }
-
-    override fun visit(idxderef: PtrIndexedDereference) {
-        val dt = idxderef.indexed.arrayvar.inferType(program)
-        if(!dt.isUnsignedWord && !dt.isPointer)
-            errors.err("cannot array index on this field type", idxderef.indexed.position)
     }
 }
 

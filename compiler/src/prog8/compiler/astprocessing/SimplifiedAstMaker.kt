@@ -100,20 +100,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is TypecastExpression -> transform(expr)
             is IfExpression -> transform(expr)
             is PtrDereference -> transform(expr)
-            is PtrIndexedDereference -> transform(expr)
         }
-    }
-
-    private fun transform(idxderef: PtrIndexedDereference): PtPointerIndexedDeref {
-        val type = idxderef.inferType(program).getOrElse {
-            throw FatalAstException("unknown dt")
-        }
-        val derefType = if(type.isPointer) DataType.forDt(type.sub!!) else type
-        val deref = PtPointerIndexedDeref(derefType, idxderef.position)
-        val identifier = PtIdentifier(idxderef.indexed.arrayvar.nameInSource.joinToString("."), DataType.pointer(derefType), idxderef.indexed.arrayvar.position)
-        deref.add(identifier)
-        deref.add(transformExpression(idxderef.indexed.indexer.indexExpr))
-        return deref
     }
 
     private fun transform(deref: PtrDereference): PtPointerDeref {
@@ -244,7 +231,6 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             srcTarget.arrayindexed!=null -> target.add(transform(srcTarget.arrayindexed!!))
             srcTarget.memoryAddress!=null -> target.add(transform(srcTarget.memoryAddress!!))
             srcTarget.pointerDereference !=null -> target.add(transform(srcTarget.pointerDereference!!))
-            srcTarget.pointerIndexedDeref!=null -> target.add(transform(srcTarget.pointerIndexedDeref!!))
             !srcTarget.void -> throw FatalAstException("invalid AssignTarget")
         }
         return target
@@ -699,14 +685,20 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(srcArr: ArrayIndexedExpression): PtArrayIndexer {
-        val dt = srcArr.arrayvar.inferType(program)
-        if(!dt.isArray && !dt.isString && !dt.isPointer)
-            throw FatalAstException("array indexing can only be used on array, string or pointer variables ${srcArr.position}")
-        val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-        val array = PtArrayIndexer(eltType, srcArr.position)
-        array.add(transform(srcArr.arrayvar))
-        array.add(transformExpression(srcArr.indexer.indexExpr))
-        return array
+        if(srcArr.plainarrayvar!=null) {
+            val dt = srcArr.plainarrayvar!!.inferType(program)
+            if (!dt.isArray && !dt.isString && !dt.isPointer)
+                throw FatalAstException("array indexing can only be used on array, string or pointer variables ${srcArr.position}")
+            val eltType = srcArr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+            val array = PtArrayIndexer(eltType, srcArr.position)
+            array.add(transform(srcArr.plainarrayvar!!))
+            array.add(transformExpression(srcArr.indexer.indexExpr))
+            return array
+        }
+        if(srcArr.pointerderef!=null) {
+            TODO("transform pointer index")
+        }
+        throw FatalAstException("expected plain array variable or pointer dereference")
     }
 
     private fun transform(srcArr: ArrayLiteral): PtArray {

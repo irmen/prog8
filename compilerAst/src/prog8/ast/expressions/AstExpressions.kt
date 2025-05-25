@@ -40,10 +40,7 @@ sealed class Expression: Node {
                 else
                     other.left isSameAs left && other.right isSameAs right
             }
-            is ArrayIndexedExpression -> {
-                (other is ArrayIndexedExpression && other.arrayvar.nameInSource == arrayvar.nameInSource
-                        && other.indexer isSameAs indexer)
-            }
+            is ArrayIndexedExpression -> isSameArrayIndexedAs(other)
             is DirectMemoryRead -> {
                 (other is DirectMemoryRead && other.addressExpression isSameAs addressExpression)
             }
@@ -242,9 +239,12 @@ class BinaryExpression(
                         if (leftIdentfier != null) {
                             // PTR . FIELD
                             leftIdentfier.targetVarDecl()?.datatype?.subType as? StructDecl
-                        } else if(leftIndexer!=null) {
+                        } else if(leftIndexer!=null && rightIdentifier.nameInSource.size==1) {
                             // ARRAY[x].NAME --> maybe it's a pointer dereference
-                            leftIndexer.arrayvar.targetVarDecl()?.datatype?.subType as? StructDecl
+                            val dt = leftIndexer.inferType(program).getOrUndef()
+                            if(dt.isPointer) {
+                                dt.dereference().subType as? StructDecl
+                            } else null
                         } else if(leftExpr!=null) {
                             // SOMEEXPRESSION . NAME
                             val leftDt = leftExpr.inferType(program)
@@ -269,17 +269,18 @@ class BinaryExpression(
                 } else if(rightIndexer!=null) {
                     if(leftDt.isStructInstance) {
                         //  pointer[x].field[y] --> type is the dt of 'field'
-                        var fieldDt = (leftDt.getOrUndef().subType as? StructDecl)?.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-                        if (fieldDt == null)
-                            InferredTypes.unknown()
-                        else {
-                            val struct = fieldDt.subType as StructDecl
-                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-                            if(fieldDt!=null)
-                                if(fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
-                            else
-                                InferredTypes.unknown()
-                        }
+                        TODO("pointer[x].field[y] ?????")
+//                        var fieldDt = (leftDt.getOrUndef().subType as? StructDecl)?.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+//                        if (fieldDt == null)
+//                            InferredTypes.unknown()
+//                        else {
+//                            val struct = fieldDt.subType as StructDecl
+//                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
+//                            if(fieldDt!=null)
+//                                if(fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
+//                            else
+//                                InferredTypes.unknown()
+//                        }
                     } else
                         InferredTypes.unknown() // TODO("something.field[x]  at ${right.position}")
                         // TODO I don't think we can evaluate this type because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
@@ -386,21 +387,30 @@ class BinaryExpression(
     }
 }
 
-class ArrayIndexedExpression(var arrayvar: IdentifierReference,
+class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
+                             var pointerderef: PtrDereference?,
                              val indexer: ArrayIndex,
                              override val position: Position) : Expression() {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
-        arrayvar.linkParents(this)
+        plainarrayvar?.linkParents(this)
+        pointerderef?.linkParents(this)
         indexer.linkParents(this)
     }
 
     override val isSimple = indexer.indexExpr is NumericLiteral || indexer.indexExpr is IdentifierReference
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        when {
-            node===arrayvar -> arrayvar = replacement as IdentifierReference
+        when (replacement) {
+            is IdentifierReference -> {
+                plainarrayvar = replacement
+                pointerderef = null
+            }
+            is PtrDereference -> {
+                plainarrayvar = null
+                pointerderef = replacement
+            }
             else -> throw FatalAstException("invalid replace")
         }
         replacement.parent = this
@@ -410,39 +420,58 @@ class ArrayIndexedExpression(var arrayvar: IdentifierReference,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(nameInSource: List<String>) = arrayvar.referencesIdentifier(nameInSource) || indexer.referencesIdentifier(nameInSource)
+    override fun referencesIdentifier(nameInSource: List<String>) =
+        plainarrayvar?.referencesIdentifier(nameInSource)==true || pointerderef?.referencesIdentifier(nameInSource)==true || indexer.referencesIdentifier(nameInSource)
 
     override fun inferType(program: Program): InferredTypes.InferredType {
-        val target = arrayvar.targetStatement(program.builtinFunctions)
-        if (target is VarDecl) {
-            return when {
-                target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
-                target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
-                target.datatype.isPointer -> {
-                    if(target.datatype.subType!=null)
-                        InferredTypes.knownFor(DataType.structInstance(target.datatype.subType))
-                    else if(target.datatype.subTypeFromAntlr!=null)
-                        InferredTypes.unknown()
-                    else
-                        InferredTypes.knownFor(target.datatype.sub!!)
+        if(plainarrayvar!=null) {
+            val target = plainarrayvar!!.targetStatement()
+            if(target is VarDecl) {
+                return when {
+                    target.datatype.isString || target.datatype.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                    target.datatype.isArray -> InferredTypes.knownFor(target.datatype.elementType())
+                    target.datatype.isPointer -> InferredTypes.knownFor(target.datatype.dereference())
+                    else -> InferredTypes.knownFor(target.datatype)
                 }
-                else -> InferredTypes.knownFor(target.datatype)
-            }
-        } else {
-            val dt = arrayvar.inferType(program).getOrUndef()
-            if(dt.isPointer) {
-                if(dt.sub!=null)
-                    return InferredTypes.knownFor(dt.sub!!)
+            } else if(target is StructFieldRef) {
+                return InferredTypes.knownFor(target.type)
+            } else if(target==null) {
+                return InferredTypes.unknown()
+            } else
+                TODO("infer type from target $target")
+        } else if(pointerderef!=null) {
+            val dt= pointerderef!!.inferType(program).getOrUndef()
+            return when {
+                dt.isString || dt.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
+                dt.isArray -> InferredTypes.knownFor(dt.elementType())
+                dt.isPointer -> InferredTypes.knownFor(dt.dereference())
+                else -> InferredTypes.unknown()
             }
         }
         return InferredTypes.unknown()
     }
 
     override fun toString(): String {
-        return "ArrayIndexed(ident=$arrayvar, idx=$indexer; pos=$position)"
+        return if(plainarrayvar!=null)
+            "ArrayIndexed(arrayvar=$plainarrayvar, idx=$indexer; pos=$position)"
+        else if(pointerderef!=null)
+            "ArrayIndexed(ptr=$pointerderef, idx=$indexer; pos=$position)"
+        else
+            "??????"
     }
 
-    override fun copy() = ArrayIndexedExpression(arrayvar.copy(), indexer.copy(), position)
+    override fun copy() = ArrayIndexedExpression(plainarrayvar?.copy(), pointerderef?.copy(), indexer.copy(), position)
+
+    fun isSameArrayIndexedAs(other: Expression): Boolean {
+        if(other !is ArrayIndexedExpression || other.indexer!=indexer)
+            return false
+        if(plainarrayvar?.nameInSource != other.plainarrayvar?.nameInSource)
+            return false
+        if(pointerderef!=null)
+            return pointerderef!!.isSamePointerDeref(other.pointerderef)
+        return true
+    }
+
 }
 
 class TypecastExpression(var expression: Expression, var type: DataType, val implicit: Boolean, override val position: Position) : Expression() {
@@ -1618,46 +1647,6 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     }
 }
 
-class PtrIndexedDereference(val indexed: ArrayIndexedExpression, override val position: Position) : Expression() {
-    override lateinit var parent: Node
-
-    override fun linkParents(parent: Node) {
-        this.parent = parent
-        indexed.linkParents(this)
-    }
-
-    override val isSimple = false
-    override fun copy() = PtrIndexedDereference(indexed.copy(), position)
-    override fun constValue(program: Program): NumericLiteral? = null
-    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
-    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun inferType(program: Program): InferredTypes.InferredType {
-        val parentExpr = parent as? BinaryExpression
-        if(parentExpr?.operator==".") {
-            TODO("cannot determine type of dereferenced indexed pointer(?) as part of a larger dereference expression")
-        }
-        val vardecl = indexed.arrayvar.targetVarDecl()
-        if(vardecl!=null &&vardecl.datatype.isPointer)
-            return InferredTypes.knownFor(vardecl.datatype.dereference())
-
-        if(parent is AssignTarget || parent is Assignment) {
-            val dt = indexed.arrayvar.traverseDerefChainForDt(null)
-            return when {
-                dt.isUndefined -> InferredTypes.unknown()
-                dt.isUnsignedWord -> InferredTypes.knownFor(BaseDataType.UBYTE)
-                dt.isPointer -> InferredTypes.knownFor(dt.dereference())
-                else -> InferredTypes.unknown()
-            }
-        }
-
-        return InferredTypes.unknown()
-    }
-
-    override fun replaceChildNode(node: Node, replacement: Node) =
-        throw FatalAstException("can't replace here")
-    override fun referencesIdentifier(nameInSource: List<String>) = indexed.referencesIdentifier(nameInSource)
-}
-
 class PtrDereference(
     val identifier: IdentifierReference,
     val chain: List<String>,
@@ -1666,6 +1655,7 @@ class PtrDereference(
     override val position: Position
 ) : Expression() {
     // TODO why both identifier and chain?
+    // TODO why both chain and field? field is just the last entry of chain?
 
     override lateinit var parent: Node
 
@@ -1731,6 +1721,19 @@ class PtrDereference(
     override fun replaceChildNode(node: Node, replacement: Node) =
         throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = identifier.referencesIdentifier(nameInSource)
+    fun isSamePointerDeref(other: Expression?): Boolean {
+        if(other==null || other !is PtrDereference)
+            return false
+        if(derefPointerValue != other.derefPointerValue)
+            return false
+        if(identifier.nameInSource != other.identifier.nameInSource)
+            return false
+        if(chain != other.chain)
+            return false
+        if(field != other.field)
+            return false
+        return true
+    }
 }
 
 fun invertCondition(cond: Expression, program: Program): Expression {

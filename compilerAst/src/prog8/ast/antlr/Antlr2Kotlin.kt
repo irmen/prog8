@@ -402,9 +402,9 @@ private fun Assign_targetContext.toAst() : AssignTarget {
             )
         is ArrayindexedTargetContext -> {
             val ax = arrayindexed()
-            val arrayvar = ax.scoped_identifier().toAst()
+            val plainarrayvar = ax.scoped_identifier().toAst()
             val index = ax.arrayindex().toAst()
-            val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
+            val arrayindexed = ArrayIndexedExpression(plainarrayvar, null, index, ax.toPosition())
             AssignTarget(null, arrayindexed, null, null, false, position = toPosition())
         }
         is VoidTargetContext -> {
@@ -412,11 +412,7 @@ private fun Assign_targetContext.toAst() : AssignTarget {
         }
         is PointerDereferenceTargetContext -> {
             val deref = this.pointerdereference().toAst()
-            AssignTarget(null, null, null, null, false, deref, null, deref.position)
-        }
-        is PointerIndexedDerefTargetContext -> {
-            val deref = this.pointerindexedderef().toAst()
-            AssignTarget(null, null, null, null, false, null, deref, deref.position)
+            AssignTarget(null, null, null, null, false, deref, deref.position)
         }
         else -> throw FatalAstException("weird assign target node $this")
     }
@@ -602,9 +598,9 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
 
     if(arrayindexed()!=null) {
         val ax = arrayindexed()
-        val identifier = ax.scoped_identifier().toAst()
+        val plainarrayvar = ax.scoped_identifier().toAst()
         val index = ax.arrayindex().toAst()
-        return ArrayIndexedExpression(identifier, index, ax.toPosition())
+        return ArrayIndexedExpression(plainarrayvar, null, index, ax.toPosition())
     }
 
     if(scoped_identifier()!=null)
@@ -666,20 +662,9 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
     val deref = pointerdereference()?.toAst()
     if(deref!=null) return deref
 
-    val indexedderef = pointerindexedderef()?.toAst()
-    if(indexedderef!=null) return indexedderef
-
     throw FatalAstException(text)
 }
 
-
-private fun PointerindexedderefContext.toAst(): PtrIndexedDereference {
-    val ax = arrayindexed()
-    val arrayvar = ax.scoped_identifier().toAst()
-    val index = ax.arrayindex().toAst()
-    val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
-    return PtrIndexedDereference(arrayindexed, toPosition())
-}
 
 private fun PointerdereferenceContext.toAst(): PtrDereference {
     val scopeprefix = prefix?.toAst()

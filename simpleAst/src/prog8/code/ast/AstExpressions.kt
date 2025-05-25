@@ -116,7 +116,6 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtRange -> true
             is PtString -> true
             is PtPointerDeref -> this.startpointer.isSimple() && this.field==null && this.chain.isEmpty()
-            is PtPointerIndexedDeref -> this.index.isSimple()
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
         }
@@ -418,16 +417,6 @@ class PtPointerDeref(type: DataType, val chain: List<String>, val field: String?
     }
 }
 
-class PtPointerIndexedDeref(type: DataType, position: Position) : PtExpression(type, position) {
-    val variable: PtIdentifier
-        get() = children[0] as PtIdentifier
-    val index: PtExpression
-        get() = children[1] as PtExpression
-
-    init {
-        require(!type.isUndefined)
-    }
-}
 
 // special node that isn't created from compiling user code, but used internally in the Intermediate Code
 class PtIrRegister(val register: Int, type: DataType, position: Position) : PtExpression(type, position)

@@ -106,7 +106,6 @@ abstract class AstWalker {
     open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(idxderef: PtrIndexedDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -156,7 +155,6 @@ abstract class AstWalker {
     open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(idxderef: PtrIndexedDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -438,7 +436,8 @@ abstract class AstWalker {
 
     fun visit(arrayIndexedExpression: ArrayIndexedExpression, parent: Node) {
         track(before(arrayIndexedExpression, parent), arrayIndexedExpression, parent)
-        arrayIndexedExpression.arrayvar.accept(this, arrayIndexedExpression)
+        arrayIndexedExpression.plainarrayvar?.accept(this, arrayIndexedExpression)
+        arrayIndexedExpression.pointerderef?.accept(this, arrayIndexedExpression)
         arrayIndexedExpression.indexer.accept(this)
         track(after(arrayIndexedExpression, parent), arrayIndexedExpression, parent)
     }
@@ -449,7 +448,6 @@ abstract class AstWalker {
         assignTarget.identifier?.accept(this, assignTarget)
         assignTarget.memoryAddress?.accept(this, assignTarget)
         assignTarget.pointerDereference?.accept(this, assignTarget)
-        assignTarget.pointerIndexedDeref?.accept(this, assignTarget)
         assignTarget.multi?.forEach { it.accept(this, assignTarget) }
         track(after(assignTarget, parent), assignTarget, parent)
     }
@@ -538,12 +536,6 @@ abstract class AstWalker {
         track(before(deref, parent), deref, parent)
         deref.identifier.accept(this, deref)
         track(after(deref, parent), deref, parent)
-    }
-
-    fun visit(idxderef: PtrIndexedDereference, parent: Node) {
-        track(before(idxderef, parent), idxderef, parent)
-        idxderef.indexed.accept(this, idxderef)
-        track(after(idxderef, parent), idxderef, parent)
     }
 }
 
