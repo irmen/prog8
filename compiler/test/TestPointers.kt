@@ -556,6 +556,37 @@ main {
         DataType.pointer(BaseDataType.BOOL).typeForAddressOf(false) shouldBe DataType.UWORD
     }
 
+    test("address-of struct fields") {
+        val src="""
+%option enable_floats
+%import textio
+
+main {
+    struct List {
+        uword s
+        ubyte n
+        float f
+        bool b
+        ^^List next
+    }
+    sub start() {
+        ^^List @shared l0 = 3000
+        ^^List @shared l1 = 2000
+        l1.next = l0
+
+        cx16.r0 = &l1.s
+        cx16.r1 = &l1.n
+        cx16.r2 = &l1.f
+        cx16.r3 = &l1.b
+        cx16.r4 = &l1.next.s
+        cx16.r5 = &l1.next.n
+        cx16.r6 = &l1.next.f
+        cx16.r7 = &l1.next.b
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
     xtest("uword struct field array indexing") {
         val src="""
 main {
@@ -656,6 +687,7 @@ main {
 
     test("indexing pointers with index 0 is just a direct pointer dereference") {
         val src="""
+%option enable_floats
 main {
     struct List {
         ^^uword s
@@ -664,31 +696,56 @@ main {
     sub start() {
         ^^List l1 = List()
         ^^word @shared wptr
+        ^^float @shared fptr
+        float f1,f2
 
-        cx16.r1 = l1.s^^
-        cx16.r0 = l1.s[0]
-        cx16.r2 = l1^^.s^^
-        cx16.r1 = l1.s^^
+        cx16.r0 = l1.s^^
+        cx16.r1 = l1^^.s^^
+        cx16.r2 = l1.s^^
+        cx16.r3 = l1.s[0]
+        cx16.r4 = l1^^.s[0]
+
+        l1.s^^ = 4242
+        l1^^.s^^ = 4242
+        l1.s^^ = 4242
         l1.s[0] = 4242
+        ;; l1^^.s[0] = 4242        ; TODO fix parse syntax error
 
         cx16.r0s = wptr[0]
         cx16.r1s = wptr^^
-        wptr[0] = 4242 
+        wptr^^ = 4242
+        wptr[0] = 4242
+
+        f1 = fptr^^
+        f2 = fptr[0]
+        fptr^^ = 1.234
+        fptr[0] = 1.234
     }
 }"""
 
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 13
-        val dr0 = (st[4] as Assignment).value as PtrDereference
-        val dr1 = (st[5] as Assignment).value as PtrDereference
-        val dr2 = (st[6] as Assignment).value as PtrDereference
-        val dr3 = (st[7] as Assignment).value as PtrDereference
-        val dr4 = (st[8] as Assignment).target.pointerDereference!!
+        st.size shouldBe 28
+        val dr0 = (st[10] as Assignment).value as PtrDereference
+        val dr1 = (st[11] as Assignment).value as PtrDereference
+        val dr2 = (st[12] as Assignment).value as PtrDereference
+        val dr3 = (st[13] as Assignment).value as PtrDereference
+        val dr4 = (st[14] as Assignment).value as PtrDereference
 
-        val dr5 = (st[9] as Assignment).value as PtrDereference
-        val dr6 = (st[10] as Assignment).value as PtrDereference
-        val dr7 = (st[11] as Assignment).target.pointerDereference!!
+        val dr5 = (st[15] as Assignment).target.pointerDereference!!
+        val dr6 = (st[16] as Assignment).target.pointerDereference!!
+        val dr7 = (st[17] as Assignment).target.pointerDereference!!
+        val dr8 = (st[18] as Assignment).target.pointerDereference!!
+
+        val dr9 = (st[19] as Assignment).value as PtrDereference
+        val dr10 = (st[20] as Assignment).value as PtrDereference
+        val dr11 = (st[21] as Assignment).target.pointerDereference!!
+        val dr12 = (st[22] as Assignment).target.pointerDereference!!
+
+        val dr13 = (st[23] as Assignment).value as PtrDereference
+        val dr14 = (st[24] as Assignment).value as PtrDereference
+        val dr15 = (st[25] as Assignment).target.pointerDereference!!
+        val dr16 = (st[26] as Assignment).target.pointerDereference!!
 
         dr0.chain shouldBe listOf("l1", "s")
         dr0.derefLast shouldBe true
@@ -701,12 +758,32 @@ main {
         dr4.chain shouldBe listOf("l1", "s")
         dr4.derefLast shouldBe true
 
-        dr5.chain shouldBe listOf("wptr")
+        dr5.chain shouldBe listOf("l1", "s")
         dr5.derefLast shouldBe true
-        dr6.chain shouldBe listOf("wptr")
+        dr6.chain shouldBe listOf("l1", "s")
         dr6.derefLast shouldBe true
-        dr7.chain shouldBe listOf("wptr")
+        dr7.chain shouldBe listOf("l1", "s")
         dr7.derefLast shouldBe true
+        dr8.chain shouldBe listOf("l1", "s")
+        dr8.derefLast shouldBe true
+
+        dr9.chain shouldBe listOf("wptr")
+        dr9.derefLast shouldBe true
+        dr10.chain shouldBe listOf("wptr")
+        dr10.derefLast shouldBe true
+        dr11.chain shouldBe listOf("wptr")
+        dr11.derefLast shouldBe true
+        dr12.chain shouldBe listOf("wptr")
+        dr12.derefLast shouldBe true
+
+        dr13.chain shouldBe listOf("fptr")
+        dr13.derefLast shouldBe true
+        dr14.chain shouldBe listOf("fptr")
+        dr14.derefLast shouldBe true
+        dr15.chain shouldBe listOf("fptr")
+        dr15.derefLast shouldBe true
+        dr16.chain shouldBe listOf("fptr")
+        dr16.derefLast shouldBe true
     }
 
     test("global and local pointer vars") {

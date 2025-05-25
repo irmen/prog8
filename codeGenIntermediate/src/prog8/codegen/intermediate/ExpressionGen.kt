@@ -299,13 +299,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             return ExpressionCodeResult(result, vmDt, resultRegister, -1)
         } else {
             require(vmDt==IRDataType.WORD)
-            TODO("address-of pointer dereference")
-/*
             val pointerTr = translateExpression(expr.dereference!!.startpointer)
             result += pointerTr.chunks
             result += traverseRestOfDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
             return ExpressionCodeResult(result, vmDt, pointerTr.resultReg, -1)
-*/
         }
     }
 
@@ -449,9 +446,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val eltSize = codeGen.program.memsizer.memorySize(arrayIx.type, null)
         val vmDt = irType(arrayIx.type)
         val result = mutableListOf<IRCodeChunkBase>()
-        val arrayVarSymbol = arrayIx.variable.name
+
+        val arrayVarSymbol = arrayIx.variable?.name
+        if(arrayVarSymbol==null) {
+            TODO("translate ptr indexer for ptr deref ${arrayIx.pointerderef!!}")
+        }
+
         var resultRegister = -1
-        val isPointer = arrayIx.variable.type.isPointer
+        val isPointerX = arrayIx.variable.type.isPointer
 
         if(arrayIx.splitWords) {
             require(vmDt==IRDataType.WORD)
@@ -482,22 +484,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         fun getByNumber(index: Int) {
             val memOffset = index * eltSize
-            if(isPointer) {
+            if(isPointerX) {
                 // indexing a pointer
-                val pointerTr = translateExpression(arrayIx.variable)
-                result += pointerTr.chunks
-                val pointerReg = pointerTr.resultReg
-                if(memOffset>0)
-                    addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = memOffset), null)
-
-                if(vmDt==IRDataType.FLOAT) {
-                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
-                }
-                else {
-                    resultRegister = codeGen.registers.next(vmDt)
-                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
-                }
+                TODO("index ptr getByNumber $index ${arrayIx.position}")
+//                val pointerTr = translateExpression(arrayIx.variable)
+//                result += pointerTr.chunks
+//                val pointerReg = pointerTr.resultReg
+//                if(memOffset>0)
+//                    addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = memOffset), null)
+//
+//                if(vmDt==IRDataType.FLOAT) {
+//                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+//                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
+//                }
+//                else {
+//                    resultRegister = codeGen.registers.next(vmDt)
+//                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
+//                }
             } else {
                 // indexing an array or string type
                 if(vmDt==IRDataType.FLOAT) {
@@ -514,25 +517,26 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         fun getByExpression(index: PtExpression) {
             val indexByteTr = translateExpression(index)
             addToResult(result, indexByteTr, indexByteTr.resultReg, -1)
-            if(isPointer) {
+            if(isPointerX) {
                 // indexing on a pointer
-                val indexWordReg = codeGen.registers.next(IRDataType.WORD)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexByteTr.resultReg), null)
-                if(eltSize>1)
-                    result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
-                val pointerTr = translateExpression(arrayIx.variable)
-                result += pointerTr.chunks
-                val pointerReg = pointerTr.resultReg
-                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexWordReg), null)
-
-                if(vmDt==IRDataType.FLOAT) {
-                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
-                }
-                else {
-                    resultRegister = codeGen.registers.next(vmDt)
-                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
-                }
+                TODO("index ptr getByExpression ${index.position}")
+//                val indexWordReg = codeGen.registers.next(IRDataType.WORD)
+//                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexByteTr.resultReg), null)
+//                if(eltSize>1)
+//                    result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
+//                val pointerTr = translateExpression(arrayIx.variable)
+//                result += pointerTr.chunks
+//                val pointerReg = pointerTr.resultReg
+//                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexWordReg), null)
+//
+//                if(vmDt==IRDataType.FLOAT) {
+//                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+//                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
+//                }
+//                else {
+//                    resultRegister = codeGen.registers.next(vmDt)
+//                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
+//                }
             } else {
                 // indexing an array or string type
                 if(eltSize>1)

@@ -44,7 +44,15 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
                     return true
                 return arrayIndexExpr!! isSameAs other.arrayIndexExpr!!
             }
-            is PtArrayIndexer -> other is PtArrayIndexer && other.type==type && other.variable isSameAs variable && other.index isSameAs index && other.splitWords==splitWords
+            is PtArrayIndexer -> {
+                if(!(other is PtArrayIndexer && other.type==type && other.index isSameAs index && other.splitWords==splitWords))
+                    return false
+                if(other.variable==null && variable!=null || other.variable!=null && variable==null)
+                    return false
+                if(other.variable==null && variable!=null)
+                    return true
+                return other.variable!! isSameAs variable!!
+            }
             is PtBinaryExpression -> {
                 if(other !is PtBinaryExpression || other.operator!=operator)
                     false
@@ -85,7 +93,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             this.name == target.identifier!!.name
         }
         target.array != null && this is PtArrayIndexer -> {
-            this.variable.name == target.array!!.variable.name && this.index isSameAs target.array!!.index && this.splitWords==target.array!!.splitWords
+            this.variable?.name == target.array!!.variable?.name && this.index isSameAs target.array!!.index && this.splitWords==target.array!!.splitWords
         }
         else -> false
     }
@@ -164,16 +172,16 @@ class PtAddressOf(type: DataType, position: Position, val isMsbForSplitArray: Bo
 
 class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
     val variable: PtIdentifier
-        get() = children[0] as PtIdentifier
-    val pointerderef: PtPointerDeref
-        get() = children[0] as PtPointerDeref
+        get() = children[0] as PtIdentifier     // TODO make nullable
+    val pointerderef: PtPointerDeref?
+        get() = children[0] as? PtPointerDeref
     val index: PtExpression
         get() = children[1] as PtExpression
     val splitWords: Boolean
         get() = if(children[0] is PtPointerDeref)
             true        // indexing on pointers is always split words
         else
-            variable.type.isSplitWordArray
+            variable!!.type.isSplitWordArray
 
     init {
         require(elementType.isNumericOrBool || elementType.isPointer || elementType.isStructInstance) {

@@ -54,9 +54,11 @@ STRUCTS and TYPED POINTERS
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
 - clean up pointerdereference in the grammar, regarding dealing with final ^^ or not (is there still any left?)
+- PtArrayIndexer: make variable nullable (because it can also be a ptrderef instead)
 - fix TODO("address-of pointer dereference")
 - fix TODO("replace ptr^^ by @(ptr)")
 - add unit tests for all changes (pointers and structs)
+- try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.

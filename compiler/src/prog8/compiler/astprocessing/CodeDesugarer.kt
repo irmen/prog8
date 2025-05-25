@@ -515,6 +515,17 @@ _after:
                 val name = (expr.left as IdentifierReference).nameInSource + deref.chain
                 val replacement = PtrDereference(name, deref.derefLast, deref.position)
                 return listOf(IAstModification.ReplaceNode(expr, replacement, expr.parent))
+            } else if(expr.left===deref && expr.right is ArrayIndexedExpression) {
+                // replace  (a^^) . ( s[b] )  by  (a^^.s^^)[b]
+                val idx = expr.right as ArrayIndexedExpression
+                if(idx.plainarrayvar!=null) {
+                    val name = deref.chain + idx.plainarrayvar!!.nameInSource
+                    val ptrDeref = PtrDereference(name, false, deref.position)
+                    val indexer = ArrayIndexedExpression(null, ptrDeref, idx.indexer, idx.position)
+                    return listOf(IAstModification.ReplaceNode(expr, indexer, expr.parent))
+                } else {
+                    TODO("convert ptr.p[idx]")
+                }
             }
         }
 

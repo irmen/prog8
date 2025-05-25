@@ -266,24 +266,6 @@ class BinaryExpression(
                         else
                             InferredTypes.unknown()
                     }
-                } else if(rightIndexer!=null) {
-                    if(leftDt.isStructInstance) {
-                        //  pointer[x].field[y] --> type is the dt of 'field'
-                        TODO("pointer[x].field[y] ?????")
-//                        var fieldDt = (leftDt.getOrUndef().subType as? StructDecl)?.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-//                        if (fieldDt == null)
-//                            InferredTypes.unknown()
-//                        else {
-//                            val struct = fieldDt.subType as StructDecl
-//                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
-//                            if(fieldDt!=null)
-//                                if(fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
-//                            else
-//                                InferredTypes.unknown()
-//                        }
-                    } else
-                        InferredTypes.unknown() // TODO("something.field[x]  at ${right.position}")
-                        // TODO I don't think we can evaluate this type because it could end up in as a struct instance, which we don't support yet... rewrite or just give an error?
                 } else
                     InferredTypes.unknown()
             }
@@ -598,7 +580,10 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
             if(addrofDt.isUndefined) return InferredTypes.unknown()
             else return InferredTypes.knownFor(addrofDt)
         } else if(dereference!=null) {
-            TODO("address-of struct ptr deref field -> ptr type itself?")
+            val type = dereference!!.inferType(program).getOrUndef()
+            val addrofDt = type.typeForAddressOf(msb)
+            if(addrofDt.isUndefined) return InferredTypes.unknown()
+            else return InferredTypes.knownFor(addrofDt)
         } else
             throw FatalAstException("invalid addressof")
     }

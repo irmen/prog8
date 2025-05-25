@@ -717,8 +717,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 array.add(transform(srcArr.pointerderef!!))
                 array.add(transformExpression(srcArr.indexer.indexExpr))
                 return array
-            }
-            TODO("transform pointer index $dt  ${srcArr.position}")
+            } else if(dt.isPointer) {
+                val eltType = dt.getOrUndef().dereference()
+                val array = PtArrayIndexer(eltType, srcArr.position)
+                array.add(transform(srcArr.pointerderef!!))
+                array.add(transformExpression(srcArr.indexer.indexExpr))
+                return array
+            } else
+                TODO("transform pointer index $dt  ${srcArr.position}")
         }
         throw FatalAstException("expected plain array variable or pointer dereference")
     }
