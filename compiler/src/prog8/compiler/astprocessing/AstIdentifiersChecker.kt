@@ -4,7 +4,6 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.FunctionCallExpression
-import prog8.ast.expressions.PtrDereference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -95,7 +94,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(decl)
     }
 
-
     override fun visit(subroutine: Subroutine) {
         if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
@@ -163,34 +161,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             errors.err("string literal length max is 255", string.position)
 
         super.visit(string)
-    }
-
-    override fun visit(deref: PtrDereference) {
-        if(deref.field!=null) {
-            // check chain and field
-            val dt = deref.identifier.inferType(program).getOrUndef()
-            if(!dt.isUndefined && dt.isPointer) {
-                var struct = dt.subType as StructDecl
-                for(fieldname in deref.chain) {
-                    val fieldDt = struct.getFieldType(fieldname)
-                    if(fieldDt==null) {
-                        errors.err("unknown field '$fieldname' in struct '${struct.name}'", deref.position)
-                        break
-                    }
-                    if(!fieldDt.isPointer || fieldDt.subType==null) {
-                        errors.err("weird field type for field '$fieldname' in struct '${struct.name}'", deref.identifier.position)
-                        break
-                    }
-                    struct = fieldDt.subType as StructDecl
-                }
-                val fieldDt = struct.getFieldType(deref.field!!)
-                if(fieldDt==null) {
-                    errors.err("unknown field '${deref.field}' in struct '${struct.name}'", deref.position)
-                }
-            }
-        }
-
-        super.visit(deref)
     }
 
     override fun visit(functionCallExpr: FunctionCallExpression) =  visitFunctionCall(functionCallExpr)

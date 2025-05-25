@@ -99,6 +99,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         var pointerReg: Int
 
         if(deref.startpointer.type.isStructInstance) {
+            TODO("translate structinstance deref???")
+/*
             val arrayIndexer = deref.startpointer as? PtArrayIndexer
             if(arrayIndexer==null)
                 throw AssemblyError("when start pointer is struct instance, array indexer is expected PTR[x]")
@@ -151,6 +153,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val derefField = if(deref.type.isPointer) null else chain.removeLastOrNull()
             actualDeref = PtPointerDeref(deref.type, chain, derefField, deref.position)
             actualDeref.add(arrayIndexer.variable)
+*/
         } else {
             val tr = translateExpression(actualDeref.startpointer)
             result += tr.chunks
@@ -296,10 +299,13 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             return ExpressionCodeResult(result, vmDt, resultRegister, -1)
         } else {
             require(vmDt==IRDataType.WORD)
+            TODO("address-of pointer dereference")
+/*
             val pointerTr = translateExpression(expr.dereference!!.startpointer)
             result += pointerTr.chunks
             result += traverseRestOfDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
             return ExpressionCodeResult(result, vmDt, pointerTr.resultReg, -1)
+*/
         }
     }
 
@@ -1607,7 +1613,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             struct = targetPointerDeref.startpointer.type.subType as StStruct
         if(targetPointerDeref.chain.isNotEmpty()) {
             // traverse deref chain
-            for(deref in targetPointerDeref.chain) {
+            for(deref in targetPointerDeref.chain.dropLast(1)) {
                 val fieldinfo = struct!!.getField(deref, codeGen.program.memsizer)
                 struct = fieldinfo.first.subType as StStruct
                 // get new pointer from field
@@ -1618,14 +1624,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
         }
-        if(targetPointerDeref.field!=null) {
-            val fieldinfo = struct!!.getField(targetPointerDeref.field!!, codeGen.program.memsizer)
-            require(fieldinfo.first == targetPointerDeref.type) {
-                "field type mismatch: expected ${targetPointerDeref.type}, got ${fieldinfo.first} ${targetPointerDeref.position}"
+
+        if(targetPointerDeref.chain.isEmpty()) {
+            if(targetPointerDeref.derefLast) {
+                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
             }
+        } else {
+            val field = targetPointerDeref.chain.last()
+            val fieldinfo = struct!!.getField(field, codeGen.program.memsizer)
             if(fieldinfo.second>0u) {
                 // add the field offset
                 addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)
+            }
+            if(targetPointerDeref.derefLast) {
+                require(fieldinfo.first.isPointer)
+                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
             }
         }
         return result

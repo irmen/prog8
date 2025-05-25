@@ -429,7 +429,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 val dt = arrayIndexedExpression.plainarrayvar!!.inferType(program).getOrUndef()
                 if(dt.isPointer) {
                     // pointer[0]  -->   pointer^^
-                    val deref = PtrDereference(arrayIndexedExpression.plainarrayvar!!, emptyList(), null, true, arrayIndexedExpression.plainarrayvar!!.position)
+                    val deref = PtrDereference(arrayIndexedExpression.plainarrayvar!!.nameInSource, true, arrayIndexedExpression.plainarrayvar!!.position)
                     return listOf(IAstModification.ReplaceNode(arrayIndexedExpression,deref, parent))
                 }
             }
@@ -437,13 +437,9 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             if(ptrDeref!=null) {
                 val dt = ptrDeref.inferType(program).getOrUndef()
                 if(dt.isPointer) {
-                    if(ptrDeref.field!=null) {
-                        // pointer[0]  -->   pointer^^
-                        val deref = PtrDereference(ptrDeref.identifier, ptrDeref.chain + ptrDeref.field!!, null, true, ptrDeref.position)
-                        return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
-                    } else {
-                        TODO("ptr[0] rewrite")
-                    }
+                    // ptr1.ptr2[0] --> ptr1.ptr2^^
+                    val deref = PtrDereference(ptrDeref.chain, true, ptrDeref.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, deref, parent))
                 }
             }
         }

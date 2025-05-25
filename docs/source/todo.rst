@@ -1,9 +1,6 @@
 TODO
 ====
 
-Something changed in array/string/uword indexing codegen?  Assem became bigger, rockrunner too.
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 
@@ -55,11 +52,10 @@ STRUCTS and TYPED POINTERS
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
-- fix ptr problems in re.p8 and unit tests
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
-- clean up pointerdereference in the grammar, regarding dealing with final ^^ or not
-- why does PtrDereference have both identifier and chain property? what goes where? is the distinction needed?
-- why does PtrDereference have both chain and field property? what goes where? is the distinction needed?
+- clean up pointerdereference in the grammar, regarding dealing with final ^^ or not (is there still any left?)
+- fix TODO("address-of pointer dereference")
+- fix TODO("replace ptr^^ by @(ptr)")
 - add unit tests for all changes (pointers and structs)
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"

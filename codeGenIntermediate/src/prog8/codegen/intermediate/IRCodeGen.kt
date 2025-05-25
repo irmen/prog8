@@ -106,6 +106,8 @@ class IRCodeGen(
                 is PtVariable -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                 is PtProgram -> require('.' !in node.name) { "program name should not be scoped: ${node.name}" }
                 is PtSubroutineParameter -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtPointerDeref -> require('.' in node.startpointer.name) { "node $node name is not scoped: ${node.startpointer.name}" }
+                is PtIdentifier -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                 else -> { /* node has no name or is ok to have no dots in the name */ }
             }
             node.children.forEach { verifyPtNode(it) }

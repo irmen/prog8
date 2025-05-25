@@ -107,9 +107,24 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val type = deref.inferType(program).getOrElse {
             throw FatalAstException("unknown dt")
         }
-        val start = transform(deref.identifier)
-        val result = PtPointerDeref(type, deref.chain, deref.field,deref.position)
-        result.add(start)
+
+        val startpointer: PtIdentifier
+        val chain: List<String>
+        var targetVar = deref.definingScope.lookup(deref.chain) as? VarDecl
+        if(targetVar!=null) {
+            startpointer = PtIdentifier(targetVar.scopedName.joinToString("."), targetVar.datatype, deref.position)
+            chain = emptyList()
+        } else {
+            targetVar = deref.definingScope.lookup(deref.chain.take(1)) as? VarDecl
+            if(targetVar!=null) {
+                startpointer = PtIdentifier(targetVar.scopedName.joinToString("."), targetVar.datatype, deref.position)
+                chain = deref.chain.drop(1)
+            } else {
+                TODO("find startpointer from ${deref.chain}  ${deref.position}")
+            }
+        }
+        val result = PtPointerDeref(type, chain, deref.derefLast, deref.position)
+        result.add(startpointer)
         return result
     }
 
@@ -696,7 +711,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             return array
         }
         if(srcArr.pointerderef!=null) {
-            TODO("transform pointer index")
+            val dt = srcArr.pointerderef!!.inferType(program)
+            if(dt.isUnsignedWord) {
+                val array = PtArrayIndexer(DataType.UBYTE, srcArr.position)
+                array.add(transform(srcArr.pointerderef!!))
+                array.add(transformExpression(srcArr.indexer.indexExpr))
+                return array
+            }
+            TODO("transform pointer index $dt  ${srcArr.position}")
         }
         throw FatalAstException("expected plain array variable or pointer dereference")
     }
@@ -719,9 +741,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             when (srcExpr.right) {
                 is IdentifierReference -> {
                     val chain = srcExpr.right as IdentifierReference
-                    val deref = PtPointerDeref(type, chain.nameInSource, null, srcExpr.position)
-                    deref.add(transformExpression(srcExpr.left))
-                    return deref
+                    val deref = PtPointerDeref(type, chain.nameInSource, false,srcExpr.position)
+                    TODO("fix chain?")
+//                    deref.add(transformExpression(srcExpr.left))        // make sure it's fully qualified
+//                    return deref
                 }
 
                 is ArrayIndexedExpression -> {

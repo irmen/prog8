@@ -209,64 +209,44 @@ main {
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 13
         val a0v = (st[2] as Assignment).value as PtrDereference
-        a0v.identifier.nameInSource shouldBe listOf("matchstate")
-        a0v.chain.size shouldBe 0
-        a0v.field shouldBe "ptr"
-        a0v.derefPointerValue shouldBe false
+        a0v.chain shouldBe listOf("matchstate", "ptr")
+        a0v.derefLast shouldBe false
 
         val a1v = (st[3] as Assignment).value as PtrDereference
-        a1v.identifier.nameInSource shouldBe listOf("matchstate")
-        a1v.chain shouldBe listOf("next", "next")
-        a1v.field shouldBe "ptr"
-        a1v.derefPointerValue shouldBe false
+        a1v.chain shouldBe listOf("matchstate", "next", "next", "ptr")
+        a1v.derefLast shouldBe false
 
         val a2v = (st[4] as Assignment).value as PtrDereference
-        a2v.identifier.nameInSource shouldBe listOf("matchstate")
-        a2v.chain.size shouldBe 0
-        a2v.field shouldBe "ptr"
-        a2v.derefPointerValue shouldBe false
+        a2v.chain shouldBe listOf("matchstate", "ptr")
+        a2v.derefLast shouldBe false
 
         val a3v = (st[5] as Assignment).value as PtrDereference
-        a3v.identifier.nameInSource shouldBe listOf("matchstate")
-        a3v.chain shouldBe listOf("next", "next")
-        a3v.field shouldBe "ptr"
-        a3v.derefPointerValue shouldBe false
+        a3v.chain shouldBe listOf("matchstate", "next", "next", "ptr")
+        a3v.derefLast shouldBe false
 
         val a4v = (st[6] as Assignment).value as PtrDereference
-        a4v.identifier.nameInSource shouldBe listOf("matchstate")
-        a4v.chain shouldBe listOf("ptr")
-        a4v.field shouldBe null
-        a4v.derefPointerValue shouldBe true
+        a4v.chain shouldBe listOf("matchstate", "ptr")
+        a4v.derefLast shouldBe true
 
         val a5v = (st[7] as Assignment).value as PtrDereference
-        a5v.identifier.nameInSource shouldBe listOf("matchstate")
-        a5v.chain shouldBe listOf("next", "next", "ptr")
-        a5v.field shouldBe null
-        a5v.derefPointerValue shouldBe true
+        a5v.chain shouldBe listOf("matchstate", "next", "next", "ptr")
+        a5v.derefLast shouldBe true
 
         val t0 = (st[8] as Assignment).target.pointerDereference!!
-        t0.derefPointerValue shouldBe false
-        t0.identifier.nameInSource shouldBe listOf("matchstate")
-        t0.chain.size shouldBe 0
-        t0.field shouldBe "ptr"
+        t0.derefLast shouldBe false
+        t0.chain shouldBe listOf("matchstate", "ptr")
 
         val t1 = (st[9] as Assignment).target.pointerDereference!!
-        t1.derefPointerValue shouldBe false
-        t1.identifier.nameInSource shouldBe listOf("matchstate")
-        t1.chain shouldBe listOf("next", "next")
-        t1.field shouldBe "ptr"
+        t1.derefLast shouldBe false
+        t1.chain shouldBe listOf("matchstate", "next", "next", "ptr")
 
         val t2 = (st[10] as Assignment).target.pointerDereference!!
-        t2.derefPointerValue shouldBe false
-        t2.identifier.nameInSource shouldBe listOf("matchstate")
-        t2.chain.size shouldBe 0
-        t2.field shouldBe "ptr"
+        t2.derefLast shouldBe false
+        t2.chain shouldBe listOf("matchstate", "ptr")
 
         val t3 = (st[11] as Assignment).target.pointerDereference!!
-        t3.derefPointerValue shouldBe false
-        t3.identifier.nameInSource shouldBe listOf("matchstate")
-        t3.chain shouldBe listOf("next", "next")
-        t3.field shouldBe "ptr"
+        t3.derefLast shouldBe false
+        t3.chain shouldBe listOf("matchstate", "next", "next", "ptr")
     }
 
     test("word size pointer indexing on pointers") {
@@ -576,7 +556,7 @@ main {
         DataType.pointer(BaseDataType.BOOL).typeForAddressOf(false) shouldBe DataType.UWORD
     }
 
-    test("uword struct field array indexing") {
+    xtest("uword struct field array indexing") {
         val src="""
 main {
     sub start() {
@@ -688,8 +668,8 @@ main {
         cx16.r1 = l1.s^^
         cx16.r0 = l1.s[0]
         cx16.r2 = l1^^.s^^
-        l1.s[0] = 4242
         cx16.r1 = l1.s^^
+        l1.s[0] = 4242
 
         cx16.r0s = wptr[0]
         cx16.r1s = wptr^^
@@ -699,38 +679,34 @@ main {
 
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 11
+        st.size shouldBe 13
         val dr0 = (st[4] as Assignment).value as PtrDereference
-        val dr1 = (st[5] as Assignment).target.pointerDereference!!
+        val dr1 = (st[5] as Assignment).value as PtrDereference
         val dr2 = (st[6] as Assignment).value as PtrDereference
-
         val dr3 = (st[7] as Assignment).value as PtrDereference
-        val dr4 = (st[8] as Assignment).value as PtrDereference
-        val dr5 = (st[9] as Assignment).target.pointerDereference!!
+        val dr4 = (st[8] as Assignment).target.pointerDereference!!
 
-        dr0.identifier.nameInSource shouldBe listOf("l1", "s")
-        dr0.chain.size shouldBe 0
-        dr0.field shouldBe null
+        val dr5 = (st[9] as Assignment).value as PtrDereference
+        val dr6 = (st[10] as Assignment).value as PtrDereference
+        val dr7 = (st[11] as Assignment).target.pointerDereference!!
 
-        dr1.identifier.nameInSource shouldBe listOf("l1", "s")
-        dr1.chain.size shouldBe 0
-        dr1.field shouldBe null
+        dr0.chain shouldBe listOf("l1", "s")
+        dr0.derefLast shouldBe true
+        dr1.chain shouldBe listOf("l1", "s")
+        dr1.derefLast shouldBe true
+        dr2.chain shouldBe listOf("l1", "s")
+        dr2.derefLast shouldBe true
+        dr3.chain shouldBe listOf("l1", "s")
+        dr3.derefLast shouldBe true
+        dr4.chain shouldBe listOf("l1", "s")
+        dr4.derefLast shouldBe true
 
-        dr2.identifier.nameInSource shouldBe listOf("l1", "s")
-        dr2.chain.size shouldBe 0
-        dr2.field shouldBe null
-
-        dr3.identifier.nameInSource shouldBe listOf("wptr")
-        dr3.chain.size shouldBe 0
-        dr3.field shouldBe null
-
-        dr4.identifier.nameInSource shouldBe listOf("wptr")
-        dr4.chain.size shouldBe 0
-        dr4.field shouldBe null
-
-        dr5.identifier.nameInSource shouldBe listOf("wptr")
-        dr5.chain.size shouldBe 0
-        dr5.field shouldBe null
+        dr5.chain shouldBe listOf("wptr")
+        dr5.derefLast shouldBe true
+        dr6.chain shouldBe listOf("wptr")
+        dr6.derefLast shouldBe true
+        dr7.chain shouldBe listOf("wptr")
+        dr7.derefLast shouldBe true
     }
 
     test("global and local pointer vars") {

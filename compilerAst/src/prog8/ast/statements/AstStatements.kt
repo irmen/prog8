@@ -692,14 +692,10 @@ data class AssignTarget(
             identifier != null -> value is IdentifierReference && value.nameInSource == identifier!!.nameInSource
             arrayindexed != null -> value is ArrayIndexedExpression && arrayindexed!!.isSameArrayIndexedAs(value)
             multi != null -> false
-            pointerDereference !=null -> {
-                if(value is PtrDereference) {
-                    return if(!(pointerDereference!!.identifier isSameAs value.identifier) || pointerDereference!!.field!=value.field)
-                        false
-                    else
-                        pointerDereference!!.chain == value.chain
-                }
-                return false
+            pointerDereference != null -> {
+                return if (value is PtrDereference) {
+                    pointerDereference!!.chain==value.chain
+                } else false
             }
             else -> false
         }

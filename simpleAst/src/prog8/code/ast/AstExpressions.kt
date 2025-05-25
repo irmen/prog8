@@ -115,7 +115,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtPrefix -> value.isSimple()
             is PtRange -> true
             is PtString -> true
-            is PtPointerDeref -> this.startpointer.isSimple() && this.field==null && this.chain.isEmpty()
+            is PtPointerDeref -> false
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
         }
@@ -165,10 +165,15 @@ class PtAddressOf(type: DataType, position: Position, val isMsbForSplitArray: Bo
 class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
     val variable: PtIdentifier
         get() = children[0] as PtIdentifier
+    val pointerderef: PtPointerDeref
+        get() = children[0] as PtPointerDeref
     val index: PtExpression
         get() = children[1] as PtExpression
     val splitWords: Boolean
-        get() = variable.type.isSplitWordArray
+        get() = if(children[0] is PtPointerDeref)
+            true        // indexing on pointers is always split words
+        else
+            variable.type.isSplitWordArray
 
     init {
         require(elementType.isNumericOrBool || elementType.isPointer || elementType.isStructInstance) {
@@ -407,10 +412,10 @@ class PtTypeCast(type: DataType, position: Position) : PtExpression(type, positi
     }
 }
 
-class PtPointerDeref(type: DataType, val chain: List<String>, val field: String?, position: Position) : PtExpression(type, position) {
-    // the start of the chain is the only child node (PtExpression that yields a pointer)
-    val startpointer: PtExpression
-        get() = children.single() as PtExpression
+class PtPointerDeref(type: DataType, val chain: List<String>, val derefLast: Boolean, position: Position) : PtExpression(type, position) {
+    // the start of the chain is the only child node (identifier that yields a pointer)
+    val startpointer: PtIdentifier
+        get() = children.single() as PtIdentifier
 
     init {
         require(!type.isUndefined)

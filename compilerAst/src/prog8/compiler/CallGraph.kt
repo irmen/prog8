@@ -6,6 +6,7 @@ import prog8.ast.Program
 import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.IdentifierReference
+import prog8.ast.expressions.PtrDereference
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.IErrorReporter
@@ -162,6 +163,14 @@ class CallGraph(private val program: Program) : IAstVisitor {
             }
         }
         super.visit(decl)
+    }
+
+    override fun visit(deref: PtrDereference) {
+        val first = deref.definingScope.lookup(deref.chain.take(1))
+        if(first is VarDecl) {
+            allIdentifiersAndTargets.add(IdentifierReference(listOf(first.name), first.position) to first)
+        }
+        super.visit(deref)
     }
 
     override fun visit(inlineAssembly: InlineAssembly) {

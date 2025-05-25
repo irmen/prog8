@@ -216,6 +216,5 @@ interface IAstVisitor {
     }
 
     fun visit(deref: PtrDereference) {
-        deref.identifier.accept(this)
     }
 }

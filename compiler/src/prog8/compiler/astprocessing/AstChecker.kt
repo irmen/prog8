@@ -666,15 +666,10 @@ internal class AstChecker(private val program: Program,
         // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
         if(assignment.value.inferType(program).isUnknown) {
             val binexpr = assignment.value as? BinaryExpression
-            if(binexpr?.left is PtrDereference) {
-                errors.err("invalid pointer dereference (can't determine type)", binexpr.left.position)
-            }
-            else if(binexpr?.right is PtrDereference) {
-                errors.err("invalid pointer dereference (can't determine type)", binexpr.right.position)
-            }
-            else if(binexpr?.operator==".")
+            if(binexpr?.operator == ".") {
                 errors.err("invalid pointer dereference (can't determine type)", assignment.value.position)
-            else if(assignment.target.multi==null)
+            }
+            else if(assignment.value !is PtrDereference && assignment.target.multi==null)
                 errors.err("invalid assignment value", assignment.value.position)
         }
 
@@ -751,13 +746,7 @@ internal class AstChecker(private val program: Program,
             val targetDatatype = assignTarget.inferType(program)
             if (targetDatatype.isKnown) {
                 val sourceDatatype = assignment.value.inferType(program)
-                if (sourceDatatype.isUnknown) {
-                    if (assignment.value !is BinaryExpression && assignment.value !is PrefixExpression && assignment.value !is ContainmentCheck && assignment.value !is IfExpression)
-                        if(assignment.value is PtrDereference)
-                            errors.err("invalid pointer dereference value", assignment.value.position)
-                        else
-                            errors.err("invalid assignment value", assignment.value.position)
-                } else {
+                if (!sourceDatatype.isUnknown) {
                     checkAssignmentCompatible(targetDatatype.getOrUndef(),sourceDatatype.getOrUndef(), assignment.value, assignment.value.position)
                 }
             }
@@ -2059,6 +2048,8 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: PtrDereference) {
+        if((deref.parent as? BinaryExpression)?.operator==".")
+            throw FatalAstException("binexpr with '.' operator should have been converted into PtrDereference ${deref.position}")
         if(deref.inferType(program).isUnknown)
             errors.err("unable to determine type of dereferenced pointer expression", deref.position)
     }
@@ -2266,7 +2257,7 @@ internal class AstChecker(private val program: Program,
                     if(it.identifier!=null)
                         it.identifier!!.nameInSource.hashCode() and 0xffff
                     else if(it.dereference!=null)
-                        it.dereference!!.identifier.nameInSource.hashCode() and 0xffff
+                        it.dereference!!.chain.hashCode() and 0xffff
                     else 9999999
                 }
                 is IdentifierReference -> it.nameInSource.hashCode() and 0xffff

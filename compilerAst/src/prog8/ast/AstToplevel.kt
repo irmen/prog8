@@ -175,7 +175,7 @@ interface INameScope: IStatementContainer, INamedStatement {
     }
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
-        val localSymbol = this.searchSymbol(scopedName[0])
+        val localSymbol = this.searchSymbol(scopedName[0]) ?: this.lookupUnqualified(scopedName[0])
         if(localSymbol is VarDecl && localSymbol.datatype.isPointer) {
             var struct = localSymbol.datatype.subType as? StructDecl
             if(struct!=null) {
@@ -204,8 +204,9 @@ interface INameScope: IStatementContainer, INamedStatement {
                 var statement = block
                 for(name in scopedName.drop(1)) {
                     statement = (statement as? IStatementContainer)?.searchSymbol(name)
-                    if(statement==null)
+                    if(statement==null) {
                         return null
+                    }
                 }
                 return statement
             }

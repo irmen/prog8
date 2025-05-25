@@ -669,13 +669,10 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
 private fun PointerdereferenceContext.toAst(): PtrDereference {
     val scopeprefix = prefix?.toAst()
     val derefchain = derefchain()!!.singlederef()!!.map { it.identifier().text }
-    val firstIdentifier =
-        if(scopeprefix!=null)
-            IdentifierReference(scopeprefix.nameInSource + derefchain.first(), toPosition())
-        else
-            IdentifierReference(listOf(derefchain.first()), toPosition())
-    val actualDereference = field==null
-    return PtrDereference(firstIdentifier, derefchain.drop(1), field?.text, actualDereference, toPosition())
+    val chain = ((scopeprefix?.nameInSource ?: emptyList()) + derefchain).toMutableList()
+    if(field!=null)
+        chain += field.text
+    return PtrDereference(chain,field==null, toPosition())
 }
 
 private fun CharliteralContext.toAst(): CharLiteral {

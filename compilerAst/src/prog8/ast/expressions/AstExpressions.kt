@@ -437,8 +437,11 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
                 return InferredTypes.knownFor(target.type)
             } else if(target==null) {
                 return InferredTypes.unknown()
+            } else if (plainarrayvar!!.nameInSource.size == 1) {
+                val subparam = definingSubroutine?.parameters?.firstOrNull { it.name == plainarrayvar!!.nameInSource[0] }
+                return if(subparam!=null) InferredTypes.knownFor(subparam.type) else InferredTypes.unknown()
             } else
-                TODO("infer type from target $target")
+                TODO("infer type from target $target   ${target.position}    arrayindexed @ ${this.position}")
         } else if(pointerderef!=null) {
             val dt= pointerderef!!.inferType(program).getOrUndef()
             return when {
@@ -463,7 +466,7 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
     override fun copy() = ArrayIndexedExpression(plainarrayvar?.copy(), pointerderef?.copy(), indexer.copy(), position)
 
     fun isSameArrayIndexedAs(other: Expression): Boolean {
-        if(other !is ArrayIndexedExpression || other.indexer!=indexer)
+        if(other !is ArrayIndexedExpression || !(other.indexer.indexExpr isSameAs indexer.indexExpr))
             return false
         if(plainarrayvar?.nameInSource != other.plainarrayvar?.nameInSource)
             return false
@@ -1315,6 +1318,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         if(nameInSource.size<2) return null
         return targetStatement() as? StructFieldRef
     }
+
     fun firstTarget(builtins: IBuiltinFunctions? = null): Statement? =
         if(builtins!=null && nameInSource.singleOrNull() in builtins.names)
             BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
@@ -1648,92 +1652,53 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
 }
 
 class PtrDereference(
-    val identifier: IdentifierReference,
     val chain: List<String>,
-    val field: String?,
-    val derefPointerValue: Boolean,
+    val derefLast: Boolean,
     override val position: Position
 ) : Expression() {
-    // TODO why both identifier and chain?
-    // TODO why both chain and field? field is just the last entry of chain?
 
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
         this.parent = parent
-        identifier.linkParents(this)
-    }
-
-    init {
-        if(field==null) require(derefPointerValue)
-        if(field!=null) require(!derefPointerValue)
     }
 
     override val isSimple = false
-    override fun copy(): PtrDereference = PtrDereference(identifier.copy(), chain.toList(), field, derefPointerValue, position)
+    override fun copy(): PtrDereference = PtrDereference(chain.toList(), derefLast, position)
     override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+
     override fun inferType(program: Program): InferredTypes.InferredType {
 
-        fun resultType(dt: DataType?) = if(dt==null) InferredTypes.unknown() else InferredTypes.knownFor(if(derefPointerValue) dt.dereference() else dt)
+        fun resultType(dt: DataType?) = if(dt==null) InferredTypes.unknown() else InferredTypes.knownFor(if(derefLast) dt.dereference() else dt)
 
-        val first = identifier.targetStatement()
-        if(first==null)
-            return InferredTypes.unknown()
-        if(first is StructFieldRef) {
-            require(chain.isEmpty() && field==null)
-            return resultType(first.type)
-        }
-        val vardecl = identifier.targetVarDecl()
-        if(vardecl==null || vardecl.datatype.isUndefined || (!vardecl.datatype.isPointer && !vardecl.datatype.isStructInstance) )
+        val target = definingScope.lookup(chain)
+        if(target==null)
             return InferredTypes.unknown()
 
-        if(chain.isEmpty()) {
-            return if(field==null) {
-                resultType(vardecl.datatype)
-            } else {
-                // lookup struct field type
-                val struct = vardecl.datatype.subType as StructDecl
-                val fieldDt = struct.getFieldType(field)
-                resultType(fieldDt)
-            }
-        } else {
-            // lookup type of field at the end of a dereference chain
-            var struct = vardecl.datatype.subType as StructDecl
-            chain.forEach { fieldname ->
-                val fieldDt = struct.getFieldType(fieldname)
-                if(fieldDt==null)
-                    return InferredTypes.unknown()
-                if(!fieldDt.isPointer || fieldDt.subType==null)
-                    return InferredTypes.unknown()
-                struct = fieldDt.subType as StructDecl
-            }
-            if(field==null) {
-                TODO("is this type correct?")
-                return InferredTypes.knownFor(DataType.structInstance(struct))
-            }
-            val fieldDt = struct.getFieldType(field)
-            return resultType(fieldDt)
-        }
+        if(target is VarDecl)
+            return resultType(target.datatype)
+        if(target is StructFieldRef)
+            return resultType(target.type)
+
+        TODO("infertype $chain -> $target")
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) =
         throw FatalAstException("can't replace here")
-    override fun referencesIdentifier(nameInSource: List<String>) = identifier.referencesIdentifier(nameInSource)
+    override fun referencesIdentifier(nameInSource: List<String>) = chain.size==1 && chain==nameInSource
     fun isSamePointerDeref(other: Expression?): Boolean {
         if(other==null || other !is PtrDereference)
             return false
-        if(derefPointerValue != other.derefPointerValue)
-            return false
-        if(identifier.nameInSource != other.identifier.nameInSource)
+        if(derefLast != other.derefLast)
             return false
         if(chain != other.chain)
             return false
-        if(field != other.field)
-            return false
         return true
     }
+
+    fun firstTarget(): Statement? = definingScope.lookup(chain.take(1))
 }
 
 fun invertCondition(cond: Expression, program: Program): Expression {

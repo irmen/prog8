@@ -402,38 +402,34 @@ _after:
 
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
 
-        if(identifier.nameInSource.size>1 && (identifier.firstTarget() as? VarDecl)?.datatype?.isPointer==true) {
-            // the a.b.c.d is be a pointer dereference chain ending in a struct field;  a^^.b^^.c^^.d
+        if (identifier.nameInSource.size>1) {
+            val firstTarget = (identifier.firstTarget() as? VarDecl)
+            val firstDt = firstTarget?.datatype
+            if (firstDt?.isPointer == true) {
+                // the a.b.c.d can be a pointer dereference chain ending in a struct field;  a^^.b^^.c^^.d
 
-            for(i in identifier.nameInSource.size-1 downTo 1) {
-                val symbol = identifier.definingScope.lookup(identifier.nameInSource.take(i)) as? VarDecl
-                if(symbol!=null) {
-                    var struct = symbol.datatype.subType as? StructDecl
-                    if(struct==null)
+                val chain = mutableListOf(identifier.nameInSource[0])
+                var struct = firstDt.subType as? StructDecl
+                for(name in identifier.nameInSource.drop(1)) {
+                    if(struct==null) {
+                        errors.err("unknown field '${name}", position = identifier.position)
                         return noModifications
-                    val restChain = identifier.nameInSource.drop(i)
-                    val chain = mutableListOf<String>()
-                    var field: String? = null
-                    for((idx, part) in restChain.withIndex()) {
-                        val fieldDt = struct!!.getFieldType(part)
-                        if(fieldDt==null) {
-                            errors.err("unknown field '${part}' in struct '${struct.name}'", identifier.position)
-                            return noModifications
-                        }
-                        if(idx==restChain.size-1) {
-                            // this is the last field in the chain
-                            field = part
-                            break
-                        }
-                        chain.add(part)
-                        struct = fieldDt.subType as StructDecl
                     }
-
-                    if (parent !is PtrDereference)  {
-                        val deref = PtrDereference(IdentifierReference(identifier.nameInSource.take(i), identifier.position), chain, field, false, identifier.position)
-                        return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
+                    val fieldDt = struct.getFieldType(name)
+                    if(fieldDt==null) {
+                        errors.err("unknown field '${name}' in struct '${struct.name}'", identifier.position)
+                        return noModifications
+                    }
+                    if(fieldDt.isPointer) {
+                        chain.add(name)
+                        struct = fieldDt.subType as? StructDecl
+                    } else {
+                        chain.add(name)
+                        struct = null
                     }
                 }
+                val deref = PtrDereference(chain, false, identifier.position)
+                return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
             }
         }
         return noModifications
@@ -502,12 +498,13 @@ _after:
 
     override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
         // TODO what about DirectMemoryWrite ?? (LHS of assignment?)
-        if(deref.field==null && deref.chain.isEmpty()) {
-            val varDt = deref.identifier.targetVarDecl()?.datatype
+        if(deref.chain.isEmpty()) {
+            val varDt = (deref.firstTarget() as? VarDecl)?.datatype
             if(varDt?.isUnsignedWord==true || (varDt?.isPointer==true && varDt.sub==BaseDataType.UBYTE)) {
                 // replace  ptr^^   by  @(ptr)    when ptr is uword or ^^byte
-                val memread = DirectMemoryRead(deref.identifier, deref.position)
-                return listOf(IAstModification.ReplaceNode(deref, memread, parent))
+                TODO("replace ptr^^ by @(ptr)")
+//                val memread = DirectMemoryRead(deref.identifier, deref.position)
+//                return listOf(IAstModification.ReplaceNode(deref, memread, parent))
             }
         }
 
@@ -515,9 +512,8 @@ _after:
         if (expr != null && expr.operator == ".") {
             if (expr.left is IdentifierReference && expr.right === deref) {
                 // replace  (a) . (b^^)  by (a.b)^^
-                val name = (expr.left as IdentifierReference).nameInSource + deref.identifier.nameInSource
-                val identifier = IdentifierReference(name, expr.left.position)
-                val replacement = PtrDereference(identifier, deref.chain, deref.field, deref.derefPointerValue, deref.position)
+                val name = (expr.left as IdentifierReference).nameInSource + deref.chain
+                val replacement = PtrDereference(name, deref.derefLast, deref.position)
                 return listOf(IAstModification.ReplaceNode(expr, replacement, expr.parent))
             }
         }

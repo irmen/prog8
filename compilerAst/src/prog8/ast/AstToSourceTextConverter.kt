@@ -550,12 +550,9 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(deref: PtrDereference) {
-        output("${deref.identifier.nameInSource.joinToString(".")}^^")
-        deref.chain.forEach {
-            output(".${it}^^")
-        }
-        if(deref.field!=null)
-            output(".${deref.field}")
+        output(deref.chain.joinToString("^^."))
+        if(deref.derefLast)
+            output("^^")
     }
 
     override fun visit(field: StructFieldRef) {
