@@ -587,7 +587,7 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("uword struct field array indexing") {
+    test("uword struct field array indexing") {
         val src="""
 main {
     sub start() {

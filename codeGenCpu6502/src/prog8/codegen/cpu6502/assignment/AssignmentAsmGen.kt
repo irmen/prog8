@@ -249,7 +249,12 @@ internal class AssignmentAsmGen(
             SourceStorageKind.ARRAY -> {
                 val value = assign.source.array!!
                 val elementDt = assign.source.datatype
-                val arrayVarName = asmgen.asmVariableName(value.variable)
+                val valueVar = value.variable
+                if(valueVar==null) {
+                    TODO("translate assignmenton pointer ${value.position}")
+                    return
+                }
+                val arrayVarName = asmgen.asmVariableName(valueVar)
                 val constIndex = value.index.asConstInteger()
 
                 if(value.splitWords) {
@@ -926,12 +931,18 @@ internal class AssignmentAsmGen(
                     val tgt = PtAssignTarget(false, assign.target.position)
                     val targetarray = assign.target.array!!
                     val array = PtArrayIndexer(assign.target.datatype, targetarray.position)
-                    array.add(targetarray.variable)
-                    array.add(targetarray.index)
-                    tgt.add(array)
-                    assignTrue = PtAssignment(assign.position)
-                    assignTrue.add(tgt)
-                    assignTrue.add(PtNumber.fromBoolean(true, assign.position))
+
+                    val targetArrayVar = targetarray.variable
+                    if(targetArrayVar==null) {
+                        TODO("optimized comparison on pointer ${targetarray.position}")
+                    } else {
+                        array.add(targetArrayVar)
+                        array.add(targetarray.index)
+                        tgt.add(array)
+                        assignTrue = PtAssignment(assign.position)
+                        assignTrue.add(tgt)
+                        assignTrue.add(PtNumber.fromBoolean(true, assign.position))
+                    }
                 }
                 TargetStorageKind.REGISTER -> { /* handled earlier */ return true }
                 TargetStorageKind.VOID -> { /* do nothing */ return true }
@@ -1317,25 +1328,35 @@ internal class AssignmentAsmGen(
                     val rightArrayIndexer = expr.right as? PtArrayIndexer
                     if(expr.operator=="+" && leftArrayIndexer!=null && leftArrayIndexer.type.isByte && right.type.isByte) {
                         // special optimization for  bytearray[y] + bytevalue :  no need to use a tempvar, just use adc array,y
-                        assignExpressionToRegister(right, RegisterOrPair.A, right.type.isSigned)
-                        if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pha")
-                        asmgen.assignExpressionToRegister(leftArrayIndexer.index, RegisterOrPair.Y)
-                        if(!leftArrayIndexer.index.isSimple()) asmgen.out("  pla")
-                        val arrayvarname = asmgen.asmSymbolName(leftArrayIndexer.variable)
-                        asmgen.out("  clc |  adc  $arrayvarname,y")
-                        assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
+                        val leftArrayVar = leftArrayIndexer.variable
+                        if(leftArrayVar==null) {
+                            TODO("optimized plusmin pointer ${leftArrayIndexer.position}")
+                        } else {
+                            assignExpressionToRegister(right, RegisterOrPair.A, right.type.isSigned)
+                            if (!leftArrayIndexer.index.isSimple()) asmgen.out("  pha")
+                            asmgen.assignExpressionToRegister(leftArrayIndexer.index, RegisterOrPair.Y)
+                            if (!leftArrayIndexer.index.isSimple()) asmgen.out("  pla")
+                            val arrayvarname = asmgen.asmSymbolName(leftArrayVar)
+                            asmgen.out("  clc |  adc  $arrayvarname,y")
+                            assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
+                        }
                     } else if(rightArrayIndexer!=null && rightArrayIndexer.type.isByte && left.type.isByte) {
                         // special optimization for  bytevalue +/- bytearray[y] :  no need to use a tempvar, just use adc array,y or sbc array,y
-                        assignExpressionToRegister(left, RegisterOrPair.A, left.type.isSigned)
-                        if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pha")
-                        asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y)
-                        if(!rightArrayIndexer.index.isSimple()) asmgen.out("  pla")
-                        val arrayvarname = asmgen.asmSymbolName(rightArrayIndexer.variable)
-                        if (expr.operator == "+")
-                            asmgen.out("  clc |  adc  $arrayvarname,y")
-                        else
-                            asmgen.out("  sec |  sbc  $arrayvarname,y")
-                        assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
+                        val rightArrayVar = rightArrayIndexer.variable
+                        if(rightArrayVar==null) {
+                            TODO("optimized plusmin pointer ${rightArrayIndexer.position}")
+                        } else {
+                            assignExpressionToRegister(left, RegisterOrPair.A, left.type.isSigned)
+                            if (!rightArrayIndexer.index.isSimple()) asmgen.out("  pha")
+                            asmgen.assignExpressionToRegister(rightArrayIndexer.index, RegisterOrPair.Y)
+                            if (!rightArrayIndexer.index.isSimple()) asmgen.out("  pla")
+                            val arrayvarname = asmgen.asmSymbolName(rightArrayVar)
+                            if (expr.operator == "+")
+                                asmgen.out("  clc |  adc  $arrayvarname,y")
+                            else
+                                asmgen.out("  sec |  sbc  $arrayvarname,y")
+                            assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
+                        }
                     } else if(expr.operator=="+" && leftMemByte!=null && right.type.isByte && optimizedPointerIndexPlusMinusByteIntoA(right, "+", leftMemByte)) {
                         assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
                         return true
@@ -1621,10 +1642,16 @@ internal class AssignmentAsmGen(
             }
             val rightArray = expr.right as? PtArrayIndexer
             if(rightArray!=null) {
+                val rightArrayVar = rightArray.variable
+                if(rightArrayVar==null) {
+                    TODO("optimized bitwise pointer ${rightArray.position}")
+                    return false
+                }
+
                 val constIndex = rightArray.index.asConstInteger()
                 if(constIndex!=null) {
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
-                    val valueVarname = "${asmgen.asmSymbolName(rightArray.variable)} + ${program.memsizer.memorySize(rightArray.type, constIndex)}"
+                    val valueVarname = "${asmgen.asmSymbolName(rightArrayVar)} + ${program.memsizer.memorySize(rightArray.type, constIndex)}"
                     when(expr.operator) {
                         "&" -> asmgen.out("  and  $valueVarname")
                         "|" -> asmgen.out("  ora  $valueVarname")
@@ -1733,12 +1760,17 @@ internal class AssignmentAsmGen(
                 is PtArrayIndexer -> {
                     val constIndex = right.index.asConstInteger()
                     if(constIndex!=null) {
-                        val valueVarname = "${asmgen.asmSymbolName(right.variable)} + ${program.memsizer.memorySize(right.type, constIndex)}"
-                        when(operator) {
-                            "and" -> asmgen.out("  and  $valueVarname")
-                            "or" -> asmgen.out("  ora  $valueVarname")
-                            "xor" -> asmgen.out("  eor  $valueVarname")
-                            else -> throw AssemblyError("invalid logical operator")
+                        val rightArrayVar = right.variable
+                        if(rightArrayVar==null) {
+                            TODO("assign result into A pointer ${right.position}")
+                        } else {
+                            val valueVarname = "${asmgen.asmSymbolName(rightArrayVar)} + ${program.memsizer.memorySize(right.type, constIndex)}"
+                            when(operator) {
+                                "and" -> asmgen.out("  and  $valueVarname")
+                                "or" -> asmgen.out("  ora  $valueVarname")
+                                "xor" -> asmgen.out("  eor  $valueVarname")
+                                else -> throw AssemblyError("invalid logical operator")
+                            }
                         }
                     }
                     else assignViaScratch()

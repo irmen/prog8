@@ -427,8 +427,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
+
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
-                        val varname = asmgen.asmVariableName(what.variable)
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  lda  ${varname},x |  lsr  a |  bcc  + |  ora  #$80 |+  |  sta  ${varname},x")
                     }
                     is PtMemoryByte -> {
@@ -450,8 +453,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             BaseDataType.UWORD -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
-                        val varname = asmgen.asmVariableName(what.variable)
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  lsr  ${varname}_msb,x |  ror  ${varname}_lsb,x |  bcc  + |  lda  ${varname}_msb,x |  ora  #$80 |  sta  ${varname}_msb,x |+ ")
                         else
@@ -477,7 +482,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
-                        val varname = asmgen.asmVariableName(what.variable)
+
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  ror  ${varname},x")
                     }
                     is PtMemoryByte -> {
@@ -510,7 +518,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
-                        val varname = asmgen.asmVariableName(what.variable)
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  ror  ${varname}_msb,x |  ror  ${varname}_lsb,x")
                         else
@@ -533,8 +543,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             BaseDataType.UBYTE -> {
                 when (what) {
                     is PtArrayIndexer -> {
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
-                        val varname = asmgen.asmVariableName(what.variable)
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  lda  ${varname},x |  cmp  #$80 |  rol  a |  sta  ${varname},x")
                     }
                     is PtMemoryByte -> {
@@ -557,7 +569,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 when (what) {
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
-                        val varname = asmgen.asmVariableName(what.variable)
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  asl  ${varname}_lsb,x |  rol  ${varname}_msb,x |  bcc  + |  inc  ${varname}_lsb,x |+")
                         else
@@ -583,7 +597,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
-                        val varname = asmgen.asmVariableName(what.variable)
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  rol  ${varname},x")
                     }
                     is PtMemoryByte -> {
@@ -616,7 +632,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         if(!what.index.isSimple()) asmgen.out("  php")   // save Carry
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
-                        val varname = asmgen.asmVariableName(what.variable)
+                        if(what.variable==null)
+                            TODO("support for ptr indexing ${what.position}")
+                        val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  rol  ${varname}_lsb,x |  rol  ${varname}_msb,x")
                         else
@@ -646,6 +664,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val msbAdd: Int
                 if(indexer.splitWords) {
                     val arrayVariable = indexer.variable
+                    if(arrayVariable==null)
+                        TODO("support for ptr indexing ${indexer.position}")
                     indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.arrayFor(BaseDataType.UBYTE, false), arrayVariable.position)
                     indexer.children[0].parent = indexer
                     elementSize = 1
@@ -1124,7 +1144,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             if(arg is PtArrayIndexer && resultRegister in arrayOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
                 // just read the msb byte out of the word array
                 if(arg.splitWords) {
-                    val arrayVar = asmgen.asmVariableName(arg.variable)+"_msb"
+                    if(arg.variable==null)
+                        TODO("support for ptr indexing ${arg.position}")
+                    val arrayVar = asmgen.asmVariableName(arg.variable!!)+"_msb"
                     when(resultRegister) {
                         null, RegisterOrPair.A -> {
                             asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
@@ -1141,7 +1163,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         else -> throw AssemblyError("invalid reg")
                     }
                 } else {
-                    val arrayVar = asmgen.asmVariableName(arg.variable)
+                    if(arg.variable==null)
+                        TODO("support for ptr indexing ${arg.position}")
+                    val arrayVar = asmgen.asmVariableName(arg.variable!!)
                     when(resultRegister) {
                         null, RegisterOrPair.A -> {
                             asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
@@ -1223,7 +1247,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         } else {
             if(arg is PtArrayIndexer && resultRegister in arrayOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
                 // just read the lsb byte out of the word array
-                val arrayVar = if(arg.splitWords) asmgen.asmVariableName(arg.variable)+"_lsb" else asmgen.asmVariableName(arg.variable)
+                if(arg.variable==null)
+                    TODO("support for ptr indexing ${arg.position}")
+
+                val arrayVar = if(arg.splitWords) asmgen.asmVariableName(arg.variable!!)+"_lsb" else asmgen.asmVariableName(arg.variable!!)
                 when(resultRegister) {
                     null, RegisterOrPair.A -> {
                         asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)

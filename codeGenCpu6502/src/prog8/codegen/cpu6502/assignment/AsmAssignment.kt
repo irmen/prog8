@@ -39,8 +39,11 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     val asmVarname: String by lazy {
         if (array == null)
             variableAsmName!!
-        else
-            asmgen.asmVariableName(array.variable)
+        else {
+            if(array.variable==null)
+                TODO("asmVarname for array with pointer")
+            asmgen.asmVariableName(array.variable!!)
+        }
     }
 
     init {
@@ -160,8 +163,11 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
     val asmVarname: String
         get() = if(array==null)
             variableAsmName!!
-        else
-            asmgen.asmVariableName(array.variable)
+        else {
+            if(array.variable==null)
+                TODO("asmVarname for array with pointer")
+            asmgen.asmVariableName(array.variable!!)
+        }
 
     companion object {
         fun fromAstSource(value: PtExpression, program: PtProgram, asmgen: AsmGen6502Internal): AsmAssignSource {

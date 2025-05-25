@@ -793,7 +793,9 @@ _jump                       jmp  (${target.asmLabel})
     private fun loadAndCmp0MSB(value: PtExpression) {
         when(value) {
             is PtArrayIndexer -> {
-                val varname = asmgen.asmVariableName(value.variable)
+                if(value.variable==null)
+                    TODO("support for ptr indexing ${value.position}")
+                val varname = asmgen.asmVariableName(value.variable!!)
                 asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                 if(value.splitWords)
                     asmgen.out("  lda  ${varname}_msb,y")
@@ -888,8 +890,10 @@ _jump                       jmp  (${target.asmLabel})
             if(value is PtIdentifier)
                 return compareLsbMsb(value.name, value.name+"+1")
             if(value is PtArrayIndexer) {
+                if(value.variable==null)
+                    TODO("support for ptr indexing ${value.position}")
                 val constIndex = value.index.asConstInteger()
-                val varname = asmgen.asmVariableName(value.variable)
+                val varname = asmgen.asmVariableName(value.variable!!)
                 if(constIndex!=null) {
                     if(value.splitWords) {
                         return compareLsbMsb("${varname}_lsb+$constIndex", "${varname}_msb+$constIndex")
@@ -1035,8 +1039,10 @@ _jump                       jmp  (${target.asmLabel})
             if(value is PtIdentifier)
                 return compareLsbMsb(value.name, value.name+"+1")
             if(value is PtArrayIndexer) {
+                if(value.variable==null)
+                    TODO("support for ptr indexing ${value.position}")
                 val constIndex = value.index.asConstInteger()
-                val varname = asmgen.asmVariableName(value.variable)
+                val varname = asmgen.asmVariableName(value.variable!!)
                 if(constIndex!=null) {
                     if(value.splitWords) {
                         return compareLsbMsb("${varname}_lsb+$constIndex", "${varname}_msb+$constIndex")
@@ -1149,7 +1155,9 @@ _jump                       jmp  (${target.asmLabel})
                 is PtArrayIndexer -> {
                     val constIndex = value.index.asConstInteger()
                     if(constIndex!=null) {
-                        val varName = asmgen.asmVariableName(value.variable)
+                        if(value.variable==null)
+                            TODO("support for ptr indexing ${value.position}")
+                        val varName = asmgen.asmVariableName(value.variable!!)
                         if(value.splitWords) {
                             return translateLoadFromVarSplitw(varName, constIndex, "bne", "beq")
                         }
@@ -1170,7 +1178,9 @@ _jump                       jmp  (${target.asmLabel})
                 is PtArrayIndexer -> {
                     val constIndex = value.index.asConstInteger()
                     if (constIndex != null) {
-                        val varName = asmgen.asmVariableName(value.variable)
+                        if(value.variable==null)
+                            TODO("support for ptr indexing ${value.position}")
+                        val varName = asmgen.asmVariableName(value.variable!!)
                         if(value.splitWords) {
                             return translateLoadFromVarSplitw(varName, constIndex, "beq", "bne")
                         }
@@ -1551,8 +1561,10 @@ _jump                       jmp  (${target.asmLabel})
         fun translateEqualsArray(left: PtArrayIndexer, right: PtExpression) {
             val constIndex = left.index.asConstInteger()
             if(constIndex!=null) {
+                if(left.variable==null)
+                    TODO("support for ptr indexing ${left.position}")
                 asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                val varName = asmgen.asmVariableName(left.variable)
+                val varName = asmgen.asmVariableName(left.variable!!)
                 if(left.splitWords) {
                     return if(notEquals)
                         translateAYNotEquals("${varName}_lsb+$constIndex", "${varName}_msb+$constIndex")

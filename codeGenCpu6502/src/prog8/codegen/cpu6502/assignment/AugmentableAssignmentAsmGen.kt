@@ -224,7 +224,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.ARRAY -> {
-                val indexNum = target.array!!.index as? PtNumber
+                val targetArrayVar = target.array!!.variable
+                if(targetArrayVar==null) {
+                    TODO("array indexing on pointer ${target.position}")
+                    return
+                }
+                val indexNum = target.array.index as? PtNumber
                 if (indexNum!=null) {
                     val index = indexNum.number.toInt()
                     if(target.array.splitWords) {
@@ -320,7 +325,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 return
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.saveRegisterStack(CpuRegister.Y, false)
-                            asmgen.out("  lda  ${target.array.variable.name},y")
+                            asmgen.out("  lda  ${targetArrayVar.name},y")
                             when(value.kind) {
                                 SourceStorageKind.LITERALBOOLEAN -> {
                                     inplacemodificationRegisterAwithVariable(operator, "#${value.boolean!!.asInt()}", target.datatype.isSigned)
@@ -366,7 +371,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                     asmgen.out("  lda  $tempVar")
                                 }
                             }
-                            asmgen.out("  sta  ${target.array.variable.name},y")
+                            asmgen.out("  sta  ${targetArrayVar.name},y")
                         }
 
                         target.datatype.isWord -> {
@@ -377,11 +382,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.saveRegisterStack(CpuRegister.Y, false)
                             if(target.array.splitWords) {
-                                asmgen.out("  lda  ${target.array.variable.name}_lsb,y")
-                                asmgen.out("  ldx  ${target.array.variable.name}_msb,y")
+                                asmgen.out("  lda  ${targetArrayVar.name}_lsb,y")
+                                asmgen.out("  ldx  ${targetArrayVar.name}_msb,y")
                             } else {
-                                asmgen.out("  lda  ${target.array.variable.name},y")
-                                asmgen.out("  ldx  ${target.array.variable.name}+1,y")
+                                asmgen.out("  lda  ${targetArrayVar.name},y")
+                                asmgen.out("  ldx  ${targetArrayVar.name}+1,y")
                             }
                             val block = target.origAstTarget?.definingBlock()
                             when(value.kind) {
@@ -450,9 +455,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                             asmgen.restoreRegisterStack(CpuRegister.Y, true)
                             if(target.array.splitWords)
-                                asmgen.out("  sta  ${target.array.variable.name}_lsb,y |  txa |  sta  ${target.array.variable.name}_msb,y")
+                                asmgen.out("  sta  ${targetArrayVar.name}_lsb,y |  txa |  sta  ${targetArrayVar.name}_msb,y")
                             else
-                                asmgen.out("  sta  ${target.array.variable.name},y |  txa |  sta  ${target.array.variable.name}+1,y")
+                                asmgen.out("  sta  ${targetArrayVar.name},y |  txa |  sta  ${targetArrayVar.name}+1,y")
                         }
 
                         target.datatype.isFloat -> {
@@ -515,7 +520,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun tryIndexedIncDec(array: PtArrayIndexer, operator: String): Boolean {
-        val arrayvar = asmgen.asmVariableName(array.variable)
+        val arrayVar = array.variable
+        if(arrayVar==null) {
+            TODO("indexed inc/dec on pointer ${array.position}")
+            return false
+        }
+        val arrayvar = asmgen.asmVariableName(arrayVar)
         when {
             array.type.isByte -> {
                 asmgen.loadScaledArrayIndexIntoRegister(array, CpuRegister.X)
@@ -1125,11 +1135,18 @@ $shortcutLabel:""")
         }
 
         if(value is PtArrayIndexer && value.isSimple()) {
+
+            val valueVar = value.variable
+            if(valueVar==null) {
+                TODO("inplace modification on pointer ${value.position}")
+                return
+            }
+
             // use the already existing optimized codegen for regular assignments  x += array[index]
             val binexpr = PtBinaryExpression(operator, dt, value.position)
             binexpr.add(PtIdentifier(name, dt, value.position))
             val arrayValue = PtArrayIndexer(value.type, value.position)
-            arrayValue.add(value.variable)
+            arrayValue.add(valueVar)
             arrayValue.add(value.index)
             binexpr.add(arrayValue)
             binexpr.parent = value
@@ -2905,7 +2922,12 @@ $shortcutLabel:""")
                         "-" -> {
                             if(value.index.type.isByte) {
                                 // it's an array indexed by a byte so we can use sbc array,y
-                                val arrayname = value.variable.name
+                                val valueVar = value.variable
+                                if(valueVar==null) {
+                                    TODO("inplace modification on pointer ${value.position}")
+                                    return
+                                }
+                                val arrayname = valueVar.name
                                 asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                                 if(value.splitWords) {
                                     asmgen.out("""

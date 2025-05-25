@@ -171,8 +171,8 @@ class PtAddressOf(type: DataType, position: Position, val isMsbForSplitArray: Bo
 
 
 class PtArrayIndexer(elementType: DataType, position: Position): PtExpression(elementType, position) {
-    val variable: PtIdentifier
-        get() = children[0] as PtIdentifier     // TODO make nullable
+    val variable: PtIdentifier?
+        get() = children[0] as? PtIdentifier
     val pointerderef: PtPointerDeref?
         get() = children[0] as? PtPointerDeref
     val index: PtExpression

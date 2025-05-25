@@ -54,7 +54,6 @@ STRUCTS and TYPED POINTERS
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
 - clean up pointerdereference in the grammar, regarding dealing with final ^^ or not (is there still any left?)
-- PtArrayIndexer: make variable nullable (because it can also be a ptrderef instead)
 - fix TODO("address-of pointer dereference")
 - fix TODO("replace ptr^^ by @(ptr)")
 - add unit tests for all changes (pointers and structs)

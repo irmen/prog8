@@ -555,7 +555,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val arr = (arg as? PtArrayIndexer)
         val index = arr?.index?.asConstInteger()
         if(arr!=null && index!=null) {
-            val variable = arr.variable.name
+            if(arr.variable==null)
+                TODO("support for ptr indexing ${arr.position}")
+            val variable = arr.variable!!.name
             if(arr.splitWords) {
                 result += IRCodeChunk(null, null).also {
                     when(opcodeMemAndReg.first) {
@@ -624,7 +626,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 if(target.splitWords) {
                     // lsb/msb in split arrays, element index 'size' is always 1
                     val constIndex = target.index.asConstInteger()
-                    val varName = target.variable.name + if(msb) "_msb" else "_lsb"
+                    if(target.variable==null)
+                        TODO("support for ptr indexing ${target.position}")
+                    val varName = target.variable!!.name + if(msb) "_msb" else "_lsb"
                     if(isConstZeroValue) {
                         if(constIndex!=null) {
                             val offsetReg = codeGen.registers.next(IRDataType.BYTE)
@@ -658,6 +662,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     }
                 }
                 else {
+                    val targetVariable = target.variable
+                    if(targetVariable==null)
+                        TODO("support for ptr indexing ${target.position}")
+
                     val eltSize = codeGen.program.memsizer.memorySize(target.type, null)
                     val constIndex = target.index.asConstInteger()
                     if(isConstZeroValue) {
@@ -666,7 +674,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                             val offset = eltSize*constIndex + if(msb) 1 else 0
                             result += IRCodeChunk(null, null).also {
                                 it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = offset)
-                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=offsetReg, labelSymbol = target.variable.name)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=offsetReg, labelSymbol = targetVariable.name)
                             }
                         } else {
                             val indexTr = exprGen.translateExpression(target.index)
@@ -676,7 +684,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                     it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb)
                                     it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexTr.resultReg)
-                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = target.variable.name)
+                                it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = targetVariable.name)
                             }
                         }
                     } else {
@@ -687,7 +695,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                             val offset = eltSize*constIndex + if(msb) 1 else 0
                             result += IRCodeChunk(null, null).also {
                                 it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = offset)
-                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = target.variable.name)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=offsetReg, labelSymbol = targetVariable.name)
                             }
                         } else {
                             val indexTr = exprGen.translateExpression(target.index)
@@ -697,7 +705,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                     it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb)
                                     it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=indexTr.resultReg)
-                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = target.variable.name)
+                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = targetVariable.name)
                             }
                         }
                     }

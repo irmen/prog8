@@ -447,13 +447,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val vmDt = irType(arrayIx.type)
         val result = mutableListOf<IRCodeChunkBase>()
 
-        val arrayVarSymbol = arrayIx.variable?.name
-        if(arrayVarSymbol==null) {
-            TODO("translate ptr indexer for ptr deref ${arrayIx.pointerderef!!}")
+        val arrayVar = arrayIx.variable
+        if(arrayVar==null) {
+            TODO("translate expression ptr indexing ${arrayIx.pointerderef!!}")
         }
 
         var resultRegister = -1
-        val isPointerX = arrayIx.variable.type.isPointer
+        val arrayVarSymbol = arrayVar.name
+        val isPointerX = arrayVar.type.isPointer
 
         if(arrayIx.splitWords) {
             require(vmDt==IRDataType.WORD)

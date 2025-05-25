@@ -1046,16 +1046,20 @@ $repeatLabel""")
             if(evaluateAddressExpression) {
                 val arrayIdx = jump.target as? PtArrayIndexer
                 if (arrayIdx!=null) {
+                    val arrayVariable = arrayIdx.variable
+                    if(arrayVariable==null)
+                        TODO("support for ptr indexing ${arrayIdx.position}")
+
                     if (isTargetCpu(CpuType.CPU65C02)) {
                         if (!arrayIdx.splitWords) {
                             // if the jump target is an address in a non-split array (like a jump table of only pointers),
                             // on the 65c02, more optimal assembly can be generated using JMP (address,X)
                             assignExpressionToRegister(arrayIdx.index, RegisterOrPair.A)
                             out("  asl  a |  tax")
-                            return JumpTarget(asmSymbolName(arrayIdx.variable), true, true, false)
+                            return JumpTarget(asmSymbolName(arrayVariable), true, true, false)
                         } else {
                             // print a message when more optimal code is possible for 65C02 cpu
-                            val variable = symbolTable.lookup(arrayIdx.variable.name)!!
+                            val variable = symbolTable.lookup(arrayVariable.name)!!
                             if(variable is StStaticVariable && variable.length!!<=128u)
                                 errors.info("the jump address array is @split, but @nosplit would create more efficient code here", jump.position)
                         }
@@ -1621,7 +1625,9 @@ $repeatLabel""")
                 if(constIndex!=null) {
                     val offset = program.memsizer.memorySize(value.type, constIndex)
                     if(offset<256) {
-                        return out("  ldy  #$offset |  $compare  ${asmVariableName(value.variable)},y")
+                        if(value.variable==null)
+                            TODO("support for ptr indexing ${value.position}")
+                        return out("  ldy  #$offset |  $compare  ${asmVariableName(value.variable!!)},y")
                     }
                 }
                 cmpViaScratch()
