@@ -318,23 +318,21 @@ main {
         errors.errors[1] shouldContain "no cast"
     }
 
-    test("refuse to truncate float literal 1") {
+    test("allow explicit float literal cast to integer") {
         val text = """
             %option enable_floats
             main {
                 sub start() {
-                    float @shared fl = 3.456 as uword
-                    fl = 1.234 as uword
+                    cx16.r0 = 1234.5678 as uword
+                    cx16.r1L = 99.333 as ubyte
                 }
             }"""
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "refused"
-        errors.errors[1] shouldContain "refused"
+        compileText(C64Target(), false, text, outputDir, errors=errors) shouldNotBe null
+        errors.errors.size shouldBe 0
     }
 
-    test("refuse to truncate float literal 2") {
+    test("refuse to truncate float inplace") {
         val text = """
             %option enable_floats
             main {
@@ -348,23 +346,6 @@ main {
         compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain "in-place makes no sense"
-    }
-
-    test("refuse to truncate float literal 3") {
-        val text = """
-            %option enable_floats
-            main {
-                sub start() {
-                    uword @shared ww = 3.456 as uword
-                    ww++
-                    ww = 3.456 as uword
-                }
-            }"""
-        val errors = ErrorReporterForTests()
-        compileText(C64Target(), false, text, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "refused"
-        errors.errors[1] shouldContain "refused"
     }
 
     test("correct implicit casts of signed number comparison and logical expressions") {
