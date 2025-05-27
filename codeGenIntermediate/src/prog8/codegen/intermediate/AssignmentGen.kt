@@ -485,83 +485,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return result
         }
         else if(targetArray!=null) {
-            val variable = targetArray.variable?.name
+            val eltSize = codeGen.program.memsizer.memorySize(targetArray.type, null)
+            val variable = targetArray.variable
             if(variable==null)
-                TODO("support for ptr indexing ${targetArray.position}")
-
-            val itemsize = codeGen.program.memsizer.memorySize(targetArray.type, null)
-
-            val fixedIndex = targetArray.index.asConstInteger()
-            val arrayLength = codeGen.symbolTable.getLength(variable)
-            if(zero) {
-                if(fixedIndex!=null) {
-                    val chunk = IRCodeChunk(null, null).also {
-                        if(targetArray.splitWords) {
-                            it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
-                            it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
-                        }
-                        else
-                            it += IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = variable, symbolOffset = fixedIndex*itemsize)
-                    }
-                    result += chunk
-                } else {
-                    val (code, indexReg) = loadIndexReg(targetArray, itemsize)
-                    result += code
-                    result += IRCodeChunk(null, null).also {
-                        if(targetArray.splitWords) {
-                            it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1 = indexReg, immediate = arrayLength, labelSymbol = variable+"_lsb")
-                            it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1 = indexReg, immediate = arrayLength, labelSymbol = variable+"_msb")
-                        }
-                        else
-                            it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol = variable)
-                    }
-                }
-            } else {
-                if(targetDt== IRDataType.FLOAT) {
-                    if(fixedIndex!=null) {
-                        val offset = fixedIndex*itemsize
-                        val chunk = IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = variable, symbolOffset = offset)
-                        }
-                        result += chunk
-                    } else {
-                        val (code, indexReg) = loadIndexReg(targetArray, itemsize)
-                        result += code
-                        result += IRCodeChunk(null, null).also {
-                            it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable)
-                        }
-                    }
-                } else {
-                    if(fixedIndex!=null) {
-                        val chunk = IRCodeChunk(null, null).also {
-                            if(targetArray.splitWords) {
-                                val lsbmsbReg = codeGen.registers.next(IRDataType.BYTE)
-                                it += IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
-                                it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = lsbmsbReg, immediate = arrayLength, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
-                                it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
-                                it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = lsbmsbReg, immediate = arrayLength, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
-                            }
-                            else
-                                it += IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = variable, symbolOffset = fixedIndex*itemsize)
-                        }
-                        result += chunk
-                    } else {
-                        val (code, indexReg) = loadIndexReg(targetArray, itemsize)
-                        result += code
-                        result += IRCodeChunk(null, null).also {
-                            if(targetArray.splitWords) {
-                                val lsbmsbReg = codeGen.registers.next(IRDataType.BYTE)
-                                it += IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
-                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = lsbmsbReg, reg2=indexReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
-                                it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
-                                it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = lsbmsbReg, reg2=indexReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
-                            }
-                            else
-                                it += IRInstruction(Opcode.STOREX, targetDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable)
-                        }
-                    }
-                }
-            }
+                translateRegularAssignPointerIndexed(result, targetArray.pointerderef!!, eltSize, targetArray, zero, targetDt, valueRegister, valueFpRegister)
+            else if(variable.type.isPointer)
+                assignToIndexedSimplePointer(result, variable, eltSize, targetArray, zero, targetDt, valueRegister, valueFpRegister)
+            else
+                translateRegularAssignArrayIndexed(result, variable.name, eltSize, targetArray, zero, targetDt, valueRegister, valueFpRegister)
             return result
         }
         else if(targetMemory!=null) {
@@ -620,6 +551,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return result
         }
         else if(targetPointerDeref!=null) {
+            TODO("assign to target pointer deref ${targetPointerDeref.position}.. not used anymore?")
             val addressReg = codeGen.evaluatePointerAddressIntoReg(result, targetPointerDeref)
             val actualValueReg = if(targetPointerDeref.type.isFloat) valueFpRegister else valueRegister
             codeGen.storeValueAtPointersLocation(result, addressReg, targetPointerDeref.type, zero, actualValueReg)
@@ -629,21 +561,176 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             throw AssemblyError("weird assigntarget")
     }
 
-    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int): Pair<IRCodeChunks, Int> {
+    private fun assignToIndexedSimplePointer(
+        result: MutableList<IRCodeChunkBase>,
+        targetIdent: PtIdentifier,
+        eltSize: Int,
+        targetArray: PtArrayIndexer,
+        zeroValue: Boolean,
+        targetDt: IRDataType,
+        valueRegister: Int,
+        valueFpRegister: Int
+    ) {
+        // TODO should be replaced by pointerderef in Ast itself maybe!??
+        TODO("Not yet implemented: plain pointer indexed assignment ${targetIdent.position}")       // TODO huh, this was working in earlier code wasn't it? where is the routine gone?
+    }
+
+    private fun translateRegularAssignArrayIndexed(
+        result: MutableList<IRCodeChunkBase>,
+        variable: String,
+        eltSize: Int,
+        targetArray: PtArrayIndexer,
+        zero: Boolean,
+        targetDt: IRDataType,
+        valueRegister: Int,
+        valueFpRegister: Int
+    ) {
+        val fixedIndex = targetArray.index.asConstInteger()
+        val arrayLength = codeGen.symbolTable.getLength(variable)
+        if(zero) {
+            if(fixedIndex!=null) {
+                val chunk = IRCodeChunk(null, null).also {
+                    if(targetArray.splitWords) {
+                        it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
+                        it += IRInstruction(Opcode.STOREZM, IRDataType.BYTE, immediate = arrayLength, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
+                    }
+                    else
+                        it += IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = variable, symbolOffset = fixedIndex*eltSize)
+                }
+                result += chunk
+            } else {
+                val (code, indexReg) = loadIndexReg(targetArray, eltSize, false)
+                result += code
+                result += IRCodeChunk(null, null).also {
+                    if(targetArray.splitWords) {
+                        it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1 = indexReg, immediate = arrayLength, labelSymbol = variable+"_lsb")
+                        it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1 = indexReg, immediate = arrayLength, labelSymbol = variable+"_msb")
+                    }
+                    else
+                        it += IRInstruction(Opcode.STOREZX, targetDt, reg1=indexReg, labelSymbol = variable)
+                }
+            }
+        } else {
+            if(targetDt== IRDataType.FLOAT) {
+                if(fixedIndex!=null) {
+                    val offset = fixedIndex*eltSize
+                    val chunk = IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = variable, symbolOffset = offset)
+                    }
+                    result += chunk
+                } else {
+                    val (code, indexReg) = loadIndexReg(targetArray, eltSize, false)
+                    result += code
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable)
+                    }
+                }
+            } else {
+                if(fixedIndex!=null) {
+                    val chunk = IRCodeChunk(null, null).also {
+                        if(targetArray.splitWords) {
+                            val lsbmsbReg = codeGen.registers.next(IRDataType.BYTE)
+                            it += IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = lsbmsbReg, immediate = arrayLength, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
+                            it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = lsbmsbReg, immediate = arrayLength, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
+                        }
+                        else
+                            it += IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = variable, symbolOffset = fixedIndex*eltSize)
+                    }
+                    result += chunk
+                } else {
+                    val (code, indexReg) = loadIndexReg(targetArray, eltSize, false)
+                    result += code
+                    result += IRCodeChunk(null, null).also {
+                        if(targetArray.splitWords) {
+                            val lsbmsbReg = codeGen.registers.next(IRDataType.BYTE)
+                            it += IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = lsbmsbReg, reg2=indexReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
+                            it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = lsbmsbReg, reg2=indexReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
+                        }
+                        else
+                            it += IRInstruction(Opcode.STOREX, targetDt, reg1 = valueRegister, reg2=indexReg, labelSymbol = variable)
+                    }
+                }
+            }
+        }
+    }
+
+    private fun translateRegularAssignPointerIndexed(
+        result: MutableList<IRCodeChunkBase>,
+        pointerderef: PtPointerDeref,
+        eltSize: Int,
+        targetArray: PtArrayIndexer,
+        zero: Boolean,
+        targetDt: IRDataType,
+        valueRegister: Int,
+        valueFpRegister: Int
+    ) {
+        val pointerTr = expressionEval.translateExpression(pointerderef)
+        result += pointerTr.chunks
+        val pointerReg = pointerTr.resultReg
+
+        val fixedIndex = targetArray.index.asConstInteger()
+        if(fixedIndex!=null) {
+            val offset = fixedIndex*eltSize
+            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
+            if(zero) {
+                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg), null)
+            } else {
+                addInstr(
+                    result,
+                    if (targetDt == IRDataType.FLOAT)
+                        IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueFpRegister, reg1 = pointerReg)
+                    else
+                        IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg), null
+                )
+            }
+        } else {
+            // index is an expression
+            val (code, indexReg) = loadIndexReg(targetArray, eltSize, true)
+            result += code
+            addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+            if(zero) {
+                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg), null)
+            } else {
+                addInstr(result,
+                    if(targetDt== IRDataType.FLOAT)
+                    IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 =valueFpRegister, reg1 = pointerReg)
+                else
+                    IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg)
+                    , null)
+            }
+        }
+    }
+
+    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int, wordIndex: Boolean): Pair<IRCodeChunks, Int> {
         // returns the code to load the Index into the register, which is also returned.
 
         val result = mutableListOf<IRCodeChunkBase>()
-        if(itemsize==1 || array.splitWords) {
+
+        if(wordIndex) {
             val tr = expressionEval.translateExpression(array.index)
             addToResult(result, tr, tr.resultReg, -1)
-            return Pair(result, tr.resultReg)
+            var indexReg = tr.resultReg
+            if(tr.dt==IRDataType.BYTE) {
+                indexReg = codeGen.registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=tr.resultReg), null)
+            }
+            result += codeGen.multiplyByConst(DataType.UWORD, indexReg, itemsize)
+            return Pair(result, indexReg)
         }
-        val mult: PtExpression = PtBinaryExpression("*", DataType.UBYTE, array.position)
-        mult.children += array.index
-        mult.children += PtNumber(BaseDataType.UBYTE, itemsize.toDouble(), array.position)
-        val tr = expressionEval.translateExpression(mult)
-        addToResult(result, tr, tr.resultReg, -1)
-        return Pair(result, tr.resultReg)
+
+        // regular byte size index value.
+        val byteIndexTr = expressionEval.translateExpression(array.index)
+        addToResult(result, byteIndexTr, byteIndexTr.resultReg, -1)
+
+        if(itemsize==1 || array.splitWords)
+            return Pair(result, byteIndexTr.resultReg)
+
+        result += codeGen.multiplyByConst(DataType.UWORD, byteIndexTr.resultReg, itemsize)
+        return Pair(result, byteIndexTr.resultReg)
     }
 
     private fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {

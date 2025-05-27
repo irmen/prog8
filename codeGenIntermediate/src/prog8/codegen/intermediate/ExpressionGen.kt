@@ -446,15 +446,24 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val eltSize = codeGen.program.memsizer.memorySize(arrayIx.type, null)
         val vmDt = irType(arrayIx.type)
         val result = mutableListOf<IRCodeChunkBase>()
-
         val arrayVar = arrayIx.variable
         if(arrayVar==null) {
-            TODO("translate expression ptr indexing ${arrayIx.pointerderef!!}")
+            val pointerTr = translateExpression(arrayIx.pointerderef!!)
+            result += pointerTr.chunks
+            val pointerReg = pointerTr.resultReg
+            return translatePointerIndexing(result, pointerReg, arrayIx.index, eltSize, vmDt)
+        }
+        if(arrayVar.type.isPointer) {
+            val pointerTr = translateExpression(arrayVar)
+            result += pointerTr.chunks
+            val pointerReg = pointerTr.resultReg
+            return translatePointerIndexing(result, pointerReg, arrayIx.index, eltSize, vmDt)
         }
 
+        require(!arrayVar.type.isPointer) { "only regular array indexing here ${arrayIx.position}" }
         var resultRegister = -1
+        var resultFpRegister = -1
         val arrayVarSymbol = arrayVar.name
-        val isPointerX = arrayVar.type.isPointer
 
         if(arrayIx.splitWords) {
             require(vmDt==IRDataType.WORD)
@@ -481,75 +490,31 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             return ExpressionCodeResult(result, vmDt, finalResultReg, -1)
         }
 
-        var resultFpRegister = -1
-
         fun getByNumber(index: Int) {
             val memOffset = index * eltSize
-            if(isPointerX) {
-                // indexing a pointer
-                TODO("index ptr getByNumber $index ${arrayIx.position}")
-//                val pointerTr = translateExpression(arrayIx.variable)
-//                result += pointerTr.chunks
-//                val pointerReg = pointerTr.resultReg
-//                if(memOffset>0)
-//                    addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = memOffset), null)
-//
-//                if(vmDt==IRDataType.FLOAT) {
-//                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-//                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
-//                }
-//                else {
-//                    resultRegister = codeGen.registers.next(vmDt)
-//                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
-//                }
-            } else {
-                // indexing an array or string type
-                if(vmDt==IRDataType.FLOAT) {
-                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                    addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
-                }
-                else {
-                    resultRegister = codeGen.registers.next(vmDt)
-                    addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
-                }
+            if(vmDt==IRDataType.FLOAT) {
+                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1=resultFpRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
+            }
+            else {
+                resultRegister = codeGen.registers.next(vmDt)
+                addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1=resultRegister, labelSymbol = arrayVarSymbol, symbolOffset = memOffset), null)
             }
         }
 
         fun getByExpression(index: PtExpression) {
+            // TODO use codeGen.loadIndexReg() ??
             val indexByteTr = translateExpression(index)
             addToResult(result, indexByteTr, indexByteTr.resultReg, -1)
-            if(isPointerX) {
-                // indexing on a pointer
-                TODO("index ptr getByExpression ${index.position}")
-//                val indexWordReg = codeGen.registers.next(IRDataType.WORD)
-//                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexByteTr.resultReg), null)
-//                if(eltSize>1)
-//                    result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
-//                val pointerTr = translateExpression(arrayIx.variable)
-//                result += pointerTr.chunks
-//                val pointerReg = pointerTr.resultReg
-//                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexWordReg), null)
-//
-//                if(vmDt==IRDataType.FLOAT) {
-//                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-//                    addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
-//                }
-//                else {
-//                    resultRegister = codeGen.registers.next(vmDt)
-//                    addInstr(result, IRInstruction(Opcode.LOADI, vmDt, reg1=resultRegister, reg2=pointerReg), null)
-//                }
-            } else {
-                // indexing an array or string type
-                if(eltSize>1)
-                    result += codeGen.multiplyByConst(DataType.UBYTE, indexByteTr.resultReg, eltSize)
-                if(vmDt==IRDataType.FLOAT) {
-                    resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                    addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = resultFpRegister, reg1=indexByteTr.resultReg, labelSymbol = arrayVarSymbol), null)
-                }
-                else {
-                    resultRegister = codeGen.registers.next(vmDt)
-                    addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=indexByteTr.resultReg, labelSymbol = arrayVarSymbol), null)
-                }
+            if(eltSize>1)
+                result += codeGen.multiplyByConst(DataType.UBYTE, indexByteTr.resultReg, eltSize)
+            if(vmDt==IRDataType.FLOAT) {
+                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                addInstr(result, IRInstruction(Opcode.LOADX, IRDataType.FLOAT, fpReg1 = resultFpRegister, reg1=indexByteTr.resultReg, labelSymbol = arrayVarSymbol), null)
+            }
+            else {
+                resultRegister = codeGen.registers.next(vmDt)
+                addInstr(result, IRInstruction(Opcode.LOADX, vmDt, reg1=resultRegister, reg2=indexByteTr.resultReg, labelSymbol = arrayVarSymbol), null)
             }
         }
 
@@ -560,6 +525,57 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return ExpressionCodeResult(result, vmDt, resultRegister, resultFpRegister)
     }
 
+    private fun translatePointerIndexing(
+        result: MutableList<IRCodeChunkBase>,
+        pointerReg: Int,
+        index: PtExpression,
+        eltSize: Int,
+        resultDt: IRDataType
+    ): ExpressionCodeResult {
+        var resultRegister = -1
+        var resultFpRegister = -1
+
+        fun getByNumber(index: Int) {
+            val memOffset = eltSize * index
+            if(memOffset>0)
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = memOffset), null)
+
+            if(resultDt==IRDataType.FLOAT) {
+                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
+            }
+            else {
+                resultRegister = codeGen.registers.next(resultDt)
+                addInstr(result, IRInstruction(Opcode.LOADI, resultDt, reg1=resultRegister, reg2=pointerReg), null)
+            }
+        }
+
+        fun getByExpression(index: PtExpression) {
+            // TODO use codeGen.loadIndexReg() ??
+            val indexByteTr = translateExpression(index)
+            addToResult(result, indexByteTr, indexByteTr.resultReg, -1)
+            val indexWordReg = codeGen.registers.next(IRDataType.WORD)
+            addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexWordReg, reg2=indexByteTr.resultReg), null)
+            if(eltSize>1)
+                result += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
+            addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexWordReg), null)
+
+            if(resultDt==IRDataType.FLOAT) {
+                resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1=resultFpRegister, reg1=pointerReg), null)
+            }
+            else {
+                resultRegister = codeGen.registers.next(resultDt)
+                addInstr(result, IRInstruction(Opcode.LOADI, resultDt, reg1=resultRegister, reg2=pointerReg), null)
+            }
+        }
+
+        if(index is PtNumber)
+            getByNumber(index.number.toInt())
+        else
+            getByExpression(index)
+        return ExpressionCodeResult(result, resultDt, resultRegister, resultFpRegister)
+    }
 
     private fun translate(expr: PtPrefix): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
