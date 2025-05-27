@@ -621,29 +621,23 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
 }
 
 class NumericLiteral(val type: BaseDataType,    // only numerical types allowed + bool (there is no separate BooleanLiteral node)
-                     numbervalue: Double,    // can be byte, word or float depending on the type
+                     val number: Double,    // can be byte, word or float depending on the type
                      override val position: Position) : Expression() {
     override lateinit var parent: Node
-    val number: Double by lazy {
-        if(type==BaseDataType.FLOAT)
-            numbervalue
-        else {
-            val trunc = truncate(numbervalue)
-            if(trunc != numbervalue)
-                throw ExpressionError("refused truncating of float to avoid loss of precision", position)
-            trunc
-        }
-    }
 
     init {
         when(type) {
-            BaseDataType.UBYTE -> require(numbervalue in 0.0..255.0)
-            BaseDataType.BYTE -> require(numbervalue in -128.0..127.0)
-            BaseDataType.UWORD -> require(numbervalue in 0.0..65535.0)
-            BaseDataType.WORD -> require(numbervalue in -32768.0..32767.0)
-            BaseDataType.LONG -> require(numbervalue in -2147483647.0..2147483647.0)
-            BaseDataType.BOOL -> require(numbervalue==0.0 || numbervalue==1.0)
+            BaseDataType.UBYTE -> require(number in 0.0..255.0)
+            BaseDataType.BYTE -> require(number in -128.0..127.0)
+            BaseDataType.UWORD -> require(number in 0.0..65535.0)
+            BaseDataType.WORD -> require(number in -32768.0..32767.0)
+            BaseDataType.LONG -> require(number in -2147483647.0..2147483647.0)
+            BaseDataType.BOOL -> require(number==0.0 || number==1.0)
             else ->  require(type.isNumericOrBool) { "numeric literal type should be numeric or bool: $type" }
+        }
+        if(type!=BaseDataType.FLOAT) {
+            if(truncate(number) != number)
+                throw ExpressionError("float value given for integer datatype", position)
         }
     }
 
@@ -863,16 +857,44 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
             }
             BaseDataType.FLOAT -> {
                 try {
-                    if (targettype == BaseDataType.BYTE && number >= -128 && number <= 127)
-                        return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == BaseDataType.UBYTE && number >= 0 && number <= 255)
-                        return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == BaseDataType.WORD && number >= -32768 && number <= 32767)
-                        return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if (targettype == BaseDataType.UWORD && number >= 0 && number <= 65535)
-                        return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
-                    if(targettype==BaseDataType.LONG && number >=0 && number <= 2147483647)
-                        return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
+                    when (targettype) {
+                        BaseDataType.BYTE if number >= -128 && number <= 127 -> {
+                            val converted = number.toInt().toByte().toDouble()
+                            if(implicit && converted!=number)
+                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            else
+                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                        }
+                        BaseDataType.UBYTE if number >= 0 && number <= 255 -> {
+                            val converted = number.toInt().toUByte().toDouble()
+                            if(implicit && converted!=number)
+                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            else
+                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                        }
+                        BaseDataType.WORD if number >= -32768 && number <= 32767 -> {
+                            val converted = number.toInt().toShort().toDouble()
+                            if(implicit && converted!=number)
+                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            else
+                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                        }
+                        BaseDataType.UWORD if number >= 0 && number <= 65535 -> {
+                            val converted = number.toInt().toUShort().toDouble()
+                            if(implicit && converted!=number)
+                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            else
+                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                        }
+                        BaseDataType.LONG if number >=0 && number <= 2147483647 -> {
+                            val converted = number.toInt().toDouble()
+                            if(implicit && converted!=number)
+                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            else
+                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                        }
+                        else -> {}
+                    }
                 } catch (x: ExpressionError) {
                     return ValueAfterCast(false, x.message,null)
                 }

@@ -551,7 +551,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return result
         }
         else if(targetPointerDeref!=null) {
-            TODO("assign to target pointer deref ${targetPointerDeref.position}.. not used anymore?")
             val addressReg = codeGen.evaluatePointerAddressIntoReg(result, targetPointerDeref)
             val actualValueReg = if(targetPointerDeref.type.isFloat) valueFpRegister else valueRegister
             codeGen.storeValueAtPointersLocation(result, addressReg, targetPointerDeref.type, zero, actualValueReg)

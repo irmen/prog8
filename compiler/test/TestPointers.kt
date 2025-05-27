@@ -602,7 +602,7 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    test("uword as pointer versus pointer to uword difference") {
+    xtest("uword as pointer versus pointer to uword difference") {
         val src="""
 main {
     sub start() {

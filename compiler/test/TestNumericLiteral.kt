@@ -37,16 +37,16 @@ class TestNumericLiteral: FunSpec({
         sameValueAndType(NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos), NumericLiteral(BaseDataType.UWORD, 12345.0, dummyPos)) shouldBe true
     }
 
-    test("test truncating") {
+    test("test truncating avoidance") {
         shouldThrow<ExpressionError> {
             NumericLiteral(BaseDataType.BYTE, -2.345, dummyPos)
-        }.message shouldContain "refused truncating"
+        }.message shouldContain "float value given for integer"
         shouldThrow<ExpressionError> {
             NumericLiteral(BaseDataType.BYTE, -2.6, dummyPos)
-        }.message shouldContain "refused truncating"
+        }.message shouldContain "float value given for integer"
         shouldThrow<ExpressionError> {
             NumericLiteral(BaseDataType.UWORD, 2222.345, dummyPos)
-        }.message shouldContain "refused truncating"
+        }.message shouldContain "float value given for integer"
         NumericLiteral(BaseDataType.UBYTE, 2.0, dummyPos).number shouldBe 2.0
         NumericLiteral(BaseDataType.BYTE, -2.0, dummyPos).number shouldBe -2.0
         NumericLiteral(BaseDataType.UWORD, 2222.0, dummyPos).number shouldBe 2222.0
