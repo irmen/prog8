@@ -95,7 +95,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun translate(deref: PtPointerDeref): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
-        var actualDeref = deref
         var pointerReg: Int
 
         if(deref.startpointer.type.isStructInstance) {
@@ -155,29 +154,29 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             actualDeref.add(arrayIndexer.variable)
 */
         } else {
-            val tr = translateExpression(actualDeref.startpointer)
+            val tr = translateExpression(deref.startpointer)
             result += tr.chunks
             pointerReg = tr.resultReg
         }
 
-        result += traverseRestOfDerefChainToCalculateFinalAddress(actualDeref, pointerReg)
+        result += traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerReg)
         when {
-            actualDeref.type.isByteOrBool -> {
+            deref.type.isByteOrBool -> {
                 val resultReg = codeGen.registers.next(IRDataType.BYTE)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = pointerReg), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
-            actualDeref.type.isWord || actualDeref.type.isPointer -> {
+            deref.type.isWord || deref.type.isPointer -> {
                 val resultReg = codeGen.registers.next(IRDataType.WORD)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = resultReg, reg2 = pointerReg), null)
                 return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
             }
-            actualDeref.type.isFloat -> {
+            deref.type.isFloat -> {
                 val resultReg = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = pointerReg), null)
                 return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
             }
-            else -> throw AssemblyError("unsupported dereference type ${actualDeref.type} at ${actualDeref.position}")
+            else -> throw AssemblyError("unsupported dereference type ${deref.type} at ${deref.position}")
         }
     }
 
@@ -1629,6 +1628,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
+
+        if(targetPointerDeref.chain.isEmpty())
+            return result   // nothing to do; there's no deref chain
+
         var struct: StStruct? = null
         if(targetPointerDeref.startpointer.type.subType!=null)
             struct = targetPointerDeref.startpointer.type.subType as StStruct
@@ -1646,23 +1649,16 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
         }
 
-        if(targetPointerDeref.chain.isEmpty()) {
-            if(targetPointerDeref.derefLast) {
-                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
-            }
-        } else {
-            val field = targetPointerDeref.chain.last()
-            val fieldinfo = struct!!.getField(field, codeGen.program.memsizer)
-            if(fieldinfo.second>0u) {
-                // add the field offset
-                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)
-            }
-            if(targetPointerDeref.derefLast) {
-                require(fieldinfo.first.isPointer)
-                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
-            }
+        val field = targetPointerDeref.chain.last()
+        val fieldinfo = struct!!.getField(field, codeGen.program.memsizer)
+        if(fieldinfo.second>0u) {
+            // add the field offset
+            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)
+        }
+        if(targetPointerDeref.derefLast) {
+            require(fieldinfo.first.isPointer)
+            // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+            addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
         }
         return result
     }

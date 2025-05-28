@@ -1002,8 +1002,8 @@ internal class AstChecker(private val program: Program,
         }
 
         if(decl.datatype.isSplitWordArray) {
-            if (!decl.datatype.isWordArray) {
-                errors.err("split can only be used on word arrays", decl.position)
+            if (!decl.datatype.isWordArray && !decl.datatype.isPointerArray) {
+                errors.err("split can only be used on word and pointer arrays", decl.position)
             }
         }
 

@@ -630,6 +630,18 @@ data class AssignTarget(
                     else -> throw FatalAstException("invalid replacement for AssignTarget.arrayindexed: $replacement")
                 }
             }
+            node === pointerDereference -> {
+                identifier = null
+                pointerDereference = null
+                arrayindexed = null
+                memoryAddress = null
+                when (replacement) {
+                    is ArrayIndexedExpression -> arrayindexed = replacement
+                    is DirectMemoryWrite -> memoryAddress = replacement
+                    is PtrDereference -> pointerDereference = replacement
+                    else -> throw FatalAstException("invalid replacement for AssignTarget.arrayindexed: $replacement")
+                }
+            }
             node === multi -> throw FatalAstException("can't replace multi assign targets")
             else -> throw FatalAstException("invalid replace")
         }

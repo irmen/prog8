@@ -57,7 +57,7 @@ STRUCTS and TYPED POINTERS
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
-- fix TODO("replace ptr^^ by @(ptr)")
+- fix parse error "barray[2]^^"   where barray is ^^bool[10]
 - add unit tests for all changes (pointers and structs)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()

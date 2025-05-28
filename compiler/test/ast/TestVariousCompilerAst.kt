@@ -1097,5 +1097,31 @@ thing {
     }
 }
 
+    test("pointer arrays are always split") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        ^^bool[10]  @split @shared barray
+        ^^word[10]  @split @shared warray
+        ^^float[10] @split @shared farray
+    
+        ^^bool[10]  @shared barrayns
+        ^^word[10]  @shared warrayns
+        ^^float[10] @shared farrayns
+    }
+}"""
+
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 7
+        val decls = st.filterIsInstance<VarDecl>()
+        decls.size shouldBe 6
+        decls.all { it.datatype.sub!=null } shouldBe true
+        decls.all { it.datatype.isPointerArray } shouldBe true
+        decls.all { it.datatype.isPointerArray } shouldBe true
+    }
+
 })
 

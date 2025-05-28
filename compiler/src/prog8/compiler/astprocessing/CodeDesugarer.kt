@@ -497,14 +497,21 @@ _after:
     }
 
     override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
-        // TODO what about DirectMemoryWrite ?? (LHS of assignment?)
-        if(deref.chain.isEmpty()) {
-            val varDt = (deref.firstTarget() as? VarDecl)?.datatype
-            if(varDt?.isUnsignedWord==true || (varDt?.isPointer==true && varDt.sub==BaseDataType.UBYTE)) {
-                // replace  ptr^^   by  @(ptr)    when ptr is uword or ^^byte
-                TODO("replace ptr^^ by @(ptr)")
-//                val memread = DirectMemoryRead(deref.identifier, deref.position)
-//                return listOf(IAstModification.ReplaceNode(deref, memread, parent))
+        val isLHS = parent is AssignTarget
+        val varDt = (deref.firstTarget() as? VarDecl)?.datatype
+        if(varDt?.isUnsignedWord==true || (varDt?.isPointer==true && varDt.sub?.isByte==true)) {
+            // replace  ptr^^   by  @(ptr)    when ptr is uword or ^^byte
+            val identifier = IdentifierReference(deref.chain, deref.position)
+            if(isLHS && varDt.sub==BaseDataType.UBYTE) {
+                val memwrite = DirectMemoryWrite(identifier, deref.position)
+                return listOf(IAstModification.ReplaceNode(deref, memwrite, parent))
+            } else if(!isLHS) {
+                val memread = DirectMemoryRead(identifier, deref.position)
+                val replacement = if (varDt.sub == BaseDataType.BYTE)
+                    TypecastExpression(memread, DataType.BYTE, true, memread.position)
+                else
+                    memread
+                return listOf(IAstModification.ReplaceNode(deref, replacement, parent))
             }
         }
 

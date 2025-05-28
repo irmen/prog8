@@ -85,6 +85,7 @@ object InferredTypes {
         type.isFloat -> InferredType.known(BaseDataType.FLOAT)
         type.isString -> InferredType.known(BaseDataType.STR)
         type.isLong -> InferredType.known(BaseDataType.LONG)
+        type.isPointerArray -> InferredType.known(type)
         type.isSplitWordArray -> {
             when(type.sub) {
                 BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
@@ -93,7 +94,6 @@ object InferredTypes {
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
-        type.isPointerArray -> InferredType.known(type)
         type.isArray -> InferredType.known(type)
         type.isPointer -> InferredType.known(type)
         type.isStructInstance -> InferredType.known(type)
