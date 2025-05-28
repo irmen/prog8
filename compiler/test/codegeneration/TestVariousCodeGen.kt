@@ -615,4 +615,19 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("word bitshift with byte operand") {
+        val src="""
+main{
+    sub start() {
+        cx16.r0 >>= 4
+        cx16.r1 <<= 4
+    }
+}"""
+
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+    }
 })

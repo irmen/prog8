@@ -1,103 +1,56 @@
 %import floats
 %import textio
+%zeropage basicsafe
 
 main {
+    bool[10] barray
+    uword[10] @nosplit warrayns
+    uword[10] warray
+    float[10] farray
+
     sub start() {
-        simpleptrindexing()
+        dump()
 
-        struct List {
-            float f
-            ^^uword s
-            ^^float fp
-            uword n
-        }
-        ^^List  l = List()
-        l.s = 2000
-        l.fp = 3000
+        ; ALL OK
+        barray[2] = true
+        warrayns[2] = 1234
+        warray[2] = 5678
+        farray[2] = 3.1415
+        dump()
 
-        pokew(2000, 1)
-        pokew(2002, 2)
-        pokew(2004, 3)
-        pokew(2006, 4)
-        pokew(2008, 5)
-        pokef(3000, 1.111)
-        pokef(3008, 2.222)
-        pokef(3016, 3.333)
-        pokef(3024, 4.444)
-        pokef(3032, 5.555)
+        ; ALL OK
+        cx16.r0L=2
+        barray[cx16.r0L] = false
+        warrayns[cx16.r0L] = 0
+        warray[cx16.r0L] = 0
+        farray[cx16.r0L] = 0
+        dump()
 
-        cx16.r9L = 2
+        ; ALL OK
+        cx16.r0L=2
+        barray[cx16.r0L] = true
+        warrayns[cx16.r0L] = 1234
+        warray[cx16.r0L] = 5678
+        farray[cx16.r0L] = 3.1415
+        dump()
 
-        lvref1()
-        lvref2()
-        lvref1f()
-        lvref2f()
+        ; ALL OK
+        barray[2] = false
+        warrayns[2] = 0
+        warray[2] = 0
+        farray[2] = 0.0
+        dump()
 
-        ref1()
-        ref2()
-        ref1f()
-        ref2f()
-
-        sub lvref1() {
-            l.s[2] = 3333
-        }
-        sub lvref2() {
-            l.s[cx16.r9L+1] = 4444
-        }
-        sub lvref1f() {
-            l.fp[2] = 3333.3
-        }
-        sub lvref2f() {
-            l.fp[cx16.r9L+1] = 4444.4
-        }
-
-        sub ref1() {
-            cx16.r0 = l.s[2]
-            txt.print_uw(l.s[2])
-            txt.nl()
-        }
-        sub ref2() {
-            cx16.r1 = l.s[cx16.r9L+1]
-            txt.print_uw(l.s[cx16.r9L+1])
-            txt.nl()
-        }
-        sub ref1f() {
-            txt.print_f(l.fp[2])
-            txt.nl()
-        }
-        sub ref2f() {
-            txt.print_f(l.fp[cx16.r9L+1])
+        sub dump() {
+            txt.print_bool(barray[2])
+            txt.spc()
+            txt.print_uw(warrayns[2])
+            txt.spc()
+            txt.print_uw(warray[2])
+            txt.spc()
+            txt.print_f(farray[2])
             txt.nl()
         }
     }
-
-
-    sub simpleptrindexing() {
-        ^^float flptr = 2000
-        ^^bool bptr = 3000
-
-
-;        flptr[0] = 0.0
-;        flptr[1] = 1.1
-        cx16.r9L = 2
-        flptr[cx16.r9L] = 2.2
-        bptr[cx16.r9L] = true
-
-;        txt.print_f(flptr[0])
-;        txt.nl()
-;        txt.print_f(flptr[1])
-;        txt.nl()
-        txt.print_f(peekf(2000+8*2))
-        txt.nl()
-        txt.print_f(flptr[2])
-        txt.nl()
-
-        pokef(2000+8*2, 9.9999)
-        txt.print_f(peekf(2000+8*2))
-        txt.nl()
-        txt.print_f(flptr[2])
-        txt.nl()
-    }
-
 }
 

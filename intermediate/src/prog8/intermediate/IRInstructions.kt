@@ -1019,8 +1019,15 @@ data class IRInstruction(
 
     private fun determineReg1Type(): IRDataType? {
         if(type==IRDataType.FLOAT) {
-            // some float instructions have an integer register as well.
-            return if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP, Opcode.LOADIX, Opcode.LOADX, Opcode.STOREIX, Opcode.STOREX, Opcode.STOREZX))
+            // some float instructions have an integer (byte or word) register as well in reg1
+            return if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP, Opcode.LOADIX, Opcode.LOADX, Opcode.STOREX, Opcode.STOREIX, Opcode.STOREZX))
+                IRDataType.BYTE
+            else
+                IRDataType.WORD
+        }
+        if(type==IRDataType.WORD) {
+            // some word instructions have byte reg1
+            return if(opcode in arrayOf(Opcode.STOREZX))
                 IRDataType.BYTE
             else
                 IRDataType.WORD
