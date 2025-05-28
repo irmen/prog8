@@ -233,7 +233,6 @@ class BinaryExpression(
                 val leftIdentfier = left as? IdentifierReference
                 val leftIndexer = left as? ArrayIndexedExpression
                 val rightIdentifier = right as? IdentifierReference
-                val rightIndexer = right as? ArrayIndexedExpression
                 if(rightIdentifier!=null) {
                     val struct: StructDecl? =
                         if (leftIdentfier != null) {

@@ -570,8 +570,33 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         valueRegister: Int,
         valueFpRegister: Int
     ) {
-        // TODO should be replaced by pointerderef in Ast itself maybe!??
-        TODO("Not yet implemented: plain pointer indexed assignment ${targetIdent.position}")       // TODO huh, this was working in earlier code wasn't it? where is the routine gone?
+        val pointerTr = expressionEval.translateExpression(targetIdent)
+        result += pointerTr.chunks
+        val pointerReg = pointerTr.resultReg
+
+        val constIndex = targetArray.index.asConstInteger()
+        if(zeroValue) {
+            if(constIndex!=null) {
+                val offset = eltSize * constIndex
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = offset), null)
+            } else {
+                val (code, indexReg) = loadIndexReg(targetArray, eltSize, true)
+                result += code
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
+            }
+            codeGen.storeValueAtPointersLocation(result, pointerReg, targetIdent.type.dereference(), true, -1)
+        } else {
+            if(constIndex!=null) {
+                val offset = eltSize * constIndex
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = offset), null)
+            } else {
+                val (code, indexReg) = loadIndexReg(targetArray, eltSize, true)
+                result += code
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
+            }
+            val realValueReg = if(targetDt == IRDataType.FLOAT) valueFpRegister else valueRegister
+            codeGen.storeValueAtPointersLocation(result, pointerReg, targetIdent.type.dereference(), false, realValueReg)
+        }
     }
 
     private fun translateRegularAssignArrayIndexed(
