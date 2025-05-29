@@ -48,6 +48,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
             "structalloc" -> funcStructAlloc(call)
+            "sizeof" -> throw AssemblyError("sizeof must have been replaced with a constant")
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
     }

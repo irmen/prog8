@@ -94,16 +94,16 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     // 1 arg, type = anything, result type = ubyte or uword
     if(args.size!=1)
         throw SyntaxError("sizeof requires one argument", position)
-    if(args[0] !is IdentifierReference && args[0] !is NumericLiteral)
+    if(args[0] !is IdentifierReference && args[0] !is NumericLiteral && args[0] !is AddressOf)
         throw CannotEvaluateException("sizeof","argument should be an identifier, number, or type name")
 
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
-        if(args[0] is NumericLiteral)
+        if(args[0] is NumericLiteral || args[0] is AddressOf)
             return NumericLiteral.optimalInteger(program.memsizer.memorySize(dt.getOrUndef(), null), position)
 
-        val target = (args[0] as IdentifierReference).targetStatement()
-            ?: throw CannotEvaluateException("sizeof", "no target")
+        val target = (args[0] as? IdentifierReference)?.targetStatement()
+            ?: throw SyntaxError("wrong argument type", position)
 
         return when {
             dt.isArray -> {
@@ -112,7 +112,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt, length), position)
             }
             dt.isString -> throw SyntaxError("sizeof(str) is undefined, did you mean len, or perhaps strings.length?", position)
-            else -> NumericLiteral(BaseDataType.UBYTE, program.memsizer.memorySize(dt.getOrUndef(), null).toDouble(), position)
+            else -> NumericLiteral.optimalInteger( program.memsizer.memorySize(dt.getOrUndef(), null), position)
         }
     } else {
         val identifier = args[0] as? IdentifierReference

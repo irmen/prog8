@@ -29,6 +29,7 @@ sys {
     const ubyte SIZEOF_WORD  = sizeof(word)
     const ubyte SIZEOF_UWORD = sizeof(uword)
     const ubyte SIZEOF_LONG  = sizeof(long)
+    const ubyte SIZEOF_POINTER = sizeof(&sys.wait)
     const ubyte SIZEOF_FLOAT = 0    ; undefined, no floats supported
     const byte  MIN_BYTE     = -128
     const byte  MAX_BYTE     = 127

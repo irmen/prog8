@@ -101,7 +101,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "abs__word"     to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.WORD)),
     "abs__float"    to FSignature(true, BaseDataType.FLOAT, FParam("value", BaseDataType.FLOAT)),
     "len"           to FSignature(true, BaseDataType.UWORD, FParam("values", *IterableDatatypes)),
-    "sizeof"        to FSignature(true, BaseDataType.UBYTE, FParam("object", *BaseDataType.entries.toTypedArray())),
+    "sizeof"        to FSignature(true, BaseDataType.UBYTE, FParam("object", *(BaseDataType.entries - BaseDataType.STRUCT_INSTANCE).toTypedArray())),
     "sgn"           to FSignature(true, BaseDataType.BYTE, FParam("value", *NumericDatatypes)),
     "sqrt"          to FSignature(true, null, FParam("value", *NumericDatatypes)),
     "sqrt__ubyte"   to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UBYTE)),

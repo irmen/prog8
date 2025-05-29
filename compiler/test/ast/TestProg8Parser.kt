@@ -1087,6 +1087,8 @@ main {
         ub2 = sys.SIZEOF_WORD
         ub1 = sys.SIZEOF_LONG
         ub2 = sys.SIZEOF_FLOAT
+        ub1 = sys.SIZEOF_POINTER
+        ub2 = sys.SIZEOF_UBYTE
 
         ub1 = sizeof(true)
         ub2 = sizeof(1234)
@@ -1108,6 +1110,9 @@ main {
         ub2 = sizeof(float)
         ub1 = sizeof(List)
         ub2 = sizeof(main.start.List)
+        
+        ub1 = sizeof(&w)
+        
         ;; TODO ub1 = sizeof(^^float)
         ;; TODO ub2 = sizeof(^^List)
     }
@@ -1115,7 +1120,7 @@ main {
 
         val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 38
+        st.size shouldBe 41
         val assignments = st.drop(14).dropLast(1)
         assignments.all { it is Assignment } shouldBe true
         assignments.forEach { a ->

@@ -22,6 +22,8 @@ main {
         txt.spc()
         txt.print_ub(sys.SIZEOF_WORD)
         txt.spc()
+        txt.print_ub(sys.SIZEOF_POINTER)
+        txt.spc()
         txt.print_ub(sys.SIZEOF_LONG)
         txt.spc()
         txt.print_ub(sys.SIZEOF_FLOAT)
@@ -59,11 +61,14 @@ main {
         txt.spc()
         txt.print_ub(sizeof(float))
         txt.spc()
+        txt.print_ub(sizeof(List))
+        txt.spc()
+        txt.print_ub(sizeof(&w))
+        txt.spc()
 ;        txt.print_ub(sizeof(^^float))       ; TODO parse this
 ;        txt.spc()
 ;        txt.print_ub(sizeof(^^List))       ; TODO parse this
 ;        txt.spc()
-        txt.print_ub(sizeof(List))
         txt.nl()
     }
 }
