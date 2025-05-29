@@ -910,7 +910,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "-" -> asmgen.out("  sec |  sbc  $otherName")
             "*" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.multiply_bytes")
             "/" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.divmod_ub_asm |  tya")
-            "%" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.divmod_ub_asm")
+            "%" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.remainder_ub_asm")
             "<<" -> {
                 asmgen.out("""
                         ldy  $otherName
@@ -1019,7 +1019,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
                 if(value==0)
                     throw AssemblyError("division by zero")
-                asmgen.out("  ldy  #$value |  jsr  prog8_math.divmod_ub_asm")
+                asmgen.out("  ldy  #$value |  jsr  prog8_math.remainder_ub_asm")
                 asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             "<<" -> {
@@ -1190,7 +1190,7 @@ $shortcutLabel:""")
             "%" -> {
                 if(signed)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                asmgen.out("  ldy  $variable  |  jsr  prog8_math.divmod_ub_asm")
+                asmgen.out("  ldy  $variable  |  jsr  prog8_math.remainder_ub_asm")
             }
             "<<" -> {
                 asmgen.out("""
@@ -1363,7 +1363,7 @@ $shortcutLabel:""")
             "%" -> {
                 if(signed)
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
-                asmgen.out("  tay |  lda  $variable  |  jsr  prog8_math.divmod_ub_asm")
+                asmgen.out("  tay |  lda  $variable  |  jsr  prog8_math.remainder_ub_asm")
             }
             "<<" -> {
                 asmgen.out("""
@@ -1534,7 +1534,7 @@ $shortcutLabel:""")
                 asmgen.out("""
                     lda  $name
                     ldy  #$value
-                    jsr  prog8_math.divmod_ub_asm
+                    jsr  prog8_math.remainder_ub_asm
                     sta  $name""")
             }
             "<<" -> {

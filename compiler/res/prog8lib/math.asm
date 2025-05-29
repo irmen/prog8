@@ -241,6 +241,28 @@ divmod_ub_asm	.proc
 		rts
 		.pend
 
+remainder_ub_asm        .proc
+		; -- divide A by Y, returns remainder in A   (unsigned)
+		;    division by zero will result in just the original number.
+		;    This routine specialcases 0,1,2 and otherwise is just a repeated subtraction.
+		cpy  #0
+		beq  _zero
+		cpy  #1
+		bne  +
+		lda  #0
+		rts
++		cpy  #2
+		bne  +
+		and  #1
+		rts
++		sty  P8ZP_SCRATCH_REG
+		sec
+-		sbc  P8ZP_SCRATCH_REG
+		bcs  -
+		adc  P8ZP_SCRATCH_REG
+_zero		rts
+		.pend
+
 divmod_w_asm	.proc
 	; signed word division: make everything positive and fix sign afterwards
 		sta  P8ZP_SCRATCH_W2
