@@ -185,6 +185,7 @@ postincrdecr :  assign_target  operator = ('++' | '--') ;
 
 expression :
     '(' expression ')'
+    | sizeof_expression = 'sizeof' '(' sizeof_argument ')'
     | functioncall
     | <assoc=right> prefix = ('+'|'-'|'~') expression
     | left = expression EOL? bop = ('*' | '/' | '%' ) EOL? right = expression
@@ -210,6 +211,10 @@ expression :
     | expression typecast
     | if_expression
     ;
+
+
+sizeof_argument: datatype | expression ;
+
 
 arrayindexed:
     scoped_identifier arrayindex

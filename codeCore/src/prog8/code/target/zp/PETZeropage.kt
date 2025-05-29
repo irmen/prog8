@@ -16,10 +16,6 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_W2 = 0xb8u      // temp storage 2 for a word
 
     init {
-        if (options.floats) {
-            throw InternalCompilerException("PET target doesn't yet support floating point routines")
-        }
-
         if (options.floats && options.zeropage !in arrayOf(
                 ZeropageType.FLOATSAFE,
                 ZeropageType.BASICSAFE,

@@ -1,28 +1,48 @@
-%import math
+%option enable_floats
 %import textio
+%zeropage basicsafe
 
 main {
     sub start() {
-        repeat {
-            sys.waitvsync()
-            sys.waitvsync()
-            txt.cls()
-            txt.print_ubbin(cx16.joysticks_detect(), true)
-            txt.nl()
-            txt.print_uwbin(cx16.joysticks_getall(true),true)
-;
-;            ubyte joystick
-;            for joystick in 0 to 4 {
-;                bool present
-;                uword joy
-;                joy,present = cx16.joystick_get(joystick)
-;                txt.print_ub(joystick)
-;                txt.print(": ")
-;                txt.print_bool(present)
-;                txt.spc()
-;                txt.print_uwbin(joy, true)
-;                txt.nl()
-;            }
-        }
+        bool @shared b
+        float @shared f
+        word @shared w
+        const long ll = 9999999
+
+        txt.print_ub(sys.SIZEOF_BOOL)
+        txt.spc()
+        txt.print_ub(sys.SIZEOF_WORD)
+        txt.spc()
+        txt.print_ub(sys.SIZEOF_LONG)
+        txt.spc()
+        txt.print_ub(sys.SIZEOF_FLOAT)
+        txt.nl()
+
+        txt.print_ub(sizeof(true))
+        txt.spc()
+        txt.print_ub(sizeof(1234))
+        txt.spc()
+        txt.print_ub(sizeof(12345678))
+        txt.spc()
+        txt.print_ub(sizeof(9.999))
+        txt.nl()
+
+        txt.print_ub(sizeof(b))
+        txt.spc()
+        txt.print_ub(sizeof(w))
+        txt.spc()
+        txt.print_ub(sizeof(ll))
+        txt.spc()
+        txt.print_ub(sizeof(f))
+        txt.nl()
+
+        txt.print_ub(sizeof(bool))
+        txt.spc()
+        txt.print_ub(sizeof(word))
+        txt.spc()
+        txt.print_ub(sizeof(long))
+        txt.spc()
+        txt.print_ub(sizeof(float))
+        txt.nl()
     }
 }
