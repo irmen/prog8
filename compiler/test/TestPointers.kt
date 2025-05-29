@@ -11,6 +11,7 @@ import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.PtrDereference
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.VarDecl
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtReturn
@@ -843,5 +844,72 @@ main {
 }"""
 
         compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+    }
+
+    test("assigning pointer dereferences via memcopy") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        struct List {
+            bool b
+            word w
+            float f
+            ^^List next
+        }
+
+        struct Foo {
+            byte bb
+        }
+
+        ^^List l1 = 2000
+        ^^List l2 = 3000
+        ^^Foo f1 = 4000
+
+        l1^^ = l2^^
+    }
+}"""
+
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 10
+        (st[8] as FunctionCallStatement).target.nameInSource shouldBe listOf("sys", "memcopy")
+    }
+
+    test("assigning pointer dereferences should be same type") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        struct List {
+            bool b
+            word w
+            float f
+            ^^List next
+        }
+
+        struct Foo {
+            byte bb
+        }
+
+        ^^List l1 = 2000
+        ^^List l2 = 3000
+        ^^Foo f1 = 4000
+        ^^bool bptr = 5000
+
+        l1^^ = f1^^
+        l1^^ = bptr^^
+        l1^^ = 4242
+    }
+}"""
+
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors)
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "doesn't match"
+        errors.errors[1] shouldContain "assigning to struct instance not supported"
+        errors.errors[2] shouldContain "assigning to struct instance not supported"
     }
 })

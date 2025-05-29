@@ -2367,8 +2367,12 @@ internal class AstChecker(private val program: Program,
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
-        else if(targetDatatype.isStructInstance)
-            errors.err("assigning to struct instance not supported (use pointers)", position)
+        else if(targetDatatype.isStructInstance) {
+            if(sourceDatatype.isStructInstance && sourceDatatype != targetDatatype)
+                errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
+            else
+                errors.err("assigning to struct instance not supported (use pointers)", position)
+        }
         else
             errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
 

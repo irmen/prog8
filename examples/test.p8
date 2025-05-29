@@ -1,13 +1,9 @@
-%option enable_floats
+%import floats
 %import textio
 %zeropage basicsafe
 
 main {
     sub start() {
-        bool @shared b
-        float @shared f
-        word @shared w
-        const long ll = 9999999
         struct List {
             bool b
             word w
@@ -15,60 +11,39 @@ main {
             ^^List next
         }
 
-        ^^List @shared l1
-        ^^float @shared fptr
+        struct Foo {
+            byte bb
+        }
 
-        txt.print_ub(sys.SIZEOF_BOOL)
+        ^^List l1 = 2000
+        ^^List l2 = 3000
+        ^^Foo f1 = 4000
+
+        l1.b = true
+        l1.w = 1111
+        l1.f = 11.234
+
+        l2.b = false
+        l2.w = 2222
+        l2.f = 222.222
+
+        txt.print_uwhex(l1, true)
         txt.spc()
-        txt.print_ub(sys.SIZEOF_WORD)
+        txt.print_bool(l1.b)
         txt.spc()
-        txt.print_ub(sys.SIZEOF_POINTER)
+        txt.print_w(l1.w)
         txt.spc()
-        txt.print_ub(sys.SIZEOF_LONG)
-        txt.spc()
-        txt.print_ub(sys.SIZEOF_FLOAT)
+        txt.print_f(l1.f)
         txt.nl()
 
-        txt.print_ub(sizeof(true))
+        l1^^ = l2^^
+        txt.print_uwhex(l1, true)
         txt.spc()
-        txt.print_ub(sizeof(1234))
+        txt.print_bool(l1.b)
         txt.spc()
-        txt.print_ub(sizeof(12345678))
+        txt.print_w(l1.w)
         txt.spc()
-        txt.print_ub(sizeof(9.999))
-        txt.nl()
-
-        txt.print_ub(sizeof(b))
-        txt.spc()
-        txt.print_ub(sizeof(w))
-        txt.spc()
-        txt.print_ub(sizeof(ll))
-        txt.spc()
-        txt.print_ub(sizeof(f))
-        txt.spc()
-        txt.print_ub(sizeof(l1))
-        txt.spc()
-        txt.print_ub(sizeof(fptr^^))
-        txt.spc()
-        txt.print_ub(sizeof(l1^^))
-        txt.nl()
-
-        txt.print_ub(sizeof(bool))
-        txt.spc()
-        txt.print_ub(sizeof(word))
-        txt.spc()
-        txt.print_ub(sizeof(long))
-        txt.spc()
-        txt.print_ub(sizeof(float))
-        txt.spc()
-        txt.print_ub(sizeof(List))
-        txt.spc()
-        txt.print_ub(sizeof(&w))
-        txt.spc()
-;        txt.print_ub(sizeof(^^float))       ; TODO parse this
-;        txt.spc()
-;        txt.print_ub(sizeof(^^List))       ; TODO parse this
-;        txt.spc()
+        txt.print_f(l1.f)
         txt.nl()
     }
 }

@@ -27,6 +27,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
     // - convert on..goto/call to jumpaddr array and separate goto/call
     // - replace implicit pointer dereference chains (a.b.c.d) with explicit ones (a^^.b^^.c^^.d)
     // - replace ptr^^ by @(ptr) if ptr is just an uword.
+    // - replace p1^^ = p2^^  by memcopy.
 
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
         return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
@@ -551,6 +552,26 @@ _after:
             if(param.type.isPointer && param.type.sub==BaseDataType.STR) {
                 errors.info("^^str replaced by ^^ubyte", param.position)
                 subroutine.parameters[idx] = SubroutineParameter(param.name, DataType.pointer(BaseDataType.UBYTE), param.zp, param.registerOrPair, param.position)
+            }
+        }
+
+        return noModifications
+    }
+
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        val targetDt = assignment.target.inferType(program)
+        val sourceDt = assignment.value.inferType(program)
+        if(targetDt.isStructInstance && sourceDt.isStructInstance) {
+            if(targetDt == sourceDt) {
+                val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
+                require(program.memsizer.memorySize(targetDt.getOrUndef(), null)==size)
+                val sourcePtr = IdentifierReference((assignment.value as PtrDereference).chain, assignment.position)
+                val targetPtr = IdentifierReference(assignment.target.pointerDereference!!.chain, assignment.position)
+                val numBytes = NumericLiteral.optimalInteger(size, assignment.position)
+                val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                    mutableListOf(sourcePtr, targetPtr, numBytes),
+                    false, assignment.position)
+                return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
             }
         }
 

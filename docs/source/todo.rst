@@ -57,10 +57,10 @@ STRUCTS and TYPED POINTERS
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
-- allow  list1^^ = list2^^  (value wise assignment of List structures) by replacing it with a sys.memcopy(list2, list1, sizeof(List)) call.
+- DONE: allow  list1^^ = list2^^  (value wise assignment of List structures) by replacing it with a sys.memcopy(list2, list1, sizeof(List)) call.
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
-- fix parse error "barray[2]^^"   where barray is ^^bool[10]
 - add unit tests for all changes (pointers and structs)
+- fix parse error "barray[2]^^"   where barray is ^^bool[10]
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - try to make sizeof(^^type) parse correctly (or maybe replace it immediately with sys.SIZEOF_POINTER)
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
