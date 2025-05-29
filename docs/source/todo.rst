@@ -60,7 +60,7 @@ STRUCTS and TYPED POINTERS
 - DONE: allow  list1^^ = list2^^  (value wise assignment of List structures) by replacing it with a sys.memcopy(list2, list1, sizeof(List)) call.
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
 - add unit tests for all changes (pointers and structs)
-- fix parse error "barray[2]^^"   where barray is ^^bool[10]
+- fix support for array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - try to make sizeof(^^type) parse correctly (or maybe replace it immediately with sys.SIZEOF_POINTER)
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
@@ -69,6 +69,7 @@ STRUCTS and TYPED POINTERS
 - really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - update syntax highlighting files
+- write docs
 
 
 Future Things and Ideas

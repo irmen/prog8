@@ -2384,6 +2384,10 @@ internal class AstChecker(private val program: Program,
             errors.err("on..goto index must be an unsigned byte", onGoto.index.position)
         }
     }
+
+    override fun visit(deref: ArrayIndexedPtrDereference) {
+        errors.err("no support for dereferencing after array indexing yet. (Split the expression using an intermediate variable?)", deref.position)
+    }
 }
 
 internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statement, errors: IErrorReporter) {

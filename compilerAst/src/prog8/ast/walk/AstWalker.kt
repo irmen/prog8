@@ -106,6 +106,7 @@ abstract class AstWalker {
     open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -155,6 +156,7 @@ abstract class AstWalker {
     open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
@@ -534,6 +536,12 @@ abstract class AstWalker {
 
     fun visit(deref: PtrDereference, parent: Node) {
         track(before(deref, parent), deref, parent)
+        track(after(deref, parent), deref, parent)
+    }
+
+    fun visit(deref: ArrayIndexedPtrDereference, parent: Node) {
+        track(before(deref, parent), deref, parent)
+        deref.chain.forEach { it.second?.accept(this) }
         track(after(deref, parent), deref, parent)
     }
 }

@@ -217,4 +217,8 @@ interface IAstVisitor {
 
     fun visit(deref: PtrDereference) {
     }
+
+    fun visit(deref: ArrayIndexedPtrDereference) {
+        deref.chain.forEach { it.second?.accept(this) }
+    }
 }

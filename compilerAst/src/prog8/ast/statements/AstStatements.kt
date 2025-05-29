@@ -432,8 +432,7 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 }
 
 
-class ArrayIndex(var indexExpr: Expression,
-                 override val position: Position) : Node {
+class ArrayIndex(var indexExpr: Expression, override val position: Position) : Node {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {

@@ -340,7 +340,7 @@ pointerdereference:  (prefix = scoped_identifier '.')? derefchain ('.' field = i
 
 derefchain :  singlederef ('.' singlederef)* ;
 
-singlederef : identifier POINTER ;
+singlederef : identifier arrayindex? POINTER ;
 
 branch_stmt : branchcondition EOL? (statement | statement_block) EOL? else_part? ;
 

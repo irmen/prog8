@@ -558,4 +558,8 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     override fun visit(field: StructFieldRef) {
         throw FatalAstException("struct field ref shouldn't occur as part of the AST tree ")
     }
+
+    override fun visit(deref: ArrayIndexedPtrDereference) {
+        output("???? Array Indexed Ptr Dereference should have been converted to other AST nodes ????")
+    }
 }

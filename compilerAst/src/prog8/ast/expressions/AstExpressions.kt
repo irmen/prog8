@@ -1707,6 +1707,30 @@ class PtrDereference(
     fun firstTarget(): Statement? = definingScope.lookup(chain.take(1))
 }
 
+class ArrayIndexedPtrDereference(
+    val chain: List<Pair<String, ArrayIndex?>>,
+    val derefLast: Boolean,
+    override val position: Position) : Expression() {
+
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        chain.forEach { it.second?.linkParents(this) }
+    }
+
+    override val isSimple = false
+
+    override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
+    override fun referencesIdentifier(nameInSource: List<String>) = chain.size==1 && chain==nameInSource
+    override fun copy(): ArrayIndexedPtrDereference = ArrayIndexedPtrDereference(chain.toList(), derefLast, position)
+    override fun constValue(program: Program): NumericLiteral? = null
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.unknown()
+}
+
+
 fun invertCondition(cond: Expression, program: Program): Expression {
     if(cond is BinaryExpression) {
         val invertedOperator = invertedComparisonOperator(cond.operator)

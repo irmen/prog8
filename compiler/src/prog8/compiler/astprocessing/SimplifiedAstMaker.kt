@@ -100,6 +100,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is TypecastExpression -> transform(expr)
             is IfExpression -> transform(expr)
             is PtrDereference -> transform(expr)
+            is ArrayIndexedPtrDereference -> throw FatalAstException("this should have been converted to some other ast nodes")
         }
     }
 
