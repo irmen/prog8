@@ -216,6 +216,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 if (immediateInt!=null && (immediateInt < -32768 || immediateInt > 65535))
                     throw IRParseException("immediate value out of range for word: $immediateInt")
             }
+            IRDataType.LONG -> {}
             IRDataType.FLOAT -> {}
             null -> {}
         }
@@ -368,6 +369,7 @@ fun irType(type: DataType): IRDataType {
         BaseDataType.UBYTE,
         BaseDataType.BYTE -> IRDataType.BYTE
         BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> IRDataType.WORD
+        BaseDataType.LONG -> IRDataType.LONG
         BaseDataType.FLOAT -> IRDataType.FLOAT
         BaseDataType.STRUCT_INSTANCE -> TODO("IR datatype for struct instances")
         else -> throw AssemblyError("no IR datatype for $type")

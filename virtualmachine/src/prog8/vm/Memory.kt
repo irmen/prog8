@@ -32,19 +32,30 @@ class Memory {
         return (mem[address] + 256u*mem[address+1]).toUShort()
     }
 
+    fun getSL(address: Int): Int {
+        return (mem[address] + 256u*mem[address+1] + 65536u*mem[address+2] + 16777216u*mem[address+3]).toInt()
+    }
+
     fun getSW(address: Int): Short {
         return (mem[address].toInt() + mem[address+1].toInt()*256).toShort()
     }
 
     fun setUW(address: Int, value: UShort) {
-        mem[address+1]  = (value.toInt() ushr 8).toUByte()
         mem[address] = value.toUByte()
+        mem[address+1]  = (value.toInt() ushr 8).toUByte()
+    }
+
+    fun setSL(address: Int, value: Int) {
+        mem[address] = value.toUByte()
+        mem[address+1]  = (value ushr 8).toUByte()
+        mem[address+2]  = (value ushr 16).toUByte()
+        mem[address+3]  = (value ushr 24).toUByte()
     }
 
     fun setSW(address: Int, value: Short) {
         val uv = value.toUShort()
-        mem[address+1]  = (uv.toInt() ushr 8).toUByte()
         mem[address] = uv.toUByte()
+        mem[address+1]  = (uv.toInt() ushr 8).toUByte()
     }
 
     fun setFloat(address: Int, value: Double) {

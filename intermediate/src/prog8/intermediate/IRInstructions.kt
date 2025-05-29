@@ -23,8 +23,7 @@ Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by t
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
-Value types: integers (.b=byte=8 bits, .w=word=16 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
-Currently ther is NO support for 24 or 32 bits integers.
+Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
 There is no distinction between signed and unsigned integers.
 Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
@@ -34,7 +33,7 @@ NOTE: Labels in source text should always start with an underscore.
 
 LOAD/STORE
 ----------
-All have type b or w or f.
+All have type b or w or l or f.
 
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
@@ -518,8 +517,8 @@ val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThat
 enum class IRDataType {
     BYTE,
     WORD,
+    LONG,
     FLOAT
-    // TODO add INT (32-bit)?   INT24 (24-bit)?
 }
 
 enum class OperandDirection {
@@ -862,6 +861,7 @@ data class IRInstruction(
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
                     IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }
+                    IRDataType.LONG -> require(immediate in -2147483647..2147483647) { "immediate value out of range for long: $immediate" }
                     IRDataType.FLOAT, null -> {}
                 }
             }
@@ -1115,6 +1115,7 @@ data class IRInstruction(
                 when(it.reg.dt) {
                     IRDataType.BYTE -> result.add("${location}r${it.reg.registerNum}.b$cpuReg,")
                     IRDataType.WORD -> result.add("${location}r${it.reg.registerNum}.w$cpuReg,")
+                    IRDataType.LONG -> result.add("${location}r${it.reg.registerNum}.l$cpuReg,")
                     IRDataType.FLOAT -> result.add("${location}fr${it.reg.registerNum}.f$cpuReg,")
                 }
             }
@@ -1136,12 +1137,14 @@ data class IRInstruction(
                         when (returnspec.dt) {
                             IRDataType.BYTE -> "r${returnspec.registerNum}.b"
                             IRDataType.WORD -> "r${returnspec.registerNum}.w"
+                            IRDataType.LONG -> "r${returnspec.registerNum}.l"
                             IRDataType.FLOAT -> "fr${returnspec.registerNum}.f"
                         }
                     } else {
                         when (returnspec.dt) {
                             IRDataType.BYTE -> "r${returnspec.registerNum}.b@" + cpuReg
                             IRDataType.WORD -> "r${returnspec.registerNum}.w@" + cpuReg
+                            IRDataType.LONG -> "r${returnspec.registerNum}.l@" + cpuReg
                             IRDataType.FLOAT -> "r${returnspec.registerNum}.f@" + cpuReg
                         }
                     }
