@@ -301,6 +301,19 @@ class AstPreprocessor(val program: Program,
             ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
 
         checkStringParam(functionCallExpr as IFunctionCall, stmtOfExpression)
+
+        if(functionCallExpr.target.nameInSource==listOf("sizeof")) {
+            val arg = functionCallExpr.args.firstOrNull()
+            if (arg is PtrDereference) {
+                // replace sizeof(ptr^^)  with   sizeof(type that ptr points to)
+                val dt = arg.inferType(program)
+                if(dt.isKnown) {
+                    val dtName = dt.getOrUndef().toString()
+                    val newArg = IdentifierReference(dtName.split("."), arg.position)
+                    return listOf(IAstModification.ReplaceNode(arg, newArg, functionCallExpr))
+                }
+            }
+        }
         return noModifications
     }
 

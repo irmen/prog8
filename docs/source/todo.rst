@@ -25,7 +25,8 @@ STRUCTS and TYPED POINTERS
   Note that actually dereferencing a pointer to a struct as an explicit operation, conflicts with the third axiom on this list (structs only as reference types) so it can only be done for basic types?
   So... setting struct fields can simply be ``structvar.field = 42`` and reading them ``a = structvar.field``
 - DONE: you should be able to get the address of an individual field: ``&structpointer.field``
-- DONE: need to teach sizeof() how to calculate struct sizes (need unit test + doc)
+- DONE: teach sizeof() how to calculate struct sizes (need unit test + doc)
+- DONE: sizeof(ptr^^) works
 - DONE: implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
 - DONE: implicit cast of pointer to uword in conditional expressions
 - DONE: subroutine parameters and return values should be able to accept pointers as well now
@@ -56,7 +57,7 @@ STRUCTS and TYPED POINTERS
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
-- replace sizeof(list^^) with sizeof(List) to allow it to compile.  Same with simple pointers.
+- make sizeof(^^type) parse correctly
 - allow  list1^^ = list2^^  (value wise assignment of List structures) by replacing it with a sys.memcopy(list2, list1, sizeof(List)) call.
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
 - fix parse error "barray[2]^^"   where barray is ^^bool[10]

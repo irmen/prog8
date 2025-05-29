@@ -95,7 +95,7 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     if(args.size!=1)
         throw SyntaxError("sizeof requires one argument", position)
     if(args[0] !is IdentifierReference && args[0] !is NumericLiteral)
-        throw SyntaxError("sizeof argument should be an identifier or number", position)
+        throw CannotEvaluateException("sizeof","argument should be an identifier, number, or type name")
 
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
@@ -134,7 +134,8 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
             val size = struct.memsize(program.memsizer)
             return NumericLiteral(BaseDataType.UBYTE, size.toDouble(), position)
         }
-        throw SyntaxError("sizeof invalid argument type", position)
+
+        throw SyntaxError("sizeof argument should be an identifier, number, or type name", position)
     }
 }
 

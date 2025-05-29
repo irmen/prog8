@@ -1073,6 +1073,15 @@ main {
         word @shared w
         const long ll = 9999999
         ubyte @shared ub1, ub2
+        struct List {
+            bool b
+            word w
+            float f
+            ^^List next
+        }
+
+        ^^List @shared lptr
+        ^^float @shared fptr
 
         ub1 = sys.SIZEOF_BOOL
         ub2 = sys.SIZEOF_WORD
@@ -1088,18 +1097,27 @@ main {
         ub2 = sizeof(w)
         ub1 = sizeof(ll)
         ub2 = sizeof(f)
+        ub1 = sizeof(lptr)
+        ub2 = sizeof(fptr)
+        ub1 = sizeof(lptr^^)
+        ub2 = sizeof(fptr^^)
 
         ub1 = sizeof(bool)
         ub2 = sizeof(word)
         ub1 = sizeof(long)
         ub2 = sizeof(float)
+        ub1 = sizeof(List)
+        ub2 = sizeof(main.start.List)
+        ;; TODO ub1 = sizeof(^^float)
+        ;; TODO ub2 = sizeof(^^List)
     }
 }"""
 
         val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 27
-        val assignments = st.dropLast(1).takeLast(16)
+        st.size shouldBe 38
+        val assignments = st.drop(14).dropLast(1)
+        assignments.all { it is Assignment } shouldBe true
         assignments.forEach { a ->
             (a as Assignment).value shouldBe instanceOf<NumericLiteral>()
         }

@@ -8,6 +8,15 @@ main {
         float @shared f
         word @shared w
         const long ll = 9999999
+        struct List {
+            bool b
+            word w
+            float f
+            ^^List next
+        }
+
+        ^^List @shared l1
+        ^^float @shared fptr
 
         txt.print_ub(sys.SIZEOF_BOOL)
         txt.spc()
@@ -34,6 +43,12 @@ main {
         txt.print_ub(sizeof(ll))
         txt.spc()
         txt.print_ub(sizeof(f))
+        txt.spc()
+        txt.print_ub(sizeof(l1))
+        txt.spc()
+        txt.print_ub(sizeof(fptr^^))
+        txt.spc()
+        txt.print_ub(sizeof(l1^^))
         txt.nl()
 
         txt.print_ub(sizeof(bool))
@@ -43,6 +58,12 @@ main {
         txt.print_ub(sizeof(long))
         txt.spc()
         txt.print_ub(sizeof(float))
+        txt.spc()
+;        txt.print_ub(sizeof(^^float))       ; TODO parse this
+;        txt.spc()
+;        txt.print_ub(sizeof(^^List))       ; TODO parse this
+;        txt.spc()
+        txt.print_ub(sizeof(List))
         txt.nl()
     }
 }
