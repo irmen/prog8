@@ -659,6 +659,17 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
         return IfExpression(condition.toAst(), truevalue.toAst(), falsevalue.toAst(), toPosition())
     }
 
+    if(sizeof_expression!=null) {
+        val datatype = sizeof_argument().basedatatype()?.toAst()
+        val expression = sizeof_argument().expression()?.toAst()
+        val sizeof = IdentifierReference(listOf("sizeof"), toPosition())
+        val arg = if(expression!=null) expression else {
+            require(datatype!=null)
+            IdentifierReference(listOf(datatype.name.lowercase()), toPosition())
+        }
+        return FunctionCallExpression(sizeof, mutableListOf(arg), toPosition())
+    }
+
     val deref = pointerdereference()?.toAst()
     if(deref!=null) return deref
 

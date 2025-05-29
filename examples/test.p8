@@ -1,39 +1,48 @@
+%option enable_floats
 %import textio
-%import floats
+%zeropage basicsafe
 
 main {
-    ^^byte @shared sbptr
-    ^^ubyte @shared ubptr
-    ^^bool @shared bptr
-    ^^word @shared wptr
-    ^^float @shared fptr
-
-    struct List {
-        ubyte value
-        ^^List next
-    }
-
     sub start() {
-        ^^List l1 = 1000
-        ^^List l2 = 1100
+        bool @shared b
+        float @shared f
+        word @shared w
+        const long ll = 9999999
 
-        txt.print_ub(sizeof(List))
+        txt.print_ub(sys.SIZEOF_BOOL)
         txt.spc()
-;        txt.print_ub(sizeof(l1^^)
-;        txt.nl()
-
-        txt.print_ub(sizeof(bptr))
+        txt.print_ub(sys.SIZEOF_WORD)
         txt.spc()
-        txt.print_ub(sizeof(wptr))
+        txt.print_ub(sys.SIZEOF_LONG)
         txt.spc()
-        txt.print_ub(sizeof(fptr))
+        txt.print_ub(sys.SIZEOF_FLOAT)
         txt.nl()
 
-;        txt.print_ub(sizeof(bptr^^))
-;        txt.spc()
-;        txt.print_ub(sizeof(wptr^^))
-;        txt.spc()
-;        txt.print_ub(sizeof(fptr^^))
-;        txt.nl()
+        txt.print_ub(sizeof(true))
+        txt.spc()
+        txt.print_ub(sizeof(1234))
+        txt.spc()
+        txt.print_ub(sizeof(12345678))
+        txt.spc()
+        txt.print_ub(sizeof(9.999))
+        txt.nl()
+
+        txt.print_ub(sizeof(b))
+        txt.spc()
+        txt.print_ub(sizeof(w))
+        txt.spc()
+        txt.print_ub(sizeof(ll))
+        txt.spc()
+        txt.print_ub(sizeof(f))
+        txt.nl()
+
+        txt.print_ub(sizeof(bool))
+        txt.spc()
+        txt.print_ub(sizeof(word))
+        txt.spc()
+        txt.print_ub(sizeof(long))
+        txt.spc()
+        txt.print_ub(sizeof(float))
+        txt.nl()
     }
 }

@@ -27,7 +27,7 @@ internal class NormalMemSizer(val floatsize: Int): IMemSizer {
         return when {
             dt.isByteOrBool -> 1 * (numElements ?: 1)
             dt.isFloat -> floatsize * (numElements ?: 1)
-            dt.isLong -> throw IllegalArgumentException("long can not yet be put into memory")
+            dt.isLong -> 4 * (numElements ?: 1)
             dt.isPointer -> 2  // pointer is just a uword
             dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
             else -> 2 * (numElements ?: 1)

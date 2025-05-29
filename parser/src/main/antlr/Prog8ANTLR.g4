@@ -198,6 +198,7 @@ postincrdecr :  assign_target  operator = ('++' | '--') ;
 
 expression :
     '(' expression ')'
+    | sizeof_expression = 'sizeof' '(' sizeof_argument ')'
     | functioncall
     | left = expression EOL? bop = '.' EOL? right = expression          // "scope traversal operator"
     | <assoc=right> prefix = ('+'|'-'|'~') expression
@@ -225,6 +226,10 @@ expression :
     | if_expression
     | pointerdereference
     ;
+
+
+sizeof_argument: basedatatype | expression ;
+
 
 arrayindexed:
     scoped_identifier arrayindex

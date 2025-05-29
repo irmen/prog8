@@ -1515,12 +1515,13 @@ sys {
 
     const ubyte target = 16         ;  compilation target specifier.  255=virtual, 128=C128, 64=C64, 32=PET, 16=CommanderX16, 8=atari800XL, 7=Neo6502
 
-    const ubyte SIZEOF_BOOL  = 1
-    const ubyte SIZEOF_BYTE  = 1
-    const ubyte SIZEOF_UBYTE = 1
-    const ubyte SIZEOF_WORD  = 2
-    const ubyte SIZEOF_UWORD = 2
-    const ubyte SIZEOF_FLOAT = 5
+    const ubyte SIZEOF_BOOL  = sizeof(bool)
+    const ubyte SIZEOF_BYTE  = sizeof(byte)
+    const ubyte SIZEOF_UBYTE = sizeof(ubyte)
+    const ubyte SIZEOF_WORD  = sizeof(word)
+    const ubyte SIZEOF_UWORD = sizeof(uword)
+    const ubyte SIZEOF_LONG  = sizeof(long)
+    const ubyte SIZEOF_FLOAT = sizeof(float)
     const byte  MIN_BYTE     = -128
     const byte  MAX_BYTE     = 127
     const ubyte MIN_UBYTE    = 0

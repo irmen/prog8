@@ -5,7 +5,9 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.*
+import prog8.code.target.C128Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.PETTarget
 import prog8.code.target.VMTarget
 import prog8.compiler.builtinFunctionReturnType
 import java.io.CharConversionException
@@ -832,6 +834,9 @@ internal class AstChecker(private val program: Program,
         // FLOATS enabled?
         if(!compilerOptions.floats && (decl.datatype.isFloat || decl.datatype.isFloatArray) && decl.type != VarDeclType.MEMORY)
             err("floating point used, but that is not enabled via options")
+        else if(compilerOptions.compTarget.name in arrayOf(PETTarget.NAME, C128Target.NAME) && decl.type != VarDeclType.CONST && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
+            err("pet32 and c128 target do not support floating point numbers yet")
+        }
 
         // ARRAY without size specifier MUST have an iterable initializer value
         if(decl.isArray && decl.arraysize==null) {

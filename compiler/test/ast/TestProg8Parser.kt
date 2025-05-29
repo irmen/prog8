@@ -1062,4 +1062,47 @@ main {
         st.size shouldBe 3
     }
 
+    test("allow type name as argument for sizeof()") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        bool @shared b
+        float @shared f
+        word @shared w
+        const long ll = 9999999
+        ubyte @shared ub1, ub2
+
+        ub1 = sys.SIZEOF_BOOL
+        ub2 = sys.SIZEOF_WORD
+        ub1 = sys.SIZEOF_LONG
+        ub2 = sys.SIZEOF_FLOAT
+
+        ub1 = sizeof(true)
+        ub2 = sizeof(1234)
+        ub1 = sizeof(12345678)
+        ub2 = sizeof(9.999)
+
+        ub1 = sizeof(b)
+        ub2 = sizeof(w)
+        ub1 = sizeof(ll)
+        ub2 = sizeof(f)
+
+        ub1 = sizeof(bool)
+        ub2 = sizeof(word)
+        ub1 = sizeof(long)
+        ub2 = sizeof(float)
+    }
+}"""
+
+        val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 27
+        val assignments = st.dropLast(1).takeLast(16)
+        assignments.forEach { a ->
+            (a as Assignment).value shouldBe instanceOf<NumericLiteral>()
+        }
+    }
+
 })

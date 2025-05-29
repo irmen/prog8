@@ -91,39 +91,6 @@ class VMTarget: ICompilationTarget,
         zeropage = VirtualZeropage(compilerOptions)
         golden = GoldenRam(compilerOptions, UIntRange.EMPTY)
     }
-
-    override fun memorySize(dt: DataType, numElements: Int?): Int {
-        if(dt.isPointerArray)
-            return 2 * numElements!!        // array of pointers is just array of uwords
-        else if(dt.isArray) {
-            if(numElements==null) return 2      // treat it as a pointer size
-            return when(dt.sub) {
-                BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
-                BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.STR -> numElements * 2
-                BaseDataType.FLOAT-> numElements * FLOAT_MEM_SIZE
-                BaseDataType.UNDEFINED -> throw IllegalArgumentException("undefined has no memory size")
-                else -> {
-                    if(dt.subType!=null)
-                        TODO("support arrays with struct instances as sub-type")
-                    throw IllegalArgumentException("invalid sub type")
-                }
-            }
-        }
-        else if (dt.isString) {
-            return numElements        // treat it as the size of the given string with the length
-                ?: 2    // treat it as the size to store a string pointer
-        }
-
-        return when {
-            dt.isByteOrBool -> 1 * (numElements ?: 1)
-            dt.isFloat -> FLOAT_MEM_SIZE * (numElements ?: 1)
-            dt.isLong -> throw IllegalArgumentException("long can not yet be put into memory")
-            dt.isPointer -> 2  // pointer is just a uword
-            dt.isStructInstance -> TODO("memory size of struct instances")
-            dt.isUndefined -> throw IllegalArgumentException("undefined has no memory size")
-            else -> 2 * (numElements ?: 1)
-        }
-    }
 }
 
 

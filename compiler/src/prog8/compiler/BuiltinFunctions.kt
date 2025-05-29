@@ -115,6 +115,19 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
             else -> NumericLiteral(BaseDataType.UBYTE, program.memsizer.memorySize(dt.getOrUndef(), null).toDouble(), position)
         }
     } else {
+        val identifier = args[0] as? IdentifierReference
+        if(identifier?.nameInSource?.size==1) {
+            when(identifier.nameInSource[0]) {
+                "ubyte" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.UBYTE), position)
+                "byte" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.BYTE), position)
+                "uword" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.UWORD), position)
+                "word" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.WORD), position)
+                "long" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.LONG), position)
+                "float" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.FLOAT), position)
+                "bool" -> return NumericLiteral.optimalInteger(program.memsizer.memorySize(BaseDataType.BOOL), position)
+            }
+        }
+
         // the argument could refer to a struct declaration
         val struct = (args[0] as? IdentifierReference)?.targetStructDecl()
         if(struct!=null) {

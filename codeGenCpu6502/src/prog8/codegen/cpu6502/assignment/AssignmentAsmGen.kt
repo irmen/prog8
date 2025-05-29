@@ -988,7 +988,7 @@ internal class AssignmentAsmGen(
                 if(!directIntoY(expr.right)) asmgen.out("  pha")
                 assignExpressionToRegister(expr.right, RegisterOrPair.Y, false)
                 if(!directIntoY(expr.right)) asmgen.out("  pla")
-                asmgen.out("  jsr  prog8_math.divmod_ub_asm")
+                asmgen.out("  jsr  prog8_math.remainder_ub_asm")
                 if(target.register==RegisterOrPair.A)
                     asmgen.out("  cmp  #0")     // fix the status register
                 else
