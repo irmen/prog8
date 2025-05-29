@@ -178,10 +178,9 @@ setlsb (x, value)
 setmsb (x, value)
     Sets the most significant byte of word variable x to a new value. Leaves the LSB untouched.
 
-sizeof (name)  ;  sizeof (number)
-    Number of bytes that the object 'name', or the number 'number' occupies in memory.
-    This is a constant determined by the data type of
-    the object. For instance, for a variable of type uword, the sizeof is 2.
+sizeof (name)  ;  sizeof (number)  ;  sizeof(datatype)
+    The constant number of bytes that the object 'name', the number 'number' or the type 'datatype' occupies in memory.
+    For instance, for a variable of type uword, the sizeof is 2.
     For an 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
     Note: usually you will be interested in the number of elements in an array, use len() for that.
 
