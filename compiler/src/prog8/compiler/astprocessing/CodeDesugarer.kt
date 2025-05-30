@@ -341,7 +341,26 @@ _after:
             }
 
             if(expr.left is ArrayIndexedExpression && right!=null) {
-                TODO()
+                // replace  replace x.y.listarray[2]^^.value    with  just  x.y.listarray[2] . value
+                // this will be further modified elsewhere
+                val ident = IdentifierReference(right.chain, right.position)
+                return listOf(IAstModification.ReplaceNode(expr.right, ident, expr))
+
+                // TODO hmmm , replace cx16.r1 = listarray[2]^^.value   with   a temp pointer var to contain the indexed value
+//                val assign = expr.parent as? Assignment
+//                if(assign!=null) {
+//                    val ptrDt = expr.left.inferType(program).getOrUndef()
+//                    val pointerVar = VarDecl.createAuto(ptrDt)
+//                    val pointerIdent = IdentifierReference(pointerVar.name.split("."), expr.position)
+//                    val tgt = AssignTarget(pointerIdent, null, null, null, false, null, position = expr.position)
+//                    val assignPtr = Assignment(tgt, expr.left, AssignmentOrigin.USERCODE, expr.position)
+//                    val derefValue = PtrDereference(pointerIdent.nameInSource + right.chain, false, expr.position)
+//                    return listOf(
+//                        IAstModification.InsertBefore(assign, assignPtr, assign.parent as IStatementContainer),
+//                        IAstModification.ReplaceNode(assign.value, derefValue, assign),
+//                        IAstModification.InsertFirst(pointerVar, expr.definingSubroutine!!)
+//                    )
+//                }
             }
         }
 

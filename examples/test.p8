@@ -1,18 +1,21 @@
+%import textio
 %zeropage basicsafe
 
 main {
     sub start() {
 
-        cx16.r0 = other.foo.listarray[2].value
-        cx16.r1 = other.foo.listarray[2]^^.value
-
+        other.foo.listarray[2] = 2000
+        pokew(2001, 12345)
+        txt.print_uw(other.foo.listarray[2].value)
+        txt.nl()
+        pokew(2001, 22222)
         other.foo()
 
-        ;listarray[2]^^.value = 4242
-
-;        listarray[2]^^.value = 4242
-;        bool z = barray[2]^^
-        ;barray[2]^^ = true
+        ; TODO fix parsing of this assignment target:
+        ;other.foo.listarray[2].value = 33333
+        ;other.foo.listarray[2]^^.value = 44444
+        ;txt.print_uw(other.foo.listarray[2].value)
+        ;txt.nl()
     }
 }
 
@@ -26,7 +29,10 @@ other {
         ^^List[10] listarray
         ^^bool[10] barray
 
-        cx16.r0 = listarray[2].value
-        cx16.r1 = listarray[2]^^.value
+        txt.print_uw(listarray[2].value)
+        txt.nl()
+
+        ; TODO fix parsing of this assignment target:
+        ; listarray[2].value = 9999
     }
 }

@@ -912,4 +912,99 @@ main {
         errors.errors[1] shouldContain "assigning to struct instance not supported"
         errors.errors[2] shouldContain "assigning to struct instance not supported"
     }
+
+    test("a.b.c[i]^^.value as expression where pointer is struct") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0 = other.foo.listarray[2].value
+        cx16.r1 = other.foo.listarray[3]^^.value
+        other.foo()
+    }
+}
+
+other {
+    sub foo() {
+        struct List {
+            bool b
+            uword value
+        }
+
+        ^^List[10] listarray
+        cx16.r0 = listarray[2].value
+        cx16.r1 = listarray[3]^^.value
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    xtest("a.b.c[i]^^.value as expression where pointer is primitive type") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0L = other.foo.ptrarray[2].value
+        cx16.r1L = other.foo.ptrarray[3]^^.value
+        other.foo()
+    }
+}
+
+other {
+    sub foo() {
+        ^^ubyte[10] ptrarray
+        cx16.r0L = ptrarray[2].value
+        cx16.r1L = ptrarray[3]^^.value
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    xtest("a.b.c[i]^^.value as assignment target where pointer is struct") {
+        val src="""
+main {
+    sub start() {
+        other.foo.listarray[2].value = cx16.r0
+        other.foo.listarray[3]^^.value = cx16.r0
+        other.foo()
+    }
+}
+
+other {
+    sub foo() {
+        struct List {
+            bool b
+            uword value
+        }
+
+        ^^List[10] listarray
+        listarray[2].value = cx16.r0
+        listarray[3]^^.value = cx16.r0
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    xtest("a.b.c[i]^^.value as assignment target where pointer is primitive type") {
+        val src="""
+main {
+    sub start() {
+        other.foo.ptrarray[2].value = cx16.r0L
+        other.foo.ptrarray[3]^^.value = cx16.r0L
+        other.foo()
+    }
+}
+
+other {
+    sub foo() {
+        struct List {
+            bool b
+            uword value
+        }
+
+        ^^ubyte[10] ptrarray
+        ptrarray[2].value = cx16.r0L
+        ptrarray[3]^^.value = cx16.r0L
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
 })

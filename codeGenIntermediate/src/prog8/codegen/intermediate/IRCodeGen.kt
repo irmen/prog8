@@ -107,7 +107,14 @@ class IRCodeGen(
                 is PtProgram -> require('.' !in node.name) { "program name should not be scoped: ${node.name}" }
                 is PtSubroutineParameter -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                 is PtPointerDeref -> require('.' in node.startpointer.name) { "node $node name is not scoped: ${node.startpointer.name}" }
-                is PtIdentifier -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtIdentifier -> {
+                    if('.' !in node.name) {
+                        // there is 1 case where the identifier is not scoped: if it's the value field name after a pointer array indexing.
+                        val expr = node.parent as? PtBinaryExpression
+                        if (expr?.operator != "." || expr.right !== node || expr.left !is PtArrayIndexer || !expr.left.type.isPointer)
+                            require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                    }
+                }
                 else -> { /* node has no name or is ok to have no dots in the name */ }
             }
             node.children.forEach { verifyPtNode(it) }

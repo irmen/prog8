@@ -747,11 +747,19 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         if(srcExpr.operator==".") {
             when (srcExpr.right) {
                 is IdentifierReference -> {
-                    val chain = srcExpr.right as IdentifierReference
-                    val deref = PtPointerDeref(type, chain.nameInSource, false,srcExpr.position)
-                    TODO("fix chain?")
-//                    deref.add(transformExpression(srcExpr.left))        // make sure it's fully qualified
-//                    return deref
+                    val arrayIndexer = srcExpr.left as? ArrayIndexedExpression
+                    val valueName = srcExpr.right as? IdentifierReference
+                    if (arrayIndexer == null) {
+                        TODO("unexpected deref expression ${srcExpr.position}")
+                    } else if(valueName?.nameInSource?.size!=1) {
+                        TODO("unexpected deref expression ${srcExpr.position}")
+                    } else {
+                        // the expression is: a.b.c[i] . value
+                        val result = PtBinaryExpression(".", type, srcExpr.position)
+                        result.add(transformExpression(arrayIndexer))
+                        result.add(PtIdentifier(valueName.nameInSource[0], type, srcExpr.position))
+                        return result
+                    }
                 }
 
                 is ArrayIndexedExpression -> {

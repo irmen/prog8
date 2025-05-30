@@ -763,6 +763,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             ">" -> operatorGreaterThan(binExpr, vmDt, signed, false)
             "<=" -> operatorLessThan(binExpr, vmDt, signed, true)
             ">=" -> operatorGreaterThan(binExpr, vmDt, signed, true)
+            "." -> operatorDereference(binExpr, vmDt)       // eww, nasty, would rather not have any such expressions anymore
             else -> throw AssemblyError("weird operator ${binExpr.operator}")
         }
     }
@@ -1624,6 +1625,36 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 }
             }
         }
+    }
+
+    private fun operatorDereference(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+        // the only case we support here is:   a.b.c[i] . value
+        val left = binExpr.left as? PtArrayIndexer
+        val right = binExpr.right as? PtIdentifier
+        require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
+        val result = mutableListOf<IRCodeChunkBase>()
+        val indexedTr = translateExpression(left)
+        result += indexedTr.chunks
+        val pointerReg = indexedTr.resultReg
+        val struct = left.type.dereference().subType as? StStruct
+        require(indexedTr.dt== IRDataType.WORD && struct!=null)
+        val field = struct.getField(right.name, this.codeGen.program.memsizer)
+
+        var resultFpReg = -1
+        var resultReg = -1
+        if(vmDt==IRDataType.FLOAT)
+            resultFpReg = codeGen.registers.next(IRDataType.FLOAT)
+        else
+            resultReg = codeGen.registers.next(vmDt)
+
+        result += IRCodeChunk(null, null).also {
+            it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = field.second.toInt())
+            if(vmDt==IRDataType.FLOAT)
+                it += IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultFpReg, reg1 = pointerReg)
+            else
+                it += IRInstruction(Opcode.LOADI, vmDt, reg1 = resultReg, reg2 = pointerReg)
+        }
+        return ExpressionCodeResult(result, vmDt, resultReg, resultFpReg)
     }
 
     internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
