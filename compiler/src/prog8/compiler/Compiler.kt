@@ -24,9 +24,10 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
-import kotlin.math.round
 import kotlin.system.exitProcess
-import kotlin.system.measureTimeMillis
+import kotlin.time.Duration
+import kotlin.time.measureTime
+import kotlin.time.measureTimedValue
 
 
 class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAst instead
@@ -40,6 +41,7 @@ class CompilerArguments(val filepath: Path,
                         val warnSymbolShadowing: Boolean,
                         val quietAll: Boolean,
                         val quietAssembler: Boolean,
+                        val showTimings: Boolean,
                         val asmListfile: Boolean,
                         val includeSourcelines: Boolean,
                         val experimentalCodegen: Boolean,
@@ -83,9 +85,20 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     }
 
     try {
-        val totalTime = measureTimeMillis {
+        val totalTime = measureTime {
             val libraryDirs =  if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()
-            val (program, options, imported) = parseMainModule(args.filepath, args.errors, compTarget, args.sourceDirs, libraryDirs, args.quietAll)
+            val (parseresult, parseDuration) = measureTimedValue {
+                 parseMainModule(
+                    args.filepath,
+                    args.errors,
+                    compTarget,
+                    args.sourceDirs,
+                    libraryDirs,
+                    args.quietAll
+                )
+            }
+
+            val (program, options, imported) = parseresult
             compilationOptions = options
 
             with(compilationOptions) {
@@ -120,81 +133,114 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             }
 
 
-            processAst(program, args.errors, compilationOptions)
+            val processDuration = measureTime {
+                processAst(program, args.errors, compilationOptions)
+            }
+
 //            println("*********** COMPILER AST RIGHT BEFORE OPTIMIZING *************")
 //            printProgram(program)
 
-            if (compilationOptions.optimize) {
-                optimizeAst(
-                    program,
-                    compilationOptions,
-                    args.errors,
-                    BuiltinFunctionsFacade(BuiltinFunctions),
-                )
+            val optimizeDuration = measureTime {
+                if (compilationOptions.optimize) {
+                    optimizeAst(
+                        program,
+                        compilationOptions,
+                        args.errors,
+                        BuiltinFunctionsFacade(BuiltinFunctions),
+                    )
+                }
             }
 
-            determineProgramLoadAddress(program, compilationOptions, args.errors)
-            args.errors.report()
-            postprocessAst(program, args.errors, compilationOptions)
-            args.errors.report()
+            val postprocessDuration = measureTime {
+                determineProgramLoadAddress(program, compilationOptions, args.errors)
+                args.errors.report()
+                postprocessAst(program, args.errors, compilationOptions)
+                args.errors.report()
+            }
 
 //            println("*********** COMPILER AST BEFORE ASSEMBLYGEN *************")
 //            printProgram(program)
+
+            var createAssemblyDuration = Duration.ZERO
+            var simplifiedAstDuration = Duration.ZERO
 
             if (args.writeAssembly) {
 
                 // re-initialize memory areas with final compilationOptions
                 compilationOptions.compTarget.initializeMemoryAreas(compilationOptions)
 
-                if(args.printAst1) {
+                if (args.printAst1) {
                     println("\n*********** COMPILER AST *************")
                     printProgram(program)
                     println("*********** COMPILER AST END *************\n")
                 }
 
-                val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
-                val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
-                val symbolTable = stMaker.make()
+                val (intermediateAst, simplifiedAstDuration2) = measureTimedValue {
+                    val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
+                    val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
+                    val symbolTable = stMaker.make()
 
-                postprocessSimplifiedAst(intermediateAst, symbolTable, args.errors)
-                args.errors.report()
-
-                if(compilationOptions.optimize) {
-                    optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable, args.errors)
+                    postprocessSimplifiedAst(intermediateAst, symbolTable, args.errors)
                     args.errors.report()
+
+                    if (compilationOptions.optimize) {
+                        optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable, args.errors)
+                        args.errors.report()
+                    }
+
+                    if (args.printAst2) {
+                        println("\n*********** SIMPLIFIED AST *************")
+                        printAst(intermediateAst, true, ::println)
+                        println("*********** SIMPLIFIED AST END *************\n")
+                    }
+
+                    verifyFinalAstBeforeAsmGen(intermediateAst, compilationOptions, symbolTable, args.errors)
+                    args.errors.report()
+                    intermediateAst
                 }
+                simplifiedAstDuration =simplifiedAstDuration2
 
-                if(args.printAst2) {
-                    println("\n*********** SIMPLIFIED AST *************")
-                    printAst(intermediateAst, true, ::println)
-                    println("*********** SIMPLIFIED AST END *************\n")
-                }
-
-                verifyFinalAstBeforeAsmGen(intermediateAst, compilationOptions, symbolTable, args.errors)
-                args.errors.report()
-
-                if(!createAssemblyAndAssemble(intermediateAst, args.errors, compilationOptions, program.generatedLabelSequenceNumber)) {
-                    System.err.println("Error in codegeneration or assembler")
-                    return null
+                createAssemblyDuration = measureTime {
+                    if (!createAssemblyAndAssemble(
+                            intermediateAst,
+                            args.errors,
+                            compilationOptions,
+                            program.generatedLabelSequenceNumber
+                        )
+                    ) {
+                        System.err.println("Error in codegeneration or assembler")
+                        return null
+                    }
                 }
                 ast = intermediateAst
             } else {
-                if(args.printAst1) {
+                if (args.printAst1) {
                     println("\n*********** COMPILER AST *************")
                     printProgram(program)
                     println("*********** COMPILER AST END *************\n")
                 }
-                if(args.printAst2) {
+                if (args.printAst2) {
                     System.err.println("There is no simplified Ast available if assembly generation is disabled.")
                 }
             }
+
+            System.out.flush()
+            System.err.flush()
+
+            if(!args.quietAll && args.showTimings) {
+                println("\n**** TIMING ****")
+                println("source parsing   : ${parseDuration}")
+                println("ast processing   : ${processDuration}")
+                println("ast optimizing   : ${optimizeDuration}")
+                println("ast postprocess  : ${postprocessDuration}")
+                println("code prepare     : ${simplifiedAstDuration}")
+                println("code generation  : ${createAssemblyDuration}")
+                println("          total  : ${parseDuration + processDuration + optimizeDuration + postprocessDuration + simplifiedAstDuration + createAssemblyDuration}")
+            }
         }
 
-        System.out.flush()
-        System.err.flush()
         if(!args.quietAll) {
-            val seconds = totalTime / 1000.0
-            println("\nTotal compilation+assemble time: ${round(seconds * 100.0) / 100.0} sec.")
+            println("\nTotal compilation+assemble time: ${totalTime}.")
         }
         return CompilationResult(resultingProgram!!, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {

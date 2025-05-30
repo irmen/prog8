@@ -242,6 +242,9 @@ One or more .p8 module files
     machine's configuration and properties from that configuration file instead of using one of the built-in targets.
     See :ref:`customizable_target` for details about this.
 
+``-timings``
+    Show a more detailed breakdown of the time taken in various compiler phases, for performance analysis of the compiler itself.
+
 ``-varsgolden``
     Like ``-varshigh``, but places the variables in the $0400-$07FF "golden ram" area instead.
     Because this is in normal system memory, there are no bank switching issues.
