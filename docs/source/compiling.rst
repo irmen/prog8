@@ -18,14 +18,20 @@ Then you can choose a few ways to get a compiler:
 
 **Or, install via a Package Manager:**
 
-Currently, it's only available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and compatible systems.
-The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_.
+Arch Linux:
+    Currently, it's available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and compatible systems.
+    The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_.
 
-This package, alongside the compiler itself, also globally installs syntax highlighting for ``vim`` and ``nano``.
-In order to run compiler, you can type ``prog8c``. The usage of those commands is exactly the same as with the ``java -jar`` method.
+    This package, alongside the compiler itself, also globally installs syntax highlighting for ``vim`` and ``nano``.
+    In order to run compiler, you can type ``prog8c``. The usage of those commands is exactly the same as with the ``java -jar`` method.
 
-In case you prefer to install AUR packages in a traditional manner, make sure to install `"tass64" package <https://aur.archlinux.org/packages/tass64>`_
-before installing prog8, as `makepkg <https://wiki.archlinux.org/title/Makepkg>`_ itself doesn't fetch AUR dependencies.
+    In case you prefer to install AUR packages in a traditional manner, make sure to install `"tass64" package <https://aur.archlinux.org/packages/tass64>`_
+    before installing prog8, as `makepkg <https://wiki.archlinux.org/title/Makepkg>`_ itself doesn't fetch AUR dependencies.
+
+Mac OS (and Linux, and WSL2 on Windows):
+    Prog8 can be installed via `Homebrew <https://formulae.brew.sh/formula/prog8>`_ using the command ``brew install prog8``.
+    It will make the ``prog8c`` command available and also installs the other required software tools for you.
+    While Homebrew works on Linux, it's probably best to first check your distribution's native package manager.
 
 **Or, download a bleeding edge development version from Github:**
 
