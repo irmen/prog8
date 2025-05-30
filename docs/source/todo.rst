@@ -1,10 +1,6 @@
 TODO
 ====
 
-getByExpression()  (2 times)   use loadIndexReg() routine instead?
-
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 

@@ -1,38 +1,32 @@
+%import floats
 %import textio
-%zeropage basicsafe
 
 main {
+    ubyte[] array = [11,22,33,44,55]
+    float[] flarray = [1.1, 2.2, 3.3, 4.4, 5.5]
+
     sub start() {
-
-        other.foo.listarray[2] = 2000
-        pokew(2001, 12345)
-        txt.print_uw(other.foo.listarray[2].value)
+        txt.print_ub(array[2])
         txt.nl()
-        pokew(2001, 22222)
-        other.foo()
-
-        ; TODO fix parsing of this assignment target:
-        ;other.foo.listarray[2].value = 33333
-        ;other.foo.listarray[2]^^.value = 44444
-        ;txt.print_uw(other.foo.listarray[2].value)
-        ;txt.nl()
-    }
-}
-
-other {
-    sub foo() {
-        struct List {
-            bool b
-            uword value
-        }
-
-        ^^List[10] listarray
-        ^^bool[10] barray
-
-        txt.print_uw(listarray[2].value)
+        cx16.r0L = 2
+        txt.print_ub(array[cx16.r0L])
         txt.nl()
 
-        ; TODO fix parsing of this assignment target:
-        ; listarray[2].value = 9999
+        txt.print_f(flarray[2])
+        txt.nl()
+        cx16.r0L = 2
+        txt.print_f(flarray[cx16.r0L])
+        txt.nl()
+
+        ^^ubyte bptr = &array[2]
+        ^^float fptr = &flarray[2]
+        txt.print_ub(bptr[2])
+        txt.spc()
+        txt.print_ub(bptr[cx16.r0L])
+        txt.nl()
+        txt.print_f(fptr[2])
+        txt.spc()
+        txt.print_f(fptr[cx16.r0L])
+        txt.nl()
     }
 }

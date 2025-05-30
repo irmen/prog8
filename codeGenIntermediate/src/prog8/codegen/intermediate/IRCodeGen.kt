@@ -2024,4 +2024,35 @@ class IRCodeGen(
         }
         addInstr(result, instr, null)
     }
+
+    internal fun loadIndexReg(index: PtExpression, itemsize: Int, wordIndex: Boolean, arrayIsSplitWords: Boolean): Pair<IRCodeChunks, Int> {
+        // returns the code to load the Index into the register, which is also returned.
+
+        require(index !is PtNumber) { "index should not be a constant number here, calling code should handle that in a more efficient way" }
+
+        val result = mutableListOf<IRCodeChunkBase>()
+
+        if(wordIndex) {
+            val tr = expressionEval.translateExpression(index)
+            addToResult(result, tr, tr.resultReg, -1)
+            var indexReg = tr.resultReg
+            if(tr.dt==IRDataType.BYTE) {
+                indexReg = registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=tr.resultReg), null)
+            }
+            result += multiplyByConst(DataType.UWORD, indexReg, itemsize)
+            return Pair(result, indexReg)
+        }
+
+        // regular byte size index value.
+        val byteIndexTr = expressionEval.translateExpression(index)
+        addToResult(result, byteIndexTr, byteIndexTr.resultReg, -1)
+
+        if(itemsize==1 || arrayIsSplitWords)
+            return Pair(result, byteIndexTr.resultReg)
+
+        result += multiplyByConst(DataType.UBYTE, byteIndexTr.resultReg, itemsize)
+        return Pair(result, byteIndexTr.resultReg)
+    }
+
 }

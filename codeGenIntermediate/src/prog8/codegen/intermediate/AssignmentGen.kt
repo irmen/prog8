@@ -580,7 +580,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val offset = eltSize * constIndex
                 addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = offset), null)
             } else {
-                val (code, indexReg) = loadIndexReg(targetArray, eltSize, true)
+                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
                 addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
             }
@@ -590,7 +590,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val offset = eltSize * constIndex
                 addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1=pointerReg, immediate = offset), null)
             } else {
-                val (code, indexReg) = loadIndexReg(targetArray, eltSize, true)
+                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
                 result += code
                 addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=pointerReg, reg2=indexReg), null)
             }
@@ -623,7 +623,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
                 result += chunk
             } else {
-                val (code, indexReg) = loadIndexReg(targetArray, eltSize, false)
+                val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, false, targetArray.splitWords)
                 result += code
                 result += IRCodeChunk(null, null).also {
                     if(targetArray.splitWords) {
@@ -643,7 +643,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     }
                     result += chunk
                 } else {
-                    val (code, indexReg) = loadIndexReg(targetArray, eltSize, false)
+                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, false, targetArray.splitWords)
                     result += code
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.STOREX, targetDt, reg1 = indexReg, fpReg1 = valueFpRegister, labelSymbol = variable)
@@ -664,7 +664,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     }
                     result += chunk
                 } else {
-                    val (code, indexReg) = loadIndexReg(targetArray, eltSize, false)
+                    val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, false, targetArray.splitWords)
                     result += code
                     result += IRCodeChunk(null, null).also {
                         if(targetArray.splitWords) {
@@ -713,7 +713,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             }
         } else {
             // index is an expression
-            val (code, indexReg) = loadIndexReg(targetArray, eltSize, true)
+            val (code, indexReg) = codeGen.loadIndexReg(targetArray.index, eltSize, true, targetArray.splitWords)
             result += code
             addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
             if(zero) {
@@ -727,34 +727,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     , null)
             }
         }
-    }
-
-    private fun loadIndexReg(array: PtArrayIndexer, itemsize: Int, wordIndex: Boolean): Pair<IRCodeChunks, Int> {
-        // returns the code to load the Index into the register, which is also returned.
-
-        val result = mutableListOf<IRCodeChunkBase>()
-
-        if(wordIndex) {
-            val tr = expressionEval.translateExpression(array.index)
-            addToResult(result, tr, tr.resultReg, -1)
-            var indexReg = tr.resultReg
-            if(tr.dt==IRDataType.BYTE) {
-                indexReg = codeGen.registers.next(IRDataType.WORD)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=indexReg, reg2=tr.resultReg), null)
-            }
-            result += codeGen.multiplyByConst(DataType.UWORD, indexReg, itemsize)
-            return Pair(result, indexReg)
-        }
-
-        // regular byte size index value.
-        val byteIndexTr = expressionEval.translateExpression(array.index)
-        addToResult(result, byteIndexTr, byteIndexTr.resultReg, -1)
-
-        if(itemsize==1 || array.splitWords)
-            return Pair(result, byteIndexTr.resultReg)
-
-        result += codeGen.multiplyByConst(DataType.UBYTE, byteIndexTr.resultReg, itemsize)
-        return Pair(result, byteIndexTr.resultReg)
     }
 
     private fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
