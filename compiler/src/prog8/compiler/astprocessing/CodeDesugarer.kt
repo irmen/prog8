@@ -307,6 +307,44 @@ _after:
             return listOf(IAstModification.ReplaceNode(expr, squareCall, parent))
         }
 
+        if(expr.operator==".") {
+            val left = expr.left as? ArrayIndexedExpression
+            val right = expr.right as? PtrDereference
+            if(left!=null && right!=null) {
+                if(parent is BinaryExpression && parent.operator=="." && parent.right===expr) {
+                    val parentLeft = parent.left as? IdentifierReference
+                    if(parentLeft!=null) {
+                        // parent is:
+                        //         BinaryExpression "."
+                        //          /              \
+                        //      IdRef            (this BinExpr)
+                        //       x.y               /         \
+                        //                    ArrayIdx      PtrDeref
+                        //                     z[i]           field
+                        //
+                        // transform this into this so it can be processed further:
+                        //
+                        //         BinaryExpression "."
+                        //          /             \
+                        //      ArrayIdx         IdentifierRef
+                        //       x.y.z[i]           field
+
+                        val combinedIdentifier = IdentifierReference(parentLeft.nameInSource+left.plainarrayvar!!.nameInSource, parentLeft.position)
+                        val newleft = ArrayIndexedExpression(combinedIdentifier, null, left.indexer, left.position)
+                        val newright = IdentifierReference(listOf(right.chain.single()), right.position)
+                        return listOf(
+                            IAstModification.ReplaceNode(parent.left, newleft, parent),
+                            IAstModification.ReplaceNode(parent.right, newright, parent)
+                        )
+                    }
+                }
+            }
+
+            if(expr.left is ArrayIndexedExpression && right!=null) {
+                TODO()
+            }
+        }
+
         return noModifications
     }
 
@@ -538,6 +576,25 @@ _after:
         }
 
         return noModifications
+    }
+
+    override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {
+        // get rid of the ArrayIndexedPtrDereference AST node, replace it with other AST nodes that are equivalent
+        // z[i]^^.field   -->  (z[i]) . (field)
+        val firstIndexed = deref.chain.indexOfFirst { it.second!=null }
+        require(firstIndexed==0) {"array dereference expected on first element in the chain, anything before it should be part of the parent binexpression"}
+        val index = deref.chain.first()
+        val tail = deref.chain.drop(1)
+
+        if(tail.any { it.second!=null }) {
+            TODO("support multiple array indexed dereferencings  ${deref.position}")
+        } else {
+            val pointer = IdentifierReference(listOf(index.first), deref.position)
+            val left = ArrayIndexedExpression(pointer, null, index.second!!, deref.position)
+            val right = PtrDereference(tail.map { it.first }, deref.derefLast, deref.position)
+            val derefExpr = BinaryExpression(left, ".", right, deref.position)
+            return listOf(IAstModification.ReplaceNode(deref, derefExpr, parent))
+        }
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {

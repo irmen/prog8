@@ -1330,8 +1330,11 @@ internal class AstChecker(private val program: Program,
                         leftIdentfier.targetVarDecl()?.datatype?.subType as? StructDecl
                     } else if(leftIndexer!=null) {
                         // ARRAY[x].NAME --> maybe it's a pointer dereference
-                        TODO("array[x].name pointer check?")
-                        // leftIndexer.arrayvar.targetVarDecl()?.datatype?.subType as? StructDecl
+                        val indexerType = leftIndexer.inferType(program).getOrUndef()
+                        if(indexerType.isPointer)
+                            indexerType.subType as? StructDecl
+                        else
+                            null
                     }
                     else null
                 if (struct != null) {
@@ -2053,8 +2056,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: PtrDereference) {
-        if((deref.parent as? BinaryExpression)?.operator==".")
-            throw FatalAstException("binexpr with '.' operator should have been converted into PtrDereference ${deref.position}")
+        if((deref.parent as? BinaryExpression)?.operator==".") {
+            throw FatalAstException("binexpr with '.' operator should have been converted into PtrDereference or something else ${deref.position}")
+        }
         if(deref.inferType(program).isUnknown)
             errors.err("unable to determine type of dereferenced pointer expression", deref.position)
     }
