@@ -1921,18 +1921,16 @@ $shortcutLabel:""")
                             asmgen.out("  lda  #0 |  sta  $lsb")
                     }
                     value==7 -> {
-                        // optimized shift left 7 (*128) by first swapping the lsb/msb and then doing just one final shift
+                        // optimized shift left 7 (*128) by swapping the lsb/msb and then doing just one final shift
                         asmgen.out("""
                             ; shift left 7
                             lsr  $msb
-                            php     ; save carry
                             lda  $lsb
+                            ror  a
                             sta  $msb
                             lda  #0
-                            sta  $lsb
-                            plp     ; restore carry
-                            ror  $msb
-                            ror  $lsb""")
+                            ror  a
+                            sta  $lsb""")
                     }
                     value>3 -> asmgen.out("""
                         ldy  #$value

@@ -1,79 +1,131 @@
 %import textio
-%import emudbg
 %zeropage basicsafe
 
 main {
     sub start() {
-        ubyte ub1, ub2
-
-        for ub1 in 0 to 255 {
-            for ub2 in 0 to 255 {
-                cx16.r0L = ub1 % ub2
-                cx16.r1L = mymod(ub1, ub2)
-                if cx16.r0L != cx16.r1L {
-                    txt.print("different ")
-                    txt.print_ub(ub1)
-                    txt.spc()
-                    txt.print_ub(ub2)
-                    txt.nl()
-                }
-            }
-        }
-        txt.print("all good\n")
-
-        ub1 = 65
-        ub2 = 2
-
-        txt.print_ub(ub1 % ub2)
-        txt.spc()
-        txt.print_ub(mymod(ub1, ub2))
-        txt.nl()
-
-        repeat 3 {
-            sys.set_irqd()
-            emudbg.reset_cpu_cycles()
-            repeat 1000 {
-                ub1 %= ub2
-            }
-            cx16.r4, cx16.r5 = emudbg.cpu_cycles()
-            sys.clear_irqd()
-            txt.print_uwhex(cx16.r5, true)
-            txt.print_uwhex(cx16.r4, false)
-            txt.nl()
-        }
-
-        repeat 3 {
-            sys.set_irqd()
-            emudbg.reset_cpu_cycles()
-            repeat 1000 {
-                ub1 = mymod(ub1, ub2)
-            }
-            cx16.r4, cx16.r5 = emudbg.cpu_cycles()
-            sys.clear_irqd()
-            txt.print_uwhex(cx16.r5, true)
-            txt.print_uwhex(cx16.r4, false)
-            txt.nl()
-        }
+        bytes()
+        words()
     }
 
-    asmsub  mymod(ubyte u1 @A, ubyte u2 @Y) -> ubyte @A {
-        %asm {{
-	cpy  #0
-	beq  _zero
-	cpy  #1
-	bne  +
-	lda  #0
-	rts
-+       cpy  #2
-	bne  +
-	and  #1
-	rts
-+       sty  P8ZP_SCRATCH_REG
-	sec
--       sbc  P8ZP_SCRATCH_REG
-	bcs  -
-	adc  P8ZP_SCRATCH_REG
-_zero   rts
-        }}
+    sub bytes() {
+        byte @shared sb = -100
+        byte @shared p = 100
+        const byte cb = -100
+
+        txt.print("\nsigned bytes\n")
+        txt.print("expected: ")
+        txt.print_b(cb)
+        txt.spc()
+        txt.print_bool(cb>100)
+        txt.spc()
+        txt.print_bool(cb>=100)
+        txt.spc()
+        txt.print_bool(cb<100)
+        txt.spc()
+        txt.print_bool(cb<=100)
+        txt.nl()
+
+        txt.print("  calc'd: ")
+        txt.print_b(sb)
+        txt.spc()
+        txt.print_bool(sb>100)
+        txt.spc()
+        txt.print_bool(sb>=100)
+        txt.spc()
+        txt.print_bool(sb<100)
+        txt.spc()
+        txt.print_bool(sb<=100)
+        txt.nl()
+
+        txt.print("calc'd 2: ")
+        txt.print_b(sb)
+        txt.spc()
+        txt.print_bool(sb>p)
+        txt.spc()
+        txt.print_bool(sb>=p)
+        txt.spc()
+        txt.print_bool(sb<p)
+        txt.spc()
+        txt.print_bool(sb<=p)
+        txt.nl()
+
+        txt.print(" if stmt: ")
+        txt.print_b(sb)
+        txt.spc()
+        if sb>100 txt.print("true ") else txt.print("false ")
+        if sb>=100 txt.print("true ") else txt.print("false ")
+        if sb<100 txt.print("true ") else txt.print("false ")
+        if sb<=100 txt.print("true ") else txt.print("false ")
+        txt.nl()
+
+        txt.print(" ifstmt2: ")
+        txt.print_b(sb)
+        txt.spc()
+        if sb>p txt.print("true ") else txt.print("false ")
+        if sb>=p txt.print("true ") else txt.print("false ")
+        if sb<p txt.print("true ") else txt.print("false ")
+        if sb<=p txt.print("true ") else txt.print("false ")
+        txt.nl()
+    }
+
+    sub words() {
+        word @shared sbw = -30000
+        word @shared pw = 30000
+        const word cbw = -30000
+
+        txt.print("\nsigned words\n")
+        txt.print("expected: ")
+        txt.print_w(cbw)
+        txt.spc()
+        txt.print_bool(cbw>30000)
+        txt.spc()
+        txt.print_bool(cbw>=30000)
+        txt.spc()
+        txt.print_bool(cbw<30000)
+        txt.spc()
+        txt.print_bool(cbw<=30000)
+        txt.nl()
+
+        txt.print("  calc'd: ")
+        txt.print_w(sbw)
+        txt.spc()
+        txt.print_bool(sbw>30000)
+        txt.spc()
+        txt.print_bool(sbw>=30000)
+        txt.spc()
+        txt.print_bool(sbw<30000)
+        txt.spc()
+        txt.print_bool(sbw<=30000)
+        txt.nl()
+
+        txt.print("calc'd 2: ")
+        txt.print_w(sbw)
+        txt.spc()
+        txt.print_bool(sbw>pw)
+        txt.spc()
+        txt.print_bool(sbw>=pw)
+        txt.spc()
+        txt.print_bool(sbw<pw)
+        txt.spc()
+        txt.print_bool(sbw<=pw)
+        txt.nl()
+
+        txt.print(" if stmt: ")
+        txt.print_w(sbw)
+        txt.spc()
+        if sbw>30000 txt.print("true ") else txt.print("false ")
+        if sbw>=30000 txt.print("true ") else txt.print("false ")
+        if sbw<30000 txt.print("true ") else txt.print("false ")
+        if sbw<=30000 txt.print("true ") else txt.print("false ")
+        txt.nl()
+
+        txt.print(" ifstmt2: ")
+        txt.print_w(sbw)
+        txt.spc()
+        if sbw>pw txt.print("true ") else txt.print("false ")
+        if sbw>=pw txt.print("true ") else txt.print("false ")
+        if sbw<pw txt.print("true ") else txt.print("false ")
+        if sbw<=pw txt.print("true ") else txt.print("false ")
+        txt.nl()
     }
 }
