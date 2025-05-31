@@ -149,6 +149,93 @@ internal class IfElseAsmGen(private val program: PtProgram,
             translateIfElseBodies("beq", ifElse)
     }
 
+    private fun translateIfElseBodiesSignedByte(elseConditional: String, value: PtExpression, stmt: PtIfElse) {
+        fun branchElse(label: String) {
+            when (elseConditional) {
+                "<" -> {
+                    asmgen.out("""
+                        bvc  +
+                        eor  #$80
++                       bpl  $label""")
+                }
+                ">=" -> {
+                    asmgen.out("""
+                        bvc  +
+                        eor  #$80
++                       bmi  $label""")
+                }
+                else -> throw AssemblyError("wrong conditional $elseConditional")
+            }
+        }
+        val afterIfLabel = asmgen.makeLabel("afterif")
+        asmgen.cmpAwithByteValue(value, true)
+        if(stmt.hasElse()) {
+            // if and else blocks
+            val elseLabel = asmgen.makeLabel("else")
+            branchElse(elseLabel)
+            asmgen.translate(stmt.ifScope)
+            asmgen.jmp(afterIfLabel)
+            asmgen.out(elseLabel)
+            asmgen.translate(stmt.elseScope)
+        } else {
+            // no else block
+            branchElse(afterIfLabel)
+            asmgen.translate(stmt.ifScope)
+        }
+        asmgen.out(afterIfLabel)
+    }
+
+    private fun translateJumpElseBodiesSignedByte(elseConditional: String, value: PtExpression, jump: PtJump, elseBlock: PtNodeGroup) {
+        fun branchTarget(label: String) {
+            when (elseConditional) {
+                "<" -> {
+                    asmgen.out("""
+                        bvc  +
+                        eor  #$80
++                       bmi  $label""")
+                }
+                ">=" -> {
+                    asmgen.out("""
+                        bvc  +
+                        eor  #$80
++                       bpl  $label""")
+                }
+                else -> throw AssemblyError("wrong conditional $elseConditional")
+            }
+        }
+        fun branchElse(label: String) {
+            when (elseConditional) {
+                "<" -> {
+                    asmgen.out("""
+                        bvc  +
+                        eor  #$80
++                       bpl  $label""")
+                }
+                ">=" -> {
+                    asmgen.out("""
+                        bvc  +
+                        eor  #$80
++                       bmi  $label""")
+                }
+                else -> throw AssemblyError("wrong conditional $elseConditional")
+            }
+        }
+
+        var target = asmgen.getJumpTarget(jump, false)
+        asmgen.cmpAwithByteValue(value, true)
+        if(target.indirect) {
+            branchElse("+")
+            if(target.needsExpressionEvaluation)
+                target = asmgen.getJumpTarget(jump)
+            asmgen.jmp(target.asmLabel, target.indirect, target.indexedX)
+            asmgen.out("+")
+        } else {
+            require(!target.needsExpressionEvaluation)
+            branchTarget(target.asmLabel)
+        }
+        asmgen.translate(elseBlock)
+    }
+
     private fun translateIfElseBodies(elseBranchInstr: String, stmt: PtIfElse) {
         // comparison value is already in A
         val afterIfLabel = asmgen.makeLabel("afterif")
@@ -212,38 +299,9 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     translateIfElseBodies("beq", stmt)
             }
             "<" -> translateByteLess(stmt, signed, jumpAfterIf)
-            "<=" -> {
-                // X<=Y -> Y>=X (reverse of >=)
-                asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, signed)
-                asmgen.cmpAwithByteValue(condition.left, false)
-                return if(signed) {
-                    if(jumpAfterIf!=null)
-                        translateJumpElseBodies("bpl", "bmi", jumpAfterIf, stmt.elseScope)
-                    else
-                        translateIfElseBodies("bmi", stmt)
-                } else {
-                    if(jumpAfterIf!=null)
-                        translateJumpElseBodies("bcs", "bcc", jumpAfterIf, stmt.elseScope)
-                    else
-                        translateIfElseBodies("bcc", stmt)
-                }
-            }
+            "<=" -> translateByteLessEqual(stmt, signed, jumpAfterIf)
             ">" -> translateByteGreater(stmt, signed, jumpAfterIf)
-            ">=" -> {
-                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
-                asmgen.cmpAwithByteValue(condition.right, false)
-                return if(signed) {
-                    if(jumpAfterIf!=null)
-                        translateJumpElseBodies("bpl", "bmi", jumpAfterIf, stmt.elseScope)
-                    else
-                        translateIfElseBodies("bmi", stmt)
-                } else {
-                    if(jumpAfterIf!=null)
-                        translateJumpElseBodies("bcs", "bcc", jumpAfterIf, stmt.elseScope)
-                    else
-                        translateIfElseBodies("bcc", stmt)
-                }
-            }
+            ">=" -> translateByteGreaterEqual(stmt, signed, jumpAfterIf)
             in LogicalOperators -> {
                 val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, stmt.definingISub(), condition.position, register=RegisterOrPair.A)
                 if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
@@ -406,17 +464,35 @@ internal class IfElseAsmGen(private val program: PtProgram,
     private fun translateByteLess(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
         val condition = stmt.condition as PtBinaryExpression
         asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
-        asmgen.cmpAwithByteValue(condition.right, false)
         if(signed) {
             if(jumpAfterIf!=null)
-                translateJumpElseBodies("bmi", "bpl", jumpAfterIf, stmt.elseScope)
+                translateJumpElseBodiesSignedByte("<", condition.right, jumpAfterIf, stmt.elseScope)
             else
-                translateIfElseBodies("bpl", stmt)
+                translateIfElseBodiesSignedByte("<", condition.right, stmt)
         } else {
+            asmgen.cmpAwithByteValue(condition.right, false)
             if(jumpAfterIf!=null)
                 translateJumpElseBodies("bcc", "bcs", jumpAfterIf, stmt.elseScope)
             else
                 translateIfElseBodies("bcs", stmt)
+        }
+    }
+
+    private fun translateByteLessEqual(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
+        // X<=Y -> Y>=X (reverse of >=)
+        val condition = stmt.condition as PtBinaryExpression
+        asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, signed)
+        return if(signed) {
+            if(jumpAfterIf!=null)
+                translateJumpElseBodiesSignedByte(">=", condition.left, jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodiesSignedByte(">=", condition.left, stmt)
+        } else {
+            asmgen.cmpAwithByteValue(condition.left, false)
+            if(jumpAfterIf!=null)
+                translateJumpElseBodies("bcs", "bcc", jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodies("bcc", stmt)
         }
     }
 
@@ -425,11 +501,10 @@ internal class IfElseAsmGen(private val program: PtProgram,
         if(signed) {
             // X>Y --> Y<X
             asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, true)
-            asmgen.cmpAwithByteValue(condition.left, true)
             if (jumpAfterIf != null)
-                translateJumpElseBodies("bmi", "bpl", jumpAfterIf, stmt.elseScope)
+                translateJumpElseBodiesSignedByte("<", condition.left, jumpAfterIf, stmt.elseScope)
             else
-                translateIfElseBodies("bpl", stmt)
+                translateIfElseBodiesSignedByte("<", condition.left, stmt)
         } else {
             asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A)
             asmgen.cmpAwithByteValue(condition.right, false)
@@ -468,6 +543,23 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 }
                 asmgen.out(afterIfLabel)
             }
+        }
+    }
+
+    private fun translateByteGreaterEqual(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
+        val condition = stmt.condition as PtBinaryExpression
+        asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+        return if(signed) {
+            if(jumpAfterIf!=null)
+                translateJumpElseBodiesSignedByte(">=", condition.right, jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodiesSignedByte(">=", condition.right, stmt)
+        } else {
+            asmgen.cmpAwithByteValue(condition.right, false)
+            if(jumpAfterIf!=null)
+                translateJumpElseBodies("bcs", "bcc", jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodies("bcc", stmt)
         }
     }
 

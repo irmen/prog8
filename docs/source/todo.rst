@@ -1,16 +1,6 @@
 TODO
 ====
 
-BUG: signed byte comparisons are wrong when overflow is hit. See test.p8.   Comparison code in IfElseAsmGen needs to use the bvc/eor dance for signed bytes. (other places?)
-     ref:  http://www.6502.org/tutorials/compare_beyond.html#5.1
-
-BUG: allow 'step' as identifier name (other keywords too?)
-
-BUG?: math.lerp/lerpw/interpolate don't work if start value > end value?
-
-BUG?  priority of & vs + operator?   (+ binds stronger now is this ok?)
-
-
 STRUCTS: are being developed in their own separate branch for now, called "structs".
 Idea is to make it feature complete in the IR/Virtual target, then merge it to master?, and then start building the 6502 code generation for it.
 

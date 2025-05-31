@@ -795,16 +795,17 @@ but perhaps the provided ones can be of service too.
 ``lerp(v0, v1, t)``
     Linear interpolation routine for unsigned byte values.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
-    Guarantees v = v1 when t = 255.
+    Guarantees v = v1 when t = 255. Also works if v0 > v1.
 
 ``lerpw(v0, v1, t)``
     Linear interpolation routine for unsigned word values.
     Returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
-    Guarantees v = v1 when t = 65535.
+    Guarantees v = v1 when t = 65535.  Also works if v0 > v1.
+    Clobbers R15.
 
 ``interpolate(v, inputMin, inputMax, outputMin, outputMax)``
     Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-    All values are unsigned bytes.
+    All values are unsigned bytes.   Clobbers R15
     (there is no version for word values because of lack of precision in the fixed point calculation there).
 
 
