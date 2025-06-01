@@ -49,7 +49,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             if(truepart.statements.singleOrNull() is Jump) {
                 return listOf(
                     IAstModification.InsertAfter(ifElse, elsepart, parent as IStatementContainer),
-                    IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifElse)
+                    IAstModification.ReplaceNode(elsepart, AnonymousScope.empty(), ifElse)
                 )
             }
             if(elsepart.statements.singleOrNull() is Jump) {
@@ -57,7 +57,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 return listOf(
                     IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
                     IAstModification.InsertAfter(ifElse, truepart, parent as IStatementContainer),
-                    IAstModification.ReplaceNode(elsepart, AnonymousScope(mutableListOf(), elsepart.position), ifElse),
+                    IAstModification.ReplaceNode(elsepart, AnonymousScope.empty(), ifElse),
                     IAstModification.ReplaceNode(truepart, elsepart, ifElse)
                 )
             }

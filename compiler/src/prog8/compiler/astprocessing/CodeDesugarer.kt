@@ -104,7 +104,7 @@ if not CONDITION
             untilLoop.body,
             IfElse(invertCondition(untilLoop.condition, program),
                 AnonymousScope(mutableListOf(program.jumpLabel(loopLabel)), pos),
-                AnonymousScope(mutableListOf(), pos),
+                AnonymousScope.empty(),
                 pos)
         ), pos)
         return listOf(IAstModification.ReplaceNode(untilLoop, replacement, parent))
@@ -148,7 +148,7 @@ _after:
             loopLabel,
             IfElse(invertCondition(whileLoop.condition, program),
                 AnonymousScope(mutableListOf(program.jumpLabel(afterLabel)), pos),
-                AnonymousScope(mutableListOf(), pos),
+                AnonymousScope.empty(),
                 pos),
             whileLoop.body,
             program.jumpLabel(loopLabel),
@@ -380,7 +380,7 @@ _after:
         }
 
         val callTarget = ArrayIndexedExpression(IdentifierReference(listOf(jumplistArray.name), jumplistArray.position), ArrayIndex(indexValue.copy(), indexValue.position), ongoto.position)
-        val callIndexed = AnonymousScope(mutableListOf(), ongoto.position)
+        val callIndexed = AnonymousScope.empty(ongoto.position)
         if(ongoto.isCall) {
             callIndexed.statements.add(FunctionCallStatement(IdentifierReference(listOf("call"), ongoto.position), mutableListOf(callTarget), true, ongoto.position))
         } else {
@@ -390,7 +390,7 @@ _after:
         val ifSt = if(ongoto.elsepart==null || ongoto.elsepart!!.isEmpty()) {
             // if index<numlabels call(labels[index])
             val compare = BinaryExpression(indexValue.copy(), "<", NumericLiteral.optimalInteger(numlabels, ongoto.position), ongoto.position)
-            IfElse(compare, callIndexed, AnonymousScope(mutableListOf(), ongoto.position), ongoto.position)
+            IfElse(compare, callIndexed, AnonymousScope.empty(), ongoto.position)
         } else {
             // if index>=numlabels elselabel() else call(labels[index])
             val compare = BinaryExpression(indexValue.copy(), ">=", NumericLiteral.optimalInteger(numlabels, ongoto.position), ongoto.position)

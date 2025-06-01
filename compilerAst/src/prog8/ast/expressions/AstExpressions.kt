@@ -151,8 +151,7 @@ class BinaryExpression(
     var left: Expression,
     var operator: String,
     var right: Expression,
-    override val position: Position,
-    private val insideParentheses: Boolean = false
+    override val position: Position
 ) : Expression() {
     override lateinit var parent: Node
 
@@ -172,7 +171,7 @@ class BinaryExpression(
         replacement.parent = this
     }
 
-    override fun copy() = BinaryExpression(left.copy(), operator, right.copy(), position, insideParentheses)
+    override fun copy() = BinaryExpression(left.copy(), operator, right.copy(), position)
     override fun toString() = "[$left $operator $right]"
 
     override val isSimple = false

@@ -213,7 +213,7 @@ class TestNumericLiteral: FunSpec({
     test("cast can change value") {
         fun num(dt: BaseDataType, num: Double): NumericLiteral {
             val n = NumericLiteral(dt, num, Position.DUMMY)
-            n.linkParents(AnonymousScope(mutableListOf(), Position.DUMMY))
+            n.linkParents(AnonymousScope.empty())
             return n
         }
         val cast1 = num(BaseDataType.UBYTE, 200.0).cast(BaseDataType.BYTE, false)
@@ -233,7 +233,7 @@ class TestNumericLiteral: FunSpec({
     test("convert cannot change value") {
         fun num(dt: BaseDataType, num: Double): NumericLiteral {
             val n = NumericLiteral(dt, num, Position.DUMMY)
-            n.linkParents(AnonymousScope(mutableListOf(), Position.DUMMY))
+            n.linkParents(AnonymousScope.empty())
             return n
         }
         num(BaseDataType.UBYTE, 200.0).convertTypeKeepValue(BaseDataType.BYTE).isValid shouldBe false

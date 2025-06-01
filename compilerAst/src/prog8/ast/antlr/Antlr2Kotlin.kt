@@ -439,7 +439,7 @@ private fun AugassignmentContext.toAst(): Assignment {
     val target = assign_target().toAst()
     val oper = operator.text.substringBefore('=')
     val expression = BinaryExpression(target.toExpression(), oper, expression().toAst(), expression().toPosition())
-    return Assignment(assign_target().toAst(), expression, AssignmentOrigin.USERCODE, toPosition())
+    return Assignment(target, expression, AssignmentOrigin.USERCODE, toPosition())
 }
 
 private fun DatatypeContext.toAst(): BaseDataType {
@@ -530,7 +530,7 @@ private fun IntegerliteralContext.toAst(): NumericLiteralNode {
     }
 }
 
-private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expression {
+private fun ExpressionContext.toAst() : Expression {
 
     val litval = literalvalue()
     if(litval!=null) {
@@ -580,8 +580,7 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
             left.toAst(),
             operator,
             right.toAst(),
-            toPosition(),
-            insideParentheses = insideParentheses
+            toPosition()
         )
     }
 
@@ -598,7 +597,7 @@ private fun ExpressionContext.toAst(insideParentheses: Boolean=false) : Expressi
     }
 
     if(childCount==3 && children[0].text=="(" && children[2].text==")")
-        return expression(0).toAst(insideParentheses=true)        // expression within ( )
+        return expression(0).toAst()        // expression within ( )
 
     if(typecast()!=null) {
         // typecast is always to a base datatype
@@ -832,7 +831,7 @@ private fun VardeclContext.toAst(type: VarDeclType, value: Expression?): VarDecl
     )
 }
 
-private fun OngotoContext.toAst(): Statement {
+private fun OngotoContext.toAst(): OnGoto {
     val elseStatements = this.else_part()?.toAst()
     val elseScope = if(elseStatements==null) null else AnonymousScope(elseStatements, else_part()?.toPosition() ?: toPosition())
     val isCall = this.kind.text == "call"

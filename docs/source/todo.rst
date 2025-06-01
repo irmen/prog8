@@ -1,6 +1,19 @@
 TODO
 ====
 
+- optimize Identifier joinToString() usage in Antlr2KotlinVisitor.
+
+
+BUG: When you want to get the address of an entry in a uword array (@nosplit of course), you have to << 1 the index to get the correct address. It gives the wrong answer
+    uword[64] @nosplit anArray
+    ubyte @dirty i
+    for i in 0 to 63
+    {
+       someSub (&anArray[i])    ; doesn't work
+       someSub (&anArray[i<<1]) ; works
+    }
+
+
 STRUCTS: are being developed in their own separate branch for now, called "structs".
 Idea is to make it feature complete in the IR/Virtual target, then merge it to master?, and then start building the 6502 code generation for it.
 

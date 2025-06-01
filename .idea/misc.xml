@@ -12,6 +12,7 @@
           <option name="pkg" value="" />
           <option name="language" value="Java" />
           <option name="generateListener" value="false" />
+          <option name="generateVisitor" value="true" />
         </PerGrammarGenerationSettings>
       </list>
     </option>

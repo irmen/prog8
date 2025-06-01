@@ -239,19 +239,20 @@ enum class VarDeclType {
     MEMORY
 }
 
-class VarDecl(val type: VarDeclType,
-              val origin: VarDeclOrigin,
-              val datatype: DataType,
-              val zeropage: ZeropageWish,
-              val splitwordarray: SplitWish,
-              var arraysize: ArrayIndex?,
-              override val name: String,
-              val names: List<String>,
-              var value: Expression?,
-              val sharedWithAsm: Boolean,
-              val alignment: UInt,
-              val dirty: Boolean,
-              override val position: Position) : Statement(), INamedStatement {
+class VarDecl(
+    var type: VarDeclType,
+    val origin: VarDeclOrigin,
+    val datatype: DataType,
+    val zeropage: ZeropageWish,
+    val splitwordarray: SplitWish,
+    var arraysize: ArrayIndex?,
+    override val name: String,
+    val names: List<String>,
+    var value: Expression?,
+    val sharedWithAsm: Boolean,
+    val alignment: UInt,
+    val dirty: Boolean,
+    override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
 
@@ -828,6 +829,10 @@ class AnonymousScope(override val statements: MutableList<Statement>,
     override fun linkParents(parent: Node) {
         this.parent = parent
         statements.forEach { it.linkParents(this) }
+    }
+
+    companion object {
+        fun empty(pos: Position?=null): AnonymousScope = AnonymousScope(mutableListOf(), pos ?: Position.DUMMY)
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {

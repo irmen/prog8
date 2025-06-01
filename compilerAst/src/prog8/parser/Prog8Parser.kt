@@ -25,6 +25,11 @@ object Prog8Parser {
         parser.addErrorListener(antlrErrorListener)
 
         val parseTree = parser.module()
+
+//        val visitor = AntlrVisitor(src)
+//        val visitorResult = visitor.visit(parseTree)
+//        println("visitor result: $visitorResult")
+
         val module = ParsedModule(src)
 
         parseTree.module_element().forEach {

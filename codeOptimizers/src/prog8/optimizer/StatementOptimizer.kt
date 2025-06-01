@@ -82,12 +82,11 @@ class StatementOptimizer(private val program: Program,
         // empty true part? switch with the else part
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isNotEmpty()) {
             val invertedCondition = invertCondition(ifElse.condition, program)
-            val emptyscope = AnonymousScope(mutableListOf(), ifElse.elsepart.position)
             val truepart = AnonymousScope(ifElse.elsepart.statements, ifElse.truepart.position)
             return listOf(
                     IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
                     IAstModification.ReplaceNode(ifElse.truepart, truepart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.elsepart, emptyscope, ifElse)
+                    IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope.empty(), ifElse)
             )
         }
 
@@ -106,7 +105,7 @@ class StatementOptimizer(private val program: Program,
             if(ifElse.truepart.statements.singleOrNull() is Return) {
                 val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
                 return listOf(
-                    IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope(mutableListOf(), ifElse.elsepart.position), ifElse),
+                    IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope.empty(), ifElse),
                     IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
                 )
             }
@@ -146,7 +145,7 @@ class StatementOptimizer(private val program: Program,
             if (range.size() == 1) {
                 // for loop over a (constant) range of just a single value-- optimize the loop away
                 // loopvar/reg = range value , follow by block
-                val scope = AnonymousScope(mutableListOf(), forLoop.position)
+                val scope = AnonymousScope.empty(forLoop.position)
                 scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), range.from, AssignmentOrigin.OPTIMIZER, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
@@ -161,7 +160,7 @@ class StatementOptimizer(private val program: Program,
                     // loop over string of length 1 -> just assign the single character
                     val character = options.compTarget.encodeString(sv.value, sv.encoding)[0]
                     val byte = NumericLiteral(BaseDataType.UBYTE, character.toDouble(), iterable.position)
-                    val scope = AnonymousScope(mutableListOf(), forLoop.position)
+                    val scope = AnonymousScope.empty(forLoop.position)
                     scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
                     return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
@@ -173,7 +172,7 @@ class StatementOptimizer(private val program: Program,
                     // loop over array of length 1 -> just assign the single value
                     val av = (iterable.value as ArrayLiteral).value[0].constValue(program)?.number
                     if(av!=null) {
-                        val scope = AnonymousScope(mutableListOf(), forLoop.position)
+                        val scope = AnonymousScope.empty(forLoop.position)
                         scope.statements.add(Assignment(
                                 AssignTarget(forLoop.loopVar, null, null, null, false, forLoop.position), NumericLiteral.optimalInteger(av.toInt(), iterable.position),
                                 AssignmentOrigin.OPTIMIZER, forLoop.position))
@@ -466,7 +465,7 @@ class StatementOptimizer(private val program: Program,
         return IfElse(
             compare,
             AnonymousScope(mutableListOf(assign), position),
-            AnonymousScope(mutableListOf(), position),
+            AnonymousScope.empty(),
             position
         )
     }
