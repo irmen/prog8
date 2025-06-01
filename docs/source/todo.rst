@@ -1,9 +1,6 @@
 TODO
 ====
 
-- optimize Identifier joinToString() usage in Antlr2KotlinVisitor.
-
-
 BUG: When you want to get the address of an entry in a uword array (@nosplit of course), you have to << 1 the index to get the correct address. It gives the wrong answer
     uword[64] @nosplit anArray
     ubyte @dirty i

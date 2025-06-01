@@ -26,7 +26,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitBlock(ctx: BlockContext): Block {
-        val name = (ctx.identifier().accept(this) as IdentifierReference).nameInSource.joinToString(".")
+        val name = getname(ctx.identifier())
         val address = (ctx.integerliteral()?.accept(this) as NumericLiteral?)?.number?.toUInt()
         val statements = ctx.block_statement().map { it.accept(this) as Statement }
         return Block(name, address, statements.toMutableList(), source.isFromLibrary, ctx.toPosition())
@@ -91,9 +91,9 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitAlias(ctx: AliasContext): Alias {
-        val identifier = ctx.identifier().accept(this) as IdentifierReference
+        val identifier = getname(ctx.identifier())
         val target = ctx.scoped_identifier().accept(this) as IdentifierReference
-        return Alias(identifier.nameInSource.joinToString("."), target, ctx.toPosition())
+        return Alias(identifier, target, ctx.toPosition())
     }
 
     override fun visitDefer(ctx: DeferContext): Defer {
@@ -102,7 +102,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitLabeldef(ctx: LabeldefContext): Label {
-        return Label(ctx.children[0].text, ctx.toPosition())
+        return Label(getname(ctx.identifier()), ctx.toPosition())
     }
 
     override fun visitUnconditionaljump(ctx: UnconditionaljumpContext): Jump {
@@ -128,7 +128,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             return DirectiveArg(str.text.substring(1, str.text.length-1), integer, ctx.toPosition())
         }
         val identifier = ctx.identifier()?.accept(this) as IdentifierReference?
-        return DirectiveArg(identifier?.nameInSource?.joinToString("."), integer, ctx.toPosition())
+        return DirectiveArg(identifier?.nameInSource?.single(), integer, ctx.toPosition())
     }
 
     override fun visitVardecl(ctx: VardeclContext): VarDecl {
@@ -146,8 +146,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         if(alignpage && alignword)
             throw SyntaxError("choose a single alignment option", ctx.toPosition())
 
-        val identifiers = ctx.identifier().map { it.accept(this) as IdentifierReference }
-        val identifiername = identifiers[0].nameInSource.joinToString(".")
+        val identifiers = ctx.identifier().map { getname(it) }
+        val identifiername = identifiers[0]
         val name = if(identifiers.size==1) identifiername else "<multiple>"
 
         val arrayIndex = ctx.arrayindex()?.accept(this) as ArrayIndex?
@@ -163,7 +163,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             split,
             arrayIndex,
             name,
-            if(identifiers.size==1) emptyList() else identifiers.map { it.nameInSource.joinToString(".") },
+            if(identifiers.size==1) emptyList() else identifiers,
             null,
             "@shared" in tags,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
@@ -303,7 +303,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitIdentifier(ctx: IdentifierContext): IdentifierReference {
-        return IdentifierReference(listOf(ctx.children[0].text), ctx.toPosition())
+        return IdentifierReference(listOf(getname(ctx)), ctx.toPosition())
     }
 
     override fun visitScoped_identifier(ctx: Scoped_identifierContext): IdentifierReference {
@@ -437,12 +437,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitSubroutine(ctx: SubroutineContext): Subroutine {
-        val name = ctx.identifier().accept(this) as IdentifierReference
+        val name = getname(ctx.identifier())
         val parameters = ctx.sub_params()?.sub_param()?.map { it.accept(this) as SubroutineParameter } ?: emptyList()
         val returntypes = ctx.sub_return_part()?.datatype()?. map { dataTypeFor(it) } ?: emptyList()
         val statements = ctx.statement_block().accept(this) as AnonymousScope
         return Subroutine(
-            name.nameInSource.joinToString("."),
+            name,
             parameters.toMutableList(),
             returntypes.toMutableList(),
             emptyList(),
@@ -478,13 +478,13 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val identifiers = decl.identifier()
         if(identifiers.size>1)
             throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-        val identifiername = identifiers[0].accept(this) as IdentifierReference
+        val identifiername = getname(identifiers[0])
 
         val (registerorpair, statusregister) = parseParamRegister(pctx.register, pctx.toPosition())
         if(statusregister!=null) {
             throw SyntaxError("can't use status register as param for normal subroutines", Position(pctx.toPosition().file, pctx.register.line, pctx.register.charPositionInLine, pctx.register.charPositionInLine+1))
         }
-        return SubroutineParameter(identifiername.nameInSource.joinToString("."), datatype, zp, registerorpair, pctx.toPosition())
+        return SubroutineParameter(identifiername, datatype, zp, registerorpair, pctx.toPosition())
     }
 
     override fun visitAsmsubroutine(ctx: AsmsubroutineContext): Subroutine {
@@ -614,6 +614,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitSub_return_part(ctx: Sub_return_partContext) = throw FatalAstException("should not be called")
 
 
+    private fun getname(identifier: IdentifierContext): String = identifier.children[0].text
+
     private fun ParserRuleContext.toPosition() : Position {
         val pathString = start.inputStream.sourceName
         val filename = if(SourceCode.isRegularFilesystemPath(pathString)) {
@@ -655,9 +657,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val identifiers = vardecl.identifier()
         if(identifiers.size>1)
             throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
-        val identifiername = identifiers[0].accept(this) as IdentifierReference
-        return AsmSubroutineParameter(identifiername.nameInSource.joinToString("."),
-            datatype, registerorpair, statusregister, pctx.toPosition())
+        val identifiername = getname(identifiers[0])
+        return AsmSubroutineParameter(identifiername, datatype, registerorpair, statusregister, pctx.toPosition())
     }
 
     private fun parseParamRegister(registerTok: Token?, pos: Position): Pair<RegisterOrPair?, Statusflag?> {
@@ -719,7 +720,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     private fun branchCondition(ctx: BranchconditionContext) = BranchCondition.valueOf(ctx.text.substringAfter('_').uppercase())
 
     private fun asmSubDecl(ad: Asmsub_declContext): AsmsubDecl {
-        val name = ad.identifier().accept(this) as IdentifierReference
+        val name = getname(ad.identifier())
         val params = ad.asmsub_params()?.asmsub_param()?.map { asmSubroutineParam(it) } ?: emptyList()
         val returns = ad.asmsub_returns()?.asmsub_return()?.map { asmReturn(it) } ?: emptyList()
         val clobbers = ad.asmsub_clobbers()?.clobber()?.NAME()?.map { cpuRegister(it.text, ad.toPosition()) } ?: emptyList()
@@ -727,7 +728,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val normalReturntypes = returns.map { it.type }
         val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
         val returnRegisters = returns.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
-        return AsmsubDecl(name.nameInSource.joinToString("."), normalParameters, normalReturntypes, paramRegisters, returnRegisters, clobbers.toSet())
+        return AsmsubDecl(name, normalParameters, normalReturntypes, paramRegisters, returnRegisters, clobbers.toSet())
     }
 
     private class AsmsubDecl(val name: String,
