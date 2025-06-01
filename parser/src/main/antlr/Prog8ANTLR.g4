@@ -28,6 +28,7 @@ ON: 'on';
 GOTO: 'goto';
 CALL: 'call';
 INLINE: 'inline';
+STEP: 'step';
 ELSE: 'else';
 
 UNICODEDNAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
@@ -210,7 +211,7 @@ expression :
     | left = expression EOL? bop = '|' EOL? right = expression
     | left = expression EOL? bop = ('<' | '>' | '<=' | '>=') EOL? right = expression
     | left = expression EOL? bop = ('==' | '!=') EOL? right = expression
-    | rangefrom = expression rto = ('to'|'downto') rangeto = expression ('step' rangestep = expression)?    // can't create separate rule due to mutual left-recursion
+    | rangefrom = expression rto = ('to'|'downto') rangeto = expression (STEP rangestep = expression)?    // can't create separate rule due to mutual left-recursion
     | left = expression EOL? bop = 'in' EOL? right = expression
     | left = expression EOL? bop = NOT_IN EOL? right = expression
     | prefix = 'not' expression
@@ -258,7 +259,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
+identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | STEP ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
 
 scoped_identifier :  identifier ('.' identifier)* ;
 

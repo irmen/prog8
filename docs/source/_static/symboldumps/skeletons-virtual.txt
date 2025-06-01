@@ -1,6 +1,6 @@
 
-Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit cc063124 in branch master
+Prog8 compiler v11.4-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit a87f2640 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -328,6 +328,7 @@ sys  {
     const ubyte  SIZEOF_BOOL 
     const ubyte  SIZEOF_BYTE 
     const ubyte  SIZEOF_FLOAT 
+    const ubyte  SIZEOF_LONG 
     const ubyte  SIZEOF_UBYTE 
     const ubyte  SIZEOF_UWORD 
     const ubyte  SIZEOF_WORD 

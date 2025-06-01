@@ -404,25 +404,36 @@ math {
         ; Linear interpolation (LERP)
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 255]
         ; guarantees v = v1 when t = 255
-        return v0 + msb(t as uword * (v1 - v0) + 255)
+        if v1<v0
+            return v0 - msb(t as uword * (v0 - v1) + 255)
+        else
+            return v0 + msb(t as uword * (v1 - v0) + 255)
     }
 
     sub lerpw(uword v0, uword v1, uword t) -> uword {
         ; Linear interpolation (LERP) on word values
         ; returns an interpolation between two inputs (v0, v1) for a parameter t in the interval [0, 65535]
-        ; guarantees v = v1 when t = 65535
+        ; guarantees v = v1 when t = 65535.  Clobbers R15.
+        if v1<v0 {
+            t *= v0-v1
+            cx16.r15 = math.mul16_last_upper()
+            if t!=0
+                cx16.r15++
+            return v0 - cx16.r15
+        }
         t *= v1-v0
-        cx16.r0 = math.mul16_last_upper()
+        cx16.r15 = math.mul16_last_upper()
         if t!=0
-            cx16.r0++
-        return v0 + cx16.r0
+            cx16.r15++
+        return v0 + cx16.r15
     }
 
     sub interpolate(ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte {
         ; Interpolate a value v in interval [inputMin, inputMax] to output interval [outputMin, outputMax]
-        ; There is no version for words because of lack of precision in the fixed point calculation there.
-        cx16.r0 = ((v-inputMin)*256+inputMax) / (inputMax-inputMin)
-        cx16.r0 *= (outputMax-outputMin)
-        return cx16.r0H + outputMin
+        ; Clobbers R15.
+        ; (There is no version for words because of lack of precision in the fixed point calculation there)
+        cx16.r15 = ((v-inputMin)*256+inputMax) / (inputMax-inputMin)
+        cx16.r15 *= (outputMax-outputMin)
+        return cx16.r15H + outputMin
     }
 }
