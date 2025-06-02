@@ -26,6 +26,7 @@ import kotlin.io.path.isRegularFile
 import kotlin.io.path.nameWithoutExtension
 import kotlin.system.exitProcess
 import kotlin.time.Duration
+import kotlin.time.DurationUnit
 import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
 
@@ -228,19 +229,20 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             System.err.flush()
 
             if(!args.quietAll && args.showTimings) {
-                println("\n**** TIMING ****")
-                println("source parsing   : ${parseDuration}")
-                println("ast processing   : ${processDuration}")
-                println("ast optimizing   : ${optimizeDuration}")
-                println("ast postprocess  : ${postprocessDuration}")
-                println("code prepare     : ${simplifiedAstDuration}")
-                println("code generation  : ${createAssemblyDuration}")
-                println("          total  : ${parseDuration + processDuration + optimizeDuration + postprocessDuration + simplifiedAstDuration + createAssemblyDuration}")
+                println("\n**** TIMINGS ****")
+                println("source parsing   : ${parseDuration.toString(DurationUnit.SECONDS, 3)}")
+                println("ast processing   : ${processDuration.toString(DurationUnit.SECONDS, 3)}")
+                println("ast optimizing   : ${optimizeDuration.toString(DurationUnit.SECONDS, 3)}")
+                println("ast postprocess  : ${postprocessDuration.toString(DurationUnit.SECONDS, 3)}")
+                println("code prepare     : ${simplifiedAstDuration.toString(DurationUnit.SECONDS, 3)}")
+                println("code generation  : ${createAssemblyDuration.toString(DurationUnit.SECONDS, 3)}")
+                val totalDuration = parseDuration + processDuration + optimizeDuration + postprocessDuration + simplifiedAstDuration + createAssemblyDuration
+                println("          total  : ${totalDuration.toString(DurationUnit.SECONDS, 3)}")
             }
         }
 
         if(!args.quietAll) {
-            println("\nTotal compilation+assemble time: ${totalTime}.")
+            println("\nTotal compilation+assemble time: ${totalTime.toString(DurationUnit.SECONDS, 3)}.")
         }
         return CompilationResult(resultingProgram!!, ast, compilationOptions, importedFiles)
     } catch (px: ParseError) {
