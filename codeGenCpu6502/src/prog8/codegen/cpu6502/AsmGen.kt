@@ -658,7 +658,8 @@ class AsmGen6502Internal (
                 }
             }
             expr.type.isFloat -> {
-                require(options.compTarget.FLOAT_MEM_SIZE == 5) {"invalid float size ${expr.position}"}
+                if(options.compTarget.FLOAT_MEM_SIZE != 5)
+                    TODO("support float size other than 5 ${expr.position}")
                 assignExpressionToRegister(expr.index, RegisterOrPair.A)
                 out("""
                     sta  P8ZP_SCRATCH_REG

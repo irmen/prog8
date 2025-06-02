@@ -288,13 +288,13 @@ class TestProg8Parser: FunSpec( {
                 }
             """
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^string:[0-9a-f\\-]+$"), 1, 0)
+            assertPositionOf(module, Regex("^string:[0-9a-f\\-]+$"), 1, 1)
         }
 
         test("of Module parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
             val module = parseModule(ImportFileSystem.getFile(path))
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1)
         }
 
         test("of non-root Nodes parsed from file") {
@@ -302,7 +302,7 @@ class TestProg8Parser: FunSpec( {
 
             val module = parseModule(ImportFileSystem.getFile(path))
             val mpf = module.position.file
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 0)
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
             assertPositionOf(mainBlock, mpf, 2, 1, 4)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]

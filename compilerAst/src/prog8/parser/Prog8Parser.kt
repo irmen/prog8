@@ -2,9 +2,7 @@ package prog8.parser
 
 import org.antlr.v4.runtime.*
 import prog8.ast.Module
-import prog8.ast.antlr.toAst
-import prog8.ast.statements.Block
-import prog8.ast.statements.Directive
+import prog8.ast.antlr.Antlr2KotlinVisitor
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
 
@@ -25,41 +23,12 @@ object Prog8Parser {
         parser.addErrorListener(antlrErrorListener)
 
         val parseTree = parser.module()
-        val module = ParsedModule(src)
 
-        parseTree.module_element().forEach {
-            val block = it.block()?.toAst(module.isLibrary)
-            val directive = it.directive()?.toAst()
-            if(directive != null) module.add(directive)
-            if(block != null) module.add(block)
-        }
-
-        return module
+        val visitor = Antlr2KotlinVisitor(src)
+        val visitorResult = visitor.visit(parseTree)
+        return visitorResult as Module
     }
 
-    private class ParsedModule(source: SourceCode) :
-        Module(mutableListOf(), Position(source.origin, 1, 0, 0), source)
-    {
-
-        /**
-         * Adds a [Directive] to [statements] and
-         * sets this Module as its [parent].
-         * Note: you can only add [Directive]s or [Block]s to a Module.
-         */
-        fun add(child: Directive) {
-            child.linkParents(this)
-            statements.add(child)
-        }
-        /**
-         * Adds a [Block] to [statements] and
-         * sets this Module as its [parent].
-         * Note: you can only add [Directive]s or [Block]s to a Module.
-         */
-        fun add(child: Block) {
-            child.linkParents(this)
-            statements.add(child)
-        }
-    }
 
     private object Prog8ErrorStrategy: BailErrorStrategy() {
         private fun fillIn(e: RecognitionException?, ctx: ParserRuleContext?) {

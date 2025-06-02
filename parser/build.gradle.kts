@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     id("antlr")
     id("java")
@@ -16,7 +14,7 @@ configurations.all {
 
 tasks.generateGrammarSource {
     outputDirectory = file("src/prog8/parser")
-    arguments.addAll(listOf("-no-listener", "-no-visitor"))
+    arguments.addAll(listOf("-no-listener", "-visitor"))
 }
 
 tasks.compileJava {
