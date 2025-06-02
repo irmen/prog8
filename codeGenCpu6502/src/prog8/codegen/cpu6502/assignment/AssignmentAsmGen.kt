@@ -2608,10 +2608,10 @@ $endLabel""")
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         if(arrayIndexExpr!=null) {
-            val arrayName = if(arrayDt!!.isSplitWordArray) sourceName+"_lsb" else sourceName        // the _lsb split array comes first in memory
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
-                if (arrayDt.isUnsignedWord) {
+                if (arrayDt!!.isUnsignedWord) {
+                    // using a UWORD pointer with array indexing, always bytes
                     require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     if(constIndex in 1..255)
@@ -2635,15 +2635,16 @@ $endLabel""")
                 else {
                     if(constIndex>0) {
                         val offset = if(arrayDt.isSplitWordArray) constIndex else program.memsizer.memorySize(arrayDt, constIndex)  // add arrayIndexExpr * elementsize  to the address of the array variable.
-                        asmgen.out("  lda  #<($arrayName + $offset) |  ldy  #>($arrayName + $offset)")
+                        asmgen.out("  lda  #<($sourceName + $offset) |  ldy  #>($sourceName + $offset)")
                     } else {
-                        asmgen.out("  lda  #<$arrayName |  ldy  #>$arrayName")
+                        asmgen.out("  lda  #<$sourceName |  ldy  #>$sourceName")
                     }
                 }
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return
             } else {
-                if (arrayDt.isUnsignedWord) {
+                if (arrayDt!!.isUnsignedWord) {
+                    // using a UWORD pointer with array indexing, always bytes
                     require(!msb)
                     assignVariableToRegister(sourceName, RegisterOrPair.AY, false, arrayIndexExpr.definingISub(), arrayIndexExpr.position)
                     asmgen.saveRegisterStack(CpuRegister.A, false)
@@ -2678,10 +2679,29 @@ $endLabel""")
                 }
                 else {
                     assignExpressionToRegister(arrayIndexExpr, RegisterOrPair.A, false)
+                    val subtype = arrayDt.sub!!
+                    if(subtype.isByteOrBool) {
+                        // elt size 1, we're good
+                    } else if(subtype.isWord)  {
+                        if(!arrayDt.isSplitWordArray) {
+                            // elt size 2
+                            asmgen.out("  asl  a")
+                        }
+                    } else if(subtype==BaseDataType.FLOAT) {
+                        if(asmgen.options.compTarget.FLOAT_MEM_SIZE != 5)
+                            TODO("support float size other than 5 ${arrayIndexExpr.position}")
+                        asmgen.out("""
+                            sta  P8ZP_SCRATCH_REG
+                            asl  a
+                            asl  a
+                            clc
+                            adc  P8ZP_SCRATCH_REG"""
+                        )
+                    } else throw AssemblyError("weird type $subtype")
                     asmgen.out("""
-                        ldy  #>$arrayName
+                        ldy  #>$sourceName
                         clc
-                        adc  #<$arrayName
+                        adc  #<$sourceName
                         bcc  +
                         iny
 +""")
