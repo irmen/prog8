@@ -1740,6 +1740,17 @@ internal class AssignmentAsmGen(
             }
         }
 
+        fun requiresCmp(expr: PtExpression) =
+            when (expr) {
+                is PtFunctionCall -> {
+                    val function = asmgen.symbolTable.lookup(expr.name)
+                    function is StExtSub        // don't assume the extsub/asmsub has set the cpu flags correctly on exit, add an explicit cmp
+                }
+                is PtBuiltinFunctionCall -> true
+                is PtIfExpression -> true
+                else -> false
+            }
+
         if(!expr.right.isSimple() && expr.operator!="xor") {
             // shortcircuit evaluation into A
             val shortcutLabel = asmgen.makeLabel("shortcut")
@@ -1747,15 +1758,23 @@ internal class AssignmentAsmGen(
                 "and" -> {
                     // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                    if(requiresCmp(expr.left))
+                        asmgen.out("  cmp  #0")
                     asmgen.out("  beq  $shortcutLabel")
                     assignExpressionToRegister(expr.right, RegisterOrPair.A, false)
+                    if(requiresCmp(expr.right))
+                        asmgen.out("  cmp  #0")
                     asmgen.out(shortcutLabel)
                 }
                 "or" -> {
                     // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, false)
+                    if(requiresCmp(expr.left))
+                        asmgen.out("  cmp  #0")
                     asmgen.out("  bne  $shortcutLabel")
                     assignExpressionToRegister(expr.right, RegisterOrPair.A, false)
+                    if(requiresCmp(expr.right))
+                        asmgen.out("  cmp  #0")
                     asmgen.out(shortcutLabel)
                 }
                 else -> throw AssemblyError("invalid logical operator")
