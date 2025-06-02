@@ -34,8 +34,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitExpression(ctx: ExpressionContext): Expression {
         if(ctx.sizeof_expression!=null) {
-            val sdt = ctx.sizeof_argument().datatype()
-            val datatype = if(sdt!=null) baseDatatypeFor(sdt) else null
+            val sdt = ctx.sizeof_argument().basedatatype()
+            val datatype = baseDatatypeFor(sdt)
             val expression = ctx.sizeof_argument().expression()?.accept(this) as Expression?
             val sizeof = IdentifierReference(listOf("sizeof"), ctx.toPosition())
             val arg = if (expression != null) expression else {
@@ -69,9 +69,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         }
 
         if(ctx.typecast()!=null) {
-            // typecast is always to a base datatype
-            val baseDt = baseDatatypeFor(ctx.typecast().datatype())
-            return TypecastExpression(ctx.expression(0).accept(this) as Expression, baseDt, false, ctx.toPosition())
+            val dt = dataTypeFor(ctx.typecast().datatype())!!
+            return TypecastExpression(ctx.expression(0).accept(this) as Expression, dt, false, ctx.toPosition())
         }
 
         if(ctx.childCount==3 && ctx.children[0].text=="(" && ctx.children[2].text==")")
@@ -110,13 +109,15 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitDirective(ctx: DirectiveContext): Directive {
+        val pos = ctx.toPosition()
+        val position = Position(pos.file, pos.line, pos.startCol,  ctx.directivename().UNICODEDNAME().symbol.stopIndex)
         if(ctx.directivenamelist() != null) {
             val namelist = ctx.directivenamelist().scoped_identifier().map { it.accept(this) as IdentifierReference }
-            val identifiers = namelist.map { DirectiveArg(it.nameInSource.joinToString("."), null, ctx.toPosition()) }
-            return Directive(ctx.directivename.text, identifiers, ctx.toPosition())
+            val identifiers = namelist.map { DirectiveArg(it.nameInSource.joinToString("."), null, it.position) }
+            return Directive(ctx.directivename().text, identifiers, position)
         }
         else
-            return Directive(ctx.directivename.text, ctx.directivearg().map { it.accept(this) as DirectiveArg }, ctx.toPosition())
+            return Directive(ctx.directivename().text, ctx.directivearg().map { it.accept(this) as DirectiveArg }, position)
     }
 
     override fun visitDirectivearg(ctx: DirectiveargContext): DirectiveArg {
@@ -128,7 +129,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             return DirectiveArg(str.text.substring(1, str.text.length-1), integer, ctx.toPosition())
         }
         val identifier = ctx.identifier()?.accept(this) as IdentifierReference?
-        return DirectiveArg(identifier?.nameInSource?.single(), integer, ctx.toPosition())
+        return DirectiveArg(identifier?.nameInSource?.single(), integer, identifier?.position ?: ctx.toPosition())
     }
 
     override fun visitVardecl(ctx: VardeclContext): VarDecl {
@@ -146,21 +147,34 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         if(alignpage && alignword)
             throw SyntaxError("choose a single alignment option", ctx.toPosition())
 
-        val identifiers = ctx.identifier().map { getname(it) }
+        val identifiers = ctx.identifierlist().identifier().map { getname(it) }
         val identifiername = identifiers[0]
         val name = if(identifiers.size==1) identifiername else "<multiple>"
 
         val arrayIndex = ctx.arrayindex()?.accept(this) as ArrayIndex?
         val isArray = ctx.ARRAYSIG() != null || arrayIndex != null
-        val baseDt = baseDatatypeFor(ctx.datatype())
-        val dt = if(isArray) DataType.arrayFor(baseDt, split!=SplitWish.NOSPLIT) else DataType.forDt(baseDt)
+
+        val baseDt = dataTypeFor(ctx.datatype()) ?: DataType.UNDEFINED
+        val dt = if(!isArray) baseDt else {
+            if(baseDt.isPointer)
+                DataType.arrayOfPointersFromAntlrTo(baseDt.sub, baseDt.subTypeFromAntlr)
+            else if(baseDt.isStructInstance)
+                throw SyntaxError("array of structures not allowed (use array of pointers)", ctx.toPosition())
+            else
+                DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
+        }
+
+        val splitWords = if(split==SplitWish.DONTCARE) {
+            if(dt.isPointerArray) SplitWish.SPLIT       // pointer arrays are always @split by default
+            else split
+        } else split
 
         return VarDecl(
             VarDeclType.VAR,        // can be changed to MEMORY or CONST as required
             VarDeclOrigin.USERCODE,
             dt,
             zp,
-            split,
+            splitWords,
             arrayIndex,
             name,
             if(identifiers.size==1) emptyList() else identifiers,
@@ -217,30 +231,30 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitIdentifierTarget(ctx: IdentifierTargetContext): AssignTarget {
         val identifier = ctx.scoped_identifier().accept(this) as IdentifierReference
-        return AssignTarget(identifier, null, null, null, false, ctx.toPosition())
+        return AssignTarget(identifier, null, null, null, false, position=ctx.toPosition())
     }
 
     override fun visitArrayindexedTarget(ctx: ArrayindexedTargetContext): AssignTarget {
         val ax = ctx.arrayindexed()
         val arrayvar = ax.scoped_identifier().accept(this) as IdentifierReference
         val index = ax.arrayindex().accept(this) as ArrayIndex
-        val arrayindexed = ArrayIndexedExpression(arrayvar, index, ax.toPosition())
-        return AssignTarget(null, arrayindexed, null, null, false, ctx.toPosition())
+        val arrayindexed = ArrayIndexedExpression(arrayvar, null, index, ax.toPosition())
+        return AssignTarget(null, arrayindexed, null, null, false, position=ctx.toPosition())
     }
 
     override fun visitMemoryTarget(ctx: MemoryTargetContext): AssignTarget {
         return AssignTarget(null, null,
             DirectMemoryWrite(ctx.directmemory().expression().accept(this) as Expression, ctx.toPosition()),
-            null, false, ctx.toPosition())
+            null, false, position=ctx.toPosition())
     }
 
     override fun visitVoidTarget(ctx: VoidTargetContext): AssignTarget {
-        return AssignTarget(null, null, null, null, true, ctx.toPosition())
+        return AssignTarget(null, null, null, null, true, position=ctx.toPosition())
     }
 
     override fun visitMulti_assign_target(ctx: Multi_assign_targetContext): AssignTarget {
         val targets = ctx.assign_target().map { it.accept(this) as AssignTarget }
-        return AssignTarget(null, null, null, targets, false, ctx.toPosition())
+        return AssignTarget(null, null, null, targets, false, position=ctx.toPosition())
     }
 
     override fun visitPostincrdecr(ctx: PostincrdecrContext): Assignment {
@@ -254,7 +268,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitArrayindexed(ctx: ArrayindexedContext): ArrayIndexedExpression {
         val identifier = ctx.scoped_identifier().accept(this) as IdentifierReference
         val index = ctx.arrayindex().accept(this) as ArrayIndex
-        return ArrayIndexedExpression(identifier, index, ctx.toPosition())
+        return ArrayIndexedExpression(identifier, null, index, ctx.toPosition())
     }
 
     override fun visitDirectmemory(ctx: DirectmemoryContext): DirectMemoryRead {
@@ -262,16 +276,14 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitAddressof(ctx: AddressofContext): AddressOf {
-        val identifier = ctx.scoped_identifier()?.accept(this) as IdentifierReference?
+        val identifier = ctx.scoped_identifier().accept(this) as IdentifierReference
         val msb = ctx.ADDRESS_OF_MSB()!=null
         // note: &<  (ADDRESS_OF_LSB)  is equivalent to a regular &.
-        return if (identifier != null)
-            AddressOf(identifier, null, msb, ctx.toPosition())
-        else {
-            val array = ctx.arrayindexed()
-            AddressOf(array.scoped_identifier().accept(this) as IdentifierReference,
-                array.arrayindex().accept(this) as ArrayIndex,
-                msb, ctx.toPosition())
+        val index = ctx.arrayindex()?.accept(this) as? ArrayIndex
+        return if(index!=null) {
+            AddressOf(identifier, index, null, msb, ctx.toPosition())
+        } else {
+            AddressOf(identifier,null, null, msb, ctx.toPosition())
         }
     }
 
@@ -427,19 +439,20 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitInlineasm(ctx: InlineasmContext): InlineAssembly {
+        val type = ctx.directivename().UNICODEDNAME().text
+        val isIR = when(type) {
+            "asm" -> false
+            "ir" -> true
+            else -> throw SyntaxError("unknown inline asm type $type", ctx.toPosition())
+        }
         val text = ctx.INLINEASMBLOCK().text
-        return InlineAssembly(text.substring(2, text.length-2), false, ctx.toPosition())
-    }
-
-    override fun visitInlineir(ctx: InlineirContext): InlineAssembly {
-        val text = ctx.INLINEASMBLOCK().text
-        return InlineAssembly(text.substring(2, text.length-2), true, ctx.toPosition())
+        return InlineAssembly(text.substring(2, text.length-2), isIR, ctx.toPosition())
     }
 
     override fun visitSubroutine(ctx: SubroutineContext): Subroutine {
         val name = getname(ctx.identifier())
         val parameters = ctx.sub_params()?.sub_param()?.map { it.accept(this) as SubroutineParameter } ?: emptyList()
-        val returntypes = ctx.sub_return_part()?.datatype()?. map { dataTypeFor(it) } ?: emptyList()
+        val returntypes = ctx.sub_return_part()?.datatype()?. map { dataTypeFor(it)!! } ?: emptyList()
         val statements = ctx.statement_block().accept(this) as AnonymousScope
         return Subroutine(
             name,
@@ -470,12 +483,11 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                 throw SyntaxError("invalid parameter tag '$tag'", pctx.toPosition())
         }
         val zp = getZpOption(tags)
-        val decldt = decl.datatype()
-        var datatype = if(decldt!=null) dataTypeFor(decldt) else DataType.UNDEFINED
+        var datatype = dataTypeFor(decl.datatype()) ?: DataType.UNDEFINED
         if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
             datatype = datatype.elementToArray()
 
-        val identifiers = decl.identifier()
+        val identifiers = decl.identifierlist().identifier()
         if(identifiers.size>1)
             throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
         val identifiername = getname(identifiers[0])
@@ -588,6 +600,47 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         return OnGoto(isCall, index, labels, elsepart, ctx.toPosition())
     }
 
+    override fun visitPointerDereferenceTarget(ctx: PointerDereferenceTargetContext): AssignTarget {
+        val deref = ctx.pointerdereference().accept(this)
+        return if(deref is PtrDereference)
+            AssignTarget(null, null, null, null, false, deref, deref.position)
+        else
+            throw SyntaxError("no support for dereferencing after array indexing yet. (Split the assignment using an intermediate variable?)", ctx.toPosition())
+    }
+
+    override fun visitPointerdereference(ctx: PointerdereferenceContext): Expression {
+        val scopeprefix = ctx.prefix?.accept(this) as IdentifierReference?
+        val derefs = ctx.derefchain()!!.singlederef()!!.map { it.identifier().text to it.arrayindex()?.accept(this) as ArrayIndex? }
+        if(derefs.all { it.second==null }) {
+            val derefchain = derefs.map { it.first }
+            val chain = ((scopeprefix?.nameInSource ?: emptyList()) + derefchain).toMutableList()
+            if (ctx.field != null)
+                chain += ctx.field.text
+            return PtrDereference(chain, ctx.field == null, ctx.toPosition())
+        } else {
+            val chain = derefs.toMutableList()
+            if(scopeprefix!=null) {
+                chain.addAll(0, scopeprefix.nameInSource.map { it to (null as ArrayIndex?) }.toMutableList())
+            }
+            if (ctx.field != null)
+                chain += ctx.field.text to null
+            return ArrayIndexedPtrDereference(chain, ctx.field == null, ctx.toPosition())
+        }
+    }
+
+    override fun visitStructdeclaration(ctx: StructdeclarationContext): StructDecl {
+        val name = getname(ctx.identifier())
+        val fields: List<Pair<DataType, List<String>>> = ctx.structfielddecl().map { getStructField(it) }
+        val flattened = fields.flatMap { (dt, names) -> names.map { dt to it}}
+        return StructDecl(name, flattened, ctx.toPosition())
+    }
+
+    private fun getStructField(ctx: StructfielddeclContext): Pair<DataType, List<String>> {
+        val identifiers = ctx.identifierlist()?.identifier() ?: emptyList()
+        val dt = dataTypeFor(ctx.datatype())!!
+        return dt to identifiers.map { getname(it) }
+    }
+
 
     override fun visitModule_element(ctx: Module_elementContext): Node = visitChildren(ctx)
     override fun visitBlock_statement(ctx: Block_statementContext): Statement = visitChildren(ctx) as Statement
@@ -595,13 +648,15 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitVariabledeclaration(ctx: VariabledeclarationContext): VarDecl = visitChildren(ctx) as VarDecl
     override fun visitLiteralvalue(ctx: LiteralvalueContext): Expression = visitChildren(ctx) as Expression
 
-
+    override fun visitBasedatatype(ctx: BasedatatypeContext) = throw FatalAstException("should not be called")
     override fun visitDirectivenamelist(ctx: DirectivenamelistContext) = throw FatalAstException("should not be called")
-    override fun visitAsmsub_decl(ctx: Asmsub_declContext?) = throw FatalAstException("should not be called")
+    override fun visitAsmsub_decl(ctx: Asmsub_declContext) = throw FatalAstException("should not be called")
     override fun visitAsmsub_params(ctx: Asmsub_paramsContext) = throw FatalAstException("should not be called")
     override fun visitExpression_list(ctx: Expression_listContext) = throw FatalAstException("should not be called")
     override fun visitBranchcondition(ctx: BranchconditionContext) = throw FatalAstException("should not be called")
     override fun visitDatatype(ctx: DatatypeContext) = throw FatalAstException("should not be called")
+    override fun visitIdentifierlist(ctx: IdentifierlistContext) = throw FatalAstException("should not be called")
+    override fun visitDirectivename(ctx: DirectivenameContext) = throw FatalAstException("should not be called")
     override fun visitSizeof_argument(ctx: Sizeof_argumentContext) = throw FatalAstException("should not be called")
     override fun visitReturnvalues(ctx: ReturnvaluesContext) = throw FatalAstException("should not be called")
     override fun visitTypecast(ctx: TypecastContext) = throw FatalAstException("should not be called")
@@ -612,6 +667,10 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitAsmsub_returns(ctx: Asmsub_returnsContext) = throw FatalAstException("should not be called")
     override fun visitAsmsub_return(ctx: Asmsub_returnContext) = throw FatalAstException("should not be called")
     override fun visitSub_return_part(ctx: Sub_return_partContext) = throw FatalAstException("should not be called")
+    override fun visitStructfielddecl(ctx: StructfielddeclContext) = throw FatalAstException("should not be called")
+    override fun visitDerefchain(ctx: DerefchainContext) = throw FatalAstException("should not be called")
+    override fun visitSinglederef(ctx: SinglederefContext) = throw FatalAstException("should not be called")
+    override fun visitPointertype(ctx: PointertypeContext) = throw FatalAstException("should not be called")
 
 
     private fun getname(identifier: IdentifierContext): String = identifier.children[0].text
@@ -649,12 +708,11 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     private fun asmSubroutineParam(pctx: Asmsub_paramContext): AsmSubroutineParameter {
         val vardecl = pctx.vardecl()
-        val decldt = vardecl.datatype()
-        var datatype = if(decldt!=null) dataTypeFor(decldt) else DataType.UNDEFINED
+        var datatype = dataTypeFor(vardecl.datatype()) ?: DataType.UNDEFINED
         if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
             datatype = datatype.elementToArray()
         val (registerorpair, statusregister) = parseParamRegister(pctx.register, pctx.toPosition())
-        val identifiers = vardecl.identifier()
+        val identifiers = vardecl.identifierlist().identifier()
         if(identifiers.size>1)
             throw SyntaxError("parameter name must be singular", identifiers[0].toPosition())
         val identifiername = getname(identifiers[0])
@@ -691,7 +749,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             }
         }
         return AsmSubroutineReturn(
-            dataTypeFor(rctx.datatype()),
+            dataTypeFor(rctx.datatype())!!,
             registerorpair,
             statusregister)
     }
@@ -704,9 +762,30 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         }
     }
 
-    private fun dataTypeFor(it: DatatypeContext) = DataType.forDt(baseDatatypeFor(it))
+    private fun dataTypeFor(dtctx: DatatypeContext?): DataType? {
+        if(dtctx==null)
+            return null
+        val base = baseDatatypeFor(dtctx.basedatatype())
+        if(base!=null)
+            return DataType.forDt(base)
+        val pointer = pointerDatatypeFor(dtctx.pointertype())
+        if(pointer!=null)
+            return pointer
+        val struct = dtctx.structtype.identifier().map { dtctx.text }
+        return DataType.structInstanceFromAntlr(struct)
+    }
 
-    private fun baseDatatypeFor(it: DatatypeContext) = BaseDataType.valueOf(it.text.uppercase())
+    private fun pointerDatatypeFor(pointertype: PointertypeContext?): DataType? {
+        if(pointertype==null)
+            return null
+        val base = baseDatatypeFor(pointertype.basedatatype())
+        if(base!=null)
+            return DataType.pointer(base)
+        val identifier = pointertype.scoped_identifier().identifier().map { it.text}
+        return DataType.pointerFromAntlr(identifier)
+    }
+
+    private fun baseDatatypeFor(ctx: BasedatatypeContext?) = if(ctx==null) null else BaseDataType.valueOf(ctx.text.uppercase())
 
     private fun stmtBlockOrSingle(statementBlock: Statement_blockContext?, statement: StatementContext?): AnonymousScope {
         return if(statementBlock!=null)
@@ -723,7 +802,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val name = getname(ad.identifier())
         val params = ad.asmsub_params()?.asmsub_param()?.map { asmSubroutineParam(it) } ?: emptyList()
         val returns = ad.asmsub_returns()?.asmsub_return()?.map { asmReturn(it) } ?: emptyList()
-        val clobbers = ad.asmsub_clobbers()?.clobber()?.NAME()?.map { cpuRegister(it.text, ad.toPosition()) } ?: emptyList()
+        val clobbers = ad.asmsub_clobbers()?.clobber()?.UNICODEDNAME()?.map { cpuRegister(it.text, ad.toPosition()) } ?: emptyList()
         val normalParameters = params.map { SubroutineParameter(it.name, it.type, it.zp, it.registerOrPair, it.position) }
         val normalReturntypes = returns.map { it.type }
         val paramRegisters = params.map { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }
