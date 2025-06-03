@@ -1,48 +1,39 @@
 %import textio
+%import strings
 %zeropage basicsafe
+%encoding petscii
 
 main {
     sub start() {
-        bool @shared bb, bb2
+        str textiso = iso:"first\x0asecond\x0athird\x0a"
+        str textpetscii = petscii:"first\nsecond\nthird\n"
 
-        bb=true
-        bb2=false
+        txt.print("    iso: ")
+        dump(textiso)
+        txt.nl()
+        cx16.r0L, void = strings.find(textiso, '\n')
+        txt.print_ub(cx16.r0L)
+        txt.spc()
+        cx16.r0L, void = strings.find_eol(textiso)
+        txt.print_ub(cx16.r0L)
+        txt.nl()
 
-        if bb and test() and testasm()
-            txt.print("yes1 ")
-        else
-            txt.print("error1 ")
-
-        if bb2 or test2() or testasm2()
-            txt.print("error2 ")
-        else
-            txt.print("yes2 ")
+        txt.print("petscii: ")
+        dump(textpetscii)
+        txt.nl()
+        cx16.r0L, void = strings.find(textpetscii, '\n')
+        txt.print_ub(cx16.r0L)
+        txt.spc()
+        cx16.r0L, void = strings.find_eol(textpetscii)
+        txt.print_ub(cx16.r0L)
         txt.nl()
     }
 
-    sub test() -> bool {
-        cx16.r0++
-        return true
-    }
-
-    sub test2() -> bool {
-        cx16.r0++
-        return false
-    }
-
-    asmsub testasm() -> bool @A {
-        %asm {{
-            lda  #1
-            ldy  #0
-            rts
-        }}
-    }
-
-    asmsub testasm2() -> bool @A {
-        %asm {{
-            lda  #0
-            ldy  #1
-            rts
-        }}
+    sub dump(uword ptr) {
+        while @(ptr)!=0 {
+            txt.print_ubhex(@(ptr), false)
+            txt.spc()
+            ptr++
+        }
     }
 }

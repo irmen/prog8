@@ -53,34 +53,47 @@ strings {
         target[ix]=0
     }
 
-    sub find(str st, ubyte character) -> ubyte {
+    sub find(str st, ubyte character) -> ubyte, bool {
         ; Locates the first position of the given character in the string,
-        ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
-        ; NOTE: because this isn't an asmsub, there's only a SINGLE return value here. On the c64/cx16 targets etc there are 2 return values.
+        ; returns index in A, and boolean if found or not.  (when false A will also be 255,  an invalid index).
         ubyte ix
         for ix in 0 to length(st)-1 {
             if st[ix]==character {
                 sys.set_carry()
-                return ix
+                return ix, true
             }
         }
         sys.clear_carry()
-        return 255
+        return 255, false
     }
 
-    sub rfind(uword stringptr, ubyte character) -> ubyte {
+    sub find_eol(str st) -> ubyte, bool {
+        ; Locates the position of the first End Of Line character in the string.
+        ; This is a convenience function that looks for both a CR or LF (byte 13 or byte 10) as being a possible Line Ending.
+        ; returns index in A, and boolean if found or not.  (when false A will also be 255,  an invalid index).
+        ubyte ix
+        for ix in 0 to length(st)-1 {
+            if st[ix] in "\x0a\x0d" {
+                sys.set_carry()
+                return ix, true
+            }
+        }
+        sys.clear_carry()
+        return 255, false
+    }
+
+    sub rfind(uword stringptr, ubyte character) -> ubyte, bool {
         ; Locates the first position of the given character in the string, starting from the right.
-        ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
-        ; NOTE: because this isn't an asmsub, there's only a SINGLE return value here. On the c64/cx16 targets etc there are 2 return values.
+        ; returns index in A, and boolean if found or not.  (when false A will also be 255,  an invalid index).
         ubyte ix
         for ix in length(stringptr)-1 downto 0 {
             if stringptr[ix]==character {
                 sys.set_carry()
-                return ix
+                return ix, true
             }
         }
         sys.clear_carry()
-        return 255
+        return 255, false
     }
 
     sub contains(str st, ubyte character) -> bool {
