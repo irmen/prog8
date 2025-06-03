@@ -151,6 +151,33 @@ _found	tya
         }}
     }
 
+
+    asmsub find_eol(uword string @AY) -> ubyte @A, bool @Pc {
+        ; Locates the position of the first End Of Line character in the string.
+        ; This is a convenience function that looks for both a CR or LF (byte 13 or byte 10) as being a possible Line Ending.
+        ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
+        %asm {{
+		; need to copy the the cx16 virtual registers to zeropage to make this run on C64...
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0
+-		lda  (P8ZP_SCRATCH_W1),y
+		beq  _notfound
+		cmp  #13
+		beq  _found
+		cmp  #10
+		beq  _found
+		iny
+		bne  -
+_notfound	lda  #255
+        clc
+		rts
+_found	tya
+        sec
+        rts
+        }}
+    }
+
     asmsub rfind(uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string, starting from the right.
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
