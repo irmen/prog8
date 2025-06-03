@@ -452,13 +452,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         val name = functionCallExpr.target.nameInSource
         if(name==listOf("msw")) {
             val valueDt = functionCallExpr.args[0].inferType(program)
-            if(valueDt.isWords || valueDt.isBytes) {
+            if(valueDt.isWords || valueDt.isBytes || valueDt.isPointer) {
                 val zero = NumericLiteral(BaseDataType.UWORD, 0.0, functionCallExpr.position)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, zero, parent))
             }
         } else if(name==listOf("lsw")) {
             val valueDt = functionCallExpr.args[0].inferType(program)
-            if(valueDt.isWords)
+            if(valueDt.isWords || valueDt.isPointer)
                 return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
             if(valueDt.isBytes) {
                 val cast = TypecastExpression(functionCallExpr.args[0], DataType.UWORD, true, functionCallExpr.position)

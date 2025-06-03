@@ -2483,7 +2483,7 @@ $shortcutLabel:""")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
-            valueDt.isWord -> {
+            valueDt.isWord || valueDt.isPointer -> {
                 // the value is a proper 16-bit word, so use both bytes of it.
                 when (operator) {
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
@@ -2905,7 +2905,7 @@ $shortcutLabel:""")
                     else -> throw AssemblyError("invalid operator for in-place modification $operator")
                 }
             }
-            valueDt.isWord -> {
+            valueDt.isWord || valueDt.isPointer -> {
                 // the value is a proper 16-bit word, so use both bytes of it.
 
                 if(value is PtArrayIndexer && value.isSimple()) {
