@@ -10,6 +10,7 @@ Idea is to make it feature complete in the IR/Virtual target, then merge it to m
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- remove (experimental) tag in docs from 3 libraries
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - enums?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
