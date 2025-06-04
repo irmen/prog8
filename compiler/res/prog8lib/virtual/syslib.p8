@@ -199,6 +199,12 @@ sys {
         }}
     }
 
+    sub get_as_returnaddress(uword address) -> uword {
+        ; return the address like JSR would push onto the stack:  address-1,  MSB first then LSB
+        address--
+        return mkword(lsb(address), msb(address))
+    }
+
     sub pop() -> ubyte {
         ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
         %ir {{

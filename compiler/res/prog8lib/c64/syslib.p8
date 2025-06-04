@@ -969,6 +969,18 @@ _no_msb_size
         }}
     }
 
+    asmsub get_as_returnaddress(uword address @XY) -> uword @AX {
+        %asm {{
+            ; return the address like JSR would push onto the stack:  address-1,  MSB first then LSB
+            cpx  #0
+            bne  +
+            dey
++           dex
+            tya
+            rts
+        }}
+    }
+
     inline asmsub pop() -> ubyte @A {
         %asm {{
             pla

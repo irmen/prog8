@@ -184,8 +184,6 @@ internal class AstChecker(private val program: Program,
 
         val iterableDt = forLoop.iterable.inferType(program).getOrUndef()
 
-        if(iterableDt.isNumeric) TODO("iterable type should not be simple numeric "+forLoop.position)
-
         if(forLoop.iterable is IFunctionCall) {
             errors.err("can not loop over function call return value", forLoop.position)
         } else if(!(iterableDt.isIterable) && forLoop.iterable !is RangeExpression) {

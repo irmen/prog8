@@ -11,6 +11,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 - remove (experimental) tag in docs from 3 libraries
+- when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - enums?
 - romable: should we have a way to explicitly set the memory address for the BSS area (instead of only the highram bank number on X16, allow a memory address too for the -varshigh option?)
