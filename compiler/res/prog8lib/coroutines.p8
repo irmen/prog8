@@ -36,6 +36,12 @@
 ; - IMPORTANT:  if you add the same subroutine multiple times, IT CANNOT DEPEND ON ANY LOCAL VARIABLES OR R0-R15 TO KEEP STATE. NOT EVEN REPEAT LOOP COUNTERS.
 ;   Those are all shared in the different tasks! You HAVE to use a mechanism around the userdata value (pointer?) to keep separate state elsewhere!
 ; - IMPORTANT:  ``defer`` cannot be used inside a coroutine that is reused for multiple tasks!!!
+;
+; TIP: HOW TO WAIT without BLOCKING other coroutines?
+; Make sure you call yield() in the waiting loop, for example:
+;            uword timer = cbm.RDTIM16() + 60
+;            while cbm.RDTIM16() != timer
+;                void coroutines.yield()
 
 coroutines {
     %option ignore_unused

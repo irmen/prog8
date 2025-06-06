@@ -43,49 +43,72 @@ _done
         }}
     }
 
-    /*
-    prog8 source code for the above routine:
-
-    sub gnomesort_ub(uword @requirezp values, ubyte num_elements) {
+    sub gnomesort_by_ub(uword @requirezp uw_keys, uword values, ubyte num_elements) {
+        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted ofcourse).
         ubyte @zp pos=1
         while pos != num_elements {
-            if values[pos]>=values[pos-1]
+            if uw_keys[pos]>=uw_keys[pos-1]
                 pos++
             else {
                 ; swap elements
-                cx16.r0L = values[pos-1]
-                values[pos-1] = values[pos]
-                values[pos] = cx16.r0L
+                cx16.r0L = uw_keys[pos-1]
+                uw_keys[pos-1] = uw_keys[pos]
+                uw_keys[pos] = cx16.r0L
+                uword @requirezp vptr = values + pos*$0002 -2
+                cx16.r0 = peekw(vptr)
+                pokew(vptr, peekw(vptr+2))
+                pokew(vptr+2, cx16.r0)
+
                 pos--
                 if_z
                     pos++
             }
         }
     }
-    */
 
-    sub gnomesort_uw(uword values, ubyte num_elements) {
-        ; When written in asm this is 10-20% faster, but unreadable. Not worth it.
-        ; Also, sorting just an array of word numbers is very seldomly used, most often you
-        ; need to sort other things associated with it as well and that is not done here anyway,
-        ; so requires a custom user coded sorting routine anyway.
-        ubyte @zp pos = 1
-        uword @requirezp ptr = values+2
+    sub gnomesort_uw(uword @requirezp values, ubyte num_elements) {
+        ; Sorts the values array (no-split unsigned words).
+        ; Max number of elements is 128. Clobbers R0 and R1.
+        ubyte @zp pos=2
+        num_elements *= 2
         while pos != num_elements {
-            cx16.r0 = peekw(ptr-2)
-            cx16.r1 = peekw(ptr)
-            if cx16.r0<=cx16.r1 {
-                pos++
-                ptr+=2
-            }
+            cx16.r1L = pos-2
+            if peekw(values+pos) >= peekw(values + cx16.r1L)
+                pos += 2
             else {
                 ; swap elements
-                pokew(ptr-2, cx16.r1)
-                pokew(ptr, cx16.r0)
-                if pos>1 {
-                    pos--
-                    ptr-=2
-                }
+                cx16.r0 = peekw(values + cx16.r1L)
+                pokew(values + cx16.r1L, peekw(values + pos))
+                pokew(values + pos, cx16.r0)
+                pos-=2
+                if_z
+                    pos+=2
+            }
+        }
+    }
+
+    sub gnomesort_by_uw(uword @requirezp uw_keys, uword wordvalues, ubyte num_elements) {
+        ; Sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
+        ; both arrays should be no-split array of words. uw_keys are unsigned.
+        ; Max number of elements is 128. Clobbers R0 and R1.
+        ubyte @zp pos=2
+        num_elements *= 2
+        while pos != num_elements {
+            cx16.r1L = pos-2
+            if peekw(uw_keys+pos) >= peekw(uw_keys + cx16.r1L)
+                pos += 2
+            else {
+                ; swap elements
+                cx16.r0 = peekw(uw_keys + cx16.r1L)
+                pokew(uw_keys + cx16.r1L, peekw(uw_keys+ pos))
+                pokew(uw_keys + pos, cx16.r0)
+                cx16.r0 = peekw(wordvalues + cx16.r1L)
+                pokew(wordvalues + cx16.r1L, peekw(wordvalues + pos))
+                pokew(wordvalues + pos, cx16.r0)
+
+                pos-=2
+                if_z
+                    pos+=2
             }
         }
     }
@@ -93,6 +116,7 @@ _done
     ; gnomesort_pointers is not worth it over shellshort_pointers.
 
     sub shellsort_ub(uword @requirezp values, ubyte num_elements) {
+        ; sorts the values array (unsigned bytes).
         num_elements--
         ubyte @zp gap
         for gap in [132, 57, 23, 10, 4, 1] {
@@ -115,6 +139,7 @@ _done
     }
 
     sub shellsort_uw(uword @requirezp values, ubyte num_elements) {
+        ; sorts the values array (no-split unsigned words).
         num_elements--
         ubyte gap
         for gap in [132, 57, 23, 10, 4, 1] {
@@ -124,13 +149,65 @@ _done
                 ubyte @zp j = i
                 ubyte @zp k = j-gap
                 while j>=gap {
-                    uword @zp v = peekw(values+k*2)
+                    uword @zp v = peekw(values+k*$0002)
                     if v <= temp break
-                    pokew(values+j*2, v)
+                    pokew(values+j*$0002, v)
                     j = k
                     k -= gap
                 }
-                pokew(values+j*2, temp)
+                pokew(values+j*$0002, temp)
+            }
+        }
+    }
+
+    sub shellsort_by_ub(uword @requirezp ub_keys, uword @requirezp wordvalues, ubyte num_elements) {
+        ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted ofcourse).
+        num_elements--
+        ubyte @zp gap
+        for gap in [132, 57, 23, 10, 4, 1] {
+            ubyte i
+            for i in gap to num_elements {
+                ubyte @zp temp = ub_keys[i]
+                uword temp_wv = peekw(wordvalues + i*$0002)
+                ubyte @zp j = i
+                ubyte @zp k = j-gap
+                repeat {
+                    ubyte @zp v = ub_keys[k]
+                    if v <= temp break
+                    if j < gap break
+                    ub_keys[j] = v
+                    pokew(wordvalues + j*$0002, peekw(wordvalues + k*$0002))
+                    j = k
+                    k -= gap
+                }
+                ub_keys[j] = temp
+                pokew(wordvalues + j*$0002, temp_wv)
+            }
+        }
+    }
+
+    sub shellsort_by_uw(uword @requirezp uw_keys, uword @requirezp wordvalues, ubyte num_elements) {
+        ; sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
+        ; both arrays should be no-split array of words. uw_keys are unsigned.
+        num_elements--
+        ubyte gap
+        for gap in [132, 57, 23, 10, 4, 1] {
+            ubyte i
+            for i in gap to num_elements {
+                uword @zp temp = peekw(uw_keys+i*$0002)
+                uword temp_wv = peekw(wordvalues + i*$0002)
+                ubyte @zp j = i
+                ubyte @zp k = j-gap
+                while j>=gap {
+                    uword @zp v = peekw(uw_keys+k*2)
+                    if v <= temp break
+                    pokew(uw_keys+j*2, v)
+                    pokew(wordvalues + j*$0002, peekw(wordvalues + k*$0002))
+                    j = k
+                    k -= gap
+                }
+                pokew(uw_keys+j*2, temp)
+                pokew(wordvalues + j*$0002, temp_wv)
             }
         }
     }
@@ -147,14 +224,14 @@ _done
                 ubyte @zp j = i
                 ubyte @zp k = j-gap
                 while j>=gap {
-                    cx16.r0 = peekw(pointers+k*2)
+                    cx16.r0 = peekw(pointers+k*$0002)
                     void call(comparefunc)
                     if_cs break
-                    pokew(pointers+j*2, cx16.r0)
+                    pokew(pointers+j*$0002, cx16.r0)
                     j = k
                     k -= gap
                 }
-                pokew(pointers+j*2, cx16.r1)
+                pokew(pointers+j*$0002, cx16.r1)
             }
         }
     }

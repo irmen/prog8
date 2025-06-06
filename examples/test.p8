@@ -1,39 +1,69 @@
 %import textio
+%import sorting
 %import strings
+%import emudbg
 %zeropage basicsafe
-%encoding petscii
 
 main {
     sub start() {
-        str textiso = iso:"first\x0asecond\x0athird\x0a"
-        str textpetscii = petscii:"first\nsecond\nthird\n"
+        ubyte[19] keys
+        str[19] @nosplit values = [ "the", "narrator", "begins", "by", "describing", "the", "hole", "in", "the", "ground", "beneath", "a", "hill", "in", "which", "a", "particular", "hobbit", "lives"]
 
-        txt.print("    iso: ")
-        dump(textiso)
+        uword[19] @nosplit wkeys
+        str[19] @nosplit wvalues = [ "the", "narrator", "begins", "by", "describing", "the", "hole", "in", "the", "ground", "beneath", "a", "hill", "in", "which", "a", "particular", "hobbit", "lives"]
+
+        for cx16.r0L in 0 to len(keys)-1 {
+            keys[cx16.r0L] = strings.length(values[cx16.r0L])
+            wkeys[cx16.r0L] = strings.length(wvalues[cx16.r0L])
+        }
+
+        perf_reset()
+        repeat 100 {
+            sorting.gnomesort_by_ub(keys, values, len(keys))
+        }
+        perf_print()
+        dump()
         txt.nl()
-        cx16.r0L, void = strings.find(textiso, '\n')
-        txt.print_ub(cx16.r0L)
-        txt.spc()
-        cx16.r0L, void = strings.find_eol(textiso)
-        txt.print_ub(cx16.r0L)
         txt.nl()
 
-        txt.print("petscii: ")
-        dump(textpetscii)
         txt.nl()
-        cx16.r0L, void = strings.find(textpetscii, '\n')
-        txt.print_ub(cx16.r0L)
-        txt.spc()
-        cx16.r0L, void = strings.find_eol(textpetscii)
-        txt.print_ub(cx16.r0L)
-        txt.nl()
+        perf_reset()
+        repeat 100 {
+            sorting.gnomesort_by_uw(wkeys, wvalues, len(wkeys))
+        }
+        perf_print()
+        dumpw()
+
+        sub dump() {
+            for cx16.r0L in 0 to len(keys)-1 {
+                txt.print_ub(keys[cx16.r0L])
+                txt.spc()
+                txt.spc()
+                txt.print(values[cx16.r0L])
+                txt.nl()
+            }
+        }
+
+        sub dumpw() {
+            for cx16.r0L in 0 to len(wkeys)-1 {
+                txt.print_uw(wkeys[cx16.r0L])
+                txt.spc()
+                txt.spc()
+                txt.print(wvalues[cx16.r0L])
+                txt.nl()
+            }
+        }
     }
 
-    sub dump(uword ptr) {
-        while @(ptr)!=0 {
-            txt.print_ubhex(@(ptr), false)
-            txt.spc()
-            ptr++
-        }
+
+    sub perf_reset() {
+        emudbg.reset_cpu_cycles()
+    }
+
+    sub perf_print() {
+        cx16.r4, cx16.r5 = emudbg.cpu_cycles()
+        txt.print_uwhex(cx16.r5, true)
+        txt.print_uwhex(cx16.r4, false)
+        txt.nl()
     }
 }
