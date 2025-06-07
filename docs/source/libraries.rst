@@ -362,14 +362,12 @@ Read the `conv source code <https://github.com/irmen/prog8/tree/master/compiler/
 to see what's in there.
 
 
-coroutines (experimental)
--------------------------
+coroutines
+----------
 Provides a system to make cooperative multitasking programs via coroutines.
 A 'coroutine' is a subroutine whose execution you can pause and resume.
 This library handles the voodoo for you to switch between such coroutines transparently,
 so it can seem that your program is executing many subroutines at the same time.
-
-API is experimental and may change or disappear in a future version.
 
 Read the `coroutines source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/coroutines.p8>`_
 to see what's in there. And look at the ``multitasking`` example to see how it can be used.
@@ -1178,9 +1176,7 @@ to see what's in there. (Note: slight variations for different compiler targets)
 
 verafx  (cx16 only)
 -------------------
-Available for the Cx16 target.
-Experimental routines that use the new Vera FX logic (hopefully coming in the Vera in new X16 boards,
-the emulators already support it).
+Available for the Cx16 target. Routines that use the Vera FX logic to accelerate certain operations.
 
 ``available``
     Returns true if Vera FX is available, false if not (that would be an older Vera chip)

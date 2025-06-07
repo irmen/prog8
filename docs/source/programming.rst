@@ -24,7 +24,6 @@ Comments
     Everything on the line after a semicolon ``;`` is a comment and is ignored by the compiler.
     If the whole line is just a comment, this line will be copied into the resulting assembly source code for reference.
     There's also a block-comment: everything surrounded with ``/*`` and ``*/`` is ignored and this can span multiple lines.
-    This block comment is experimental for now: it may change or even be removed again in a future compiler version.
     The recommended way to comment out a bunch of lines remains to just bulk comment them individually with ``;``.
 
 Directive

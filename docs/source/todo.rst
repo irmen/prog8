@@ -73,6 +73,7 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - enums?
@@ -127,7 +128,6 @@ IR/VM
 Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
-- Add double-array sorting routines to sorting module? (that allows you to sort a second array in sync with the array of numbers)
 - See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
