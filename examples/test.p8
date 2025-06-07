@@ -2,31 +2,49 @@
 %import textio
 
 main {
-    ubyte[] array = [11,22,33,44,55]
-    float[] flarray = [1.1, 2.2, 3.3, 4.4, 5.5]
+    struct Node {
+        bool bb
+        float f
+        word w
+        ^^Node next
+    }
 
     sub start() {
-        txt.print_ub(array[2])
-        txt.nl()
-        cx16.r0L = 2
-        txt.print_ub(array[cx16.r0L])
+        ^^Node n1 = Node(false, 1.1, 1111, 0)
+        ^^Node n2 = Node(false, 2.2, 2222, 0)
+        ^^Node n3 = Node(true, 3.3, 3333, 0)
+
+        n1.next = n2
+        n2.next = n3
+        n3.next = 0
+
+        txt.print_bool(n1.bb)
+        txt.spc()
+        txt.print_f(n1.f)
+        txt.spc()
+        txt.print_uw(n1.next)
         txt.nl()
 
-        txt.print_f(flarray[2])
-        txt.nl()
-        cx16.r0L = 2
-        txt.print_f(flarray[cx16.r0L])
+        txt.print_bool(n2.bb)
+        txt.spc()
+        txt.print_f(n2.f)
+        txt.spc()
+        txt.print_uw(n2.next)
         txt.nl()
 
-        ^^ubyte bptr = &array[2]
-        ^^float fptr = &flarray[2]
-        txt.print_ub(bptr[2])
+        txt.print_bool(n3.bb)
         txt.spc()
-        txt.print_ub(bptr[cx16.r0L])
+        txt.print_f(n3.f)
+        txt.spc()
+        txt.print_uw(n3.next)
         txt.nl()
-        txt.print_f(fptr[2])
+
+        n1.next.next.bb = false
+        n1.next.next.f = 42.999999
+
+        txt.print_bool(n1.next.next.bb)
         txt.spc()
-        txt.print_f(fptr[cx16.r0L])
+        txt.print_f(n1.next.next.f)
         txt.nl()
     }
 }

@@ -181,6 +181,51 @@ other {
         // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("struct pointers") {
+        val src="""
+%option enable_floats
+
+main {
+    struct Node {
+        bool bb
+        float f
+        word w
+        ^^Node next
+    }
+
+    sub start() {
+        ^^Node n1 = Node(false, 1.1, 1111, 0)
+        ^^Node n2 = Node(false, 2.2, 2222, 0)
+        ^^Node n3 = Node(true, 3.3, 3333, 0)
+
+        n1.next = n2
+        n2.next = n3
+        n3.next = 0
+
+        bool bb = n1.bb
+        float f = n1.f
+        uword next = n1.next
+        word w = n1.w
+
+        bb = n2.bb
+        f = n2.f
+        next = n2.next
+        w = n2.w
+
+        n1.next.next.bb = false
+        n1.next.next.f = 42.999
+        n1.next.next.w = 5555
+        n1.next.next.w++
+
+        bb = n1.next.next.bb
+        f = n1.next.next.f
+    }
+}
+"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
+
     test("pointer walking using simple dot notation should be equivalent to explicit dereference chain") {
         val src="""
 main {

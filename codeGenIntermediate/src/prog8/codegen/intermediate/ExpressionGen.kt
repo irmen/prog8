@@ -159,24 +159,31 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             pointerReg = tr.resultReg
         }
 
-        result += traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerReg)
-        when {
-            deref.type.isByteOrBool -> {
-                val resultReg = codeGen.registers.next(IRDataType.BYTE)
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = pointerReg), null)
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
-            }
-            deref.type.isWord || deref.type.isPointer -> {
-                val resultReg = codeGen.registers.next(IRDataType.WORD)
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = resultReg, reg2 = pointerReg), null)
-                return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
-            }
-            deref.type.isFloat -> {
+        val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerReg)
+        result += instructions
+        if(offset==0u) {
+            val irdt = irType(deref.type)
+            return if(deref.type.isFloat) {
                 val resultReg = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = pointerReg), null)
-                return ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
+                ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
+            } else {
+                val resultReg = codeGen.registers.next(irdt)
+                addInstr(result, IRInstruction(Opcode.LOADI, irdt, reg1 = resultReg, reg2 = pointerReg), null)
+                ExpressionCodeResult(result, irdt, resultReg, -1)
             }
-            else -> throw AssemblyError("unsupported dereference type ${deref.type} at ${deref.position}")
+        }
+
+        // load field with offset
+        return if(deref.type.isFloat) {
+            val resultReg = codeGen.registers.next(IRDataType.FLOAT)
+            addInstr(result, IRInstruction(Opcode.LOADFIELD, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = pointerReg, immediate = offset.toInt()), null)
+            ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
+        } else {
+            val irdt = irType(deref.type)
+            val resultReg = codeGen.registers.next(irdt)
+            addInstr(result, IRInstruction(Opcode.LOADFIELD, irdt, reg1 = resultReg, reg2 = pointerReg, immediate = offset.toInt()), null)
+            ExpressionCodeResult(result, irdt, resultReg, -1)
         }
     }
 
@@ -300,7 +307,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             require(vmDt==IRDataType.WORD)
             val pointerTr = translateExpression(expr.dereference!!.startpointer)
             result += pointerTr.chunks
-            result += traverseRestOfDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
+            val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(expr.dereference!!, pointerTr.resultReg)
+            result += instructions
+            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerTr.resultReg, immediate = offset.toInt()), null)
             return ExpressionCodeResult(result, vmDt, pointerTr.resultReg, -1)
         }
     }
@@ -316,30 +325,31 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
 
         val ptrWithOffset = mem.address as? PtBinaryExpression
-        if(ptrWithOffset!=null && ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier) {
-            if((ptrWithOffset.right as? PtNumber)?.number?.toInt() in 0..255) {
-                // LOADIX only works with byte index.
-                val ptrName = (ptrWithOffset.left as PtIdentifier).name
-                val offsetReg = codeGen.registers.next(IRDataType.BYTE)
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=offsetReg, immediate = ptrWithOffset.right.asConstInteger())
-                    it += IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=resultRegister, reg2=offsetReg, labelSymbol = ptrName)
+        if(ptrWithOffset!=null) {
+            if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier) {
+                val constOffset = (ptrWithOffset.right as? PtNumber)?.number?.toInt()
+                if(constOffset in 0..255) {
+                    val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                    val pointerReg = codeGen.registers.next(IRDataType.WORD)
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1 = pointerReg, labelSymbol = ptrName)
+                        it += IRInstruction(Opcode.LOADFIELD, IRDataType.BYTE, reg1=resultRegister, reg2=pointerReg,  immediate = constOffset)
+                    }
+                    return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
                 }
+            }
+            val offsetTypecast = ptrWithOffset.right as? PtTypeCast
+            if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier && (ptrWithOffset.right.type.isByte || offsetTypecast?.value?.type?.isByte==true)) {
+                // LOADIX only works with byte index.
+                val tr = if(offsetTypecast?.value?.type?.isByte==true)
+                    translateExpression(offsetTypecast.value)
+                else
+                    translateExpression(ptrWithOffset.right)
+                addToResult(result, tr, tr.resultReg, -1)
+                val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                addInstr(result, IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=resultRegister, reg2=tr.resultReg, labelSymbol = ptrName), null)
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
             }
-        }
-        val offsetTypecast = ptrWithOffset?.right as? PtTypeCast
-        if(ptrWithOffset!=null && ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier
-            && (ptrWithOffset.right.type.isByte || offsetTypecast?.value?.type?.isByte==true)) {
-            // LOADIX only works with byte index.
-            val tr = if(offsetTypecast?.value?.type?.isByte==true)
-                translateExpression(offsetTypecast.value)
-            else
-                translateExpression(ptrWithOffset.right)
-            addToResult(result, tr, tr.resultReg, -1)
-            val ptrName = (ptrWithOffset.left as PtIdentifier).name
-            addInstr(result, IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=resultRegister, reg2=tr.resultReg, labelSymbol = ptrName), null)
-            return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         }
 
         val tr = translateExpression(mem.address)
@@ -1635,11 +1645,14 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return ExpressionCodeResult(result, vmDt, resultReg, resultFpReg)
     }
 
-    internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): IRCodeChunks {
+    internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): Pair<IRCodeChunks, UInt> {
+        // returns instructions to calculate the pointer address, and the offset into the struct it points to
+        // so that LOADFIELD and STOREFIELD opcodes can be used instead of having an explicit extra ADD
+
         val result = mutableListOf<IRCodeChunkBase>()
 
         if(targetPointerDeref.chain.isEmpty())
-            return result   // nothing to do; there's no deref chain
+            return result to 0u   // nothing to do; there's no deref chain
 
         var struct: StStruct? = null
         if(targetPointerDeref.startpointer.type.subType!=null)
@@ -1661,15 +1674,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val field = targetPointerDeref.chain.last()
         val fieldinfo = struct!!.getField(field, codeGen.program.memsizer)
         if(fieldinfo.second>0u) {
-            // add the field offset
-            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)
+            if(targetPointerDeref.derefLast) {
+                require(fieldinfo.first.isPointer)
+                // add the field offset
+                addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)
+                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
+                return result to 0u
+            } else {
+                return result to fieldinfo.second
+            }
         }
         if(targetPointerDeref.derefLast) {
             require(fieldinfo.first.isPointer)
             // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
             addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
         }
-        return result
+        return result to 0u
     }
 }
 

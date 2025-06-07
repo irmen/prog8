@@ -199,6 +199,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADHXY -> InsLOADHXY(ins)
             Opcode.LOADHFACZERO -> InsLOADHFACZERO(ins)
             Opcode.LOADHFACONE -> InsLOADHFACONE(ins)
+            Opcode.LOADFIELD -> InsLOADFIELD(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREIX -> InsSTOREIX(ins)
@@ -214,6 +215,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREHXY -> InsSTOREHXY(ins)
             Opcode.STOREHFACZERO -> InsSTOREHFACZERO(ins)
             Opcode.STOREHFACONE-> InsSTOREHFACONE(ins)
+            Opcode.STOREFIELD-> InsSTOREFIELD(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory bytes")
@@ -492,6 +494,27 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
+    private fun InsLOADFIELD(i: IRInstruction) {
+        val offset = i.immediate!!
+        require(offset in 0..255)
+        when(i.type!!) {
+            IRDataType.BYTE -> {
+                val value = memory.getUB(registers.getUW(i.reg2!!).toInt() + offset)
+                registers.setUB(i.reg1!!, value)
+                statusbitsNZ(value.toInt(), i.type!!)
+            }
+            IRDataType.WORD -> {
+                val value = memory.getUW(registers.getUW(i.reg2!!).toInt() + offset)
+                registers.setUW(i.reg1!!, value)
+                statusbitsNZ(value.toInt(), i.type!!)
+            }
+            IRDataType.FLOAT -> {
+                registers.setFloat(i.fpReg1!!, memory.getFloat(registers.getUW(i.reg1!!).toInt() + offset))
+            }
+        }
+        nextPc()
+    }
+
     private fun InsLOADX(i: IRInstruction) {
         when (i.type!!) {
             IRDataType.BYTE -> {
@@ -562,6 +585,21 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt(), registers.getUB(i.reg1!!))
             IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt(), registers.getUW(i.reg1!!))
             IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt(), registers.getFloat(i.fpReg1!!))
+        }
+        nextPc()
+    }
+
+    private fun InsSTOREFIELD(i: IRInstruction) {
+        val offset = i.immediate!!
+        require(offset in 0..255)
+        when (i.type!!) {
+            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt() + offset, registers.getUB(i.reg1!!))
+            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt() + offset, registers.getUW(i.reg1!!))
+            IRDataType.FLOAT -> {
+                val a = registers.getUW(i.reg1!!).toInt()
+                val f = registers.getFloat(i.fpReg1!!)
+                memory.setFloat(registers.getUW(i.reg1!!).toInt() + offset, registers.getFloat(i.fpReg1!!))
+            }
         }
         nextPc()
     }

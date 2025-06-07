@@ -159,7 +159,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 val value = if(oper[0]=='#') parseIRValue(oper.drop(1)) else parseIRValue(oper)
                 if (format.immediate) {
                     if (immediateInt == null && immediateFp == null) {
-                        if (type == IRDataType.FLOAT)
+                        if (type == IRDataType.FLOAT && opcode != Opcode.LOADFIELD && opcode != Opcode.STOREFIELD)
                             immediateFp = value
                         else
                             immediateInt = value.toInt()
