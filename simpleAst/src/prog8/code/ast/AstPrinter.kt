@@ -47,7 +47,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
             is PtBuiltinFunctionCall -> {
                 if(node.name=="structalloc") {
-                    node.type.subType!!.scopedNameString+"()"
+                    node.type.subType!!.scopedNameString+"()  <structalloc>"
                 } else {
                     val str = if (node.void) "void " else ""
                     str + node.name + "()"

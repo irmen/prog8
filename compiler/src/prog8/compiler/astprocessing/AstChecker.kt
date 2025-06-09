@@ -565,7 +565,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("identifiers cannot start with an underscore", p.position)
 
             if(p.type.isPassByRef && !p.type.isString && !p.type.isUnsignedByteArray) {
-                errors.err("this pass-by-reference type can't be used as a parameter type. Instead, use just 'uword' to receive the address, or maybe don't pass the value via a parameter but access it directly.", p.position)
+                errors.err("this pass-by-reference type can't be used as a parameter type.", p.position)
             }
 
             if (p.type.isPointer) {
@@ -1811,7 +1811,7 @@ internal class AstChecker(private val program: Program,
                 if (!args.all { it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral)})
                     errors.err("initialization value contains non-constant elements", args[0].position)
                 if (target.fields.size != args.size)
-                    errors.err("initialization value needs to have same number of values as the struct has fields: expected ${target.fields.size} or 0, got ${args.size}", args[0].position)
+                    errors.err("initialization value needs to have same number of values as the struct has fields, or be empty: expected ${target.fields.size} or 0, got ${args.size}", args[0].position)
                 else
                     target.fields.zip(args).withIndex().forEach { (index, fv) ->
                         val (field, value) = fv

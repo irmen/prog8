@@ -32,6 +32,7 @@ STRUCTS and TYPED POINTERS
 - DONE: static initialization of structs. It behaves like arrays; it won't reset to the original value when program is restarted, so beware.
   Syntax:  ^^Node ptr = Node(1,2,3,4) statically allocates a Node with fields set to 1,2,3,4 and puts the address in ptr.
   Node() without arguments allocates a node in BSS variable space instead that gets zeroed out at startup.
+  ()Internally this gets translated into a structalloc(1,2,3,4)  builtin function call that has a pointer to the struct as its return type)
 - DONE: pointer arrays are split-words only, enforce this (variable dt + initializer array dt)
 - DONE: make an error message for all pointer expressions (prefixed, binary) so we can start implementing the ones we need one by one.
 - DONE: start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for subtraction.  DON'T FORGET C POINTER SEMANTICS.   Other operators are nonsensical for ptr arith
@@ -55,8 +56,10 @@ STRUCTS and TYPED POINTERS
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
 - DONE: allow  list1^^ = list2^^  (value wise assignment of List structures) by replacing it with a sys.memcopy(list2, list1, sizeof(List)) call.
 - DONE: allow  a.b.ptr[i].value  (equiv to a.b.ptr[i]^^.value)  expressions  (assignment target doesn't parse yet, see below)
-- fix a.b.ptr[i].value  where ptr is primitive type (same as next todo item?)
-- fix support for array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
+- DONE: check passing arrays to typed ptr sub-parameters.  NOTE: word array can only be a @nosplit array if the parameter type is ^^word, because the words need to be sequential in memory there
+- fix support for (expression) array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
+- fix support for (assigntarget) array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
+- fix support for (assigntarget) array index dereferencing "array[2].value"   where array is struct pointers
 - add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
 - add unit tests for all changes (pointers and structs)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)

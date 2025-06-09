@@ -983,12 +983,12 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^.value as expression where pointer is primitive type") {
+    test("a.b.c[i]^^ as expression where pointer is primitive type") {
         val src="""
 main {
     sub start() {
-        cx16.r0L = other.foo.ptrarray[2].value
-        cx16.r1L = other.foo.ptrarray[3]^^.value
+        cx16.r0 = other.foo.ptrarray[2]
+        cx16.r1L = other.foo.ptrarray[3]^^
         other.foo()
     }
 }
@@ -996,14 +996,14 @@ main {
 other {
     sub foo() {
         ^^ubyte[10] ptrarray
-        cx16.r0L = ptrarray[2].value
-        cx16.r1L = ptrarray[3]^^.value
+        cx16.r0 = ptrarray[2]
+        cx16.r1L = ptrarray[3]^^
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^.value as assignment target where pointer is struct") {
+    test("a.b.c[i]^^.value as assignment target where pointer is struct") {
         val src="""
 main {
     sub start() {
@@ -1028,26 +1028,61 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^.value as assignment target where pointer is primitive type") {
+    test("a.b.c[i]^^ as assignment target where pointer is primitive type") {
         val src="""
 main {
     sub start() {
-        other.foo.ptrarray[2].value = cx16.r0L
-        other.foo.ptrarray[3]^^.value = cx16.r0L
+        other.foo.ptrarray[2] = cx16.r0
+        other.foo.ptrarray[3]^^ = cx16.r0L
         other.foo()
     }
 }
 
 other {
     sub foo() {
-        struct List {
-            bool b
-            uword value
-        }
-
         ^^ubyte[10] ptrarray
-        ptrarray[2].value = cx16.r0L
-        ptrarray[3]^^.value = cx16.r0L
+        ptrarray[2] = cx16.r0
+        ptrarray[3]^^ = cx16.r0L
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("passing arrays to subroutines via typed pointer parameters") {
+        val src="""
+%import floats
+%import textio
+
+main {
+    struct Node {
+        bool bb
+        float f
+        word w
+        ^^Node next
+    }
+
+    sub start() {
+        ^^Node[5] node_array
+        node_array [0] = node_array[1] = node_array[2] = node_array[3] = node_array[4] = 7777
+        bool[5] bool_array = [true, true, true, false, false]
+        word[5] @nosplit word_array = [-1111,-2222,3333,4444,5555]          ; has to be nosplit
+        float[5] float_array = [111.111,222.222,333.333,444.444,555.555]
+
+        modifyb(bool_array, 2)
+        modifyw(word_array, 2)
+        modifyf(float_array, 2)
+    }
+
+    sub modifyb(^^bool array, ubyte index) {
+        array[index] = false
+    }
+
+    sub modifyw(^^word array, ubyte index) {
+        array[index] = 9999
+    }
+
+    sub modifyf(^^float array, ubyte index) {
+        array[index] = 9999.999
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
