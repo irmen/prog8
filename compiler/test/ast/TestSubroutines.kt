@@ -243,4 +243,40 @@ main {
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain ":8:5: address must be a constant"
     }
+
+    test("detect missing return") {
+        val src="""
+main {
+    sub start() {
+        void read_loadlist()
+        void test2()
+    }
+
+
+    sub read_loadlist() -> bool {
+        cx16.r0++
+        if cx16.r0==0
+            return false
+        cx16.r1++
+        ; TODO missing return!  ERROR!
+    }
+    
+    sub test2() -> bool {
+        cx16.r0++
+        return false
+        
+        sub sub1() {
+            cx16.r0++
+        }
+        
+        sub sub2() {
+            cx16.r0++
+        }
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, errors, false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "doesn't end with a return"
+    }
 })

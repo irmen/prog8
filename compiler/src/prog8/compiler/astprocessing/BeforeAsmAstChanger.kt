@@ -49,7 +49,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         val mods = mutableListOf<IAstModification>()
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
-        // and if an assembly block doesn't contain a rts/rti.
+        // and if an assembly block doesn't contain a rts/rti.  AND if there's no return value(s) because we can't make one up!
         if (!subroutine.isAsmSubroutine) {
             if(subroutine.isEmpty()) {
                 if(subroutine.returntypes.isNotEmpty())
