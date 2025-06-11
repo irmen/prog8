@@ -22,7 +22,9 @@ import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
+import prog8.vm.VmRunner
 import prog8tests.helpers.*
+import kotlin.io.path.readText
 
 
 class TestOptimization: FunSpec({
@@ -1177,5 +1179,55 @@ main {
     }
 }"""
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("correct unused block removal for virtual target") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0++
+    }
+}
+
+some_block {
+    uword buffer = memory("arena", 2000, 0)
+}
+
+
+other_block {
+    sub  redherring  (uword buffer)  {
+        %ir {{
+            loadm.w r99000,other_block.redherring.buffer
+        }}
+    }
+}
+"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runProgram(virtfile.readText(), false)
+    }
+
+    test("correct unused block removal for c64 target") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0++
+    }
+}
+
+some_block {
+    uword buffer = memory("arena", 2000, 0)
+}
+
+
+other_block {
+    sub  redherring  (uword buffer)  {
+        %asm {{
+            lda  #<p8b_other_block.p8s_redherring.p8v_buffer
+            ldy  #>p8b_other_block.p8s_redherring.p8v_buffer
+        }}
+    }
+}"""
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
     }
 })

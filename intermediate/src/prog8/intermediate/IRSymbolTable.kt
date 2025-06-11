@@ -52,6 +52,10 @@ class IRSymbolTable {
     fun validate() {
         require(table.all { it.key == it.value.name })
     }
+
+    fun removeIfExists(labelSymbol: String) {
+        table.remove(labelSymbol)
+    }
 }
 
 
