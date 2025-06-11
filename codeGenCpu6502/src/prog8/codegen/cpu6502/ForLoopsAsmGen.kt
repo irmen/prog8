@@ -420,6 +420,7 @@ $endLabel""")
         val modifiedLabel2 = asmgen.makeLabel("for_modifiedb")
         asmgen.assignExpressionToRegister(range.to, RegisterOrPair.AY)
         precheckFromToWord(iterableDt, stepsize, varname, endLabel)
+        asmgen.romableError("self-modifying code (forloop over words range)", stmt.position)  // TODO fix romable; there is self-modifying code below
         asmgen.out("""
                 sty  $modifiedLabel+1
                 sta  $modifiedLabel2+1
@@ -442,7 +443,6 @@ $modifiedLabel  sbc  #0    ; modified
                 eor  #$80
 +               bpl  $loopLabel                
 $endLabel""")
-        asmgen.romableError("self-modifying code (forloop over words range)", stmt.position)  // TODO fix romable
     }
 
     private fun precheckFromToWord(iterableDt: DataType, stepsize: Int, fromVar: String, endLabel: String) {

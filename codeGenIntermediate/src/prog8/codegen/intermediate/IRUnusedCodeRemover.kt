@@ -64,6 +64,36 @@ class IRUnusedCodeRemover(
         }
 
         irprog.st.removeTree(blockLabel)
+        removeBlockInits(irprog, blockLabel)
+    }
+
+    private fun removeBlockInits(code: IRProgram, blockLabel: String) {
+        val instructions = code.globalInits.instructions
+        instructions.toTypedArray().forEach {ins ->
+            if(ins.labelSymbol?.startsWith(blockLabel)==true) {
+                instructions.remove(ins)
+            }
+        }
+
+        // remove stray loads
+        instructions.toTypedArray().forEach { ins ->
+            if(ins.opcode in arrayOf(Opcode.LOAD, Opcode.LOADR, Opcode.LOADM)) {
+                if(ins.reg1!=0) {
+                    if(instructions.count { it.reg1==ins.reg1 || it.reg2==ins.reg1 } <2) {
+                        if(ins.labelSymbol!=null)
+                            code.st.removeIfExists(ins.labelSymbol!!)
+                        instructions.remove(ins)
+                    }
+                }
+                else if(ins.fpReg1!=0) {
+                    if (instructions.count { it.fpReg1 == ins.fpReg1 || it.fpReg2 == ins.fpReg1 } < 2) {
+                        if(ins.labelSymbol!=null)
+                            code.st.removeIfExists(ins.labelSymbol!!)
+                        instructions.remove(ins)
+                    }
+                }
+            }
+        }
     }
 
     private fun removeUnusedSubroutines(): Int {

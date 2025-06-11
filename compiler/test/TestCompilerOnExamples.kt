@@ -241,7 +241,8 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             "bouncegfx",
             "bsieve",
             "pixelshader",
-            "sincos"
+            "sincos",
+            "pointers/sortedlist"       // TODO add to "c64" later as well
         ),
         listOf(false, true)
     )

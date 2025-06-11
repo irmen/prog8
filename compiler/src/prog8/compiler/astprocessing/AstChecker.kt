@@ -443,11 +443,42 @@ internal class AstChecker(private val program: Program,
 
         // subroutine must contain at least one 'return' or 'goto'
         // (or if it has an asm block, that must contain a 'rts' or 'jmp' or 'bra')
+        var haveReturnError = false
         if(!hasReturnOrExternalJumpOrRts(subroutine)) {
             if (subroutine.returntypes.isNotEmpty()) {
                 // for asm subroutines with an address, no statement check is possible.
-                if (subroutine.asmAddress == null && !subroutine.inline)
+                if (subroutine.asmAddress == null && !subroutine.inline) {
                     err("non-inline subroutine has result value(s) and thus must have at least one 'return' or external 'goto' in it (or the assembler equivalent in case of %asm)")
+                    haveReturnError = true
+                }
+            }
+        }
+
+        val lastStatement = subroutine.statements.reversed().dropWhile { it is Subroutine || it is VarDecl || it is Directive || (it is Assignment && it.origin== AssignmentOrigin.VARINIT) }.firstOrNull()
+        if(!haveReturnError && !subroutine.isAsmSubroutine && !subroutine.inline && subroutine.returntypes.isNotEmpty() && lastStatement !is Return) {
+            if(lastStatement==null)
+                err("subroutine '${subroutine.name}' has result value(s) but doesn't end with a return statement")
+            else {
+                val returnError = when (lastStatement) {
+                    is Jump, is OnGoto -> false
+                    is IStatementContainer -> !hasReturnOrExternalJumpOrRts(lastStatement as IStatementContainer)
+                    is InlineAssembly -> !lastStatement.hasReturnOrRts()
+                    is ForLoop -> hasReturnOrExternalJumpOrRts(lastStatement.body)
+                    is IfElse -> !hasReturnOrExternalJumpOrRts(lastStatement.truepart) && !hasReturnOrExternalJumpOrRts(lastStatement.elsepart)
+                    is ConditionalBranch -> !hasReturnOrExternalJumpOrRts(lastStatement.truepart) && !hasReturnOrExternalJumpOrRts(lastStatement.elsepart)
+                    is RepeatLoop -> {
+                        lastStatement.iterations!=null || !hasReturnOrExternalJumpOrRts(lastStatement.body)
+                    }
+                    is UntilLoop -> !hasReturnOrExternalJumpOrRts(lastStatement.body)
+                    is WhileLoop -> !hasReturnOrExternalJumpOrRts(lastStatement.body)
+                    is When -> lastStatement.choices.all { !hasReturnOrExternalJumpOrRts(it.statements) }
+                    else -> true
+                }
+
+                if(returnError) {
+                    val pos = if(lastStatement is Subroutine) subroutine.position else lastStatement.position
+                    errors.err("subroutine '${subroutine.name}' has result value(s) but doesn't end with a return statement", pos)
+                }
             }
         }
 
