@@ -146,7 +146,7 @@ class AstPreprocessor(val program: Program,
                         }
                     } else {
                         // handle declaration of a single variable
-                        if(decl.value!=null && decl.datatype.isNumericOrBool) {
+                        if(decl.value!=null && !decl.datatype.isIterable) {
                             val target = AssignTarget(
                                 IdentifierReference(listOf(decl.name), decl.position),
                                 null,

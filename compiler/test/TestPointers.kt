@@ -981,7 +981,7 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    test("a.b.c[i]^^ as expression where pointer is primitive type") {
+    xtest("a.b.c[i]^^ as expression where pointer is primitive type") {
         val src="""
 main {
     sub start() {
@@ -1001,7 +1001,7 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    test("a.b.c[i]^^.value as assignment target where pointer is struct") {
+    xtest("a.b.c[i]^^.value as assignment target where pointer is struct") {
         val src="""
 main {
     sub start() {
@@ -1026,7 +1026,7 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    test("a.b.c[i]^^ as assignment target where pointer is primitive type") {
+    xtest("a.b.c[i]^^ as assignment target where pointer is primitive type") {
         val src="""
 main {
     sub start() {

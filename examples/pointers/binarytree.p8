@@ -1,16 +1,17 @@
-; Binary Tree.
+; Binary Search Tree.
+; It's a simple implementation for test/demonstration purposes of the pointer support;
+; no balancing is done and memory is not freed when elements are removed.
 
-%import math
 %import textio
 
 main {
 
     sub start() {
-        repeat 20 {
-            btree.add(math.rndw() % 1000)
-        }
+        for cx16.r0 in [321, 719, 194, 550, 187, 203, 520, 562, 221, 676, 97, 852, 273, 326, 589, 606, 275, 794, 63, 716]
+            btree.add(cx16.r0)
 
-        txt.print("sorted values: ")
+        txt.print_ub(btree.size())
+        txt.print(" sorted values: ")
         btree.print_tree_inorder()
         txt.print("'tree' form:\n")
         btree.print_tree_preorder()
@@ -25,23 +26,24 @@ main {
         txt.print_bool(btree.contains(606))
         txt.nl()
 
-        txt.print("REMOVING 9999:\n")
+        txt.print("Removing some numbers.\n")
         btree.remove(9999)
-;        btree.remove(97)
-;        btree.remove(187)
-;        btree.remove(203)
-;        btree.remove(275)
-;        btree.remove(321)
-;        btree.remove(520)
-;        btree.remove(562)
-;        btree.remove(606)
-;        btree.remove(716)
-;        btree.remove(794)
+        btree.remove(97)
+        btree.remove(187)
+        btree.remove(203)
+        btree.remove(275)
+        btree.remove(321)
+        btree.remove(520)
+        btree.remove(562)
+        btree.remove(606)
+        btree.remove(719)
+        btree.remove(794)
 
-;        txt.print("sorted values: ")
-;        btree.print_tree_inorder()
-;        txt.print("'tree' form:\n")
-;        btree.print_tree_preorder()
+        txt.print_ub(btree.size())
+        txt.print(" sorted values: ")
+        btree.print_tree_inorder()
+        txt.print("'tree' form:\n")
+        btree.print_tree_preorder()
     }
 }
 
@@ -97,17 +99,35 @@ btree {
         return false
     }
 
+    sub size() -> ubyte {
+        ubyte count
+
+        if root
+            count_node(root)
+
+        return count
+
+        sub count_node(^^Node r) {
+            count++
+            if r.left {
+                sys.pushw(r)
+                count_node(r.left)
+                r = sys.popw()
+            }
+            if r.right {
+                sys.pushw(r)
+                count_node(r.right)
+                r = sys.popw()
+            }
+        }
+    }
+
     sub remove(uword value) {
         ; note: we don't deallocate the memory from the node, for simplicity sake
-        txt.print("REMOVE ")
-        txt.print_uw(value)
-        txt.nl()
-
         ^^Node n = root
         ^^Node parent = 0
         while n {
             if n.value==value {
-                txt.print("FOUND!\n")
                 if n.left==0
                     replacechild(parent, n, n.right)
                 else if n.right==0
@@ -118,11 +138,6 @@ btree {
                     ;    Find N's successor S. (N's right subtree's minimum element)
                     ;    Attach N's left subtree to S.left (S doesn't have a left child)
                     ;    Attach N's right subtree to Parent in place of N.
-                    txt.print("NEED SUCCESSOR OF ")
-                    txt.print_uw(n)
-                    txt.print(": ")
-                    txt.print_uw(n.value)
-                    txt.nl()
                     ^^Node successor = find_successor(n)
                     successor.left = n.left
                     replacechild(parent, n, n.right)
@@ -137,21 +152,13 @@ btree {
         }
 
         sub find_successor(^^Node p) -> ^^Node {
-            txt.print("SUCCESSOR OF ")
-            txt.print_uw(p)
-            txt.print(": ")
-            txt.print_uw(p.value)
-            txt.nl()
-;            ^^Node succ = p
-;            p = p.right
-;            while p!=0 {
-;                succ = p
-;                p = p.left
-;                txt.print("SUCC ")
-;                txt.print_uw(p)
-;                txt.nl()
-;            }
-            return 0
+            ^^Node succ = p
+            p = p.right
+            while p {
+                succ = p
+                p = p.left
+            }
+            return succ
         }
 
         sub replacechild(^^Node p, ^^Node child, ^^Node newchild) {
