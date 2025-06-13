@@ -10,9 +10,7 @@ import io.kotest.matchers.types.instanceOf
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.PtrDereference
-import prog8.ast.statements.Assignment
-import prog8.ast.statements.FunctionCallStatement
-import prog8.ast.statements.VarDecl
+import prog8.ast.statements.*
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtReturn
 import prog8.code.ast.PtSubSignature
@@ -983,7 +981,7 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^ as expression where pointer is primitive type") {
+    test("a.b.c[i]^^ as expression where pointer is primitive type") {
         val src="""
 main {
     sub start() {
@@ -1003,7 +1001,7 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^.value as assignment target where pointer is struct") {
+    test("a.b.c[i]^^.value as assignment target where pointer is struct") {
         val src="""
 main {
     sub start() {
@@ -1028,7 +1026,7 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^ as assignment target where pointer is primitive type") {
+    test("a.b.c[i]^^ as assignment target where pointer is primitive type") {
         val src="""
 main {
     sub start() {
@@ -1086,5 +1084,37 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("hoist variable decl and initializer correctly in case of pointer type variable as well") {
+        val src="""
+%import textio
+
+main {
+
+    sub start() {
+        txt.print("one\n")
+        if true {
+            txt.print("two\n")
+            ^^bool @shared successor = find_successor()     ; testcase here
+        }
+        txt.print("four\n")
+
+        sub find_successor() -> uword {
+            txt.print("three\n")
+            cx16.r0++
+            return 0
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 6
+        st[0] shouldBe instanceOf<VarDecl>()
+        (st[1] as FunctionCallStatement).target.nameInSource shouldBe listOf("txt", "print")
+        st[2] shouldBe instanceOf<IfElse>()
+        (st[3] as FunctionCallStatement).target.nameInSource shouldBe listOf("txt", "print")
+        st[4] shouldBe instanceOf<Return>()
+        st[5] shouldBe instanceOf<Subroutine>()
     }
 })

@@ -242,7 +242,8 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             "bsieve",
             "pixelshader",
             "sincos",
-            "pointers/sortedlist"       // TODO add to "c64" later as well
+            "pointers/binarytree",       // TODO add to "c64" later as well
+            "pointers/sortedlist"        // TODO add to "c64" later as well
         ),
         listOf(false, true)
     )

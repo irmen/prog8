@@ -215,7 +215,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         }
 
         // complex return value, need to store it before calling the defer block
-        errors.warn("using defer with complex return value(s) incurs stack overhead", ret.children.first { !notComplex(it as PtExpression)}.position)
+        errors.warn("using defer with nontrivial return value(s) incurs stack overhead", ret.children.first { !notComplex(it as PtExpression)}.position)
         val pushAndPopCalls = ret.children.map { makePushPopFunctionCalls(it as PtExpression) }
         val pushCalls = pushAndPopCalls.map { it.first }.reversed()     // push in reverse order
         val popCalls = pushAndPopCalls.map { it.second }
