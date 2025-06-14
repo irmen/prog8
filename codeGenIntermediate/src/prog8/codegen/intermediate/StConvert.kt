@@ -137,7 +137,7 @@ private fun convert(variable: StMemorySlab): IRStMemorySlab {
 }
 
 
-private fun convert(instance: StStructInstance, fields: List<Pair<DataType, String>>): IRStStructInstance {
+private fun convert(instance: StStructInstance, fields: Iterable<Pair<DataType, String>>): IRStStructInstance {
     val values = fields.zip(instance.initialValues).map { (field, value) ->
         val elt = convertArrayElt(value)
         IRStructInitValue(field.first.base, elt)

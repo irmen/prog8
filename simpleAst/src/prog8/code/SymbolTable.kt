@@ -298,6 +298,10 @@ class StStruct(
     }
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
+    override fun sameas(other: ISubType): Boolean = other is StStruct &&
+            scopedNameString == other.scopedNameString &&
+            fields == other.fields &&
+            size == other.size
 }
 
 

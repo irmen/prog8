@@ -313,9 +313,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
                     } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
                         if(!identifier.isSubroutineParameter()) {
-                            // We allow STR/ARRAY values for UWORD parameters.
-                            // If it's an array (not STR), take the address.
-                            if(!argDt.isString) {
+                            // We allow STR/ARRAY values for UWORD or ^^UBYTE parameters.
+                            if(!argDt.isString || it.second is IdentifierReference) {
                                 modifications += IAstModification.ReplaceNode(
                                     identifier,
                                     AddressOf(identifier, null, null, false, it.second.position),
@@ -333,12 +332,25 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             } else {
                 val identifier = it.second as? IdentifierReference
                 if(identifier!=null && targetDt.isUnsignedWord) {
-                    // take the address of the identifier
-                    modifications += IAstModification.ReplaceNode(
-                        identifier,
-                        AddressOf(identifier, null, null, false, it.second.position),
-                        call as Node
-                    )
+                    val dt = identifier.inferType(program)
+                    if(dt.isArray || dt.isString) {
+                        // take the address of the identifier
+                        modifications += IAstModification.ReplaceNode(
+                            identifier,
+                            AddressOf(identifier, null, null, false, it.second.position),
+                            call as Node
+                        )
+                    } else if(dt.isUnknown) {
+                        val subOrLabel = identifier.targetStatement(null)
+                        if(subOrLabel is Subroutine || subOrLabel is Label) {
+                            // take the address of the subroutine or label
+                            modifications += IAstModification.ReplaceNode(
+                                identifier,
+                                AddressOf(identifier, null, null, false, it.second.position),
+                                call as Node
+                            )
+                        }
+                    }
                 }
             }
         }

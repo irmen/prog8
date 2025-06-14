@@ -632,7 +632,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val name = getname(ctx.identifier())
         val fields: List<Pair<DataType, List<String>>> = ctx.structfielddecl().map { getStructField(it) }
         val flattened = fields.flatMap { (dt, names) -> names.map { dt to it}}
-        return StructDecl(name, flattened, ctx.toPosition())
+        return StructDecl(name, flattened.toTypedArray(), ctx.toPosition())
     }
 
     private fun getStructField(ctx: StructfielddeclContext): Pair<DataType, List<String>> {

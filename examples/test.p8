@@ -1,51 +1,55 @@
-%import floats
 %import textio
+%import strings
+
+; Animal guessing game where the computer gets smarter every time.
+; Note: this program can be compiled for multiple target systems.
 
 main {
-    struct Node {
-        bool bb
-        float f
-        word w
-        ^^Node next
-    }
+
+    str userinput = "x"*80
 
     sub start() {
-        ^^Node n1 = Node(false, 1.1, 1111, 0)
+        db.init()
+        txt.print_uw(db.first)
+        cx16.r0 = db.first
 
-        ^^Node[5] node_array
-        node_array [0] = node_array[1] = node_array[2] = node_array[3] = node_array[4] = n1
-        bool[5] bool_array = [true, true, true, false, false]
-        word[5] @nosplit word_array = [-1111,-2222,3333,4444,5555]
-        float[5] float_array = [111.111,222.222,333.333,444.444,555.555]
-
-        txt.print_bool(bool_array[2])
-        txt.spc()
-        txt.print_w(word_array[2])
-        txt.spc()
-        txt.print_f(float_array[2])
+        ; TODO fix symbol lookup errors:
+        cx16.r1 = db.first.negative
+        cx16.r0 = db.first.negative.animal
+        txt.print_uw(db.first.negative)
+        txt.print(db.first.negative.animal)
         txt.nl()
-
-        modifyb(bool_array, 2)
-        modifyw(word_array, 2)
-        modifyf(float_array, 2)
-
-        txt.print_bool(bool_array[2])
-        txt.spc()
-        txt.print_w(word_array[2])
-        txt.spc()
-        txt.print_f(float_array[2])
+        txt.print(db.first.positive.animal)
         txt.nl()
     }
+}
 
-    sub modifyb(^^bool array, ubyte index) {
-        array[index] = false
+db {
+    struct Node {
+        str question
+        str animal
+        ^^Node negative
+        ^^Node positive
     }
 
-    sub modifyw(^^word array, ubyte index) {
-        array[index] = 9999
-    }
+    ^^Node first
 
-    sub modifyf(^^float array, ubyte index) {
-        array[index] = 9999.999
+    sub init() {
+        first = Node("does it swim", 0, 0, 0)
+        ^^Node eagle = Node(0, "eagle", 0, 0)
+        ^^Node dolpin = Node(0, "dolpin", 0, 0)
+        first.negative = eagle
+        first.positive = dolpin
+    }
+}
+
+arena {
+    ; extremely trivial arena allocator (that never frees)
+    uword buffer = memory("arena", 10000, 0)
+    uword next = buffer
+
+    sub alloc(ubyte size) -> uword {
+        defer next += size
+        return next
     }
 }

@@ -214,18 +214,6 @@ class AstPreprocessor(val program: Program,
         return noModifications
     }
 
-    override fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> {
-        // convert all antlr names to structs
-        struct.fields.forEach {
-            if(it.first.subTypeFromAntlr!=null) {
-                val struct = struct.definingScope.lookup(it.first.subTypeFromAntlr!!) as? ISubType
-                if(struct!=null)
-                    it.first.setActualSubType(struct)
-            }
-        }
-        return noModifications
-    }
-
     private fun shouldUnSplitArray(decl: VarDecl): Boolean =
         options.dontSplitWordArrays && decl.datatype.isSplitWordArray
 

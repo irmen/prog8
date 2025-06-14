@@ -1,6 +1,9 @@
 TODO
 ====
 
+Fix symbol lookup bug
+
+
 STRUCTS and TYPED POINTERS
 --------------------------
 
@@ -12,8 +15,7 @@ STRUCTS and TYPED POINTERS
 - DONE: structs only supported as a reference type (uword pointer). This removes a lot of the problems related to introducing a variable length value type.
 - DONE: need to introduce typed pointer datatype in prog8 to allow this to make any sense. Syntax to declare a pointer type: ^^datatype   (double hat to avoid parsing confusion with the eor operator)
 - DONE: initially only a pointer-to-struct should actually work, pointer-to-other-type is possible but that can come later.
-- DONE: a struct can contain only numeric type fields (byte,word,float) - no nested structs, no reference types (strings, arrays) inside structs.
-- DONE: struct might also contain typed pointer fields (because a pointer is just an address word)
+- DONE: a struct can contain only numeric type fields (byte,word,float) or str fields (translated into ^^ubyte) or other pointer fields. No nested structs, no arrays.
 - DONE: max 1 page of memory total size to allow regular register indexing
 - DONE: assigning ptrs of different types is only allowed via a cast as usual. For simple address (uword) assignments, no cast is needed (but allowed)
 - DONE: how to dereference a pointer?  Pascal does it like this: ptr^  But this conflicts with the existing eor operator so we now use ptr^^^  (double hat)

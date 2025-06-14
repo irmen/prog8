@@ -106,6 +106,10 @@ internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationO
     val mergeBlocks = BlockMerger(errors)
     mergeBlocks.visit(this)
     if(errors.noErrors()) {
+        val structPreprocessor = AstStructPreprocessor(this)
+        structPreprocessor.visit(this)
+        structPreprocessor.applyModifications()
+
         val transforms = AstPreprocessor(this, errors, options)
         transforms.visit(this)
         while (errors.noErrors() && transforms.applyModifications() > 0)

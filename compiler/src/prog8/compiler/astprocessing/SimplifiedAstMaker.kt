@@ -661,7 +661,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(struct: StructDecl): PtStructDecl {
-        return PtStructDecl(struct.name, struct.fields, struct.position)
+        return PtStructDecl(struct.name, struct.fields.toList(), struct.position)
     }
 
     private fun transform(srcWhen: When): PtWhen {

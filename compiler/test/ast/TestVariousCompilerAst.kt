@@ -223,8 +223,8 @@ main {
             (rept1.value as StringLiteral).value shouldBe "reprepreprep"
             val name2strcopy = stmts[3] as IFunctionCall
             val rept2strcopy = stmts[4] as IFunctionCall
-            val name2 = name2strcopy.args.first() as IdentifierReference
-            val rept2 = rept2strcopy.args.first() as IdentifierReference
+            val name2 = (name2strcopy.args.first() as AddressOf).identifier!!
+            val rept2 = (rept2strcopy.args.first() as AddressOf).identifier!!
             (name2.targetVarDecl()!!.value as StringLiteral).value shouldBe "xx1xx2"
             (rept2.targetVarDecl()!!.value as StringLiteral).value shouldBe "xyzxyzxyzxyz"
         }

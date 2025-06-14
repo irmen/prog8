@@ -7,7 +7,6 @@ import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.IdentifierReference
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.FunctionCallStatement
 import prog8.ast.statements.Label
@@ -33,7 +32,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
             val startSub = program.entrypoint
             val strLits = startSub.statements
                 .filterIsInstance<FunctionCallStatement>()
-                .map { it.args[0] as IdentifierReference }
+                .map { (it.args[0] as AddressOf).identifier!! }
                 .map { it.targetVarDecl()!!.value as StringLiteral }
 
             strLits[0].value shouldBe "main.bar"
@@ -57,7 +56,7 @@ class TestCompilerOnImportsAndIncludes: FunSpec({
                 .filterIsInstance<FunctionCallStatement>()
                 .map { it.args[0] }
 
-            val str0 = (args[0] as IdentifierReference).targetVarDecl()!!.value as StringLiteral
+            val str0 = (args[0] as AddressOf).identifier!!.targetVarDecl()!!.value as StringLiteral
             str0.value shouldBe "main.bar"
             str0.definingScope.name shouldBe "main"
 

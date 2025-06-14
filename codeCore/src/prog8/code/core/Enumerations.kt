@@ -68,6 +68,7 @@ val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
 interface ISubType {
     val scopedNameString: String
     fun memsize(sizer: IMemSizer): Int
+    fun sameas(other: ISubType): Boolean
 }
 
 class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?, var subType: ISubType?, var subTypeFromAntlr: List<String>?=null) {
@@ -95,7 +96,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is DataType) return false
-        return base == other.base && sub == other.sub && subType == other.subType
+        return base == other.base && sub == other.sub && (subType==other.subType || subType!!.sameas(other.subType!!))
     }
 
     override fun hashCode(): Int = Objects.hash(base, sub, subType)
@@ -308,12 +309,12 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             BaseDataType.WORD -> targetType.base in arrayOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
             BaseDataType.LONG -> targetType.base in arrayOf(BaseDataType.LONG, BaseDataType.FLOAT)
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
-            BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD)
+            BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
             BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
             BaseDataType.POINTER -> {
                 when {
                     targetType.base == BaseDataType.UWORD || targetType.base == BaseDataType.LONG -> true
-                    targetType.isPointer -> this.isUnsignedWord || this==targetType
+                    targetType.isPointer -> this.isUnsignedWord || this == targetType
                     else -> false
                 }
             }

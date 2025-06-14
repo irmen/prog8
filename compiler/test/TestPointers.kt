@@ -578,6 +578,10 @@ main {
         override fun memsize(sizer: IMemSizer): Int {
             TODO("Not yet implemented")
         }
+
+        override fun sameas(other: ISubType): Boolean {
+            return other is Struct && other.scopedNameString == scopedNameString
+        }
     }
 
     test("type of & operator (address-of)") {
@@ -1116,5 +1120,23 @@ main {
         (st[3] as FunctionCallStatement).target.nameInSource shouldBe listOf("txt", "print")
         st[4] shouldBe instanceOf<Return>()
         st[5] shouldBe instanceOf<Subroutine>()
+    }
+
+    test("initialize struct with string fields") {
+        val src="""
+main {
+    struct Node {
+        str question
+        str animal
+    }
+
+    sub start() {
+        ^^Node n = Node("question string", "animal name string")
+        ^^ubyte @shared q = n.question
+        ^^ubyte @shared a = n.animal
+    }
+}"""
+
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 })
