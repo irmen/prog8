@@ -1139,4 +1139,59 @@ main {
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
+
+    xtest("local and global struct pointer qualified name lookups") {
+        val src="""
+main {
+    struct Node {
+        str question
+        str animal
+        ^^Node negative
+        ^^Node positive
+    }
+
+    ^^Node @shared first
+
+    sub start() {
+        cx16.r0 = first
+        cx16.r1 = first.negative
+        cx16.r0 = first^^.negative
+        cx16.r1 = first.negative.animal
+        cx16.r0 = first^^.negative^^.animal
+
+        cx16.r2 = db.first
+        cx16.r3 = db.first.negative         ; TODO fix symbol lookup errors
+        cx16.r2 = db.first^^.negative         ; TODO fix symbol lookup errors
+        cx16.r3 = db.first.negative.animal
+        cx16.r2 = db.first^^.negative^^.animal
+
+
+        db.first.negative.animal = 0
+        db.first.negative = 0           ; TODO fix symbol lookup errors
+        db.first = 0
+
+        ; TODO fix symbol lookup errors:
+        func(db.first)
+        func(db.first.negative)
+        func(db.first.negative.animal)
+    }
+
+    sub func(uword arg) {
+        cx16.r0 = arg
+    }
+}
+
+db {
+    struct Node {
+        str question
+        str animal
+        ^^Node negative
+        ^^Node positive
+    }
+
+    ^^Node @shared first
+}"""
+
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
 })

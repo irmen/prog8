@@ -176,13 +176,40 @@ interface INameScope: IStatementContainer, INamedStatement {
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
         val localSymbol = this.searchSymbol(scopedName[0]) ?: this.lookupUnqualified(scopedName[0])
+        val fieldRef = searchStructFieldRef(localSymbol, scopedName)
+        if(fieldRef!=null)
+            return fieldRef
+
+        // a scoped name refers to a name in another namespace, and always starts from the root.
+        for(module in (this as Node).definingModule.program.modules) {
+            val block = module.searchSymbol(scopedName[0])
+            if(block!=null) {
+                var statement = block
+                for((idx, name) in scopedName.drop(1).withIndex()) {
+                    val symbol = (statement as? IStatementContainer)?.searchSymbol(name)
+                    if(symbol==null) {
+                        val fieldRef = searchStructFieldRef(statement, scopedName.drop(idx+1))
+                        if(fieldRef!=null)
+                            return fieldRef
+                        println("LOOKUP FAIL $statement   ${scopedName.drop(idx+1)}")   // TODO FIX
+                        return null
+                    } else {
+                        statement = symbol
+                    }
+                }
+                return statement
+            }
+        }
+        return null
+    }
+
+    fun searchStructFieldRef(localSymbol: Statement?, scopedName: List<String>): StructFieldRef? {
         if(localSymbol is VarDecl && localSymbol.datatype.isPointer) {
             var struct = localSymbol.datatype.subType as? StructDecl
             if(struct!=null) {
                 for ((idx, field) in scopedName.drop(1).withIndex()) {
-                    val fieldDt = struct!!.getFieldType(field)
-                    if (fieldDt == null)
-                        break
+                    val fieldDt = struct!!.getFieldType(field)  ?:
+                        return null
                     if (idx == scopedName.size - 2) {
                         // was last path element
                         val pointer = IdentifierReference(scopedName, Position.DUMMY)
@@ -190,25 +217,13 @@ interface INameScope: IStatementContainer, INamedStatement {
                         ref.linkParents(this as Node)
                         return ref
                     }
-                    struct = fieldDt.subType as? StructDecl
-                    if(struct==null)
-                        break
-                }
-            }
-        }
-
-        // a scoped name refers to a name in another namespace, and always starts from the root.
-        for(module in (this as Node).definingModule.program.modules) {
-            val block = module.searchSymbol(scopedName[0])
-            if(block!=null) {
-                var statement = block
-                for(name in scopedName.drop(1)) {
-                    statement = (statement as? IStatementContainer)?.searchSymbol(name)
-                    if(statement==null) {
+                    struct = fieldDt.subType as? StructDecl  ?:
                         return null
-                    }
                 }
-                return statement
+            } else {
+                if(localSymbol.datatype.subTypeFromAntlr!=null)
+                    TODO("antlr subtype must have been converted to a struct type by now  $localSymbol  :  ${localSymbol.datatype.subTypeFromAntlr}")
+                return null
             }
         }
         return null

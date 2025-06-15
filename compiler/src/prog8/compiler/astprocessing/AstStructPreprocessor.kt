@@ -7,21 +7,12 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
-import prog8.code.core.ISubType
 
+// TODO integrate back into AstPreprocessor?
 
 class AstStructPreprocessor(val program: Program) : AstWalker() {
 
     override fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> {
-
-        // convert all antlr names to structs
-        struct.fields.forEach {
-            if(it.first.subTypeFromAntlr!=null) {
-                val struct = struct.definingScope.lookup(it.first.subTypeFromAntlr!!) as? ISubType
-                if(struct!=null)
-                    it.first.setActualSubType(struct)
-            }
-        }
 
         // convert str fields to ^^ubyte
         val convertedFields = struct.fields.map {
