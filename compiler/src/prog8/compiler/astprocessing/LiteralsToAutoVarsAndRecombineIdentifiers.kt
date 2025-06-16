@@ -138,6 +138,16 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
         val target = identifier.targetStatement()
 
+        if(target is StructFieldRef) {
+            // replace a.b.c.d   by  a^^.b^^.c^^.d
+            // but only if we're not part of a binary expression with '.' operator (those are handled elsewhere)
+            if(parent !is BinaryExpression || parent.operator != ".") {
+                val chain = identifier.nameInSource
+                val deref = PtrDereference(chain, false, identifier.position)
+                return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
+            }
+        }
+
         // don't replace an identifier in an Alias or when the alias points to another alias (that will be resolved first elsewhere)
         if(target is Alias && parent !is Alias) {
             if(target.target.targetStatement() !is Alias)

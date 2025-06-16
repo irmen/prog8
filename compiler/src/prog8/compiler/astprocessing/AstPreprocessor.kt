@@ -347,9 +347,20 @@ class AstPreprocessor(val program: Program,
                     it.first.setActualSubType(struct)
             }
         }
+
+        // convert str fields to ^^ubyte
+        val convertedFields = struct.fields.map {
+            if(it.first.isString)
+                DataType.pointer(BaseDataType.UBYTE) to it.second       // replace str field with ^^ubyte field
+            else
+                it.first to it.second
+        }.toTypedArray()
+
+        if(!convertedFields.contentEquals(struct.fields))
+            convertedFields.copyInto(struct.fields)
+
         return noModifications
     }
-
 
     private fun checkStringParam(call: IFunctionCall, stmt: Statement) {
         val targetStatement = call.target.checkFunctionOrLabelExists(program, stmt, errors)

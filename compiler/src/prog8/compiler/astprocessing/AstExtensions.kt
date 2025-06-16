@@ -110,10 +110,6 @@ internal fun Program.preprocessAst(errors: IErrorReporter, options: CompilationO
         transforms.visit(this)
         while (errors.noErrors() && transforms.applyModifications() > 0)
             transforms.visit(this)
-
-        val structPreprocessor = AstStructPreprocessor(this)
-        structPreprocessor.visit(this)
-        structPreprocessor.applyModifications()
     }
 }
 

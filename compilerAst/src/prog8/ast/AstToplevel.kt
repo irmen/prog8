@@ -176,7 +176,7 @@ interface INameScope: IStatementContainer, INamedStatement {
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
         val localSymbol = this.searchSymbol(scopedName[0]) ?: this.lookupUnqualified(scopedName[0])
-        val fieldRef = searchStructFieldRef(localSymbol, scopedName)
+        val fieldRef = searchStructFieldRef(localSymbol, scopedName.drop(1))
         if(fieldRef!=null)
             return fieldRef
 
@@ -191,11 +191,8 @@ interface INameScope: IStatementContainer, INamedStatement {
                         val fieldRef = searchStructFieldRef(statement, scopedName.drop(idx+1))
                         if(fieldRef!=null)
                             return fieldRef
-                        println("LOOKUP FAIL $statement   ${scopedName.drop(idx+1)}")   // TODO FIX
-                        return null
-                    } else {
-                        statement = symbol
                     }
+                    statement = symbol
                 }
                 return statement
             }
@@ -206,24 +203,29 @@ interface INameScope: IStatementContainer, INamedStatement {
     fun searchStructFieldRef(localSymbol: Statement?, scopedName: List<String>): StructFieldRef? {
         if(localSymbol is VarDecl && localSymbol.datatype.isPointer) {
             var struct = localSymbol.datatype.subType as? StructDecl
+            if(struct==null && localSymbol.datatype.subTypeFromAntlr!=null) {
+                // the antlr-injected type ref wasn't yet translated, do the lookup here
+                struct = localSymbol.definingScope.lookup(localSymbol.datatype.subTypeFromAntlr!!) as? StructDecl
+            }
             if(struct!=null) {
-                for ((idx, field) in scopedName.drop(1).withIndex()) {
+                for ((idx, field) in scopedName.withIndex()) {
                     val fieldDt = struct!!.getFieldType(field)  ?:
                         return null
-                    if (idx == scopedName.size - 2) {
+                    if (idx == scopedName.size - 1) {
                         // was last path element
                         val pointer = IdentifierReference(scopedName, Position.DUMMY)
                         val ref = StructFieldRef(pointer, struct, fieldDt, field, Position.DUMMY)
                         ref.linkParents(this as Node)
                         return ref
                     }
-                    struct = fieldDt.subType as? StructDecl  ?:
+                    struct = fieldDt.subType as? StructDecl
+                    if(struct==null && fieldDt.subTypeFromAntlr!=null) {
+                        // the antlr-injected type ref wasn't yet translated, do the lookup here
+                        struct = localSymbol.definingScope.lookup(fieldDt.subTypeFromAntlr!!) as? StructDecl
+                    }
+                    if(struct==null)
                         return null
                 }
-            } else {
-                if(localSymbol.datatype.subTypeFromAntlr!=null)
-                    TODO("antlr subtype must have been converted to a struct type by now  $localSymbol  :  ${localSymbol.datatype.subTypeFromAntlr}")
-                return null
             }
         }
         return null

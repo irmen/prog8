@@ -109,24 +109,25 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             throw FatalAstException("unknown dt")
         }
 
-        val startpointer: PtIdentifier
-        val chain: List<String>
-        var targetVar = deref.definingScope.lookup(deref.chain) as? VarDecl
+        val targetVar = deref.definingScope.lookup(deref.chain) as? VarDecl
         if(targetVar!=null) {
-            startpointer = PtIdentifier(targetVar.scopedName.joinToString("."), targetVar.datatype, deref.position)
-            chain = emptyList()
+            val startpointer = PtIdentifier(targetVar.scopedName.joinToString("."), targetVar.datatype, deref.position)
+            val result = PtPointerDeref(type, emptyList(), deref.derefLast, deref.position)
+            result.add(startpointer)
+            return result
         } else {
-            targetVar = deref.definingScope.lookup(deref.chain.take(1)) as? VarDecl
-            if(targetVar!=null) {
-                startpointer = PtIdentifier(targetVar.scopedName.joinToString("."), targetVar.datatype, deref.position)
-                chain = deref.chain.drop(1)
-            } else {
-                TODO("find startpointer from ${deref.chain}  ${deref.position}")
+            for(skip in 1..deref.chain.size) {
+                val targetVar = deref.definingScope.lookup(deref.chain.take(skip)) as? VarDecl
+                if(targetVar!=null) {
+                    val startpointer = PtIdentifier(targetVar.scopedName.joinToString("."), targetVar.datatype, deref.position)
+                    val chain = deref.chain.takeLast(deref.chain.size-skip)
+                    val result = PtPointerDeref(type, chain, deref.derefLast, deref.position)
+                    result.add(startpointer)
+                    return result
+                }
             }
         }
-        val result = PtPointerDeref(type, chain, deref.derefLast, deref.position)
-        result.add(startpointer)
-        return result
+        throw FatalAstException("cannot find startpointer from ${deref.chain}  ${deref.position}")
     }
 
     private fun transform(ifExpr: IfExpression): PtIfExpression {

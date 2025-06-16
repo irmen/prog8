@@ -1,11 +1,6 @@
 TODO
 ====
 
-Fix symbol lookup bug  "antlr subtype must have been converted to a struct type by now"  ,  "LOOKUP FAIL"
-
-Reintegrate AstStructPreprocessor into AstPreProcessor , if possible.
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 

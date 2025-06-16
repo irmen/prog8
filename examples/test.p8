@@ -11,12 +11,13 @@ main {
     sub start() {
         db.init()
         txt.print_uw(db.first)
+        txt.nl()
         cx16.r0 = db.first
 
-        ; TODO fix symbol lookup errors:
         cx16.r1 = db.first.negative
         cx16.r0 = db.first.negative.animal
         txt.print_uw(db.first.negative)
+        txt.nl()
         txt.print(db.first.negative.animal)
         txt.nl()
         txt.print(db.first.positive.animal)
