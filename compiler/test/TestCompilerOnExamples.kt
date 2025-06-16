@@ -238,6 +238,7 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
+            "animals",                  // TODO move to root of examples later (and compile with c64 too)
             "bouncegfx",
             "bsieve",
             "pixelshader",
