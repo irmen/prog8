@@ -266,6 +266,7 @@ cx16 {
     &uword r14 = $ff1e
     &uword r15 = $ff20
 
+    ; signed word versions
     &word r0s  = $ff02
     &word r1s  = $ff04
     &word r2s  = $ff06
@@ -283,6 +284,7 @@ cx16 {
     &word r14s = $ff1e
     &word r15s = $ff20
 
+    ; ubyte versions (low and high bytes)
     &ubyte r0L  = $ff02
     &ubyte r1L  = $ff04
     &ubyte r2L  = $ff06
@@ -317,6 +319,7 @@ cx16 {
     &ubyte r14H = $ff1f
     &ubyte r15H = $ff21
 
+    ; signed byte versions (low and high bytes)
     &byte r0sL  = $ff02
     &byte r1sL  = $ff04
     &byte r2sL  = $ff06
@@ -350,6 +353,42 @@ cx16 {
     &byte r13sH = $ff1d
     &byte r14sH = $ff1f
     &byte r15sH = $ff21
+
+    ; boolean versions
+    &bool r0bL  = $ff02
+    &bool r1bL  = $ff04
+    &bool r2bL  = $ff06
+    &bool r3bL  = $ff08
+    &bool r4bL  = $ff0a
+    &bool r5bL  = $ff0c
+    &bool r6bL  = $ff0e
+    &bool r7bL  = $ff10
+    &bool r8bL  = $ff12
+    &bool r9bL  = $ff14
+    &bool r10bL = $ff16
+    &bool r11bL = $ff18
+    &bool r12bL = $ff1a
+    &bool r13bL = $ff1c
+    &bool r14bL = $ff1e
+    &bool r15bL = $ff20
+
+    &bool r0bH  = $ff03
+    &bool r1bH  = $ff05
+    &bool r2bH  = $ff07
+    &bool r3bH  = $ff09
+    &bool r4bH  = $ff0b
+    &bool r5bH  = $ff0d
+    &bool r6bH  = $ff0f
+    &bool r7bH  = $ff11
+    &bool r8bH  = $ff13
+    &bool r9bH  = $ff15
+    &bool r10bH = $ff17
+    &bool r11bH = $ff19
+    &bool r12bH = $ff1b
+    &bool r13bH = $ff1d
+    &bool r14bH = $ff1f
+    &bool r15bH = $ff21
+
 
     sub save_virtual_registers() {
         uword[32] storage

@@ -415,7 +415,6 @@ save_SCRATCH_ZPWORD2	.word  ?
 cx16 {
     ; the sixteen virtual 16-bit registers that the CX16 has defined in the zeropage
     ; they are simulated on the Atari as well but their location in memory is different
-    ; TODO
     &uword r0  = $1b00
     &uword r1  = $1b02
     &uword r2  = $1b04
@@ -433,6 +432,7 @@ cx16 {
     &uword r14 = $1b1c
     &uword r15 = $1b1e
 
+    ; signed word versions
     &word r0s  = $1b00
     &word r1s  = $1b02
     &word r2s  = $1b04
@@ -450,6 +450,7 @@ cx16 {
     &word r14s = $1b1c
     &word r15s = $1b1e
 
+    ; ubyte versions (low and high bytes)
     &ubyte r0L  = $1b00
     &ubyte r1L  = $1b02
     &ubyte r2L  = $1b04
@@ -484,6 +485,7 @@ cx16 {
     &ubyte r14H = $1b1d
     &ubyte r15H = $1b1f
 
+    ; signed byte versions (low and high bytes)
     &byte r0sL  = $1b00
     &byte r1sL  = $1b02
     &byte r2sL  = $1b04
@@ -517,6 +519,41 @@ cx16 {
     &byte r13sH = $1b1b
     &byte r14sH = $1b1d
     &byte r15sH = $1b1f
+
+    ; boolean versions
+    &bool r0bL  = $1b00
+    &bool r1bL  = $1b02
+    &bool r2bL  = $1b04
+    &bool r3bL  = $1b06
+    &bool r4bL  = $1b08
+    &bool r5bL  = $1b0a
+    &bool r6bL  = $1b0c
+    &bool r7bL  = $1b0e
+    &bool r8bL  = $1b10
+    &bool r9bL  = $1b12
+    &bool r10bL = $1b14
+    &bool r11bL = $1b16
+    &bool r12bL = $1b18
+    &bool r13bL = $1b1a
+    &bool r14bL = $1b1c
+    &bool r15bL = $1b1e
+
+    &bool r0bH  = $1b01
+    &bool r1bH  = $1b03
+    &bool r2bH  = $1b05
+    &bool r3bH  = $1b07
+    &bool r4bH  = $1b09
+    &bool r5bH  = $1b0b
+    &bool r6bH  = $1b0d
+    &bool r7bH  = $1b0f
+    &bool r8bH  = $1b11
+    &bool r9bH  = $1b13
+    &bool r10bH = $1b15
+    &bool r11bH = $1b17
+    &bool r12bH = $1b19
+    &bool r13bH = $1b1b
+    &bool r14bH = $1b1d
+    &bool r15bH = $1b1f
 
     asmsub save_virtual_registers() clobbers(A,Y) {
         %asm {{

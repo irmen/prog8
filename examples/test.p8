@@ -1,18 +1,27 @@
 main {
     sub start() {
-        cx16.r0++
-    }
-}
+        uword uw = 9999
+        word sw = -2222
+        ubyte ub = 42
+        byte sb = -99
+        bool bb = true
 
-some_block {
-    uword buffer = memory("arena", 2000, 0)
-}
+        cx16.r0 = uw
+        cx16.r0s = sw
+        cx16.r0L = ub
+        cx16.r0H = ub
+        cx16.r0sL = sb
+        cx16.r0sH = sb
+        cx16.r0bL = bb
+        cx16.r0bH = bb
 
-
-other_block {
-    sub  redherring  (uword buffer)  {
-        %ir {{
-            loadm.w r99000,other_block.redherring.buffer
-        }}
+        uw = cx16.r0
+        sw = cx16.r0s
+        ub = cx16.r0L
+        ub = cx16.r0H
+        sb = cx16.r0sL
+        sb = cx16.r0sH
+        bb = cx16.r0bL
+        bb = cx16.r0bH
     }
 }

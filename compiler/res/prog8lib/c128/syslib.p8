@@ -997,6 +997,7 @@ cx16 {
     &uword r14 = $1bfc
     &uword r15 = $1bfe
 
+    ; signed word versions
     &word r0s  = $1be0
     &word r1s  = $1be2
     &word r2s  = $1be4
@@ -1014,6 +1015,7 @@ cx16 {
     &word r14s = $1bfc
     &word r15s = $1bfe
 
+    ; ubyte versions (low and high bytes)
     &ubyte r0L  = $1be0
     &ubyte r1L  = $1be2
     &ubyte r2L  = $1be4
@@ -1048,6 +1050,7 @@ cx16 {
     &ubyte r14H = $1bfd
     &ubyte r15H = $1bff
 
+    ; signed byte versions (low and high bytes)
     &byte r0sL  = $1be0
     &byte r1sL  = $1be2
     &byte r2sL  = $1be4
@@ -1081,6 +1084,42 @@ cx16 {
     &byte r13sH = $1bfb
     &byte r14sH = $1bfd
     &byte r15sH = $1bff
+
+    ; boolean versions (low and high bytes)
+    &bool r0bL  = $1be0
+    &bool r1bL  = $1be2
+    &bool r2bL  = $1be4
+    &bool r3bL  = $1be6
+    &bool r4bL  = $1be8
+    &bool r5bL  = $1bea
+    &bool r6bL  = $1bec
+    &bool r7bL  = $1bee
+    &bool r8bL  = $1bf0
+    &bool r9bL  = $1bf2
+    &bool r10bL = $1bf4
+    &bool r11bL = $1bf6
+    &bool r12bL = $1bf8
+    &bool r13bL = $1bfa
+    &bool r14bL = $1bfc
+    &bool r15bL = $1bfe
+
+    &bool r0bH  = $1be1
+    &bool r1bH  = $1be3
+    &bool r2bH  = $1be5
+    &bool r3bH  = $1be7
+    &bool r4bH  = $1be9
+    &bool r5bH  = $1beb
+    &bool r6bH  = $1bed
+    &bool r7bH  = $1bef
+    &bool r8bH  = $1bf1
+    &bool r9bH  = $1bf3
+    &bool r10bH = $1bf5
+    &bool r11bH = $1bf7
+    &bool r12bH = $1bf9
+    &bool r13bH = $1bfb
+    &bool r14bH = $1bfd
+    &bool r15bH = $1bff
+
 
     asmsub save_virtual_registers() clobbers(A,Y) {
         %asm {{
