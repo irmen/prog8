@@ -1,9 +1,12 @@
+; Animal guessing game where the computer guesses your secret animal, and gets smarter every time it fails.
+; The tree is in memory it is not saved on disk right now so restarting the program loses all knowledge...
+;
+; Exercise for the reader to store the memory containing the nodes and strings and reload it on new runs...?
+
+; TODO: remove the examples/animals.p8 once this one compiles for 6502 too
+
 %import textio
 %import strings
-
-; Animal guessing game where the computer gets smarter every time.
-; Note: this program can be compiled for multiple target systems.
-; TODO: move this to examples/animals.p8 once it compiles for 6502 too
 
 main {
 
@@ -17,7 +20,7 @@ main {
 
          ^^db.Node active = db.first
 
-        ; the game loop asks questions and navigates the y/n tree of animals.
+        ; The game loop asks questions and navigates the y/n tree of animals.
         ; if an animal node is found, that animal could be the answer.
         ; if it's not correct, a new question and the animal are inserted at that position in the tree.
         repeat {
@@ -102,6 +105,9 @@ main {
 }
 
 db {
+    ; knowledge about animals is stored in a tree that can grow with new animals.
+    ; questions have y/n answers that point to possible animals.
+
     struct Node {
         str question
         str animal
@@ -113,14 +119,11 @@ db {
 
     sub init() {
         first = Node("does it swim", 0, 0, 0)
-        ^^Node eagle = Node(0, "eagle", 0, 0)
-        ^^Node dolpin = Node(0, "dolpin", 0, 0)
         ^^Node question = Node("can it fly", 0, 0, 0)
-        ^^Node horse = Node(0, "horse", 0, 0)
         first.negative = question
-        first.positive = dolpin
-        question.negative = horse
-        question.positive = eagle
+        first.positive = Node(0, "dolpin", 0, 0)
+        question.negative = Node(0, "horse", 0, 0)
+        question.positive = Node(0, "eagle", 0, 0)
     }
 }
 

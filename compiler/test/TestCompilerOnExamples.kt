@@ -238,11 +238,11 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
-            "animals",                  // TODO move to root of examples later (and compile with c64 too)
             "bouncegfx",
             "bsieve",
             "pixelshader",
             "sincos",
+            "pointers/animalgame",
             "pointers/binarytree",       // TODO add to "c64" later as well
             "pointers/sortedlist"        // TODO add to "c64" later as well
         ),
