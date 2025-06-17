@@ -7,6 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
+import prog8.ast.expressions.AddressOf
 import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.PtrDereference
@@ -1192,5 +1193,29 @@ db {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("str can be used without explicit cast where ^^ubyte is expected") {
+        val src="""
+main {
+    sub start() {
+        str name = "pjotr"
+        ^^ubyte @shared ptr = name
+        ptr = "hello"
+        func(name)
+        func("bye")
+    }
+
+    sub func(^^ubyte arg) {
+        cx16.r0++
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 7
+        (st[2] as Assignment).value shouldBe instanceOf<AddressOf>()
+        (st[3] as Assignment).value shouldBe instanceOf<AddressOf>()
+        (st[4] as FunctionCallStatement).args.single() shouldBe instanceOf<AddressOf>()
+        (st[5] as FunctionCallStatement).args.single() shouldBe instanceOf<AddressOf>()
     }
 })

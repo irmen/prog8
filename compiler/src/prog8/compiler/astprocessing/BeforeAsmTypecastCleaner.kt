@@ -34,33 +34,20 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
         if(sourceDt.isPassByRef) {
             if(typecast.type.isUnsignedWord) {
                 val identifier = typecast.expression as? IdentifierReference
-                if(identifier!=null) {
-                    return if(identifier.isSubroutineParameter()) {
-                        listOf(
-                            IAstModification.ReplaceNode(
-                                typecast,
-                                typecast.expression,
-                                parent
-                            )
-                        )
+                if (identifier != null) {
+                    return if (identifier.isSubroutineParameter()) {
+                        listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
                     } else {
-                        listOf(
-                            IAstModification.ReplaceNode(
-                                typecast,
-                                AddressOf(identifier, null, null, false, typecast.position),
-                                parent
-                            )
-                        )
+                        listOf(IAstModification.ReplaceNode(typecast,
+                            AddressOf(identifier, null, null, false, typecast.position), parent))
                     }
-                } else if(typecast.expression is IFunctionCall) {
-                    return listOf(
-                        IAstModification.ReplaceNode(
-                            typecast,
-                            typecast.expression,
-                            parent
-                        )
-                    )
+                } else if (typecast.expression is IFunctionCall) {
+                    return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
                 }
+            } else if(sourceDt.isString && typecast.type.isPointer && typecast.type.sub==BaseDataType.UBYTE) {
+                // casting a string to a ^^ubyte is just taking the address of the string.
+                val addr = AddressOf(typecast.expression as IdentifierReference, null, null, false, typecast.position)
+                return listOf(IAstModification.ReplaceNode(typecast, addr, parent))
             } else {
                 errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)
             }

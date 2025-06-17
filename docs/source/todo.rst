@@ -57,7 +57,7 @@ STRUCTS and TYPED POINTERS
 - DONE: allow  list1^^ = list2^^  (value wise assignment of List structures) by replacing it with a sys.memcopy(list2, list1, sizeof(List)) call.
 - DONE: allow  a.b.ptr[i].value  (equiv to a.b.ptr[i]^^.value)  expressions  (assignment target doesn't parse yet, see below)
 - DONE: check passing arrays to typed ptr sub-parameters.  NOTE: word array can only be a @nosplit array if the parameter type is ^^word, because the words need to be sequential in memory there
-- allow str assign to ^^ubyte without cast (take address)
+- DONE: allow str assign to ^^ubyte without cast (take address)
 - fix support for (expression) array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
 - fix support for (assigntarget) array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
 - fix support for (assigntarget) array index dereferencing "array[2].value"   where array is struct pointers
