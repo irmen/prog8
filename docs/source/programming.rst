@@ -1061,7 +1061,7 @@ Reusing *virtual registers* R0-R15 for parameters
 
 Normally, every subroutine parameter will get its own local variable in the subroutine where the argument value
 will be stored when the subroutine is called. In certain situations, this may lead to many variables being allocated.
-You *can* instruct the compiler to not allocate a new variable, but instead to reuse one of the *virtual registers* R0-R15
+You *can* tell the compiler to not allocate a new variable, but instead to reuse one of the *virtual registers* R0-R15
 (accessible in the code as ``cx16.r0`` - ``cx16.r15``)  for the parameter. This is done by adding a ``@Rx`` tag
 to the parameter. This can only be done for booleans, byte, and word types.
 Note: the R0-R15 *virtual registers* are described in more detail below for the Assembly subroutines.

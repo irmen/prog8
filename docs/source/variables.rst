@@ -5,6 +5,7 @@ Variables and Values
 ====================
 
 Because this is such a big subject, variables and values have their own chapter.
+Structs and pointers are in a separate chapter again: :ref:`pointers`.
 
 
 Variables
@@ -349,7 +350,7 @@ a dynamic location in memory: currently this is equivalent to directly referenci
 memory at the given index. In contrast to a real array variable, the index value can be the size of a word.
 Unlike array variables, negative indexing for pointer variables does *not* mean it will be counting from the end, because the size of the buffer is unknown.
 Instead, it simply addresses memory that lies *before* the pointer variable.
-See also :ref:`pointervars`
+See also :ref:`pointervars` and the chapter about it :ref:`pointers`.
 
 **LSB/MSB split word and str arrays:**
 
@@ -572,12 +573,13 @@ without defining a memory-mapped location, you can do so by enclosing the addres
     @($d020) = 0      ; set the c64 screen border to black ("poke 53280,0")
     @(vic+$20) = 6    ; you can also use expressions to 'calculate' the address
 
-This is the official syntax to 'dereference a pointer' as it is often named in other languages.
 You can actually also use the array indexing notation for this. It will be silently converted into
 the direct memory access expression as explained above. Note that unlike regular arrays,
 the index is not limited to an ubyte value. You can use a full uword to index a pointer variable like this::
 
     pointervar[999] = 0     ; set memory byte to zero at location pointervar + 999.
+
+More information about *typed pointers* can be found in the chapter :ref:`pointers`.
 
 
 Converting/Casting types into other types

@@ -38,7 +38,7 @@ syn match prog8Directive "\(^\|\s\)%\(zpreserved\|zpallowed\|address\|encoding\|
 syn match prog8Directive "\(^\|\s\)%\(align\|asmbinary\|asminclude\|breakpoint\)\>"
 syn match prog8Directive "\(^\|\s\)%\(asm\|ir\)\>"
 
-syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\|long\)\>"
+syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\|long\|\^\^\)\>"
 syn region prog8ArrayType matchgroup=prog8Type
             \ start="\<\%(u\?byte\|u\?word\|float\|str\|bool\)\[" end="\]"
             \ transparent

@@ -61,6 +61,7 @@ What does Prog8 provide?
 - code often is smaller and faster than equivalent C code compiled with CC65 or even LLVM-MOS
 - modularity, symbol scoping, subroutines. No need for forward declarations.
 - various data types other than just bytes (16-bit words, floats, strings)
+- Structs and typed pointers
 - floating point math is supported on certain targets
 - access to most Kernal ROM routines as external subroutine definitions you can call normally
 - tight control over Zeropage usage

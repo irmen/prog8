@@ -134,7 +134,8 @@ Calling a subroutine requires three steps:
 
 #. preparing the arguments (if any) and passing them to the routine.
    Numeric types are passed by value (bytes, words, booleans, floats),
-   but array types and strings are passed by reference which means as ``uword`` being a pointer to their address in memory.
+   but array types passed by reference which means as ``uword`` being a pointer to their address in memory.
+   Strings are passed as a pointer to a byte: ``^^ubyte``.
 #. calling the subroutine
 #. preparing the return value (if any) and returning that from the call.
 

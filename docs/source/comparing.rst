@@ -46,6 +46,7 @@ Data types
 - maximum storage size for arrays is 256 bytes (512 for split word arrays) , the maximum number of elements in the array depends on the size of a single element value.
   you can use larger "arrays" via pointer indexing, see below at Pointers.  One way of obtaining a piece of memory to store
   such an "array" is by using  ``memory()`` builtin function.
+- there is limited support for structs and typed pointers, see below at "Pointers and Structs".
 
 
 Variables
@@ -76,10 +77,13 @@ Subroutines
   With only a little bit of code it is possible to implement a simple cooperative multitasking system that runs multiple tasks simultaneously. See the "multitasking" example,
   which uses the "coroutines" library.  Each task is a subroutine and it simply has its state stored in the statically allocated variables so it can resume after yielding, without doing anything special.
 
-Pointers
---------
-- There is no specific pointer datatype.
-  However, variables of the ``uword`` datatype can be used as a pointer to one of the possible 65536 memory locations,
+Pointers and Structs
+--------------------
+
+Legacy 'untyped' pointers:
+
+- In Prog8 versions before 12.0 there was no support for typed pointers, only 'untyped' ones:
+  Variables of the ``uword`` datatype can be used as a pointer to one of the possible 65536 memory locations,
   so the value it points to is always a single byte. This is similar to ``uint8_t*`` from C.
   You have to deal with the uword manually if the object it points to is something different.
 - Note that there is the ``peekw`` builtin function that *does* allow you to directy obtain the *word* value at the given memory location.
@@ -87,6 +91,12 @@ Pointers
 - "dereferencing" a uword pointer is done via array indexing ``ptr[index]`` (where index value can be 0-65535!) or via the memory read operator ``@(ptr)``, or ``peek/peekw(ptr)``.
 - Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
   Reading is done by assigning it to a variable, writing is done by just assigning the new value to it.
+
+Typed pointers and structs:
+
+- Since version 12, prog8 supports struct types and typed pointers.
+- Structs are a grouping of one or more fields, that together make up the struct type.
+- Typed pointers are just that: a pointer to a specific type (which can be a simple type such as float, or a struct type.)
 
 
 Foreign function interface (external/ROM calls)

@@ -151,6 +151,8 @@ contexts:
   storage:
     - match: (\b(ubyte|byte|word|uword|long|float|str|struct)\b)
       scope: storage.type.prog8
+    - match: (\^\^)
+      scope: storage.modifier.prog8
     - match: (\b(const)\b)
       scope: storage.modifier.prog8
   support:

@@ -96,6 +96,7 @@ Features
   and inline assembly to have full control when every register, cycle or byte matters
 - Variables are all allocated statically, no memory allocation overhead
 - Variable data types include signed and unsigned bytes and words, arrays, strings.
+- Structs and typed pointers
 - Tight control over Zeropage usage
 - Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
 - Programs can be configured to execute in ROM
@@ -222,6 +223,7 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     compiling.rst
     programming.rst
     variables.rst
+    structpointers.rst
     binlibrary.rst
     libraries.rst
     targetsystem.rst

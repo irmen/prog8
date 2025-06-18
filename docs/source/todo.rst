@@ -58,11 +58,10 @@ STRUCTS and TYPED POINTERS
 - DONE: allow  a.b.ptr[i].value  (equiv to a.b.ptr[i]^^.value)  expressions  (assignment target doesn't parse yet, see below)
 - DONE: check passing arrays to typed ptr sub-parameters.  NOTE: word array can only be a @nosplit array if the parameter type is ^^word, because the words need to be sequential in memory there
 - DONE: allow str assign to ^^ubyte without cast (take address)
+- write docs in structpointers.rst
 - fix support for (expression) array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
 - fix support for (assigntarget) array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
 - fix support for (assigntarget) array index dereferencing "array[2].value"   where array is struct pointers
-- add unit tests for expected AST elements for all syntaxes dealing with pointers, dereference(chain), derefs, and indexing (both as value and assigntargets)
-- add unit tests for all changes (pointers and structs)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - try to make sizeof(^^type) parse correctly (or maybe replace it immediately with sys.SIZEOF_POINTER)
 - add ?. null-propagation operator (for expression and assignment)?
@@ -71,8 +70,6 @@ STRUCTS and TYPED POINTERS
 - 6502 asm symbol name prefixing should work for dereferences too.
 - really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- update syntax highlighting files
-- write docs
 
 
 Future Things and Ideas
