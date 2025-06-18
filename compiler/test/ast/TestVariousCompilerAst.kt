@@ -17,9 +17,7 @@ import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
-import prog8.code.target.C64Target
-import prog8.code.target.Cx16Target
-import prog8.code.target.VMTarget
+import prog8.code.target.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -1058,6 +1056,42 @@ main {
         compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true) shouldNotBe null
     }
 
+    test("using the cx16 virtual registers as various datatypes") {
+        val src="""
+main {
+    sub start() {
+        uword uw = 9999
+        word sw = -2222
+        ubyte ub = 42
+        byte sb = -99
+        bool bb = true
+
+        cx16.r0 = uw
+        cx16.r0s = sw
+        cx16.r0L = ub
+        cx16.r0H = ub
+        cx16.r0sL = sb
+        cx16.r0sH = sb
+        cx16.r0bL = bb
+        cx16.r0bH = bb
+
+        uw = cx16.r0
+        sw = cx16.r0s
+        ub = cx16.r0L
+        ub = cx16.r0H
+        sb = cx16.r0sL
+        sb = cx16.r0sH
+        bb = cx16.r0bL
+        bb = cx16.r0bH
+    }
+}"""
+
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+        compileText(PETTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+        compileText(C128Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+    }
 
     test("on..goto") {
         val src="""

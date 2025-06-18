@@ -155,6 +155,7 @@ cx16 {
     &uword r14 = $7ffc
     &uword r15 = $7ffe
 
+    ; signed word versions
     &word r0s  = $7fe0
     &word r1s  = $7fe2
     &word r2s  = $7fe4
@@ -172,6 +173,7 @@ cx16 {
     &word r14s = $7ffc
     &word r15s = $7ffe
 
+    ; ubyte versions (low and high bytes)
     &ubyte r0L  = $7fe0
     &ubyte r1L  = $7fe2
     &ubyte r2L  = $7fe4
@@ -206,6 +208,7 @@ cx16 {
     &ubyte r14H = $7ffd
     &ubyte r15H = $7fff
 
+    ; signed byte versions (low and high bytes)
     &byte r0sL  = $7fe0
     &byte r1sL  = $7fe2
     &byte r2sL  = $7fe4
@@ -239,4 +242,39 @@ cx16 {
     &byte r13sH = $7ffb
     &byte r14sH = $7ffd
     &byte r15sH = $7fff
+
+    ; boolean versions
+    &bool r0bL  = $7fe0
+    &bool r1bL  = $7fe2
+    &bool r2bL  = $7fe4
+    &bool r3bL  = $7fe6
+    &bool r4bL  = $7fe8
+    &bool r5bL  = $7fea
+    &bool r6bL  = $7fec
+    &bool r7bL  = $7fee
+    &bool r8bL  = $7ff0
+    &bool r9bL  = $7ff2
+    &bool r10bL = $7ff4
+    &bool r11bL = $7ff6
+    &bool r12bL = $7ff8
+    &bool r13bL = $7ffa
+    &bool r14bL = $7ffc
+    &bool r15bL = $7ffe
+
+    &bool r0bH  = $7fe1
+    &bool r1bH  = $7fe3
+    &bool r2bH  = $7fe5
+    &bool r3bH  = $7fe7
+    &bool r4bH  = $7fe9
+    &bool r5bH  = $7feb
+    &bool r6bH  = $7fed
+    &bool r7bH  = $7fef
+    &bool r8bH  = $7ff1
+    &bool r9bH  = $7ff3
+    &bool r10bH = $7ff5
+    &bool r11bH = $7ff7
+    &bool r12bH = $7ff9
+    &bool r13bH = $7ffb
+    &bool r14bH = $7ffd
+    &bool r15bH = $7fff
 }
