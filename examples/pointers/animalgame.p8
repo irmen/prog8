@@ -10,7 +10,7 @@
 
 main {
 
-    str userinput = "x"*80      ; buffer for user input
+    str userinput = "?"*80      ; buffer for user input
 
     sub start() {
         db.init()
@@ -68,27 +68,36 @@ main {
         }
 
         sub learn_new_animal() {
-            str new_animal = "x" * 30
-            str answer = "x" * 10
+            str new_animal = "?" * 30
+            str answer = "?" * 10
+
+            ; note that we make copies of the animal name and question strings to store them later
             txt.print("\nI give up. What is the animal? ")
-            void txt.input_chars(new_animal)
+            ubyte new_animal_length = txt.input_chars(new_animal)
+            uword new_animal_copy = arena.alloc(new_animal_length+1)
+            void strings.copy(new_animal, new_animal_copy)
             txt.print("\nWhat yes/no question would best tell a ")
             txt.print(new_animal)
             txt.print(" apart from a ")
             txt.print(active.animal)
             txt.print("? ")
             ubyte question_length = txt.input_chars(userinput)
-            uword question_addr = arena.alloc(question_length+1)
-            void strings.copy(userinput, question_addr)
+            uword question_copy = arena.alloc(question_length+1)
+            void strings.copy(userinput, question_copy)
             txt.print("In case of the ")
             txt.print(new_animal)
             txt.print(", what is the answer to that question? ")
             ubyte yesno = ask_yes_no()
 
-            ^^db.Node new_animal_node = db.Node(0, new_animal, 0, 0)
-            ^^db.Node wrong_animal_node = db.Node(0, 0, 0, 0)
+            ; cannot use struct initializer  db.Node(....)  here because we need to have a new node every time
+            ^^db.Node new_animal_node = arena.alloc(sizeof(db.Node))
+            new_animal_node.animal = new_animal_copy
+            new_animal_node.question = new_animal_node.negative = new_animal_node.positive = 0
+            ^^db.Node wrong_animal_node = arena.alloc(sizeof(db.Node))
             wrong_animal_node.animal = active.animal
-            active.question = question_addr
+            wrong_animal_node.question = wrong_animal_node.negative = wrong_animal_node.positive = 0
+
+            active.question = question_copy
             active.animal = 0
             if yesno=='y' {
                 active.positive = new_animal_node
