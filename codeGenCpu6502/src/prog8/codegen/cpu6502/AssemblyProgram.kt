@@ -28,6 +28,14 @@ internal class AssemblyProgram(
 
         val assemblerCommand: List<String>
 
+        fun addRemainingOptions(command: MutableList<String>, program: Path, assembly: Path): List<String> {
+            if(options.compTarget.additionalAssemblerOptions.isNotEmpty())
+                command.addAll(options.compTarget.additionalAssemblerOptions)
+
+            command.addAll(listOf("--output", program.toString(), assembly.toString()))
+            return command
+        }
+
         when(options.output) {
             OutputType.PRG -> {
                 // CBM machines .prg generation.
@@ -47,8 +55,7 @@ internal class AssemblyProgram(
                     command.add("--list=$listFile")
                 }
 
-                command.addAll(listOf("--output", prgFile.toString(), assemblyFile.toString()))
-                assemblerCommand = command
+                assemblerCommand = addRemainingOptions(command, prgFile, assemblyFile)
                 if(!options.quiet)
                     println("\nCreating prg for target ${compTarget.name}.")
             }
@@ -69,8 +76,7 @@ internal class AssemblyProgram(
                 if(options.asmListfile)
                     command.add("--list=$listFile")
 
-                command.addAll(listOf("--output", xexFile.toString(), assemblyFile.toString()))
-                assemblerCommand = command
+                assemblerCommand = addRemainingOptions(command,xexFile, assemblyFile)
                 if(!options.quiet)
                     println("\nCreating xex for target ${compTarget.name}.")
             }
@@ -90,8 +96,7 @@ internal class AssemblyProgram(
                 if(options.asmListfile)
                     command.add("--list=$listFile")
 
-                command.addAll(listOf("--output", binFile.toString(), assemblyFile.toString()))
-                assemblerCommand = command
+                assemblerCommand = addRemainingOptions(command, binFile, assemblyFile)
                 if(!options.quiet)
                     println("\nCreating raw binary for target ${compTarget.name}.")
             }
@@ -122,13 +127,9 @@ internal class AssemblyProgram(
                     command.add("--nostart")       // should be headerless bin, because basic has problems doing a normal LOAD"lib",8,1 - need to use BLOAD
                 }
 
-                command.addAll(listOf("--output", binFile.toString(), assemblyFile.toString()))
-                assemblerCommand = command
+                assemblerCommand = addRemainingOptions(command, binFile, assemblyFile)
             }
         }
-
-        if(options.compTarget.additionalAssemblerOptions!=null)
-            assemblerCommand.add(options.compTarget.additionalAssemblerOptions!!)
 
         val proc = ProcessBuilder(assemblerCommand)
         if(!options.quiet)

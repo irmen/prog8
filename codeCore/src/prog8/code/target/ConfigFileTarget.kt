@@ -27,7 +27,7 @@ class ConfigFileTarget(
     override val defaultOutputType: OutputType,
     override val libraryPath: Path,
     override val customLauncher: List<String>,
-    override val additionalAssemblerOptions: String?,
+    override val additionalAssemblerOptions: List<String>,
     val ioAddresses: List<UIntRange>,
     val zpScratchB1: UInt,
     val zpScratchReg: UInt,
@@ -109,8 +109,6 @@ class ConfigFileTarget(
                     (customLauncherStr+"\n").lines().map { it.trimEnd() }
                 else emptyList()
             val assemblerOptionsStr = props.getProperty("assembler_options", "").trim()
-            val assemblerOptions = assemblerOptionsStr.ifBlank { null }
-
             val outputTypeString = props.getProperty("output_type", "PRG")
             val defaultOutputType = OutputType.valueOf(outputTypeString.uppercase())
 
@@ -128,7 +126,7 @@ class ConfigFileTarget(
                 defaultOutputType,
                 libraryPath,
                 customLauncher,
-                assemblerOptions,
+                if(assemblerOptionsStr=="") emptyList() else assemblerOptionsStr.split(" "),
                 ioAddresses,
                 props.getInteger("zp_scratch_b1"),
                 props.getInteger("zp_scratch_reg"),

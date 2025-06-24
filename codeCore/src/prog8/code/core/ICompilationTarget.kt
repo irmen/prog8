@@ -27,7 +27,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
     var golden: GoldenRam
     val libraryPath: Path?
     val customLauncher: List<String>
-    val additionalAssemblerOptions: String?
+    val additionalAssemblerOptions: List<String>
     val defaultOutputType: OutputType
 
     fun initializeMemoryAreas(compilerOptions: CompilationOptions)

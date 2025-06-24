@@ -13,8 +13,8 @@ class C128Target: ICompilationTarget,
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII
     override val libraryPath = null
-    override val customLauncher: List<String> = emptyList()
-    override val additionalAssemblerOptions = null
+    override val customLauncher = emptyList<String>()
+    override val additionalAssemblerOptions = emptyList<String>()
     override val defaultOutputType = OutputType.PRG
 
     companion object {
