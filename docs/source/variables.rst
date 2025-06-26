@@ -244,16 +244,9 @@ you have to make sure the resulting value fits into the byte or word size of the
 Booleans
 ^^^^^^^^
 
-Booleans are a distinct type in Prog8 and can have only the values ``true`` or ``false``.
-It can be casted to and from other integer types though
-where a nonzero integer is considered to be true, and zero is false.
-Logical expressions, comparisons and some other code tends to compile more efficiently if
-you explicitly use ``bool`` types instead of 0/1 integers.
-The in-memory representation of a boolean value is just a byte containing 0 or 1.
-
-If you find that you need a whole bunch of boolean variables or perhaps even an array of them,
-consider using integer bit mask variable + bitwise operators instead.
-This saves a lot of memory and may be faster as well.
+Booleans are a distinct type called ``bool`` in Prog8 and can have only the values ``true`` or ``false``.
+In memory, they are stored as a byte containing 0 or 1.
+You can cast any numeric to a bool, in which case 0 will become ``false`` and any nonzero value will become ``true``.
 
 
 Floating point numbers
