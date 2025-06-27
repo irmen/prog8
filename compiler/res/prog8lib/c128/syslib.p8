@@ -319,9 +319,25 @@ c128 {
 
 ; TODO c128 a bunch of kernal routines are missing here that are specific to the c128
 
-extsub $FF6E = JSRFAR()
-extsub $FF68 = SETBNK(ubyte databank @A, ubyte filenamebank @X)
-extsub $ff7d = PRIMM()
+extsub $FF47 = SPIN_SPOUT() clobbers(A)                         ; set up serial bus for fast communications mode
+extsub $FF4A = CLOSE_ALL(ubyte device @X)  clobbers(X)          ; close all channels to specific device
+extsub $FF4D = C64_MODE()                                       ; restart machine in C64 mode (does not return) 
+extsub $FF50 = DMA_CALL(ubyte bank @X, ubyte command @Y) clobbers(A,X) ; send a command to a DMA device                  
+extsub $FF53 = BOOT_CALL(ubyte device @X, ubyte drive @A) clobbers(A,X,Y) ; try to autoboot the given disk 
+extsub $FF56 = PHOENIX() clobbers(A,X,Y)                        ; search for and autostart ROMs, cartridges, then default disk
+extsub $FF59 = LKUPLA(ubyte lfn @A) -> bool @Pc, ubyte @X       ; look up logical file number to see if it's open; returns device
+extsub $FF5C = LKUPSA(ubyte sa @Y) -> bool @Pc, ubyte @A, ubyte @X ; look up secondary address to see if it's in use; returns lfn and device
+extsub $FF5F = SWAPPER() clobbers(A,X,Y)                        ; swap active screen (between 40- and 80-column)
+extsub $FF62 = DLCHR() clobbers(A,X,Y)                          ; copy character ROM into VDC video RAM
+extsub $FF65 = PFKEY(ubyte zpaddr @A, ubyte key @X, ubyte length @Y) ; redefine programmable function key (string descriptor in zp, addr in A)
+extsub $FF68 = SETBNK(ubyte data_bank @A, ubyte filename_bank @X) ; set memory bank for load/save
+extsub $FF6B = GETCFG(ubyte bank @X) -> ubyte @A                ; translate bank number to MMU configuration register value
+extsub $FF6E = JSRFAR() clobbers(A,X)                           ; call routine in another bank (parameters set in zero page addresses 2-8)
+extsub $FF71 = JMPFAR() clobbers(A,X)                           ; jump without return to another bank (parameters set as for JSRFAR)
+extsub $FF74 = INDFET(ubyte zpaddr @A, ubyte bank @X, ubyte offset @Y) clobbers(X) -> ubyte @A ; fetch byte from another bank (address in zp, ptr in A)
+extsub $FF77 = INDSTA(ubyte value @A, ubyte bank @X, ubyte offset @Y) clobbers(X) ; store byte to another bank (address in zp, ptr in $02b9)
+extsub $FF7A = INDCMP(ubyte value @A, ubyte bank @X, ubyte offset @Y) clobbers(X) -> bool @Pz, bool @Pc, bool @Pv; compare byte in another bank (address in zp, ptr in $02c8)
+extsub $FF7D = PRIMM()                                          ; print immediate string
 
 
 ; ---- C128 specific system utility routines: ----
