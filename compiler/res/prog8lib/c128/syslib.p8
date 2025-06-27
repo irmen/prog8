@@ -335,7 +335,7 @@ extsub $FF6B = GETCFG(ubyte bank @X) -> ubyte @A                ; translate bank
 extsub $FF6E = JSRFAR() clobbers(A,X)                           ; call routine in another bank (parameters set in zero page addresses 2-8)
 extsub $FF71 = JMPFAR() clobbers(A,X)                           ; jump without return to another bank (parameters set as for JSRFAR)
 extsub $FF74 = INDFET(ubyte zpaddr @A, ubyte bank @X, ubyte offset @Y) clobbers(X) -> ubyte @A ; fetch byte from another bank (address in zp, ptr in A)
-extsub $FF77 = INDSTA(ubyte value @A, ubyte bank @X, ubyte offset @Y) clobbers(X) ; store byte from another bank (address in zp, ptr in $02b9)
+extsub $FF77 = INDSTA(ubyte value @A, ubyte bank @X, ubyte offset @Y) clobbers(X) ; store byte to another bank (address in zp, ptr in $02b9)
 extsub $FF7A = INDCMP(ubyte value @A, ubyte bank @X, ubyte offset @Y) clobbers(X) ; compare byte in another bank (address in zp, ptr in $02c8)
 extsub $FF7D = PRIMM()                                          ; print immediate string
 
