@@ -321,6 +321,7 @@ c128 {
 
 extsub $FF6E = JSRFAR()
 extsub $FF68 = SETBNK(ubyte databank @A, ubyte filenamebank @X)
+extsub $ff7d = PRIMM()
 
 
 ; ---- C128 specific system utility routines: ----
