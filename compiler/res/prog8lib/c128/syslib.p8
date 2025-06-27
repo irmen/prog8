@@ -317,13 +317,11 @@ c128 {
     &ubyte  VM4     = $0A2F         ; starting page for VDC attribute mem
 
 
-; TODO c128 a bunch of kernal routines are missing here that are specific to the c128
-
 extsub $FF47 = SPIN_SPOUT() clobbers(A)                         ; set up serial bus for fast communications mode
 extsub $FF4A = CLOSE_ALL(ubyte device @X)  clobbers(X)          ; close all channels to specific device
-extsub $FF4D = C64_MODE()                                       ; restart machine in C64 mode (does not return) 
-extsub $FF50 = DMA_CALL(ubyte bank @X, ubyte command @Y) clobbers(A,X) ; send a command to a DMA device                  
-extsub $FF53 = BOOT_CALL(ubyte device @X, ubyte drive @A) clobbers(A,X,Y) ; try to autoboot the given disk 
+extsub $FF4D = C64_MODE()                                       ; restart machine in C64 mode (does not return)
+extsub $FF50 = DMA_CALL(ubyte bank @X, ubyte command @Y) clobbers(A,X) ; send a command to a DMA device
+extsub $FF53 = BOOT_CALL(ubyte device @X, ubyte drive @A) clobbers(A,X,Y) ; try to autoboot the given disk
 extsub $FF56 = PHOENIX() clobbers(A,X,Y)                        ; search for and autostart ROMs, cartridges, then default disk
 extsub $FF59 = LKUPLA(ubyte lfn @A) -> bool @Pc, ubyte @X       ; look up logical file number to see if it's open; returns device
 extsub $FF5C = LKUPSA(ubyte sa @Y) -> bool @Pc, ubyte @A, ubyte @X ; look up secondary address to see if it's in use; returns lfn and device
