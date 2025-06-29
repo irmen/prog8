@@ -1,6 +1,6 @@
 .PHONY:  all clean
 
-all: main-c64.prg main-cx16.prg main-pet.prg atari-hello.xex atari-fibonacci.xex neo-hello.bin
+all: main-c64.prg main-cx16.prg main-pet.prg atari-hello.xex atari-fibonacci.xex neo-hello.bin f256-hello.bin
 
 clean:
 	rm -f *.prg *.PRG *.xex *.bin *.asm *.vice-*
@@ -25,6 +25,9 @@ atari-fibonacci.xex: src/atari-fibonacci.p8
 
 neo-hello.bin: src/neo-hello.p8
 	prog8c -target targetconfigs/neo6502.properties src/neo-hello.p8
+
+f256-hello.bin: src/f256-hello.p8
+	prog8c -target targetconfigs/f256.properties src/f256-hello.p8
 
 run-atari-hello:
 	prog8c -target targetconfigs/atari.properties src/atari-hello.p8 -emu
