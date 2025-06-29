@@ -1032,6 +1032,7 @@ sys (part of syslib)
     - 7 = Neo6502
     - 8 = Atari 8 bits
     - 16 = Commander X16
+    - 25 = Foenix F256 family
     - 64 = Commodore 64
     - 128 = Commodore 128
     - 255 = Virtual machine
