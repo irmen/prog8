@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.internal.config.LanguageFeature
 
 
@@ -18,6 +19,7 @@ allprojects {
         compilerOptions {
             freeCompilerArgs = listOf("-Xwhen-guards")
             jvmTarget = JvmTarget.JVM_11
+            jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
         }
         sourceSets.all {
             languageSettings {
