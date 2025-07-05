@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.internal.config.LanguageFeature
 
 
 plugins {
-    kotlin("jvm") version "2.1.21"
+    kotlin("jvm") version "2.2.0"
 }
 
 allprojects {
