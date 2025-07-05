@@ -299,7 +299,7 @@ internal fun determineProgramLoadAddress(program: Program, options: CompilationO
 
     if(loadAddress>options.memtopAddress) {
         errors.warn("program load address ${loadAddress.toHex()} is beyond default memtop address ${options.memtopAddress.toHex()}. " +
-                "Memtop has been adjusted to ${'$'}ffff to avoid assembler error. Set a valid %memtop yourself to get rid of this warning.", program.toplevelModule.position)
+                $$"Memtop has been adjusted to $ffff to avoid assembler error. Set a valid %memtop yourself to get rid of this warning.", program.toplevelModule.position)
         options.memtopAddress = 0xffffu
     }
 }

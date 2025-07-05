@@ -318,7 +318,7 @@ internal class AstChecker(private val program: Program,
         val addr = block.address
         if (addr!=null) {
             if (addr > 65535u)
-                errors.err("block address must be valid integer 0..\$ffff", block.position)
+                errors.err($$"block address must be valid integer 0..$ffff", block.position)
             if(compilerOptions.loadAddress!=0u) {
                 val gapsize = compilerOptions.compTarget.STARTUP_CODE_RESERVED_SIZE
                 if (addr < compilerOptions.loadAddress + gapsize)
@@ -931,7 +931,7 @@ internal class AstChecker(private val program: Program,
                 val numvalue = decl.value as? NumericLiteral
                 if(numvalue!=null) {
                     if (!numvalue.type.isInteger || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
-                        valueerr("memory address must be valid integer 0..\$ffff")
+                        valueerr($$"memory address must be valid integer 0..$ffff")
                     }
                 } else {
                     valueerr("value of memory mapped variable can only be a constant, maybe use an address pointer type instead?")
@@ -1830,7 +1830,7 @@ internal class AstChecker(private val program: Program,
 
         if(target is StructDecl) {
             // it's a static struct inializer, check the values
-            if(args.size!=0) {
+            if(args.isNotEmpty()) {
                 args.forEach {
                     if(it is IdentifierReference) {
                         val target = it.targetVarDecl()

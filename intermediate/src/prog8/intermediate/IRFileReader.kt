@@ -321,8 +321,8 @@ class IRFileReader {
                 val size = sizeStr[1].toUInt()
                 require(valuesStr1.startsWith("values="))
                 val valuesStr = valuesStr1.drop(7).split(',')
-                val values = valuesStr.map {
-                    val (type, value) = it.split(':')
+                val values = valuesStr.map { vstr ->
+                    val (type, value) = vstr.split(':')
                     val dt = parseDatatype(type, false)
                     var booleanValue: Boolean? = null
                     var numberValue: Double? = null

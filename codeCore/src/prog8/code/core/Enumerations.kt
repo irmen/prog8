@@ -155,13 +155,11 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             DataType(BaseDataType.ARRAY_POINTER, sub, null, identifier)
 
         fun pointer(base: BaseDataType): DataType = DataType(BaseDataType.POINTER, base, null)
-        fun pointer(dt: DataType): DataType {
-            if(dt.isBasic)
-                return DataType(BaseDataType.POINTER, dt.base, null)
+        fun pointer(dt: DataType): DataType = if(dt.isBasic)
+                DataType(BaseDataType.POINTER, dt.base, null)
             else
-                return DataType(BaseDataType.POINTER, null, dt.subType, dt.subTypeFromAntlr)
-        }
-        fun pointer(structType: ISubType): DataType = DataType(BaseDataType.POINTER, null, structType, null)
+                DataType(BaseDataType.POINTER, null, dt.subType, dt.subTypeFromAntlr)
+        fun pointer(structType: ISubType): DataType = DataType(BaseDataType.POINTER, null, structType)
         fun pointerFromAntlr(identifier: List<String>): DataType = DataType(BaseDataType.POINTER, null, null, identifier)
         fun structInstance(type: ISubType?): DataType = DataType(BaseDataType.STRUCT_INSTANCE, sub=null, type)
         fun structInstanceFromAntlr(struct: List<String>): DataType = DataType(BaseDataType.STRUCT_INSTANCE, null, null, subTypeFromAntlr = struct)

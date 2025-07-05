@@ -138,20 +138,18 @@ interface IStatementContainer {
     }
 
     fun hasReturnStatement(): Boolean {
-        fun hasReturnStatement(stmt: Statement): Boolean {
-            when(stmt) {
-                is AnonymousScope -> return stmt.statements.any { hasReturnStatement(it) }
-                is ForLoop -> return stmt.body.hasReturnStatement()
-                is IfElse -> return stmt.truepart.hasReturnStatement() || stmt.elsepart.hasReturnStatement()
-                is WhileLoop -> return stmt.body.hasReturnStatement()
-                is RepeatLoop -> return stmt.body.hasReturnStatement()
-                is UntilLoop -> return stmt.body.hasReturnStatement()
-                is When -> return stmt.choices.any { it.statements.hasReturnStatement() }
-                is ConditionalBranch -> return stmt.truepart.hasReturnStatement() || stmt.elsepart.hasReturnStatement()
-                is UnrollLoop -> return stmt.body.hasReturnStatement()
-                is Return -> return true
-                else -> return false
-            }
+        fun hasReturnStatement(stmt: Statement): Boolean = when(stmt) {
+            is AnonymousScope -> stmt.statements.any { hasReturnStatement(it) }
+            is ForLoop -> stmt.body.hasReturnStatement()
+            is IfElse -> stmt.truepart.hasReturnStatement() || stmt.elsepart.hasReturnStatement()
+            is WhileLoop -> stmt.body.hasReturnStatement()
+            is RepeatLoop -> stmt.body.hasReturnStatement()
+            is UntilLoop -> stmt.body.hasReturnStatement()
+            is When -> stmt.choices.any { it.statements.hasReturnStatement() }
+            is ConditionalBranch -> stmt.truepart.hasReturnStatement() || stmt.elsepart.hasReturnStatement()
+            is UnrollLoop -> stmt.body.hasReturnStatement()
+            is Return -> true
+            else -> false
         }
 
         return statements.any { hasReturnStatement(it) }

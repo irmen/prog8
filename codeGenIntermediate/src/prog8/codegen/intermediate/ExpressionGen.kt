@@ -1637,10 +1637,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         result += IRCodeChunk(null, null).also {
             it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = field.second.toInt())
-            if(vmDt==IRDataType.FLOAT)
-                it += IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultFpReg, reg1 = pointerReg)
+            it += if(vmDt==IRDataType.FLOAT)
+                IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultFpReg, reg1 = pointerReg)
             else
-                it += IRInstruction(Opcode.LOADI, vmDt, reg1 = resultReg, reg2 = pointerReg)
+                IRInstruction(Opcode.LOADI, vmDt, reg1 = resultReg, reg2 = pointerReg)
         }
         return ExpressionCodeResult(result, vmDt, resultReg, resultFpReg)
     }

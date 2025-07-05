@@ -595,11 +595,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when (i.type!!) {
             IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt() + offset, registers.getUB(i.reg1!!))
             IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt() + offset, registers.getUW(i.reg1!!))
-            IRDataType.FLOAT -> {
-                val a = registers.getUW(i.reg1!!).toInt()
-                val f = registers.getFloat(i.fpReg1!!)
-                memory.setFloat(registers.getUW(i.reg1!!).toInt() + offset, registers.getFloat(i.fpReg1!!))
-            }
+            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + offset, registers.getFloat(i.fpReg1!!))
         }
         nextPc()
     }

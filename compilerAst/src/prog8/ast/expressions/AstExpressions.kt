@@ -578,13 +578,11 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         if(identifier!=null) {
             val type = identifier!!.inferType(program).getOrUndef()
             val addrofDt = type.typeForAddressOf(msb)
-            if(addrofDt.isUndefined) return InferredTypes.unknown()
-            else return InferredTypes.knownFor(addrofDt)
+            return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else if(dereference!=null) {
             val type = dereference!!.inferType(program).getOrUndef()
             val addrofDt = type.typeForAddressOf(msb)
-            if(addrofDt.isUndefined) return InferredTypes.unknown()
-            else return InferredTypes.knownFor(addrofDt)
+            return if(addrofDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(addrofDt)
         } else
             throw FatalAstException("invalid addressof")
     }
@@ -861,38 +859,38 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     when (targettype) {
                         BaseDataType.BYTE if number >= -128 && number <= 127 -> {
                             val converted = number.toInt().toByte().toDouble()
-                            if(implicit && converted!=number)
-                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            return if(implicit && converted!=number)
+                                ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
-                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                                ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
                         BaseDataType.UBYTE if number >= 0 && number <= 255 -> {
                             val converted = number.toInt().toUByte().toDouble()
-                            if(implicit && converted!=number)
-                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            return if(implicit && converted!=number)
+                                ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
-                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                                ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
                         BaseDataType.WORD if number >= -32768 && number <= 32767 -> {
                             val converted = number.toInt().toShort().toDouble()
-                            if(implicit && converted!=number)
-                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            return if(implicit && converted!=number)
+                                ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
-                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                                ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
                         BaseDataType.UWORD if number >= 0 && number <= 65535 -> {
                             val converted = number.toInt().toUShort().toDouble()
-                            if(implicit && converted!=number)
-                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            return if(implicit && converted!=number)
+                                ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
-                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                                ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
                         BaseDataType.LONG if number >=0 && number <= 2147483647 -> {
                             val converted = number.toInt().toDouble()
-                            if(implicit && converted!=number)
-                                return ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
+                            return if(implicit && converted!=number)
+                                ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
-                                return ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
+                                ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
                         else -> {}
                     }

@@ -341,7 +341,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             call as Node
                         )
                     } else if(dt.isUnknown) {
-                        val subOrLabel = identifier.targetStatement(null)
+                        val subOrLabel = identifier.targetStatement()
                         if(subOrLabel is Subroutine || subOrLabel is Label) {
                             // take the address of the subroutine or label
                             modifications += IAstModification.ReplaceNode(

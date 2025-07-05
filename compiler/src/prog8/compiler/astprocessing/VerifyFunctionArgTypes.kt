@@ -130,10 +130,10 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                     if(expected.isPointer && expected.sub!!.isWord) {
                         val arg = call.args[mismatch]
                         val argArray = if(arg is AddressOf) arg.identifier else arg
-                        if(argArray?.inferType(program)?.getOrUndef()?.isSplitWordArray==true)
-                            return Pair("argument ${mismatch + 1} cannot pass address to a split words array where a word pointer argument is expected, use a @nosplit word array instead", call.args[mismatch].position)
+                        return if(argArray?.inferType(program)?.getOrUndef()?.isSplitWordArray==true)
+                            Pair("argument ${mismatch + 1} cannot pass address to a split words array where a word pointer argument is expected, use a @nosplit word array instead", call.args[mismatch].position)
                         else
-                            return Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
+                            Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
                     }
                     return Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
                 }

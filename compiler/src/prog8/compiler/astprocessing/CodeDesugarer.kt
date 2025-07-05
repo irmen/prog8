@@ -595,7 +595,7 @@ _after:
     override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {
         // get rid of the ArrayIndexedPtrDereference AST node, replace it with other AST nodes that are equivalent
 
-        if(deref.chain.last().second!=null && deref.derefLast && deref.chain.dropLast(1).all( { it.second==null } )) {
+        if(deref.chain.last().second!=null && deref.derefLast && deref.chain.dropLast(1).all { it.second==null } ) {
 
             // parent could be Assigment directly, or a binexpr chained pointer expression (with '.' operator)_
             if(parent is Assignment) {

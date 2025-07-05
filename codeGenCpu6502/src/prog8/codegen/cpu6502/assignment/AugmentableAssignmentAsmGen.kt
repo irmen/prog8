@@ -982,7 +982,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     } else {
                         asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
                         asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                        asmgen.out("+\tinc  ${'$'}ffff\t; modified")
+                        asmgen.out($$"+\tinc  $ffff\t; modified")
                     }
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
@@ -1002,7 +1002,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     } else {
                         asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
                         asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                        asmgen.out("+\tdec  ${'$'}ffff\t; modified")
+                        asmgen.out($$"+\tdec  $ffff\t; modified")
                     }
                 } else {
                     val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
