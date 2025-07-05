@@ -986,23 +986,33 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^ as expression where pointer is primitive type") {
+    test("a.b.c[i]^^ as expression where pointer is primitive type") {
         val src="""
+%option enable_floats
+
 main {
     sub start() {
-        cx16.r0 = other.foo.ptrarray[2]
-        cx16.r1L = other.foo.ptrarray[3]^^
+        float @shared f2 = other.foo.fptrarray[3]^^
+        cx16.r1s = other.foo.wptrarray[3]^^
+        cx16.r2L = other.foo.ptrarray[3]^^
+        cx16.r3bL = other.foo.bptrarray[3]^^
         other.foo()
     }
 }
 
 other {
     sub foo() {
+        ^^word[10] wptrarray
+        ^^float[10] fptrarray
         ^^ubyte[10] ptrarray
-        cx16.r0 = ptrarray[2]
-        cx16.r1L = ptrarray[3]^^
+        ^^bool[10] bptrarray
+        float @shared f1 = fptrarray[3]^^
+        cx16.r1s = wptrarray[3]^^
+        cx16.r2L = ptrarray[3]^^
+        cx16.r3bL = bptrarray[3]^^
     }
-}"""
+}
+"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 

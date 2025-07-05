@@ -594,21 +594,78 @@ _after:
 
     override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {
         // get rid of the ArrayIndexedPtrDereference AST node, replace it with other AST nodes that are equivalent
-        // z[i]^^.field   -->  (z[i]) . (field)
-        val firstIndexed = deref.chain.indexOfFirst { it.second!=null }
-        require(firstIndexed==0) {"array dereference expected on first element in the chain, anything before it should be part of the parent binexpression"}
-        val index = deref.chain.first()
-        val tail = deref.chain.drop(1)
 
-        if(tail.any { it.second!=null }) {
-            TODO("support multiple array indexed dereferencings  ${deref.position}")
-        } else {
-            val pointer = IdentifierReference(listOf(index.first), deref.position)
-            val left = ArrayIndexedExpression(pointer, null, index.second!!, deref.position)
-            val right = PtrDereference(tail.map { it.first }, deref.derefLast, deref.position)
-            val derefExpr = BinaryExpression(left, ".", right, deref.position)
-            return listOf(IAstModification.ReplaceNode(deref, derefExpr, parent))
+        if(deref.chain.last().second!=null && deref.derefLast && deref.chain.dropLast(1).all( { it.second==null } )) {
+
+            // parent could be Assigment directly, or a binexpr chained pointer expression (with '.' operator)_
+            if(parent is Assignment) {
+                val dt = deref.inferType(program).getOrUndef()
+                require(dt.isNumericOrBool)
+                if (parent.value isSameAs deref) {
+                    // x = z[i]^^ -->  peekX(z[i])
+                    val (peekFunc, cast) =
+                        if(dt.isBool) "peekbool" to null
+                        else if (dt.isUnsignedByte) "peek" to null
+                        else if (dt.isSignedByte) "peek" to DataType.BYTE
+                        else if (dt.isUnsignedWord) "peekw" to null
+                        else if (dt.isSignedWord) "peekw" to DataType.WORD
+                        else if (dt.isLong) "peekl" to null
+                        else if (dt.isFloat) "peekf" to null
+                        else throw FatalAstException("can only deref a numeric or boolean pointer here")
+                    val indexer = deref.chain.last().second!!
+                    val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
+                    val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)
+                    val peekIdent = IdentifierReference(listOf(peekFunc), deref.position)
+                    val peekCall = FunctionCallExpression(peekIdent, mutableListOf(indexed), deref.position)
+                    if(cast==null)
+                        return listOf(IAstModification.ReplaceNode(parent.value, peekCall, parent))
+                    else {
+                        val casted = TypecastExpression(peekCall, cast, true, deref.position)
+                        return listOf(IAstModification.ReplaceNode(parent.value, casted, parent))
+                    }
+                }
+            } else if(parent is BinaryExpression && parent.operator==".") {
+                val left = parent.left as? IdentifierReference
+                val right = parent.right as? ArrayIndexedPtrDereference
+                if(left!=null && right!=null) {
+                    if(right.chain.last().second!=null && right.derefLast && right.chain.dropLast(1).all { it.second!=null }) {
+                        // (a.b.c) . (d[i]^^)  --> a.b.c.d[i]^^
+                        val combinedIdentifier = left.nameInSource+right.chain.map { it.first }
+                        val chain: List<Pair<String, ArrayIndex?>> = combinedIdentifier.dropLast(1).map { it to null } + (combinedIdentifier.last() to right.chain.last().second)
+                        val deref = ArrayIndexedPtrDereference(chain,true, right.position)
+                        return listOf(IAstModification.ReplaceNode(parent, deref, parent.parent))
+                    }
+                }
+                val dt = parent.inferType(program).getOrUndef()
+                TODO("$dt")
+            }
+            else {
+                // ????
+                // z[i]^^ = value -->  pokeX(z[i], value)
+                val dt = deref.inferType(program).getOrUndef()
+                TODO("$dt")
+            }
         }
+
+
+        val firstIndexed = deref.chain.indexOfFirst { it.second!=null }
+        if(firstIndexed == 0 && deref.chain.size>1) {
+            // z[i]^^.field   -->  (z[i]) . (field)
+
+            val index = deref.chain.first()
+            val tail = deref.chain.drop(1)
+            if (tail.any { it.second != null }) {
+                TODO("support multiple array indexed dereferencings  ${deref.position}")
+            } else {
+                val pointer = IdentifierReference(listOf(index.first), deref.position)
+                val left = ArrayIndexedExpression(pointer, null, index.second!!, deref.position)
+                val right = PtrDereference(tail.map { it.first }, deref.derefLast, deref.position)
+                val derefExpr = BinaryExpression(left, ".", right, deref.position)
+                return listOf(IAstModification.ReplaceNode(deref, derefExpr, parent))
+            }
+        }
+
+        TODO("convert yet another array indexed dereference $deref   ${deref.position}")
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {

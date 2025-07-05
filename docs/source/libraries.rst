@@ -121,6 +121,10 @@ mkword (msb, lsb)
 peek (address)
     same as @(address) - reads the byte at the given address in memory.
 
+peekbool (address)
+    Reads the boolean value (byte 0 or 1) at the given address in memory and returns it.
+    If the memory location contains another value than 0 or 1, results are undefined.
+
 peekw (address)
     reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
     Caution: when using peekw to get words out of an array pointer, make sure the array is *not* a split word array
@@ -131,6 +135,10 @@ peekf (address)
 
 poke (address, value)
     same as @(address)=value - writes the byte value at the given address in memory.
+
+pokebool (address, value)
+    Writes the boolean value at the given address in memory, as byte 0 or 1.
+    Can also be written as pokebowl(addres, value), just for fun.
 
 pokew (address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.

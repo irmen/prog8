@@ -2037,12 +2037,12 @@ internal class AstChecker(private val program: Program,
 
     private fun allowedMemoryAccessAddressExpression(addressExpression: Expression, program: Program): Boolean {
         val dt = addressExpression.inferType(program)
-        if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByte==true))
+        if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByteOrBool==true))
             return true
         val tc = addressExpression as? TypecastExpression
         if(tc!=null && tc.implicit) {
             val dt = tc.expression.inferType(program)
-            if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByte==true))
+            if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByteOrBool==true))
                 return true
         }
         return false

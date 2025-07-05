@@ -229,41 +229,44 @@ class BinaryExpression(
             "<<", ">>" -> leftDt
             "." -> {
                 val leftExpr = left as? BinaryExpression
-                val leftIdentfier = left as? IdentifierReference
+                val leftIdentifier = left as? IdentifierReference
                 val leftIndexer = left as? ArrayIndexedExpression
                 val rightIdentifier = right as? IdentifierReference
+                val rightArrayIndexedDeref = right as? ArrayIndexedPtrDereference
                 if(rightIdentifier!=null) {
                     val struct: StructDecl? =
-                        if (leftIdentfier != null) {
+                        if (leftIdentifier != null) {
                             // PTR . FIELD
-                            leftIdentfier.targetVarDecl()?.datatype?.subType as? StructDecl
-                        } else if(leftIndexer!=null && rightIdentifier.nameInSource.size==1) {
+                            leftIdentifier.targetVarDecl()?.datatype?.subType as? StructDecl
+                        } else if (leftIndexer != null && rightIdentifier.nameInSource.size == 1) {
                             // ARRAY[x].NAME --> maybe it's a pointer dereference
                             val dt = leftIndexer.inferType(program).getOrUndef()
-                            if(dt.isPointer) {
+                            if (dt.isPointer) {
                                 dt.dereference().subType as? StructDecl
                             } else null
-                        } else if(leftExpr!=null) {
+                        } else if (leftExpr != null) {
                             // SOMEEXPRESSION . NAME
                             val leftDt = leftExpr.inferType(program)
-                            if(leftDt.isPointer)
+                            if (leftDt.isPointer)
                                 leftDt.getOrUndef().subType as StructDecl?
                             else
                                 null
-                        }
-                        else null
+                        } else null
                     if (struct == null)
                         InferredTypes.unknown()
                     else {
-                        val fieldDt = if(rightIdentifier.nameInSource.size==1)
-                                struct.getFieldType(rightIdentifier.nameInSource.single())
-                            else
-                                rightIdentifier.traverseDerefChainForDt(struct)
+                        val fieldDt = if (rightIdentifier.nameInSource.size == 1)
+                            struct.getFieldType(rightIdentifier.nameInSource.single())
+                        else
+                            rightIdentifier.traverseDerefChainForDt(struct)
                         if (fieldDt != null)
-                            if(fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
+                            if (fieldDt.isUndefined) InferredTypes.unknown() else InferredTypes.knownFor(fieldDt)
                         else
                             InferredTypes.unknown()
                     }
+                } else if(leftIdentifier!=null && rightArrayIndexedDeref!=null) {
+                    InferredTypes.unknown()
+                    // TODO("LEFT=$leftIdentifier    RIGHT=${rightArrayIndexedDeref.chain}")
                 } else
                     InferredTypes.unknown()
             }
@@ -1726,7 +1729,18 @@ class ArrayIndexedPtrDereference(
     override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.unknown()
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        if(parent !is BinaryExpression || (parent as? BinaryExpression)?.operator != "." && derefLast) {
+            val arrayIdentifier = chain.map { it.first }
+            val symbol = definingScope.lookup(arrayIdentifier) as? VarDecl
+            if(symbol!=null) {
+                require(symbol.datatype.isArray)
+                return InferredTypes.knownFor(symbol.datatype.sub!!)
+            }
+        }
+        // too hard to determine the type....?
+        return InferredTypes.unknown()
+    }
 }
 
 
