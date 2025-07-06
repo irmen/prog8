@@ -17,6 +17,7 @@ import prog8.compiler.builtinFunctionReturnType
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
+import kotlin.math.log2
 
 
 /**
@@ -773,17 +774,19 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         } else {
             if(srcExpr.left.inferType(program).isPointer || srcExpr.right.inferType(program).isPointer) {
+                if (srcExpr.operator == "+") return transformWithPointerArithmetic(srcExpr)
+                else if (srcExpr.operator in ComparisonOperators) return transformWithPointerComparison(srcExpr)
+            } else if(srcExpr.left.inferType(program).isPointer) {
                 return when (srcExpr.operator) {
-                    "+", "-" -> transformWithPointerArithmetic(srcExpr)
+                    "-" -> transformWithPointerArithmetic(srcExpr)      // '+' is handled above
                     in ComparisonOperators -> transformWithPointerComparison(srcExpr)
                     else -> throw FatalAstException("unsupported operator on pointer: ${srcExpr.operator} at ${srcExpr.position}")
                 }
-            } else {
-                val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
-                expr.add(transformExpression(srcExpr.left))
-                expr.add(transformExpression(srcExpr.right))
-                return expr
             }
+            val expr = PtBinaryExpression(srcExpr.operator, type, srcExpr.position)
+            expr.add(transformExpression(srcExpr.left))
+            expr.add(transformExpression(srcExpr.right))
+            return expr
         }
     }
 
@@ -830,12 +833,21 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     return plus
                 } else {
                     // ptr + right * structSize
-                    val total = PtBinaryExpression("*", DataType.UWORD, expr.position)
-                    total.add(transformExpression(expr.right))
-                    total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                    val offset: PtExpression
+                    if(structSize in powersOfTwoInt) {
+                        // don't multiply simply shift
+                        offset = PtBinaryExpression("<<", DataType.UWORD, expr.position)
+                        offset.add(transformExpression(expr.right))
+                        offset.add(PtNumber(BaseDataType.UWORD, log2(structSize.toDouble()), expr.position))
+                    }
+                    else {
+                        offset = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                        offset.add(transformExpression(expr.right))
+                        offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                    }
                     val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
                     plusorminus.add(transformExpression(expr.left))
-                    plusorminus.add(total)
+                    plusorminus.add(offset)
                     return plusorminus
                 }
             }
@@ -863,12 +875,21 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     return plus
                 } else {
                     // ptr + left  * structSize
-                    val total = PtBinaryExpression("*", DataType.UWORD, expr.position)
-                    total.add(transformExpression(expr.left))
-                    total.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                    val offset: PtExpression
+                    if(structSize in powersOfTwoInt) {
+                        // don't multiply simply shift
+                        offset = PtBinaryExpression("<<", DataType.UWORD, expr.position)
+                        offset.add(transformExpression(expr.left))
+                        offset.add(PtNumber(BaseDataType.UWORD, log2(structSize.toDouble()), expr.position))
+                    }
+                    else {
+                        offset = PtBinaryExpression("*", DataType.UWORD, expr.position)
+                        offset.add(transformExpression(expr.left))
+                        offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
+                    }
                     val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
+                    plusorminus.add(offset)
                     plusorminus.add(transformExpression(expr.right))
-                    plusorminus.add(total)
                     return plusorminus
                 }
             }

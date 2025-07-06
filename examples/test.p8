@@ -1,92 +1,52 @@
-%import textio
 %option enable_floats
+%import textio
+%zeropage basicsafe
+%option no_sysinit
 
 main {
 
+    ubyte @shared thingIndex = 10
+    uword[20] @shared dummy
+    uword[10] @split curframesplit
+    uword[10] @nosplit curframe
+    uword p1, p2
+    float f
+
     sub start() {
-        ^^ubyte[4] array1
-        ^^byte[4] array2
-        ^^bool[4] array3
-        ^^word[4] array4
-        ^^uword[4] array5
-        ^^float[4] array6
-        ^^long[4] array7
-        ^^str[4] array8
-
-        error1(array1)
-        error2(array2)
-        error3(array3)
-        error4(array4)
-        error5(array5)
-        error6(array6)
-        error7(array7)
-        error8(array8)
-
-        ok1(array1)
-        ok2(array2)
-        ok3(array3)
-        ok4(array4)
-        ok5(array5)
-        ok6(array6)
-        ok7(array7)
-        ok8(array8)
+        classic()
+        ; new()
     }
 
-    sub error1(^^ubyte ptr) {
-        cx16.r0++
-    }
-    sub error2(^^byte ptr) {
-        cx16.r0++
-    }
-    sub error3(^^bool ptr) {
-        cx16.r0++
-    }
-    sub error4(^^word ptr) {
-        cx16.r0++
-    }
-    sub error5(^^uword ptr) {
-        cx16.r0++
-    }
-    sub error6(^^float ptr) {
-        cx16.r0++
-    }
-    sub error7(^^long ptr) {
-        cx16.r0++
-    }
-    sub error8(^^str ptr) {
-        cx16.r0++
+    sub classic() {
+        txt.print("float pointer+1: ")
+        txt.print_uwhex(&f, true)
+        txt.spc()
+        txt.print_uwhex(&f + 1, true)
+        txt.nl()
+
+        p1 = &curframesplit[thingIndex]
+        p2 = &curframe[thingIndex]
+
+        txt.print("&array (split): ")
+        txt.print_uwhex(&curframesplit, true)
+        txt.spc()
+        txt.print_uwhex(p1, true)
+        txt.spc()
+        txt.print_uw(p1 - &curframesplit)
+        txt.spc()
+        txt.print_uwhex(p1 + &curframesplit, true)
+        txt.nl()
+
+        txt.print("&array (normal): ")
+        txt.print_uwhex(&curframe, true)
+        txt.spc()
+        txt.print_uwhex(p2, true)
+        txt.spc()
+        txt.print_uw(p2 - &curframe)
+        txt.spc()
+        txt.print_uwhex(p2 + &curframe, true)
+        txt.nl()
     }
 
-    sub ok1(^^ubyte[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
-    sub ok2(^^byte[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
-    sub ok3(^^bool[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
-    sub ok4(^^word[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
-    sub ok5(^^uword[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
-    sub ok6(^^float[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
-    sub ok7(^^long[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
-    sub ok8(^^str[] ptr) {
-        txt.print_uw(ptr)
-        txt.nl()
-    }
+    ; 6502 data size: $0251
 }

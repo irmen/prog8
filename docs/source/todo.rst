@@ -1,6 +1,10 @@
 TODO
 ====
 
+What to do with the changed adress-of behavior? &x now returns a typed pointer to &x + 10 will now be calculated differently (C pointer arithmetic semantics rather than simply byte addition)
+compiler flag to select old behavior? new operator that has the new behavior?    Don't want to break existing code that used &....
+Old behavior can be put back by always returning UWORD as the inferred type for AddressOf nodes
+
 
 STRUCTS and TYPED POINTERS
 --------------------------
