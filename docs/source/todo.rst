@@ -59,11 +59,11 @@ STRUCTS and TYPED POINTERS
 - DONE: check passing arrays to typed ptr sub-parameters.  NOTE: word array can only be a @nosplit array if the parameter type is ^^word, because the words need to be sequential in memory there
 - DONE: allow str assign to ^^ubyte without cast (take address)
 - DONE: added peekbool() and pokebool() and pokebowl()  boolean peek and poke, the latter is equivalent to pokebool()
-- DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives
-- fix support for (assigntarget) array index dereferencing "barray[2]^^"   where barray is ^^bool[10]
+- DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
+- DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
 - fix support for (assigntarget) array index dereferencing "array[2].value"   where array is struct pointers
-- write docs in structpointers.rst
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
+- write docs in structpointers.rst
 - try to make sizeof(^^type) parse correctly (or maybe replace it immediately with sys.SIZEOF_POINTER)
 - add ?. null-propagation operator (for expression and assignment)?
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()

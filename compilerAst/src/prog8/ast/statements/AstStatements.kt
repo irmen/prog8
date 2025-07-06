@@ -595,6 +595,7 @@ data class AssignTarget(
     val multi: List<AssignTarget>?,
     val void: Boolean,
     var pointerDereference: PtrDereference? = null,
+    var arrayIndexedDereference: ArrayIndexedPtrDereference? = null,
     override val position: Position
 ) : Node {
     override lateinit var parent: Node
@@ -605,6 +606,7 @@ data class AssignTarget(
         arrayindexed?.linkParents(this)
         memoryAddress?.linkParents(this)
         pointerDereference?.linkParents(this)
+        arrayIndexedDereference?.linkParents(this)
         multi?.forEach { it.linkParents(this) }
     }
 
@@ -659,6 +661,7 @@ data class AssignTarget(
         multi?.toList(),
         void,
         pointerDereference?.copy(),
+        arrayIndexedDereference?.copy(),
         position
     )
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
@@ -666,6 +669,7 @@ data class AssignTarget(
                 arrayindexed?.referencesIdentifier(nameInSource)==true ||
                 memoryAddress?.referencesIdentifier(nameInSource)==true ||
                 pointerDereference?.referencesIdentifier(nameInSource)==true ||
+                arrayIndexedDereference?.referencesIdentifier(nameInSource)==true ||
                 multi?.any { it.referencesIdentifier(nameInSource)}==true
 
     fun inferType(program: Program): InferredTypes.InferredType {
@@ -678,6 +682,7 @@ data class AssignTarget(
             arrayindexed != null -> arrayindexed!!.inferType(program)
             memoryAddress != null -> InferredTypes.knownFor(BaseDataType.UBYTE)
             pointerDereference != null -> pointerDereference!!.inferType(program)
+            arrayIndexedDereference != null -> arrayIndexedDereference!!.inferType(program)
             else -> InferredTypes.unknown()   // a multi-target has no 1 particular type
         }
     }
@@ -690,6 +695,7 @@ data class AssignTarget(
             memoryAddress != null -> DirectMemoryRead(memoryAddress!!.addressExpression.copy(), memoryAddress!!.position)
             multi != null -> throw FatalAstException("cannot turn a multi-assign into a single source expression")
             pointerDereference != null -> pointerDereference!!.copy()
+            arrayIndexedDereference != null -> arrayIndexedDereference!!.copy()
             else -> throw FatalAstException("invalid assignment target")
         }
     }
@@ -709,6 +715,11 @@ data class AssignTarget(
             pointerDereference != null -> {
                 return if (value is PtrDereference) {
                     pointerDereference!!.chain==value.chain
+                } else false
+            }
+            arrayIndexedDereference != null -> {
+                return if (value is ArrayIndexedPtrDereference) {
+                    arrayIndexedDereference!!.chain==value.chain && arrayIndexedDereference!!.derefLast==value.derefLast
                 } else false
             }
             else -> false
@@ -738,6 +749,9 @@ data class AssignTarget(
             }
             pointerDereference !=null && other.pointerDereference !=null -> {
                 return pointerDereference!! isSameAs other.pointerDereference!!
+            }
+            arrayIndexedDereference !=null && other.arrayIndexedDereference !=null -> {
+                return arrayIndexedDereference!! isSameAs other.arrayIndexedDereference!!
             }
             this.multi != null && other.multi != null -> return this.multi == other.multi
             else -> return false

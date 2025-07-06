@@ -1041,21 +1041,32 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^ as assignment target where pointer is primitive type") {
+    test("a.b.c[i]^^ as assignment target where pointer is primitive type") {
         val src="""
+%option enable_floats
+
 main {
     sub start() {
-        other.foo.ptrarray[2] = cx16.r0
-        other.foo.ptrarray[3]^^ = cx16.r0L
+        float @shared f2
+        other.foo.fptrarray[3]^^ = f2
+        other.foo.wptrarray[3]^^ = cx16.r1s
+        other.foo.ptrarray[3]^^ = cx16.r2L
+        other.foo.bptrarray[3]^^ = cx16.r3bL
         other.foo()
     }
 }
 
 other {
     sub foo() {
+        ^^word[10] wptrarray
+        ^^float[10] fptrarray
         ^^ubyte[10] ptrarray
-        ptrarray[2] = cx16.r0
-        ptrarray[3]^^ = cx16.r0L
+        ^^bool[10] bptrarray
+        float @shared f1
+        fptrarray[3]^^ = f1
+        wptrarray[3]^^ = cx16.r1s
+        ptrarray[3]^^ = cx16.r2L
+        bptrarray[3]^^ = cx16.r3bL
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
