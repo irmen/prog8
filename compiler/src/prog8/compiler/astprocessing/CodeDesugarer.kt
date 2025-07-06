@@ -682,7 +682,7 @@ _after:
             val tail = deref.chain.drop(1)
             if (tail.any { it.second != null }) {
                 TODO("support multiple array indexed dereferencings  ${deref.position}")
-            } else {
+            } else if (parent !is AssignTarget) {
                 val pointer = IdentifierReference(listOf(index.first), deref.position)
                 val left = ArrayIndexedExpression(pointer, null, index.second!!, deref.position)
                 val right = PtrDereference(tail.map { it.first }, deref.derefLast, deref.position)
@@ -691,7 +691,7 @@ _after:
             }
         }
 
-        TODO("convert yet another array indexed dereference $deref   ${deref.position}")
+        return noModifications
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {

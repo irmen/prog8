@@ -607,7 +607,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         else if(deref is ArrayIndexedPtrDereference)
             AssignTarget(null, null, null, null, false, null, deref, deref.position)
         else
-            throw SyntaxError("no support for dereferencing after array indexing yet. (Split the assignment using an intermediate variable?)", ctx.toPosition())
+            throw FatalAstException("weird dereference ${ctx.toPosition()}")
     }
 
     override fun visitPointerdereference(ctx: PointerdereferenceContext): Expression {

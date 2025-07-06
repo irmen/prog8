@@ -1016,11 +1016,10 @@ other {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("a.b.c[i]^^.value as assignment target where pointer is struct") {
+    test("a.b.c[i]^^.value = X where pointer is struct gives good error message") {
         val src="""
 main {
     sub start() {
-        other.foo.listarray[2].value = cx16.r0
         other.foo.listarray[3]^^.value = cx16.r0
         other.foo()
     }
@@ -1034,11 +1033,63 @@ other {
         }
 
         ^^List[10] listarray
-        listarray[2].value = cx16.r0
         listarray[3]^^.value = cx16.r0
     }
 }"""
-        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "no support for"
+        errors.errors[1] shouldContain "no support for"
+    }
+
+    xtest("array indexed assignment parses with and without explicit dereference after struct pointer [IGNORED because it's a parser error right now]") {
+        val src="""
+main {
+
+    sub start() {
+        struct Node {
+            ^^uword s
+        }
+
+        ^^Node l1
+
+        l1.s[0] = 4242
+        l1^^.s[0] = 4242        ; TODO fix parse error
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "no support for"
+        errors.errors[1] shouldContain "no support for"
+    }
+
+    xtest("a.b.c[i].value = X where pointer is struct gives good error message [IGNORED because it's a parser error right now]") {
+        val src="""
+main {
+    sub start() {
+        other.foo.listarray[2].value = cx16.r0
+        other.foo()
+    }
+}
+
+other {
+    sub foo() {
+        struct List {
+            bool b
+            uword value
+        }
+
+        ^^List[10] listarray
+        listarray[2].value = cx16.r0
+    }
+}"""
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "no support for"
+        errors.errors[1] shouldContain "no support for"
     }
 
     test("a.b.c[i]^^ as assignment target where pointer is primitive type") {

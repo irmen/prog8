@@ -61,9 +61,10 @@ STRUCTS and TYPED POINTERS
 - DONE: added peekbool() and pokebool() and pokebowl()  boolean peek and poke, the latter is equivalent to pokebool()
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
-- fix support for (assigntarget) array index dereferencing "array[2].value"   where array is struct pointers
-- try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - write docs in structpointers.rst
+- add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
+- add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
+- try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - try to make sizeof(^^type) parse correctly (or maybe replace it immediately with sys.SIZEOF_POINTER)
 - add ?. null-propagation operator (for expression and assignment)?
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()

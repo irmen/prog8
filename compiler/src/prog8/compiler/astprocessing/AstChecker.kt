@@ -2419,7 +2419,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: ArrayIndexedPtrDereference) {
-        errors.err("no support for dereferencing after array indexing yet. (Split the expression using an intermediate variable?)", deref.position)
+        errors.err("no support for dereferencing after array indexing here yet. (Split the expression by using an intermediate variable?)", deref.position)
     }
 }
 

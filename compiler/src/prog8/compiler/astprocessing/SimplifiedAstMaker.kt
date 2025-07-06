@@ -248,7 +248,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             srcTarget.arrayindexed!=null -> target.add(transform(srcTarget.arrayindexed!!))
             srcTarget.memoryAddress!=null -> target.add(transform(srcTarget.memoryAddress!!))
             srcTarget.pointerDereference!=null -> target.add(transform(srcTarget.pointerDereference!!))
-            srcTarget.arrayIndexedDereference!=null -> throw FatalAstException("this should have been converted to some other ast nodes")
+            srcTarget.arrayIndexedDereference!=null -> TODO("this array indexed dereference should have been converted to some other ast nodes ${srcTarget.position}")
             !srcTarget.void -> throw FatalAstException("invalid AssignTarget")
         }
         return target
