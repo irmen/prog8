@@ -1290,4 +1290,34 @@ main {
         (st[4] as FunctionCallStatement).args.single() shouldBe instanceOf<AddressOf>()
         (st[5] as FunctionCallStatement).args.single() shouldBe instanceOf<AddressOf>()
     }
+
+    test("initializing arrays of pointers") {
+        val src="""
+%option enable_floats
+
+main {
+
+    sub start() {
+        ^^ubyte[4] array1 = [1000, 1100, 1200, 1300]
+        ^^byte[4] array2 = [1000, 1100, 1200, 1300]
+        ^^bool[4] array3 = [1000, 1100, 1200, 1300]
+        ^^word[4] array4 = [1000, 1100, 1200, 1300]
+        ^^uword[4] array5 = [1000, 1100, 1200, 1300]
+        ^^float[4] array6 = [1000, 1100, 1200, 1300]
+        ^^long[4] array7 = [1000, 1100, 1200, 1300]
+        ^^str[4] array8 = [1000, 1100, 1200, 1300]
+
+        cx16.r0 = array1[2]
+        cx16.r1 = array2[2]
+        cx16.r2 = array3[2]
+        cx16.r3 = array4[2]
+        cx16.r4 = array5[2]
+        cx16.r5 = array6[2]
+        cx16.r6 = array7[2]
+        cx16.r7 = array8[2]
+    }
+}"""
+
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
 })

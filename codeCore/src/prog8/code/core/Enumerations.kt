@@ -351,22 +351,22 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     val isPointer = base.isPointer
     val isStructInstance = base.isStructInstance
     val isPointerArray = base.isPointerArray
-    val isBoolArray = base.isArray && sub == BaseDataType.BOOL
-    val isByteArray = base.isArray && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE)
-    val isUnsignedByteArray = base.isArray && sub == BaseDataType.UBYTE
-    val isSignedByteArray = base.isArray && sub == BaseDataType.BYTE
-    val isWordArray = base.isArray && (sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
-    val isUnsignedWordArray = base.isArray && sub == BaseDataType.UWORD
-    val isSignedWordArray = base.isArray && sub == BaseDataType.WORD
-    val isFloatArray = base.isArray && sub == BaseDataType.FLOAT
+    val isBoolArray = base.isArray && !base.isPointerArray && sub == BaseDataType.BOOL
+    val isByteArray = base.isArray && !base.isPointerArray && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE)
+    val isUnsignedByteArray = base.isArray && !base.isPointerArray && sub == BaseDataType.UBYTE
+    val isSignedByteArray = base.isArray && !base.isPointerArray && sub == BaseDataType.BYTE
+    val isWordArray = base.isArray && !base.isPointerArray && (sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
+    val isUnsignedWordArray = base.isArray && !base.isPointerArray && sub == BaseDataType.UWORD
+    val isSignedWordArray = base.isArray && !base.isPointerArray && sub == BaseDataType.WORD
+    val isFloatArray = base.isArray && !base.isPointerArray && sub == BaseDataType.FLOAT
     val isString = base == BaseDataType.STR
     val isBool = base == BaseDataType.BOOL
     val isFloat = base == BaseDataType.FLOAT
     val isLong = base == BaseDataType.LONG
     val isStringly = base == BaseDataType.STR || base == BaseDataType.UWORD || (base == BaseDataType.ARRAY && (sub == BaseDataType.UBYTE || sub == BaseDataType.BYTE))
     val isSplitWordArray = base.isSplitWordArray
-    val isSplitUnsignedWordArray = base.isSplitWordArray && sub == BaseDataType.UWORD
-    val isSplitSignedWordArray = base.isSplitWordArray && sub == BaseDataType.WORD
+    val isSplitUnsignedWordArray = base.isSplitWordArray && !base.isPointerArray && sub == BaseDataType.UWORD
+    val isSplitSignedWordArray = base.isSplitWordArray && !base.isPointerArray && sub == BaseDataType.WORD
     val isIterable =  base.isIterable
     val isPassByRef = base.isPassByRef
     val isPassByValue = base.isPassByValue

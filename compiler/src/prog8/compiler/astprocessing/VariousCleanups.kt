@@ -30,7 +30,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             when(decl.type) {
                 VarDeclType.VAR -> {
                     if(decl.isArray) {
-                        if(decl.datatype.isSplitWordArray)
+                        // using a array of words as initializer to a pointer array is fine
+                        if (!valueDt.isSplitWordArray || !decl.datatype.isPointerArray)
                             errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
                     } else if(!decl.datatype.isString) {
                         if (valueDt.largerSizeThan(decl.datatype)) {
