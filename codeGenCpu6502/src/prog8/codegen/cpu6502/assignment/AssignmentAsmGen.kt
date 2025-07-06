@@ -2535,8 +2535,9 @@ $endLabel""")
             BaseDataType.UBYTE -> {
                 when(targetDt) {
                     BaseDataType.BOOL -> {
+                        val compare = if(regs==RegisterOrPair.A) "cmp" else "cp${regs.toString().lowercase()}"
                         asmgen.out("""
-                            cp${regs.toString().lowercase()}  #0
+                            $compare  #0
                             beq  +
                             ld${regs.toString().lowercase()}  #1
 +                           st${regs.toString().lowercase()}  $targetAsmVarName""")
