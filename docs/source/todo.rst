@@ -61,7 +61,11 @@ STRUCTS and TYPED POINTERS
 - DONE: added peekbool() and pokebool() and pokebowl()  boolean peek and poke, the latter is equivalent to pokebool()
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
+- fix ^^bool[] ptr  in sub params
+- ^^bool[3] ptr  in sub param should give proper error for the array size that is not allowed there? or can we actually use it?
 - write docs in structpointers.rst
+- scan through virtual examples to change untyped uword pointers to typed pointers
+- scan through virtual library modules to change untyped uword pointers to typed pointers
 - add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
 - add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
@@ -70,6 +74,9 @@ STRUCTS and TYPED POINTERS
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
+- update structpointers.rst docs with 6502 things?
+- scan through 6502 library modules to change untyped uword pointers to typed pointers
+- scan through 6502 examples to change untyped uword pointers to typed pointers
 - really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 
