@@ -39,14 +39,14 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                         listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
                     } else {
                         listOf(IAstModification.ReplaceNode(typecast,
-                            AddressOf(identifier, null, null, false, typecast.position), parent))
+                            AddressOf(identifier, null, null, false, false,typecast.position), parent))
                     }
                 } else if (typecast.expression is IFunctionCall) {
                     return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
                 }
             } else if(sourceDt.isString && typecast.type.isPointer && typecast.type.sub==BaseDataType.UBYTE) {
                 // casting a string to a ^^ubyte is just taking the address of the string.
-                val addr = AddressOf(typecast.expression as IdentifierReference, null, null, false, typecast.position)
+                val addr = AddressOf(typecast.expression as IdentifierReference, null, null, false, true, typecast.position)
                 return listOf(IAstModification.ReplaceNode(typecast, addr, parent))
             } else {
                 errors.err("cannot cast pass-by-reference value to type ${typecast.type} (only to UWORD)", typecast.position)

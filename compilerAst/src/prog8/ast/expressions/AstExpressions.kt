@@ -502,7 +502,8 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     }
 }
 
-data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: ArrayIndex?, var dereference: PtrDereference?, val msb: Boolean, override val position: Position) : Expression() {
+data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: ArrayIndex?, var dereference: PtrDereference?,
+                     val msb: Boolean, val typed: Boolean, override val position: Position) : Expression() {
     override lateinit var parent: Node
 
     override fun linkParents(parent: Node) {
@@ -538,7 +539,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         replacement.parent = this
     }
 
-    override fun copy() = AddressOf(identifier?.copy(), arrayIndex?.copy(), dereference?.copy(), msb, position)
+    override fun copy() = AddressOf(identifier?.copy(), arrayIndex?.copy(), dereference?.copy(), msb, typed, position)
     override fun constValue(program: Program): NumericLiteral? {
         if(msb)
             return null
@@ -574,8 +575,9 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         return null
     }
     override fun referencesIdentifier(nameInSource: List<String>) = identifier?.nameInSource==nameInSource || arrayIndex?.referencesIdentifier(nameInSource)==true || dereference?.referencesIdentifier(nameInSource)==true
-//    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(BaseDataType.UWORD)   // TODO orignal behavior
     override fun inferType(program: Program): InferredTypes.InferredType {
+        if(!typed)
+            return InferredTypes.knownFor(BaseDataType.UWORD)   // orignal pre-v12 untyped AddressOf
         if(identifier!=null) {
             val type = identifier!!.inferType(program).getOrUndef()
             val addrofDt = type.typeForAddressOf(msb)

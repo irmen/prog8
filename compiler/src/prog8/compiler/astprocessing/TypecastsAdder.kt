@@ -317,7 +317,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             if(!argDt.isString || it.second is IdentifierReference) {
                                 modifications += IAstModification.ReplaceNode(
                                     identifier,
-                                    AddressOf(identifier, null, null, false, it.second.position),
+                                    AddressOf(identifier, null, null, false, true, it.second.position),
                                     call as Node
                                 )
                             }
@@ -337,7 +337,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         // take the address of the identifier
                         modifications += IAstModification.ReplaceNode(
                             identifier,
-                            AddressOf(identifier, null, null, false, it.second.position),
+                            AddressOf(identifier, null, null, false, false,it.second.position),
                             call as Node
                         )
                     } else if(dt.isUnknown) {
@@ -346,7 +346,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             // take the address of the subroutine or label
                             modifications += IAstModification.ReplaceNode(
                                 identifier,
-                                AddressOf(identifier, null, null, false, it.second.position),
+                                AddressOf(identifier, null, null, false, false, it.second.position),
                                 call as Node
                             )
                         }
@@ -481,7 +481,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 val eltType = elt.inferType(program)
                 val tgt = elt.targetStatement()
                 if(eltType.isIterable || tgt is Subroutine || tgt is Label || tgt is Block)  {
-                    val addressof = AddressOf(elt, null, null, false, elt.position)
+                    val addressof = AddressOf(elt, null, null, false, false, elt.position)
                     addressof.linkParents(array)
                     array.value[index] = addressof
                 }

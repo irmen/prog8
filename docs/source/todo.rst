@@ -1,10 +1,6 @@
 TODO
 ====
 
-What to do with the changed adress-of behavior? &x now returns a typed pointer to &x + 10 will now be calculated differently (C pointer arithmetic semantics rather than simply byte addition)
-compiler flag to select old behavior? new operator that has the new behavior?    Don't want to break existing code that used &....
-Old behavior can be put back by always returning UWORD as the inferred type for AddressOf nodes
-
 
 STRUCTS and TYPED POINTERS
 --------------------------
@@ -58,6 +54,7 @@ STRUCTS and TYPED POINTERS
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.
 - DONE: make typeForAddressOf() be even more specific about the typed pointers it returns for the address-of operator.
+- DONE: existing '&' address-of still returns untyped uword (for backward compatibility). New '&&' operator returns typed pointer.
 - DONE: allow  list1^^ = list2^^  (value wise assignment of List structures) by replacing it with a sys.memcopy(list2, list1, sizeof(List)) call.
 - DONE: allow  a.b.ptr[i].value  (equiv to a.b.ptr[i]^^.value)  expressions  (assignment target doesn't parse yet, see below)
 - DONE: check passing arrays to typed ptr sub-parameters.  NOTE: word array can only be a @nosplit array if the parameter type is ^^word, because the words need to be sequential in memory there

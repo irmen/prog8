@@ -81,3 +81,11 @@ Typed pointer to Struct type
 ----------------------------
 
 Work in progress.
+
+
+Address-Of: untyped vs typed
+----------------------------
+
+``&`` still returns untyped (uword) pointer, as it did in older Prog8 versions. This is for backward compatibility reasons so existing programs don't break.
+The *double ampersand* operator ``&&`` returns a *typed* pointer to the value. The semantics are slightly different from the old untyped address-of operator, because adding or subtracting
+a number from a typed pointer uses *pointer arithmetic* that takes the size of the value that it points to into account.

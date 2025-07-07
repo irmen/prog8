@@ -999,7 +999,7 @@ containment check:  ``in``
         }
 
 
-address of:  ``&``,   ``&<``,   ``&>``
+address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     This is a prefix operator that can be applied to a string or array variable or literal value.
     It results in the memory address (UWORD) of that string or array in memory:  ``uword a = &stringvar``
     Sometimes the compiler silently inserts this operator to make it easier for instance
@@ -1011,6 +1011,11 @@ address of:  ``&``,   ``&<``,   ``&>``
     ``&<`` and ``&>`` are for use on split word arrays, they give you the address of the LSB byte array
     and MSB byte array separately, respectively.   Note that ``&<`` is just the same as ``&`` in this case.
     For more details on split word arrays, see :ref:`arrayvars`.
+
+    **Typed pointer version:** the single ``&`` operator still returns an untyped uword address for
+    backward compatibility reasons, so existing programs keep working. The *double ampersand* ``&&`` operator
+    however returns a *typed* pointer to the value. The semantics are slightly different because adding or subtracting
+    a number from a typed pointer uses *pointer arithmetic* that takes the size of the value that it points to into account.
 
 
 ternary:

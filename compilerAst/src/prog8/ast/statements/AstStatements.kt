@@ -270,7 +270,7 @@ class VarDecl(
                 // parameter variable memory mapped to a R0-R15 virtual register
                 val regname = param.registerOrPair.asScopedNameVirtualReg(param.type)
                 decltype = VarDeclType.MEMORY
-                value = AddressOf(IdentifierReference(regname, param.position), null, null, false, param.position)
+                value = AddressOf(IdentifierReference(regname, param.position), null, null, false, false,param.position)
             }
             val dt = if(param.type.isArray) DataType.UWORD else param.type
             return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, SplitWish.DONTCARE, null, param.name, emptyList(), value,

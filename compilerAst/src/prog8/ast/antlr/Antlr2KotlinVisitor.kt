@@ -280,10 +280,17 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val msb = ctx.ADDRESS_OF_MSB()!=null
         // note: &<  (ADDRESS_OF_LSB)  is equivalent to a regular &.
         val index = ctx.arrayindex()?.accept(this) as? ArrayIndex
-        return if(index!=null) {
-            AddressOf(identifier, index, null, msb, ctx.toPosition())
+        var typed = false
+        if(ctx.TYPED_ADDRESS_OF()!=null) {
+            // new typed AddressOf
+            if(msb)
+                throw SyntaxError("typed address of not allowed with msb", ctx.toPosition())
+            typed = true
+        }
+        return if (index != null) {
+            AddressOf(identifier, index, null, msb, typed, ctx.toPosition())
         } else {
-            AddressOf(identifier,null, null, msb, ctx.toPosition())
+            AddressOf(identifier, null, null, msb, typed, ctx.toPosition())
         }
     }
 

@@ -12,9 +12,7 @@ import prog8.ast.expressions.ArrayIndexedExpression
 import prog8.ast.expressions.DirectMemoryRead
 import prog8.ast.expressions.PtrDereference
 import prog8.ast.statements.*
-import prog8.code.ast.PtAssignment
-import prog8.code.ast.PtReturn
-import prog8.code.ast.PtSubSignature
+import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
@@ -585,7 +583,7 @@ main {
         }
     }
 
-    test("type of & operator (address-of)") {
+    test("internal type for address-of") {
         DataType.BYTE.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.BYTE)
         DataType.WORD.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.WORD)
         DataType.FLOAT.typeForAddressOf(false) shouldBe DataType.pointer(BaseDataType.FLOAT)
@@ -603,6 +601,31 @@ main {
         DataType.pointerFromAntlr(listOf("struct")).typeForAddressOf(false) shouldBe DataType.UWORD
 
         DataType.pointer(BaseDataType.BOOL).typeForAddressOf(false) shouldBe DataType.UWORD
+    }
+
+    test("untyped and typed address-of operators") {
+        val src="""
+%option enable_floats
+
+main {
+    sub start() {
+        float f
+        cx16.r0 = &f+1
+        cx16.r1 = &&f+1
+    }
+}"""
+
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        val st = result.codegenAst!!.entrypoint()!!.children
+        st.size shouldBe 6
+        val r0v = (st[3] as PtAssignment).value as PtBinaryExpression
+        val r1v = (st[4] as PtAssignment).value as PtBinaryExpression
+        r0v.left shouldBe instanceOf<PtAddressOf>()
+        r0v.right shouldBe instanceOf<PtNumber>()
+        (r0v.right as PtNumber).number shouldBe 1.0
+        r1v.left shouldBe instanceOf<PtAddressOf>()
+        r1v.right shouldBe instanceOf<PtNumber>()
+        (r1v.right as PtNumber).number shouldBe VMTarget.FLOAT_MEM_SIZE
     }
 
     test("address-of struct fields") {
@@ -1375,7 +1398,7 @@ main {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
         errors.errors.size shouldBe 999
-        // TODO
+        // TODO implement this test
     }
 
     xtest("array of pointers as subroutine param") {
