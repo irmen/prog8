@@ -1186,6 +1186,39 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
+    test("array of pointers as subroutine param are all passed as ^^ubyte because of split word arrays") {
+        val src="""
+%option enable_floats
+
+main {
+
+    sub start() {
+        ^^ubyte[4] array1
+        ^^byte[4] array2
+        ^^bool[4] array3
+        ^^word[4] array4
+        ^^uword[4] array5
+        ^^float[4] array6
+        ^^long[4] array7
+        ^^str[4] array8
+
+        ok(array1)
+        ok(array2)
+        ok(array3)
+        ok(array4)
+        ok(array5)
+        ok(array6)
+        ok(array7)
+        ok(array8)
+    }
+
+    sub ok(^^ubyte ptr) {
+        cx16.r0 = ptr
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
     test("hoist variable decl and initializer correctly in case of pointer type variable as well") {
         val src="""
 %import textio
@@ -1344,114 +1377,4 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("array of pointers as subroutine param - not the primitive type pointers") {
-        val src="""
-%option enable_floats
-
-main {
-
-    sub start() {
-        ^^ubyte[4] array1
-        ^^byte[4] array2
-        ^^bool[4] array3
-        ^^word[4] array4
-        ^^uword[4] array5
-        ^^float[4] array6
-        ^^long[4] array7
-        ^^str[4] array8
-
-        error1(array1)
-        error2(array2)
-        error3(array3)
-        error4(array4)
-        error5(array5)
-        error6(array6)
-        error7(array7)
-        error8(array8)
-    }
-
-    sub error1(^^ubyte ptr) {
-        cx16.r0++
-    }
-    sub error2(^^byte ptr) {
-        cx16.r0++
-    }
-    sub error3(^^bool ptr) {
-        cx16.r0++
-    }
-    sub error4(^^word ptr) {
-        cx16.r0++
-    }
-    sub error5(^^uword ptr) {
-        cx16.r0++
-    }
-    sub error6(^^float ptr) {
-        cx16.r0++
-    }
-    sub error7(^^long ptr) {
-        cx16.r0++
-    }
-    sub error8(^^str ptr) {
-        cx16.r0++
-    }
-}"""
-        val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, errors = errors) shouldBe null
-        errors.errors.size shouldBe 999
-        // TODO implement this test
-    }
-
-    xtest("array of pointers as subroutine param") {
-        val src="""
-%option enable_floats
-
-main {
-
-    sub start() {
-        ^^ubyte[4] array1
-        ^^byte[4] array2
-        ^^bool[4] array3
-        ^^word[4] array4
-        ^^uword[4] array5
-        ^^float[4] array6
-        ^^long[4] array7
-        ^^str[4] array8
-
-        ok1(array1)
-        ok2(array2)
-        ok3(array3)
-        ok4(array4)
-        ok5(array5)
-        ok6(array6)
-        ok7(array7)
-        ok8(array8)
-    }
-
-    sub ok1(^^ubyte[] ptr) {
-        cx16.r0 = ptr
-    }
-    sub ok2(^^byte[] ptr) {
-        cx16.r0 = ptr
-    }
-    sub ok3(^^bool[] ptr) {
-        cx16.r0 = ptr
-    }
-    sub ok4(^^word[] ptr) {
-        cx16.r0 = ptr
-    }
-    sub ok5(^^uword[] ptr) {
-        cx16.r0 = ptr
-    }
-    sub ok6(^^float[] ptr) {
-        cx16.r0 = ptr
-    }
-    sub ok7(^^long[] ptr) {
-        cx16.r0 = ptr
-    }
-    sub ok8(^^str[] ptr) {
-        cx16.r0 = ptr
-    }
-}"""
-        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-    }
 })
