@@ -520,12 +520,10 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
             node===identifier -> {
                 if(replacement is IdentifierReference) {
                     identifier = replacement
-                    arrayIndex = null
                     dereference = null
                 } else {
                     dereference = replacement as PtrDereference
                     identifier = null
-                    arrayIndex = null
                 }
             }
             node===arrayIndex -> {

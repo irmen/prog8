@@ -1,27 +1,31 @@
-%option enable_floats
-%import textio
-%zeropage basicsafe
 %option no_sysinit
+%zeropage basicsafe
+%import textio
 
 main {
-
-    float f
-
     sub start() {
-        txt.print("classic float pointer+1: ")
-        txt.print_uwhex(&f, true)
-        txt.spc()
-        txt.print_uwhex(&f + 1, true)
-        txt.spc()
-        txt.print_uw(&f + 1 - &f)
-        txt.nl()
+        ubyte @shared index = 3
+        ubyte[10] array
+        alias curframe = array
 
-        txt.print("typed float pointer+1: ")
-        txt.print_uwhex(&&f, true)
+        cx16.r0 = &curframe
+        cx16.r1 = &curframe[3]
+        cx16.r2 = &curframe + 3
+        cx16.r3 = &curframe[index]
+        cx16.r4 = &curframe + index
+
+        txt.print_uw(cx16.r0)
+        txt.nl()
+        txt.print_uw(cx16.r1)
         txt.spc()
-        txt.print_uwhex(&&f + 1, true)
+        txt.print_uw(cx16.r2)
+        txt.nl()
+        txt.print_uw(cx16.r3)
         txt.spc()
-        txt.print_uw(&&f + 1 - &&f)
+        txt.print_uw(cx16.r4)
         txt.nl()
     }
 }
+
+; code sizes on 11.5:  6502: $20a  virt: 140 instr
+; code sizes on 12.0:  6502: ????  virt: ??? instr  (BORKED!)

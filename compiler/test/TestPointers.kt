@@ -7,10 +7,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
-import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.ArrayIndexedExpression
-import prog8.ast.expressions.DirectMemoryRead
-import prog8.ast.expressions.PtrDereference
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.*
 import prog8.code.core.BaseDataType
@@ -657,6 +654,44 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("address-of pointer arithmetic on alias") {
+        val src="""
+main {
+    sub start() {
+        ubyte @shared index = 3
+        ubyte[10] array
+        alias curframe = array
+
+        cx16.r0 = &curframe
+        cx16.r1 = &curframe[3]
+        cx16.r2 = &curframe + 3
+        cx16.r3 = &curframe[index]
+        cx16.r4 = &curframe + index
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 9
+        (st[3] as Assignment).value shouldBe instanceOf<AddressOf>()
+        val a1v = (st[4] as Assignment).value as AddressOf
+        a1v.identifier?.nameInSource shouldBe listOf("array")
+        a1v.arrayIndex?.indexExpr?.constValue(result.compilerAst)?.number shouldBe 3.0
+
+        val a2v = (st[5] as Assignment).value as BinaryExpression
+        a2v.left shouldBe instanceOf<AddressOf>()
+        a2v.operator shouldBe "+"
+        (a2v.right as NumericLiteral).number shouldBe 3.0
+
+        val a3v = (st[6] as Assignment).value as AddressOf
+        a3v.identifier?.nameInSource shouldBe listOf("array")
+        (a3v.arrayIndex?.indexExpr as IdentifierReference).nameInSource shouldBe listOf("index")
+
+        val a4v = (st[7] as Assignment).value as BinaryExpression
+        a4v.left shouldBe instanceOf<AddressOf>()
+        a4v.operator shouldBe "+"
+        (a4v.right as TypecastExpression).expression shouldBe instanceOf<IdentifierReference>()
     }
 
     test("uword struct field array indexing") {
