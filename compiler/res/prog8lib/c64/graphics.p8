@@ -376,7 +376,7 @@ hline_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %1111
 _ormask     .byte 128, 64, 32, 16, 8, 4, 2, 1
 
 ; note: this can be even faster if we also have a 320 word x-lookup table, but hey, that's a lot of memory.
-; see http://codebase64.org/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
+; see https://codebase64.net/doku.php?id=base:various_techniques_to_calculate_adresses_fast_common_screen_formats_for_pixel_graphics
 ; the y lookup tables encodes this formula:  BITMAP_ADDRESS + 320*(py>>3) + (py & 7)    (y from 0..199)
 ; We use the 64tass syntax for range expressions to calculate this table on assembly time.
 
