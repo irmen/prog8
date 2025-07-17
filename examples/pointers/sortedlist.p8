@@ -28,7 +28,7 @@ main {
     sub printlist() {
         ubyte count = 0
         ^^slist.Node n = slist.head
-        while n {
+        while n!=0 {
             txt.print_uw(n.size)
             txt.chrout(':')
             txt.chrout(n.letter)
@@ -60,10 +60,10 @@ slist {
             uword size = node.size
             ^^Node predecessor = 0
             ^^Node current = head
-            while current {
+            while current!=0 {
                 if current.size >= size {
                     node.next = current
-                    if predecessor
+                    if predecessor!=0
                         break
                     else {
                         head = node

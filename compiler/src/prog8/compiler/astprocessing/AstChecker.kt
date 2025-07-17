@@ -172,9 +172,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifElse: IfElse) {
-        if(!ifElse.condition.inferType(program).isBool) {
-            errors.err("condition should be a boolean", ifElse.condition.position)
-        }
+        checkCondition(ifElse.condition)
 
         val constvalue = ifElse.condition.constValue(program)
         if(constvalue!=null) {
@@ -617,18 +615,12 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(untilLoop: UntilLoop) {
-        if(!untilLoop.condition.inferType(program).isBool) {
-            errors.err("condition should be a boolean", untilLoop.condition.position)
-        }
-
+        checkCondition(untilLoop.condition)
         super.visit(untilLoop)
     }
 
     override fun visit(whileLoop: WhileLoop) {
-        if(!whileLoop.condition.inferType(program).isBool) {
-            errors.err("condition should be a boolean", whileLoop.condition.position)
-        }
-
+        checkCondition(whileLoop.condition)
         super.visit(whileLoop)
     }
 
@@ -823,9 +815,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(ifExpr: IfExpression) {
-        if(!ifExpr.condition.inferType(program).isBool)
-            errors.err("condition should be a boolean", ifExpr.condition.position)
-
+        checkCondition(ifExpr.condition)
         val trueDt = ifExpr.truevalue.inferType(program)
         val falseDt = ifExpr.falsevalue.inferType(program)
         if(trueDt.isUnknown || falseDt.isUnknown) {
@@ -834,6 +824,17 @@ internal class AstChecker(private val program: Program,
             errors.err("both values should be the same type", ifExpr.truevalue.position)
         }
         super.visit(ifExpr)
+    }
+
+    private fun checkCondition(condition: Expression) {
+        if(!condition.inferType(program).isBool)
+            errors.err("condition should be a boolean", condition.position)
+        val cast = condition as? TypecastExpression
+        if(cast!=null && cast.type.isBool) {
+            if(cast.expression.inferType(program).isPointer) {
+                errors.err("condition should be a boolean", condition.position)
+            }
+        }
     }
 
     override fun visit(decl: VarDecl) {

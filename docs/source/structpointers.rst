@@ -46,9 +46,6 @@ Pointers of different types cannot be assigned to one another, unless you use an
 
 Typed pointers and an 'untyped' uword pointer/value can be assigned to each other without an explicit cast.
 
-Because it is pretty common to check if a pointer value is zero or not (because zero usually means that the pointer doesn't exist/has no value),
-pointers can be implicitly cast to a boolean. This allows you to easily write conditionals such as ``while ptr { ... }``
-
 
 Dereferencing a pointer, pointer arithmetic
 -------------------------------------------

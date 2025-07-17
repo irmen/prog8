@@ -178,11 +178,6 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     return listOf(IAstModification.ReplaceNode(typecast, cmp, parent))
                 }
             }
-            else if (et.isPointer) {
-                val ptrAsUword = TypecastExpression(typecast.expression, DataType.UWORD, true, typecast.position)
-                val cmp = BinaryExpression(ptrAsUword, "!=", NumericLiteral.optimalNumeric(BaseDataType.UWORD, null, 0.0, typecast.position), typecast.position)
-                return listOf(IAstModification.ReplaceNode(typecast, cmp, parent))
-            }
         }
 
         return noModifications

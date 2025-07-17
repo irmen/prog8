@@ -69,7 +69,6 @@ main {
 
         sub learn_new_animal() {
             str new_animal = "?" * 30
-            str answer = "?" * 10
 
             ; note that we make copies of the animal name and question strings to store them later
             txt.print("\nI give up. What is the animal? ")

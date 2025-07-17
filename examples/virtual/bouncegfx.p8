@@ -4,14 +4,16 @@
 
 main  {
 
+    const ubyte MAX_PARTICLES = 128
+
     sub start() {
-        word[128] particleX
-        word[128] particleY
-        byte[128] particleDX
-        byte[128] particleDY
+        word[MAX_PARTICLES] particleX
+        word[MAX_PARTICLES] particleY
+        byte[MAX_PARTICLES] particleDX
+        byte[MAX_PARTICLES] particleDY
 
         ubyte pi
-        for pi in 0 to 127 {
+        for pi in 0 to MAX_PARTICLES-1 {
             particleX[pi] = math.rndw() % 319 as word
             particleY[pi] = math.rndw() % 240 as word
             particleDX[pi] = (math.rnd() & 1)*2 as byte - 1
@@ -42,7 +44,7 @@ main  {
         }
 
         sub plot_particles() {
-            for pi in 0 to 127 {
+            for pi in 0 to MAX_PARTICLES-1 {
                 particleX[pi] += particleDX[pi]
                 particleY[pi] += particleDY[pi]
                 if particleX[pi]<0 or particleX[pi]>319 {

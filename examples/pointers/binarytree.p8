@@ -68,14 +68,14 @@ btree {
             ^^Node parent = root
             repeat {
                 if parent.value >= value {
-                    if parent.left
+                    if parent.left!=0
                         parent = parent.left
                     else {
                         parent.left = node
                         return
                     }
                 } else {
-                    if parent.right
+                    if parent.right!=0
                         parent = parent.right
                     else {
                         parent.right = node
@@ -88,7 +88,7 @@ btree {
 
     sub contains(uword value) -> bool {
         ^^Node r = root
-        while r {
+        while r!=0 {
             if r.value==value
                 return true
             if r.value>value
@@ -102,19 +102,19 @@ btree {
     sub size() -> ubyte {
         ubyte count
 
-        if root
+        if root!=0
             count_node(root)
 
         return count
 
         sub count_node(^^Node r) {
             count++
-            if r.left {
+            if r.left!=0 {
                 sys.pushw(r)
                 count_node(r.left)
                 r = sys.popw()
             }
-            if r.right {
+            if r.right!=0 {
                 sys.pushw(r)
                 count_node(r.right)
                 r = sys.popw()
@@ -126,7 +126,7 @@ btree {
         ; note: we don't deallocate the memory from the node, for simplicity sake
         ^^Node n = root
         ^^Node parent = 0
-        while n {
+        while n!=0 {
             if n.value==value {
                 if n.left==0
                     replacechild(parent, n, n.right)
@@ -154,7 +154,7 @@ btree {
         sub find_successor(^^Node p) -> ^^Node {
             ^^Node succ = p
             p = p.right
-            while p {
+            while p!=0 {
                 succ = p
                 p = p.left
             }
@@ -171,19 +171,19 @@ btree {
 
 
     sub print_tree_inorder() {
-        if root
+        if root!=0
             print_tree(root)
         txt.nl()
 
         sub print_tree(^^Node r) {
-            if r.left {
+            if r.left!=0 {
                 sys.pushw(r)
                 print_tree(r.left)
                 r = sys.popw()
             }
             txt.print_uw(r.value)
             txt.print(", ")
-            if r.right {
+            if r.right!=0 {
                 sys.pushw(r)
                 print_tree(r.right)
                 r = sys.popw()
@@ -193,7 +193,7 @@ btree {
 
 
     sub print_tree_preorder() {
-        if root
+        if root!=0
             print_tree(root,0)
         txt.nl()
 
@@ -201,14 +201,14 @@ btree {
             repeat depth txt.print("  ")
             txt.print_uw(r.value)
             txt.nl()
-            if r.left {
+            if r.left!=0 {
                 sys.pushw(r)
                 sys.push(depth)
                 print_tree(r.left, depth+1)
                 depth = sys.pop()
                 r = sys.popw()
             }
-            if r.right {
+            if r.right!=0 {
                 sys.pushw(r)
                 sys.push(depth)
                 print_tree(r.right, depth+1)

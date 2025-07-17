@@ -240,11 +240,13 @@ class TestCompilerOnExamplesVirtual: FunSpec({
         listOf(
             "bouncegfx",
             "bsieve",
+            "fountain",
             "pixelshader",
             "sincos",
             "pointers/animalgame",
             "pointers/binarytree",       // TODO add to "c64" later as well
-            "pointers/sortedlist"        // TODO add to "c64" later as well
+            "pointers/sortedlist",       // TODO add to "c64" later as well
+            "pointers/fountain"          // TODO add to "c64" later as well
         ),
         listOf(false, true)
     )

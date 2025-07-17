@@ -1,6 +1,14 @@
 TODO
 ====
 
+fix clamp(wordarray[x], 0, 319)
+
+fix defer warning here:
+    sub alloc(ubyte size) -> uword {
+        defer next += size
+        return next         ; TODO why is this a defer warning? "using defer with nontrivial return value(s) incurs stack overhead"
+    }
+
 
 STRUCTS and TYPED POINTERS
 --------------------------
@@ -23,7 +31,6 @@ STRUCTS and TYPED POINTERS
 - DONE: you should be able to get the address of an individual field: ``&structpointer.field``
 - DONE: teach sizeof() how to calculate struct sizes (need unit test + doc)
 - DONE: sizeof(ptr^^) works
-- DONE: implicit cast of pointer to bool, also in loop conditions  (while ptr {...})
 - DONE: implicit cast of pointer to uword in conditional expressions
 - DONE: subroutine parameters and return values should be able to accept pointers as well now
 - DONE (for basic types only): allow array syntax on pointers too: ptr[2]  means ptr+sizeof()*2,   ptr[0]  just means  ptr^^  .
@@ -62,8 +69,10 @@ STRUCTS and TYPED POINTERS
 - DONE: added peekbool() and pokebool() and pokebowl()  boolean peek and poke, the latter is equivalent to pokebool()
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
+- give error when passing a ubyte/byte argument where a typed pointer is expected in the signature
+- support pp.next = if particles particles else 0,  now complains about type errors
 - write docs in structpointers.rst
-- scan through virtual library modules to change untyped uword pointers to typed pointers
+- scan through virtual library modules to change untyped uword pointers to typed pointers: compression, conv, diskio, math, sorting, strings, syslib, textio.
 - add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
 - add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)

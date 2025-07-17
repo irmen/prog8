@@ -109,6 +109,11 @@ _loop:
 if not CONDITION
    goto _loop
          */
+        val error = checkCondition(untilLoop.condition)
+        if(error!=null) {
+            errors.err(error, untilLoop.condition.position)
+            return noModifications
+        }
         val pos = untilLoop.position
         val loopLabel = program.makeLabel("untilloop", pos)
         val replacement = AnonymousScope(mutableListOf(
@@ -122,12 +127,39 @@ if not CONDITION
         return listOf(IAstModification.ReplaceNode(untilLoop, replacement, parent))
     }
 
+    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        val dt = expr.expression.inferType(program).getOrUndef()
+        if(dt.isPointerArray || dt.isPointer) {
+            errors.err("pointers don't support prefix operators", expr.position)
+        }
+
+        return noModifications
+    }
+
+    private fun checkCondition(condition: Expression): String? {
+        if(!condition.inferType(program).isBool)
+            return "condition should be a boolean"
+        val cast = condition as? TypecastExpression
+        if(cast!=null && cast.type.isBool) {
+            if(cast.expression.inferType(program).isPointer) {
+                return "condition should be a boolean"
+            }
+        }
+        return null
+    }
+
     override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
 
         /*
         while true -> repeat
         while false -> discard
          */
+
+        val error = checkCondition(whileLoop.condition)
+        if(error!=null) {
+            errors.err(error, whileLoop.condition.position)
+            return noModifications
+        }
 
         val constCondition = whileLoop.condition.constValue(program)?.asBooleanValue
         if(constCondition==true) {
@@ -729,6 +761,20 @@ _after:
             }
         }
 
+        return noModifications
+    }
+
+    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+        val error = checkCondition(ifElse.condition)
+        if(error!=null)
+            errors.err(error, ifElse.condition.position)
+        return noModifications
+    }
+
+    override fun after(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> {
+        val error = checkCondition(ifExpr.condition)
+        if(error!=null)
+            errors.err(error, ifExpr.condition.position)
         return noModifications
     }
 }

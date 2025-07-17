@@ -1412,4 +1412,37 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
+    test("pointer cannot be used in conditional expression in shorthand form") {
+        val src="""
+main {
+    sub start() {
+        ^^word ptr
+
+        if ptr cx16.r0++
+        if not ptr cx16.r1++
+
+        while ptr cx16.r0++
+        while not ptr cx16.r1++
+
+        do cx16.r0++ until ptr
+        do cx16.r1++ until not ptr
+
+        cx16.r0 = if ptr 1 else 0
+        cx16.r1 = if not ptr 1 else 0
+    }
+}"""
+
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 8
+        errors.errors[0] shouldContain "condition should be a boolean"
+        errors.errors[1] shouldContain "pointers don't support prefix operators"
+        errors.errors[2] shouldContain "condition should be a boolean"
+        errors.errors[3] shouldContain "pointers don't support prefix operators"
+        errors.errors[4] shouldContain "condition should be a boolean"
+        errors.errors[5] shouldContain "pointers don't support prefix operators"
+        errors.errors[6] shouldContain "condition should be a boolean"
+        errors.errors[7] shouldContain "pointers don't support prefix operators"
+    }
+
 })
