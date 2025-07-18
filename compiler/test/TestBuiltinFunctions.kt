@@ -5,6 +5,7 @@ import io.kotest.engine.spec.tempdir
 import io.kotest.inspectors.shouldForAll
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
@@ -13,6 +14,7 @@ import prog8.code.core.BuiltinFunctions
 import prog8.code.core.RegisterOrPair
 import prog8.code.core.isNumeric
 import prog8.code.target.Cx16Target
+import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestBuiltinFunctions: FunSpec({
@@ -102,6 +104,32 @@ main {
 }"""
 
         compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("warning for return value discarding of pure functions") {
+        val src="""
+main {
+    sub start() {
+        word @shared ww = 2222
+
+        abs(ww)
+        sgn(ww)
+        sqrt(ww)
+        min(ww, 0)
+        max(ww, 0)
+        clamp(ww, 0, 319)
+    }
+}"""
+
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(Cx16Target(), true, src, outputDir, errors=errors, writeAssembly = false) shouldNotBe null
+        errors.warnings.size shouldBe 6
+        errors.warnings[0] shouldContain "statement has no effect"
+        errors.warnings[1] shouldContain "statement has no effect"
+        errors.warnings[2] shouldContain "statement has no effect"
+        errors.warnings[3] shouldContain "statement has no effect"
+        errors.warnings[4] shouldContain "statement has no effect"
+        errors.warnings[5] shouldContain "statement has no effect"
     }
 })
 
