@@ -198,7 +198,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         is PtNumber,
         is PtRange,
         is PtString -> true
-        // note that unlike most other times, PtIdentifier IS "complex" this time (it's a variable that might change)
+        is PtIdentifier -> true    // actually PtIdentifier IS "complex" this time (it's a variable that might change) but it's kinda annoying to give a warning message for this very common case
         else -> false
     }
 

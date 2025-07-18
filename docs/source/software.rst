@@ -65,6 +65,11 @@ Various things:
     and it does it at run time. In this demo a jump table is not only created in the library,
     but also in the main program and copied into the library for its use.
 
+`Additional custom compilation targets (such as VIC-20) <https://github.com/gillham/prog8targets>`_
+    Various custom targets for Prog8 that are not (yet?) part of the Prog8 examples themselves.
+    These additional compilation targets may be in varying state of completeness.
+    Perhaps most recognisable at the time of adding this link, are the various VIC-20 targets.
+
 
 .. image:: _static/curious.png
     :align: center

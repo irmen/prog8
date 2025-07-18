@@ -3,7 +3,7 @@
 ;
 ;  some more interesting routines can be found here:
 ;	http://6502org.wikidot.com/software-math
-;	http://codebase64.org/doku.php?id=base:6502_6510_maths
+;	https://codebase64.net/doku.php?id=base:6502_6510_maths
 ;       https://github.com/TobyLobster/multiply_test
 ;       https://github.com/TobyLobster/sqrt_test
 
@@ -353,7 +353,7 @@ _divisor	.word ?
 randword	.proc
 	; -- 16 bit pseudo random number generator into AY
 	;    default seed = $00c2 $1137.  NOTE:  uses self-modifying code so won't work in ROM (use randword_rom instead)
-        ;    routine from https://codebase64.org/doku.php?id=base:x_abc_random_number_generator_8_16_bit
+        ;    routine from https://codebase64.net/doku.php?id=6502_6510_maths:x_abc_random_number_generator_8_16_bit
 		inc x1
 		clc
 x1=*+1
@@ -377,7 +377,7 @@ b1=*+1
 randword_rom	.proc
 	; -- 16 bit pseudo random number generator into AY. Can run from ROM.
 	;    NOTE: you have to set the initial seed using randseed_rom! (a good default seed = $00c2 $1137)
-        ;    routine from https://codebase64.org/doku.php?id=base:x_abc_random_number_generator_8_16_bit
+        ;    routine from https://codebase64.net/doku.php?id=6502_6510_maths:x_abc_random_number_generator_8_16_bit
 		inc  _x1
 		clc
 		lda  _x1

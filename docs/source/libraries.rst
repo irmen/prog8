@@ -27,7 +27,7 @@ of these library modules automatically as required.
 
 .. note::
     Several algorithms and math routines in Prog8's assembly library files are adapted from
-    code publicly available on https://www.codebase64.org/
+    code publicly available on https://www.codebase64.net/
 
 
 .. _builtinfunctions:

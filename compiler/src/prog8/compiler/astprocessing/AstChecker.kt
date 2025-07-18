@@ -1666,6 +1666,17 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
+
+        if(functionCallStatement.target.nameInSource.size==1) {
+            val functionName = functionCallStatement.target.nameInSource[0]
+            if (functionName in program.builtinFunctions.purefunctionNames) {
+                if("ignore_unused" !in functionCallStatement.parent.definingBlock.options()) {
+                    errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
+                    return
+                }
+            }
+        }
+
         // most function calls, even to builtin functions, are still regular FunctionCall nodes here.
         // they get converted to the more specialized node type in BeforeAsmTypecastCleaner
         val targetStatement = functionCallStatement.target.checkFunctionOrLabelExists(program, functionCallStatement, errors)
