@@ -15,10 +15,10 @@ main  {
         ^^Particle next
     }
 
-    const uword MAX_PARTICLES = 400
+    const uword MAX_PARTICLES = 450
     const ubyte GRAVITY = 1
 
-    ^^Particle particles
+    ^^Particle particles            ; linked list of all active particles
     uword active_particles = 0
 
     sub start() {
@@ -39,10 +39,7 @@ main  {
     sub spawnrandom() {
         if active_particles < MAX_PARTICLES {
             ^^Particle pp = arena.alloc(sizeof(Particle))
-            if particles!=0        ; TODO use if expression once fixed
-                pp.next = particles
-            else
-                pp.next = 0
+            pp.next = if particles!=0 particles else 0
             particles = pp
             initparticle(pp)
             active_particles++
@@ -67,18 +64,11 @@ main  {
             pp.y += pp.speedy
 
             if pp.y >= 239 {
+                ; reuse the particle that went off the screen and spawn another one (if allowed)
                 initparticle(pp)
                 spawnrandom()
             } else {
-                ; TODO use clamp once fixed?
-                if pp.x < 0 {
-                    pp.x = 0
-                    pp.speedx = 0
-                }
-                else if pp.x > 319 {
-                    pp.x = 319
-                    pp.speedx = 0
-                }
+                pp.x = clamp(pp.x, 0, 319)
             }
 
             sys.gfx_plot(pp.x as uword, pp.y as uword, pp.brightness)
@@ -99,6 +89,6 @@ arena {
 
     sub alloc(ubyte size) -> uword {
         defer next += size
-        return next         ; TODO why is this a defer warning? "using defer with nontrivial return value(s) incurs stack overhead"
+        return next
     }
 }

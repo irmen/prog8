@@ -1,15 +1,6 @@
 TODO
 ====
 
-fix clamp(wordarray[x], 0, 319)
-
-fix defer warning here:
-    sub alloc(ubyte size) -> uword {
-        defer next += size
-        return next         ; TODO why is this a defer warning? "using defer with nontrivial return value(s) incurs stack overhead"
-    }
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 
@@ -69,8 +60,6 @@ STRUCTS and TYPED POINTERS
 - DONE: added peekbool() and pokebool() and pokebowl()  boolean peek and poke, the latter is equivalent to pokebool()
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
-- give error when passing a ubyte/byte argument where a typed pointer is expected in the signature
-- support pp.next = if particles particles else 0,  now complains about type errors
 - write docs in structpointers.rst
 - scan through virtual library modules to change untyped uword pointers to typed pointers: compression, conv, diskio, math, sorting, strings, syslib, textio.
 - add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
@@ -154,6 +143,14 @@ Libraries
 
 Optimizations
 -------------
+
+- if expression generates more instructions than old style if else (IR):
+    pp.next = if particles!=0 particles else 0
+      versus:
+    if particles!=0
+        pp.next = particles
+    else
+        pp.next = 0
 
 - in Identifier: use typedarray of strings instead of listOf? Other places?
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time

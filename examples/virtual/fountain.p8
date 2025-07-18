@@ -57,18 +57,11 @@ main  {
             particleY[pi] += particleSpeedY[pi]
 
             if particleY[pi] >= 239 {
+                ; reuse the particle that went off the screen and spawn another one (if allowed)
                 initparticle(pi)
                 spawnrandom()
             } else {
-                ; TODO use clamp once fixed?
-                if particleX[pi] < 0 {
-                    particleX[pi] = 0
-                    particleSpeedX[pi] = 0
-                }
-                else if particleX[pi] > 319 {
-                    particleX[pi] = 319
-                    particleSpeedX[pi] = 0
-                }
+                particleX[pi] = clamp(particleX[pi], 0, 319)
             }
 
             sys.gfx_plot(particleX[pi] as uword, particleY[pi] as uword, particleBrightness[pi])

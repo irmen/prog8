@@ -501,6 +501,19 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val trueDt = ifExpr.truevalue.inferType(program)
         val falseDt = ifExpr.falsevalue.inferType(program)
         if (trueDt != falseDt) {
+
+            val modifications = mutableListOf<IAstModification>()
+
+            // ubyte or uword combined with a pointer type -> cast BOTH to uword
+            if((trueDt.isPointer && falseDt.isInteger) || (falseDt.isPointer && trueDt.isInteger)) {
+                val leftCast = TypecastExpression(ifExpr.truevalue, DataType.UWORD, true, ifExpr.truevalue.position)
+                val rightCast = TypecastExpression(ifExpr.falsevalue, DataType.UWORD, true, ifExpr.falsevalue.position)
+                return listOf(
+                    IAstModification.ReplaceNode(ifExpr.truevalue, leftCast, ifExpr),
+                    IAstModification.ReplaceNode(ifExpr.falsevalue, rightCast, ifExpr)
+                )
+            }
+
             val (commonDt, toFix) = BinaryExpression.commonDatatype(
                 trueDt.getOrUndef(),
                 falseDt.getOrUndef(),
@@ -508,11 +521,11 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 ifExpr.falsevalue
             )
             if (toFix != null) {
-                val modifications = mutableListOf<IAstModification>()
                 addTypecastOrCastedValueModification(modifications, toFix, commonDt, ifExpr)
                 return modifications
             }
         }
+
         return noModifications
     }
 
