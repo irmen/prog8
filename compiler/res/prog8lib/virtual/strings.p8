@@ -82,7 +82,7 @@ strings {
         return 255, false
     }
 
-    sub rfind(uword stringptr, ubyte character) -> ubyte, bool {
+    sub rfind(str stringptr, ubyte character) -> ubyte, bool {
         ; Locates the first position of the given character in the string, starting from the right.
         ; returns index in A, and boolean if found or not.  (when false A will also be 255,  an invalid index).
         ubyte ix

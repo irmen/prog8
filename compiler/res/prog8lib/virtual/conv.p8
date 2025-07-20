@@ -29,7 +29,7 @@ sub  str_ub(ubyte value) -> str {
 
 sub  str_b(byte value) -> str {
     ; ---- convert the byte in A in decimal string form, without left padding 0s
-    uword out_ptr = &string_out
+    ^^ubyte out_ptr = &string_out
     if value<0 {
         @(out_ptr) = '-'
         out_ptr++
@@ -39,7 +39,7 @@ sub  str_b(byte value) -> str {
     return string_out
 }
 
-sub internal_str_ub(ubyte value, uword out_ptr) {
+sub internal_str_ub(ubyte value, str out_ptr) {
     ubyte hundreds = value / 100
     value -= hundreds*100
     ubyte tens = value / 10
@@ -73,7 +73,7 @@ sub  str_ubhex  (ubyte value) -> str {
 
 sub  str_ubbin  (ubyte value) -> str {
     ; ---- convert the ubyte in A in binary string form
-    uword out_ptr = &string_out
+    ^^ubyte out_ptr = &string_out
     repeat 8 {
         rol(value)
         if_cc
@@ -88,7 +88,7 @@ sub  str_ubbin  (ubyte value) -> str {
 
 sub  str_uwbin  (uword value) -> str {
     ; ---- convert the uword in A/Y in binary string form
-    uword out_ptr = &string_out
+    ^^ubyte out_ptr = &string_out
     repeat 16 {
         rol(value)
         if_cc
@@ -142,7 +142,7 @@ sub  str_uw  (uword value) -> str {
 
 sub  str_w  (word value) -> str {
     ; ---- convert the (signed) word in A/Y in decimal string form, without left padding 0's
-    uword out_ptr = &string_out
+    ^^ubyte out_ptr = &string_out
     if value<0 {
         @(out_ptr) = '-'
         out_ptr++
@@ -152,7 +152,7 @@ sub  str_w  (word value) -> str {
     return string_out
 }
 
-sub internal_str_uw(uword value, uword out_ptr) {
+sub internal_str_uw(uword value, str out_ptr) {
     uword value2 = value/10
     ubyte digits = value-value2*10 as ubyte
     uword value3 = value2/10

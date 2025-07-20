@@ -61,7 +61,8 @@ STRUCTS and TYPED POINTERS
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
 - write docs in structpointers.rst
-- scan through virtual library modules to change untyped uword pointers to typed pointers: compression, conv, diskio, math, sorting, strings, syslib, textio.
+- scan through virtual library modules to change untyped uword pointers to typed pointers: diskio.
+- virtual/sorting.p8 module generates slightly less efficient code than the old version with untyped uword pointers
 - add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
 - add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)

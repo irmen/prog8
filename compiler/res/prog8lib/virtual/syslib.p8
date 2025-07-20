@@ -48,7 +48,7 @@ sys {
         }}
     }
 
-    sub internal_stringcopy(uword source, uword tgt) {
+    sub internal_stringcopy(str source, str tgt) {
         ; Called when the compiler wants to assign a string value to another string.
         %ir {{
             loadm.w r99000,sys.internal_stringcopy.source

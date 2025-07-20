@@ -1,6 +1,6 @@
 compression {
 
-    sub decode_rle(uword @zp compressed, uword @zp target, uword maxsize) -> uword {
+    sub decode_rle(^^ubyte @zp compressed, ^^ubyte @zp target, uword maxsize) -> uword {
         cx16.r0 = target    ; original target
         cx16.r1 = target+maxsize     ; decompression limit
 
@@ -30,7 +30,7 @@ compression {
         return target-cx16.r0
     }
 
-    sub encode_rle(uword data, uword size, uword target, bool is_last_block) -> uword {
+    sub encode_rle(^^ubyte data, uword size, ^^ubyte target, bool is_last_block) -> uword {
         ; -- Compress the given data block using ByteRun1 aka PackBits RLE encoding.
         ;    Returns the size of the compressed RLE data. Worst case result storage size needed = (size + (size+126) / 127) + 1.
         ;    is_last_block = usually true, but you can set it to false if you want to concatenate multiple
@@ -39,7 +39,7 @@ compression {
         uword idx = 0
         uword literals_start_idx = 0
         ubyte literals_length = 0
-        uword orig_target = target
+        ^^ubyte orig_target = target
 
         sub next_same_span() {
             ; returns length in cx16.r1L, and the byte value in cx16.r1H
@@ -54,7 +54,7 @@ compression {
         sub output_literals() {
             @(target) = literals_length-1
             target++
-            uword dataptr = data + literals_start_idx
+            ^^ubyte dataptr = data + literals_start_idx
             ubyte i
             for i in 0 to literals_length-1 {
                 @(target) = @(dataptr)

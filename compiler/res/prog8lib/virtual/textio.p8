@@ -136,7 +136,7 @@ sub  print_w  (word value) {
     print(conv.str_w(value))
 }
 
-sub  input_chars  (uword buffer) -> ubyte  {
+sub  input_chars  (str buffer) -> ubyte  {
     ; ---- Input a string (max. 80 chars) from the keyboard. Returns length of input. (string is terminated with a 0 byte as well)
     ;      It assumes the keyboard is selected as I/O channel!
     %ir {{
