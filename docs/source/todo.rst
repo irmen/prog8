@@ -1,6 +1,8 @@
 TODO
 ====
 
+BUG: fix ZP variables no longer getting initialized to 0 (see test.p8)
+
 STRUCTS: are being developed in their own separate branch for now, called "structs".
 Idea is to make it feature complete in the IR/Virtual target, then merge it to master?, and then start building the 6502 code generation for it.
 

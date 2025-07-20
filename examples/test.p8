@@ -1,16 +1,27 @@
 %option no_sysinit
-%zeropage basicsafe
+%zeropage kernalsafe
 %import textio
+%zpallowed 224,255
 
 main {
-    sub start() {
-        word @shared ww = 2222
+    uword @shared @requirezp var1 = 0
+    uword @shared @requirezp var2 = 0
+    uword @shared @requirezp var3 = 0
+    uword @shared @requirezp var4 = 0
+    uword @shared @requirezp var5 = 0
 
-        abs(ww)
-        sgn(ww)
-        sqrt(ww)
-        min(ww, 0)
-        max(ww, 0)
-        clamp(ww, 0, 319)
+    sub start() {
+        txt.print_uw(var1)
+        txt.spc()
+        txt.print_uw(var2)
+        txt.spc()
+        txt.print_uw(var3)
+        txt.spc()
+        txt.print_uw(var4)
+        txt.spc()
+        txt.print_uw(var5)
+        txt.nl()
+
+        repeat {}
     }
 }
