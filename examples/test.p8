@@ -23,6 +23,7 @@ main {
         txt.print("--diskio--\n")
         sys.memset(target, len(target), 0)
         diskio.delete("derp.bin")
+        diskio.delete("derp2.bin")
         void diskio.f_open_w("derp.bin")
         repeat 12
             void diskio.f_write("derpderp123", 11)
@@ -30,11 +31,46 @@ main {
 
         void diskio.f_open("derp.bin")
         diskio.f_read(target, 60)
+        diskio.f_close()
         txt.print(target)
+        txt.nl()
+
+        sys.memset(target, len(target), 0)
+        void diskio.f_open("derp.bin")
+        diskio.f_read_all(target)
+        diskio.f_close()
+        txt.print(target)
+        txt.nl()
+
+        diskio.rename("derp.bin", "derp2.bin")
+        sys.memset(target, len(target), 0)
+        void diskio.f_open("derp2.bin")
+        diskio.f_readline(target)
+        diskio.f_close()
+        txt.print(target)
+        txt.nl()
+
+        txt.print(diskio.curdir())
+        txt.nl()
+
+        txt.print_bool(diskio.exists("derp3.bin"))
+        txt.print_bool(diskio.exists("derp2.bin"))
+        txt.print_bool(diskio.exists("derp1.bin"))
+        txt.nl()
+
+        diskio.delete("save.bin")
+        diskio.delete("saver.bin")
+        txt.print_bool(diskio.save("save.bin", 2000, 100))
+        txt.spc()
+        txt.print_bool(diskio.save_raw("saver.bin", 2000, 100))
+        txt.nl()
+        txt.print_uw(diskio.load("save.bin", 0))
+        txt.spc()
+        txt.print_uw(diskio.load_raw("saver.bin", 2000))
         txt.nl()
     }
 
-    ubyte[100] target
+    ubyte[255] target
 
     sub test_conv() {
         txt.print("--conv--\n")

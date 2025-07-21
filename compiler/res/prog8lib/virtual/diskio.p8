@@ -24,7 +24,7 @@ diskio {
 
     ; ----- iterative file loader functions (uses the input io channel) -----
 
-    sub f_open(uword filenameptr) -> bool {
+    sub f_open(str filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
         ;    note: only a single iteration loop can be active at a time!
         ;    Returns true if the file is successfully opened and readable.
@@ -39,7 +39,7 @@ diskio {
         }}
     }
 
-    sub f_read(uword bufferpointer, uword num_bytes) -> uword {
+    sub f_read(str bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
         uword actual
@@ -57,7 +57,7 @@ diskio {
         return actual
     }
 
-    sub f_read_all(uword bufferpointer) -> uword {
+    sub f_read_all(str bufferpointer) -> uword {
         ; -- read the full rest of the file, returns number of bytes read.
         ;    It is assumed the file size is less than 64 K.
         ;    Usually you will just be using load() / load_raw() to read entire files!
@@ -75,7 +75,7 @@ diskio {
         }
     }
 
-    sub f_readline(uword bufptr) -> ubyte {
+    sub f_readline(str bufptr) -> ubyte {
         ; Routine to read text lines from a text file. Lines must be less than 255 characters.
         ; Reads characters from the input file UNTIL a newline or return character, or 0 byte (likely EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
@@ -119,7 +119,7 @@ diskio {
 
     ; ----- iterative file writing functions (uses write io channel) -----
 
-    sub f_open_w(uword filenameptr) -> bool {
+    sub f_open_w(str filenameptr) -> bool {
         ; -- open a file for iterative writing with f_write
         ;    WARNING: returns true if the open command was received by the device,
         ;    but this can still mean the file wasn't successfully opened for writing!
@@ -133,7 +133,7 @@ diskio {
         }}
     }
 
-    sub f_write(uword bufferpointer, uword num_bytes) -> bool {
+    sub f_write(str bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
         ;    you can call this multiple times to append more data
         repeat num_bytes {
@@ -185,7 +185,7 @@ diskio {
         }}
     }
 
-    sub curdir() -> uword {
+    sub curdir() -> str {
         ; return current directory name or 0 if error
         %ir {{
             syscall 48 (): r99000.w
