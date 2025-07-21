@@ -96,7 +96,8 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
 
             // if uword is passed, check if the parameter type is pointer to array element type
             if(argDt.isArray && paramDt.isPointer) {
-                TODO("array vs element pointer check")
+                if(argDt.sub==paramDt.sub)
+                    return true
             }
 
             // if expected is UWORD and actual is any pointer, we allow it (uword is untyped pointer, for backwards compatibility)

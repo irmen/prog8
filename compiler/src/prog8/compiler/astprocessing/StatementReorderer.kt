@@ -5,13 +5,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.AssociativeOperators
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.IErrorReporter
+import prog8.code.core.*
 
 internal class StatementReorderer(
     val program: Program,
+    val target: ICompilationTarget,
     val errors: IErrorReporter
 ) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
@@ -215,16 +213,16 @@ internal class StatementReorderer(
                 subs.map { IAstModification.InsertLast(it, subroutine) }
         }
 
-        // change 'str' and 'ubyte[]' parameters into 'uword' (just treat it as an address)
+        // change 'str' and 'ubyte[]' parameters or return types into ^^ubyte (TODO also for 6502 target, that is still uword for now)
         val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }
+        val replacementForStrDt = if(target.cpu!=CpuType.VIRTUAL) DataType.UWORD else DataType.pointer(BaseDataType.UBYTE)      // TODO fix this once 6502 has pointers too
         val parameterChanges = stringParams.map {
-            val uwordParam = SubroutineParameter(it.name, DataType.UWORD, it.zp, it.registerOrPair, it.position)
+            val uwordParam = SubroutineParameter(it.name, replacementForStrDt, it.zp, it.registerOrPair, it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)
         }
-        // change 'str' and 'ubyte[]' return types into 'uword' (just treat it as an address)
         subroutine.returntypes.withIndex().forEach { (index, type) ->
             if(type.isString || type.isUnsignedByteArray)
-                subroutine.returntypes[index] = DataType.UWORD
+                subroutine.returntypes[index] = replacementForStrDt
         }
 
         val varsChanges = mutableListOf<IAstModification>()

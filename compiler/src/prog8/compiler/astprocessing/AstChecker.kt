@@ -494,8 +494,9 @@ internal class AstChecker(private val program: Program,
                         errors.err("parameter '${param.first.name}' should be (u)byte or bool", param.first.position)
                 }
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (!param.first.type.isWord && !param.first.type.isString && !param.first.type.isArray)
-                        err("parameter '${param.first.name}' should be (u)word (an address) or str")
+                    if (!param.first.type.isWord && !param.first.type.isString && !param.first.type.isArray && param.first.type!=DataType.pointer(BaseDataType.UBYTE)) {
+                        err("parameter '${param.first.name}' should be (u)word, str or ^^ubyte")
+                    }
                 }
                 else if(param.second.statusflag!=null) {
                     if (!param.first.type.isBool)
@@ -508,8 +509,8 @@ internal class AstChecker(private val program: Program,
                         err("return type #${index + 1} should be (u)byte")
                 }
                 else if(pair.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (!pair.first.isWord && !pair.first.isString && !pair.first.isArray)
-                        err("return type #${index + 1} should be (u)word/address")
+                    if (!pair.first.isWord && !pair.first.isString && !pair.first.isArray && pair.first!=DataType.pointer(BaseDataType.UBYTE))
+                        err("return type #${index + 1} should be (u)word/address or ^^ubyte")
                 }
                 else if(pair.second.statusflag!=null) {
                     if (!pair.first.isBool)

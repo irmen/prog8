@@ -467,7 +467,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
     errors.report()
     program.constantFold(errors, compilerOptions)
     errors.report()
-    program.reorderStatements(errors)
+    program.reorderStatements(compilerOptions.compTarget, errors)
     errors.report()
     program.desugaring(errors, compilerOptions)
     errors.report()

@@ -20,8 +20,8 @@ internal fun Program.checkValid(errors: IErrorReporter, compilerOptions: Compila
     checker.visit(this)
 }
 
-internal fun Program.reorderStatements(errors: IErrorReporter) {
-    val reorder = StatementReorderer(this, errors)
+internal fun Program.reorderStatements(target: ICompilationTarget, errors: IErrorReporter) {
+    val reorder = StatementReorderer(this, target, errors)
     reorder.visit(this)
     if(errors.noErrors()) {
         reorder.applyModifications()

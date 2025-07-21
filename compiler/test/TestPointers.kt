@@ -458,6 +458,36 @@ thing {
         // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("str or ubyte array params or return type replaced by pointer to ubyte") {
+        val src="""
+main {
+    sub start() {
+        test1("zzz")
+        test2("zzz")
+    }
+
+    sub test1(str arg) -> str {
+        cx16.r0++
+        return cx16.r0
+    }
+
+    sub test2(ubyte[] arg) {
+        cx16.r0++
+    }
+}"""
+
+        // TODO check this for C64 target too
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val main = result.compilerAst.allBlocks.first {it.name=="main"}
+        val test1 = main.statements[1] as Subroutine
+        val test2 = main.statements[2] as Subroutine
+        test1.name shouldBe "test1"
+        test1.parameters.single().type shouldBe DataType.pointer(DataType.UBYTE)
+        test1.returntypes.single() shouldBe DataType.pointer(DataType.UBYTE)
+        test2.name shouldBe "test2"
+        test2.parameters.single().type shouldBe DataType.pointer(DataType.UBYTE)
+    }
+
     test("creating instances") {
         val src="""
 main {

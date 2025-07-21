@@ -752,7 +752,7 @@ main {
         errors.errors[3] shouldContain (":9:28: value type uword doesn't match target")
     }
 
-    test("str replaced with uword in subroutine params and return types") {
+    test("str replaced with uword in subroutine params and return types (6502 only until that has pointers too)") {     // TODO remove this test once 6502 has pointers too
         val src = """
 main {
     sub start() {
@@ -773,13 +773,12 @@ main {
         }}
     }
 }"""
-        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
-        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
         val main = result.codegenAst!!.allBlocks().first()
-        val derp = main.children.single { it is PtSub && it.name == "main.derp" } as PtSub
+        val derp = main.children.single { it is PtSub && it.name == "p8s_derp" } as PtSub
         derp.signature.returns shouldBe listOf(DataType.UWORD)
         (derp.signature.children.single() as PtSubroutineParameter).type shouldBe DataType.UWORD
-        val mult3 = main.children.single { it is PtAsmSub && it.name == "main.mult3" } as PtAsmSub
+        val mult3 = main.children.single { it is PtAsmSub && it.name == "p8s_mult3" } as PtAsmSub
         mult3.parameters.single().second.type shouldBe DataType.UWORD
         mult3.returns.single().second shouldBe DataType.UWORD
     }

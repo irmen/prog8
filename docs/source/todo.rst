@@ -60,7 +60,7 @@ STRUCTS and TYPED POINTERS
 - DONE: added peekbool() and pokebool() and pokebowl()  boolean peek and poke, the latter is equivalent to pokebool()
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
-- replace str param type into ^^ubyte rather than uword
+- DONE: replace str or ubyte[] param and returnvalue type into ^^ubyte rather than uword
 - write docs in structpointers.rst
 - virtual/sorting.p8 module generates slightly less efficient code than the old version with untyped uword pointers
 - add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
@@ -71,6 +71,7 @@ STRUCTS and TYPED POINTERS
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
+- 6502 statementreorderer: fix todo for str -> ^^ubyte instead of uword
 - update structpointers.rst docs with 6502 things?
 - scan through 6502 library modules to change untyped uword pointers to typed pointers
 - scan through 6502 examples to change untyped uword pointers to typed pointers
