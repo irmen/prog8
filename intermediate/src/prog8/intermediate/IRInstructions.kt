@@ -11,8 +11,10 @@ Intermediate Representation instructions for the IR Virtual machine.
 
 Specs of the virtual machine this will run on:
 Program to execute is not stored in the system memory, it's just a separate list of instructions.
-65536 virtual registers, 16 bits wide, can also be used as 8 bits. r0-r65535
-65536 virtual floating point registers (64 bits double precision)  fr0-fr65535
+100K virtual registers, 16 bits wide, can also be used as 8 bits. r0-r99999
+    reserved 99000 - 99099 : WORD registers for syscall arguments and response value(s)
+    reserved 99100 - 99199 : BYTE registers for syscall arguments and response value(s)
+100K virtual floating point registers (64 bits double precision)  fr0-fr99999
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
 Status flags: Carry, Zero, Negative.   NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC,

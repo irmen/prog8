@@ -138,8 +138,8 @@ diskio {
         ;    you can call this multiple times to append more data
         repeat num_bytes {
             %ir {{
-                loadm.w r0,diskio.f_write.bufferpointer
-                loadi.b r99100,r0
+                loadm.w r99000,diskio.f_write.bufferpointer
+                loadi.b r99100,r99000
                 syscall 55 (r99100.b): r99100.b
                 storem.b r99100,$ff02
             }}
