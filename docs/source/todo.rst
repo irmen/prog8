@@ -60,7 +60,6 @@ STRUCTS and TYPED POINTERS
 - DONE: added peekbool() and pokebool() and pokebowl()  boolean peek and poke, the latter is equivalent to pokebool()
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
-- scan through virtual library modules to change untyped uword pointers to typed pointers: diskio.
 - replace str param type into ^^ubyte rather than uword
 - write docs in structpointers.rst
 - virtual/sorting.p8 module generates slightly less efficient code than the old version with untyped uword pointers

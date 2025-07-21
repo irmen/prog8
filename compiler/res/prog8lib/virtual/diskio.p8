@@ -204,7 +204,7 @@ diskio {
     }
 
 
-    sub save(uword filenameptr, uword start_address, uword savesize) -> bool {
+    sub save(str filenameptr, uword start_address, uword savesize) -> bool {
         %ir {{
             load.b r99100,0
             loadm.w r99000,diskio.save.filenameptr
@@ -216,7 +216,7 @@ diskio {
     }
 
     ; like save() but omits the 2 byte prg header.
-    sub save_raw(uword filenameptr, uword start_address, uword savesize) -> bool {
+    sub save_raw(str filenameptr, uword start_address, uword savesize) -> bool {
         %ir {{
             load.b r99100,1
             loadm.w r99000,diskio.save_raw.filenameptr
@@ -233,7 +233,7 @@ diskio {
     ; If you specify a custom address_override, the first 2 bytes in the file are ignored
     ; and the rest is loaded at the given location in memory.
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
-    sub load(uword filenameptr, uword address_override) -> uword {
+    sub load(str filenameptr, uword address_override) -> uword {
         %ir {{
             loadm.w r99000,diskio.load.filenameptr
             loadm.w r99001,diskio.load.address_override
@@ -245,7 +245,7 @@ diskio {
     ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
     ; No program header is assumed in the file. Everything is loaded.
     ; See comments on load() for more details.
-    sub load_raw(uword filenameptr, uword start_address) -> uword {
+    sub load_raw(str filenameptr, uword start_address) -> uword {
         %ir {{
             loadm.w r99000,diskio.load_raw.filenameptr
             loadm.w r99001,diskio.load_raw.start_address
@@ -254,7 +254,7 @@ diskio {
         }}
     }
 
-    sub delete(uword filenameptr) {
+    sub delete(str filenameptr) {
         ; -- delete a file on the drive
         %ir {{
             loadm.w r99000,diskio.delete.filenameptr
@@ -262,7 +262,7 @@ diskio {
         }}
     }
 
-    sub rename(uword oldfileptr, uword newfileptr) {
+    sub rename(str oldfileptr, str newfileptr) {
         ; -- rename a file on the drive
         %ir {{
             loadm.w r99000,diskio.rename.oldfileptr
