@@ -216,12 +216,12 @@ diskio {
     }
 
     ; like save() but omits the 2 byte prg header.
-    sub save_raw(uword filenameptr, uword startaddress, uword savesize) -> bool {
+    sub save_raw(uword filenameptr, uword start_address, uword savesize) -> bool {
         %ir {{
             load.b r99100,1
-            loadm.w r99000,diskio.save.filenameptr
-            loadm.w r99001,diskio.save.start_address
-            loadm.w r99002,diskio.save.savesize
+            loadm.w r99000,diskio.save_raw.filenameptr
+            loadm.w r99001,diskio.save_raw.start_address
+            loadm.w r99002,diskio.save_raw.savesize
             syscall 42 (r99100.b, r99000.w, r99001.w, r99002.w): r99100.b
             returnr.b r99100
         }}
