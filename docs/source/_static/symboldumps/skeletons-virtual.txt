@@ -1,5 +1,6 @@
 
-Prog8 compiler v11.4 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 893e16d8 in branch structs
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -62,8 +63,8 @@ LIBRARY MODULE NAME: compression
 --------------------------------
 
 compression  {
-    decode_rle  (uword compressed, uword target, uword maxsize) -> uword 
-    encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword 
+    decode_rle  (^^ubyte compressed, ^^ubyte target, uword maxsize) -> uword 
+    encode_rle  (^^ubyte data, uword size, ^^ubyte target, bool is_last_block) -> uword 
 }
 
 
@@ -76,8 +77,8 @@ conv  {
     any2uword  (str string) -> uword 
     bin2uword  (str string) -> uword 
     hex2uword  (str string) -> uword 
-    internal_str_ub  (ubyte value, uword out_ptr) 
-    internal_str_uw  (uword value, uword out_ptr) 
+    internal_str_ub  (ubyte value, str out_ptr) 
+    internal_str_uw  (uword value, str out_ptr) 
     str2byte  (str string) -> byte 
     str2ubyte  (str string) -> ubyte 
     str2uword  (str string) -> uword 
@@ -110,26 +111,26 @@ LIBRARY MODULE NAME: diskio
 
 diskio  {
     chdir  (str path) 
-    curdir  () -> uword 
-    delete  (uword filenameptr) 
+    curdir  () -> str 
+    delete  (str filenameptr) 
     directory  () -> bool 
     exists  (str filename) -> bool 
     f_close  () 
     f_close_w  () 
-    f_open  (uword filenameptr) -> bool 
-    f_open_w  (uword filenameptr) -> bool 
-    f_read  (uword bufferpointer, uword num_bytes) -> uword 
-    f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr) -> ubyte 
-    f_write  (uword bufferpointer, uword num_bytes) -> bool 
+    f_open  (str filenameptr) -> bool 
+    f_open_w  (str filenameptr) -> bool 
+    f_read  (str bufferpointer, uword num_bytes) -> uword 
+    f_read_all  (str bufferpointer) -> uword 
+    f_readline  (str bufptr) -> ubyte 
+    f_write  (str bufferpointer, uword num_bytes) -> bool 
     get_loadaddress  (str filename) -> uword 
-    load  (uword filenameptr, uword address_override) -> uword 
-    load_raw  (uword filenameptr, uword start_address) -> uword 
+    load  (str filenameptr, uword address_override) -> uword 
+    load_raw  (str filenameptr, uword start_address) -> uword 
     mkdir  (str name) 
-    rename  (uword oldfileptr, uword newfileptr) 
+    rename  (str oldfileptr, str newfileptr) 
     rmdir  (str name) 
-    save  (uword filenameptr, uword start_address, uword savesize) -> bool 
-    save_raw  (uword filenameptr, uword startaddress, uword savesize) -> bool 
+    save  (str filenameptr, uword start_address, uword savesize) -> bool 
+    save_raw  (str filenameptr, uword start_address, uword savesize) -> bool 
     status  () -> str 
     status_code  () -> ubyte 
 }
@@ -198,11 +199,11 @@ math  {
     cos8u  (ubyte angle) -> ubyte 
     cosr8  (ubyte radians) -> byte 
     cosr8u  (ubyte radians) -> ubyte 
-    crc16  (uword data, uword length) -> uword 
+    crc16  (^^ubyte data, uword length) -> uword 
     crc16_end  () -> uword 
     crc16_start  () 
     crc16_update  (ubyte value) 
-    crc32  (uword data, uword length) 
+    crc32  (^^ubyte data, uword length) 
     crc32_end  () 
     crc32_start  () 
     crc32_update  (ubyte value) 
@@ -298,7 +299,7 @@ strings  {
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
     ncompare  (str st1, str st2, ubyte length) -> byte 
-    rfind  (uword stringptr, ubyte character) -> ubyte, bool 
+    rfind  (str stringptr, ubyte character) -> ubyte, bool 
     right  (str source, ubyte slen, str target) 
     rstrip  (str s) 
     rtrim  (str s) 
@@ -329,6 +330,7 @@ sys  {
     const ubyte  SIZEOF_BYTE 
     const ubyte  SIZEOF_FLOAT 
     const ubyte  SIZEOF_LONG 
+    const ubyte  SIZEOF_POINTER 
     const ubyte  SIZEOF_UBYTE 
     const ubyte  SIZEOF_UWORD 
     const ubyte  SIZEOF_WORD 
@@ -343,7 +345,7 @@ sys  {
     gfx_enable  (ubyte mode) 
     gfx_getpixel  (uword xx, uword yy) -> ubyte 
     gfx_plot  (uword xx, uword yy, ubyte color) 
-    internal_stringcopy  (uword source, uword tgt) 
+    internal_stringcopy  (str source, str tgt) 
     memcmp  (uword address1, uword address2, uword size) -> byte 
     memcopy  (uword source, uword tgt, uword count) 
     memset  (uword mem, uword numbytes, ubyte value) 
@@ -516,7 +518,7 @@ txt  {
     column  (ubyte col) 
     height  () -> ubyte 
     home  () 
-    input_chars  (uword buffer) -> ubyte 
+    input_chars  (str buffer) -> ubyte 
     lowercase  () 
     nl  () 
     petscii2scr  (ubyte petscii_char) -> ubyte 
