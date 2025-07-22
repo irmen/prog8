@@ -165,8 +165,11 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         }
 
-        if(srcAssign.origin == AssignmentOrigin.VARINIT && srcAssign.parent is Block && srcAssign.value.constValue(program)?.number==0.0)
-            throw FatalAstException("should not have a redundant block-level variable=0 assignment; it will be zeroed as part of BSS clear")
+        if(srcAssign.origin == AssignmentOrigin.VARINIT && srcAssign.parent is Block && srcAssign.value.constValue(program)?.number==0.0) {
+            val zeropages = srcAssign.target.targetIdentifiers().mapNotNull { it.targetVarDecl()?.zeropage }
+            if(zeropages.any {it==ZeropageWish.NOT_IN_ZEROPAGE})
+                throw FatalAstException("should not have a redundant block-level variable=0 assignment for a non-ZP variable; it will be zeroed as part of BSS clear")
+        }
 
         val assign = PtAssignment(srcAssign.position, srcAssign.origin==AssignmentOrigin.VARINIT)
         val multi = srcAssign.target.multi

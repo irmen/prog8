@@ -328,10 +328,9 @@ internal class ProgramAndVarsGen(
         if (initializers.isNotEmpty()) {
             asmgen.out("prog8_init_vars\t.block")
             initializers.forEach { assign ->
-                if((assign.value as? PtNumber)?.number != 0.0 || allocator.isZpVar(assign.target.identifier!!.name))
+                val constvalue = assign.value as? PtNumber
+                if(constvalue==null || constvalue.number!=0.0 || allocator.isZpVar(assign.target.identifier!!.name))
                     asmgen.translate(assign)
-                else
-                    throw AssemblyError("non-zp variable should not be initialized to zero; it will be zeroed as part of BSS clear")
                 // the other variables that should be set to zero are done so as part of the BSS section clear.
             }
             asmgen.out("  rts\n  .bend")

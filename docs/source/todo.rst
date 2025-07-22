@@ -1,7 +1,9 @@
 TODO
 ====
 
-BUG: fix ZP variables no longer getting initialized to 0 (see test.p8)
+Since fixing the missing zp-var initialization, programs grew in size again (assem)
+Are there any redundant block-level variable initializations to 0 that we can remove in peephole optimization for example?
+
 
 STRUCTS: are being developed in their own separate branch for now, called "structs".
 Idea is to make it feature complete in the IR/Virtual target, then merge it to master?, and then start building the 6502 code generation for it.

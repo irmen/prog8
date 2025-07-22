@@ -5,13 +5,11 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
-import prog8.code.core.AssociativeOperators
-import prog8.code.core.BaseDataType
-import prog8.code.core.DataType
-import prog8.code.core.IErrorReporter
+import prog8.code.core.*
 
 internal class StatementReorderer(
     val program: Program,
+    val options: CompilationOptions,
     val errors: IErrorReporter
 ) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
@@ -114,10 +112,17 @@ internal class StatementReorderer(
     }
 
     private fun canSkipInitializationWith0(decl: VarDecl): Boolean {
-        // if the variable is declared in a block, we can omit the init with 0 because
-        // the variable will be initialized to zero when the BSS section is cleared as a whole.
-        if(decl.parent is Block)
-            return true
+        if(decl.parent is Block) {
+            // if the variable is declared in a block and is NOT in ZEROPAGE, we can omit the init with 0 because
+            // the variable will be initialized to zero when the BSS section is cleared as a whole.
+            if (decl.zeropage == ZeropageWish.NOT_IN_ZEROPAGE)
+                return true
+
+            // block level zp var that is not in zeropage, doesn't have to be cleared (will be done as part of bss clear at startup)
+            // note: subroutine level var HAS to be cleared because it needs to be zero at every subroutine call!
+            if (decl.zeropage == ZeropageWish.DONTCARE && options.zeropage == ZeropageType.DONTUSE)
+                return true
+        }
 
         // if there is an assignment to the variable below it (regular assign, or For loop),
         // and there is nothing important in between, we can skip the initialization.

@@ -200,7 +200,7 @@ class StStaticVariable(name: String,
         // Certain codegens might want to put them back into the variable directly.
         // For strings and arrays this doesn't occur - these are always already specced at creation time.
 
-        require(number!=0.0) { "variable should not be initialized with 0, it will already be zeroed as part of BSS clear" }
+        require(number!=0.0 || zpwish!=ZeropageWish.NOT_IN_ZEROPAGE) { "non-zp variable should not be initialized with 0, it will already be zeroed as part of BSS clear" }
         initializationNumericValue = number
     }
 
