@@ -1,5 +1,5 @@
 
-Prog8 compiler v11.4 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v11.4.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
