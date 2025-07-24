@@ -302,7 +302,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 val value: String = when {
                     dt.isBool -> variable.onetimeInitializationNumericValue?.toInt()?.toString() ?: ""
                     dt.isFloat -> (variable.onetimeInitializationNumericValue ?: "").toString()
-                    dt.isInteger -> variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: ""
+                    dt.isInteger || dt.isPointer -> variable.onetimeInitializationNumericValue?.toInt()?.toHex() ?: ""
                     dt.isString -> {
                         val encoded = irProgram.encoding.encodeString(variable.onetimeInitializationStringValue!!.first, variable.onetimeInitializationStringValue.second) + listOf(0u)
                         encoded.joinToString(",") { it.toInt().toString() }
@@ -321,7 +321,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             ""     // array will be zero'd out at program start
                         }
                     }
-                    else -> throw InternalCompilerException("weird dt")
+                    else -> throw InternalCompilerException("weird dt $dt")
                 }
                 xml.writeCharacters("${variable.typeString} ${variable.name}=$value zp=${variable.zpwish}")
                 if(variable.align!=0u)

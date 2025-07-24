@@ -77,7 +77,7 @@ class IRCodeGen(
                         initsToRemove += block to initialization
                     }
                     is PtNumber -> {
-                        require(initValue.number!=0.0) { "variable should not be initialized with 0, it will already be zeroed as part of BSS clear, initializer=$initialization" }
+                        require(initValue.number!=0.0 || variable.zpwish!=ZeropageWish.NOT_IN_ZEROPAGE) {"non-zp variable should not be initialized with 0, it will already be zeroed as part of BSS clear, initializer=$initialization" }
                         variable.setOnetimeInitNumeric(initValue.number)
                         initsToRemove += block to initialization
                     }

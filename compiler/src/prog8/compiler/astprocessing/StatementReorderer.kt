@@ -9,7 +9,7 @@ import prog8.code.core.*
 
 internal class StatementReorderer(
     val program: Program,
-    val target: ICompilationTarget,
+    val options: CompilationOptions,
     val errors: IErrorReporter
 ) : AstWalker() {
     // Reorders the statements in a way the compiler needs.
@@ -119,10 +119,17 @@ internal class StatementReorderer(
     }
 
     private fun canSkipInitializationWith0(decl: VarDecl): Boolean {
-        // if the variable is declared in a block, we can omit the init with 0 because
-        // the variable will be initialized to zero when the BSS section is cleared as a whole.
-        if(decl.parent is Block)
-            return true
+        if(decl.parent is Block) {
+            // if the variable is declared in a block and is NOT in ZEROPAGE, we can omit the init with 0 because
+            // the variable will be initialized to zero when the BSS section is cleared as a whole.
+            if (decl.zeropage == ZeropageWish.NOT_IN_ZEROPAGE)
+                return true
+
+            // block level zp var that is not in zeropage, doesn't have to be cleared (will be done as part of bss clear at startup)
+            // note: subroutine level var HAS to be cleared because it needs to be zero at every subroutine call!
+            if (decl.zeropage == ZeropageWish.DONTCARE && options.zeropage == ZeropageType.DONTUSE)
+                return true
+        }
 
         // if there is an assignment to the variable below it (regular assign, or For loop),
         // and there is nothing important in between, we can skip the initialization.
@@ -215,7 +222,7 @@ internal class StatementReorderer(
 
         // change 'str' and 'ubyte[]' parameters or return types into ^^ubyte (TODO also for 6502 target, that is still uword for now)
         val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }
-        val replacementForStrDt = if(target.cpu!=CpuType.VIRTUAL) DataType.UWORD else DataType.pointer(BaseDataType.UBYTE)      // TODO fix this once 6502 has pointers too
+        val replacementForStrDt = if(options.compTarget.cpu!=CpuType.VIRTUAL) DataType.UWORD else DataType.pointer(BaseDataType.UBYTE)      // TODO fix this once 6502 has pointers too
         val parameterChanges = stringParams.map {
             val uwordParam = SubroutineParameter(it.name, replacementForStrDt, it.zp, it.registerOrPair, it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)

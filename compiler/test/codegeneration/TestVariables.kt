@@ -10,7 +10,10 @@ import prog8.ast.statements.Assignment
 import prog8.ast.statements.AssignmentOrigin
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
+import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtNumber
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -106,6 +109,7 @@ class TestVariables: FunSpec({
 
     test("global var init with array lookup should sometimes be const") {
         val src="""
+%zeropage dontuse            
 main {
 
     bool[] barray =  [true, false, true, false]
@@ -219,5 +223,86 @@ main {
         (st[4] as Assignment).target.identifier?.nameInSource shouldBe listOf("v2")
         (st[5] as Assignment).target.identifier?.nameInSource shouldBe listOf("v1")
         (st[6] as Assignment).target.identifier?.nameInSource shouldBe listOf("v0")
+    }
+
+    test("nondirty zp variables should be explicitly initialized to 0") {
+        val src="""
+main {
+    ubyte @shared @requirezp zpvar
+    ubyte @shared @requirezp @dirty dirtyzpvar
+
+    sub start() {
+        ubyte @shared @requirezp zpvar2
+        ubyte @shared @requirezp @dirty dirtyzpvar2
+    }
+}"""
+
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!.codegenAst
+
+        val main = result!!.allBlocks().first { it.name=="p8b_main" }
+        main.children.size shouldBe 4
+        val zeroassignlobal =  main.children.single { it is PtAssignment } as PtAssignment
+        (zeroassignlobal.value as PtNumber).number shouldBe 0.0
+        zeroassignlobal.target.identifier!!.name shouldBe "p8b_main.p8v_zpvar"
+
+        val st = result.entrypoint()!!.children
+        st.size shouldBe 5
+        val zeroassign =  st.single { it is PtAssignment } as PtAssignment
+        (zeroassign.value as PtNumber).number shouldBe 0.0
+        zeroassign.target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_zpvar2"
+    }
+
+    test("nondirty non zp variables in block scope should not be explicitly initialized to 0 (bss clear takes care of it)") {
+        val src="""
+%zeropage dontuse
+
+main {
+    ubyte @shared v1
+    ubyte @shared @dirty dv1
+    sub start() {
+        ubyte @shared v2
+        ubyte @shared @dirty dv2
+    }
+}"""
+
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!.codegenAst
+
+        // block level should not be intialized to 0 (will be done by BSS clear)
+        val main = result!!.allBlocks().first { it.name=="p8b_main" }
+        main.children.size shouldBe 3
+        main.children.any { it is PtAssignment } shouldBe false
+
+        // subroutine should be initialized to 0 because that needs to be done on every call to the subroutine
+        val st = result.entrypoint()!!.children
+        st.size shouldBe 5
+        val zeroassign =  st.single { it is PtAssignment } as PtAssignment
+        (zeroassign.value as PtNumber).number shouldBe 0.0
+        zeroassign.target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_v2"
+    }
+
+    test("nondirty explicit non zp variables in block scope should not be explicitly initialized to 0 (bss clear takes care of it)") {
+        val src="""
+main {
+    ubyte @shared @nozp v1
+    ubyte @shared @dirty @nozp dv1
+    sub start() {
+        ubyte @shared @nozp v2
+        ubyte @shared @dirty @nozp dv2
+    }
+}"""
+
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!.codegenAst
+
+        // block level should not be intialized to 0 (will be done by BSS clear)
+        val main = result!!.allBlocks().first { it.name=="p8b_main" }
+        main.children.size shouldBe 3
+        main.children.any { it is PtAssignment } shouldBe false
+
+        // subroutine should be initialized to 0 because that needs to be done on every call to the subroutine
+        val st = result.entrypoint()!!.children
+        st.size shouldBe 5
+        val zeroassign =  st.single { it is PtAssignment } as PtAssignment
+        (zeroassign.value as PtNumber).number shouldBe 0.0
+        zeroassign.target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_v2"
     }
 })
