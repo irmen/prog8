@@ -14,6 +14,8 @@ sealed class PtNode(val position: Position) {
     val children = mutableListOf<PtNode>()
     lateinit var parent: PtNode
 
+    override fun toString(): String = "${super.toString()} at $position"
+    
     fun add(child: PtNode) {
         children.add(child)
         child.parent = this

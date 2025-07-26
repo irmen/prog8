@@ -1,8 +1,6 @@
 TODO
 ====
 
-fix compiler crash on boolean field in conditional expression:   if e.elite  e.health = 1000
-
 initializing a struct with a numberic for a boolean field, should give a type error (seems to silently cast to bool now)
 
 

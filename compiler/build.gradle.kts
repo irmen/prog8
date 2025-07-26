@@ -80,6 +80,8 @@ gversion {
     classPackage = "prog8.buildversion"
     className = "Version"
     language = "kotlin"
+    debug = false
+    annotate = true
 }
 
 tasks.build {

@@ -268,8 +268,8 @@ class IRCodeGen(
             is PtArray,
             is PtBlock,
             is PtDefer -> throw AssemblyError("defer should have been transformed")
-            is PtString -> throw AssemblyError("string should not occur as separate statement node ${node.position}")
-            is PtSub -> throw AssemblyError("nested subroutines should have been flattened ${node.position}")
+            is PtString -> throw AssemblyError("string should not occur as separate statement node $node")
+            is PtSub -> throw AssemblyError("nested subroutines should have been flattened $node")
             is PtStructDecl -> emptyList()
             is PtSubSignature -> emptyList()
             else -> TODO("missing codegen for $node")
@@ -1693,6 +1693,9 @@ class IRCodeGen(
             }
             is PtBinaryExpression -> {
                 translateBinExpr(cond)
+            }
+            is PtPointerDeref -> {
+                translateSimple(cond, Opcode.BSTEQ, false)
             }
             else -> throw AssemblyError("weird if condition ${ifElse.condition}")
         }
