@@ -47,6 +47,12 @@ emudbg {
         }
     }
 
+    sub console_nl() {
+        ; write a newline to the debug output console.
+        ; because '\n' gets encoded in the x16 value for it (13) which is different than what the shell expects (10).
+        console_chrout(10)
+    }
+
     sub console_chrout(ubyte char) {
         ; note: make sure the character is in Iso encoding.
         if is_emulator()

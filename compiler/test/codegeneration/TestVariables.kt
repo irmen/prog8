@@ -11,9 +11,11 @@ import prog8.ast.statements.AssignmentOrigin
 import prog8.ast.statements.ForLoop
 import prog8.ast.statements.VarDecl
 import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtBool
 import prog8.code.ast.PtNumber
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -229,27 +231,40 @@ main {
         val src="""
 main {
     ubyte @shared @requirezp zpvar
+    bool @shared @requirezp zpbool
     ubyte @shared @requirezp @dirty dirtyzpvar
+    bool @shared @requirezp @dirty dirtyzpbool
 
     sub start() {
         ubyte @shared @requirezp zpvar2
+        bool @shared @requirezp zpbool2
         ubyte @shared @requirezp @dirty dirtyzpvar2
+        bool @shared @requirezp @dirty dirtyzpbool2
     }
 }"""
 
         val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!.codegenAst
 
         val main = result!!.allBlocks().first { it.name=="p8b_main" }
-        main.children.size shouldBe 4
-        val zeroassignlobal =  main.children.single { it is PtAssignment } as PtAssignment
-        (zeroassignlobal.value as PtNumber).number shouldBe 0.0
-        zeroassignlobal.target.identifier!!.name shouldBe "p8b_main.p8v_zpvar"
+        main.children.size shouldBe 7
+        val zeroassignsglobal =  main.children.filterIsInstance<PtAssignment>()
+        zeroassignsglobal.size shouldBe 2
+        (zeroassignsglobal[0].value as PtNumber).number shouldBe 0.0
+        zeroassignsglobal[0].target.identifier!!.name shouldBe "p8b_main.p8v_zpvar"
+        (zeroassignsglobal[1].value as PtBool).value shouldBe false
+        zeroassignsglobal[1].target.identifier!!.name shouldBe "p8b_main.p8v_zpbool"
 
         val st = result.entrypoint()!!.children
-        st.size shouldBe 5
-        val zeroassign =  st.single { it is PtAssignment } as PtAssignment
-        (zeroassign.value as PtNumber).number shouldBe 0.0
-        zeroassign.target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_zpvar2"
+        st.size shouldBe 8
+        val zeroassigns =  st.filterIsInstance<PtAssignment>()
+        zeroassigns.size shouldBe 2
+        (zeroassigns[0].value as PtNumber).number shouldBe 0.0
+        zeroassigns[0].target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_zpvar2"
+        (zeroassigns[1].value as PtBool).value shouldBe false
+        zeroassigns[1].target.identifier!!.name shouldBe "p8b_main.p8s_start.p8v_zpbool2"
+
+
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("nondirty non zp variables in block scope should not be explicitly initialized to 0 (bss clear takes care of it)") {

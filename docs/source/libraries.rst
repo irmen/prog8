@@ -496,7 +496,17 @@ emudbg  (cx16 only)
 X16Emu Emulator debug routines, for Cx16 only.
 Allows you to interface with the emulator's debug routines/registers.
 There's stuff like ``is_emulator`` to detect if running in the emulator,
-and ``console_write`` to write a (iso) string to the emulator's console (stdout) etc.
+and ``console_write`` to write a (iso) string to the emulator's console (stdout), etc.
+
+*EOL (end of line) character handling:*
+Writing ``iso:'\n'`` to the console doesn't produce a proper new line there, because prog8 encodes
+the newline to character 13 on the X16 (this is what the X16 uses to print a newline on the screen).
+You have to explicitly output a character 10 on the console to see a newline there. You can do that in several ways::
+
+    emudbg.console_nl()
+    emudbg.console_chrout(10)
+    emudbg.console_write(iso:"hello\x0a")
+
 
 Read the `emudbg source code <https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib/cx16/emudbg.p8>`_
 to see what's in there.

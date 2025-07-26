@@ -3,6 +3,7 @@ package prog8.code.target
 import prog8.code.core.*
 import prog8.code.target.encodings.Encoder
 import java.nio.file.Path
+import kotlin.io.path.extension
 import kotlin.io.path.isReadable
 import kotlin.io.path.name
 import kotlin.io.path.readText
@@ -73,16 +74,11 @@ class VMTarget: ICompilationTarget,
 
         // to not have external module dependencies in our own module, we launch the virtual machine via reflection
         val vm = Class.forName("prog8.vm.VmRunner").getDeclaredConstructor().newInstance() as IVirtualMachineRunner
-        val filename = programNameWithPath.name
-        if(programNameWithPath.isReadable()) {
-            vm.runProgram(programNameWithPath.readText(), quiet)
-        } else {
-            val withExt = programNameWithPath.resolveSibling("$filename.p8ir")
-            if(withExt.isReadable())
-                vm.runProgram(withExt.readText(), quiet)
-            else
-                throw java.nio.file.NoSuchFileException(withExt.name, null, "not a .p8ir file")
-        }
+        val withExt = if(programNameWithPath.extension=="p8ir") programNameWithPath else programNameWithPath.resolveSibling("${programNameWithPath.name}.p8ir")
+        if(withExt.isReadable())
+            vm.runProgram(withExt.readText(), quiet)
+        else
+            throw java.nio.file.NoSuchFileException(withExt.name, null, "not a .p8ir file")
     }
 
     override fun isIOAddress(address: UInt): Boolean = false
