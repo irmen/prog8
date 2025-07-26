@@ -1,16 +1,13 @@
-%option no_sysinit
-%zeropage basicsafe
-%import textio
-%import emudbg
-
-
 main {
+    ubyte @shared @requirezp zpvar
+    bool @shared @requirezp zpbool
+    ubyte @shared @requirezp @dirty dirtyzpvar
+    bool @shared @requirezp @dirty dirtyzpbool
+
     sub start() {
-        emudbg.console_write(iso:"hello1\x0a")
-        emudbg.console_nl()
-        emudbg.console_write(iso:"hello2\x0a")
-        emudbg.console_nl()
-        emudbg.console_write(iso:"hello3\x0a")
-        emudbg.console_nl()
+        ubyte @shared @requirezp zpvar2
+        bool @shared @requirezp zpbool2
+        ubyte @shared @requirezp @dirty dirtyzpvar2
+        bool @shared @requirezp @dirty dirtyzpbool2
     }
 }
