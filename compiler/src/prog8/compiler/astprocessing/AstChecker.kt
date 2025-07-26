@@ -1062,7 +1062,7 @@ internal class AstChecker(private val program: Program,
                 errors.err("pointer arrays can only be @split", decl.position)
         }
 
-        if(decl.datatype.isStructInstance) {
+        if(decl.datatype.isStructInstance && decl.origin!=VarDeclOrigin.SUBROUTINEPARAM) {
             errors.err("struct instances cannot be declared directly, use pointer and allocation call instead", decl.position)
         }
 

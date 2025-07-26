@@ -1,6 +1,11 @@
 TODO
 ====
 
+fix compiler crash on boolean field in conditional expression:   if e.elite  e.health = 1000
+
+initializing a struct with a numberic for a boolean field, should give a type error (seems to silently cast to bool now)
+
+
 STRUCTS and TYPED POINTERS
 --------------------------
 
@@ -30,7 +35,7 @@ STRUCTS and TYPED POINTERS
 - DONE: static initialization of structs. It behaves like arrays; it won't reset to the original value when program is restarted, so beware.
   Syntax:  ^^Node ptr = Node(1,2,3,4) statically allocates a Node with fields set to 1,2,3,4 and puts the address in ptr.
   Node() without arguments allocates a node in BSS variable space instead that gets zeroed out at startup.
-  ()Internally this gets translated into a structalloc(1,2,3,4)  builtin function call that has a pointer to the struct as its return type)
+  (Internally this gets translated into a structalloc(1,2,3,4)  builtin function call that has a pointer to the struct as its return type)
 - DONE: pointer arrays are split-words only, enforce this (variable dt + initializer array dt)
 - DONE: make an error message for all pointer expressions (prefixed, binary) so we can start implementing the ones we need one by one.
 - DONE: start by making ptr.value++ work  , and  ptr.value = ptr.value+20,   and ptr.value = cx16.r0L+20+ptr.value   Likewise for subtraction.  DON'T FORGET C POINTER SEMANTICS.   Other operators are nonsensical for ptr arith
@@ -61,8 +66,7 @@ STRUCTS and TYPED POINTERS
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
 - DONE: replace str or ubyte[] param and returnvalue type into ^^ubyte rather than uword
-- write docs in structpointers.rst
-- virtual/sorting.p8 module generates slightly less efficient code than the old version with untyped uword pointers
+- finalize docs in structpointers.rst and in other chapters
 - add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
 - add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)

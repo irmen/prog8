@@ -387,11 +387,10 @@ main {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors)
         val err = errors.errors
-        err.size shouldBe 4
-        err[0] shouldContain "struct instances cannot be declared"
-        err[1] shouldContain "uword doesn't match"
-        err[2] shouldContain "structs can only be passed via a pointer"
-        err[3] shouldContain "structs can only be returned via a pointer"
+        err.size shouldBe 3
+        err[0] shouldContain "uword doesn't match"
+        err[1] shouldContain "structs can only be passed via a pointer"
+        err[2] shouldContain "structs can only be returned via a pointer"
     }
 
     test("pointers in subroutine return values") {
@@ -1334,6 +1333,35 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
+    test("type error for invalid bool field initializer") {
+        val src="""
+main {
+    struct Enemy {
+        ubyte xpos, ypos
+        uword health
+        bool elite
+    }
+
+    sub start() {
+        ^^Enemy @shared e1 = Enemy()
+        ^^Enemy @shared e2 = Enemy(1,2,3,true)
+        ^^Enemy @shared e3 = Enemy(1,2,3,4)         ; TODO type error for the boolean
+        ^^Enemy @shared e4 = Enemy(1,2,3,4.555)     ; TODO type error for the boolean
+
+        e3.elite = 99
+        e4.elite = 3.444
+    }
+}"""
+
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "doesn't match target type"
+        errors.errors[1] shouldContain "doesn't match target type"
+        errors.errors[2] shouldContain "doesn't match target type"
+        errors.errors[3] shouldContain "doesn't match target type"
+    }
+
     test("local and global struct pointer qualified name lookups") {
         val src="""
 main {
@@ -1492,6 +1520,25 @@ main {
         cx16.r3 = if ptr==0 ptr else 0
     }
 }"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("boolean field in if statement condition") {
+        val src = """
+main {
+    struct Enemy {
+        ubyte xpos, ypos
+        uword health
+        bool elite
+    }
+     
+    sub start() {
+        ^^Enemy e1
+        if e1.elite
+            e1.health += 100
+    }
+}"""
+
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
