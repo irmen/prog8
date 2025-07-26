@@ -1,6 +1,8 @@
 TODO
 ====
 
+Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
+
 Since fixing the missing zp-var initialization, programs grew in size again (assem)
 Are there any redundant block-level variable initializations to 0 that we can remove in peephole optimization for example?
 
