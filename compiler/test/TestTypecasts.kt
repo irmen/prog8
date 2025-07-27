@@ -679,7 +679,7 @@ main {
         errors.errors[3] shouldContain ("value type bool doesn't match target")
     }
 
-    test("bool function parameters correct typing and implicit casts to bool") {
+    test("bool function parameters correct typing and no implicit casts to bool") {
         val src = """
 main {
     sub start() {
@@ -703,8 +703,15 @@ main {
 }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain ("value type bool doesn't match target")
+        errors.errors.size shouldBe 8
+        errors.errors[0] shouldContain ("type mismatch")
+        errors.errors[1] shouldContain ("type mismatch")
+        errors.errors[2] shouldContain ("type mismatch")
+        errors.errors[3] shouldContain ("type mismatch")
+        errors.errors[4] shouldContain ("type mismatch")
+        errors.errors[5] shouldContain ("type mismatch")
+        errors.errors[6] shouldContain ("type mismatch")
+        errors.errors[7] shouldContain ("value type bool doesn't match target")
     }
 
     test("no implicit bool-to-int cast in assignment") {

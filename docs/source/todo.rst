@@ -1,8 +1,6 @@
 TODO
 ====
 
-initializing a struct with a numberic for a boolean field, should give a type error (seems to silently cast to bool now)
-
 
 STRUCTS and TYPED POINTERS
 --------------------------

@@ -1356,8 +1356,8 @@ main {
         val errors=ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain "doesn't match target type"
-        errors.errors[1] shouldContain "doesn't match target type"
+        errors.errors[0] shouldContain "incompatible type"
+        errors.errors[1] shouldContain "incompatible type"
         errors.errors[2] shouldContain "doesn't match target type"
         errors.errors[3] shouldContain "doesn't match target type"
     }

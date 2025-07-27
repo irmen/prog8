@@ -679,14 +679,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         val sourceDt = expressionToCast.inferType(program).getOrUndef()
         if(sourceDt.base == requiredType.base)
             return
-        if(requiredType.isBool) {
-            if(sourceDt.isNumeric || sourceDt.isPointer) {
-                // only allow numerics and pointers to be implicitly cast to bool
-                val cast = TypecastExpression(expressionToCast, DataType.BOOL, true, expressionToCast.position)
-                modifications += IAstModification.ReplaceNode(expressionToCast, cast, parent)
-            }
-            return
-        }
+        if(requiredType.isBool)
+            return // don't allow any implicit cast to bool
 
         // uwords are allowed to be assigned to pointers without a cast
         if(requiredType.isPointer && sourceDt.isUnsignedWord)
