@@ -812,6 +812,12 @@ internal class AstChecker(private val program: Program,
                 errors.err("$> can only be used on split word arrays", addressOf.position)
         }
 
+        if(addressOf.typed) {
+            if(addressOf.identifier?.targetSubroutine()!=null) {
+                errors.err("no support for typed pointers to subroutines, you can take an untyped pointer instead to use with goto / call() etc.", addressOf.position)
+            }
+        }
+
         super.visit(addressOf)
     }
 

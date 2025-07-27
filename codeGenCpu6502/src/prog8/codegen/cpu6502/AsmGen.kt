@@ -175,7 +175,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                     if(elt.definingBlock()?.options?.noSymbolPrefixing==true)
                         newValue.add(elt)
                     else {
-                        val newAddr = PtAddressOf(elt.type, elt.position)
+                        val newAddr = PtAddressOf(elt.type, false, elt.position)
                         newAddr.add(elt.identifier!!.prefix(newAddr, st))
                         if (elt.arrayIndexExpr != null)
                             newAddr.add(elt.arrayIndexExpr!!)
@@ -1091,7 +1091,7 @@ $repeatLabel""")
             else {
                 // all else take its address and assign that also to AY register pair
                 val addrOfDt = returnvalue.type.typeForAddressOf(false)
-                val addrofValue = PtAddressOf(addrOfDt, returnvalue.position)
+                val addrofValue = PtAddressOf(addrOfDt, false, returnvalue.position)
                 addrofValue.add(returnvalue as PtIdentifier)
                 addrofValue.parent = ret.parent
                 assignmentAsmGen.assignExpressionToRegister(addrofValue, returnRegs.single().first.registerOrPair!!, false)

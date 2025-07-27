@@ -192,6 +192,7 @@ type identifier  type                     storage size       example var declara
 ``str[]``        array with string ptrs   2*x bytes + strs   ``str[] names = ["ally", "pete"]``  note: equivalent to a uword array.
 ``str``          string (PETSCII)         varies             ``str myvar = "hello."``
                                                              implicitly terminated by a 0-byte
+``^^type``       typed pointer            2 bytes            pointer types are explained in their own chapter :ref:`pointers`
 ===============  =======================  =================  =========================================
 
 Integers (bytes, words)
@@ -490,6 +491,11 @@ for a character in such strings (one that stops at the first 0 byte)
     them to the screen. This is because this encoding has symbols in place of where normally ASCII
     control characters such as Line feed would be. A regular ``txt.print(message)`` will likely get confused
     by such symbols and print them as control characters, messing up the output.
+
+
+Structs and Pointers
+^^^^^^^^^^^^^^^^^^^^
+Struct and Pointer types are explained in their own separate chapter :ref:`pointers`.
 
 
 .. _range-expression:

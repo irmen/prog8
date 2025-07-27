@@ -19,10 +19,10 @@ explicitly for what it actually pointed to, if that wasn't a simple byte.
 Some implicit conversions were allowed too (such as putting ``str`` as the type of a subroutine parameter,
 which would be changed to ``uword`` by the compiler).
 
-Since Prog8 version 12 there now are *typed pointers* that better express the intent and tell the compiler how to use the pointer,
+Since Prog8 version 12 there now are *typed pointers* that better express the intent and tell the compiler how to use the pointer;
 these are explained below.
 
-*For backward compatibility reasons, this untyped ``uword`` pointer still exists in the language.*
+*For backward compatibility reasons, this untyped uword pointer still exists in the language.*
 You can assign any other pointer type to an untyped pointer variable (uword) without the need for an explicit cast.
 You can assign an untyped pointer (uword) to a typed pointer variable without the need for an explicit cast.
 
@@ -32,15 +32,14 @@ Typed pointer to simple datatype
 --------------------------------
 
 Prog8 syntax has the 'double hat' token ``^^`` that appears either in front of a type ("pointer to this type") or
-after a pointer variable ("get the value it points to" - pointer dereference).for
+after a pointer variable ("get the value it points to" - a pointer dereference).
 
 So the syntax for declaring typed pointers looks like this:
 
 ``^^type``: pointer to a type
-    You can declare a pointer to any numeric datatype (bytes, words, longs, floats), booleans, and also strings.
-    (The latter: ``^^str`` - a pointer to a string - is equivalient to ``^^ubyte`` though because a string is just an array of ubytes.)
-    Finally, the type can be a struct type, which then declares a pointer to that struct type. This is explained in the next section.
-    So, for example; ``^^float fptr`` declares fptr as a pointer to a float value.
+    You can declare a pointer to any numeric datatype (bytes, words, longs, floats), and booleans, and struct types.
+    Structs are explained in the next section.
+    So for example; ``^^float fptr`` declares fptr as a pointer to a float value.
 
 ``^^type[size]``: array with size size containing pointers to a type.
     So for example; ``^^word[100] values`` declares values to be an array of 100 pointers to words.
@@ -55,6 +54,11 @@ The ``str`` type in subroutine parameters and return values has always been a bi
 the string is actually passed by reference (it's address pointer is passed) instead of a ``str`` variable that is accessed by value.
 In previous Prog8 versions these were untyped uword pointers, but since version 12, these are now translated as ``^^ubyte``.
 Resulting assembly code should be equivalent still.
+
+.. note::
+    **Pointers to subroutines:**
+    While Prog8 allows you to take the address of a subroutine, it has no support yet for typed function pointers.
+    Calling a routine through a pointer with ``goto``, ``call()`` and such, only works with the raw uword address for now.
 
 
 Dereferencing a pointer, pointer arithmetic

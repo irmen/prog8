@@ -609,12 +609,11 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitPointerDereferenceTarget(ctx: PointerDereferenceTargetContext): AssignTarget {
         val deref = ctx.pointerdereference().accept(this)
-        return if(deref is PtrDereference)
-            AssignTarget(null, null, null, null, false, deref, null, deref.position)
-        else if(deref is ArrayIndexedPtrDereference)
-            AssignTarget(null, null, null, null, false, null, deref, deref.position)
-        else
-            throw FatalAstException("weird dereference ${ctx.toPosition()}")
+        return when (deref) {
+            is PtrDereference -> AssignTarget(null, null, null, null, false, pointerDereference = deref, position = deref.position)
+            is ArrayIndexedPtrDereference -> AssignTarget(null, null, null, null, false, arrayIndexedDereference = deref, position = deref.position)
+            else -> throw FatalAstException("weird dereference ${ctx.toPosition()}")
+        }
     }
 
     override fun visitPointerdereference(ctx: PointerdereferenceContext): Expression {

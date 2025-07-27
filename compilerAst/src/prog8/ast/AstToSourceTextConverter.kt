@@ -481,7 +481,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(addressOf: AddressOf) {
-        output("&")
+        if(addressOf.typed) output("&&") else output("&")
         if(addressOf.msb)
             output(">")
         addressOf.identifier?.accept(this)

@@ -1042,14 +1042,12 @@ data class IRInstruction(
         }
         if(type==IRDataType.WORD) {
             // some word instructions have byte reg1
-            return if(opcode in arrayOf(Opcode.STOREZX))
-                IRDataType.BYTE
-            else if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
-                TODO("ext.w into long type")
-            else if(opcode==Opcode.CONCAT)
-                TODO("concat.w into long type")
-            else
-                IRDataType.WORD
+            return when (opcode) {
+                in arrayOf(Opcode.STOREZX) -> IRDataType.BYTE
+                Opcode.EXT, Opcode.EXTS -> TODO("ext.w into long type")
+                Opcode.CONCAT -> TODO("concat.w into long type")
+                else -> IRDataType.WORD
+            }
         }
         if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI)
             return IRDataType.WORD

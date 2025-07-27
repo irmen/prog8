@@ -654,6 +654,21 @@ main {
         (r1v.right as PtNumber).number shouldBe VMTarget.FLOAT_MEM_SIZE
     }
 
+    test("untyped and typed address-of subroutines") {
+        val src="""
+main {
+    sub start() {
+        cx16.r2 = &start
+        cx16.r3 = &&start
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain("5:19: no support for typed pointers to subroutines")
+    }
+
     test("address-of struct fields") {
         val src="""
 %option enable_floats

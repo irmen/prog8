@@ -62,19 +62,20 @@ STRUCTS and TYPED POINTERS
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
 - DONE: replace str or ubyte[] param and returnvalue type into ^^ubyte rather than uword
-- finalize docs in structpointers.rst and in other chapters
-- add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
-- add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
+- try to add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
+- try to add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - try to make sizeof(^^type) parse correctly (or maybe replace it immediately with sys.SIZEOF_POINTER)
-- add ?. null-propagation operator (for expression and assignment)?
+- perhaps add ?. null-propagation operator (for expression and assignment)?
+- 6502 codegen: make all/most of the TestPointers unit tests also run on 6502 target
 - 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
 - 6502 statementreorderer: fix todo for str -> ^^ubyte instead of uword
-- update structpointers.rst docs with 6502 things?
+- update structpointers.rst docs with 6502 specific things?
 - scan through 6502 library modules to change untyped uword pointers to typed pointers
 - scan through 6502 examples to change untyped uword pointers to typed pointers
+- support for typed function pointers?  (&routine could be typed by default as well then)
 - really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 

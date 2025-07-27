@@ -340,7 +340,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                     }
                 val src = if(value.type.isPassByRef) {
                     if(value is PtIdentifier) {
-                        val addr = PtAddressOf(value.type.typeForAddressOf(false),Position.DUMMY)
+                        val addr = PtAddressOf(value.type.typeForAddressOf(false), false, Position.DUMMY)
                         addr.add(value)
                         addr.parent = scope as PtNode
                         AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)
