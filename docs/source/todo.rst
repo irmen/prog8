@@ -3,9 +3,6 @@ TODO
 
 Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
 
-Since fixing the missing zp-var initialization, programs grew in size again (assem)
-Are there any redundant block-level variable initializations to 0 that we can remove in peephole optimization for example?
-
 
 STRUCTS: are being developed in their own separate branch for now, called "structs".
 Idea is to make it feature complete in the IR/Virtual target, then merge it to master?, and then start building the 6502 code generation for it.
@@ -74,6 +71,7 @@ Libraries
 Optimizations
 -------------
 
+- Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappered. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
