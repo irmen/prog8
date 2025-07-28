@@ -509,6 +509,8 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
     }
 
     val sourceLinesPositions = mutableListOf<Position>()
+
+    override fun toString(): String = "IRCodeChunk(label=$label, firstpos=${sourceLinesPositions.firstOrNull()})"
 }
 
 class IRInlineAsmChunk(label: String?,

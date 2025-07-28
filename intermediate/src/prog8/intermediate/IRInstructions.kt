@@ -920,7 +920,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg1]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
+                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in $chunk")
                     } else
                         regsTypes[reg1] = actualtype
                 }
@@ -932,7 +932,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg1]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
+                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in chunk $chunk")
                     } else
                         regsTypes[reg1] = actualtype
 
@@ -946,7 +946,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg1]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
+                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in $chunk")
                     } else
                         regsTypes[reg1] = actualtype
 
@@ -962,7 +962,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg2]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg2 given multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
+                            throw IllegalArgumentException("register $reg2 given multiple types! $existingType and $actualtype  in $chunk")
                     } else
                         regsTypes[reg2] = actualtype
                 }
@@ -978,7 +978,7 @@ data class IRInstruction(
                     val existingType = regsTypes[reg3]
                     if (existingType!=null) {
                         if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg3 given multiple types! $existingType and $actualtype  in label ${chunk?.label} chunk $chunk")
+                            throw IllegalArgumentException("register $reg3 given multiple types! $existingType and $actualtype  in $chunk")
                     } else
                         regsTypes[reg3] = actualtype
                 }
@@ -1011,7 +1011,7 @@ data class IRInstruction(
                     val existingType = regsTypes[it.registerNum]
                     if (existingType!=null) {
                         if (existingType != it.dt)
-                            throw IllegalArgumentException("register ${it.registerNum} given multiple types! $existingType and ${it.dt}  in label ${chunk?.label} chunk $chunk")
+                            throw IllegalArgumentException("register ${it.registerNum} given multiple types! $existingType and ${it.dt}  in $chunk")
                     } else
                         regsTypes[it.registerNum] = it.dt
                 }
@@ -1024,7 +1024,7 @@ data class IRInstruction(
                     val existingType = regsTypes[it.reg.registerNum]
                     if (existingType!=null) {
                         if (existingType != it.reg.dt)
-                            throw IllegalArgumentException("register ${it.reg.registerNum} given multiple types! $existingType and ${it.reg.dt}  in label ${chunk?.label} chunk $chunk")
+                            throw IllegalArgumentException("register ${it.reg.registerNum} given multiple types! $existingType and ${it.reg.dt}  in $chunk")
                     } else
                         regsTypes[it.reg.registerNum] = it.reg.dt
                 }

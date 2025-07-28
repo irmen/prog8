@@ -751,7 +751,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             ">" -> operatorGreaterThan(binExpr, vmDt, signed, false)
             "<=" -> operatorLessThan(binExpr, vmDt, signed, true)
             ">=" -> operatorGreaterThan(binExpr, vmDt, signed, true)
-            "." -> operatorDereference(binExpr, vmDt)       // eww, nasty, would rather not have any such expressions anymore
+            "." -> operatorDereference(binExpr)       // eww, nasty, would rather not have any such expressions anymore
             else -> throw AssemblyError("weird operator ${binExpr.operator}")
         }
     }
@@ -1615,7 +1615,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorDereference(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorDereference(binExpr: PtBinaryExpression): ExpressionCodeResult {
         // the only case we support here is:   a.b.c[i] . value
         val left = binExpr.left as? PtArrayIndexer
         val right = binExpr.right as? PtIdentifier
@@ -1627,7 +1627,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val struct = left.type.dereference().subType as? StStruct
         require(indexedTr.dt== IRDataType.WORD && struct!=null)
         val field = struct.getField(right.name, this.codeGen.program.memsizer)
-
+        val vmDt = irType(field.first)
         var resultFpReg = -1
         var resultReg = -1
         if(vmDt==IRDataType.FLOAT)
