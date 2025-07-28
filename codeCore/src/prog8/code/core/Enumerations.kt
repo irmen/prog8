@@ -317,7 +317,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 }
             }
             BaseDataType.STRUCT_INSTANCE -> false        // we cannot deal with actual struct instances yet in any shape or form (only getting fields from it)
-            BaseDataType.ARRAY_POINTER -> TODO("check assignability of array of pointers")
+            BaseDataType.ARRAY_POINTER -> false
             BaseDataType.UNDEFINED -> false
         }
 

@@ -43,7 +43,9 @@ So the syntax for declaring typed pointers looks like this:
 
 ``^^type[size]``: array with size size containing pointers to a type.
     So for example; ``^^word[100] values`` declares values to be an array of 100 pointers to words.
-    Note that an array of pointers (regardless of the type they point to) is always a @split word array.
+    Note that an array of pointers (regardless of the type they point to) is always a @split word array at this time.
+    (this is the most efficient way to access the pointers, and they need to be copied to zeropage first to
+     be able to use them anyway. It also allows for arrays of up to 256 pointers instead of 128.)
 
 It is not possible to define pointers to *arrays*; ``^^(type[])`` is invalid syntax.
 
@@ -98,7 +100,7 @@ dealing with all of them separately.  You first define the struct type like so::
         bool elite
     }
 
-You can use boolean fields, numeric fields (byte, word, float), and pointer fields (includeing str, which is translated into ^^ubyte).
+You can use boolean fields, numeric fields (byte, word, float), and pointer fields (including str, which is translated into ^^ubyte).
 You cannot nest struct types nor put arrays in them as a field.
 Fields in a struct are 'packed' (meaning the values are placed back-to-back in memory), and placed in memory in order of declaration. This guarantees exact size and place of the fields.
 ``sizeof()`` knows how to calculate the size of a struct.
@@ -129,6 +131,7 @@ The struct type creates a new name scape, so accessing the fields of a struct is
     Using structs instead of plain arrays may result in less efficent code being generated.
     This is because the 6502 CPU is not particularly well equipped to dealing with pointers and accessing struct fields via offsets,
     as compared to direct variable access or array indexing. The prog8 program code may be easier to work with though!
+
 
 Static initialization of structs
 ================================

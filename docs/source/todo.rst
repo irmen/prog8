@@ -1,6 +1,12 @@
 TODO
 ====
 
+don't write pointer types into P8IR files, just write uword as the type? (actually breaks the VARIABLESWITHINIT now that zp vars get initialized to 0 again;  all the pointer examples won't compile anymore)
+fix countries[2]^^ = 0  compiler crash
+fix ^^Node nodes  /  cx16.r0L = nodes[2].weight
+fix passing array of structptrs to subroutine , arg type mismatches
+disallow ^^str entirely??
+
 
 STRUCTS and TYPED POINTERS
 --------------------------
@@ -62,6 +68,8 @@ STRUCTS and TYPED POINTERS
 - DONE: fixed support for (expression) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with peek()
 - DONE: fixed support for (assigntarget) array index dereferencing "array[2]^^"   where array contains pointers to primitives: replace with poke()
 - DONE: replace str or ubyte[] param and returnvalue type into ^^ubyte rather than uword
+
+- TODO: allow initializing a pointer array with initialized structs:  ^^Node[] nodes = [ Node(), Node(), Node() ]
 - try to add support for array index dereferencing as assign target "array[2]^^.value = 99"   where array is struct pointers (currently a 'no support' error)
 - try to add support for array index dereferencing as assign target "array[2].value = 99"   where array is struct pointers (currently a parser error)
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
@@ -76,6 +84,8 @@ STRUCTS and TYPED POINTERS
 - scan through 6502 library modules to change untyped uword pointers to typed pointers
 - scan through 6502 examples to change untyped uword pointers to typed pointers
 - support for typed function pointers?  (&routine could be typed by default as well then)
+- support @nosplit pointer arrays?
+- support pointer to pointer?
 - really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 

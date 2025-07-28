@@ -1059,8 +1059,8 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors=errors)
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain "doesn't match"
-        errors.errors[1] shouldContain "assigning to struct instance not supported"
-        errors.errors[2] shouldContain "assigning to struct instance not supported"
+        errors.errors[1] shouldContain "assigning this value to struct instance not supported"
+        errors.errors[2] shouldContain "assigning this value to struct instance not supported"
     }
 
     test("a.b.c[i]^^.value as expression where pointer is struct") {
@@ -1482,6 +1482,46 @@ main {
     }
 }"""
 
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("array indexing a pointer and a pointer array both work") {
+        val src="""
+main {
+    struct Node {
+        ubyte weight
+    }
+
+    sub start() {
+        ^^Node nodes
+        ^^Node[5] nodesarray
+
+        cx16.r0L = nodesarray[2].weight
+        cx16.r0L = nodes[2].weight
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("passing array of structpointers to a subroutine in various forms should be param type ptr to struct") {
+        val src="""
+main {
+    struct Node {
+        ubyte weight
+    }
+
+    sub start() {
+        ^^Node[10] nodearray
+        func(nodearray[0])
+        func(&&nodearray)
+        func(&nodearray)
+        func(nodearray)
+    }
+
+    sub func(^^Node n) {
+        cx16.r0++
+    }
+}"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 

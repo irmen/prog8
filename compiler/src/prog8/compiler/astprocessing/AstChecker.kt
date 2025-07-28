@@ -599,7 +599,8 @@ internal class AstChecker(private val program: Program,
             }
 
             if (p.type.isPointer) {
-                if (p.type.subType == null && p.type.subTypeFromAntlr!=null) errors.err("cannot find struct type ${p.type.subTypeFromAntlr?.joinToString(".")}", p.position)
+                if (p.type.subType == null && p.type.subTypeFromAntlr!=null)
+                    errors.err("cannot find struct type ${p.type.subTypeFromAntlr?.joinToString(".")}", p.position)
             }
 
             if(p.type.isStructInstance)
@@ -2299,7 +2300,7 @@ internal class AstChecker(private val program: Program,
                 return value.type==BaseDataType.UWORD
             }
             targetDt.isStructInstance -> {
-                return err("assigning to struct instance not supported (use pointers)")
+                return err("assigning this value to struct instance not supported (use pointers)")
             }
             else -> return err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
         }
@@ -2423,7 +2424,7 @@ internal class AstChecker(private val program: Program,
             if(sourceDatatype.isStructInstance && sourceDatatype != targetDatatype)
                 errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
             else
-                errors.err("assigning to struct instance not supported (use pointers)", position)
+                errors.err("assigning this value to struct instance not supported (use pointers)", position)
         }
         else
             errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)

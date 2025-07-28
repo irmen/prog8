@@ -128,7 +128,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch]
                     val expected = consideredParamTypes[mismatch]
-                    if(expected.isPointer && expected.sub!!.isWord) {
+                    if(expected.isPointer && expected.sub?.isWord==true) {
                         val arg = call.args[mismatch]
                         val argArray = if(arg is AddressOf) arg.identifier else arg
                         return if(argArray?.inferType(program)?.getOrUndef()?.isSplitWordArray==true)

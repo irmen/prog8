@@ -115,8 +115,9 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
             // needs to generate a separate unique struct instance label.
             // (unlike memory() where the label is not unique and passed as the first argument)
             val scopehash = call.parent.hashCode().toUInt().toString(16)
-            val hash = call.position.toString().hashCode().toUInt().toString(16)
-            return "prog8_struct_${structname.replace('.', '_')}_${scopehash}_$hash"
+            val pos = "${call.position.line}_${call.position.startCol}"
+            val hash = call.position.file.hashCode().toUInt().toString(16)
+            return "prog8_struct_${structname.replace('.', '_')}_${hash}_${pos}_${scopehash}"
         }
     }
 }
