@@ -73,8 +73,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     is IRAsmSubroutine -> {
                         val clobbers = child.clobbers.joinToString(",")
                         val returns = child.returns.joinToString(",") { ret ->
-                            if (ret.reg.registerOrPair != null) "${ret.reg.registerOrPair}:${ret.dt.toString().lowercase()}"
-                            else "${ret.reg.statusflag}:${ret.dt.toString().lowercase()}"
+                            if (ret.reg.registerOrPair != null) "${ret.reg.registerOrPair}:${ret.dt.irTypeString(null)}"
+                            else "${ret.reg.statusflag}:${ret.dt.irTypeString(null)}"
                         }
                         xml.writeStartElement("ASMSUB")
                         xml.writeAttribute("NAME", child.label)

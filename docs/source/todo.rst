@@ -1,7 +1,6 @@
 TODO
 ====
 
-don't write pointer types into P8IR files, just write uword as the type? (actually breaks the VARIABLESWITHINIT now that zp vars get initialized to 0 again;  all the pointer examples won't compile anymore)
 fix ^^Node nodes  /  cx16.r0L = nodes[2].weight    (TODO("IR datatype for struct instances")
 fix bool bb2 = bptr[2]^^   ... peekbool(bptr[2]) gives a arg 1 type error... just omit peekbool() here?
 fix countries[2]^^ = 0  compiler crash
@@ -122,6 +121,7 @@ Future Things and Ideas
 IR/VM
 -----
 - possible to use LOADFIELD/STOREFIELD instructions more?
+- pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit fcda2dd92d0ec64d24dad05018a3cd6aef2fed84
 - change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)

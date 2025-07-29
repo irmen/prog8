@@ -8,6 +8,7 @@ import prog8.right
 
 fun DataType.irTypeString(length: UInt?): String {
     val lengthStr = if(length==0u) "" else length.toString()
+    // note: pointer types are all reduced to just an uword (untyped pointer / address)
     return when (this.base) {
         BaseDataType.BOOL -> "bool"
         BaseDataType.UBYTE -> "ubyte"
@@ -17,23 +18,13 @@ fun DataType.irTypeString(length: UInt?): String {
         BaseDataType.LONG -> "long"
         BaseDataType.FLOAT -> "float"
         BaseDataType.STR -> "ubyte[$lengthStr]"             // here string doesn't exist as a seperate datatype anymore
-        BaseDataType.POINTER -> {
-            if(sub!=null)
-                "^${sub!!.name.lowercase()}"
-            else
-                "^${subType!!.scopedNameString}"
-        }
+        BaseDataType.POINTER -> "uword"
+        BaseDataType.ARRAY_POINTER -> "uword"
         BaseDataType.STRUCT_INSTANCE -> {
             if(sub!=null)
                 sub!!.name.lowercase()
             else
                 subType!!.scopedNameString
-        }
-        BaseDataType.ARRAY_POINTER -> {
-            if(sub!=null)
-                "^${sub!!.name.lowercase()}[$lengthStr]"
-            else
-                "^${subType!!.scopedNameString}[$lengthStr]"
         }
         BaseDataType.ARRAY -> {
             when(this.sub) {
