@@ -241,16 +241,11 @@ class BinaryExpression(
                         } else if (leftIndexer != null && rightIdentifier.nameInSource.size == 1) {
                             // ARRAY[x].NAME --> maybe it's a pointer dereference
                             val dt = leftIndexer.inferType(program).getOrUndef()
-                            if (dt.isPointer) {
-                                dt.dereference().subType
-                            } else null
+                            if (dt.isPointer) dt.dereference().subType else dt.subType
                         } else if (leftExpr != null) {
                             // SOMEEXPRESSION . NAME
                             val leftDt = leftExpr.inferType(program)
-                            if (leftDt.isPointer)
-                                leftDt.getOrUndef().subType
-                            else
-                                null
+                            if (leftDt.isPointer) leftDt.getOrUndef().subType else null
                         } else null
                     if (struct == null)
                         InferredTypes.unknown()
@@ -1733,9 +1728,12 @@ class ArrayIndexedPtrDereference(
             val arrayIdentifier = chain.map { it.first }
             val symbol = definingScope.lookup(arrayIdentifier) as? VarDecl
             if(symbol!=null) {
-                require(symbol.datatype.isArray)
-                return InferredTypes.knownFor(symbol.datatype.sub!!)
+                if(symbol.datatype.isArray)
+                    return InferredTypes.knownFor(symbol.datatype.sub!!)
+                else if(symbol.datatype.isPointer)
+                    return InferredTypes.knownFor(symbol.datatype.dereference())
             }
+
         }
         // too hard to determine the type....?
         return InferredTypes.unknown()

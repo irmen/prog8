@@ -111,7 +111,7 @@ class IRCodeGen(
                     if('.' !in node.name) {
                         // there is 1 case where the identifier is not scoped: if it's the value field name after a pointer array indexing.
                         val expr = node.parent as? PtBinaryExpression
-                        if (expr?.operator != "." || expr.right !== node || expr.left !is PtArrayIndexer || !expr.left.type.isPointer)
+                        if (expr?.operator != "." || expr.right !== node || expr.left !is PtArrayIndexer || (!expr.left.type.isPointer && !expr.left.type.isStructInstance))
                             require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                     }
                 }

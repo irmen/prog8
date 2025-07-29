@@ -1,12 +1,16 @@
+
 main {
     sub start() {
         struct Node {
             ubyte weight
         }
         ^^Node nodes
-        nodes^^.zzz = 99
-        cx16.r0L = nodes^^.zzz
-        cx16.r0L = nodes[2].value
+        ^^Node[10] array
+        ^^bool bptr
+        bool bb1 = bptr[2]
+        bool bb2 = bptr[2]^^            ; TODO fix this   ... peekbool(bptr[2]) gives a arg 1 type error... just omit peekbool() here?
+        cx16.r0L = array[2].weight
+        cx16.r1L = nodes[2].weight      ; TODO implement support for this one
     }
 }
 

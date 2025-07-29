@@ -1,8 +1,9 @@
 TODO
 ====
 
-fix ^^Node nodes  /  cx16.r0L = nodes[2].weight
 don't write pointer types into P8IR files, just write uword as the type? (actually breaks the VARIABLESWITHINIT now that zp vars get initialized to 0 again;  all the pointer examples won't compile anymore)
+fix ^^Node nodes  /  cx16.r0L = nodes[2].weight    (TODO("IR datatype for struct instances")
+fix bool bb2 = bptr[2]^^   ... peekbool(bptr[2]) gives a arg 1 type error... just omit peekbool() here?
 fix countries[2]^^ = 0  compiler crash
 fix passing array of structptrs to subroutine , arg type mismatches
 disallow ^^str
