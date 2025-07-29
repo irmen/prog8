@@ -121,7 +121,7 @@ Future Things and Ideas
 IR/VM
 -----
 - possible to use LOADFIELD/STOREFIELD instructions more?
-- pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit fcda2dd92d0ec64d24dad05018a3cd6aef2fed84
+- pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit 88b074c208450c58aa32469745afa03e4c5f564a
 - change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
