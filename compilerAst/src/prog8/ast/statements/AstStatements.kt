@@ -408,7 +408,7 @@ class StructDecl(override val name: String, val fields: Array<Pair<DataType, Str
     override fun memsize(sizer: IMemSizer): Int = fields.sumOf { sizer.memorySize(it.first, 1) }
     override fun sameas(other: ISubType): Boolean = other is StructDecl && other.name==name && other.fields.contentEquals(fields)
 
-    fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second==name }?.first
+    override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second==name }?.first
     override val scopedNameString by lazy { scopedName.joinToString(".") }
 }
 

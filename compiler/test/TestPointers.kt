@@ -629,6 +629,8 @@ main {
         override fun sameas(other: ISubType): Boolean {
             return other is Struct && other.scopedNameString == scopedNameString
         }
+
+        override fun getFieldType(name: String): DataType? = null
     }
 
     test("internal type for address-of") {

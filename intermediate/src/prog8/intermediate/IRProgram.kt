@@ -545,6 +545,7 @@ typealias IRCodeChunks = List<IRCodeChunkBase>
 internal class IRSubtypePlaceholder(override val scopedNameString: String, val size: Int = 999999999): ISubType {
     override fun memsize(sizer: IMemSizer) = size
     override fun sameas(other: ISubType): Boolean = false
+    override fun getFieldType(name: String): DataType? = null
 }
 
 

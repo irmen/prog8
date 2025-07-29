@@ -69,6 +69,7 @@ interface ISubType {
     val scopedNameString: String
     fun memsize(sizer: IMemSizer): Int
     fun sameas(other: ISubType): Boolean
+    fun getFieldType(name: String): DataType?
 }
 
 class DataType private constructor(val base: BaseDataType, val sub: BaseDataType?, var subType: ISubType?, var subTypeFromAntlr: List<String>?=null) {

@@ -110,7 +110,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     companion object {
         fun labelnameForStructInstance(call: PtBuiltinFunctionCall): String {
             require(call.name == "structalloc")
-            val structname = (call.type.subType as StStruct).scopedNameString
+            val structname = call.type.subType!!.scopedNameString
             // each individual call to the pseudo function structalloc(),
             // needs to generate a separate unique struct instance label.
             // (unlike memory() where the label is not unique and passed as the first argument)
@@ -297,6 +297,8 @@ class StStruct(
         }
         throw NoSuchElementException("field $name not found in struct ${this.name}")
     }
+
+    override fun getFieldType(name: String): DataType? = fields.first { it.second == name }.first
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
     override fun sameas(other: ISubType): Boolean = other is StStruct &&

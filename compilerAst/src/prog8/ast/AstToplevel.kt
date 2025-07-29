@@ -200,7 +200,7 @@ interface INameScope: IStatementContainer, INamedStatement {
 
     fun searchStructFieldRef(localSymbol: Statement?, scopedName: List<String>): StructFieldRef? {
         if(localSymbol is VarDecl && localSymbol.datatype.isPointer) {
-            var struct = localSymbol.datatype.subType as? StructDecl
+            var struct = localSymbol.datatype.subType
             if(struct==null && localSymbol.datatype.subTypeFromAntlr!=null) {
                 // the antlr-injected type ref wasn't yet translated, do the lookup here
                 struct = localSymbol.definingScope.lookup(localSymbol.datatype.subTypeFromAntlr!!) as? StructDecl
@@ -212,11 +212,11 @@ interface INameScope: IStatementContainer, INamedStatement {
                     if (idx == scopedName.size - 1) {
                         // was last path element
                         val pointer = IdentifierReference(scopedName, Position.DUMMY)
-                        val ref = StructFieldRef(pointer, struct, fieldDt, field, Position.DUMMY)
+                        val ref = StructFieldRef(pointer, struct as StructDecl, fieldDt, field, Position.DUMMY)
                         ref.linkParents(this as Node)
                         return ref
                     }
-                    struct = fieldDt.subType as? StructDecl
+                    struct = fieldDt.subType
                     if(struct==null && fieldDt.subTypeFromAntlr!=null) {
                         // the antlr-injected type ref wasn't yet translated, do the lookup here
                         struct = localSymbol.definingScope.lookup(fieldDt.subTypeFromAntlr!!) as? StructDecl

@@ -234,21 +234,21 @@ class BinaryExpression(
                 val rightIdentifier = right as? IdentifierReference
                 val rightArrayIndexedDeref = right as? ArrayIndexedPtrDereference
                 if(rightIdentifier!=null) {
-                    val struct: StructDecl? =
+                    val struct: ISubType? =
                         if (leftIdentifier != null) {
                             // PTR . FIELD
-                            leftIdentifier.targetVarDecl()?.datatype?.subType as? StructDecl
+                            leftIdentifier.targetVarDecl()?.datatype?.subType
                         } else if (leftIndexer != null && rightIdentifier.nameInSource.size == 1) {
                             // ARRAY[x].NAME --> maybe it's a pointer dereference
                             val dt = leftIndexer.inferType(program).getOrUndef()
                             if (dt.isPointer) {
-                                dt.dereference().subType as? StructDecl
+                                dt.dereference().subType
                             } else null
                         } else if (leftExpr != null) {
                             // SOMEEXPRESSION . NAME
                             val leftDt = leftExpr.inferType(program)
                             if (leftDt.isPointer)
-                                leftDt.getOrUndef().subType as StructDecl?
+                                leftDt.getOrUndef().subType
                             else
                                 null
                         } else null
@@ -1420,8 +1420,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
     }
 
-    fun traverseDerefChainForDt(startStruct: StructDecl?): DataType {
-        var struct: StructDecl
+    fun traverseDerefChainForDt(startStruct: ISubType?): DataType {
+        var struct: ISubType
         var fieldDt: DataType? = null
         if(startStruct!=null) {
             struct = startStruct
@@ -1431,7 +1431,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             if (vardecl?.datatype?.isPointer != true)
                 return DataType.UNDEFINED
             require(vardecl.datatype.subType!=null) { "pointer type should point to a struct ${vardecl.position}" }
-            struct = vardecl.datatype.subType as StructDecl
+            struct = vardecl.datatype.subType!!
             fieldDt = vardecl.datatype
         }
 
@@ -1443,7 +1443,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                 // was last path element
                 return fieldDt
             }
-            struct = fieldDt.subType as? StructDecl ?: return DataType.UNDEFINED
+            struct = fieldDt.subType ?: return DataType.UNDEFINED
         }
         return fieldDt ?: DataType.UNDEFINED
     }

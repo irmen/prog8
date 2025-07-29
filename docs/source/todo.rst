@@ -1,8 +1,6 @@
 TODO
 ====
 
-make more use of ISubType interface itself rather than casting it to StructDecl all the time
-
 fix ^^Node nodes  /  cx16.r0L = nodes[2].weight
 don't write pointer types into P8IR files, just write uword as the type? (actually breaks the VARIABLESWITHINIT now that zp vars get initialized to 0 again;  all the pointer examples won't compile anymore)
 fix countries[2]^^ = 0  compiler crash

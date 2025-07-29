@@ -499,7 +499,7 @@ _after:
                 // the a.b.c.d can be a pointer dereference chain ending in a struct field;  a^^.b^^.c^^.d
 
                 val chain = mutableListOf(identifier.nameInSource[0])
-                var struct = firstDt.subType as? StructDecl
+                var struct = firstDt.subType
                 for(name in identifier.nameInSource.drop(1)) {
                     if(struct==null) {
                         errors.err("unknown field '${name}", position = identifier.position)
@@ -507,12 +507,12 @@ _after:
                     }
                     val fieldDt = struct.getFieldType(name)
                     if(fieldDt==null) {
-                        errors.err("unknown field '${name}' in struct '${struct.name}'", identifier.position)
+                        errors.err("unknown field '${name}' in struct '${struct.scopedNameString}'", identifier.position)
                         return noModifications
                     }
                     if(fieldDt.isPointer) {
                         chain.add(name)
-                        struct = fieldDt.subType as? StructDecl
+                        struct = fieldDt.subType
                     } else {
                         chain.add(name)
                         struct = null

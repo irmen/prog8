@@ -1361,15 +1361,15 @@ internal class AstChecker(private val program: Program,
             val rightIdentifier = expr.right as? IdentifierReference
             val rightIndexer = expr.right as? ArrayIndexedExpression
             if(rightIdentifier!=null) {
-                val struct: StructDecl? =
+                val struct: ISubType? =
                     if (leftIdentfier != null) {
                         // PTR.FIELD
-                        leftIdentfier.targetVarDecl()?.datatype?.subType as? StructDecl
+                        leftIdentfier.targetVarDecl()?.datatype?.subType
                     } else if(leftIndexer!=null) {
                         // ARRAY[x].NAME --> maybe it's a pointer dereference
                         val indexerType = leftIndexer.inferType(program).getOrUndef()
                         if(indexerType.isPointer)
-                            indexerType.subType as? StructDecl
+                            indexerType.subType
                         else
                             null
                     }
@@ -1380,23 +1380,23 @@ internal class AstChecker(private val program: Program,
                         else
                             rightIdentifier.traverseDerefChainForDt(struct)
                     if (fieldDt == null)
-                        errors.err("no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.name}'", rightIdentifier.position)
+                        errors.err("no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.scopedNameString}'", rightIdentifier.position)
                 } else {
                     val leftDt = expr.left.inferType(program)
                     if(leftDt.isPointer) {
-                        val struct = (leftDt.getOrUndef().subType as? StructDecl)
+                        val struct = leftDt.getOrUndef().subType
                         if(struct!=null) {
                             if (rightIdentifier.nameInSource.size == 1) {
                                 val fieldDt = struct.getFieldType(rightIdentifier.nameInSource.single())
                                 if (fieldDt == null)
                                     errors.err(
-                                        "no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.name}'",
+                                        "no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.scopedNameString}'",
                                         rightIdentifier.position
                                     )
                             }
                         }
                     } else if(leftDt.isStructInstance) {
-                        val struct = leftDt.getOrUndef().subType as StructDecl
+                        val struct = leftDt.getOrUndef().subType!!
                         if (rightIdentifier.nameInSource.size == 1) {
                             val fieldDt = struct.getFieldType(rightIdentifier.nameInSource.single())
                             if (fieldDt == null)
@@ -1413,15 +1413,15 @@ internal class AstChecker(private val program: Program,
                 if(leftDt.isStructInstance) {
                     TODO("pointer[x].field[y] ??")
 //                    //  pointer[x].field[y] --> type is the dt of 'field'
-//                    var struct = leftDt.getOrUndef().subType as? StructDecl
+//                    var struct = leftDt.getOrUndef().subType
 //                    if (struct==null) {
 //                        errors.err("cannot find struct type", expr.position)
 //                    } else {
 //                        var fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
 //                        if (fieldDt == null)
-//                            errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${(leftDt.getOrUndef().subType as? StructDecl)?.name}'", expr.position)
+//                            errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${leftDt.getOrUndef().subType?.name}'", expr.position)
 //                        else {
-//                            struct = fieldDt.subType as StructDecl
+//                            struct = fieldDt.subType!!
 //                            fieldDt = struct.getFieldType(rightIndexer.arrayvar.nameInSource.single())
 //                            if(fieldDt==null)
 //                                errors.err("no such field '${rightIndexer.arrayvar.nameInSource.single()}' in struct '${struct.name}'", expr.position)
