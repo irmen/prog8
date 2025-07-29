@@ -45,7 +45,7 @@ So the syntax for declaring typed pointers looks like this:
     So for example; ``^^word[100] values`` declares values to be an array of 100 pointers to words.
     Note that an array of pointers (regardless of the type they point to) is always a @split word array at this time.
     (this is the most efficient way to access the pointers, and they need to be copied to zeropage first to
-     be able to use them anyway. It also allows for arrays of up to 256 pointers instead of 128.)
+    be able to use them anyway. It also allows for arrays of up to 256 pointers instead of 128.)
 
 It is not possible to define pointers to *arrays*; ``^^(type[])`` is invalid syntax.
 

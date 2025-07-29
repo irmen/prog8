@@ -1,11 +1,13 @@
 TODO
 ====
 
+make more use of ISubType interface itself rather than casting it to StructDecl all the time
+
+fix ^^Node nodes  /  cx16.r0L = nodes[2].weight
 don't write pointer types into P8IR files, just write uword as the type? (actually breaks the VARIABLESWITHINIT now that zp vars get initialized to 0 again;  all the pointer examples won't compile anymore)
 fix countries[2]^^ = 0  compiler crash
-fix ^^Node nodes  /  cx16.r0L = nodes[2].weight
 fix passing array of structptrs to subroutine , arg type mismatches
-disallow ^^str entirely??
+disallow ^^str
 
 
 STRUCTS and TYPED POINTERS
@@ -54,7 +56,7 @@ STRUCTS and TYPED POINTERS
 - DONE: @(ptr) complains that ptr is not uword when ptr is ^^ubyte (should be allowed)
 - DONE: pointer[0] should be replaced with @(pointer)  if pointer is ^^ubyte,   so these are now all identical:  ptr[0], ptr^^, @(ptr)   if ptr is ^^ubyte
 - DONE: STR should be asssignment compatible with UBYTE^^ but local scoped STR should still be accessed directly using LDA str,Y instead of through the pointer, like arrays.
-- DONE: replace ^^str by ^^ubyte
+- DONE: disallow ^^str
 - DONE: allow return ubyte/uword when pointer type is expected as return value type
 - DONE: fix _msb/_lsb storage of the split-words pointer-arrays
 - DONE: what about static initialization of an array of struct pointers? -> impossible right now because the pointer values are not constants.

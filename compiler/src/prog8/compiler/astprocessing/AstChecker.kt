@@ -691,11 +691,10 @@ internal class AstChecker(private val program: Program,
         // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
         if(assignment.value.inferType(program).isUnknown) {
             val binexpr = assignment.value as? BinaryExpression
-            if(binexpr?.operator == ".") {
-                errors.err("invalid pointer dereference (can't determine type)", assignment.value.position)
+            if (binexpr?.operator != ".") {
+                if(assignment.value !is PtrDereference && assignment.target.multi==null)
+                    errors.err("invalid assignment value", assignment.value.position)
             }
-            else if(assignment.value !is PtrDereference && assignment.target.multi==null)
-                errors.err("invalid assignment value", assignment.value.position)
         }
 
         super.visit(assignment)
@@ -1395,6 +1394,16 @@ internal class AstChecker(private val program: Program,
                                         rightIdentifier.position
                                     )
                             }
+                        }
+                    } else if(leftDt.isStructInstance) {
+                        val struct = leftDt.getOrUndef().subType as StructDecl
+                        if (rightIdentifier.nameInSource.size == 1) {
+                            val fieldDt = struct.getFieldType(rightIdentifier.nameInSource.single())
+                            if (fieldDt == null)
+                                errors.err(
+                                    "no such field '${rightIdentifier.nameInSource.single()}' in struct '${struct.scopedNameString}'",
+                                    rightIdentifier.position
+                                )
                         }
                     } else
                         errors.err("cannot find struct type", expr.left.position)
@@ -2108,7 +2117,21 @@ internal class AstChecker(private val program: Program,
         if((deref.parent as? BinaryExpression)?.operator==".") {
             throw FatalAstException("binexpr with '.' operator should have been converted into PtrDereference or something else ${deref.position}")
         }
-        if(deref.inferType(program).isUnknown)
+        if(deref.chain.size>1) {
+            val field = deref.chain.last()
+            val structname = deref.chain.dropLast(1)
+            val variable = deref.definingScope.lookup(structname) as? VarDecl
+            if (variable != null) {
+                if(variable.datatype.isStructInstance || variable.datatype.isPointer) {
+                    val struct = variable.datatype.subType!! as StructDecl
+                    if(struct.getFieldType(field)==null) {
+                        errors.err("no such field '$field' in struct '${struct.name}'", deref.position)
+                        return
+                    }
+                }
+            }
+        }
+        if (deref.inferType(program).isUnknown)
             errors.err("unable to determine type of dereferenced pointer expression", deref.position)
     }
 

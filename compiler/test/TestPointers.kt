@@ -598,6 +598,28 @@ main {
         err[0] shouldContain("15:16: incompatible value type, can only assign uword or correct pointer")
     }
 
+    test("unknown field") {
+        val src="""
+main {
+    sub start() {
+        struct Node {
+            ubyte weight
+        }
+        ^^Node nodes
+        nodes^^.zzz1 = 99
+        cx16.r0L = nodes^^.zzz2
+        cx16.r0L = nodes[2].zzz3
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        val err = errors.errors
+        err.size shouldBe 3
+        err[0] shouldContain("no such field 'zzz1'")
+        err[1] shouldContain("no such field 'zzz2'")
+        err[2] shouldContain("no such field 'zzz3'")
+    }
+
 
     class Struct(override val scopedNameString: String) : ISubType {
         override fun memsize(sizer: IMemSizer): Int {
@@ -974,7 +996,6 @@ main {
 
         compileText(VMTarget(), true, src, outputDir) shouldNotBe null
     }
-
 
     test("local struct var deref type") {
         val src="""

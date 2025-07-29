@@ -206,8 +206,10 @@ class AstPreprocessor(val program: Program,
             val node = decl.definingScope.lookup(antlrTypeName)
             if(node==null) {
                 errors.err("cannot find struct type ${antlrTypeName.joinToString(".")}", decl.position)
-            } else {
-                decl.datatype.setActualSubType(node as StructDecl)
+            } else if(node is StructDecl) {
+                decl.datatype.setActualSubType(node)
+            } else if(antlrTypeName.size==1 && antlrTypeName[0] in program.builtinFunctions.names) {
+                errors.err("builtin function can only be called, not used as a type name", decl.position)
             }
         }
 

@@ -1185,9 +1185,14 @@ Otherwise the compiler will warn you about discarding the result of the call.
 
 .. caution::
     Note that due to the way parameters are processed by the compiler,
-    subroutines are *non-reentrant*. This means you cannot create recursive calls.
-    If you do need a recursive algorithm, you'll have to hand code it in embedded assembly for now,
-    or rewrite it into an iterative algorithm.
+    subroutines are *non-reentrant*. This means you cannot create *recursive calls* (routines calling themselves)
+    without doing some manual work to save and restore the variables that need to retain their value between calls.
+    If you really need a recursive algorithm, there are a few options:
+
+    - hand code it in embedded assembly
+    - rewrite it as an iterative algorithm if possible
+    - use manual stack handling of the variables that need to retain their values, perhaps using a manual stack or using `push()` and `pop()`
+
     Also, subroutines used in the main program should not be used from an IRQ handler. This is because
     the subroutine may be interrupted, and will then call itself from the IRQ handler. Results are
     then undefined because the variables will get overwritten.

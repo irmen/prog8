@@ -139,6 +139,8 @@ Calling a subroutine requires three steps:
 #. calling the subroutine
 #. preparing the return value (if any) and returning that from the call.
 
+*There is no stack handling involved: Prog8 doesn't have call stack frames.*
+
 
 Regular subroutines
 ^^^^^^^^^^^^^^^^^^^
