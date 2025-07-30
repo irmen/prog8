@@ -340,6 +340,18 @@ _after:
         }
 
         if(expr.operator==".") {
+            if(expr.left is IdentifierReference) {
+                require(expr.right !is IdentifierReference)
+                val ri = expr.right as? ArrayIndexedExpression
+                if(ri!=null && ri.plainarrayvar!=null) {
+                    // a.b   .  c.d[i]  ->  a.b.c.d[i]
+                    val joined = (expr.left as IdentifierReference).nameInSource + ri.plainarrayvar!!.nameInSource
+                    val ai = ArrayIndexedExpression(IdentifierReference(joined, expr.position), null, ri.indexer, expr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, ai, parent))
+                }
+            }
+
+
             val left = expr.left as? ArrayIndexedExpression
             val right = expr.right as? PtrDereference
             if(left!=null && right!=null) {
@@ -629,12 +641,13 @@ _after:
 
         if(deref.chain.last().second!=null && deref.derefLast && deref.chain.dropLast(1).all { it.second==null } ) {
 
-            // parent could be Assigment directly, or a binexpr chained pointer expression (with '.' operator)_
+            // parent could be Assigment directly, or a binexpr chained pointer expression (with '.' operator)
             if(parent is Assignment) {
                 val dt = deref.inferType(program).getOrUndef()
                 require(dt.isNumericOrBool)
                 if (parent.value isSameAs deref) {
-                    // x = z[i]^^ -->  peekX(z[i])
+                    // get rid of ArrayIndexedPtrDereference in the assignment value
+                    // x = z[i]^^ -->  x = peekX(z[i])
                     val (peekFunc, cast) =
                         if(dt.isBool) "peekbool" to null
                         else if (dt.isUnsignedByte) "peek" to null
@@ -672,6 +685,7 @@ _after:
                 TODO("translate deref $deref  here ${deref.position}")
             }
             else if(parent is AssignTarget) {
+                // get rid of ArrayIndexedPtrDereference in the assignment target
                 // z[i]^^ = value -->  pokeX(z[i], value)
                 val dt = deref.inferType(program).getOrUndef()
                 require(dt.isNumericOrBool)
