@@ -1,18 +1,51 @@
-
 main {
+    struct Node {
+        bool flag
+    }
+    ^^Node[10] ptrs
+
     sub start() {
-        struct Node {
-            ubyte weight
-        }
-        ^^Node nodes
-        ^^Node[10] array
-        ^^bool bptr
-        bool bb1 = bptr[2]
-        bool bb2 = bptr[2]^^            ; TODO fix this   ... peekbool(bptr[2]) gives a arg 1 type error... just omit peekbool() here?
-        cx16.r0L = array[2].weight
-        cx16.r1L = nodes[2].weight      ; TODO implement support for this one
+        ptrs[2]^^ = 999       ; should be normal compiler error
     }
 }
+
+
+;%import textio
+;
+;main {
+;    bool bb1, bb2
+;
+;    sub start() {
+;;        struct Node {
+;;            ubyte weight
+;;        }
+;;        ^^Node nodes
+;;        ^^Node[10] array
+;        ^^bool bptr = 2000
+;        bb1 = bptr[2]
+;        bb2 = bptr[2]^^            ; TODO fix this   ... peekbool(bptr[2]) gives a arg 1 type error... just omit peekbool() here?
+;
+;        bb1 = thing.routine.bptrx[2]
+;        bb2 = thing.routine.bptrx[2]^^            ; TODO fix this   ... peekbool(bptr[2]) gives a arg 1 type error... just omit peekbool() here?
+;
+;        bptr[2] = false
+;        bptr[3]^^ = false
+;        thing.routine.bptrx[2] = false
+;        thing.routine.bptrx[3]^^ = false
+;
+;
+;;        cx16.r0L = array[2].weight
+;;        cx16.r1L = nodes[2].weight      ; TODO implement support for this one
+;    }
+;}
+;
+;thing {
+;    sub routine() {
+;        ^^bool @shared bptrx = 3000
+;    }
+;}
+
+
 
 ;%import floats
 ;%import textio

@@ -688,31 +688,37 @@ _after:
                 // get rid of ArrayIndexedPtrDereference in the assignment target
                 // z[i]^^ = value -->  pokeX(z[i], value)
                 val dt = deref.inferType(program).getOrUndef()
-                require(dt.isNumericOrBool)
-
-                val (pokeFunc, cast) =
-                    if(dt.isBool) "pokebool" to null
-                    else if (dt.isUnsignedByte) "poke" to null
-                    else if (dt.isSignedByte) "poke" to DataType.UBYTE
-                    else if (dt.isUnsignedWord) "pokew" to null
-                    else if (dt.isSignedWord) "pokew" to DataType.UWORD
-                    else if (dt.isLong) "pokel" to null
-                    else if (dt.isFloat) "pokef" to null
-                    else throw FatalAstException("can only deref a numeric or boolean pointer here")
-                val indexer = deref.chain.last().second!!
-                val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
-                val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)
-                val pokeIdent = IdentifierReference(listOf(pokeFunc), deref.position)
-                val assignment = parent.parent as Assignment
-                val pokeCall: FunctionCallStatement
-                if(cast==null) {
-                    pokeCall = FunctionCallStatement(pokeIdent, mutableListOf(indexed, assignment.value), false, deref.position)
+                if(dt.isNumericOrBool) {
+                    // if it's something else beside number (like, a struct instance) we don't support rewriting that...
+                    val (pokeFunc, cast) =
+                        if (dt.isBool) "pokebool" to null
+                        else if (dt.isUnsignedByte) "poke" to null
+                        else if (dt.isSignedByte) "poke" to DataType.UBYTE
+                        else if (dt.isUnsignedWord) "pokew" to null
+                        else if (dt.isSignedWord) "pokew" to DataType.UWORD
+                        else if (dt.isLong) "pokel" to null
+                        else if (dt.isFloat) "pokef" to null
+                        else throw FatalAstException("can only deref a numeric or boolean pointer here")
+                    val indexer = deref.chain.last().second!!
+                    val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
+                    val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)
+                    val pokeIdent = IdentifierReference(listOf(pokeFunc), deref.position)
+                    val assignment = parent.parent as Assignment
+                    val pokeCall: FunctionCallStatement
+                    if (cast == null) {
+                        pokeCall = FunctionCallStatement(
+                            pokeIdent,
+                            mutableListOf(indexed, assignment.value),
+                            false,
+                            deref.position
+                        )
+                    } else {
+                        val casted = TypecastExpression(assignment.value, cast, true, deref.position)
+                        pokeCall =
+                            FunctionCallStatement(pokeIdent, mutableListOf(indexed, casted), false, deref.position)
+                    }
+                    return listOf(IAstModification.ReplaceNode(assignment, pokeCall, assignment.parent))
                 }
-                else {
-                    val casted = TypecastExpression(assignment.value, cast, true, deref.position)
-                    pokeCall = FunctionCallStatement(pokeIdent, mutableListOf(indexed, casted), false, deref.position)
-                }
-                return listOf(IAstModification.ReplaceNode(assignment, pokeCall, assignment.parent))
             }
             else {
                 TODO("cannot translate $deref here ${deref.position}")

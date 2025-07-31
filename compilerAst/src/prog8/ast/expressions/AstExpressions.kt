@@ -1728,8 +1728,16 @@ class ArrayIndexedPtrDereference(
             val arrayIdentifier = chain.map { it.first }
             val symbol = definingScope.lookup(arrayIdentifier) as? VarDecl
             if(symbol!=null) {
-                if(symbol.datatype.isArray)
-                    return InferredTypes.knownFor(symbol.datatype.sub!!)
+                if(symbol.datatype.isArray) {
+                    if(symbol.datatype.sub!=null)
+                        return InferredTypes.knownFor(symbol.datatype.sub!!)
+                    else if(symbol.datatype.subType!=null) {
+                        val structType = DataType.structInstance(symbol.datatype.subType!!)
+                        return InferredTypes.knownFor(structType)
+                    }
+                    else
+                        return InferredTypes.unknown()
+                }
                 else if(symbol.datatype.isPointer)
                     return InferredTypes.knownFor(symbol.datatype.dereference())
             }

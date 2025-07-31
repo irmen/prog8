@@ -3,6 +3,7 @@ package prog8tests.compiler
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -1159,13 +1160,15 @@ other {
 
         ^^List[10] listarray
         listarray[3]^^.value = cx16.r0
+        listarray[3]^^ = 999        ; cannot assign word value to struct instance
     }
 }"""
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
+        errors.errors.size shouldBeGreaterThanOrEqualTo 3
         errors.errors[0] shouldContain "no support for"
         errors.errors[1] shouldContain "no support for"
+        errors.errors[2] shouldContain "assigning this value to struct instance not supported"
     }
 
     xtest("array indexed assignment parses with and without explicit dereference after struct pointer [IGNORED because it's a parser error right now]") {
