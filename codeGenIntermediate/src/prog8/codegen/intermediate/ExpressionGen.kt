@@ -730,29 +730,32 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun translate(binExpr: PtBinaryExpression): ExpressionCodeResult {
-        val vmDt = irType(binExpr.left.type)
         val signed = binExpr.left.type.isSigned
-        return when(binExpr.operator) {
-            "+" -> operatorPlus(binExpr, vmDt)
-            "-" -> operatorMinus(binExpr, vmDt)
-            "*" -> operatorMultiply(binExpr, binExpr.left.type)
-            "/" -> operatorDivide(binExpr, binExpr.left.type)
-            "%" -> operatorModulo(binExpr, vmDt)
-            "|" -> operatorOr(binExpr, vmDt, true)
-            "&" -> operatorAnd(binExpr, vmDt, true)
-            "^", "xor" -> operatorXor(binExpr, vmDt)
-            "or" -> operatorOr(binExpr, vmDt, false)
-            "and" -> operatorAnd(binExpr, vmDt, false)
-            "<<" -> operatorShiftLeft(binExpr, vmDt)
-            ">>" -> operatorShiftRight(binExpr, vmDt, signed)
-            "==" -> operatorEquals(binExpr, vmDt, false)
-            "!=" -> operatorEquals(binExpr, vmDt, true)
-            "<" -> operatorLessThan(binExpr, vmDt, signed, false)
-            ">" -> operatorGreaterThan(binExpr, vmDt, signed, false)
-            "<=" -> operatorLessThan(binExpr, vmDt, signed, true)
-            ">=" -> operatorGreaterThan(binExpr, vmDt, signed, true)
-            "." -> operatorDereference(binExpr)       // eww, nasty, would rather not have any such expressions anymore
-            else -> throw AssemblyError("weird operator ${binExpr.operator}")
+        if(binExpr.operator==".") {
+            return operatorDereference(binExpr)       // eww, nasty, would rather not have any such expressions anymore
+        } else {
+            val vmDt = irType(binExpr.left.type)
+            return when (binExpr.operator) {
+                "+" -> operatorPlus(binExpr, vmDt)
+                "-" -> operatorMinus(binExpr, vmDt)
+                "*" -> operatorMultiply(binExpr, binExpr.left.type)
+                "/" -> operatorDivide(binExpr, binExpr.left.type)
+                "%" -> operatorModulo(binExpr, vmDt)
+                "|" -> operatorOr(binExpr, vmDt, true)
+                "&" -> operatorAnd(binExpr, vmDt, true)
+                "^", "xor" -> operatorXor(binExpr, vmDt)
+                "or" -> operatorOr(binExpr, vmDt, false)
+                "and" -> operatorAnd(binExpr, vmDt, false)
+                "<<" -> operatorShiftLeft(binExpr, vmDt)
+                ">>" -> operatorShiftRight(binExpr, vmDt, signed)
+                "==" -> operatorEquals(binExpr, vmDt, false)
+                "!=" -> operatorEquals(binExpr, vmDt, true)
+                "<" -> operatorLessThan(binExpr, vmDt, signed, false)
+                ">" -> operatorGreaterThan(binExpr, vmDt, signed, false)
+                "<=" -> operatorLessThan(binExpr, vmDt, signed, true)
+                ">=" -> operatorGreaterThan(binExpr, vmDt, signed, true)
+                else -> throw AssemblyError("weird operator ${binExpr.operator}")
+            }
         }
     }
 

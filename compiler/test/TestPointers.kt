@@ -1529,7 +1529,7 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    test("passing array of structpointers to a subroutine in various forms should be param type ptr to struct") {
+    test("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
         val src="""
 main {
     struct Node {
@@ -1537,18 +1537,59 @@ main {
     }
 
     sub start() {
-        ^^Node[10] nodearray
+        ^^Node[10] @nosplit nodearray       ; not actually possible to store this array but required for the address-ofs below
         func(nodearray[0])
-        func(&&nodearray)
+        func(&&nodearray)   ; error because datatype internally is registered as a split pointer array
         func(&nodearray)
-        func(nodearray)
+        func(nodearray)     ; error because datatype internally is registered as a split pointer array
     }
 
     sub func(^^Node n) {
         cx16.r0++
     }
 }"""
-        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+
+        val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.warnings.size shouldBe 0
+        errors.infos.size shouldBe 0
+        errors.errors[0] shouldContain "pointer arrays can only be @split"
+        errors.errors[1] shouldContain "was: ^^ubyte expected: ^^main.Node"
+        errors.errors[2] shouldContain "was: ^^ubyte expected: ^^main.Node"
+    }
+
+    test("passing split array of structpointers to a subroutine in various forms should be param type ptr to ubyte (the lsb part of the split array)") {
+        val src="""
+main {
+    struct Node {
+        ubyte weight
+    }
+
+    sub start() {
+        ^^Node[10] @split nodearray
+        func(&&nodearray)
+        func(&nodearray)
+        func(nodearray)
+    }
+
+    sub func(^^ubyte n) {
+        cx16.r0++
+    }
+}"""
+        val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(VMTarget(), false, src, outputDir, errors=errors)
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 0
+        errors.infos.size shouldBe 0
+        val st = result!!.codegenAst!!.entrypoint()!!.children
+        st.size shouldBe 6
+        val f1a = (st[2] as PtFunctionCall).args[0]
+        val f2a = (st[3] as PtFunctionCall).args[0]
+        val f3a = (st[4] as PtFunctionCall).args[0]
+        f1a.type shouldBe DataType.pointer(BaseDataType.UBYTE)
+        f2a.type shouldBe DataType.UWORD
+        f3a.type shouldBe DataType.pointer(BaseDataType.UBYTE)
     }
 
     test("pointer cannot be used in conditional expression in shorthand form") {
