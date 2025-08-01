@@ -4,6 +4,15 @@
 Structs and Pointers
 ====================
 
+.. attention::
+
+    The 6502 cpu lacks some features (addressing modes, registers) to make pointers work efficiently.
+    Also it requires that pointer variables have to be in zero page, or copied to a temporary zero page variable,
+    before they can even be used as a pointer. This means that pointer operations in prog8 compile
+    to rather inefficient assembly code most of the time, when compared to direct array access or regular variables.
+    At least try to place heavily used pointer variables in zero page using ``@requirezp`` on their declaration,
+    if zero page space allows.
+
 
 Legacy untyped pointers (uword)
 -------------------------------
