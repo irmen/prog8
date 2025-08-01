@@ -1664,4 +1664,28 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
+    test("various miscellaneous pointer syntax tests") {
+        val src="""
+main {
+    struct Node {
+        ubyte weight
+    }
+    ^^Node @shared n1, n2
+    ^^bool @shared bptr1, bptr2
+
+    sub start() {
+        ^^Node nodes
+        n1^^=n2^^               ; ok
+        bptr1^^=bptr2^^         ; ok
+        n2 = nodes[2]^^         ; cannot assign instance to pointer
+        n1^^=nodes[2]           ; cannot assign struct instances like this
+  }
+}"""
+        val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "no support for dereferencing after array indexing here yet"
+        errors.errors[1] shouldContain "assigning this value to struct instance not supported"
+    }
+
 })

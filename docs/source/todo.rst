@@ -1,8 +1,7 @@
 TODO
 ====
 
-fix ^^Node nodes  /  cx16.r0L = nodes[2].weight    (TODO("IR datatype for struct instances")
-fix bool bb2 = bptr[2]^^   ... peekbool(bptr[2]) gives a arg 1 type error... just omit peekbool() here?
+fix ^^Node nodes  /  cx16.r0L = nodes[2].weight    compiler crash
 disallow ^^str
 
 

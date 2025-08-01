@@ -644,29 +644,30 @@ _after:
             // parent could be Assigment directly, or a binexpr chained pointer expression (with '.' operator)
             if(parent is Assignment) {
                 val dt = deref.inferType(program).getOrUndef()
-                require(dt.isNumericOrBool)
-                if (parent.value isSameAs deref) {
-                    // get rid of ArrayIndexedPtrDereference in the assignment value
-                    // x = z[i]^^ -->  x = peekX(z[i])
-                    val (peekFunc, cast) =
-                        if(dt.isBool) "peekbool" to null
-                        else if (dt.isUnsignedByte) "peek" to null
-                        else if (dt.isSignedByte) "peek" to DataType.BYTE
-                        else if (dt.isUnsignedWord) "peekw" to null
-                        else if (dt.isSignedWord) "peekw" to DataType.WORD
-                        else if (dt.isLong) "peekl" to null
-                        else if (dt.isFloat) "peekf" to null
-                        else throw FatalAstException("can only deref a numeric or boolean pointer here")
-                    val indexer = deref.chain.last().second!!
-                    val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
-                    val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)
-                    val peekIdent = IdentifierReference(listOf(peekFunc), deref.position)
-                    val peekCall = FunctionCallExpression(peekIdent, mutableListOf(indexed), deref.position)
-                    if(cast==null)
-                        return listOf(IAstModification.ReplaceNode(parent.value, peekCall, parent))
-                    else {
-                        val casted = TypecastExpression(peekCall, cast, true, deref.position)
-                        return listOf(IAstModification.ReplaceNode(parent.value, casted, parent))
+                if(dt.isNumericOrBool) {
+                    if (parent.value isSameAs deref) {
+                        // get rid of ArrayIndexedPtrDereference in the assignment value
+                        // x = z[i]^^ -->  x = peekX(z[i])
+                        val (peekFunc, cast) =
+                            if(dt.isBool) "peekbool" to null
+                            else if (dt.isUnsignedByte) "peek" to null
+                            else if (dt.isSignedByte) "peek" to DataType.BYTE
+                            else if (dt.isUnsignedWord) "peekw" to null
+                            else if (dt.isSignedWord) "peekw" to DataType.WORD
+                            else if (dt.isLong) "peekl" to null
+                            else if (dt.isFloat) "peekf" to null
+                            else throw FatalAstException("can only deref a numeric or boolean pointer here")
+                        val indexer = deref.chain.last().second!!
+                        val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
+                        val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)
+                        val peekIdent = IdentifierReference(listOf(peekFunc), deref.position)
+                        val peekCall = FunctionCallExpression(peekIdent, mutableListOf(indexed), deref.position)
+                        if(cast==null)
+                            return listOf(IAstModification.ReplaceNode(parent.value, peekCall, parent))
+                        else {
+                            val casted = TypecastExpression(peekCall, cast, true, deref.position)
+                            return listOf(IAstModification.ReplaceNode(parent.value, casted, parent))
+                        }
                     }
                 }
             } else if(parent is BinaryExpression && parent.operator==".") {
@@ -769,15 +770,21 @@ _after:
         val sourceDt = assignment.value.inferType(program)
         if(targetDt.isStructInstance && sourceDt.isStructInstance) {
             if(targetDt == sourceDt) {
-                val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
-                require(program.memsizer.memorySize(targetDt.getOrUndef(), null)==size)
-                val sourcePtr = IdentifierReference((assignment.value as PtrDereference).chain, assignment.position)
-                val targetPtr = IdentifierReference(assignment.target.pointerDereference!!.chain, assignment.position)
-                val numBytes = NumericLiteral.optimalInteger(size, assignment.position)
-                val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
-                    mutableListOf(sourcePtr, targetPtr, numBytes),
-                    false, assignment.position)
-                return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                // special case simple struct instance assignment via memory copy
+                val deref = assignment.value as? PtrDereference
+                if(deref!=null) {
+                    // ptr1^^ = ptr2^^   -->    memcopy(ptr2, ptr1, sizeof(struct))
+                    val sourcePtr = IdentifierReference(deref.chain, assignment.position)
+                    val targetPtr = IdentifierReference(assignment.target.pointerDereference!!.chain, assignment.position)
+                    val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
+                    require(program.memsizer.memorySize(targetDt.getOrUndef(), null)==size)
+                    val numBytes = NumericLiteral.optimalInteger(size, assignment.position)
+                    val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                        mutableListOf(sourcePtr, targetPtr, numBytes),
+                        false, assignment.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                }
+                // TODO support other forms of struct instance assignments?  such as ptr^^ = array[2]^^
             }
         }
 

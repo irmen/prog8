@@ -252,6 +252,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     val modifications = mutableListOf<IAstModification>()
                     addTypecastOrCastedValueModification(modifications, assignment.value, targettype, assignment)
                     return modifications
+                } else if(valuetype.isStructInstance) {
+                    // type error is produced later in AstChecker
+                    //errors.err("can't assign $valuetype to $targettype", assignment.position)
                 } else {
                     fun castLiteral(cvalue2: NumericLiteral): List<IAstModification.ReplaceNode> {
                         val cast = cvalue2.cast(targettype.base, true)

@@ -360,7 +360,7 @@ fun irType(type: DataType): IRDataType {
         BaseDataType.BYTE -> IRDataType.BYTE
         BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> IRDataType.WORD
         BaseDataType.FLOAT -> IRDataType.FLOAT
-        BaseDataType.STRUCT_INSTANCE -> TODO("IR datatype for struct instances")
+        BaseDataType.STRUCT_INSTANCE -> throw AssemblyError("no support for struct instances yet so no IR datatype for $type")
         else -> throw AssemblyError("no IR datatype for $type")
     }
 }

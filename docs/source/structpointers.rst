@@ -126,6 +126,11 @@ The struct type creates a new name scape, so accessing the fields of a struct is
 .. note::
     Structs are only supported as a *reference type* (via a pointer). It is currently not possible to use them as a value type.
     This means you cannot create an array of structs either - only arrays of pointers to structs.
+    There is one simple case where the compiler allows assignment of struct instances. You are allowed to write::
+
+        ptr1^^ = ptr2^^     ; set what ptr1 points to, to the contents of what ptr2 points to
+
+    The compiler replaces this with a memory copy if these are pointers to a struct.
 
 .. note::
     Using structs instead of plain arrays may result in less efficent code being generated.
