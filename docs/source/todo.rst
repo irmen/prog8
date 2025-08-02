@@ -1,9 +1,6 @@
 TODO
 ====
 
-disallow ^^str
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 

@@ -33,15 +33,6 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
         return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
-        if(decl.datatype.isPointer && decl.datatype.sub==BaseDataType.STR) {
-            errors.info("^^str replaced by ^^ubyte", decl.position)
-            val decl2 = decl.copy(DataType.pointer(BaseDataType.UBYTE))
-            return listOf(IAstModification.ReplaceNode(decl, decl2, parent))
-        }
-        return noModifications
-    }
-
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {
             val label = program.makeLabel("after", breakStmt.position)
@@ -725,24 +716,6 @@ _after:
                 val right = PtrDereference(tail.map { it.first }, deref.derefLast, deref.position)
                 val derefExpr = BinaryExpression(left, ".", right, deref.position)
                 return listOf(IAstModification.ReplaceNode(deref, derefExpr, parent))
-            }
-        }
-
-        return noModifications
-    }
-
-    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-        subroutine.returntypes.withIndex().forEach { (idx, rt) ->
-            if(rt.isPointer && rt.sub==BaseDataType.STR) {
-                errors.info("^^str replaced by ^^ubyte in return type(s)", subroutine.position)
-                subroutine.returntypes[idx] = DataType.pointer(BaseDataType.UBYTE)
-            }
-        }
-
-        subroutine.parameters.withIndex().forEach { (idx, param) ->
-            if(param.type.isPointer && param.type.sub==BaseDataType.STR) {
-                errors.info("^^str replaced by ^^ubyte", param.position)
-                subroutine.parameters[idx] = SubroutineParameter(param.name, DataType.pointer(BaseDataType.UBYTE), param.zp, param.registerOrPair, param.position)
             }
         }
 

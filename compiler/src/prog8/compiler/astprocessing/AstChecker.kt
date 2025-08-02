@@ -599,6 +599,8 @@ internal class AstChecker(private val program: Program,
             }
 
             if (p.type.isPointer) {
+                if(p.type.sub==BaseDataType.STR)
+                    errors.err("^^str is not a valid pointer type, use ^^ubyte?", p.position)
                 if (p.type.subType == null && p.type.subTypeFromAntlr!=null)
                     errors.err("cannot find struct type ${p.type.subTypeFromAntlr?.joinToString(".")}", p.position)
             }
@@ -613,6 +615,9 @@ internal class AstChecker(private val program: Program,
 
             if(r.isStructInstance)
                 err("structs can only be returned via a pointer")
+
+            if(r.isPointer && r.sub==BaseDataType.STR)
+                err("^^str is not a valid return type, use ^^ubyte?")
         }
     }
 
@@ -876,17 +881,22 @@ internal class AstChecker(private val program: Program,
         }
 
         // ARRAY without size specifier MUST have an iterable initializer value
-        if(decl.isArray && decl.arraysize==null) {
-            if(decl.type== VarDeclType.MEMORY) {
-                err("memory mapped array must have a size specification")
-                return
+        if (decl.isArray) {
+            if (decl.arraysize == null) {
+                if(decl.type== VarDeclType.MEMORY) {
+                    err("memory mapped array must have a size specification")
+                    return
+                }
+                if(decl.value==null || decl.value is NumericLiteral) {
+                    err("array variable is missing a size specification")
+                    return
+                }
+                if(decl.value is RangeExpression)
+                    throw InternalCompilerException("range expressions in vardecls should have been converted into array values during constFolding  $decl")
             }
-            if(decl.value==null || decl.value is NumericLiteral) {
-                err("array variable is missing a size specification")
-                return
-            }
-            if(decl.value is RangeExpression)
-                throw InternalCompilerException("range expressions in vardecls should have been converted into array values during constFolding  $decl")
+
+            if(decl.datatype.isPointerArray && decl.datatype.sub==BaseDataType.STR)
+                err("^^str is not a valid pointer type, use ^^ubyte?")
         }
 
         when(decl.type) {
@@ -972,6 +982,9 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
+
+        if(decl.datatype.isPointer && decl.datatype.sub==BaseDataType.STR)
+            err("^^str is not a valid pointer type, use ^^ubyte?")
 
         if(decl.datatype.isString) {
             if(decl.value==null) {

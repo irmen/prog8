@@ -1,55 +1,14 @@
-%import textio
-
 main {
-    struct Node {
-        ^^Node next
-        ubyte weight
-    }
-    ^^Node nodes = 2000
-
     sub start() {
-        init()
-        cx16.r0L = nodes[2].weight
-        cx16.r1L = thing.things[2].weight
-
-        txt.print_ub(cx16.r0L)
-        txt.spc()
-        txt.print_ub(cx16.r1L)
-        txt.nl()
-
-        cx16.r9L = 3
-        cx16.r0L = nodes[cx16.r9L].weight
-        cx16.r1L = thing.things[cx16.r9L].weight
-
-        txt.print_ub(cx16.r0L)
-        txt.spc()
-        txt.print_ub(cx16.r1L)
-        txt.nl()
+        str name = "test"
+        ^^str ptr = &name
+        ^^str[4] array
+        ptr = foo(&name)
     }
 
-    sub init() {
-        sys.memset(2000, 100, 99)
-        sys.memset(3000, 100, 99)
-
-        ; NNW NNW NNW NNW
-        @(2000+2) = 11
-        @(2000+5) = 22
-        @(2000+8) = 33
-        @(2000+11) = 44
-
-        @(3000+2) = 101
-        @(3000+5) = 102
-        @(3000+8) = 103
-        @(3000+11) = 104
+    sub foo(^^str arg) -> ^^str {
+        return arg+2
     }
-}
-
-thing {
-    struct Thing {
-        ^^Thing next
-        ubyte weight
-    }
-    ^^Thing things = 3000
 }
 
 

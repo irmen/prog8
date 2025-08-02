@@ -1305,7 +1305,6 @@ main {
         ^^uword[4] array5
         ^^float[4] array6
         ^^long[4] array7
-        ^^str[4] array8
 
         ok(array1)
         ok(array2)
@@ -1314,7 +1313,6 @@ main {
         ok(array5)
         ok(array6)
         ok(array7)
-        ok(array8)
     }
 
     sub ok(^^ubyte ptr) {
@@ -1495,7 +1493,6 @@ main {
         ^^uword[4] array5 = [1000, 1100, 1200, 1300]
         ^^float[4] array6 = [1000, 1100, 1200, 1300]
         ^^long[4] array7 = [1000, 1100, 1200, 1300]
-        ^^str[4] array8 = [1000, 1100, 1200, 1300]
 
         cx16.r0 = array1[2]
         cx16.r1 = array2[2]
@@ -1504,7 +1501,6 @@ main {
         cx16.r4 = array5[2]
         cx16.r5 = array6[2]
         cx16.r6 = array7[2]
-        cx16.r7 = array8[2]
     }
 }"""
 
@@ -1662,6 +1658,29 @@ main {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("^^str is not valid") {
+        val src="""
+main {
+    sub start() {
+        str name = "test"
+        ^^str ptr = &name
+        ^^str[4] array
+        ptr = foo(&name)
+    }
+
+    sub foo(^^str arg) -> ^^str {
+        return arg+2
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "^^str is not a valid pointer type"
+        errors.errors[1] shouldContain "^^str is not a valid pointer type"
+        errors.errors[2] shouldContain "^^str is not a valid pointer type"
+        errors.errors[3] shouldContain "^^str is not a valid return type"
     }
 
     test("various miscellaneous pointer syntax tests") {
