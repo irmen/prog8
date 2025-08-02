@@ -128,13 +128,24 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch]
                     val expected = consideredParamTypes[mismatch]
-                    if(expected.isPointer && expected.sub?.isWord==true) {
-                        val arg = call.args[mismatch]
-                        val argArray = if(arg is AddressOf) arg.identifier else arg
-                        return if(argArray?.inferType(program)?.getOrUndef()?.isSplitWordArray==true)
-                            Pair("argument ${mismatch + 1} cannot pass address to a split words array where a word pointer argument is expected, use a @nosplit word array instead", call.args[mismatch].position)
-                        else
-                            Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
+                    if (expected.isPointer) {
+                        if (expected.sub?.isWord == true) {
+                            val arg = call.args[mismatch]
+                            val argArray = if(arg is AddressOf) arg.identifier else arg
+                            return if(argArray?.inferType(program)?.getOrUndef()?.isSplitWordArray==true)
+                                Pair("argument ${mismatch + 1} cannot pass address to a split words array where a word pointer argument is expected, use a @nosplit word array instead", call.args[mismatch].position)
+                            else
+                                Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
+                        }
+                        else if(actual.isPointer && actual.sub?.isByte==true) {
+                            val addrOf = call.args[mismatch] as? AddressOf
+                            if(addrOf!=null) {
+                                val identType = addrOf.identifier?.inferType(program)?.getOrUndef()
+                                if(identType?.isSplitWordArray==true) {
+                                    return Pair("argument ${mismatch + 1} type mismatch, was: $actual (because arg is a @split word array) expected: $expected", call.args[mismatch].position)
+                                }
+                            }
+                        }
                     }
                     return Pair("argument ${mismatch + 1} type mismatch, was: $actual expected: $expected", call.args[mismatch].position)
                 }

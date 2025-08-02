@@ -410,7 +410,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val call =
             if(targetStruct!=null) {
                 // a call to a struct yields a pointer to a struct instance and means: allocate a statically initialized struct instance of that type
-                PtBuiltinFunctionCall("structalloc", false, true, DataType.pointer(targetStruct), srcCall.position)
+                PtBuiltinFunctionCall("prog8_lib_structalloc", false, true, DataType.pointer(targetStruct), srcCall.position)
             } else {
                 // regular function call
                 val (target, _) = srcCall.target.targetNameAndType(program)
@@ -740,7 +740,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val arr = PtArray(srcArr.inferType(program).getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
         for (elt in srcArr.value) {
             val child = transformExpression(elt)
-            require(child is PtAddressOf || child is PtBool || child is PtNumber) { "array element invalid type $child" }
+            require(child is PtAddressOf || child is PtBool || child is PtNumber || (child is PtBuiltinFunctionCall && child.name=="prog8_lib_structalloc")) {"array element invalid type $child" }
             arr.add(child)
         }
         return arr

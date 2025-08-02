@@ -246,7 +246,8 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             "pointers/animalgame",
             "pointers/binarytree",       // TODO add to "c64" later as well
             "pointers/sortedlist",       // TODO add to "c64" later as well
-            "pointers/fountain"          // TODO add to "c64" later as well
+            "pointers/fountain",         // TODO add to "c64" later as well
+            "pointers/sorting"          // TODO add to "c64" later as well
         ),
         listOf(false, true)
     )

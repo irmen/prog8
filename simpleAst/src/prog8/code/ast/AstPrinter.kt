@@ -38,6 +38,10 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                             else
                                 "& ${txt(it.dereference!!)}"
                         }
+                        is PtBuiltinFunctionCall -> {
+                            require(it.name=="prog8_lib_structalloc")
+                            txt(it)
+                        }
                         else -> "invalid array element $it"
                     }
                 }
@@ -46,7 +50,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
             is PtBuiltinFunctionCall -> {
-                if(node.name=="structalloc") {
+                if(node.name=="prog8_lib_structalloc") {
                     node.type.subType!!.scopedNameString+"()  <structalloc>"
                 } else {
                     val str = if (node.void) "void " else ""

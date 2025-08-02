@@ -109,7 +109,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
 
     companion object {
         fun labelnameForStructInstance(call: PtBuiltinFunctionCall): String {
-            require(call.name == "structalloc")
+            require(call.name == "prog8_lib_structalloc")
             val structname = call.type.subType!!.scopedNameString
             // each individual call to the pseudo function structalloc(),
             // needs to generate a separate unique struct instance label.

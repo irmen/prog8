@@ -121,7 +121,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     // don't add memory slabs in nested scope, just put them in the top level of the ST
                     scope.first().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node))
                 }
-                else if(node.name=="structalloc") {
+                else if(node.name=="prog8_lib_structalloc") {
                     val struct = node.type.subType!!
                     if(struct is StStruct) {
                         val label =  SymbolTable.labelnameForStructInstance(node)
@@ -163,6 +163,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 }
                 is PtNumber -> StArrayElement(it.number, null, null)
                 is PtBool -> StArrayElement(null, null, it.value)
+                is PtBuiltinFunctionCall -> {
+                    val labelname = SymbolTable.labelnameForStructInstance(it)
+                    StArrayElement(null, labelname, null)
+                }
                 else -> throw AssemblyError("invalid array element $it")
             }
         }

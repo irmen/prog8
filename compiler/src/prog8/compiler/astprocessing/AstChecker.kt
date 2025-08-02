@@ -1082,7 +1082,10 @@ internal class AstChecker(private val program: Program,
         }
 
         if(decl.datatype.isStructInstance && decl.origin!=VarDeclOrigin.SUBROUTINEPARAM) {
-            errors.err("struct instances cannot be declared directly, use pointer and allocation call instead", decl.position)
+            if(decl.type==VarDeclType.MEMORY)
+                errors.err("cannot declare memory mapped struct instances, use a pointer and memory allocation call or direct address assignment instead", decl.position)
+            else
+                errors.err("struct instances cannot be declared directly, use a pointer and memory allocation call or direct address assignment instead", decl.position)
         }
 
         if (decl.dirty) {
@@ -1261,8 +1264,15 @@ internal class AstChecker(private val program: Program,
         }
 
         if(array.parent is VarDecl) {
-            if (!array.value.all { it is NumericLiteral || it is AddressOf })
+            if (!array.value.all { it is NumericLiteral || it is AddressOf || (it is FunctionCallExpression && it.target.targetStructDecl()!=null) }) {
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
+            }
+
+            if(array.value.any { it is FunctionCallExpression }) {
+                errors.err("it is not yet possible to use struct initializations in an array, you have to do it one by one for now", array.value[0].position)
+                // TODO this is because later in the simplified AST the allocate struct variable is still missing somehow
+            }
+
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)
