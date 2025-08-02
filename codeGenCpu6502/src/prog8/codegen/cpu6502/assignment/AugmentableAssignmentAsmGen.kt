@@ -514,6 +514,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
+            TargetStorageKind.POINTER -> TODO("pointer deref in-place modification ${target.position}")
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }

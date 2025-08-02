@@ -10,6 +10,7 @@ import prog8.codegen.cpu6502.VariableAllocator
 internal class AssignmentAsmGen(
     private val program: PtProgram,
     private val asmgen: AsmGen6502Internal,
+    private val pointergen: PointerAssignmentsGen,
     private val anyExprGen: AnyExprAsmGen,
     private val allocator: VariableAllocator
 ) {
@@ -944,6 +945,7 @@ internal class AssignmentAsmGen(
                         assignTrue.add(PtNumber.fromBoolean(true, assign.position))
                     }
                 }
+                TargetStorageKind.POINTER -> TODO("optimized comparison for pointer-deref $target.position")
                 TargetStorageKind.REGISTER -> { /* handled earlier */ return true }
                 TargetStorageKind.VOID -> { /* do nothing */ return true }
             }
@@ -2818,6 +2820,7 @@ $endLabel""")
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
+            TargetStorageKind.POINTER -> TODO("assign addresss of to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -2961,6 +2964,7 @@ $endLabel""")
                     }
                 }
             }
+            TargetStorageKind.POINTER -> TODO("assign word variable to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -2995,6 +2999,7 @@ $endLabel""")
                 else if (target.register!! != RegisterOrPair.FAC1)
                     throw AssemblyError("can't assign Fac1 float to another register")
             }
+            TargetStorageKind.POINTER -> TODO("assign FAC1 float to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3032,6 +3037,7 @@ $endLabel""")
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
+            TargetStorageKind.POINTER -> TODO("assign float from AY to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3069,6 +3075,7 @@ $endLabel""")
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
+            TargetStorageKind.POINTER -> TODO("assign float variable to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3113,6 +3120,7 @@ $endLabel""")
                     else -> throw AssemblyError("weird register")
                 }
             }
+            TargetStorageKind.POINTER -> TODO("assign byte variable to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3493,6 +3501,7 @@ $endLabel""")
                     }
                 }
             }
+            TargetStorageKind.POINTER -> TODO("assign register byte to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3717,6 +3726,7 @@ $endLabel""")
                 }
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")
+            TargetStorageKind.POINTER -> TODO("assign register pair word to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3758,6 +3768,7 @@ $endLabel""")
                         else -> throw AssemblyError("invalid register for word value")
                     }
                 }
+                TargetStorageKind.POINTER -> TODO("assign constant $0000 to pointer deref ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
 
@@ -3814,6 +3825,7 @@ $endLabel""")
                     else -> throw AssemblyError("invalid register for word value")
                 }
             }
+            TargetStorageKind.POINTER -> TODO("assign constant word to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3856,6 +3868,7 @@ $endLabel""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
+                TargetStorageKind.POINTER -> TODO("assign constant $00 to pointer deref ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
 
@@ -3901,6 +3914,7 @@ $endLabel""")
                 }
                 else -> throw AssemblyError("weird register")
             }
+            TargetStorageKind.POINTER -> TODO("assign constant byte to pointer deref ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3944,6 +3958,7 @@ $endLabel""")
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
+                TargetStorageKind.POINTER -> TODO("assign const float 0.0 to pointer deref ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         } else {
@@ -3982,6 +3997,7 @@ $endLabel""")
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
+                TargetStorageKind.POINTER -> TODO("assign const float to pointer deref ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         }
@@ -4020,6 +4036,7 @@ $endLabel""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
+                TargetStorageKind.POINTER -> TODO("assign memory byte to pointer deref ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         } else if (identifier != null) {
@@ -4055,6 +4072,7 @@ $endLabel""")
                         else -> throw AssemblyError("weird register")
                     }
                 }
+                TargetStorageKind.POINTER -> TODO("assign memory byte to pointer deref ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         }
@@ -4242,6 +4260,7 @@ $endLabel""")
                         val invertOperator = if(assign.target.datatype.isBool) "not" else "~"
                         assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign(invertOperator, assign), scope)
                     }
+                    TargetStorageKind.POINTER -> TODO("inplace byte invert pointer deref ${target.position}")
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -4266,6 +4285,7 @@ $endLabel""")
                         }
                     }
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign), scope)
+                    TargetStorageKind.POINTER -> TODO("inplace word invert pointer deref ${target.position}")
                     else -> throw AssemblyError("weird target")
                 }
             }
@@ -4314,6 +4334,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
+                    TargetStorageKind.POINTER -> TODO("inplace byte negate to pointer deref ${target.position}")
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -4373,6 +4394,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
+                    TargetStorageKind.POINTER -> TODO("inplace word negate pointer deref ${target.position}")
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }

@@ -10,6 +10,7 @@ internal enum class TargetStorageKind {
     ARRAY,
     MEMORY,
     REGISTER,
+    POINTER,
     VOID       // assign nothing - used in multi-value assigns for void placeholders
 }
 
@@ -32,6 +33,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                                val array: PtArrayIndexer? = null,
                                val memory: PtMemoryByte? = null,
                                val register: RegisterOrPair? = null,
+                               val pointer: PtPointerDeref? = null,
                                val origAstTarget: PtAssignTarget? = null
                                )
 {
@@ -84,6 +86,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     }
                     array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, definingSub, target.position, array = array, origAstTarget =  this)
                     memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, definingSub, target.position, memory =  memory, origAstTarget =  this)
+                    pointerDeref != null -> return AsmAssignTarget(TargetStorageKind.POINTER, asmgen, type, definingSub, target.position, pointer = pointerDeref, origAstTarget =  this)
                     else -> throw AssemblyError("weird target")
                 }
             }
@@ -145,6 +148,9 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             }
             TargetStorageKind.MEMORY -> {
                 left isSameAs memory!!
+            }
+            TargetStorageKind.POINTER -> {
+                TODO("is pointer deref target same as expression? ${this.position}")
             }
             TargetStorageKind.REGISTER -> false
             TargetStorageKind.VOID -> false

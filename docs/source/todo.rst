@@ -71,7 +71,6 @@ STRUCTS and TYPED POINTERS
 - try to fix parse error  l1^^.s[0] = 4242   (equivalent to l1.s[0]=4242 , which does parse correctly)
 - perhaps add ?. null-propagation operator (for expression and assignment)?
 - 6502 codegen: make all/most of the TestPointers unit tests also run on 6502 target
-- 6502 codegen: remove checks in checkForPointerTypesOn6502()
 - 6502 codegen should warn about writing to initialized struct instances when using romable code, like with arrays "can only be used as read-only in ROMable code"
 - 6502 asm symbol name prefixing should work for dereferences too.
 - 6502 statementreorderer: fix todo for str -> ^^ubyte instead of uword
