@@ -1,6 +1,7 @@
 TODO
 ====
 
+
 STRUCTS and TYPED POINTERS
 --------------------------
 
@@ -152,14 +153,8 @@ Libraries
 Optimizations
 -------------
 
-- if expression generates more instructions than old style if else (IR):
-    pp.next = if particles!=0 particles else 0
-      versus:
-    if particles!=0
-        pp.next = particles
-    else
-        pp.next = 0
-
+- Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
+- Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappered. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)
