@@ -13,6 +13,7 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.BuiltinFunctions
 import prog8.code.core.RegisterOrPair
 import prog8.code.core.isNumeric
+import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -130,6 +131,31 @@ main {
         errors.warnings[3] shouldContain "statement has no effect"
         errors.warnings[4] shouldContain "statement has no effect"
         errors.warnings[5] shouldContain "statement has no effect"
+    }
+
+    test("all peeks and pokes") {
+        val src="""
+%import floats
+%import textio
+
+%option no_sysinit
+%zeropage basicsafe
+
+main {
+    sub start() {
+        pokebool(3000, true)
+        pokew(3100, 12345)
+        pokef(3200, 3.1415927)
+        poke(3300, 222)
+
+        txt.print_bool(peekbool(3000))
+        txt.print_uw(peekw(3100))
+        txt.print_f(peekf(3200))
+        txt.print_ub(peek(3300))
+    }
+}"""
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 })
 

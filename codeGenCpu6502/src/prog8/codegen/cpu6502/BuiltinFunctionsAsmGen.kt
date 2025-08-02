@@ -46,6 +46,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "memory" -> funcMemory(fcall, discardResult, resultRegister)
             "peekw" -> funcPeekW(fcall, resultRegister)
             "peekf" -> funcPeekF(fcall, resultRegister)
+            "peekbool" -> funcPeekBool(fcall, resultRegister)
             "peek" -> throw AssemblyError("peek() should have been replaced by @()")
             "pokew" -> funcPokeW(fcall)
             "pokef" -> funcPokeF(fcall)
@@ -60,6 +61,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 asmgen.out("  pla")
             }
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
+            "pokebool" -> funcPokeBool(fcall)
             "rsave" -> funcRsave()
             "rrestore" -> funcRrestore()
             "cmp" -> funcCmp(fcall)
@@ -786,6 +788,48 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun funcPokeBool(fcall: PtBuiltinFunctionCall) {
+        when(val addrExpr = fcall.args[0]) {
+            is PtNumber -> {
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
+                val addr = addrExpr.number.toHex()
+                asmgen.out("  sta  $addr")
+                return
+            }
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(addrExpr)
+                if(asmgen.isZpVar(addrExpr)) {
+                    // pointervar is already in the zero page, no need to copy
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
+                    if (asmgen.isTargetCpu(CpuType.CPU65C02))
+                        asmgen.out("  sta  ($varname)")
+                    else
+                        asmgen.out("  ldy  #0 |  sta  ($varname),y")
+                    return
+                }
+            }
+            is PtBinaryExpression -> {
+                val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
+                val pointer = result?.first as? PtIdentifier
+                if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {
+                    // can do ZP,Y indexing
+                    val varname = asmgen.asmVariableName(pointer)
+                    asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
+                    asmgen.restoreRegisterStack(CpuRegister.Y, true)
+                    asmgen.out("  sta  ($varname),y")
+                    return
+                }
+            }
+            else -> { /* fall through */ }
+        }
+
+        // fall through method:
+        asmgen.assignByteOperandsToAAndVar(fcall.args[1], fcall.args[0], "P8ZP_SCRATCH_W1")
+        asmgen.out("  jsr  prog8_lib.func_pokebool")
+    }
+
     private fun funcPokeW(fcall: PtBuiltinFunctionCall) {
         when(val addrExpr = fcall.args[0]) {
             is PtNumber -> {
@@ -847,7 +891,49 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.out("  jsr  floats.MOVFM")
         if(resultRegister!=null) {
             assignAsmGen.assignFAC1float(
-                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, fcall.definingISub(), fcall.position))
+                AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, fcall.definingISub(), register=resultRegister, position=fcall.position))
+        }
+    }
+
+    private fun funcPeekBool(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        fun fallback() {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+            asmgen.out("  jsr  prog8_lib.func_peekbool")
+        }
+        when(val addrExpr = fcall.args[0]) {
+            is PtNumber -> {
+                val addr = addrExpr.number.toHex()
+                asmgen.out("  lda  $addr")
+            }
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(addrExpr)
+                if(asmgen.isZpVar(addrExpr)) {
+                    // pointervar is already in the zero page, no need to copy
+                    if (asmgen.isTargetCpu(CpuType.CPU65C02))
+                        asmgen.out("  lda  ($varname)")
+                    else
+                        asmgen.out("  ldy  #0 |  lda  ($varname),y")
+                } else fallback()
+            }
+            is PtBinaryExpression -> {
+                val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
+                val pointer = result?.first as? PtIdentifier
+                if(result!=null && pointer!=null && asmgen.isZpVar(pointer)) {
+                    // can do ZP,Y indexing
+                    val varname = asmgen.asmVariableName(pointer)
+                    asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
+                    asmgen.out("  lda  ($varname),y")
+                } else fallback()
+            }
+            else -> fallback()
+        }
+
+        when(resultRegister ?: RegisterOrPair.A) {
+            RegisterOrPair.A -> {}
+            RegisterOrPair.X -> asmgen.out("  tax")
+            RegisterOrPair.Y -> asmgen.out("  tay")
+            in Cx16VirtualRegisters -> asmgen.out("  sta  cx16.${resultRegister.toString().lowercase()}")
+            else -> throw AssemblyError("invalid reg")
         }
     }
 

@@ -49,6 +49,10 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     init {
         if(register!=null && !datatype.isNumericOrBool)
             throw AssemblyError("must be numeric type")
+        if(kind==TargetStorageKind.REGISTER)
+            require(register!=null)
+        else
+            require(register==null)
     }
 
     companion object {
