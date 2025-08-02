@@ -2346,7 +2346,7 @@ internal class AstChecker(private val program: Program,
                 return value.type==BaseDataType.UWORD
             }
             targetDt.isStructInstance -> {
-                return err("assigning this value to struct instance not supported (use pointers)")
+                return err("assigning this value to struct instance not supported")
             }
             else -> return err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
         }
@@ -2470,7 +2470,7 @@ internal class AstChecker(private val program: Program,
             if(sourceDatatype.isStructInstance && sourceDatatype != targetDatatype)
                 errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
             else
-                errors.err("assigning this value to struct instance not supported (use pointers)", position)
+                errors.err("assigning this value to struct instance not supported", position)
         }
         else
             errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
