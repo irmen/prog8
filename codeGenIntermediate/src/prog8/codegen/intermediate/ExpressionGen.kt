@@ -1624,28 +1624,62 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val right = binExpr.right as? PtIdentifier
         require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
         val result = mutableListOf<IRCodeChunkBase>()
-        val indexedTr = translateExpression(left)
-        result += indexedTr.chunks
-        val pointerReg = indexedTr.resultReg
-        val struct = left.type.dereference().subType as? StStruct
-        require(indexedTr.dt== IRDataType.WORD && struct!=null)
-        val field = struct.getField(right.name, this.codeGen.program.memsizer)
-        val vmDt = irType(field.first)
+        val field: Pair<DataType, UInt>
+        val pointerReg: Int
+        var extraFieldOffset = 0
+
+        if(left.type.isStructInstance) {
+
+            // indexing on a pointer directly
+            // fetch pointer address, determine struct and field, add index * structsize
+            if(left.variable!=null) {
+                val pointerTr = translateExpression(left.variable!!)
+                result += pointerTr.chunks
+                pointerReg = pointerTr.resultReg
+            } else if(left.pointerderef!=null) {
+                TODO("get pointer from deref $left")
+            } else {
+                throw AssemblyError("weird arrayindexer $left")
+            }
+            val struct = left.type.subType!! as StStruct
+            val constindex = left.index as? PtNumber
+            if(constindex!=null) {
+                extraFieldOffset = struct.size.toInt() * constindex.number.toInt()
+            } else {
+                val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
+                result += chunks
+                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+            }
+            field = struct.getField(right.name, codeGen.program.memsizer)
+
+        } else {
+
+            // indexing on an array with pointers
+            // fetch the pointer from the array, determine the struct & field
+            val indexedTr = translateExpression(left)
+            result += indexedTr.chunks
+            pointerReg = indexedTr.resultReg
+            val struct = left.type.dereference().subType as? StStruct
+            require(indexedTr.dt == IRDataType.WORD && struct != null)
+            field = struct.getField(right.name, codeGen.program.memsizer)
+        }
+
+        // add field offset to pointer and load the value into the result register
+        val fieldVmDt = irType(field.first)
         var resultFpReg = -1
         var resultReg = -1
-        if(vmDt==IRDataType.FLOAT)
+        if (fieldVmDt == IRDataType.FLOAT)
             resultFpReg = codeGen.registers.next(IRDataType.FLOAT)
         else
-            resultReg = codeGen.registers.next(vmDt)
-
+            resultReg = codeGen.registers.next(fieldVmDt)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = field.second.toInt())
-            it += if(vmDt==IRDataType.FLOAT)
+            it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = field.second.toInt() + extraFieldOffset)
+            it += if (fieldVmDt == IRDataType.FLOAT)
                 IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultFpReg, reg1 = pointerReg)
             else
-                IRInstruction(Opcode.LOADI, vmDt, reg1 = resultReg, reg2 = pointerReg)
+                IRInstruction(Opcode.LOADI, fieldVmDt, reg1 = resultReg, reg2 = pointerReg)
         }
-        return ExpressionCodeResult(result, vmDt, resultReg, resultFpReg)
+        return ExpressionCodeResult(result, fieldVmDt, resultReg, resultFpReg)
     }
 
     internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): Pair<IRCodeChunks, UInt> {

@@ -1,7 +1,6 @@
 TODO
 ====
 
-fix ^^Node nodes  /  cx16.r0L = nodes[2].weight    compiler crash
 disallow ^^str
 
 
