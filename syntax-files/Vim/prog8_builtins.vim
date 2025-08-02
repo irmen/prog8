@@ -13,7 +13,7 @@ syn keyword prog8BuiltInFunc sgn sqrtw
 syn keyword prog8BuiltInFunc len 
 
 " Miscellaneous functions
-syn keyword prog8BuiltInFunc cmp divmod lsb msb lsw msw mkword min max peek peekw peekf poke pokew pokef rsave rsavex rrestore rrestorex
+syn keyword prog8BuiltInFunc cmp divmod lsb msb lsw msw mkword min max peek peekw peekf peekbool poke pokew pokef pokebool rsave rsavex rrestore rrestorex
 syn keyword prog8BuiltInFunc rol rol2 ror ror2 sizeof setlsb setmsb
 syn keyword prog8BuiltInFunc memory call callfar callfar2 clamp defer alias
 
@@ -350,6 +350,8 @@ syn match prog8BuiltInFunc "\<txt\.print_uwhex\>"
 syn match prog8BuiltInFunc "\<txt\.print_uw0\>"
 syn match prog8BuiltInFunc "\<txt\.print_uw\>"
 syn match prog8BuiltInFunc "\<txt\.print_w\>"
+syn match prog8BuiltInFunc "\<txt\.print_f\>"
+syn match prog8BuiltInFunc "\<txt\.print_bool\>"
 syn match prog8BuiltInFunc "\<txt\.input_chars\>"
 syn match prog8BuiltInFunc "\<txt\.setchr\>"
 syn match prog8BuiltInFunc "\<txt\.getchr\>"
