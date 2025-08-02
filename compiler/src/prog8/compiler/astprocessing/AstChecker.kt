@@ -2475,7 +2475,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: ArrayIndexedPtrDereference) {
-        errors.err("no support for dereferencing after array indexing here yet. (Split the expression by using an intermediate variable?)", deref.position)
+        if(deref.parent is AssignTarget)
+            errors.err("no support for assigning to a array indexed pointer target like this yet. Split the assignment statement by using an intermediate variable.", deref.position)
+        else
+            errors.err("no support for getting the target value of pointer array indexing like this yet. Split the expression by using an intermediate variable.", deref.position) // this may never occur anymore since more ArrayIndexedPtrDereference got rewritten
     }
 }
 

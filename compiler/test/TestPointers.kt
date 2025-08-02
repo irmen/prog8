@@ -1703,7 +1703,7 @@ main {
         val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "no support for dereferencing after array indexing here yet"
+        errors.errors[0] shouldContain "no support for getting the target value of pointer array indexing"
         errors.errors[1] shouldContain "assigning this value to struct instance not supported"
     }
 

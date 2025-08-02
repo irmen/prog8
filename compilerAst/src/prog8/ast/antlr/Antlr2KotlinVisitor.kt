@@ -34,6 +34,9 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitExpression(ctx: ExpressionContext): Expression {
         if(ctx.sizeof_expression!=null) {
+            if(ctx.sizeof_argument().pointertype()!=null)
+                return IdentifierReference(listOf("sys", "SIZEOF_POINTER"), ctx.toPosition())
+
             val sdt = ctx.sizeof_argument().basedatatype()
             val datatype = baseDatatypeFor(sdt)
             val expression = ctx.sizeof_argument().expression()?.accept(this) as Expression?

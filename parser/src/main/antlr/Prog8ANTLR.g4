@@ -229,7 +229,7 @@ expression :
     ;
 
 
-sizeof_argument: basedatatype | expression ;
+sizeof_argument: basedatatype | expression | pointertype ;
 
 
 arrayindexed:

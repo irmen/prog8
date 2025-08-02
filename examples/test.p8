@@ -1,13 +1,17 @@
+%import textio
+
 main {
-    sub start() {
-        str name = "test"
-        ^^str ptr = &name
-        ^^str[4] array
-        ptr = foo(&name)
+    struct Node {
+        ^^ubyte s
     }
 
-    sub foo(^^str arg) -> ^^str {
-        return arg+2
+    sub start() {
+        txt.print_ub(sizeof(^^Node))
+        txt.spc()
+        txt.print_ub(sizeof(^^bool))
+        txt.spc()
+        txt.print_ub(sizeof(^^uword))
+        txt.spc()
     }
 }
 

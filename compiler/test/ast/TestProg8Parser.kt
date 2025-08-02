@@ -1112,15 +1112,14 @@ main {
         ub2 = sizeof(main.start.List)
         
         ub1 = sizeof(&w)
-        
-        ;; TODO ub1 = sizeof(^^float)
-        ;; TODO ub2 = sizeof(^^List)
+        ub2 = sizeof(^^float)
+        ub1 = sizeof(^^List)
     }
 }"""
 
         val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 41
+        st.size shouldBe 43
         val assignments = st.drop(14).dropLast(1)
         assignments.all { it is Assignment } shouldBe true
         assignments.forEach { a ->
