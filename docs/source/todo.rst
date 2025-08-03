@@ -1,7 +1,6 @@
 TODO
 ====
 
-
 STRUCTS and TYPED POINTERS
 --------------------------
 

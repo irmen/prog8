@@ -166,9 +166,13 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     override fun visit(deref: PtrDereference) {
-        val first = deref.definingScope.lookup(deref.chain.take(1))
-        if(first is VarDecl) {
-            allIdentifiersAndTargets.add(IdentifierReference(listOf(first.name), first.position) to first)
+        val chain = deref.chain.toMutableList()
+        while(chain.isNotEmpty()) {
+            val variable = deref.definingScope.lookup(chain)
+            if(variable is VarDecl) {
+                allIdentifiersAndTargets.add(IdentifierReference(listOf(variable.name), variable.position) to variable)
+            }
+            chain.removeLastOrNull()
         }
         super.visit(deref)
     }

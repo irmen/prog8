@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     kotlin("jvm")
 }
@@ -11,7 +9,7 @@ dependencies {
     implementation(project(":intermediate"))
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.0.1")
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.1.0")
 
     testImplementation("io.kotest:kotest-runner-junit5-jvm:5.9.1")
     testImplementation("org.junit.jupiter:junit-jupiter:5.9.1")

@@ -1707,4 +1707,20 @@ main {
         errors.errors[1] shouldContain "assigning this value to struct instance not supported"
     }
 
+    test("pointer variable usage detection in other block") {
+        val src="""
+main {
+    sub start() {
+        other.bptr^^ = true
+        cx16.r0bL = other.bptr^^
+    }
+}
+
+other {
+    ^^bool bptr
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
 })
