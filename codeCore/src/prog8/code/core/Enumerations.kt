@@ -350,6 +350,8 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     val isUnsigned = !base.isSigned
     val isArray = base.isArray
     val isPointer = base.isPointer
+    val isPointerToByte = base.isPointer && sub?.isByteOrBool==true
+    val isPointerToWord = base.isPointer && sub?.isWord==true
     val isStructInstance = base.isStructInstance
     val isPointerArray = base.isPointerArray
     val isBoolArray = base.isArray && !base.isPointerArray && sub == BaseDataType.BOOL

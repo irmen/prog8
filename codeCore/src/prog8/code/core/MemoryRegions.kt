@@ -72,6 +72,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
         val size: Int =
                 when {
                     datatype.isIntegerOrBool -> options.compTarget.memorySize(datatype, null)
+                    datatype.isPointer -> options.compTarget.memorySize(datatype, null)
                     datatype.isString || datatype.isArray -> {
                         val memsize = options.compTarget.memorySize(datatype, numElements!!)
                         if(position!=null)
@@ -122,6 +123,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
                 datatype.isNumericOrBool -> VarAllocation(address, datatype, size)        // numerical variables in zeropage never have an initial value here because they are set in separate initializer assignments
                 datatype.isString -> VarAllocation(address, datatype, size)
                 datatype.isArray -> VarAllocation(address, datatype, size)
+                datatype.isPointer -> VarAllocation(address, datatype, size)
                 else -> throw AssemblyError("invalid dt")
             }
         }

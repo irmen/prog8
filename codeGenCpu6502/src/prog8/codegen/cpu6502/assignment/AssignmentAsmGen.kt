@@ -215,13 +215,14 @@ internal class AssignmentAsmGen(
             }
             SourceStorageKind.LITERALNUMBER -> {
                 // simple case: assign a constant number
-                require(assign.target.datatype.isNumericOrBool)
+                require(assign.target.datatype.isNumericOrBool || (assign.target.datatype.isPointer))
                 val num = assign.source.number!!.number
                 when (assign.target.datatype.base) {
                     BaseDataType.BOOL -> assignConstantByte(assign.target, if(num==0.0) 0 else 1)
                     BaseDataType.UBYTE, BaseDataType.BYTE -> assignConstantByte(assign.target, num.toInt())
                     BaseDataType.UWORD, BaseDataType.WORD -> assignConstantWord(assign.target, num.toInt())
                     BaseDataType.FLOAT -> assignConstantFloat(assign.target, num)
+                    BaseDataType.POINTER -> assignConstantWord(assign.target, num.toInt())
                     else -> throw AssemblyError("weird numval type")
                 }
             }
@@ -481,6 +482,7 @@ internal class AssignmentAsmGen(
                 }
             }
             is PtIfExpression -> asmgen.assignIfExpression(assign.target, value)
+            is PtPointerDeref -> pointergen.assignPointerDerefExpression(assign.target, value)
             else -> throw AssemblyError("weird assignment value type $value")
         }
     }
@@ -945,7 +947,7 @@ internal class AssignmentAsmGen(
                         assignTrue.add(PtNumber.fromBoolean(true, assign.position))
                     }
                 }
-                TargetStorageKind.POINTER -> TODO("optimized comparison for pointer-deref $target.position")
+                TargetStorageKind.POINTER -> TODO("optimized comparison for pointer-deref $expr.position")
                 TargetStorageKind.REGISTER -> { /* handled earlier */ return true }
                 TargetStorageKind.VOID -> { /* do nothing */ return true }
             }
@@ -2820,7 +2822,7 @@ $endLabel""")
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign addresss of to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), sourceName, msb, arrayDt, arrayIndexExpr)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -2861,7 +2863,7 @@ $endLabel""")
             assignRegisterpairWord(target, RegisterOrPair.AY)
             return
         }
-        require(sourceDt.isWord || sourceDt.isUnsignedByte || sourceDt.isBool) { "weird source dt for word variable" }
+        require(sourceDt.isWord || sourceDt.isUnsignedByte || sourceDt.isBool || sourceDt.isPointer) { "weird source dt for word variable" }
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 if(sourceDt.isUnsignedByte || sourceDt.isBool) {
@@ -2964,7 +2966,7 @@ $endLabel""")
                     }
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign word variable to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignWordVar(PtrTarget(target), sourceName, sourceDt)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -2999,7 +3001,7 @@ $endLabel""")
                 else if (target.register!! != RegisterOrPair.FAC1)
                     throw AssemblyError("can't assign Fac1 float to another register")
             }
-            TargetStorageKind.POINTER -> TODO("assign FAC1 float to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignFAC1(PtrTarget(target))
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3037,7 +3039,7 @@ $endLabel""")
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign float from AY to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignFloatAY(PtrTarget(target))
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3075,7 +3077,7 @@ $endLabel""")
                     else -> throw AssemblyError("can only assign float to Fac1 or 2")
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign float variable to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignFloatVar(PtrTarget(target), sourceName)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3120,7 +3122,7 @@ $endLabel""")
                     else -> throw AssemblyError("weird register")
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign byte variable to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignByteVar(PtrTarget(target), sourceName)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3501,7 +3503,7 @@ $endLabel""")
                     }
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign register byte to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignByteReg(PtrTarget(target), register, signed, extendWord)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3726,7 +3728,7 @@ $endLabel""")
                 }
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")
-            TargetStorageKind.POINTER -> TODO("assign register pair word to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignWordRegister(PtrTarget(target), regs)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3768,7 +3770,7 @@ $endLabel""")
                         else -> throw AssemblyError("invalid register for word value")
                     }
                 }
-                TargetStorageKind.POINTER -> TODO("assign constant $0000 to pointer deref ${target.position}")
+                TargetStorageKind.POINTER -> pointergen.assignWord(PtrTarget(target), 0)
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
 
@@ -3825,7 +3827,7 @@ $endLabel""")
                     else -> throw AssemblyError("invalid register for word value")
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign constant word to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignWord(PtrTarget(target), word)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3868,7 +3870,7 @@ $endLabel""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
-                TargetStorageKind.POINTER -> TODO("assign constant $00 to pointer deref ${target.position}")
+                TargetStorageKind.POINTER -> pointergen.assignByte(PtrTarget(target), 0)
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
 
@@ -3914,7 +3916,7 @@ $endLabel""")
                 }
                 else -> throw AssemblyError("weird register")
             }
-            TargetStorageKind.POINTER -> TODO("assign constant byte to pointer deref ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignByte(PtrTarget(target), byte)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3958,7 +3960,7 @@ $endLabel""")
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
-                TargetStorageKind.POINTER -> TODO("assign const float 0.0 to pointer deref ${target.position}")
+                TargetStorageKind.POINTER -> pointergen.assignFloat(PtrTarget(target), 0.0)
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         } else {
@@ -3997,7 +3999,7 @@ $endLabel""")
                         else -> throw AssemblyError("can only assign float to Fac1 or 2")
                     }
                 }
-                TargetStorageKind.POINTER -> TODO("assign const float to pointer deref ${target.position}")
+                TargetStorageKind.POINTER -> pointergen.assignFloat(PtrTarget(target), float)
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         }
@@ -4036,7 +4038,7 @@ $endLabel""")
                     }
                     else -> throw AssemblyError("weird register")
                 }
-                TargetStorageKind.POINTER -> TODO("assign memory byte to pointer deref ${target.position}")
+                TargetStorageKind.POINTER -> pointergen.assignByteMemory(PtrTarget(target), address)
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         } else if (identifier != null) {
@@ -4072,7 +4074,7 @@ $endLabel""")
                         else -> throw AssemblyError("weird register")
                     }
                 }
-                TargetStorageKind.POINTER -> TODO("assign memory byte to pointer deref ${target.position}")
+                TargetStorageKind.POINTER -> pointergen.assignByteMemory(PtrTarget(target), identifier)
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
         }
@@ -4260,7 +4262,7 @@ $endLabel""")
                         val invertOperator = if(assign.target.datatype.isBool) "not" else "~"
                         assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign(invertOperator, assign), scope)
                     }
-                    TargetStorageKind.POINTER -> TODO("inplace byte invert pointer deref ${target.position}")
+                    TargetStorageKind.POINTER -> pointergen.inplaceByteInvert(PtrTarget(target))
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -4285,7 +4287,7 @@ $endLabel""")
                         }
                     }
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign), scope)
-                    TargetStorageKind.POINTER -> TODO("inplace word invert pointer deref ${target.position}")
+                    TargetStorageKind.POINTER -> pointergen.inplaceWordInvert(PtrTarget(target))
                     else -> throw AssemblyError("weird target")
                 }
             }
@@ -4334,7 +4336,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    TargetStorageKind.POINTER -> TODO("inplace byte negate to pointer deref ${target.position}")
+                    TargetStorageKind.POINTER -> pointergen.inplaceByteNegate(PtrTarget(target), ignoreDatatype, scope)
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -4394,7 +4396,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    TargetStorageKind.POINTER -> TODO("inplace word negate pointer deref ${target.position}")
+                    TargetStorageKind.POINTER -> pointergen.inplaceWordNegate(PtrTarget(target), ignoreDatatype, scope)
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
