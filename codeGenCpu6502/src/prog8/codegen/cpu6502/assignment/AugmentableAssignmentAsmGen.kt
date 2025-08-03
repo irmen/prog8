@@ -9,6 +9,7 @@ import prog8.codegen.cpu6502.VariableAllocator
 internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                            private val assignmentAsmGen: AssignmentAsmGen,
                                            private val asmgen: AsmGen6502Internal,
+                                           private val ptrgen: PointerAssignmentsGen,
                                            private val allocator: VariableAllocator
 ) {
     fun translate(assign: AsmAugmentedAssignment, scope: IPtSubroutine?) {
@@ -514,7 +515,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                 }
             }
-            TargetStorageKind.POINTER -> TODO("pointer deref in-place modification ${target.position}")
+            TargetStorageKind.POINTER -> ptrgen.inplaceModification(PtrTarget(target), operator, value)
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }

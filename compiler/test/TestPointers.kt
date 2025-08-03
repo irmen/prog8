@@ -16,6 +16,7 @@ import prog8.code.core.DataType
 import prog8.code.core.IMemSizer
 import prog8.code.core.ISubType
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.vm.VmRunner
 import prog8tests.helpers.ErrorReporterForTests
@@ -173,7 +174,8 @@ other {
 }
 """
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-        // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("struct pointers") {
@@ -218,7 +220,8 @@ main {
 }
 """
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-        // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("pointer walking using simple dot notation should be equivalent to explicit dereference chain") {
@@ -416,7 +419,8 @@ thing {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-        // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("pointers in subroutine parameters") {
@@ -455,7 +459,8 @@ thing {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-        // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("str or ubyte array params or return type replaced by pointer to ubyte") {
@@ -476,7 +481,6 @@ main {
     }
 }"""
 
-        // TODO check this for C64 target too
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val main = result.compilerAst.allBlocks.first {it.name=="main"}
         val test1 = main.statements[1] as Subroutine
@@ -514,8 +518,10 @@ thing {
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
         compileText(VMTarget(), true, src, outputDir) shouldNotBe null
-        // TODO compileText(C64Target(), false, src, outputDir) shouldNotBe null
-        // TODO compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
     }
 
     test("creating instances for unused vars should all be removed") {
@@ -549,7 +555,8 @@ thing {
             start.children[0] shouldBe instanceOf<PtSubSignature>()
             start.children[1] shouldBe instanceOf<PtReturn>()
         }
-        // TODO compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
     }
 
     test("creating instances should have correct number of args") {
@@ -666,7 +673,8 @@ main {
     }
 }"""
 
-        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = true)!!
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 6
         val r0v = (st[3] as PtAssignment).value as PtBinaryExpression
@@ -723,6 +731,8 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("address-of pointer arithmetic on alias") {
@@ -740,6 +750,7 @@ main {
         cx16.r4 = &curframe + index
     }
 }"""
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 9
@@ -776,6 +787,8 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("uword as pointer versus pointer to uword difference") {
@@ -790,6 +803,7 @@ main {
     }
 }"""
 
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 8
@@ -977,6 +991,8 @@ main {
     }
 }"""
         compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
     }
 
     test("global struct var deref type") {
@@ -998,6 +1014,8 @@ main {
 }"""
 
         compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
     }
 
     test("local struct var deref type") {
@@ -1018,6 +1036,8 @@ main {
 }"""
 
         compileText(VMTarget(), true, src, outputDir) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
     }
 
     test("assigning pointer dereferences via memcopy") {
@@ -1045,6 +1065,7 @@ main {
     }
 }"""
 
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 10
@@ -1110,6 +1131,8 @@ other {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("a.b.c[i]^^ as expression where pointer is primitive type") {
@@ -1140,6 +1163,8 @@ other {
 }
 """
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("a.b.c[i]^^.value = X where pointer is struct gives good error message") {
@@ -1249,6 +1274,8 @@ other {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("passing arrays to subroutines via typed pointer parameters") {
@@ -1289,6 +1316,8 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("array of pointers as subroutine param are all passed as ^^ubyte because of split word arrays") {
@@ -1320,6 +1349,8 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("hoist variable decl and initializer correctly in case of pointer type variable as well") {
@@ -1343,6 +1374,7 @@ main {
         }
     }
 }"""
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 6
@@ -1370,6 +1402,8 @@ main {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("type error for invalid bool field initializer") {
@@ -1453,6 +1487,8 @@ db {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("str can be used without explicit cast where ^^ubyte is expected") {
@@ -1505,6 +1541,8 @@ main {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("array indexing a pointer and a pointer array both work") {
@@ -1523,6 +1561,8 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
@@ -1574,6 +1614,7 @@ main {
     }
 }"""
         val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(C64Target(), false, src, outputDir, errors=errors) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir, errors=errors)
         errors.errors.size shouldBe 0
         errors.warnings.size shouldBe 0
@@ -1639,6 +1680,8 @@ main {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("boolean field in if statement condition") {
@@ -1658,6 +1701,8 @@ main {
 }"""
 
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("^^str is not valid") {

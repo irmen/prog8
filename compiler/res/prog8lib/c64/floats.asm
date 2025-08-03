@@ -149,6 +149,29 @@ copy_float	.proc
 		rts
 		.pend
 
+copy_float2	.proc
+		; -- copies the 5 bytes of the mflt value pointed to by P8ZP_SCRATCH_W2,
+		;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W2),y
+		sta  (P8ZP_SCRATCH_W1),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sta  (P8ZP_SCRATCH_W1),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sta  (P8ZP_SCRATCH_W1),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sta  (P8ZP_SCRATCH_W1),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sta  (P8ZP_SCRATCH_W1),y
+		rts
+		.pend
+
 inc_var_f	.proc
 		; -- add 1 to float pointed to by A/Y
 		;    clobbers X

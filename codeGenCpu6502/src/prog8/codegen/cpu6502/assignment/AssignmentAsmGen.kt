@@ -14,7 +14,7 @@ internal class AssignmentAsmGen(
     private val anyExprGen: AnyExprAsmGen,
     private val allocator: VariableAllocator
 ) {
-    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, allocator)
+    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, pointergen, allocator)
 
     fun translate(assignment: PtAssignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
@@ -245,7 +245,8 @@ internal class AssignmentAsmGen(
                     }
                     targetDt.isFloat -> assignVariableFloat(assign.target, variable)
                     targetDt.isString -> assignVariableString(assign.target, variable)
-                    else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype}")
+                    targetDt.isPointer -> assignVariableWord(assign.target, variable, assign.source.datatype)
+                    else -> throw AssemblyError("unsupported assignment target type ${assign.target.datatype} ${assign.position}")
                 }
             }
             SourceStorageKind.ARRAY -> {
@@ -2479,7 +2480,7 @@ $endLabel""")
                     else -> throw AssemblyError("weird type")
                 }
             }
-            sourceDt.isSignedWord -> {
+            sourceDt.isSignedWord || sourceDt.isPointer -> {
                 when(targetDt.base) {
                     BaseDataType.BOOL -> {
                         asmgen.out("""
@@ -2492,7 +2493,7 @@ $endLabel""")
                     BaseDataType.BYTE, BaseDataType.UBYTE -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                     }
-                    BaseDataType.UWORD -> {
+                    BaseDataType.UWORD, BaseDataType.POINTER -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
                     BaseDataType.FLOAT -> {

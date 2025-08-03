@@ -28,7 +28,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignWordVar(target: PtrTarget, sourceName: String, sourceDt: DataType) {
-        TODO("assign word variable to pointer deref ${target.position}")
+        val zpPtrVar = deref(target.pointer)
+        storeIndirectWordVar(sourceName, sourceDt, zpPtrVar)
     }
 
     internal fun assignFAC1(target: PtrTarget) {
@@ -40,11 +41,13 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignFloatVar(target: PtrTarget, sourceName: String) {
-        TODO("assign float variable to pointer deref ${target.position}")
+        val zpPtrVar = deref(target.pointer)
+        storeIndirectFloatVar(sourceName, zpPtrVar)
     }
 
     internal fun assignByteVar(target: PtrTarget, sourceName: String) {
-        TODO("assign byte variable to pointer deref ${target.position}")
+        val zpPtrVar = deref(target.pointer)
+        storeIndirectByteVar(sourceName, zpPtrVar)
     }
 
     internal fun assignByteReg(target: PtrTarget, register: CpuRegister, signed: Boolean, extendWord: Boolean) {
@@ -66,7 +69,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignFloat(target: PtrTarget, float: Double) {
-        TODO("assign const float $float to pointer deref ${target.position}")
+        val zpPtrVar = deref(target.pointer)
+        storeIndirectFloat(float, zpPtrVar)
     }
 
     internal fun assignByteMemory(target: PtrTarget, address: UInt) {
@@ -126,12 +130,23 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             loadIndirectWord(zpPtrVar)
             asmgen.assignRegister(RegisterOrPair.AY, target)
         }
-        else if(value.type.isFloat)
-            TODO("load float")
+        else if(value.type.isFloat) {
+            loadIndirectFloat(zpPtrVar)
+            asmgen.assignRegister(RegisterOrPair.FAC1, target)
+        }
         else if(value.type.isLong)
             TODO("load long")
         else
             throw AssemblyError("weird dt ${value.type} in pointer deref assignment ${target.position}")
+    }
+
+    private fun loadIndirectFloat(zpPtrVar: String) {
+        // loads float pointed to by the ptrvar into FAC1
+        asmgen.out("""
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.MOVFM
+        """)
     }
 
     private fun loadIndirectByte(zpPtrVar: String) {
@@ -166,6 +181,13 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
+    private fun storeIndirectByteVar(varname: String, zpPtrVar: String) {
+        if(asmgen.isTargetCpu(CpuType.CPU65C02))
+            asmgen.out("  lda  $varname |  sta  ($zpPtrVar)")
+        else
+            asmgen.out("  lda  $varname |  ldy  #0 |  sta  ($zpPtrVar),y")
+    }
+
     private fun storeIndirectWord(word: Int, zpPtrVar: String) {
         if(word==0) {
             asmgen.out("""
@@ -182,6 +204,62 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 lda  #>$word
                 iny
                 sta  ($zpPtrVar),y""")
+        }
+    }
+
+    private fun storeIndirectWordVar(varname: String, sourceDt: DataType, zpPtrVar: String) {
+        if(sourceDt.isByteOrBool) TODO("implement byte/bool to word pointer assignment")
+        asmgen.out("""
+            lda  $varname
+            ldy  #0
+            sta  ($zpPtrVar),y
+            lda  $varname+1
+            iny
+            sta  ($zpPtrVar),y""")
+    }
+
+    private fun storeIndirectFloat(float: Double, zpPtrVar: String) {
+        val floatConst = allocator.getFloatAsmConst(float)
+        asmgen.out("""
+            lda  #<$floatConst
+            ldy  #>$floatConst
+            sta  P8ZP_SCRATCH_W2
+            sty  P8ZP_SCRATCH_W2+1
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.copy_float2""")
+    }
+
+    private fun storeIndirectFloatVar(varname: String, zpPtrVar: String) {
+        asmgen.out("""
+            lda  #<$varname
+            ldy  #>$varname+1
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.copy_float""")
+    }
+
+    fun inplaceModification(target: PtrTarget, operator: String, value: AsmAssignSource) {
+        when (operator) {
+            "+" -> TODO("inplace ptr +")
+            "-" -> TODO("inplace ptr -")
+            "*" -> TODO("inplace ptr *")
+            "/" -> TODO("inplace ptr /")
+            "%" -> TODO("inplace ptr %")
+            "<<" -> TODO("inplace ptr <<")
+            ">>" -> TODO("inplace ptr >>")
+            "&", "and" -> TODO("inplace ptr &")
+            "|", "or" -> TODO("inplace ptr |")
+            "^", "xor" -> TODO("inplace ptr ^")
+            "==" -> TODO("inplace ptr ==")
+            "!=" -> TODO("inplace ptr !=")
+            "<" -> TODO("inplace ptr <")
+            "<=" -> TODO("inplace ptr <=")
+            ">" -> TODO("inplace ptr >")
+            ">=" -> TODO("inplace ptr >=")
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }
 
