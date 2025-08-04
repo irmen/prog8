@@ -1,5 +1,6 @@
 package prog8.codegen.cpu6502.assignment
 
+import prog8.code.StStruct
 import prog8.code.ast.IPtSubroutine
 import prog8.code.ast.PtIdentifier
 import prog8.code.ast.PtPointerDeref
@@ -114,10 +115,56 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
         }
 
-        TODO("deref pointer chain ${pointer.position}")
+        // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_W1
+        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_W1", DataType.UWORD)
 
-        // TODO: do we have to look at derefLast ?
+        fun addFieldOffset(fieldoffset: UInt) {
+            if(fieldoffset==0u)
+                return
+            require(fieldoffset<=0xffu)
+            asmgen.out("""
+                lda  P8ZP_SCRATCH_W1
+                clc
+                adc  #$fieldoffset
+                sta  P8ZP_SCRATCH_W1
+                bcc  +
+                inc  P8ZP_SCRATCH_W1+1
++""")
+        }
 
+        fun updatePointer() {
+            asmgen.out("""
+                ldy  #0
+                lda  (P8ZP_SCRATCH_W1),y
+                tax
+                iny
+                lda  (P8ZP_SCRATCH_W1),y
+                sta  P8ZP_SCRATCH_W1+1
+                stx  P8ZP_SCRATCH_W1""")
+        }
+
+        // traverse deref chain
+        var struct: StStruct? = null
+        if(pointer.startpointer.type.subType!=null)
+            struct = pointer.startpointer.type.subType as StStruct
+        for(deref in pointer.chain.dropLast(1)) {
+            val fieldinfo = struct!!.getField(deref, asmgen.program.memsizer)
+            val fieldoffset = fieldinfo.second
+            struct = fieldinfo.first.subType as StStruct
+            // get new pointer from field (P8ZP_SCRATCH_W1 += fieldoffset, read pointer from new location)
+            addFieldOffset(fieldoffset)
+            updatePointer()
+        }
+
+        val field = pointer.chain.last()
+        val fieldinfo = struct!!.getField(field, asmgen.program.memsizer)
+
+        addFieldOffset(fieldinfo.second)
+        if(pointer.derefLast) {
+            require(fieldinfo.first.isPointer)
+            updatePointer()
+        }
+        return "P8ZP_SCRATCH_W1"
     }
 
     internal fun assignPointerDerefExpression(target: AsmAssignTarget, value: PtPointerDeref) {
@@ -126,7 +173,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             loadIndirectByte(zpPtrVar)
             asmgen.assignRegister(RegisterOrPair.A, target)
         }
-        else if(value.type.isWord) {
+        else if(value.type.isWord || value.type.isPointer) {
             loadIndirectWord(zpPtrVar)
             asmgen.assignRegister(RegisterOrPair.AY, target)
         }

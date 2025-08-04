@@ -6,12 +6,12 @@ import prog8.codegen.cpu6502.AsmGen6502Internal
 
 
 internal enum class TargetStorageKind {
-    VARIABLE,
+    VARIABLE,       // non-pointer variable
     ARRAY,
     MEMORY,
     REGISTER,
-    POINTER,
-    VOID       // assign nothing - used in multi-value assigns for void placeholders
+    POINTER,        // wherever the pointer variable points to
+    VOID            // assign nothing - used in multi-value assigns for void placeholders
 }
 
 internal enum class SourceStorageKind {

@@ -3541,7 +3541,7 @@ $endLabel""")
     }
 
     internal fun assignRegisterpairWord(target: AsmAssignTarget, regs: RegisterOrPair) {
-        require(target.datatype.isNumeric || target.datatype.isPassByRef) {
+        require(target.datatype.isNumeric || target.datatype.isPassByRef || target.datatype.isPointer) {
             "assign target must be word type ${target.position}"
         }
         if(target.datatype.isFloat)

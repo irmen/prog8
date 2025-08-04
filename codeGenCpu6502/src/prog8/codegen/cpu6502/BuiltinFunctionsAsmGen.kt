@@ -397,10 +397,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcStructAlloc(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultRegister: RegisterOrPair?) {
         if(discardResult)
             throw AssemblyError("should not discard result of struct allocation at $fcall")
-        if(fcall.args.isEmpty())
-            TODO("struct alloc in BSS")
-        else
-            TODO("static struct alloc with values")
+        val struct = fcall.type.subType!!
+        // ... don't need to pay attention to args here because struct instance is put together elsewhere we just have to get a pointer to it
+        val slabname = PtIdentifier("????TODO-STRUCTINSTANCENAME????", DataType.UWORD, fcall.position)      // TODO STRUCTNAME
+        val addressOf = PtAddressOf(fcall.type, true, fcall.position)
+        addressOf.add(slabname)
+        addressOf.parent = fcall
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, fcall.type, expression = addressOf)
+        val target = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, null, asmgen)
+        val assign = AsmAssignment(src, listOf(target), program.memsizer, fcall.position)
+        asmgen.translateNormalAssignment(assign, fcall.definingISub())
     }
 
 
