@@ -290,8 +290,18 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     fun inplaceModification(target: PtrTarget, operator: String, value: AsmAssignSource) {
         when (operator) {
-            "+" -> TODO("inplace ptr +")
-            "-" -> TODO("inplace ptr -")
+            "+" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isWord) inplaceWordAdd(target, value)
+                else if(target.dt.isFloat) inplaceFloatAdd(target, value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
+            "-" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isWord) inplaceWordSub(target, value)
+                else if(target.dt.isFloat) inplaceFloatSub(target, value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
             "*" -> TODO("inplace ptr *")
             "/" -> TODO("inplace ptr /")
             "%" -> TODO("inplace ptr %")
@@ -299,7 +309,12 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             ">>" -> TODO("inplace ptr >>")
             "&", "and" -> TODO("inplace ptr &")
             "|", "or" -> TODO("inplace ptr |")
-            "^", "xor" -> TODO("inplace ptr ^")
+            "^", "xor" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isByteOrBool) inplaceByteXor(target, value)
+                else if(target.dt.isWord) inplaceWordXor(target, value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
             "==" -> TODO("inplace ptr ==")
             "!=" -> TODO("inplace ptr !=")
             "<" -> TODO("inplace ptr <")
@@ -310,4 +325,214 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
+    private fun inplaceWordAdd(target: PtrTarget, value: AsmAssignSource) {
+        val ptrZpVar = deref(target.pointer)
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toInt()
+                asmgen.out("""
+                    ldy  #0
+                    lda  ($ptrZpVar),y
+                    clc
+                    adc  #<$number
+                    sta  ($ptrZpVar),y
+                    iny
+                    lda  ($ptrZpVar),y
+                    adc  #>$number
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isWord)
+                val varname = value.asmVarname
+                asmgen.out("""
+                    ldy  #0
+                    lda  ($ptrZpVar),y
+                    clc
+                    adc  $varname
+                    sta  ($ptrZpVar),y
+                    iny
+                    lda  ($ptrZpVar),y
+                    adc  $varname+1
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                require(value.datatype.isWord)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.out("""
+                    ldy  #0
+                    clc
+                    adc  ($ptrZpVar),y
+                    sta  ($ptrZpVar),y
+                    iny
+                    txa
+                    adc  ($ptrZpVar),y
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.REGISTER -> TODO("register + word")
+            else -> throw AssemblyError("weird source value ${value}")
+        }
+    }
+
+    private fun inplaceFloatAdd(target: PtrTarget, value: AsmAssignSource) {
+        val ptrZpVar = deref(target.pointer)
+        asmgen.out("""
+            lda  $ptrZpVar
+            ldy  $ptrZpVar+1
+            jsr  floats.MOVEFM""")
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val floatConst = allocator.getFloatAsmConst(value.number!!.number)
+                asmgen.out("""
+                    lda  #<$floatConst
+                    ldy  #>$floatConst
+                    jsr  floats.FADD
+                    lda  $ptrZpVar
+                    ldy  $ptrZpVar+1
+                    jsr  floats.MOVEMF""")
+            }
+            SourceStorageKind.VARIABLE -> TODO("variable + float")
+            SourceStorageKind.EXPRESSION -> TODO("expression + float")
+            SourceStorageKind.REGISTER -> TODO("register + float")
+            else -> throw AssemblyError("weird source value ${value}")
+        }
+    }
+
+    private fun inplaceWordSub(target: PtrTarget, value: AsmAssignSource) {
+        val ptrZpVar = deref(target.pointer)
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toInt()
+                asmgen.out("""
+                    ldy  #0
+                    lda  ($ptrZpVar),y
+                    sec
+                    sbc  #<$number
+                    sta  ($ptrZpVar),y
+                    iny
+                    lda  ($ptrZpVar),y
+                    sbc  #>$number
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isWord)
+                val varname = value.asmVarname
+                asmgen.out("""
+                    ldy  #0
+                    lda  ($ptrZpVar),y
+                    sec
+                    sbc  $varname
+                    sta  ($ptrZpVar),y
+                    iny
+                    lda  ($ptrZpVar),y
+                    sbc  $varname+1
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                require(value.datatype.isWord)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.out("""
+                    ldy  #0
+                    sec
+                    sbc  ($ptrZpVar),y
+                    sta  ($ptrZpVar),y
+                    iny
+                    txa
+                    sbc  ($ptrZpVar),y
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.REGISTER -> TODO("register - word")
+            else -> throw AssemblyError("weird source value ${value}")
+        }
+    }
+
+    private fun inplaceFloatSub(target: PtrTarget, value: AsmAssignSource) {
+        TODO("inplace ptr - float")
+    }
+
+    private fun inplaceByteXor(target: PtrTarget, value: AsmAssignSource) {
+        val ptrZpVar = deref(target.pointer)
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toInt()
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("""
+                        lda  ($ptrZpVar)
+                        eor  #$number
+                        sta  ($ptrZpVar)""")
+                else
+                    asmgen.out("""
+                        ldy  #0
+                        lda  ($ptrZpVar),y
+                        eor  #$number
+                        sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                val varname = value.asmVarname
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("""
+                        lda  ($ptrZpVar)
+                        eor  $varname
+                        sta  ($ptrZpVar)""")
+                else
+                    asmgen.out("""
+                        ldy  #0
+                        lda  ($ptrZpVar),y
+                        eor  $varname
+                        sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.A, false)
+                asmgen.out("""
+                    ldy  #0
+                    eor  ($ptrZpVar),y
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.REGISTER -> TODO("register ^ byte")
+            else -> throw AssemblyError("weird source value ${value}")
+        }
+    }
+
+    private fun inplaceWordXor(target: PtrTarget, value: AsmAssignSource) {
+        val ptrZpVar = deref(target.pointer)
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toInt()
+                asmgen.out("""
+                    ldy  #0
+                    lda  ($ptrZpVar),y
+                    eor  #<$number
+                    sta  ($ptrZpVar),y
+                    iny
+                    lda  ($ptrZpVar),y
+                    eor  #>$number
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isWord)
+                val varname = value.asmVarname
+                asmgen.out("""
+                    ldy  #0
+                    lda  ($ptrZpVar),y
+                    eor  $varname
+                    sta  ($ptrZpVar),y
+                    lda  ($ptrZpVar),y
+                    eor  $varname+1
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                require(value.datatype.isWord)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.out("""
+                    ldy  #0
+                    eor  ($ptrZpVar),y
+                    sta  ($ptrZpVar),y
+                    iny
+                    txa
+                    eor  ($ptrZpVar),y
+                    sta  ($ptrZpVar),y""")
+            }
+            SourceStorageKind.REGISTER -> TODO("register ^ word")
+            else -> throw AssemblyError("weird source value ${value}")
+        }
+    }
 }
