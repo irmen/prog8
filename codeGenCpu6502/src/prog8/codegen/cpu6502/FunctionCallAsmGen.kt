@@ -333,7 +333,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             } else {
                 val scope = value.definingISub()
                 val target: AsmAssignTarget =
-                    if(parameter.value.type.isByte && (register==RegisterOrPair.AX || register == RegisterOrPair.AY || register==RegisterOrPair.XY || register in Cx16VirtualRegisters))
+                    if(parameter.value.type.isByte && register.isWord())
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, parameter.value.type, scope, value.position, register = register)
                     else {
                         AsmAssignTarget.fromRegisters(register, parameter.value.type.isSigned, value.position, scope, asmgen)

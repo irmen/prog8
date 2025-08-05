@@ -2154,8 +2154,13 @@ internal class AstChecker(private val program: Program,
                 }
             }
         }
-        if (deref.inferType(program).isUnknown)
-            errors.err("unable to determine type of dereferenced pointer expression", deref.position)
+        if (deref.inferType(program).isUnknown) {
+            val symbol = deref.definingScope.lookup(deref.chain.take(1))
+            if(symbol==null)
+                errors.err("undefined symbol: ${deref.chain[0]}", deref.position)
+            else
+                errors.err("unable to determine type of dereferenced pointer expression", deref.position)
+        }
     }
 
     private fun checkLongType(expression: Expression) {

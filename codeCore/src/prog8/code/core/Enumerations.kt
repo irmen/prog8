@@ -424,6 +424,9 @@ enum class RegisterOrPair {
         }
         return listOf("cx16", name.lowercase()+suffix)
     }
+
+    fun isWord() = this==AX || this == AY || this==XY || this in Cx16VirtualRegisters
+
 }       // only used in parameter and return value specs in asm subroutines
 
 enum class Statusflag {

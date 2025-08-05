@@ -1,3 +1,4 @@
+%import floats
 %import textio
 %option no_sysinit
 %zeropage basicsafe
@@ -29,6 +30,28 @@ main {
         txt.nl()
 
         ptr^^ ^= $eeee
+        ptr^^ = 1111
+        ptr^^ *= 5
+        cx16.r0 = 2
+        ptr^^ *= cx16.r0
+        uword @shared wvar = 3
+        ptr^^ *= wvar
+        wvar = cx16.r0 = 1111
+        ptr^^ += cx16.r0
+        ptr^^ += wvar
+        txt.print_uw(peekw(3000))
+        txt.nl()
+        ptr^^ *= 4
+        ptr^^ /= 4
+        ptr^^ += 3
+        ptr^^ -= 3
+        ptr^^ *= 3
+        ptr^^ /= 3
+        ^^float fptr = 0
+        fptr^^ += 3.0
+        fptr^^ -= 3.0
+        fptr^^ *= 3.0
+        fptr^^ /= 3.0
 
 
 ;        ^^Node nptr = 30000

@@ -1840,8 +1840,8 @@ other {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-        //compileText(C64Target(), false, src, outputDir) shouldNotBe null
-        //compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
 })
