@@ -2462,7 +2462,8 @@ internal class AstChecker(private val program: Program,
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
             } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)
-                errors.err("incompatible value type, can only assign uword or correct pointer type", position)
+                if(!(sourceDatatype isAssignableTo targetDatatype))
+                    errors.err("incompatible value type, can only assign uword or correct pointer type", position)
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
