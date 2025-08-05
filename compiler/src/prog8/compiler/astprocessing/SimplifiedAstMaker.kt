@@ -192,8 +192,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
                 if(srcAssign.target.inferType(program).isPointer) {
                     val expr = srcExpr as BinaryExpression
-                    if(expr.operator=="+") {
-                        // pointer arithmetic: add the size of the struct times the argument
+                    if(expr.operator=="+" || expr.operator=="-") {
+                        // pointer arithmetic: add or subract the size of the struct times the argument
                         val leftDt = expr.left.inferType(program).getOrUndef()
                         require(leftDt.isPointer && !expr.right.inferType(program).isPointer)
                         val structSize = leftDt.size(program.memsizer)

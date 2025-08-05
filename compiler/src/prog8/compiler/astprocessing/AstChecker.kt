@@ -2346,7 +2346,7 @@ internal class AstChecker(private val program: Program,
                 return value.type==BaseDataType.UWORD
             }
             targetDt.isStructInstance -> {
-                return err("assigning this value to struct instance not supported (use pointers)")
+                return err("assigning this value to struct instance not supported")
             }
             else -> return err("value type ${value.type.toString().lowercase()} doesn't match target type $targetDt")
         }
@@ -2462,7 +2462,8 @@ internal class AstChecker(private val program: Program,
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
             } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)
-                errors.err("incompatible value type, can only assign uword or correct pointer type", position)
+                if(!(sourceDatatype isAssignableTo targetDatatype))
+                    errors.err("incompatible value type, can only assign uword or correct pointer type", position)
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
@@ -2470,7 +2471,7 @@ internal class AstChecker(private val program: Program,
             if(sourceDatatype.isStructInstance && sourceDatatype != targetDatatype)
                 errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
             else
-                errors.err("assigning this value to struct instance not supported (use pointers)", position)
+                errors.err("assigning this value to struct instance not supported", position)
         }
         else
             errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)
