@@ -172,6 +172,9 @@ class CallGraph(private val program: Program) : IAstVisitor {
             if(variable is VarDecl) {
                 allIdentifiersAndTargets.add(IdentifierReference(listOf(variable.name), variable.position) to variable)
             }
+            else if(variable is Subroutine) {
+                notCalledButReferenced += variable
+            }
             chain.removeLastOrNull()
         }
         super.visit(deref)
