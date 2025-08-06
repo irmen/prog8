@@ -261,7 +261,7 @@ internal class AssignmentAsmGen(
                 val constIndex = value.index.asConstInteger()
 
                 if(value.splitWords) {
-                    require(elementDt.isWord)
+                    require(elementDt.isWord || elementDt.isPointer)
                     if(constIndex!=null) {
                         asmgen.out("  lda  ${arrayVarName}_lsb+$constIndex |  ldy  ${arrayVarName}_msb+$constIndex")
                         assignRegisterpairWord(assign.target, RegisterOrPair.AY)
@@ -725,7 +725,7 @@ internal class AssignmentAsmGen(
                 }
                 assignRegisterByte(target, CpuRegister.A, false, false)
             }
-            target.datatype.isWord -> assignRegisterpairWord(target, register)
+            target.datatype.isWord || target.datatype.isPointer -> assignRegisterpairWord(target, register)
             else -> throw AssemblyError("expected byte or word")
         }
     }

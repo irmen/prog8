@@ -63,6 +63,11 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
+        val deref = stmt.condition as? PtPointerDeref
+        if(deref!=null) {
+            TODO("ptr deref resulting in bool ${deref.position}")
+        }
+
         throw AssemblyError("weird non-boolean condition node type ${stmt.condition} at ${stmt.condition.position}")
     }
 

@@ -923,7 +923,7 @@ internal class ProgramAndVarsGen(
                     else
                         "-$$hexnum"
                 }
-            dt.isArray && dt.elementType().isUnsignedWord -> array.map {
+            dt.isArray && (dt.elementType().isUnsignedWord || dt.elementType().isPointer) -> array.map {
                 val number = it.number!!.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
