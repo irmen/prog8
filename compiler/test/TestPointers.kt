@@ -30,7 +30,7 @@ class TestPointers: FunSpec( {
 
     test("basic pointers") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     ^^bool g_bp
@@ -180,7 +180,7 @@ other {
 
     test("struct pointers") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     struct Node {
@@ -295,7 +295,7 @@ main {
 
     test("word size pointer indexing on pointers") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
 
@@ -663,7 +663,7 @@ main {
 
     test("untyped and typed address-of operators") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     sub start() {
@@ -704,7 +704,7 @@ main {
 
     test("address-of struct fields") {
         val src="""
-%option enable_floats
+%import floats
 %import textio
 
 main {
@@ -877,7 +877,7 @@ main {
 
     test("indexing pointers with index 0 is just a direct pointer dereference") {
         val src="""
-%option enable_floats
+%import floats
 main {
     struct List {
         ^^uword s
@@ -1042,7 +1042,7 @@ main {
 
     test("assigning pointer dereferences via memcopy") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     sub start() {
@@ -1074,7 +1074,7 @@ main {
 
     test("assigning pointer dereferences should be same type") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     sub start() {
@@ -1137,7 +1137,7 @@ other {
 
     test("a.b.c[i]^^ as expression where pointer is primitive type") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     sub start() {
@@ -1247,7 +1247,7 @@ other {
 
     test("a.b.c[i]^^ as assignment target where pointer is primitive type") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     sub start() {
@@ -1322,7 +1322,7 @@ main {
 
     test("array of pointers as subroutine param are all passed as ^^ubyte because of split word arrays") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
 
@@ -1517,7 +1517,7 @@ main {
 
     test("initializing arrays of pointers") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
 
@@ -1787,7 +1787,7 @@ other {
 
     test("float ptr inplace operations") {
         val src="""
-%option enable_floats
+%import floats
 
 main {
     ^^float g_floats
