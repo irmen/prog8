@@ -832,8 +832,18 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
 
         // fall through method:
-        asmgen.assignByteOperandsToAAndVar(fcall.args[1], fcall.args[0], "P8ZP_SCRATCH_W1")
-        asmgen.out("  jsr  prog8_lib.func_pokebool")
+        if(fcall.args[1].isSimple()) {
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
+        }  else {
+            asmgen.pushCpuStack(BaseDataType.UBYTE, fcall.args[1])
+            asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+        }
+        if(asmgen.isTargetCpu(CpuType.CPU65C02))
+            asmgen.out("  sta  (P8ZP_SCRATCH_W1)")
+        else
+            asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W1),y")
     }
 
     private fun funcPokeW(fcall: PtBuiltinFunctionCall) {
@@ -904,7 +914,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcPeekBool(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         fun fallback() {
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
-            asmgen.out("  jsr  prog8_lib.func_peekbool")
+            asmgen.out("  jsr  prog8_lib.func_peek")
         }
         when(val addrExpr = fcall.args[0]) {
             is PtNumber -> {

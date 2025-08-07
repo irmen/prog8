@@ -401,8 +401,17 @@ _loop_hi	ldy  _index_first
 		.pend
 
 
+func_peek   .proc
+	; -- read the byte value on the address in AY, into A
+	sta  P8ZP_SCRATCH_W1
+	sty  P8ZP_SCRATCH_W1+1
+	ldy  #0
+	lda  (P8ZP_SCRATCH_W1),y
+	rts
+	.pend
+
 func_peekw   .proc
-	; -- read the word value on the address in AY
+	; -- read the word value on the address in AY, into AY
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
 	ldy  #0

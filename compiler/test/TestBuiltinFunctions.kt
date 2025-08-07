@@ -15,6 +15,7 @@ import prog8.code.core.RegisterOrPair
 import prog8.code.core.isNumeric
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -136,24 +137,50 @@ main {
     test("all peeks and pokes") {
         val src="""
 %import floats
-%import textio
-
-%option no_sysinit
-%zeropage basicsafe
 
 main {
+    uword[5] a
+    float f
+
     sub start() {
         pokebool(3000, true)
         pokew(3100, 12345)
         pokef(3200, 3.1415927)
         poke(3300, 222)
+        pokebool(cx16.r0, true)
+        pokew(cx16.r0, 12345)
+        pokef(cx16.r0, 3.1415927)
+        poke(cx16.r0, 222)
+        pokebool(a[2], true)
+        pokew(a[2], 12345)
+        pokef(a[2], 3.1415927)
+        poke(a[2], 222)
+        pokebool(cx16.r0+cx16.r1, true)
+        pokew(cx16.r0+cx16.r1, 12345)
+        pokef(cx16.r0+cx16.r1, 3.1415927)
+        poke(cx16.r0+cx16.r1, 222)
 
-        txt.print_bool(peekbool(3000))
-        txt.print_uw(peekw(3100))
-        txt.print_f(peekf(3200))
-        txt.print_ub(peek(3300))
+
+        cx16.r0bL = peekbool(3000)
+        cx16.r1 = peekw(3100)
+        f = peekf(3200)
+        cx16.r2L = peek(3300)
+        cx16.r0bL = peekbool(cx16.r0)
+        cx16.r1 = peekw(cx16.r0)
+        f = peekf(cx16.r0)
+        cx16.r2L = peek(cx16.r0)
+        cx16.r0bL = peekbool(a[2])
+        cx16.r1 = peekw(a[2])
+        f = peekf(a[2])
+        cx16.r2L = peek(a[2])
+        cx16.r0bL = peekbool(cx16.r0+cx16.r1)
+        cx16.r1 = peekw(cx16.r0+cx16.r1)
+        f = peekf(cx16.r0+cx16.r1)
+        cx16.r2L = peek(cx16.r0+cx16.r1)
     }
-}"""
+}
+"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
