@@ -66,6 +66,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                     if(node.type.isSplitWordArray && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
                         lookupName = lookupName.dropLast(4)
                     }
+                    // TODO how to deal with struct field names? Prefix or not?
                     val stNode = st.lookup(lookupName) ?: throw AssemblyError("unknown identifier $node")
                     if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
@@ -1093,7 +1094,7 @@ $repeatLabel""")
                 // all else take its address and assign that also to AY register pair
                 val addrOfDt = returnvalue.type.typeForAddressOf(false)
                 val addrofValue = PtAddressOf(addrOfDt, false, returnvalue.position)
-                addrofValue.add(returnvalue as PtIdentifier)
+                addrofValue.add(returnvalue)
                 addrofValue.parent = ret.parent
                 assignmentAsmGen.assignExpressionToRegister(addrofValue, returnRegs.single().first.registerOrPair!!, false)
             }

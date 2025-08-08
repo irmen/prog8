@@ -724,10 +724,12 @@ main {
         cx16.r1 = &l1.n
         cx16.r2 = &l1.f
         cx16.r3 = &l1.b
-        cx16.r4 = &l1.next.s
-        cx16.r5 = &l1.next.n
-        cx16.r6 = &l1.next.f
-        cx16.r7 = &l1.next.b
+        cx16.r4 = &l1.next
+        cx16.r5 = &l1.next.s
+        cx16.r6 = &l1.next.n
+        cx16.r7 = &l1.next.f
+        cx16.r8 = &l1.next.b
+        cx16.r9 = &l1.next.next
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null

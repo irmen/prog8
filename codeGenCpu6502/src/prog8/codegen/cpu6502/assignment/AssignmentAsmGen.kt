@@ -447,8 +447,7 @@ internal class AssignmentAsmGen(
         when(val value = assign.source.expression!!) {
             is PtAddressOf -> {
                 val identifier = value.identifier
-                if(identifier==null)      TODO("read &dereference")
-                else {
+                if (identifier != null) {
                     val source = asmgen.symbolTable.lookup(identifier.name)
                     require(source !is StConstant) { "addressOf of a constant should have been rewritten to a simple addition expression" }
                     val arrayDt = identifier.type
@@ -460,7 +459,20 @@ internal class AssignmentAsmGen(
                         else
                             asmgen.asmSymbolName(identifier)
                     assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, arrayDt, value.arrayIndexExpr)
- }
+                } else {
+                    val ptrderef = value.dereference
+                    if(ptrderef!=null) {
+                        val zpPtrVar = pointergen.deref(ptrderef)
+                        assignVariableWord(assign.target, zpPtrVar, DataType.UWORD)
+                    } else {
+                        val array = value.arrayIndexExpr
+                        if(array!=null) {
+                            TODO("assign &array indexed ${assign.position}")
+                        } else {
+                            throw AssemblyError("weird addressOf value ${value.position}")
+                        }
+                    }
+                }
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")
             is PtNumber -> throw AssemblyError("source kind should have been literalnumber")
