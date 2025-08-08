@@ -1,14 +1,30 @@
+%import textio
+%import floats
+%option no_sysinit
+%zeropage basicsafe
+
+
 main {
-    uword[5] a
+    struct Enemy {
+        ubyte xpos, ypos
+        uword health
+        bool elite
+    }
 
     sub start() {
-        pokebool(cx16.r0, false)
-        pokebool(a[2], false)
-        pokebool(cx16.r0+cx16.r1, false)
+        ^^Enemy e1 = 30000
+        e1.elite=false
 
+        if e1.elite
+            txt.print("elite")
+        else
+            txt.print("pleb")
 
-        cx16.r0bL = peekbool(cx16.r0)
-        cx16.r0bL = peekbool(a[2])
-        cx16.r0bL = peekbool(cx16.r0+cx16.r1)
+        e1.elite = true
+
+        if e1.elite
+            txt.print("elite")
+        else
+            txt.print("pleb")
     }
 }

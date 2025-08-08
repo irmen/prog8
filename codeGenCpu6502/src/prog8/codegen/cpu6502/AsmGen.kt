@@ -259,7 +259,7 @@ class AsmGen6502Internal (
     private val pointerGen = PointerAssignmentsGen(this, allocator)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, pointerGen, anyExprGen, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
-    private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, assignmentAsmGen, errors)
+    private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, pointerGen, assignmentAsmGen, errors)
     private val ifExpressionAsmgen = IfExpressionAsmGen(this, assignmentAsmGen, errors)
 
     fun compileToAssembly(): IAssemblyProgram? {

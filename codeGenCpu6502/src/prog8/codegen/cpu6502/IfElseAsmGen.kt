@@ -6,11 +6,13 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
+import prog8.codegen.cpu6502.assignment.PointerAssignmentsGen
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 
 internal class IfElseAsmGen(private val program: PtProgram,
                             private val st: SymbolTable,
                             private val asmgen: AsmGen6502Internal,
+                            private val pointergen: PointerAssignmentsGen,
                             private val assignmentAsmGen: AssignmentAsmGen,
                             private val errors: IErrorReporter) {
 
@@ -63,9 +65,14 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
-        val deref = stmt.condition as? PtPointerDeref
-        if(deref!=null) {
-            TODO("ptr deref resulting in bool ${deref.position}")
+        val dereference = stmt.condition as? PtPointerDeref
+        if(dereference!=null) {
+            val zpPtrVar = pointergen.deref(dereference)
+            pointergen.loadIndirectByte(zpPtrVar)
+            return if (jumpAfterIf != null)
+                translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
+            else
+                translateIfElseBodies("beq", stmt)
         }
 
         throw AssemblyError("weird non-boolean condition node type ${stmt.condition} at ${stmt.condition.position}")

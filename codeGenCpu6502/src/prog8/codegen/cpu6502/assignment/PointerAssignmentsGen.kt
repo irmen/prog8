@@ -101,7 +101,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
 
 
-    private fun deref(pointer: PtPointerDeref): String {
+    internal fun deref(pointer: PtPointerDeref): String {
         // walk the pointer deref chain and leaves the final pointer value in a ZP var
         // this will often be the temp var P8ZP_SCRATCH_W1 but can also be the original pointer variable if it is already in zeropage
         if(pointer.chain.isEmpty()) {
@@ -197,7 +197,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         """)
     }
 
-    private fun loadIndirectByte(zpPtrVar: String) {
+    internal fun loadIndirectByte(zpPtrVar: String) {
         // loads byte pointed to by the ptrvar into A
         if(asmgen.isTargetCpu(CpuType.CPU65C02))
             asmgen.out("  lda  ($zpPtrVar)")
