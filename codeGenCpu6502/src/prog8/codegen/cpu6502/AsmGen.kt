@@ -747,6 +747,7 @@ class AsmGen6502Internal (
                 assignExpressionToRegister(value, RegisterOrPair.A)
                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, target.datatype.isSigned, false)
             }
+            target.datatype.isPointer -> TODO("assign expression to pointer ${target.position}")
             target.datatype.isWord || target.datatype.isPassByRef -> {
                 assignExpressionToRegister(value, RegisterOrPair.AY)
                 translateNormalAssignment(
@@ -1087,7 +1088,8 @@ $repeatLabel""")
         val returnRegs = sub.returnsWhatWhere()
 
         if(returnvalue!=null) {
-            if (sub.signature.returns.single().isNumericOrBool) {
+            val returnDt = sub.signature.returns.single()
+            if (returnDt.isNumericOrBool || returnDt.isPointer) {
                 assignExpressionToRegister(returnvalue, returnRegs.single().first.registerOrPair!!)
             }
             else {

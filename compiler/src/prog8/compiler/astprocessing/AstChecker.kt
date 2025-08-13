@@ -696,8 +696,10 @@ internal class AstChecker(private val program: Program,
         // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
         if(assignment.value.inferType(program).isUnknown) {
             val binexpr = assignment.value as? BinaryExpression
-            if (binexpr?.operator != ".") {
-                if(assignment.value !is PtrDereference && assignment.target.multi==null)
+            if(assignment.target.multi==null) {
+                if (binexpr != null && binexpr.operator != ".")
+                    errors.err("invalid assignment value", assignment.value.position)
+                else
                     errors.err("invalid assignment value", assignment.value.position)
             }
         }
@@ -833,7 +835,8 @@ internal class AstChecker(private val program: Program,
         if(trueDt.isUnknown || falseDt.isUnknown) {
             errors.err("invalid value type(s)", ifExpr.position)
         } else if(trueDt!=falseDt) {
-            errors.err("both values should be the same type", ifExpr.truevalue.position)
+            // if (!(trueDt.isUnsignedWord && falseDt.isPointer || trueDt.isPointer && falseDt.isUnsignedWord))
+                errors.err("both values in the if expression should be the same type", ifExpr.truevalue.position)
         }
         super.visit(ifExpr)
     }
@@ -1509,6 +1512,10 @@ internal class AstChecker(private val program: Program,
                         errors.err("shift by a word value not supported, max is a byte", expr.position)
                     }
                 }
+            }
+            "-" -> {
+                if(leftDt.isNumeric && rightDt.isPointer)
+                    errors.err("unclear pointer arithmetic in expression, perhaps you meant to just subtract addresses? Cast pointer to uword in that case.", expr.right.position)
             }
         }
 
@@ -2472,6 +2479,9 @@ internal class AstChecker(private val program: Program,
         }
         else if(targetDatatype.isString && sourceDatatype.isUnsignedWord)
             errors.err("can't assign uword to str. If the source is a string pointer and you actually want to overwrite the target string, use an explicit strings.copy(src,tgt) instead.", position)
+        else if(targetDatatype.isString && sourceDatatype == DataType.pointer(BaseDataType.UBYTE)) {
+            // this is allowed: assigning ^^ubyte to a str (will use stringcopy)
+        }
         else if(targetDatatype.isStructInstance) {
             if(sourceDatatype.isStructInstance && sourceDatatype != targetDatatype)
                 errors.err("value type $sourceDatatype doesn't match target type $targetDatatype", position)

@@ -45,7 +45,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             val rightDt = compareCond.right.type
             return when {
                 rightDt.isByteOrBool -> translateIfByte(stmt, jumpAfterIf)
-                rightDt.isWord -> translateIfWord(stmt, compareCond, jumpAfterIf)
+                rightDt.isWord || rightDt.isPointer -> translateIfWord(stmt, compareCond, jumpAfterIf)
                 rightDt.isFloat -> translateIfFloat(stmt, compareCond, jumpAfterIf)
                 else -> throw AssemblyError("weird dt")
             }

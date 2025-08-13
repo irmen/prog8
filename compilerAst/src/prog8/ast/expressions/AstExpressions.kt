@@ -189,6 +189,10 @@ class BinaryExpression(
             "+", "-", "*", "%", "/" -> {
                 if (!leftDt.isKnown || !rightDt.isKnown)
                     InferredTypes.unknown()
+                else if(operator=="-" && leftDt.isNumeric && rightDt.isPointer) {
+                    // x - pointer  is not pointer arithmetic like pointer-x or pointer+x, it's invalid, but return untyped pointer uword here
+                    return InferredTypes.knownFor(BaseDataType.UWORD)
+                }
                 else {
                     try {
                         val dt = InferredTypes.knownFor(
@@ -478,7 +482,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
     override fun referencesIdentifier(nameInSource: List<String>) = expression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(type)
     override fun constValue(program: Program): NumericLiteral? {
-        if(!type.isBasic)
+        if(!type.isBasic && !type.isPointer)
             return null
         val cv = expression.constValue(program) ?: return null
         cv.linkParents(parent)
@@ -628,7 +632,9 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
             BaseDataType.WORD -> require(number in -32768.0..32767.0)
             BaseDataType.LONG -> require(number in -2147483647.0..2147483647.0)
             BaseDataType.BOOL -> require(number==0.0 || number==1.0)
-            else ->  require(type.isNumericOrBool) { "numeric literal type should be numeric or bool: $type" }
+            BaseDataType.POINTER -> throw FatalAstException("pointer literals should not be created, should have been UWORD $position")
+            else ->  require(type.isNumericOrBool) {
+                "numeric literal type should be numeric or bool: $type" }
         }
         if(type!=BaseDataType.FLOAT) {
             if(truncate(number) != number)
@@ -829,6 +835,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
                 if(targettype==BaseDataType.LONG)
                     return ValueAfterCast(true, null, NumericLiteral(targettype, number, position))
+                // note: do not reduce a number casted to a pointer, back to a number...
             }
             BaseDataType.WORD -> {
                 if(targettype==BaseDataType.BYTE && number >= -128 && number <=127)

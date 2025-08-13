@@ -180,6 +180,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             }
         }
 
+        if(typecast.type.isWord && typecast.expression.inferType(program).isPointer) {
+            // pointers can be assigned to untyped pointer (uword) without a cast, but not if it's part of an expression!
+            if(parent !is Expression)
+                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+        }
+
         return noModifications
     }
 

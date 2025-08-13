@@ -123,6 +123,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
+                    target.datatype.isPointer ->
+                        ptrgen.inplaceModification(PtrTarget(target), operator, value)
                     else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                 }
             }
@@ -307,7 +309,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
                             }
                         }
-
+                        target.datatype.isPointer -> ptrgen.inplaceModification(PtrTarget(target), operator, value)
                         else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                     }
                 }
@@ -510,7 +512,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                                 pla  ; restore array ptr lsb
                                                 jsr  floats.copy_float""")
                         }
-
+                        target.datatype.isPointer -> ptrgen.inplaceModification(PtrTarget(target), operator, value)
                         else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                     }
                 }

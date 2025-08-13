@@ -108,7 +108,7 @@ strings {
             repeat cx16.r2L {
                 if startswith(cx16.r3, needle) {
                     sys.set_carry()
-                    return cx16.r3-haystack as ubyte
+                    return cx16.r3-(haystack as uword) as ubyte
                 }
                 cx16.r3++
             }

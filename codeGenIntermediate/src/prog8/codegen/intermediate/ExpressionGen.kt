@@ -615,7 +615,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                             it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=actualResultReg2, immediate = 1)
                         }
                     }
-                    else -> throw AssemblyError("weird cast value type")
+                    else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }
             }
             BaseDataType.UBYTE -> {
@@ -631,7 +631,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
                         addInstr(result, IRInstruction(Opcode.FTOUB, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
-                    else -> throw AssemblyError("weird cast value type")
+                    else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }
             }
             BaseDataType.BYTE -> {
@@ -647,7 +647,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
                         addInstr(result, IRInstruction(Opcode.FTOSB, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
-                    else -> throw AssemblyError("weird cast value type")
+                    else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }
             }
             BaseDataType.UWORD -> {
@@ -672,7 +672,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     BaseDataType.POINTER -> {
                         actualResultReg2 = tr.resultReg
                     }
-                    else -> throw AssemblyError("weird cast value type")
+                    else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }
             }
             BaseDataType.WORD -> {
@@ -694,7 +694,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
                         addInstr(result, IRInstruction(Opcode.FTOSW, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
                     }
-                    else -> throw AssemblyError("weird cast value type")
+                    else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }
             }
             BaseDataType.FLOAT -> {
@@ -712,7 +712,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     BaseDataType.WORD -> {
                         addInstr(result, IRInstruction(Opcode.FFROMSW, IRDataType.FLOAT, reg1=tr.resultReg, fpReg1 = actualResultFpReg2), null)
                     }
-                    else -> throw AssemblyError("weird cast value type")
+                    else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }
             }
             BaseDataType.POINTER -> {
@@ -723,7 +723,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             BaseDataType.ARRAY_POINTER -> {
                 TODO("typecast to array of pointers $valueDt -> ${cast.type}")
             }
-            else -> throw AssemblyError("weird cast type")
+            else -> throw AssemblyError("weird cast value type ${cast.position}")
         }
 
         return ExpressionCodeResult(result, irType(cast.type), actualResultReg2, actualResultFpReg2)

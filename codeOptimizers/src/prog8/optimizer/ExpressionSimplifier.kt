@@ -242,14 +242,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
             }
             if (rightVal?.number == 1.0) {
-                if (rightDt != leftDt) {
-                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
+                if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
             else if (rightVal?.number == 0.0) {
-                if (rightDt != leftDt) {
-                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
+                if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
@@ -262,14 +264,16 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 }
             }
             if (rightVal?.number == 1.0) {
-                if(rightDt!=leftDt) {
-                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
+                if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }
             else if (rightVal?.number == 0.0) {
-                if(rightDt!=leftDt) {
-                    val right = NumericLiteral(leftDt.base, rightVal.number, rightVal.position)
+                if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                    val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                    val right = NumericLiteral(dt, rightVal.number, rightVal.position)
                     return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                 }
             }

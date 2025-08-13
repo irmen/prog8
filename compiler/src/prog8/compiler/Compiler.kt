@@ -181,8 +181,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                     val symbolTable = stMaker.make()
 
-                postprocessSimplifiedAst(intermediateAst, symbolTable, compilationOptions, args.errors)
-                args.errors.report()
+                    postprocessSimplifiedAst(intermediateAst, symbolTable, compilationOptions, args.errors)
+                    args.errors.report()
 
                     if (compilationOptions.optimize) {
                         optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable, args.errors)

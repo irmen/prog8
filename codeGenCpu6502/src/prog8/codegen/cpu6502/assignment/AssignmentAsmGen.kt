@@ -446,32 +446,22 @@ internal class AssignmentAsmGen(
     private fun assignExpression(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(val value = assign.source.expression!!) {
             is PtAddressOf -> {
-                val identifier = value.identifier
-                if (identifier != null) {
+                if (value.identifier != null || value.isFromArrayElement) {
+                    val identifier = value.identifier!!
                     val source = asmgen.symbolTable.lookup(identifier.name)
                     require(source !is StConstant) { "addressOf of a constant should have been rewritten to a simple addition expression" }
-                    val arrayDt = identifier.type
                     val sourceName =
                         if (value.isMsbForSplitArray)
                             asmgen.asmSymbolName(identifier) + "_msb"
-                        else if (arrayDt.isSplitWordArray)
+                        else if (identifier.type.isSplitWordArray)
                             asmgen.asmSymbolName(identifier) + "_lsb"  // the _lsb split array comes first in memory
                         else
                             asmgen.asmSymbolName(identifier)
-                    assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, arrayDt, value.arrayIndexExpr)
+                    assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, identifier.type, value.arrayIndexExpr)
                 } else {
-                    val ptrderef = value.dereference
-                    if(ptrderef!=null) {
-                        val zpPtrVar = pointergen.deref(ptrderef)
-                        assignVariableWord(assign.target, zpPtrVar, DataType.UWORD)
-                    } else {
-                        val array = value.arrayIndexExpr
-                        if(array!=null) {
-                            TODO("assign &array indexed ${assign.position}")
-                        } else {
-                            throw AssemblyError("weird addressOf value ${value.position}")
-                        }
-                    }
+                    val ptrderef = value.dereference!!
+                    val zpPtrVar = pointergen.deref(ptrderef)
+                    assignVariableWord(assign.target, zpPtrVar, DataType.UWORD)
                 }
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")
@@ -2161,7 +2151,16 @@ $endLabel""")
                     return
                 }
             }
-            is PtNumber, is PtBool -> throw AssemblyError("a cast of a literal value should have been const-folded away")
+            is PtNumber -> {
+                if(targetDt.isPointer) {
+                    // assign a number to a pointer type
+                    require(valueDt.isInteger)
+                    assignConstantWord(target, value.number.toInt())
+                }
+                else
+                    throw AssemblyError("literal value cast should have been const-folded away (target type=$targetDt)")
+            }
+            is PtBool -> throw AssemblyError("literal value cast should have been const-folded away (target type=$targetDt)")
             is PtArrayIndexer -> {
                 if(targetDt.isByte && valueDt.isWord) {
                     // just assign the lsb from the array value

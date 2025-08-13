@@ -5,7 +5,6 @@ TODO
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
-- 6502 statementreorderer: fix todo for str -> ^^ubyte instead of uword
 - fix struct allocations/inits.
 
 - prefixSymbols(): what to do with prefixing struct fields?  Should they be prefixed with something or no?

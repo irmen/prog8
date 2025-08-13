@@ -776,6 +776,32 @@ main {
         (a4v.right as TypecastExpression).expression shouldBe instanceOf<IdentifierReference>()
     }
 
+    test("odd pointer arithmetic") {
+        val src="""
+main{
+
+    sub start() {
+        ^^ubyte @shared ptr = 2000
+        cx16.r0L = (cx16.r1 - ptr) as ubyte
+        cx16.r1L = (cx16.r1 - (ptr as uword)) as ubyte
+        void findstr1("asdf")
+        void findstr2("asdf")
+    }
+
+    sub findstr1(str haystack) -> ubyte {
+        return (cx16.r3-haystack) as ubyte
+    }
+    sub findstr2(str haystack) -> ubyte {
+        return (cx16.r3-(haystack as uword)) as ubyte
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain("6:31: unclear pointer arithmetic in expression")
+        errors.errors[1] shouldContain("13:25: unclear pointer arithmetic in expression")
+    }
+
     test("uword struct field array indexing") {
         val src="""
 main {
@@ -1353,6 +1379,29 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("str replaced by ^^ubyte in subroutine args and return type") {
+        val src="""
+main {
+
+    sub start() {
+        void test("hello")
+    }
+
+    sub test(str argument) -> str {
+        return "bye"
+    }
+}"""
+        val vmprg = compileText(VMTarget(), false, src, outputDir)!!
+        val vmtest = vmprg.codegenAst!!.allBlocks().first { it.name == "main" }.children[1] as PtSub
+        vmtest.signature.returns.single() shouldBe DataType.pointer(BaseDataType.UBYTE)
+        (vmtest.signature.children.single() as PtSubroutineParameter).type shouldBe DataType.pointer(BaseDataType.UBYTE)
+
+        val c64prg = compileText(C64Target(), false, src, outputDir)!!
+        val c64test = c64prg.codegenAst!!.allBlocks().first { it.name == "p8b_main" }.children[1] as PtSub
+        c64test.signature.returns.single() shouldBe DataType.pointer(BaseDataType.UBYTE)
+        (c64test.signature.children.single() as PtSubroutineParameter).type shouldBe DataType.pointer(BaseDataType.UBYTE)
     }
 
     test("hoist variable decl and initializer correctly in case of pointer type variable as well") {

@@ -220,9 +220,9 @@ internal class StatementReorderer(
                 subs.map { IAstModification.InsertLast(it, subroutine) }
         }
 
-        // change 'str' and 'ubyte[]' parameters or return types into ^^ubyte (TODO also for 6502 target, that is still uword for now)
+        // change 'str' and 'ubyte[]' parameters or return types into ^^ubyte
         val stringParams = subroutine.parameters.filter { it.type.isString || it.type.isUnsignedByteArray }
-        val replacementForStrDt = if(options.compTarget.cpu!=CpuType.VIRTUAL) DataType.UWORD else DataType.pointer(BaseDataType.UBYTE)      // TODO fix this once 6502 has pointers too
+        val replacementForStrDt = DataType.pointer(BaseDataType.UBYTE)
         val parameterChanges = stringParams.map {
             val uwordParam = SubroutineParameter(it.name, replacementForStrDt, it.zp, it.registerOrPair, it.position)
             IAstModification.ReplaceNode(it, uwordParam, subroutine)
@@ -240,9 +240,9 @@ internal class StatementReorderer(
                     subroutine.statements
                         .asSequence()
                         .filterIsInstance<VarDecl>()
-                        .filter { it.origin==VarDeclOrigin.SUBROUTINEPARAM && it.name in stringParamsByNames }
+                        .filter { it.origin==VarDeclOrigin.SUBROUTINEPARAM && it.name in stringParamsByNames && it.datatype!=DataType.pointer(BaseDataType.UBYTE) }
                         .map {
-                            val newvar = VarDecl(it.type, it.origin, DataType.UWORD,
+                            val newvar = VarDecl(it.type, it.origin, DataType.pointer(BaseDataType.UBYTE),
                                 it.zeropage,
                                 it.splitwordarray,
                                 null,
@@ -299,9 +299,11 @@ internal class StatementReorderer(
         }
 
         if(!assignment.isAugmentable) {
-            if (valueType issimpletype BaseDataType.STR && targetType issimpletype BaseDataType.STR) {
-                // replace string assignment by a call to stringcopy
-                return copyStringValue(assignment)
+            if (targetType issimpletype BaseDataType.STR) {
+                if (valueType issimpletype BaseDataType.STR || valueType.getOrUndef() == DataType.pointer(BaseDataType.UBYTE)) {
+                    // replace string assignment by a call to stringcopy
+                    return copyStringValue(assignment)
+                }
             }
         }
 

@@ -542,9 +542,6 @@
     <inspection_tool class="HardcodedLineSeparators" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="HardwiredNamespacePrefix" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="HashCodeUsesNonFinalVariable" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="HelmChartMissingKeys" enabled="false" level="ERROR" enabled_by_default="false" />
-    <inspection_tool class="HelmChartUnknownKeys" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="HelmChartUnknownValues" enabled="false" level="ERROR" enabled_by_default="false" />
     <inspection_tool class="HibernateConfigDomFacetInspection" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="HibernateConfigDomInspection" enabled="false" level="ERROR" enabled_by_default="false" />
     <inspection_tool class="HibernateFindAnnotationInspection" enabled="false" level="ERROR" enabled_by_default="false" />
@@ -802,15 +799,6 @@
     <inspection_tool class="KeySetIterationMayUseEntrySet" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="KotlinBigDecimalEquals" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="KtorYamlConfig" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="KubernetesDeprecatedKeys" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="KubernetesDeprecatedResources" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="KubernetesDuplicatedEnvVars" enabled="false" level="ERROR" enabled_by_default="false" />
-    <inspection_tool class="KubernetesMissingKeys" enabled="false" level="ERROR" enabled_by_default="false" />
-    <inspection_tool class="KubernetesNonEditableKeys" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="KubernetesNonEditableResources" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="KubernetesUnknownKeys" enabled="false" level="ERROR" enabled_by_default="false" />
-    <inspection_tool class="KubernetesUnknownResourcesInspection" enabled="false" level="WARNING" enabled_by_default="false" />
-    <inspection_tool class="KubernetesUnknownValues" enabled="false" level="ERROR" enabled_by_default="false" />
     <inspection_tool class="LabeledStatement" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="LambdaParameterHidingMemberVariable" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="LanguageDetectionInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
@@ -1161,7 +1149,6 @@
     </inspection_tool>
     <inspection_tool class="ReturnOfInnerClass" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="ReturnThis" enabled="true" level="WARNING" enabled_by_default="true" />
-    <inspection_tool class="RunBlockingInSuspendFunction" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="RuntimeExec" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="RuntimeExecWithNonConstantString" enabled="true" level="WARNING" enabled_by_default="true" />
     <inspection_tool class="SafeLock" enabled="true" level="WARNING" enabled_by_default="true" />
