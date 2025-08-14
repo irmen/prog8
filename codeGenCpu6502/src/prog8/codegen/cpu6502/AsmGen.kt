@@ -1440,7 +1440,7 @@ $repeatLabel""")
         if(params!=null) {
             for(param in params) {
                 param as PtSubroutineParameter
-                if(param.name==name)
+                if(param.scopedName==name)
                     return param
             }
         }

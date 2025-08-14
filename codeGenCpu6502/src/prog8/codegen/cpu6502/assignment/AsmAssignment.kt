@@ -55,6 +55,10 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             require(register!=null)
         else
             require(register==null)
+        if(kind==TargetStorageKind.POINTER)
+            require(pointer!=null)
+        if(pointer!=null)
+            require(kind==TargetStorageKind.POINTER)
     }
 
     companion object {

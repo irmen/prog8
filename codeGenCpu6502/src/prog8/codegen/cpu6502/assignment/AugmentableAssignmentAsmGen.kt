@@ -85,22 +85,23 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
-                    target.datatype.isWord -> {
+                    target.datatype.isWord || target.datatype.isPointer -> {
                         val block = target.origAstTarget?.definingBlock()
+                        val targetDt = if(target.datatype.isWord) target.datatype else DataType.UWORD   // pointers themselves that get a new value are just treated as UWORD variables
                         when(value.kind) {
-                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.boolean!!.asInt(), block)
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(target.asmVarname, target.datatype, operator, value.number!!.number.toInt(), block)
-                            SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, value.asmVarname, value.datatype, block)
-                            SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(target.asmVarname, target.datatype, operator, regName(value), value.datatype, block)
-                            SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(target.asmVarname, target.datatype, operator, value.memory!!)
-                            SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.array!!, block)
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationWordWithLiteralval(target.asmVarname, targetDt, operator, value.boolean!!.asInt(), block)
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationWordWithLiteralval(target.asmVarname, targetDt, operator, value.number!!.number.toInt(), block)
+                            SourceStorageKind.VARIABLE -> inplacemodificationWordWithVariable(target.asmVarname, targetDt, operator, value.asmVarname, value.datatype, block)
+                            SourceStorageKind.REGISTER -> inplacemodificationWordWithVariable(target.asmVarname, targetDt, operator, regName(value), value.datatype, block)
+                            SourceStorageKind.MEMORY -> inplacemodificationWordWithMemread(target.asmVarname, targetDt, operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> inplacemodificationWordWithValue(target.asmVarname, targetDt, operator, value.array!!, block)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression, block)
+                                    inplacemodificationWordWithValue(target.asmVarname, targetDt, operator, value.expression, block)
                                 }
                                 else {
-                                    inplacemodificationWordWithValue(target.asmVarname, target.datatype, operator, value.expression!!, block)
+                                    inplacemodificationWordWithValue(target.asmVarname, targetDt, operator, value.expression!!, block)
                                 }
                             }
                         }
@@ -123,8 +124,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
-                    target.datatype.isPointer ->
-                        ptrgen.inplaceModification(PtrTarget(target), operator, value)
                     else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                 }
             }
@@ -309,7 +308,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 }
                             }
                         }
-                        target.datatype.isPointer -> ptrgen.inplaceModification(PtrTarget(target), operator, value)
+                        target.datatype.isPointer -> TODO("inplace modification of pointer array ${target.position}")
                         else -> throw AssemblyError("weird type to do in-place modification on ${target.datatype}")
                     }
                 }

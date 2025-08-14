@@ -1,14 +1,9 @@
 main {
     sub start() {
-
-label:
-        uword @shared addr
-        addr = label
-        addr = thing
-        addr = &label
-        addr = &thing
+        console_write("sdf")
     }
 
-    sub thing() {
+    sub console_write(^^ubyte isoString) {
+        isoString++
     }
 }

@@ -1390,6 +1390,7 @@ main {
     }
 
     sub test(str argument) -> str {
+        argument++
         return "bye"
     }
 }"""
@@ -1397,11 +1398,21 @@ main {
         val vmtest = vmprg.codegenAst!!.allBlocks().first { it.name == "main" }.children[1] as PtSub
         vmtest.signature.returns.single() shouldBe DataType.pointer(BaseDataType.UBYTE)
         (vmtest.signature.children.single() as PtSubroutineParameter).type shouldBe DataType.pointer(BaseDataType.UBYTE)
+        val vminc = vmtest.children[2] as PtAugmentedAssign
+        vminc.operator shouldBe "+="
+        vminc.target.identifier!!.name shouldBe "main.test.argument"
+        vminc.target.identifier!!.type shouldBe DataType.pointer(BaseDataType.UBYTE)
+        (vminc.value as PtNumber).number shouldBe 1.0
 
         val c64prg = compileText(C64Target(), false, src, outputDir)!!
         val c64test = c64prg.codegenAst!!.allBlocks().first { it.name == "p8b_main" }.children[1] as PtSub
         c64test.signature.returns.single() shouldBe DataType.pointer(BaseDataType.UBYTE)
         (c64test.signature.children.single() as PtSubroutineParameter).type shouldBe DataType.pointer(BaseDataType.UBYTE)
+        val c64inc = c64test.children[2] as PtAugmentedAssign
+        c64inc.operator shouldBe "+="
+        c64inc.target.identifier!!.name shouldBe "p8b_main.p8s_test.p8v_argument"
+        c64inc.target.identifier!!.type shouldBe DataType.pointer(BaseDataType.UBYTE)
+        (c64inc.value as PtNumber).number shouldBe 1.0
     }
 
     test("hoist variable decl and initializer correctly in case of pointer type variable as well") {
