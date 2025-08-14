@@ -5,6 +5,8 @@ TODO
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
+- fix code size regression.  (for instance rockrunner is 200 bytes larger than before)
+
 - fix struct allocations/inits.
 
 - prefixSymbols(): what to do with prefixing struct fields?  Should they be prefixed with something or no?

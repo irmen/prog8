@@ -622,10 +622,12 @@ main {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = false) shouldBe null
         val err = errors.errors
-        err.size shouldBe 3
+        err.size shouldBe 5
         err[0] shouldContain("no such field 'zzz1'")
-        err[1] shouldContain("no such field 'zzz2'")
-        err[2] shouldContain("no such field 'zzz3'")
+        err[1] shouldContain("invalid assignment")
+        err[2] shouldContain("no such field 'zzz2'")
+        err[3] shouldContain("invalid assignment")
+        err[4] shouldContain("no such field 'zzz3'")
     }
 
 

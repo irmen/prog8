@@ -38,7 +38,7 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
         // because those are very likely caused by the unknown symbol. This reduces error clutter.
         val undefinedSymbolErrors = messages
             .asSequence()
-            .filter { it.severity == MessageSeverity.ERROR && it.message.contains("undefined symbol") }
+            .filter { it.severity == MessageSeverity.ERROR && (it.message.contains("undefined symbol") || it.message.contains("no such field")) }
             .map { it to (it.position.file to it.position.line)}
             .groupBy { it.second }
             .map { it.value.first().first }
