@@ -1,11 +1,17 @@
 main {
     sub start() {
-        struct Node {
-            ubyte weight
-        }
-        ^^Node nodes
-        nodes^^.zzz1 = 99
-        cx16.r0L = nodes^^.zzz2
-        cx16.r0L = nodes[2].zzz3
+        void derp("a")
+    }
+
+    sub derp(str arg) -> ubyte {
+        if arg==0
+            return 42
+        if arg==4444
+            return 42
+        if arg!=0
+            return 42
+        if arg!=4444
+            return 42
+        return 1
     }
 }

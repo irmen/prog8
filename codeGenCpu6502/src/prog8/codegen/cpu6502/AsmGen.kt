@@ -1223,11 +1223,11 @@ $repeatLabel""")
             return null
         val leftDt = left.type
         val rightDt = right.type
-        if(leftDt.isUnsignedWord && rightDt.isUnsignedByte)
+        if((leftDt.isUnsignedWord || leftDt.isPointer) && rightDt.isUnsignedByte)
             return Pair(left, right)
         if(leftDt.isUnsignedByte && rightDt.isUnsignedWord)
             return Pair(right, left)
-        if(leftDt.isUnsignedWord && rightDt.isUnsignedWord) {
+        if((leftDt.isUnsignedWord || leftDt.isPointer) && rightDt.isUnsignedWord) {
             // could be that the index was a constant numeric byte but converted to word, check that
             val constIdx = right as? PtNumber
             if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {

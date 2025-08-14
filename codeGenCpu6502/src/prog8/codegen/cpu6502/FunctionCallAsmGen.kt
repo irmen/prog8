@@ -21,7 +21,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         // we consider them NOT to be optimized into (possibly different) CPU registers.
         // Just load them in whatever the register spec says.
         return when (params.size) {
-            1 -> params[0].type.isIntegerOrBool && params[0].register == null
+            1 -> params[0].register == null && (params[0].type.isIntegerOrBool || params[0].type.isPointer)
             2 -> params[0].type.isByteOrBool && params[1].type.isByteOrBool && params[0].register == null && params[1].register == null
             else -> false
         }

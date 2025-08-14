@@ -1637,7 +1637,9 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     override fun inferType(program: Program): InferredTypes.InferredType {
         val t1 = truevalue.inferType(program)
         val t2 = falsevalue.inferType(program)
-        return if(t1==t2) t1 else InferredTypes.unknown()
+        if(t1==t2) return t1
+        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(BaseDataType.UWORD)
+        return InferredTypes.unknown()
     }
 
     override fun copy(): Expression = IfExpression(condition.copy(), truevalue.copy(), falsevalue.copy(), position)

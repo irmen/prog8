@@ -153,7 +153,7 @@ Regular subroutines
 
   - A byte value will be put in ``A`` .
   - A boolean value will be put in ``A`` too, as 0 or 1.
-  - A word value will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
+  - A word or pointer value will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
   - A float value will be put in the ``FAC1`` float 'register'.
 
 - In case of *multiple* return values:
@@ -171,7 +171,7 @@ Regular subroutines
 some builtin functions are special and won't exactly follow these rules.
 
 **Some arguments will be passed in registers:**
-For single byte and word arguments, the values are simply loaded in cpu registers by the caller before calling the subroutine.
+For single byte, word, and pointer arguments, the values are simply loaded in cpu registers by the caller before calling the subroutine.
 *The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
 otherwise all callers would have to store the values in those variables themselves.
 Note that his convention is also still used for subroutines that specify parameters to be put into
@@ -185,6 +185,9 @@ Two byte parameters: ``sub foo(ubyte bar, ubyte baz) { ... }``
    gets bar in the accumulator A, and baz in Y, *subroutine* stores it into parameter variable
 
 Single word parameter: ``sub foo(uword bar) { ... }``
+    gets bar in the register pair A + Y (lsb in A, msb in Y), *subroutine* stores it into parameter variable
+
+Single pointer parameter: ``sub foo(^^ubyte bar) { ... }``
     gets bar in the register pair A + Y (lsb in A, msb in Y), *subroutine* stores it into parameter variable
 
 Floating point parameter: ``sub foo(float bar) { ... }``

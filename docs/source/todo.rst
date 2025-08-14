@@ -5,8 +5,6 @@ TODO
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
-- fix code size regression.  (for instance rockrunner is 200 bytes larger than before)
-
 - fix struct allocations/inits.
 
 - prefixSymbols(): what to do with prefixing struct fields?  Should they be prefixed with something or no?
@@ -17,4 +15,4 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - update structpointers.rst docs with 6502 specific things?
 - scan through 6502 library modules to change untyped uword pointers to typed pointers
 - scan through 6502 examples to change untyped uword pointers to typed pointers
-
+- fix code size regressions (if any)

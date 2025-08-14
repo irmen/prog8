@@ -53,6 +53,11 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             }
         }
 
+        if(typecast.type.isUnsignedWord && sourceDt.isPointer) {
+            // remove all typecasts of pointers to unsigned words.
+            return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+        }
+
         return noModifications
     }
 
