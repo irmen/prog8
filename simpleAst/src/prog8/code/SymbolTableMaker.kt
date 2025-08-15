@@ -133,7 +133,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                                 else -> throw AssemblyError("invalid structalloc argument type $it")
                             }
                         }
-                        scope.first().add(StStructInstance(label, struct.scopedNameString, initialValues, struct.size, null))
+                        val scopedName = if(struct.astNode!=null) (struct.astNode as PtNamedNode).scopedName else struct.scopedNameString
+                        scope.first().add(StStructInstance(label, scopedName, initialValues, struct.size, null))
                     }
                 }
                 null

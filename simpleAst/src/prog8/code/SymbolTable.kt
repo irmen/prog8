@@ -315,7 +315,6 @@ class StMemorySlab(name: String, val size: UInt, val align: UInt, astNode: PtNod
 class StStructInstance(name: String, val structName: String, val initialValues: StArray, val size: UInt, astNode: PtNode?) :
     StNode(name, StNodeType.STRUCTINSTANCE, astNode)
 
-
 class StSub(name: String, val parameters: List<StSubroutineParameter>, val returns: List<DataType>, astNode: PtNode) :
     StNode(name, StNodeType.SUBROUTINE, astNode)
 

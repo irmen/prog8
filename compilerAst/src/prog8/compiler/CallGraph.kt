@@ -258,7 +258,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         return allIdentifiersAndTargets.filter { decl===it.second }.map{ it.first } + assemblyBlocks
     }
 
-    private val prefixes = listOf("p8b_", "p8v_", "p8s_", "p8c_", "p8l_", "p8_", "")
+    private val prefixes = listOf("p8b_", "p8v_", "p8s_", "p8c_", "p8l_", "p8t_", "p8_", "")
     private fun nameInAssemblyCode(name: String, knownAsmPrefixes: List<String> = emptyList()): List<InlineAssembly> {
         if(knownAsmPrefixes.isNotEmpty())
             return allAssemblyNodes.filter {

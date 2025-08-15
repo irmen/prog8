@@ -100,16 +100,18 @@ Symbol prefixing in generated Assembly code
 
 *All* symbols in the prog8 program will be prefixed in the generated assembly code:
 
-============ ========
-Element type prefix
-============ ========
-Block        ``p8b_``
-Subroutine   ``p8s_``
-Variable     ``p8v_``
-Constant     ``p8c_``
-Label        ``p8l_``
-other        ``p8_``
-============ ========
+================ ========
+Element type     prefix
+================ ========
+Block            ``p8b_``
+Subroutine       ``p8s_``
+Variable         ``p8v_``
+Constant         ``p8c_``
+Label            ``p8l_``
+Struct           ``p8t_``
+Struct Field     ``p8v_``
+other            ``p8_``
+================ ========
 
 This is to avoid naming conflicts with CPU registers, assembly instructions, etc.
 So if you're referencing symbols from the prog8 program in inlined assembly code, you have to take

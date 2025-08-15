@@ -44,6 +44,7 @@ internal class ProgramAndVarsGen(
                 asmgen.out("${flt.value}\t.byte  $floatFill  ; float $floatvalue")
             }
 
+            structInstances2asm()
             memorySlabs()
             footer()
         }
@@ -207,18 +208,20 @@ internal class ProgramAndVarsGen(
 
     private fun memorySlabs() {
         if(symboltable.allMemorySlabs.isNotEmpty()) {
-            asmgen.out("; memory slabs\n  .section slabs_BSS")
+            asmgen.out("; memory slabs\n  .section BSS_SLABS")
             asmgen.out("prog8_slabs\t.block")
             for (slab in symboltable.allMemorySlabs) {
                 if (slab.align > 1u)
                     asmgen.out("\t.align  ${slab.align.toHex()}")
                 asmgen.out("${slab.name}\t.fill  ${slab.size}")
             }
-            asmgen.out("\t.bend\n  .send slabs_BSS")
+            asmgen.out("\t.bend\n  .send BSS_SLABS")
         }
     }
 
     private fun footer() {
+        asmgen.out("  .dsection STRUCTINSTANCES\n")
+
         var relocateBssVars = false
         var relocateBssSlabs = false
         var relocatedBssStart = 0u
@@ -274,14 +277,14 @@ internal class ProgramAndVarsGen(
         asmgen.out("PROG8_VARSHIGH_RAMBANK = ${options.varsHighBank ?: 1}")
         if(relocateBssVars) {
             if(!relocateBssSlabs)
-                asmgen.out("  .dsection slabs_BSS")
+                asmgen.out("  .dsection BSS_SLABS")
             asmgen.out("prog8_program_end\t; end of program label for progend()")
             asmgen.out("  * = ${relocatedBssStart.toHex()}")
             asmgen.out("  .dsection BSS_NOCLEAR")
             asmgen.out("prog8_bss_section_start")
             asmgen.out("  .dsection BSS")
             if(relocateBssSlabs)
-                asmgen.out("  .dsection slabs_BSS")
+                asmgen.out("  .dsection BSS_SLABS")
             asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many variables/data for BSS section\"")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
         } else {
@@ -290,12 +293,12 @@ internal class ProgramAndVarsGen(
             asmgen.out("  .dsection BSS")
             asmgen.out("prog8_bss_section_size = * - prog8_bss_section_start")
             if(!relocateBssSlabs)
-                asmgen.out("  .dsection slabs_BSS")
+                asmgen.out("  .dsection BSS_SLABS")
             asmgen.out("prog8_program_end\t; end of program label for progend()")
             if(relocateBssSlabs) {
                 asmgen.out("  * = ${relocatedBssStart.toHex()}")
-                asmgen.out("  .dsection slabs_BSS")
-                asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many data for slabs_BSS section\"")
+                asmgen.out("  .dsection BSS_SLABS")
+                asmgen.out("  .cerror * > ${relocatedBssEnd.toHex()}, \"too many data for BSS_SLABS section\"")
             }
         }
 
@@ -365,6 +368,88 @@ internal class ProgramAndVarsGen(
             .filter { it.value.type==StNodeType.STATICVAR && !allocator.isZpVar(it.value.scopedNameString) }
             .map { it.value as StStaticVariable }
         nonZpVariables2asm(variables)
+    }
+
+    private fun asmTypeString(dt: DataType): String {
+        return when {
+            dt.isBool || dt.isUnsignedByte -> ".byte"
+            dt.isSignedByte -> ".char"
+            dt.isUnsignedWord || dt.isPointer -> ".word"
+            dt.isSignedWord -> ".sint"
+            dt.isFloat -> ".byte"
+            else -> {
+                throw AssemblyError("weird dt")
+            }
+        }
+    }
+
+    private fun structInstances2asm() {
+
+        fun initValues(instance: StStructInstance): List<String> {
+            val structtype: StStruct = symboltable.lookup(instance.structName) as StStruct
+            return structtype.fields.zip(instance.initialValues).map { (field, value) ->
+                if(field.first.isFloat) {
+                    "["+compTarget.getFloatAsmBytes(value.number!!)+"]"
+                } else {
+                    when {
+                        value.number!=null -> {
+                            if(field.first.isPointer)
+                                "$"+value.number!!.toInt().toString(16)
+                            else if(field.first.isInteger)
+                                value.number!!.toInt().toString()
+                            else
+                                value.number.toString()
+                        }
+                        value.addressOfSymbol!=null -> value.addressOfSymbol!!
+                        value.boolean!=null -> if(value.boolean==true) "1" else "0"
+                        else -> throw AssemblyError("weird struct initial value $value")
+                    }
+                }
+            }
+        }
+
+
+        asmgen.out("; struct types")
+        symboltable.allStructInstances.distinctBy { it.structName }.forEach {
+            val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
+            val structargs = structtype.fields.withIndex().joinToString(",") { "f${it.index}" }
+            asmgen.out("${it.structName}    .struct $structargs\n")
+            structtype.fields.withIndex().forEach { (index, field) ->
+                val dt = field.first
+                val varname = "f${index}"
+                val type = when {
+                    dt.isBool || dt.isUnsignedByte -> ".byte"
+                    dt.isSignedByte -> ".char"
+                    dt.isUnsignedWord || dt.isPointer -> ".word"
+                    dt.isSignedWord -> ".sint"
+                    dt.isFloat -> ".byte"   // TODO check that float bytes are passed as an array parameter
+                    else -> throw AssemblyError("weird dt")
+                }
+                asmgen.out("p8v_${field.second}  $type  \\$varname")        // note: struct field symbol prefixing done here because that is a lot simpler than fixing up all expressions in the AST
+            }
+            asmgen.out("    .endstruct\n")
+        }
+
+        val (instancesNoInit, instances) = symboltable.allStructInstances.partition { it.initialValues.isEmpty() }
+        asmgen.out("; struct instances without initialization values, as BSS zeroed at startup\n")
+        asmgen.out("    .section BSS\n")
+        instancesNoInit.forEach {
+            val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
+            val zerovalues = structtype.fields.map { field ->
+                if(field.first.isFloat) {
+                    val floatbytes = List(compTarget.memorySize(BaseDataType.FLOAT)) { "?" }
+                    "[${floatbytes.joinToString(",")}]"
+                }
+                else "?"
+            }
+            asmgen.out("${it.name}    .dstruct  ${it.structName}, ${zerovalues.joinToString(",")}\n")
+        }
+        asmgen.out("    .send BSS\n")
+
+        asmgen.out("; struct instances with initialization values\n")
+        asmgen.out("    .section STRUCTINSTANCES\n")
+        instances.forEach { asmgen.out("${it.name}    .dstruct  ${it.structName}, ${initValues(it).joinToString(",")}\n") }
+        asmgen.out("    .send STRUCTINSTANCES\n")
     }
 
     internal fun translateAsmSubroutine(sub: PtAsmSub) {

@@ -1,5 +1,6 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.*
@@ -397,11 +398,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcStructAlloc(fcall: PtBuiltinFunctionCall, discardResult: Boolean, resultRegister: RegisterOrPair?) {
         if(discardResult)
             throw AssemblyError("should not discard result of struct allocation at $fcall")
-        val struct = fcall.type.subType!!
         // ... don't need to pay attention to args here because struct instance is put together elsewhere we just have to get a pointer to it
-        val slabname = PtIdentifier("????TODO-STRUCTINSTANCENAME????", DataType.UWORD, fcall.position)      // TODO STRUCTNAME
+        val slabname = SymbolTable.labelnameForStructInstance(fcall)
         val addressOf = PtAddressOf(fcall.type, true, fcall.position)
-        addressOf.add(slabname)
+        addressOf.add(PtIdentifier(slabname, fcall.type, fcall.position))
         addressOf.parent = fcall
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, fcall.type, expression = addressOf)
         val target = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, null, asmgen)
