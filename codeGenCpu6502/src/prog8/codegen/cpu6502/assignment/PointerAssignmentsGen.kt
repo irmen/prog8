@@ -17,11 +17,20 @@ internal class PtrTarget(target: AsmAssignTarget) {
     val position = target.position
 }
 
+internal class IndexedPtrTarget(target: AsmAssignTarget) {
+    val dt = target.datatype
+    val pointer = target.array!!.pointerderef!!
+    val index = target.array!!.index
+    val splitwords = target.array!!.splitWords      // TODO unneeded?
+    val scope = target.scope
+    val position = target.position
+}
+
 
 internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, private val allocator: VariableAllocator) {
     internal fun assignAddressOf(
         target: PtrTarget,
-        sourceName: String,
+        varName: String,
         msb: Boolean,
         arrayDt: DataType?,
         arrayIndexExpr: PtExpression?
@@ -29,9 +38,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("assign address of to pointer deref ${target.position}")
     }
 
-    internal fun assignWordVar(target: PtrTarget, sourceName: String, sourceDt: DataType) {
+    internal fun assignWordVar(target: PtrTarget, varName: String, sourceDt: DataType) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectWordVar(sourceName, sourceDt, zpPtrVar)
+        storeIndirectWordVar(varName, sourceDt, zpPtrVar)
     }
 
     internal fun assignFAC1(target: PtrTarget) {
@@ -42,14 +51,14 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("assign float from AY to pointer deref ${target.position}")
     }
 
-    internal fun assignFloatVar(target: PtrTarget, sourceName: String) {
+    internal fun assignFloatVar(target: PtrTarget, varName: String) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectFloatVar(sourceName, zpPtrVar)
+        storeIndirectFloatVar(varName, zpPtrVar)
     }
 
-    internal fun assignByteVar(target: PtrTarget, sourceName: String) {
+    internal fun assignByteVar(target: PtrTarget, varName: String) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectByteVar(sourceName, zpPtrVar)
+        storeIndirectByteVar(varName, zpPtrVar)
     }
 
     internal fun assignByteReg(target: PtrTarget, register: CpuRegister, signed: Boolean, extendWord: Boolean) {
@@ -98,7 +107,6 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun inplaceWordNegate(target: PtrTarget, ignoreDatatype: Boolean, scope: IPtSubroutine?) {
         TODO("inplace word negate pointer deref ${target.position}")
     }
-
 
 
     internal fun deref(pointer: PtPointerDeref): String {
@@ -188,14 +196,107 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             throw AssemblyError("weird dt ${value.type} in pointer deref assignment ${target.position}")
     }
 
-    private fun loadIndirectFloat(zpPtrVar: String) {
-        // loads float pointed to by the ptrvar into FAC1
-        asmgen.out("""
-            lda  $zpPtrVar
-            ldy  $zpPtrVar+1
-            jsr  floats.MOVFM
-        """)
+    internal fun inplaceModification(target: PtrTarget, operator: String, value: AsmAssignSource) {
+        when (operator) {
+            "+" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isWord) inplaceWordAdd(target, value)
+                else if(target.dt.isFloat) inplaceFloatAddMul(target, "FADD", value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
+            "-" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isWord) inplaceWordSub(target, value)
+                else if(target.dt.isFloat) inplaceFloatSubDiv(target, "FSUB", value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
+            "*" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isWord) inplaceWordMul(target, value)
+                else if(target.dt.isFloat)  inplaceFloatAddMul(target, "FMULT", value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
+            "/" -> {
+                if(target.dt.isWord) inplaceWordDiv(target, value)
+                else if(target.dt.isFloat)  inplaceFloatSubDiv(target, "FDIV", value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
+            "%" -> TODO("inplace ptr %")
+            "<<" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isWord) inplaceWordShiftLeft(target, value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
+            ">>" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore
+                if(target.dt.isWord) inplaceWordShiftRight(target, value)
+                else throw AssemblyError("weird dt ${target.position}")
+            }
+            "&", "and" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
+                TODO("inplace ptr &")
+            }
+            "|", "or" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
+                TODO("inplace ptr |")
+            }
+            "^", "xor" -> {
+                // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
+                if(target.dt.isByteOrBool) inplaceByteXor(target, value)
+                else if(target.dt.isWord) inplaceWordXor(target, value)
+                else throw AssemblyError("weird dt ${target.dt} ${target.position}")
+            }
+            "==" -> TODO("inplace ptr ==")
+            "!=" -> TODO("inplace ptr !=")
+            "<" -> TODO("inplace ptr <")
+            "<=" -> TODO("inplace ptr <=")
+            ">" -> TODO("inplace ptr >")
+            ">=" -> TODO("inplace ptr >=")
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
     }
+
+    internal fun assignByte(target: IndexedPtrTarget, byte: Int) {
+        TODO("array ptr assign const byte ${target.position}")
+    }
+
+    internal fun assignWord(target: IndexedPtrTarget, word: Int) {
+        TODO("array ptr assign const word ${target.position}")
+    }
+
+    internal fun assignFloat(target: IndexedPtrTarget, float: Double) {
+        TODO("array ptr assign const float ${target.position}")
+    }
+
+    internal fun assignFAC1(target: IndexedPtrTarget) {
+        TODO("array ptr assign FAC1 ${target.position}")
+    }
+
+    internal fun assignFloatAY(target: IndexedPtrTarget) {
+        TODO("array ptr assign float AY ${target.position}")
+    }
+
+    internal fun assignFloatVar(target: IndexedPtrTarget, varName: String) {
+        TODO("array ptr assign float var ${target.position}")
+    }
+
+    internal fun assignByteReg(target: IndexedPtrTarget, register: CpuRegister) {
+        TODO("array ptr assign byte reg ${target.position}")
+    }
+
+    internal fun assignWordRegister(target: IndexedPtrTarget, regs: RegisterOrPair) {
+        TODO("array ptr assign word reg ${target.position}")
+    }
+
+    internal fun assignByteVar(target: IndexedPtrTarget, varName: String, extendToWord: Boolean, signed: Boolean) {
+        TODO("array ptr assign byte var ${target.position}")
+    }
+
+    internal fun assignWordVar(target: IndexedPtrTarget, varName: String) {
+        TODO("array ptr assign word var ${target.position}")
+    }
+
+
 
     internal fun loadIndirectByte(zpPtrVar: String) {
         // loads byte pointed to by the ptrvar into A
@@ -203,6 +304,15 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             asmgen.out("  lda  ($zpPtrVar)")
         else
             asmgen.out("  ldy  #0 |  lda  ($zpPtrVar),y")
+    }
+
+    private fun loadIndirectFloat(zpPtrVar: String) {
+        // loads float pointed to by the ptrvar into FAC1
+        asmgen.out("""
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.MOVFM
+        """)
     }
 
     private fun loadIndirectWord(zpPtrVar: String) {
@@ -287,66 +397,6 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             lda  $zpPtrVar
             ldy  $zpPtrVar+1
             jsr  floats.copy_float""")
-    }
-
-    fun inplaceModification(target: PtrTarget, operator: String, value: AsmAssignSource) {
-        when (operator) {
-            "+" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore
-                if(target.dt.isWord) inplaceWordAdd(target, value)
-                else if(target.dt.isFloat) inplaceFloatAddMul(target, "FADD", value)
-                else throw AssemblyError("weird dt ${target.position}")
-            }
-            "-" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore
-                if(target.dt.isWord) inplaceWordSub(target, value)
-                else if(target.dt.isFloat) inplaceFloatSubDiv(target, "FSUB", value)
-                else throw AssemblyError("weird dt ${target.position}")
-            }
-            "*" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore
-                if(target.dt.isWord) inplaceWordMul(target, value)
-                else if(target.dt.isFloat)  inplaceFloatAddMul(target, "FMULT", value)
-                else throw AssemblyError("weird dt ${target.position}")
-            }
-            "/" -> {
-                if(target.dt.isWord) inplaceWordDiv(target, value)
-                else if(target.dt.isFloat)  inplaceFloatSubDiv(target, "FDIV", value)
-                else throw AssemblyError("weird dt ${target.position}")
-            }
-            "%" -> TODO("inplace ptr %")
-            "<<" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore
-                if(target.dt.isWord) inplaceWordShiftLeft(target, value)
-                else throw AssemblyError("weird dt ${target.position}")
-            }
-            ">>" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore
-                if(target.dt.isWord) inplaceWordShiftRight(target, value)
-                else throw AssemblyError("weird dt ${target.position}")
-            }
-            "&", "and" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
-                TODO("inplace ptr &")
-            }
-            "|", "or" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
-                TODO("inplace ptr |")
-            }
-            "^", "xor" -> {
-                // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
-                if(target.dt.isByteOrBool) inplaceByteXor(target, value)
-                else if(target.dt.isWord) inplaceWordXor(target, value)
-                else throw AssemblyError("weird dt ${target.dt} ${target.position}")
-            }
-            "==" -> TODO("inplace ptr ==")
-            "!=" -> TODO("inplace ptr !=")
-            "<" -> TODO("inplace ptr <")
-            "<=" -> TODO("inplace ptr <=")
-            ">" -> TODO("inplace ptr >")
-            ">=" -> TODO("inplace ptr >=")
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
     }
 
     private fun inplaceWordShiftRight(target: PtrTarget, value: AsmAssignSource) {
@@ -791,4 +841,5 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             else -> throw AssemblyError("weird source value $value")
         }
     }
+
 }

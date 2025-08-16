@@ -1655,7 +1655,7 @@ internal class AssignmentAsmGen(
             if(rightArray!=null) {
                 val rightArrayVar = rightArray.variable
                 if(rightArrayVar==null) {
-                    TODO("optimized bitwise pointer ${rightArray.position}")
+                    TODO("optimized bitwise assignment from not a variable ${rightArray.position}")
                     return false
                 }
 
@@ -2313,13 +2313,12 @@ $endLabel""")
 //                }
                 TargetStorageKind.ARRAY -> {
                     // byte to word, just assign to registers first, then assign into array
-                    val deref = target.array!!.pointerderef
-                    if(deref!=null) {
-                        TODO("array indexed pointer deref ${target.position}")
-                        return
-                    }
                     assignExpressionToRegister(value, RegisterOrPair.AY, targetDt.isSigned)
-                    assignRegisterpairWord(target, RegisterOrPair.AY)
+                    val deref = target.array!!.pointerderef
+                    if(deref!=null)
+                        pointergen.assignWordRegister(IndexedPtrTarget(target), RegisterOrPair.AY)
+                    else
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
                     return
                 }
                 TargetStorageKind.REGISTER -> {
@@ -2909,7 +2908,7 @@ $endLabel""")
                 if(sourceDt.isUnsignedByte) TODO("assign byte to word array")
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${target.position}")
+                    pointergen.assignWordVar(IndexedPtrTarget(target), sourceName)
                     return
                 }
                 if(target.constArrayIndexValue!=null) {
@@ -3014,7 +3013,7 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${target.position}")
+                    pointergen.assignFAC1(IndexedPtrTarget(target))
                     return
                 }
                 asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.A)
@@ -3050,7 +3049,7 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${target.position}")
+                    pointergen.assignFloatAY(IndexedPtrTarget(target))
                     return
                 }
                 asmgen.out("  pha")
@@ -3095,10 +3094,10 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${target.position}")
+                    pointergen.assignFloatVar(IndexedPtrTarget(target), sourceName)
                     return
                 }
-                asmgen.assignExpressionToRegister(target.array!!.index, RegisterOrPair.A)
+                asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.A)
                 asmgen.out("""
                     ldy  #<$sourceName
                     sty  P8ZP_SCRATCH_W1
@@ -3142,10 +3141,10 @@ $endLabel""")
                 else {
                     val deref = target.array!!.pointerderef
                     if(deref!=null) {
-                        TODO("array indexed pointer deref ${target.position}")
+                        pointergen.assignByteVar(IndexedPtrTarget(target), sourceName, false, false)
                         return
                     }
-                    asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                     asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
                 }
             }
@@ -3188,10 +3187,10 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = wordtarget.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${wordtarget.position}")
+                    pointergen.assignByteVar(IndexedPtrTarget(wordtarget), sourceName, extendToWord=true, signed=true)
                     return
                 }
-                if(wordtarget.array!!.splitWords) {
+                if(wordtarget.array.splitWords) {
                     // signed byte, we must sign-extend
                     if (wordtarget.constArrayIndexValue!=null) {
                         val scaledIdx = wordtarget.constArrayIndexValue!!
@@ -3275,10 +3274,10 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = wordtarget.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${wordtarget.position}")
+                    pointergen.assignByteVar(IndexedPtrTarget(wordtarget), sourceName, extendToWord=true, signed=false)
                     return
                 }
-                if(wordtarget.array!!.splitWords) {
+                if(wordtarget.array.splitWords) {
                     if (wordtarget.constArrayIndexValue!=null) {
                         val scaledIdx = wordtarget.constArrayIndexValue!!
                         asmgen.out("  lda  $sourceName  | sta  ${wordtarget.asmVarname}_lsb+$scaledIdx")
@@ -3567,10 +3566,10 @@ $endLabel""")
     private fun assignRegisterByteToByteArray(target: AsmAssignTarget, register: CpuRegister) {
         val deref = target.array!!.pointerderef
         if(deref!=null) {
-            TODO("array indexed pointer deref ${target.position}")
+            pointergen.assignByteReg(IndexedPtrTarget(target), register)
             return
         }
-        if(target.array!!.splitWords)
+        if(target.array.splitWords)
             throw AssemblyError("cannot assign byte to split word array here ${target.position}")
 
         // assign regular array indexing
@@ -3627,10 +3626,10 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${target.position}")
+                    pointergen.assignWordRegister(IndexedPtrTarget(target), regs)
                     return
                 }
-                if(target.array!!.splitWords) {
+                if(target.array.splitWords) {
                     // assign to split lsb/msb word array
                     if (target.constArrayIndexValue!=null) {
                         val idx = target.constArrayIndexValue!!
@@ -3812,7 +3811,7 @@ $endLabel""")
                 TargetStorageKind.ARRAY -> {
                     val deref = target.array!!.pointerderef
                     if(deref!=null) {
-                        TODO("array indexed pointer deref ${target.position}")
+                        pointergen.assignWord(IndexedPtrTarget(target), word)
                         return
                     }
                     asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
@@ -3871,7 +3870,7 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${target.position}")
+                    pointergen.assignWord(IndexedPtrTarget(target), word)
                     return
                 }
                 asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
@@ -3922,7 +3921,7 @@ $endLabel""")
                 TargetStorageKind.ARRAY -> {
                     val deref = target.array!!.pointerderef
                     if(deref!=null) {
-                        TODO("array indexed pointer deref ${target.position}")
+                        pointergen.assignByte(IndexedPtrTarget(target), byte)
                         return
                     }
                     if(target.array.splitWords)
@@ -3970,7 +3969,7 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    TODO("array indexed pointer deref ${target.position}")
+                    pointergen.assignByte(IndexedPtrTarget(target), byte)
                     return
                 }
                 require(!target.array.splitWords)
@@ -4030,7 +4029,7 @@ $endLabel""")
                 TargetStorageKind.ARRAY -> {
                     val deref = target.array!!.pointerderef
                     if(deref!=null) {
-                        TODO("array indexed pointer deref ${target.position}")
+                        pointergen.assignFloat(IndexedPtrTarget(target), float)
                         return
                     }
                     asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.A)
@@ -4070,7 +4069,7 @@ $endLabel""")
                 TargetStorageKind.ARRAY -> {
                     val deref = target.array!!.pointerderef
                     if(deref!=null) {
-                        TODO("array indexed pointer deref ${target.position}")
+                        pointergen.assignFloat(IndexedPtrTarget(target), float)
                         return
                     }
                     asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.A)

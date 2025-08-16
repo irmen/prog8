@@ -463,6 +463,64 @@ thing {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("string comparisons still calling string compare routine")  {
+        val src="""
+main {
+    str s1 = "hello"
+    ^^ubyte @shared ubyteptr
+
+    sub start() {
+        cx16.r0bL = s1=="wob"
+        cx16.r1bL = "wob"=="s1"
+        cx16.r2bL = "wob"==cx16.r0
+        cx16.r3bL = cx16.r0=="wob"
+        cx16.r4bL = "wob"==ubyteptr
+        cx16.r5bL = ubyteptr=="wob"
+        void compare1("wob")
+        void compare2("wob")
+    }
+
+    sub compare1(str s2) -> bool {
+        return s1==s2
+    }
+
+    sub compare2(str s2) -> bool {
+        return s2==s1
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val main = result.compilerAst.allBlocks.first {it.name=="main"}
+        val st = main.statements.filterIsInstance<Subroutine>().first {it.name=="start"}.statements
+        st.size shouldBe 8
+
+        fun assertIsStringCompare(expr: BinaryExpression) {
+            expr.operator shouldBe "=="
+            (expr.right as NumericLiteral).number shouldBe 0.0
+            (expr.left as FunctionCallExpression).target.nameInSource shouldBe listOf("prog8_lib_stringcompare")
+        }
+
+        val av1 = (st[0] as Assignment).value as BinaryExpression
+        val av2 = (st[1] as Assignment).value as BinaryExpression
+        val av3 = (st[2] as Assignment).value as BinaryExpression
+        val av4 = (st[3] as Assignment).value as BinaryExpression
+        val av5 = (st[4] as Assignment).value as BinaryExpression
+        val av6 = (st[5] as Assignment).value as BinaryExpression
+        assertIsStringCompare(av1)
+        assertIsStringCompare(av2)
+        assertIsStringCompare(av3)
+        assertIsStringCompare(av4)
+        assertIsStringCompare(av5)
+        assertIsStringCompare(av6)
+
+        val compare1 = main.statements.filterIsInstance<Subroutine>().first {it.name=="compare1"}
+        val r1v = (compare1.statements.last() as Return).values.single() as BinaryExpression
+        assertIsStringCompare(r1v)
+
+        val compare2 = main.statements.filterIsInstance<Subroutine>().first {it.name=="compare2"}
+        val r2v = (compare2.statements.last() as Return).values.single() as BinaryExpression
+        assertIsStringCompare(r2v)
+    }
+
     test("str or ubyte array params or return type replaced by pointer to ubyte") {
         val src="""
 main {
