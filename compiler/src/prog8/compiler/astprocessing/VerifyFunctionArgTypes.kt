@@ -104,6 +104,9 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             if(paramDt.isUnsignedWord && argDt.isPointer)
                 return true
 
+            if(paramDt.isString && (argDt.isPointer && argDt.sub==BaseDataType.UBYTE))
+                return true
+
             return false
         }
 

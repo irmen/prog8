@@ -491,7 +491,6 @@ main {
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val main = result.compilerAst.allBlocks.first {it.name=="main"}
         val st = main.statements.filterIsInstance<Subroutine>().first {it.name=="start"}.statements
-        st.size shouldBe 8
 
         fun assertIsStringCompare(expr: BinaryExpression) {
             expr.operator shouldBe "=="
@@ -499,6 +498,7 @@ main {
             (expr.left as FunctionCallExpression).target.nameInSource shouldBe listOf("prog8_lib_stringcompare")
         }
 
+        st.size shouldBe 9
         val av1 = (st[0] as Assignment).value as BinaryExpression
         val av2 = (st[1] as Assignment).value as BinaryExpression
         val av3 = (st[2] as Assignment).value as BinaryExpression

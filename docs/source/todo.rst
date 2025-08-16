@@ -1,9 +1,6 @@
 TODO
 ====
 
-fix pointer arith type error (shell fails to compile)  if diskio.list_filename==filename  where filename is a str parameter
-
-
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
