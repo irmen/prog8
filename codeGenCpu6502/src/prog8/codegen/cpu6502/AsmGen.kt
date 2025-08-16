@@ -809,7 +809,7 @@ class AsmGen6502Internal (
                 when {
                     iterations == 0 -> {}
                     iterations == 1 -> translate(stmt.statements)
-                    iterations<0 || iterations>65536 -> throw AssemblyError("invalid number of iterations")
+                    iterations !in 0..65536 -> throw AssemblyError("invalid number of iterations")
                     iterations <= 256 -> repeatByteCount(iterations, stmt)
                     else -> repeatWordCount(iterations, stmt)
                 }
@@ -1059,10 +1059,7 @@ $repeatLabel""")
             if(evaluateAddressExpression) {
                 val arrayIdx = jump.target as? PtArrayIndexer
                 if (arrayIdx!=null) {
-                    val arrayVariable = arrayIdx.variable
-                    if(arrayVariable==null)
-                        TODO("support for ptr indexing ${arrayIdx.position}")
-
+                    val arrayVariable = arrayIdx.variable ?: TODO("support for ptr indexing ${arrayIdx.position}")
                     if (isTargetCpu(CpuType.CPU65C02)) {
                         if (!arrayIdx.splitWords) {
                             // if the jump target is an address in a non-split array (like a jump table of only pointers),
@@ -1272,9 +1269,7 @@ $repeatLabel""")
         }
 
         if(addressExpr.operator=="+") {
-            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr)
-            if (ptrAndIndex == null) return false
-
+            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr) ?: return false
             if(write) {
 
                 // WRITING TO pointer + offset
@@ -1366,9 +1361,7 @@ $repeatLabel""")
         }
 
         else if(addressExpr.operator=="-") {
-            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr, true)
-            if (ptrAndIndex == null) return false
-
+            val ptrAndIndex = pointerViaIndexRegisterPossible(addressExpr, true) ?: return false
             if(write) {
 
                 // WRITING TO pointer - offset

@@ -386,7 +386,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isWord)
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX)
                 TODO("<< expression")
             }
             SourceStorageKind.REGISTER -> {
@@ -396,7 +396,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 require(register.isWord())
                 TODO("<< register")
             }
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -434,7 +434,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isWord)
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX)
                 TODO("<< expression")
             }
             SourceStorageKind.REGISTER -> {
@@ -444,7 +444,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 require(register.isWord())
                 TODO("<< register")
             }
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -480,7 +480,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isWord)
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX)
                 asmgen.out("""
                     ldy  #0
                     clc
@@ -507,7 +507,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     adc  P8ZP_SCRATCH_W1+1
                     sta  ($ptrZpVar),y""")
             }
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -532,7 +532,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.VARIABLE -> TODO("variable + * float")
             SourceStorageKind.EXPRESSION -> TODO("expression + * float")
             SourceStorageKind.REGISTER -> TODO("register + * float")
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -568,7 +568,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isWord)
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX)
                 asmgen.out("""
                     ldy  #0
                     sec
@@ -580,7 +580,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  ($ptrZpVar),y""")
             }
             SourceStorageKind.REGISTER -> TODO("register - word")
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -632,7 +632,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 multiply()
             }
             SourceStorageKind.EXPRESSION -> TODO("ptr * expr (word)")
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -677,7 +677,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 TODO("inplace register word divide")
             }
             SourceStorageKind.EXPRESSION -> TODO("ptr / expr (word)")
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -701,7 +701,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.VARIABLE -> TODO("variable - / float")
             SourceStorageKind.EXPRESSION -> TODO("expression - / float")
             SourceStorageKind.REGISTER -> TODO("register - / float")
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -737,14 +737,14 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                         sta  ($ptrZpVar),y""")
             }
             SourceStorageKind.EXPRESSION -> {
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.A, false)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.A)
                 asmgen.out("""
                     ldy  #0
                     eor  ($ptrZpVar),y
                     sta  ($ptrZpVar),y""")
             }
             SourceStorageKind.REGISTER -> TODO("register ^ byte")
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 
@@ -777,7 +777,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isWord)
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX, false)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX)
                 asmgen.out("""
                     ldy  #0
                     eor  ($ptrZpVar),y
@@ -788,7 +788,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  ($ptrZpVar),y""")
             }
             SourceStorageKind.REGISTER -> TODO("register ^ word")
-            else -> throw AssemblyError("weird source value ${value}")
+            else -> throw AssemblyError("weird source value $value")
         }
     }
 }

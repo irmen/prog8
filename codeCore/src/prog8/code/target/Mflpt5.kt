@@ -18,7 +18,7 @@ data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, va
             // and https://en.wikipedia.org/wiki/IEEE_754-1985
 
             val flt = num.toDouble()
-            if (flt < FLOAT_MAX_NEGATIVE || flt > FLOAT_MAX_POSITIVE)
+            if (flt !in FLOAT_MAX_NEGATIVE..FLOAT_MAX_POSITIVE)
                 throw InternalCompilerException("floating point number out of 5-byte mflpt range: $this")
             if (flt == 0.0)
                 return zero

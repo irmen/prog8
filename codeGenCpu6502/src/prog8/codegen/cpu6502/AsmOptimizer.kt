@@ -408,7 +408,7 @@ private fun optimizeStoreLoadSame(
                     // a branch instruction follows, we can only remove the load instruction if
                     // another load instruction of the same register precedes the store instruction
                     // (otherwise wrong cpu flags are used)
-                    val loadinstruction = second.substring(0, 3)
+                    val loadinstruction = second.take(3)
                     lines[0].value.trimStart().startsWith(loadinstruction)
                 }
                 else {

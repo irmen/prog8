@@ -564,9 +564,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
 
         val targetAsmAddress = (target as? Subroutine)?.asmAddress
         if (targetAsmAddress != null) {
-            val constAddress = targetAsmAddress.address.constValue(program)
-            if (constAddress == null)
-                return null
+            val constAddress = targetAsmAddress.address.constValue(program) ?: return null
             return NumericLiteral(BaseDataType.UWORD, constAddress.number, position)
         }
         return null
@@ -860,35 +858,35 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
             BaseDataType.FLOAT -> {
                 try {
                     when (targettype) {
-                        BaseDataType.BYTE if number >= -128 && number <= 127 -> {
+                        BaseDataType.BYTE if number in -128.0..127.0 -> {
                             val converted = number.toInt().toByte().toDouble()
                             return if(implicit && converted!=number)
                                 ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
                                 ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
-                        BaseDataType.UBYTE if number >= 0 && number <= 255 -> {
+                        BaseDataType.UBYTE if number in 0.0..255.0 -> {
                             val converted = number.toInt().toUByte().toDouble()
                             return if(implicit && converted!=number)
                                 ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
                                 ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
-                        BaseDataType.WORD if number >= -32768 && number <= 32767 -> {
+                        BaseDataType.WORD if number >= -32768.0 && number <= 32767.0 -> {
                             val converted = number.toInt().toShort().toDouble()
                             return if(implicit && converted!=number)
                                 ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
                                 ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
-                        BaseDataType.UWORD if number >= 0 && number <= 65535 -> {
+                        BaseDataType.UWORD if number in 0.0..65535.0 -> {
                             val converted = number.toInt().toUShort().toDouble()
                             return if(implicit && converted!=number)
                                 ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
                             else
                                 ValueAfterCast(true, null, NumericLiteral(targettype, converted, position))
                         }
-                        BaseDataType.LONG if number >=0 && number <= 2147483647 -> {
+                        BaseDataType.LONG if number in 0.0..2.147483647E9 -> {
                             val converted = number.toInt().toDouble()
                             return if(implicit && converted!=number)
                                 ValueAfterCast(false, "refused truncating of float to avoid loss of precision", this)
@@ -1684,10 +1682,7 @@ class PtrDereference(
 
         fun resultType(dt: DataType?) = if(dt==null) InferredTypes.unknown() else InferredTypes.knownFor(if(derefLast) dt.dereference() else dt)
 
-        val target = definingScope.lookup(chain)
-        if(target==null)
-            return InferredTypes.unknown()
-
+        val target = definingScope.lookup(chain) ?: return InferredTypes.unknown()
         if(target is VarDecl)
             return resultType(target.datatype)
         if(target is StructFieldRef)

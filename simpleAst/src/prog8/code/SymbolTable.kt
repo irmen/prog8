@@ -298,7 +298,7 @@ class StStruct(
         throw NoSuchElementException("field $name not found in struct ${this.name}")
     }
 
-    override fun getFieldType(name: String): DataType? = fields.first { it.second == name }.first
+    override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second == name }?.first
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
     override fun sameas(other: ISubType): Boolean = other is StStruct &&

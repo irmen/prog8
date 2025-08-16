@@ -1,3 +1,4 @@
 sphinx>7.0.0
 sphinx_rtd_theme>=1.2
+sphinx_rtd_dark_mode
 sphinxcontrib-jquery

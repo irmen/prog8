@@ -666,9 +666,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     }
                 }
                 else {
-                    val targetVariable = target.variable
-                    if(targetVariable==null)
-                        TODO("support for ptr indexing ${target.position}")
+                    val targetVariable = target.variable ?: TODO("support for ptr indexing ${target.position}")
 
                     val eltSize = codeGen.program.memsizer.memorySize(target.type, null)
                     val constIndex = target.index.asConstInteger()

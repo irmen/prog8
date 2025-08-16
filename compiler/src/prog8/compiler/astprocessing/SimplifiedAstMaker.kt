@@ -329,7 +329,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             "%breakpoint" -> PtBreakpoint(directive.position)
             "%align" -> {
                 val align = directive.args[0].int!!
-                if(align<2u || align>65536u)
+                if(align !in 2u..65536u)
                     errors.err("invalid alignment size", directive.position)
                 PtAlign(align, directive.position)
             }
@@ -585,7 +585,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             throw FatalAstException("varbank must be a regular variable")
         val asmAddr = if(srcSub.asmAddress==null) null else {
             val constAddr = srcSub.asmAddress!!.address.constValue(program)
-            if(constAddr==null) throw FatalAstException("extsub address should be a constant")
+                ?: throw FatalAstException("extsub address should be a constant")
             PtAsmSub.Address(srcSub.asmAddress!!.constbank, varbank, constAddr.number.toUInt())
         }
         val sub = PtAsmSub(srcSub.name,
@@ -813,7 +813,6 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val rightDt = expr.right.inferType(program).getOrUndef()
 
         if(leftDt.isPointer && !rightDt.isPointer) {
-            val resultDt = leftDt
             val structSize = leftDt.size(program.memsizer)
             val constValue = expr.right.constValue(program)
             if(constValue!=null) {
@@ -822,7 +821,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 if (total == 0.0)
                     return transformExpression(expr.left)
                 else {
-                    val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
+                    val plusorminus = PtBinaryExpression(operator, leftDt, expr.position)
                     plusorminus.add(transformExpression(expr.left))
                     plusorminus.add(PtNumber(BaseDataType.UWORD, total, expr.position))
                     return plusorminus
@@ -848,14 +847,13 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                         offset.add(transformExpression(expr.right))
                         offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
                     }
-                    val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
+                    val plusorminus = PtBinaryExpression(operator, leftDt, expr.position)
                     plusorminus.add(transformExpression(expr.left))
                     plusorminus.add(offset)
                     return plusorminus
                 }
             }
         } else if(!leftDt.isPointer && rightDt.isPointer) {
-            val resultDt = rightDt
             val structSize = rightDt.size(program.memsizer)
             val constValue = expr.left.constValue(program)
             if(constValue!=null) {
@@ -864,7 +862,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 if (total == 0.0)
                     return transformExpression(expr.right)
                 else {
-                    val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
+                    val plusorminus = PtBinaryExpression(operator, rightDt, expr.position)
                     plusorminus.add(transformExpression(expr.right))
                     plusorminus.add(PtNumber(BaseDataType.UWORD, total, expr.position))
                     return plusorminus
@@ -890,7 +888,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                         offset.add(transformExpression(expr.left))
                         offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), expr.position))
                     }
-                    val plusorminus = PtBinaryExpression(operator, resultDt, expr.position)
+                    val plusorminus = PtBinaryExpression(operator, rightDt, expr.position)
                     plusorminus.add(offset)
                     plusorminus.add(transformExpression(expr.right))
                     return plusorminus

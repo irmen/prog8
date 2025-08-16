@@ -310,10 +310,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             when(operator) {
                 "+" -> { }
                 "-" -> {
-                    val arrayVariableName = array.variable?.name
-                    if(arrayVariableName==null)
-                        TODO("support for ptr indexing ${array.position}")
-
+                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                     val skipCarryLabel = codeGen.createLabelName()
                     if(constIndex!=null) {
                         addInstr(result, IRInstruction(Opcode.NEGM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex), null)
@@ -340,10 +337,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     }
                 }
                 "~" -> {
-                    val arrayVariableName = array.variable?.name
-                    if(arrayVariableName==null)
-                        TODO("support for ptr indexing ${array.position}")
-
+                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                     if(constIndex!=null) {
                         addInstr(result, IRInstruction(Opcode.INVM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex), null)
                         addInstr(result, IRInstruction(Opcode.INVM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex), null)
@@ -370,9 +364,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         when(operator) {
             "+" -> { }
             "-" -> {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                 if(constIndex!=null) {
                     addInstr(result, IRInstruction(Opcode.NEGM, vmDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 } else {
@@ -386,10 +378,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
             }
             "~" -> {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
-
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                 if(constIndex!=null) {
                     addInstr(result, IRInstruction(Opcode.INVM, vmDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 } else {
@@ -403,10 +392,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
             }
             "not" -> {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
-
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                 val register = codeGen.registers.next(vmDt)
                 if(constIndex!=null) {
                     result += IRCodeChunk(null, null).also {
@@ -738,10 +724,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val arrayVariableName = array.variable?.name
-            if(arrayVariableName==null)
-                TODO("support for ptr indexing ${array.position}")
-
+            val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
@@ -782,10 +765,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorLogicalAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val arrayVariableName = array.variable?.name
-            if(arrayVariableName==null)
-                TODO("support for ptr indexing ${array.position}")
-
+            val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
@@ -844,10 +824,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val constValue = operand.asConstInteger()
             val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
-
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                 if(array.splitWords) {
                     val valueRegLsb = codeGen.registers.next(IRDataType.BYTE)
                     val valueRegMsb = codeGen.registers.next(IRDataType.BYTE)
@@ -891,10 +868,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if(array.splitWords) {
                     throw AssemblyError("logical or on (split) word array should not happen")
                 } else {
-                    val arrayVariableName = array.variable?.name
-                    if(arrayVariableName==null)
-                        TODO("support for ptr indexing ${array.position}")
-
+                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                     val valueReg = codeGen.registers.next(vmDt)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate=constValue)
@@ -1004,10 +978,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
                 if(constValue!=1) {
-                    val arrayVariableName = array.variable?.name
-                    if(arrayVariableName==null)
-                        TODO("support for ptr indexing ${array.position}")
-
+                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
                     val valueReg=codeGen.registers.next(eltDt)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOAD, eltDt, reg1=valueReg, immediate = constValue)
@@ -1065,9 +1036,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
 
                 if(constValue==1) {
                     addInstr(result, IRInstruction(Opcode.DECM, eltDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
@@ -1135,9 +1104,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(constIndex!=null) {
             val skip = codeGen.createLabelName()
             if(constValue==1) {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
 
                 val lsbReg = codeGen.registers.next(IRDataType.BYTE)
                 result += IRCodeChunk(null, null).also {
@@ -1167,9 +1134,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
 
                 if(constValue==1) {
                     addInstr(result, IRInstruction(Opcode.INCM, elementDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
@@ -1230,9 +1195,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(constIndex!=null) {
             val skip = codeGen.createLabelName()
             if(constValue==1) {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
 
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
@@ -1255,9 +1218,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val constValue = operand.asConstInteger()
 
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
 
                 if(array.splitWords) {
                     repeat(constValue) {
@@ -1320,9 +1281,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val constValue = operand.asConstInteger()
 
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name
-                if(arrayVariableName==null)
-                    TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
 
                 if(array.splitWords) {
                     repeat(constValue) {
@@ -1378,9 +1337,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorXorInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val arrayVariableName = array.variable?.name
-            if(arrayVariableName==null)
-                TODO("support for ptr indexing ${array.position}")
+            val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
 
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()

@@ -449,8 +449,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitInlineasm(ctx: InlineasmContext): InlineAssembly {
-        val type = ctx.directivename().UNICODEDNAME().text
-        val isIR = when(type) {
+        val isIR = when(val type = ctx.directivename().UNICODEDNAME().text) {
             "asm" -> false
             "ir" -> true
             else -> throw SyntaxError("unknown inline asm type $type", ctx.toPosition())
@@ -611,8 +610,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitPointerDereferenceTarget(ctx: PointerDereferenceTargetContext): AssignTarget {
-        val deref = ctx.pointerdereference().accept(this)
-        return when (deref) {
+        return when (val deref = ctx.pointerdereference().accept(this)) {
             is PtrDereference -> AssignTarget(null, null, null, null, false, pointerDereference = deref, position = deref.position)
             is ArrayIndexedPtrDereference -> AssignTarget(null, null, null, null, false, arrayIndexedDereference = deref, position = deref.position)
             else -> throw FatalAstException("weird dereference ${ctx.toPosition()}")

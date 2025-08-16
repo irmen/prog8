@@ -139,7 +139,6 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     }
 }
 
-@Suppress("unused")
 private fun builtinLen(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     // note: in some cases the length is > 255, and then we have to return a UWORD type instead of a UBYTE.
     if(args.size!=1)

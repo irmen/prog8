@@ -148,7 +148,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                 left is PtIdentifier && left.name==scopedName
             }
             TargetStorageKind.ARRAY -> {
-                left is PtArrayIndexer && left isSameAs array!! && left.splitWords==array.splitWords
+                left is PtArrayIndexer && left isSameAs array!! && left.splitWords==array.splitWords && (left.pointerderef==null && array.pointerderef==null || left.pointerderef!! isSameAs array.pointerderef!!)
             }
             TargetStorageKind.MEMORY -> {
                 left isSameAs memory!!

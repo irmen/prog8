@@ -671,9 +671,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 val elementSize: Int
                 val msbAdd: Int
                 if(indexer.splitWords) {
-                    val arrayVariable = indexer.variable
-                    if(arrayVariable==null)
-                        TODO("support for ptr indexing ${indexer.position}")
+                    val arrayVariable = indexer.variable ?: TODO("support for ptr indexing ${indexer.position}")
                     indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.arrayFor(BaseDataType.UBYTE, false), arrayVariable.position)
                     indexer.children[0].parent = indexer
                     elementSize = 1

@@ -205,7 +205,7 @@ object SysCalls {
                 var input = readln()
                 val maxlenvalue = (maxlen as UByte).toInt()
                 if(maxlenvalue>0)
-                    input = input.substring(0, min(input.length, maxlenvalue))
+                    input = input.take(min(input.length, maxlenvalue))
                 vm.memory.setString((address as UShort).toInt(), input, true)
                 returnValue(callspec.returns.single(), input.length, vm)
             }

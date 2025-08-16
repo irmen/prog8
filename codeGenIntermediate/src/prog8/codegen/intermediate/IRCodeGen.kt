@@ -69,8 +69,7 @@ class IRCodeGen(
                 val initialization = (block.children.firstOrNull {
                     it is PtAssignment && it.isVarInitializer && it.target.identifier?.name==variable.scopedNameString
                 } as PtAssignment?)
-                val initValue = initialization?.value
-                when(initValue){
+                when(val initValue = initialization?.value){
                     is PtBool -> {
                         require(initValue.asInt()!=0 || variable.zpwish!=ZeropageWish.NOT_IN_ZEROPAGE) { "non-zp variable should not be initialized with 0, it will already be zeroed as part of BSS clear, initializer=$initialization" }
                         variable.setOnetimeInitNumeric(initValue.asInt().toDouble())
@@ -1771,9 +1770,7 @@ class IRCodeGen(
     private fun isIndirectJump(jump: PtJump): Boolean {
         if(jump.target.asConstInteger()!=null)
             return false
-        val identifier = jump.target as? PtIdentifier
-        if(identifier==null)
-            return true
+        val identifier = jump.target as? PtIdentifier ?: return true
         val symbol = symbolTable.lookup(identifier.name)
         return symbol?.type==StNodeType.MEMVAR || symbol?.type==StNodeType.STATICVAR
     }
@@ -1927,8 +1924,7 @@ class IRCodeGen(
             if(it.register==null) {
                 require('.' in it.name) { "even parameter names should have been made fully scoped by now" }
                 val orig = symbolTable.lookup(it.name) as? StStaticVariable
-                if (orig == null)
-                    TODO("fix missing lookup for: ${it.name}   parameter")
+                    ?: TODO("fix missing lookup for: ${it.name}   parameter")
                 result += IRSubroutine.IRParam(it.name, orig.dt)
             } else {
                 val reg = it.register

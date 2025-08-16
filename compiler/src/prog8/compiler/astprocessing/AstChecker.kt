@@ -116,7 +116,7 @@ internal class AstChecker(private val program: Program,
         if(iterations==null) {
             errors.err("unroll needs constant number of iterations", unrollLoop.position)
         } else {
-            if (iterations < 0 || iterations > 65535)
+            if (iterations !in 0..65535)
                 errors.err("invalid number of unrolls", unrollLoop.position)
             unrollLoop.body.statements.forEach {
                 if (it !is InlineAssembly && it !is Assignment && it !is FunctionCallStatement)
@@ -299,7 +299,7 @@ internal class AstChecker(private val program: Program,
             }
         } else {
             val addr = jump.target.constValue(program)?.number
-            if (addr!=null && (addr<0 || addr > 65535))
+            if (addr != null && addr !in 0.0..65535.0)
                 errors.err("goto address must be uword", jump.position)
 
             val addressDt = jump.target.inferType(program).getOrUndef()
@@ -741,7 +741,7 @@ internal class AstChecker(private val program: Program,
 
         val memAddr = assignTarget.memoryAddress?.addressExpression?.constValue(program)?.number?.toInt()
         if (memAddr != null) {
-            if (memAddr < 0 || memAddr >= 65536)
+            if (memAddr !in 0..<65536)
                 errors.err("address out of range", assignTarget.position)
         }
 
@@ -1855,12 +1855,10 @@ internal class AstChecker(private val program: Program,
                     }
                     if(ident!=null && ident.nameInSource[0] == "cx16" && ident.nameInSource[1].startsWith("r")) {
                         var regname = ident.nameInSource[1].uppercase()
-                        val lastLetter = regname.last().lowercaseChar()
-                        if(lastLetter in arrayOf('l', 'h', 's')) {
-                            regname = regname.substring(0, regname.length - 1)
-                            val lastLetter2 = regname.last().lowercaseChar()
-                            if(lastLetter2 in arrayOf('l', 'h', 's')) {
-                                regname = regname.substring(0, regname.length - 1)
+                        if(regname.last().lowercaseChar() in arrayOf('l', 'h', 's')) {
+                            regname = regname.dropLast(1)
+                            if(regname.last().lowercaseChar() in arrayOf('l', 'h', 's')) {
+                                regname = regname.dropLast(1)
                             }
                         }
                         val reg = RegisterOrPair.valueOf(regname)
@@ -1950,13 +1948,13 @@ internal class AstChecker(private val program: Program,
             val arraysize = target.arraysize?.constIndex()
             val index = arrayIndexedExpression.indexer.constIndex()
             if (arraysize != null) {
-                if (index != null && (index < 0 || index >= arraysize))
+                if (index != null && index !in 0..<arraysize)
                     errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             } else if (target.datatype.isString) {
                 if (target.value is StringLiteral) {
                     // check string lengths for non-memory mapped strings
                     val stringLen = (target.value as StringLiteral).value.length
-                    if (index != null && (index < 0 || index >= stringLen))
+                    if (index != null && index !in 0..<stringLen)
                         errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
                 }
             } else if (index != null && index < 0) {
@@ -2315,7 +2313,7 @@ internal class AstChecker(private val program: Program,
                 if(value.type==BaseDataType.FLOAT)
                     err("unsigned byte value expected instead of float; possible loss of precision")
                 val number=value.number
-                if (number < 0 || number > 255)
+                if (number !in 0.0..255.0)
                     return err("value '$number' out of range for unsigned byte")
             }
             targetDt.isSignedByte -> {
@@ -2329,7 +2327,7 @@ internal class AstChecker(private val program: Program,
                 if(value.type==BaseDataType.FLOAT)
                     err("unsigned word value expected instead of float; possible loss of precision")
                 val number=value.number
-                if (number < 0 || number > 65535)
+                if (number !in 0.0..65535.0)
                     return err("value '$number' out of range for unsigned word")
             }
             targetDt.isSignedWord -> {

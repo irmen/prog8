@@ -9,7 +9,7 @@ import java.nio.file.Path
 
 class C64Target: ICompilationTarget,
     IStringEncoding by Encoder(true),
-    IMemSizer by NormalMemSizer(Mflpt5.Companion.FLOAT_MEM_SIZE) {
+    IMemSizer by NormalMemSizer(Mflpt5.FLOAT_MEM_SIZE) {
 
     override val name = NAME
     override val defaultEncoding = Encoding.PETSCII

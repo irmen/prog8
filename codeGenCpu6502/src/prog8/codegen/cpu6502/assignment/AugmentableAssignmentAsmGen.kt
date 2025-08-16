@@ -226,11 +226,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             TargetStorageKind.ARRAY -> {
-                val targetArrayVar = target.array!!.variable
-                if(targetArrayVar==null) {
-                    TODO("array indexing on pointer ${target.position}")
+                val deref = target.array!!.pointerderef
+                if(deref!=null) {
+                    TODO("inplace modification array indexed pointer deref ${target.position}")
                     return
                 }
+                val targetArrayVar = target.array.variable!!
                 val indexNum = target.array.index as? PtNumber
                 if (indexNum!=null) {
                     val index = indexNum.number.toInt()

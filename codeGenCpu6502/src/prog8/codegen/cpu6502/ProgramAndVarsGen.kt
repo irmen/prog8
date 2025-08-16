@@ -412,7 +412,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("; struct types")
         symboltable.allStructInstances.distinctBy { it.structName }.forEach {
             val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
-            val structargs = structtype.fields.withIndex().joinToString(",") { "f${it.index}" }
+            val structargs = structtype.fields.withIndex().joinToString(",") { field -> "f${field.index}" }
             asmgen.out("${it.structName}    .struct $structargs\n")
             structtype.fields.withIndex().forEach { (index, field) ->
                 val dt = field.first

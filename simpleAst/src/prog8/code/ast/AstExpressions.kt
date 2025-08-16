@@ -20,6 +20,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     }
 
     infix fun isSameAs(other: PtExpression): Boolean {
+        // TOOD replace this by == operator?
         return when(this) {
             is PtAddressOf -> {
                 if(other !is PtAddressOf)
@@ -81,6 +82,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtPrefix -> other is PtPrefix && other.type==type && other.operator==operator && other.value isSameAs value
             is PtRange -> other is PtRange && other.type==type && other.from==from && other.to==to && other.step==step
             is PtTypeCast -> other is PtTypeCast && other.type==type && other.value isSameAs value
+            is PtPointerDeref -> other is PtPointerDeref && other.type==type && other.derefLast==derefLast && startpointer isSameAs other.startpointer
             else -> false
         }
     }

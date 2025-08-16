@@ -395,8 +395,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
         val stepLiteral = iterableRange.step as? NumericLiteral
         require(loopvar.datatype.isBasic)
-        val loopvarSimpleDt = loopvar.datatype.base
-        when(loopvarSimpleDt) {
+        when(val loopvarSimpleDt = loopvar.datatype.base) {
             BaseDataType.UBYTE -> {
                 if(rangeFrom.type != BaseDataType.UBYTE) {
                     // attempt to translate the iterable into ubyte values
