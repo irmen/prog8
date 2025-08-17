@@ -872,6 +872,13 @@ main {
         }
         ^^List  l = List()
         l.s[2] = 42
+        l.s[300] = 42
+        l.n[2] = 99
+        l.n[300] = 99
+        l.s[cx16.r0L] = 42
+        l.n[cx16.r0L] = 99
+        l.s[cx16.r0L+2] = 42
+        l.n[cx16.r0L+2] = 99
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null

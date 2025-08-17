@@ -14,7 +14,7 @@ internal class AssignmentAsmGen(
     private val anyExprGen: AnyExprAsmGen,
     private val allocator: VariableAllocator
 ) {
-    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, this, asmgen, pointergen, allocator)
+    lateinit var augmentableAsmGen: AugmentableAssignmentAsmGen
 
     fun translate(assignment: PtAssignment) {
         val target = AsmAssignTarget.fromAstAssignment(assignment.target, assignment.definingISub(), asmgen)
@@ -478,10 +478,16 @@ internal class AssignmentAsmGen(
                 assignRegisterByte(assign.target, CpuRegister.A, false, true)
             }
             is PtBinaryExpression -> {
-                if(!attemptAssignOptimizedBinexpr(value, assign)) {
-                    // TOO BAD: the expression was too complex to translate into assembly.
-                    val pos = if(value.position!==Position.DUMMY) value.position else assign.position
-                    throw AssemblyError("Expression is too complex to translate into assembly. Split it up into several separate statements, introduce a temporary variable, or otherwise rewrite it. Location: $pos")
+                if(value.operator==".") {
+                    val reg = pointergen.operatorDereference(value)
+                    asmgen.assignRegister(reg, assign.target)
+                }
+                else {
+                    if (!attemptAssignOptimizedBinexpr(value, assign)) {
+                        // TOO BAD: the expression was too complex to translate into assembly.
+                        val pos = if (value.position !== Position.DUMMY) value.position else assign.position
+                        throw AssemblyError("Expression is too complex to translate into assembly. Split it up into several separate statements, introduce a temporary variable, or otherwise rewrite it. Location: $pos")
+                    }
                 }
             }
             is PtIfExpression -> asmgen.assignIfExpression(assign.target, value)
@@ -2848,14 +2854,14 @@ $endLabel""")
         }
     }
 
-    private fun assignVariableString(target: AsmAssignTarget, sourceName: String) {
+    private fun assignVariableString(target: AsmAssignTarget, varName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 when {
                     target.datatype.isUnsignedWord -> {
                         asmgen.out("""
-                            lda  #<$sourceName
-                            ldy  #>$sourceName
+                            lda  #<$varName
+                            ldy  #>$varName
                             sta  ${target.asmVarname}
                             sty  ${target.asmVarname}+1""")
                     }
@@ -2865,8 +2871,8 @@ $endLabel""")
                             ldy  #>${target.asmVarname}
                             sta  P8ZP_SCRATCH_W1
                             sty  P8ZP_SCRATCH_W1+1
-                            lda  #<$sourceName
-                            ldy  #>$sourceName
+                            lda  #<$varName
+                            ldy  #>$varName
                             jsr  prog8_lib.strcpy""")
                     }
                     else -> throw AssemblyError("assign string to incompatible variable type")
@@ -2876,10 +2882,10 @@ $endLabel""")
         }
     }
 
-    private fun assignVariableWord(target: AsmAssignTarget, sourceName: String, sourceDt: DataType) {
+    private fun assignVariableWord(target: AsmAssignTarget, varName: String, sourceDt: DataType) {
         if(sourceDt.isSignedByte) {
             // need to sign extend
-            asmgen.out("  lda  $sourceName")
+            asmgen.out("  lda  $varName")
             asmgen.signExtendAYlsb(BaseDataType.BYTE)
             assignRegisterpairWord(target, RegisterOrPair.AY)
             return
@@ -2888,7 +2894,7 @@ $endLabel""")
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 if(sourceDt.isUnsignedByte || sourceDt.isBool) {
-                    asmgen.out("  lda  $sourceName |  sta  ${target.asmVarname}")
+                    asmgen.out("  lda  $varName |  sta  ${target.asmVarname}")
                     if(asmgen.isTargetCpu(CpuType.CPU65C02))
                         asmgen.out("  stz  ${target.asmVarname}+1")
                     else
@@ -2896,8 +2902,8 @@ $endLabel""")
                 }
                 else
                     asmgen.out("""
-                        lda  $sourceName
-                        ldy  $sourceName+1
+                        lda  $varName
+                        ldy  $varName+1
                         sta  ${target.asmVarname}
                         sty  ${target.asmVarname}+1""")
             }
@@ -2908,27 +2914,27 @@ $endLabel""")
                 if(sourceDt.isUnsignedByte) TODO("assign byte to word array")
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    pointergen.assignWordVar(IndexedPtrTarget(target), sourceName)
+                    pointergen.assignWordVar(IndexedPtrTarget(target), varName)
                     return
                 }
                 if(target.constArrayIndexValue!=null) {
                     val scaledIdx = program.memsizer.memorySize(target.datatype, target.constArrayIndexValue!!.toInt())
                     when {
                         target.datatype.isByte -> {
-                            asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
+                            asmgen.out(" lda  $varName  | sta  ${target.asmVarname}+$scaledIdx")
                         }
                         target.datatype.isWord -> {
                             if(target.array.splitWords)
                                 asmgen.out("""
-                                    lda  $sourceName
+                                    lda  $varName
                                     sta  ${target.asmVarname}_lsb+${target.constArrayIndexValue}
-                                    lda  $sourceName+1
+                                    lda  $varName+1
                                     sta  ${target.asmVarname}_msb+${target.constArrayIndexValue}""")
                             else
                                 asmgen.out("""
-                                    lda  $sourceName
+                                    lda  $varName
                                     sta  ${target.asmVarname}+$scaledIdx
-                                    lda  $sourceName+1
+                                    lda  $varName+1
                                     sta  ${target.asmVarname}+$scaledIdx+1""")
                         }
                         else -> throw AssemblyError("weird target variable type ${target.datatype}")
@@ -2939,21 +2945,21 @@ $endLabel""")
                     when {
                         target.datatype.isByte -> {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
-                            asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
+                            asmgen.out(" lda  $varName |  sta  ${target.asmVarname},y")
                         }
                         target.datatype.isWord -> {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             if(target.array.splitWords)
                                 asmgen.out("""
-                                    lda  $sourceName
+                                    lda  $varName
                                     sta  ${target.asmVarname}_lsb,y
-                                    lda  $sourceName+1
+                                    lda  $varName+1
                                     sta  ${target.asmVarname}_msb,y""")
                             else
                                 asmgen.out("""
-                                    lda  $sourceName
+                                    lda  $varName
                                     sta  ${target.asmVarname},y
-                                    lda  $sourceName+1
+                                    lda  $varName+1
                                     sta  ${target.asmVarname}+1,y""")
                         }
                         else -> throw AssemblyError("weird dt")
@@ -2963,11 +2969,11 @@ $endLabel""")
             TargetStorageKind.REGISTER -> {
                 if(sourceDt.isUnsignedByte) {
                     when(target.register!!) {
-                        RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
-                        RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
-                        RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
+                        RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $varName")
+                        RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $varName")
+                        RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $varName")
                         in Cx16VirtualRegisters -> {
-                            asmgen.out("  lda  $sourceName |  sta  cx16.${target.register.toString().lowercase()}")
+                            asmgen.out("  lda  $varName |  sta  cx16.${target.register.toString().lowercase()}")
                             if(asmgen.isTargetCpu(CpuType.CPU65C02))
                                 asmgen.out("  stz  cx16.${target.register.toString().lowercase()}+1")
                             else
@@ -2977,21 +2983,21 @@ $endLabel""")
                     }
                 } else {
                     when(target.register!!) {
-                        RegisterOrPair.AX -> asmgen.out("  ldx  $sourceName+1 |  lda  $sourceName")
-                        RegisterOrPair.AY -> asmgen.out("  ldy  $sourceName+1 |  lda  $sourceName")
-                        RegisterOrPair.XY -> asmgen.out("  ldy  $sourceName+1 |  ldx  $sourceName")
+                        RegisterOrPair.AX -> asmgen.out("  ldx  $varName+1 |  lda  $varName")
+                        RegisterOrPair.AY -> asmgen.out("  ldy  $varName+1 |  lda  $varName")
+                        RegisterOrPair.XY -> asmgen.out("  ldy  $varName+1 |  ldx  $varName")
                         in Cx16VirtualRegisters -> {
                             asmgen.out("""
-                                lda  $sourceName
+                                lda  $varName
                                 sta  cx16.${target.register.toString().lowercase()}
-                                lda  $sourceName+1
+                                lda  $varName+1
                                 sta  cx16.${target.register.toString().lowercase()}+1""")
                         }
                         else -> throw AssemblyError("can't load word in a single 8-bit register")
                     }
                 }
             }
-            TargetStorageKind.POINTER -> pointergen.assignWordVar(PtrTarget(target), sourceName, sourceDt)
+            TargetStorageKind.POINTER -> pointergen.assignWordVar(PtrTarget(target), varName, sourceDt)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3122,44 +3128,44 @@ $endLabel""")
         }
     }
 
-    private fun assignVariableByte(target: AsmAssignTarget, sourceName: String) {
+    private fun assignVariableByte(target: AsmAssignTarget, varName: String) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
-                    lda  $sourceName
+                    lda  $varName
                     sta  ${target.asmVarname}""")
             }
             TargetStorageKind.MEMORY -> {
-                asmgen.out("  lda  $sourceName")
+                asmgen.out("  lda  $varName")
                 storeRegisterAInMemoryAddress(target.memory!!)
             }
             TargetStorageKind.ARRAY -> {
                 if (target.constArrayIndexValue!=null) {
                     val scaledIdx = program.memsizer.memorySize(target.datatype, target.constArrayIndexValue!!.toInt())
-                    asmgen.out(" lda  $sourceName  | sta  ${target.asmVarname}+$scaledIdx")
+                    asmgen.out(" lda  $varName  | sta  ${target.asmVarname}+$scaledIdx")
                 }
                 else {
                     val deref = target.array!!.pointerderef
                     if(deref!=null) {
-                        pointergen.assignByteVar(IndexedPtrTarget(target), sourceName, false, false)
+                        pointergen.assignByteVar(IndexedPtrTarget(target), varName, false, false)
                         return
                     }
                     asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
-                    asmgen.out(" lda  $sourceName |  sta  ${target.asmVarname},y")
+                    asmgen.out(" lda  $varName |  sta  ${target.asmVarname},y")
                 }
             }
             TargetStorageKind.REGISTER -> {
                 when(target.register!!) {
-                    RegisterOrPair.A -> asmgen.out("  lda  $sourceName")
-                    RegisterOrPair.X -> asmgen.out("  ldx  $sourceName")
-                    RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName")
-                    RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
-                    RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
-                    RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
+                    RegisterOrPair.A -> asmgen.out("  lda  $varName")
+                    RegisterOrPair.X -> asmgen.out("  ldx  $varName")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  $varName")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $varName")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $varName")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $varName")
                     RegisterOrPair.FAC1, RegisterOrPair.FAC2 -> throw AssemblyError("expected typecasted byte to float")
                     in Cx16VirtualRegisters -> {
                         asmgen.out("""
-                            lda  $sourceName
+                            lda  $varName
                             sta  cx16.${target.register.toString().lowercase()}
                             lda  #0
                             sta  cx16.${target.register.toString().lowercase()}+1""")
@@ -3167,7 +3173,7 @@ $endLabel""")
                     else -> throw AssemblyError("weird register")
                 }
             }
-            TargetStorageKind.POINTER -> pointergen.assignByteVar(PtrTarget(target), sourceName)
+            TargetStorageKind.POINTER -> pointergen.assignByteVar(PtrTarget(target), varName)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }

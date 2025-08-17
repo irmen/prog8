@@ -1,10 +1,7 @@
 package prog8.codegen.cpu6502.assignment
 
 import prog8.code.StStruct
-import prog8.code.ast.IPtSubroutine
-import prog8.code.ast.PtExpression
-import prog8.code.ast.PtIdentifier
-import prog8.code.ast.PtPointerDeref
+import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
@@ -18,9 +15,10 @@ internal class PtrTarget(target: AsmAssignTarget) {
 }
 
 internal class IndexedPtrTarget(target: AsmAssignTarget) {
-    val dt = target.datatype
+    val dt = target.datatype                        // TODO unneeded?
     val pointer = target.array!!.pointerderef!!
     val index = target.array!!.index
+    val elementDt = target.array!!.type
     val splitwords = target.array!!.splitWords      // TODO unneeded?
     val scope = target.scope
     val position = target.position
@@ -28,6 +26,8 @@ internal class IndexedPtrTarget(target: AsmAssignTarget) {
 
 
 internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, private val allocator: VariableAllocator) {
+    lateinit var augmentableAsmGen: AugmentableAssignmentAsmGen
+
     internal fun assignAddressOf(
         target: PtrTarget,
         varName: String,
@@ -66,7 +66,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignWordRegister(target: PtrTarget, regs: RegisterOrPair) {
-        TODO("assign register pair word to pointer deref ${target.position}")
+        val zpPtrVar = deref(target.pointer)
+        storeIndirectWordReg(regs, zpPtrVar)
     }
 
     internal fun assignWord(target: PtrTarget, word: Int) {
@@ -109,13 +110,13 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
 
-    internal fun deref(pointer: PtPointerDeref): String {
+    internal fun deref(pointer: PtPointerDeref, forceTemporary: Boolean=false): String {
         // walk the pointer deref chain and leaves the final pointer value in a ZP var
-        // this will often be the temp var P8ZP_SCRATCH_W1 but can also be the original pointer variable if it is already in zeropage
+        // this will often be the temp var P8ZP_SCRATCH_W1 but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
         if(pointer.chain.isEmpty()) {
             // TODO: do we have to look at derefLast ?
 
-            if(allocator.isZpVar(pointer.startpointer.name))
+            if(!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
                 return pointer.startpointer.name
             else {
                 // have to copy it to temp zp var
@@ -257,7 +258,64 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignByte(target: IndexedPtrTarget, byte: Int) {
-        TODO("array ptr assign const byte ${target.position}")
+        val eltSize = asmgen.program.memsizer.memorySize(target.elementDt, null)
+        val constIndex = target.index.asConstInteger()
+        if(constIndex!=null) {
+            val offset = eltSize*constIndex
+            val ptrZpVar = deref(target.pointer)
+            if(offset>255) {
+                asmgen.out("""
+                    clc
+                    lda  $ptrZpVar+1
+                    adc  #>$offset
+                    sta  $ptrZpVar+1""")
+            }
+            asmgen.out("""
+                ldy  #<$offset
+                lda  #$byte
+                sta  ($ptrZpVar),y""")
+        } else if(target.index is PtIdentifier) {
+            val ptrZpVar = deref(target.pointer)
+            val indexVarName = asmgen.asmVariableName(target.index)
+            if(eltSize!=1) {
+                TODO("multiply index by element size $eltSize ${target.position}")
+                // asmgen.loadScaledArrayIndexIntoRegister() ...
+            }
+            // element size is 1, can immediately add the index value
+            if(target.index.type.isWord) {
+                asmgen.out("""
+                    clc
+                    lda  $ptrZpVar+1
+                    adc  $indexVarName+1
+                    sta  $ptrZpVar+1""")
+            }
+            asmgen.out("""
+                ldy  $indexVarName
+                lda  #$byte
+                sta  ($ptrZpVar),y""")
+        } else {
+            if(eltSize!=1) {
+                TODO("multiply index by element size $eltSize ${target.position}")
+                // asmgen.loadScaledArrayIndexIntoRegister() ...
+            }
+            if(target.index.type.isByte) {
+                asmgen.pushCpuStack(BaseDataType.UBYTE, target.index)
+                val ptrZpVar = deref(target.pointer)
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.out("  lda  #$byte |  sta  ($ptrZpVar),y")
+            }
+            else {
+                asmgen.pushCpuStack(BaseDataType.UWORD, target.index)
+                val ptrZpVar = deref(target.pointer)
+                asmgen.out("""
+                    pla
+                    clc
+                    adc  $ptrZpVar+1
+                    sta  $ptrZpVar+1""")
+                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  ply") else asmgen.out("  pla |  tay")
+                asmgen.out("  lda  #$byte |  sta  ($ptrZpVar),y")
+            }
+        }
     }
 
     internal fun assignWord(target: IndexedPtrTarget, word: Int) {
@@ -296,6 +354,14 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("array ptr assign word var ${target.position}")
     }
 
+    internal fun operatorDereference(binExpr: PtBinaryExpression): RegisterOrPair {
+        // the only case we support here is:   a.b.c[i] . value
+        val left = binExpr.left as? PtArrayIndexer
+        val right = binExpr.right as? PtIdentifier
+        require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
+
+        TODO("evaluate dereference $binExpr $binExpr.position")
+    }
 
 
     internal fun loadIndirectByte(zpPtrVar: String) {
@@ -364,6 +430,50 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 sta  ($zpPtrVar),y""")
         }
     }
+
+    private fun storeIndirectWordReg(regs: RegisterOrPair, zpPtrVar: String) {
+        when(regs) {
+            RegisterOrPair.AX -> {
+                asmgen.out("""
+                    ldy  #0
+                    sta  ($zpPtrVar),y
+                    txa
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
+            RegisterOrPair.AY -> {
+                asmgen.out("""
+                    sty  P8ZP_SCRATCH_REG
+                    ldy  #0
+                    sta  ($zpPtrVar),y
+                    lda  P8ZP_SCRATCH_REG
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
+            RegisterOrPair.XY -> {
+                asmgen.out("""
+                    sty  P8ZP_SCRATCH_REG
+                    txa
+                    ldy  #0
+                    sta  ($zpPtrVar),y
+                    lda  P8ZP_SCRATCH_REG
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
+            in Cx16VirtualRegisters -> {
+                val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
+                asmgen.out("""
+                    lda  $regname
+                    ldy  #0
+                    sta  ($zpPtrVar),y
+                    lda  $regname+1
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
+            else -> throw AssemblyError("wrong word reg")
+        }
+    }
+
 
     private fun storeIndirectWordVar(varname: String, sourceDt: DataType, zpPtrVar: String) {
         if(sourceDt.isByteOrBool) TODO("implement byte/bool to word pointer assignment")

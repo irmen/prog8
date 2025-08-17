@@ -60,11 +60,27 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                     }
                 }
                 is PtIdentifier -> {
+                    // check if the identifier is part of a pointer dereference (which means you cannot look it up in the symboltable because it's a struct field)
+                    val pexpr = node.parent as? PtBinaryExpression
+                    if(pexpr?.operator==".") {
+                        if(pexpr.left is PtArrayIndexer) {
+                            val arrayvar = (pexpr.left as PtArrayIndexer).variable!!
+                            if(arrayvar.type.subType!=null) {
+                                nodesToPrefix += node.parent to node.parent.children.indexOf(node)
+                                return
+                            } else
+                                throw AssemblyError("can only use deref expression on struct type")
+                        } else {
+                            TODO("handle other left operand ${pexpr.left }in dereferencing of struct fields ${node.position}")
+                        }
+                    }
+                    // normal (non pointer deref) expression
                     var lookupName = node.name
                     if(node.type.isSplitWordArray && (lookupName.endsWith("_lsb") || lookupName.endsWith("_msb"))) {
                         lookupName = lookupName.dropLast(4)
                     }
-                    val stNode = st.lookup(lookupName) ?: throw AssemblyError("unknown identifier $node")
+                    val stNode = st.lookup(lookupName) ?:
+                        throw AssemblyError("unknown identifier $node")
                     if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
                         val index = node.parent.children.indexOf(node)
                         nodesToPrefix += node.parent to index
@@ -216,19 +232,26 @@ private fun PtFunctionCall.withNewName(name: String): PtFunctionCall {
 }
 
 private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
-    var target = st.lookup(name)
+    val targetNt: StNodeType
+    val target = st.lookup(name)
     if(target?.astNode?.definingBlock()?.options?.noSymbolPrefixing==true)
         return this
 
     if(target==null) {
         if(name.endsWith("_lsb") || name.endsWith("_msb")) {
-            target = st.lookup(name.dropLast(4))
-            if(target?.astNode?.definingBlock()?.options?.noSymbolPrefixing==true)
+            val target2 = st.lookup(name.dropLast(4))
+            if(target2?.astNode?.definingBlock()?.options?.noSymbolPrefixing==true)
                 return this
+            targetNt = target2!!.type
+        } else {
+            // if no target found, assume that the identifier is a struct field
+            targetNt = StNodeType.STATICVAR
         }
+    } else {
+        targetNt = target.type
     }
 
-    val prefixType = when(target!!.type) {
+    val prefixType = when(targetNt) {
         StNodeType.BLOCK -> 'b'
         StNodeType.SUBROUTINE, StNodeType.EXTSUB -> 's'
         StNodeType.LABEL -> 'l'
@@ -271,6 +294,12 @@ class AsmGen6502Internal (
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
     private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, pointerGen, assignmentAsmGen, errors)
     private val ifExpressionAsmgen = IfExpressionAsmGen(this, assignmentAsmGen, errors)
+    private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, assignmentAsmGen, this, pointerGen, allocator)
+
+    init {
+        assignmentAsmGen.augmentableAsmGen = augmentableAsmGen
+        pointerGen.augmentableAsmGen = augmentableAsmGen
+    }
 
     fun compileToAssembly(): IAssemblyProgram? {
 

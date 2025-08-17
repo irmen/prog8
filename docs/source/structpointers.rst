@@ -5,13 +5,29 @@ Structs and Pointers
 ====================
 
 .. attention::
-
     The 6502 cpu lacks some features (addressing modes, registers) to make pointers work efficiently.
     Also it requires that pointer variables have to be in zero page, or copied to a temporary zero page variable,
     before they can even be used as a pointer. This means that pointer operations in prog8 compile
     to rather large and inefficient assembly code most of the time, when compared to direct array access or regular variables.
     At least try to place heavily used pointer variables in zero page using ``@requirezp`` on their declaration,
     if zero page space allows.
+
+.. note::
+    Due to some limitations in the language parser, not all pointer related syntax is currently supported
+    if it is a pointer to a struct type.
+    The compiler tries its best to give a descriptive error message but sometimes there is still a
+    parser limitation that has to be worked around at the moment. For example, this syntax is not supported
+    right now and will result in a parse error::
+
+        ^^Node  np
+        np[2].field = 9999
+
+    To work around this (and similar) cases you'll have to break up the expression in multiple steps,
+    in this case something like::
+
+        ^^Node thirdnode = &&np[2]
+        thirdnode.field = 9999
+
 
 
 Legacy untyped pointers (uword)

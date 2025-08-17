@@ -20,6 +20,8 @@ internal class AnyExprAsmGen(
     private val asmgen: AsmGen6502Internal
 ) {
     fun assignAnyExpressionUsingStack(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
+        if(expr.operator==".")
+            throw AssemblyError("pointer deref expression should have been handled elsewhere ${expr.position}")
         when {
             expr.type.isByteOrBool -> {
                 if(expr.left.type.isByteOrBool && expr.right.type.isByteOrBool)
