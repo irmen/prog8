@@ -79,6 +79,7 @@ private fun prepareTestFiles(source: String, optimize: Boolean, target: ICompila
 class TestCompilerOnExamplesC64: FunSpec({
 
     @OptIn(ExperimentalKotest::class)
+    //testExecutionMode = TestExecutionMode.LimitedConcurrency(6)
     this.concurrency = 4
 
     val outputDir = tempdir().toPath()
@@ -119,6 +120,7 @@ class TestCompilerOnExamplesC64: FunSpec({
 class TestCompilerOnExamplesCx16: FunSpec({
 
     @OptIn(ExperimentalKotest::class)
+    //testExecutionMode = TestExecutionMode.LimitedConcurrency(6)
     this.concurrency = 4
 
     val outputDir = tempdir().toPath()
@@ -191,6 +193,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
 class TestCompilerOnExamplesBothC64andCx16: FunSpec({
 
     @OptIn(ExperimentalKotest::class)
+    //testExecutionMode = TestExecutionMode.LimitedConcurrency(6)
     this.concurrency = 4
 
     val outputDir = tempdir().toPath()

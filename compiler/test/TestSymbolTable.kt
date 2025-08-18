@@ -1,6 +1,5 @@
 package prog8tests.compiler
 
-import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -46,32 +45,32 @@ class TestSymbolTable: FunSpec({
         default = st.lookupUnscopedOrElse("undefined") { StNode("default", StNodeType.LABEL, PtIdentifier("default", DataType.BYTE, Position.DUMMY)) }
         default.name shouldBe "default"
 
-        val msbFunc = st.lookupUnscopedOrElse("msb") { fail("msb must be found") }
+        val msbFunc = st.lookupUnscopedOrElse("msb") { error("msb must be found") }
         msbFunc.type shouldBe StNodeType.BUILTINFUNC
 
-        val variable = st.lookupOrElse("block1.sub2.v2") { fail("v2 must be found") }
+        val variable = st.lookupOrElse("block1.sub2.v2") { error("v2 must be found") }
         variable.type shouldBe StNodeType.STATICVAR
     }
 
     test("symboltable nested lookups") {
         val st = makeSt()
 
-        val sub1 = st.lookupOrElse("block1.sub1") { fail("should find sub1") }
+        val sub1 = st.lookupOrElse("block1.sub1") { error("should find sub1") }
         sub1.name shouldBe "sub1"
         sub1.scopedNameString shouldBe "block1.sub1"
         sub1.type shouldBe StNodeType.SUBROUTINE
         sub1.children.size shouldBe 4
 
-        val v1 = sub1.lookupUnscopedOrElse("v1") { fail("v1 must be found") } as StStaticVariable
+        val v1 = sub1.lookupUnscopedOrElse("v1") { error("v1 must be found") } as StStaticVariable
         v1.type shouldBe StNodeType.STATICVAR
         v1.name shouldBe "v1"
         v1.dt shouldBe DataType.BYTE
 
-        val blockc = sub1.lookupUnscopedOrElse("blockc") { fail("blockc") } as StConstant
+        val blockc = sub1.lookupUnscopedOrElse("blockc") { error("blockc") } as StConstant
         blockc.type shouldBe StNodeType.CONSTANT
         blockc.value shouldBe 999.0
 
-        val subsub = st.lookupOrElse("block2.sub2.subsub") { fail("should find subsub") }
+        val subsub = st.lookupOrElse("block2.sub2.subsub") { error("should find subsub") }
         subsub.lookupUnscoped("blockc") shouldBe null
         subsub.lookupUnscoped("label") shouldNotBe null
     }

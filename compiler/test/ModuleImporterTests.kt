@@ -2,7 +2,6 @@ package prog8tests.compiler
 
 import com.github.michaelbull.result.getErrorOrElse
 import com.github.michaelbull.result.getOrElse
-import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
@@ -43,7 +42,7 @@ class TestModuleImporter: FunSpec({
                 val importer = makeImporter(null, dirRel.invariantSeparatorsPathString)
                 val srcPathRel = assumeNotExists(dirRel, "i_do_not_exist")
                 val srcPathAbs = srcPathRel.absolute()
-                val error1 = importer.importMainModule(srcPathRel).getErrorOrElse { fail("should have import error") }
+                val error1 = importer.importMainModule(srcPathRel).getErrorOrElse { error("should have import error") }
                 withClue(".file should be normalized") {
                     "${error1.file}" shouldBe "${error1.file.normalize()}"
                 }
@@ -51,7 +50,7 @@ class TestModuleImporter: FunSpec({
                     error1.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
                 }
                 program.modules.size shouldBe 1
-                val error2 = importer.importMainModule(srcPathAbs).getErrorOrElse { fail("should have import error") }
+                val error2 = importer.importMainModule(srcPathAbs).getErrorOrElse { error("should have import error") }
                 withClue(".file should be normalized") {
                     "${error2.file}" shouldBe "${error2.file.normalize()}"
                 }

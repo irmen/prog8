@@ -3,7 +3,6 @@ package prog8tests.compiler
 import com.github.michaelbull.result.expectError
 import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.onFailure
-import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
@@ -73,14 +72,14 @@ class TestC64Zeropage: FunSpec({
         ))
 
         var result = zp.allocate("", DataType.UBYTE, null, null, errors)
-        result.onFailure { fail(it.toString()) }
+        result.onFailure { error(it.toString()) }
         result = zp.allocate("", DataType.UBYTE, null, null, errors)
-        result.onFailure { fail(it.toString()) }
+        result.onFailure { error(it.toString()) }
         result = zp.allocate("varname", DataType.UBYTE, null, null, errors)
-        result.onFailure { fail(it.toString()) }
+        result.onFailure { error(it.toString()) }
         shouldThrow<IllegalArgumentException> {  zp.allocate("varname", DataType.UBYTE,null, null, errors) }
         result = zp.allocate("varname2", DataType.UBYTE, null, null, errors)
-        result.onFailure { fail(it.toString()) }
+        result.onFailure { error(it.toString()) }
     }
 
     test("testZpFloatEnable") {

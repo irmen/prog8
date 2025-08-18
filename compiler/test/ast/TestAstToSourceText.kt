@@ -1,13 +1,12 @@
 package prog8tests.ast
 
-import io.kotest.assertions.fail
 import io.kotest.core.spec.style.AnnotationSpec
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.code.source.SourceCode
 import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.source.SourceCode
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.DummyFunctions
@@ -34,7 +33,7 @@ class TestAstToSourceText: AnnotationSpec() {
             val parsedAgain = parseModule(SourceCode.Text(generatedText))
             return Pair(generatedText, parsedAgain)
         } catch (e: ParseError) {
-            fail("should produce valid Prog8 but threw $e")
+            error("should produce valid Prog8 but threw $e")
         }
     }
 
