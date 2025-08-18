@@ -26,18 +26,25 @@ main {
         txt.spc()
         txt.print_uw(fptr2)
         txt.spc()
-        txt.print_uw(& fptr2[3])     ; TODO fix address-of (VM and 6502)
+        txt.print_uw(& fptr2[3])
         txt.spc()
-        txt.print_uw(&& fptr2[3])     ; TODO fix address-of (VM and 6502)
-        txt.nl()
-        txt.print_f(fptr1^^)
+        txt.print_uw(&& fptr2[3])
         txt.spc()
-        txt.print_f(fptr2[3])       ; TODO fix 6502 code
+        cx16.r0L = 3
+        txt.print_uw(& fptr2[cx16.r0L])
+        txt.spc()
+        txt.print_uw(&& fptr2[cx16.r0L])
         txt.nl()
+        cx16.r0L = 2
+        txt.print_uw(& fptr2[cx16.r0L+1])
+        txt.spc()
+        txt.print_uw(&& fptr2[cx16.r0L+1])
+        txt.nl()
+
         pokef(20000+3*sizeof(float), 3.1415927)
         txt.print_f(fptr1^^)
         txt.spc()
-        txt.print_f(fptr2[3])       ; TODO fix 6502 code
+        txt.print_f(fptr2[3])
         txt.nl()
     }
 

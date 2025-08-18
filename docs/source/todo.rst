@@ -1,8 +1,7 @@
 TODO
 ====
 
-fix 6502 code gen errors for the address-of (assignAddressOfIndexedPointer)
-fix 6502 code gen errors that make some of the pointer examples crash. Important to do this before building more on wrong code!
+fix 6502 code gen errors that make some of the pointer examples crash (animalgame, answer y, crash. Binarytree.) Important to do this before building more on wrong code!
 
 fix compiler crash (virtual) for   ^^List @shared lp  ;   ^^List @shared temp = lp[2]
 fix invalid pointer arithmetic in 6502 code for &&lp[2]  (it adds 2 to the pointer itself rather than the value of the pointer, and 2 is wrong as well)
@@ -20,3 +19,5 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - scan through 6502 examples to change untyped uword pointers to typed pointers
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?
+- optimize the multiplications in assignAddressOfIndexedPointer()
+- optimize the float copying in assignIndexedPointer() (also word?)

@@ -258,8 +258,13 @@ internal class AssignmentAsmGen(
                     return
                 }
                 val arrayVarName = asmgen.asmVariableName(valueVar)
-                val constIndex = value.index.asConstInteger()
 
+                if(valueVar.type.isPointer) {
+                    pointergen.assignIndexedPointer(assign.target, arrayVarName, value.index, valueVar.type)
+                    return
+                }
+
+                val constIndex = value.index.asConstInteger()
                 if(value.splitWords) {
                     require(elementDt.isWord || elementDt.isPointer)
                     if(constIndex!=null) {
@@ -2717,7 +2722,7 @@ $endLabel""")
         if(arrayIndexExpr!=null) {
             if(arrayDt?.isPointer==true) {
                 require(!msb)
-                return assignAddressOfIndexedPointer(target, sourceName, arrayDt, arrayIndexExpr)
+                return pointergen.assignAddressOfIndexedPointer(target, sourceName, arrayDt, arrayIndexExpr)
             }
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
@@ -2855,16 +2860,6 @@ $endLabel""")
             }
             TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), sourceName, msb, arrayDt, arrayIndexExpr)
             TargetStorageKind.VOID -> { /* do nothing */ }
-        }
-    }
-
-    private fun assignAddressOfIndexedPointer(target: AsmAssignTarget, sourceName: String, arrayDt: DataType, index: PtExpression) {
-        // use pointer arithmetic to get the address of the array element
-        val constIndex = index.asConstInteger()
-        if(constIndex!=null) {
-            TODO("pointer arithmetic for address-of $constIndex")
-        } else {
-            TODO("pointer arithmetic for address-of $index")
         }
     }
 

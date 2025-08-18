@@ -363,6 +363,55 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("evaluate dereference $binExpr $binExpr.position")
     }
 
+    internal fun assignAddressOfIndexedPointer(target: AsmAssignTarget, arrayVarName: String, arrayDt: DataType, index: PtExpression) {
+        // use pointer arithmetic to get the address of the array element
+        val constIndex = index.asConstInteger()
+        val eltSize = if(arrayDt.sub!=null)
+            asmgen.program.memsizer.memorySize(arrayDt.sub!!)
+        else
+            arrayDt.subType!!.memsize(asmgen.program.memsizer)
+
+        fun addArrayBaseAddressToOffsetInAY() {
+            asmgen.out("""
+                clc
+                adc  $arrayVarName
+                pha
+                tya
+                adc  $arrayVarName+1
+                tay
+                pla""")
+        }
+
+        if(constIndex!=null) {
+            val offset = eltSize * constIndex
+            if(offset>255) {
+                asmgen.out(" lda  #<$offset |  ldy  #>$offset")
+                addArrayBaseAddressToOffsetInAY()
+            } else if(offset>0) {
+                asmgen.out("""
+                    lda  $arrayVarName
+                    ldy  $arrayVarName+1
+                    clc
+                    adc  #$offset
+                    bcc  +
+                    iny
++""")
+            }
+        } else {
+            asmgen.assignExpressionToRegister(index, RegisterOrPair.AY)
+            // TODO use bit shift if eltSize is power of 2?
+            // TODO use asmgen.optimizedWordMultiplications
+            if(eltSize>1)
+                asmgen.out("""
+                    sta  prog8_math.multiply_words.multiplier
+                    sty  prog8_math.multiply_words.multiplier+1
+                    lda  #<$eltSize
+                    ldy  #>$eltSize
+                    jsr  prog8_math.multiply_words""")
+            addArrayBaseAddressToOffsetInAY()
+        }
+        asmgen.assignRegister(RegisterOrPair.AY, target)
+    }
 
     internal fun loadIndirectByte(zpPtrVar: String) {
         // loads byte pointed to by the ptrvar into A
@@ -949,6 +998,40 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.REGISTER -> TODO("register ^ word")
             else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, index: PtExpression, arrayDt: DataType) {
+        val ptrZp = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, target.scope, target.position, variableAsmName="P8ZP_SCRATCH_W1")
+        assignAddressOfIndexedPointer(ptrZp, arrayVarName, arrayDt, index)
+        when {
+            target.datatype.isByteOrBool -> {
+                asmgen.out("""
+                    ldy  #0
+                    lda  (P8ZP_SCRATCH_W1),y""")
+                asmgen.assignRegister(RegisterOrPair.A, target)
+            }
+            target.datatype.isWord -> {
+                asmgen.out("""
+                    ldy  #1
+                    lda  (P8ZP_SCRATCH_W1),y
+                    tax
+                    dey
+                    lda  (P8ZP_SCRATCH_W1),y""")
+                asmgen.assignRegister(RegisterOrPair.AX, target)
+            }
+            target.datatype.isLong -> {
+                TODO("assign long from pointer to $target ${target.position}")
+            }
+            target.datatype.isFloat -> {
+                // TODO optimize the float copying to avoid having to go through FAC1
+                asmgen.out("""
+                    lda  P8ZP_SCRATCH_W1
+                    ldy  P8ZP_SCRATCH_W1+1
+                    jsr  floats.MOVFM""")
+                asmgen.assignRegister(RegisterOrPair.FAC1, target)
+            }
+            else -> throw AssemblyError("weird dt ${target.datatype}")
         }
     }
 
