@@ -13,9 +13,7 @@
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="library" name="jetbrains.kotlinx.cli.jvm" level="project" />
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
-    <orderEntry type="library" name="io.kotest.assertions.core.jvm" level="project" />
     <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
-    <orderEntry type="library" name="io.kotest.framework.datatest" level="project" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="module" module-name="simpleAst" />
     <orderEntry type="module" module-name="compilerAst" />
@@ -25,5 +23,6 @@
     <orderEntry type="module" module-name="codeGenIntermediate" />
     <orderEntry type="module" module-name="virtualmachine" />
     <orderEntry type="module" module-name="intermediate" />
+    <orderEntry type="library" name="io.kotest.framework.datatest" level="project" />
   </component>
 </module>

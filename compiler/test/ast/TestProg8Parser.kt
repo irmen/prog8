@@ -1,7 +1,6 @@
 package prog8tests.ast
 
 import com.github.michaelbull.result.getOrElse
-import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
@@ -758,9 +757,9 @@ class TestProg8Parser: FunSpec( {
         val expr = bb2.value as BinaryExpression
         println(expr)
         expr.operator shouldBe "or"
-        expr.left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
-        expr.right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        expr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        expr.left.inferType(program).getOrElse { error("dt") } shouldBe DataType.UBYTE
+        expr.right.inferType(program).getOrElse { error("dt") } shouldBe DataType.UWORD
+        expr.inferType(program).getOrElse { error("dt") } shouldBe DataType.BOOL
     }
 
     test("inferred type for typecasted expressions with logical operators") {
@@ -783,16 +782,16 @@ class TestProg8Parser: FunSpec( {
         val zz = (stmts[3] as VarDecl).value as BinaryExpression
         val bb2 = (stmts[4] as VarDecl).value as BinaryExpression
         val zz2 = (stmts[5] as VarDecl).value as BinaryExpression
-        qq.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        zz.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
-        bb2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        qq.inferType(program).getOrElse { error("dt") } shouldBe DataType.UWORD
+        zz.inferType(program).getOrElse { error("dt") } shouldBe DataType.BOOL
+        bb2.inferType(program).getOrElse { error("dt") } shouldBe DataType.BOOL
 
         zz2.operator shouldBe "or"
         val left = zz2.left as TypecastExpression
         val right = zz2.right as PrefixExpression
-        left.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UWORD
-        right.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
-        zz2.inferType(program).getOrElse { fail("dt") } shouldBe DataType.BOOL
+        left.inferType(program).getOrElse { error("dt") } shouldBe DataType.UWORD
+        right.inferType(program).getOrElse { error("dt") } shouldBe DataType.BOOL
+        zz2.inferType(program).getOrElse { error("dt") } shouldBe DataType.BOOL
     }
 
     test("type cast from byte to ubyte as desired target type") {
@@ -807,7 +806,7 @@ class TestProg8Parser: FunSpec( {
         val stmts = (module.statements.single() as Block).statements
         stmts.size shouldBe 2
         val ubexpr = (stmts[1] as VarDecl).value as TypecastExpression
-        ubexpr.inferType(program).getOrElse { fail("dt") } shouldBe DataType.UBYTE
+        ubexpr.inferType(program).getOrElse { error("dt") } shouldBe DataType.UBYTE
     }
 
     test("assignment isAugmented correctness") {
@@ -879,7 +878,7 @@ class TestProg8Parser: FunSpec( {
         val ff = start.statements[4] as Assignment
         ff.value shouldBe NumericLiteral(BaseDataType.UBYTE, 255.0, Position.DUMMY)
         val letter = start.statements[6] as Assignment
-        val encodedletter = PetsciiEncoding.encodePetscii("A", true).getOrElse { fail("petscii error") }.single()
+        val encodedletter = PetsciiEncoding.encodePetscii("A", true).getOrElse { error("petscii error") }.single()
         letter.value shouldBe NumericLiteral(BaseDataType.UBYTE, encodedletter.toDouble(), Position.DUMMY)
     }
 

@@ -1,6 +1,5 @@
 package prog8tests.compiler
 
-import io.kotest.assertions.fail
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
@@ -122,7 +121,7 @@ class TestCompilerOnCharLit: FunSpec({
             is NumericLiteral -> {
                 arg.number shouldBe platform.encodeString("\n", Encoding.PETSCII)[0].toDouble()
             }
-            else -> fail("invalid arg type") // funCall.args[0] shouldBe instanceOf<IdentifierReference>() // make test fail
+            else -> error("invalid arg type") // funCall.args[0] shouldBe instanceOf<IdentifierReference>() // make test fail
         }
     }
 
