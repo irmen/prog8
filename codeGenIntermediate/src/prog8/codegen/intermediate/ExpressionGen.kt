@@ -288,12 +288,26 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)
                 }
+            } else if(identifier.type.isPointer) {
+                // apply pointer arithmetic for the array indexing
+                val eltSize = if(identifier.type.sub!=null)
+                        codeGen.program.memsizer.memorySize(identifier.type.sub!!)
+                    else
+                        identifier.type.subType!!.memsize(codeGen.program.memsizer)
+                result += IRCodeChunk(null, null).also {
+                    addInstr(result, IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name), null)
+                    if (eltSize > 1) {
+                        it += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
+                    }
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
+                }
             } else {
+                // regular array indexing
                 val eltSize = codeGen.program.memsizer.memorySize(identifier.type, 1)
                 result += IRCodeChunk(null, null).also {
                     loadAddressOfArrayLabel(resultRegister)
                     if (eltSize > 1 && !identifier.type.isSplitWordArray) {
-                        it += IRInstruction(Opcode.MUL, IRDataType.WORD, reg1 = indexWordReg, immediate = eltSize)
+                        it += codeGen.multiplyByConst(DataType.UWORD, indexWordReg, eltSize)
                     }
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = resultRegister, reg2 = indexWordReg)
                 }

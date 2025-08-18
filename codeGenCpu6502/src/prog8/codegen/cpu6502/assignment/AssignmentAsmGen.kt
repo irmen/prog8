@@ -2715,6 +2715,10 @@ $endLabel""")
 
     private fun assignAddressOf(target: AsmAssignTarget, sourceName: String, msb: Boolean, arrayDt: DataType?, arrayIndexExpr: PtExpression?) {
         if(arrayIndexExpr!=null) {
+            if(arrayDt?.isPointer==true) {
+                require(!msb)
+                return assignAddressOfIndexedPointer(target, sourceName, arrayDt, arrayIndexExpr)
+            }
             val constIndex = arrayIndexExpr.asConstInteger()
             if(constIndex!=null) {
                 if (arrayDt!!.isUnsignedWord) {
@@ -2851,6 +2855,16 @@ $endLabel""")
             }
             TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), sourceName, msb, arrayDt, arrayIndexExpr)
             TargetStorageKind.VOID -> { /* do nothing */ }
+        }
+    }
+
+    private fun assignAddressOfIndexedPointer(target: AsmAssignTarget, sourceName: String, arrayDt: DataType, index: PtExpression) {
+        // use pointer arithmetic to get the address of the array element
+        val constIndex = index.asConstInteger()
+        if(constIndex!=null) {
+            TODO("pointer arithmetic for address-of $constIndex")
+        } else {
+            TODO("pointer arithmetic for address-of $index")
         }
     }
 
