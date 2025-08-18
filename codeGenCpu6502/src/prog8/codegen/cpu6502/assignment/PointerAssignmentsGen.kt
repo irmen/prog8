@@ -62,11 +62,16 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignByteReg(target: PtrTarget, register: CpuRegister, signed: Boolean, extendWord: Boolean) {
-        TODO("assign register byte to pointer deref ${target.position}")
+        asmgen.saveRegisterStack(register, false)
+        val zpPtrVar = deref(target.pointer)
+        asmgen.restoreRegisterStack(register, false)
+        storeIndirectByteReg(register, zpPtrVar, signed, extendWord && target.dt.isWord)
     }
 
-    internal fun assignWordRegister(target: PtrTarget, regs: RegisterOrPair) {
+    internal fun assignWordReg(target: PtrTarget, regs: RegisterOrPair) {
+        saveOnStack(regs)
         val zpPtrVar = deref(target.pointer)
+        restoreFromStack(regs)
         storeIndirectWordReg(regs, zpPtrVar)
     }
 
@@ -113,6 +118,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun deref(pointer: PtPointerDeref, forceTemporary: Boolean=false): String {
         // walk the pointer deref chain and leaves the final pointer value in a ZP var
         // this will often be the temp var P8ZP_SCRATCH_W1 but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
+
+        // TODO optimize away the use of a temporary var if it turns out that the field offset is 0 (and the var is in zp already)
+
         if(pointer.chain.isEmpty()) {
             // TODO: do we have to look at derefLast ?
 
@@ -339,11 +347,15 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignByteReg(target: IndexedPtrTarget, register: CpuRegister) {
+        asmgen.saveRegisterStack(register, false)
         TODO("array ptr assign byte reg ${target.position}")
+        asmgen.saveRegisterStack(register, false)
     }
 
-    internal fun assignWordRegister(target: IndexedPtrTarget, regs: RegisterOrPair) {
+    internal fun assignWordReg(target: IndexedPtrTarget, regs: RegisterOrPair) {
+        saveOnStack(regs)
         TODO("array ptr assign word reg ${target.position}")
+        restoreFromStack(regs)
     }
 
     internal fun assignByteVar(target: IndexedPtrTarget, varName: String, extendToWord: Boolean, signed: Boolean) {
@@ -479,6 +491,39 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 sta  ($zpPtrVar),y""")
         }
     }
+
+    private fun storeIndirectByteReg(register: CpuRegister, zpPtrVar: String, signed: Boolean, extendWord: Boolean) {
+        if(extendWord) {
+            when(register) {
+                CpuRegister.A -> {}
+                CpuRegister.X -> asmgen.out("  txa")
+                CpuRegister.Y -> asmgen.out("  tya")
+            }
+            asmgen.signExtendAXlsb(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
+            asmgen.out("""
+                ldy  #0
+                sta  ($zpPtrVar),y
+                iny
+                txa
+                sta  ($zpPtrVar),y""")
+            return
+        }
+
+        when(register) {
+            CpuRegister.A -> {
+                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  sta  ($zpPtrVar)") else asmgen.out("  ldy  #0 |  sta  ($zpPtrVar),y")
+            }
+            CpuRegister.X -> {
+                asmgen.out("  txa")
+                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  sta  ($zpPtrVar)") else asmgen.out("  ldy  #0 |  sta  ($zpPtrVar),y")
+            }
+            CpuRegister.Y -> {
+                asmgen.out("  tya")
+                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  sta  ($zpPtrVar)") else asmgen.out("  ldy  #0 |  sta  ($zpPtrVar),y")
+            }
+        }
+    }
+
 
     private fun storeIndirectWordReg(regs: RegisterOrPair, zpPtrVar: String) {
         when(regs) {
@@ -1032,6 +1077,70 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 asmgen.assignRegister(RegisterOrPair.FAC1, target)
             }
             else -> throw AssemblyError("weird dt ${target.datatype}")
+        }
+    }
+
+    private fun saveOnStack(regs: RegisterOrPair) {
+        when(regs) {
+            RegisterOrPair.AX -> {
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("  pha |  phx")
+                else
+                    asmgen.out("  pha |  txa |  pha")
+            }
+            RegisterOrPair.AY -> {
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("  pha |  phy")
+                else
+                    asmgen.out("  pha |  tya |  pha")
+            }
+            RegisterOrPair.XY -> {
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("  phx |  phy")
+                else
+                    asmgen.out("  txa |  pha |  tya |  pha")
+            }
+            in Cx16VirtualRegisters -> {
+                val regname = asmgen.asmSymbolName(regs)
+                asmgen.out("""
+                    lda  $regname
+                    pha
+                    lda  $regname+1
+                    pha""")
+            }
+            else -> asmgen.saveRegisterStack(regs.asCpuRegister(), false)
+        }
+    }
+
+    private fun restoreFromStack(regs: RegisterOrPair) {
+        when(regs) {
+            RegisterOrPair.AX -> {
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("  plx |  pla")
+                else
+                    asmgen.out("  pla |  tax |  pla")
+            }
+            RegisterOrPair.AY -> {
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("  ply |  pla")
+                else
+                    asmgen.out("  pla |  tay |  pla")
+            }
+            RegisterOrPair.XY -> {
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("  ply |  plx")
+                else
+                    asmgen.out("  pla |  tay |  pla |  tax")
+            }
+            in Cx16VirtualRegisters -> {
+                val regname = asmgen.asmSymbolName(regs)
+                asmgen.out("""
+                    pla
+                    sta  $regname+1
+                    pla
+                    sta  $regname""")
+            }
+            else -> asmgen.restoreRegisterStack(regs.asCpuRegister(), false)
         }
     }
 

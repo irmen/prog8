@@ -1340,7 +1340,7 @@ internal class AssignmentAsmGen(
                         else
                             asmgen.out("  sec |  sbc  #${right.number.toHex()}")
                     }
-                    assignRegisterByte(target, CpuRegister.A, dt.isSigned, true)
+                    assignRegisterByte(target, CpuRegister.A, dt.isSigned, dt.isWord)
                     return true
                 }
                 else -> {
@@ -2327,7 +2327,7 @@ $endLabel""")
                     assignExpressionToRegister(value, RegisterOrPair.AY, targetDt.isSigned)
                     val deref = target.array!!.pointerderef
                     if(deref!=null)
-                        pointergen.assignWordRegister(IndexedPtrTarget(target), RegisterOrPair.AY)
+                        pointergen.assignWordReg(IndexedPtrTarget(target), RegisterOrPair.AY)
                     else
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                     return
@@ -3641,7 +3641,7 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    pointergen.assignWordRegister(IndexedPtrTarget(target), regs)
+                    pointergen.assignWordReg(IndexedPtrTarget(target), regs)
                     return
                 }
                 if(target.array.splitWords) {
@@ -3808,7 +3808,7 @@ $endLabel""")
                 }
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")
-            TargetStorageKind.POINTER -> pointergen.assignWordRegister(PtrTarget(target), regs)
+            TargetStorageKind.POINTER -> pointergen.assignWordReg(PtrTarget(target), regs)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }

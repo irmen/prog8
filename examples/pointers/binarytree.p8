@@ -3,6 +3,7 @@
 ; no balancing is done and memory is not freed when elements are removed.
 
 %import textio
+%zeropage basicsafe
 
 main {
 

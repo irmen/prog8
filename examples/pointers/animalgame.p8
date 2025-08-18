@@ -129,7 +129,7 @@ db {
         first = Node("does it swim", 0, 0, 0)
         ^^Node question = Node("can it fly", 0, 0, 0)
         first.negative = question
-        first.positive = Node(0, "dolpin", 0, 0)
+        first.positive = Node(0, "dolphin", 0, 0)
         question.negative = Node(0, "horse", 0, 0)
         question.positive = Node(0, "eagle", 0, 0)
     }
