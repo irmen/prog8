@@ -1340,7 +1340,7 @@ internal class AssignmentAsmGen(
                         else
                             asmgen.out("  sec |  sbc  #${right.number.toHex()}")
                     }
-                    assignRegisterByte(target, CpuRegister.A, dt.isSigned, dt.isWord)
+                    assignRegisterByte(target, CpuRegister.A, dt.isSigned, target.datatype.isWord)
                     return true
                 }
                 else -> {
@@ -3421,7 +3421,7 @@ $endLabel""")
                         RegisterOrPair.Y -> { asmgen.out("  tay") }
                         RegisterOrPair.AY -> {
                             require(extendWord) {
-                                "no extend"
+                                "no extend but byte target is registerpair"
                             }
                             if(signed)
                                 asmgen.out("""
