@@ -30,6 +30,8 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
     private fun prefixSymbols(program: PtProgram, options: CompilationOptions, st: SymbolTable): SymbolTable {
         val nodesToPrefix = mutableListOf<Pair<PtNode, Int>>()              // parent + index
         val functionCallsToPrefix = mutableListOf<Pair<PtNode, Int>>()      // parent + index
+        val expressionsToFixSubtype = mutableListOf<PtExpression>()
+        val variablesToFixSubtype = mutableListOf<IPtVariable>()
 
         fun prefixNamedNode(node: PtNamedNode) {
             when(node) {
@@ -66,7 +68,8 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                         if(pexpr.left is PtArrayIndexer) {
                             val arrayvar = (pexpr.left as PtArrayIndexer).variable!!
                             if(arrayvar.type.subType!=null) {
-                                nodesToPrefix += node.parent to node.parent.children.indexOf(node)
+                                // don't prefix a struct field name here, we take care of that at asm generation time, which was a lot easier
+                                //nodesToPrefix += node.parent to node.parent.children.indexOf(node)
                                 return
                             } else
                                 throw AssemblyError("can only use deref expression on struct type")
@@ -108,6 +111,15 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                 }
                 else -> { }
             }
+
+            if(node is IPtVariable) {
+                if(node.type.subType!=null)
+                    variablesToFixSubtype.add(node)
+            } else if(node is PtExpression) {
+                if(node.type.subType!=null)
+                    expressionsToFixSubtype.add(node)
+            }
+
             node.children.forEach { prefixSymbols(it) }
         }
 
@@ -164,8 +176,40 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
             }
         }
 
-        return SymbolTableMaker(program, options).make()
+
+        val updatedSt = SymbolTableMaker(program, options).make()
+
+        fun findSubtypeReplacement(sub: ISubType): StStruct? {
+            if(updatedSt.lookup(sub.scopedNameString)!=null)
+                return null
+            val old = st.lookup(sub.scopedNameString)
+            if(old==null)
+                throw AssemblyError("old subtype not found: ${sub.scopedNameString}")
+
+            val prefixed = ArrayDeque<String>()
+            var node: StNode = old
+            while(node.type!= StNodeType.GLOBAL) {
+                val typeChar = typePrefixChar(node.type)
+                prefixed.addFirst("p8${typeChar}_${node.name}")
+                node=node.parent
+            }
+            return updatedSt.lookup(prefixed.joinToString(".")) as StStruct
+        }
+
+        expressionsToFixSubtype.forEach { node ->
+            findSubtypeReplacement(node.type.subType!!)?.let {
+                node.type.subType = it
+            }
+        }
+        variablesToFixSubtype.forEach { node ->
+            findSubtypeReplacement(node.type.subType!!)?.let {
+                node.type.subType = it
+            }
+        }
+
+        return updatedSt
     }
+
 }
 
 private fun prefixScopedName(name: String, type: Char): String {
@@ -251,7 +295,15 @@ private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
         targetNt = target.type
     }
 
-    val prefixType = when(targetNt) {
+    val prefixType = typePrefixChar(targetNt)
+    val newName = prefixScopedName(name, prefixType)
+    val node = PtIdentifier(newName, type, position)
+    node.parent = parent
+    return node
+}
+
+private fun typePrefixChar(targetNt: StNodeType): Char {
+    return when(targetNt) {
         StNodeType.BLOCK -> 'b'
         StNodeType.SUBROUTINE, StNodeType.EXTSUB -> 's'
         StNodeType.LABEL -> 'l'
@@ -263,10 +315,6 @@ private fun PtIdentifier.prefix(parent: PtNode, st: SymbolTable): PtIdentifier {
         StNodeType.STRUCTINSTANCE -> 'i'
         else -> '?'
     }
-    val newName = prefixScopedName(name, prefixType)
-    val node = PtIdentifier(newName, type, position)
-    node.parent = parent
-    return node
 }
 
 

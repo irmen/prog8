@@ -110,7 +110,13 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     companion object {
         fun labelnameForStructInstance(call: PtBuiltinFunctionCall): String {
             require(call.name == "prog8_lib_structalloc")
-            val structname = call.type.subType!!.scopedNameString
+            var structname = call.type.subType!!.scopedNameString
+            val parts = structname.split('.')
+            val prefixed = parts.all { it.length>5 && it.startsWith("p8") && it[3]=='_' }
+            if(prefixed) {
+                // the struct label name cannot contain prefixed parts because elsewhere it was already generated *before* the prefixing was done
+                structname = parts.joinToString(".") { it.substring(4) }
+            }
             // each individual call to the pseudo function structalloc(),
             // needs to generate a separate unique struct instance label.
             // (unlike memory() where the label is not unique and passed as the first argument)

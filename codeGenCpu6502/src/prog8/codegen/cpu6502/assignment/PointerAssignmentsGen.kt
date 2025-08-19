@@ -372,7 +372,56 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         val right = binExpr.right as? PtIdentifier
         require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
 
-        TODO("evaluate dereference $binExpr $binExpr.position")
+        val field: Pair<DataType, UInt>
+        var extraFieldOffset = 0
+
+        if(left.type.isStructInstance) {
+
+            // indexing on a pointer directly
+            // fetch pointer address, determine struct and field, add index * structsize
+            if(left.variable!=null) {
+                asmgen.assignExpressionToRegister(left.variable!!, RegisterOrPair.AY)
+            } else if(left.pointerderef!=null) {
+                TODO("get pointer from deref $left")
+            } else {
+                throw AssemblyError("weird arrayindexer $left")
+            }
+            val struct = left.type.subType!! as StStruct
+            val constindex = left.index as? PtNumber
+            if(constindex!=null) {
+                extraFieldOffset = struct.size.toInt() * constindex.number.toInt()
+            } else {
+                TODO("add non-const offset to pointer in AY")
+//                val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
+//                result += chunks
+//                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+            }
+            field = struct.getField(right.name, asmgen.program.memsizer)
+
+        } else {
+            // indexing on an array with pointers
+            // fetch the pointer from the array, determine the struct & field
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY)
+            val struct = left.type.dereference().subType as StStruct
+            field = struct.getField(right.name, asmgen.program.memsizer)
+        }
+
+        // add field offset to pointer in AY
+        val offset = extraFieldOffset + field.second.toInt()
+        if(offset>0) {
+            if(offset<256) {
+                asmgen.out("""
+                    clc
+                    adc  #$offset
+                    bcc  +
+                    iny
++""")
+            } else {
+                TODO("add field offset word $offset to pointer in AY")
+            }
+        }
+
+        return RegisterOrPair.AY
     }
 
     internal fun assignAddressOfIndexedPointer(target: AsmAssignTarget, arrayVarName: String, arrayDt: DataType, index: PtExpression) {
