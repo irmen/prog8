@@ -6,6 +6,7 @@ import io.kotest.datatest.withData
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.expressions.ArrayIndexedExpression
@@ -19,10 +20,7 @@ import prog8.code.target.C128Target
 import prog8.code.target.C64Target
 import prog8.code.target.PETTarget
 import prog8.code.target.VMTarget
-import prog8tests.helpers.DummyFunctions
-import prog8tests.helpers.DummyMemsizer
-import prog8tests.helpers.DummyStringEncoder
-import prog8tests.helpers.compileText
+import prog8tests.helpers.*
 
 
 class TestMemory: FunSpec({
@@ -420,5 +418,25 @@ class TestMemory: FunSpec({
             target.memorySize(DataType.LONG, 10) shouldBe 40
             target.memorySize(DataType.FLOAT, 10) shouldBe 10*target.FLOAT_MEM_SIZE
         }
+    }
+
+    test("errors when writing to data in ROM (romable code)") {
+        val src="""
+%option romable
+
+main {
+    ubyte[] array = [1,2,3,4,5]
+    str name = "foobar"
+    sub start() {
+        array[2] = 99
+        name[2] = 'x'   
+    }
+}"""
+
+        val errors=ErrorReporterForTests()
+        compileText(C64Target(), false, src, outputDir, errors=errors, writeAssembly = false, varshigh=1, slabshigh=1) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "8:9: cannot assign to an array or string that is located in ROM"
+        errors.errors[1] shouldContain "9:9: cannot assign to an array or string that is located in ROM"
     }
 })
