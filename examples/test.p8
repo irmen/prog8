@@ -6,35 +6,26 @@
 
 
 main {
-
-    struct List {
-        ^^uword s
-        ubyte n
-        ^^List next
-    }
-
     sub start() {
-        ubyte[10] array
-        uword @shared wordptr
-        ^^bool @shared boolptr
-        ^^float @shared floatptr
-        ^^byte @shared byteptr
-        ^^ubyte @shared ubyteptr
-        ^^List @shared listptr
-        ^^List @shared listptr2
+        struct List {
+            bool b
+            uword value
+            float fv
+        }   ; sizeof = 11
 
-        bool @shared zz
-        float @shared fl
-        byte @shared bb
+        ^^List lp1 = 10000
+        ^^List lp2 = 20000
 
-        zz = boolptr[999]
-        fl = floatptr[999]
-        bb = byteptr[999]
-        cx16.r0L = ubyteptr[999]
-        cx16.r1L = wordptr[999]
-        cx16.r2L = array[9]
+        lp2^^ = lp1^^           ; memcopy(lp1, lp2, 11)
+        lp2[2] = lp1^^          ; memcopy(lp1, lp2 + 22, 11)
+        ; lp2[2]^^ = lp1^^        ; memcopy(lp1, lp2 + 22, 11)  (same as above)  TODO fix astchecker to allow this case
+        lp2^^ = lp1[2]         ; memcopy(lp1 + 22, lp2, 11)
+        ; lp2^^ = lp1[2]^^       ; memcopy(lp1 + 22, lp2, 11)  (same as above)   TODO fix astchecker to allow this case
+        ; lp2[3] = lp1[2]        ; memcopy(lp1 + 22, lp2 + 33, 11)  TODO fix astchecker to allow this case
     }
 }
+
+
 
 ;main {
 ;    sub start() {

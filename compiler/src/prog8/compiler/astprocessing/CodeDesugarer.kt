@@ -742,6 +742,8 @@ _after:
         if(targetDt.isStructInstance && sourceDt.isStructInstance) {
             if(targetDt == sourceDt) {
                 // special case simple struct instance assignment via memory copy
+                val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
+                val structSizeNum = NumericLiteral.optimalInteger(size, assignment.position)
                 val deref = assignment.value as? PtrDereference
                 if(deref!=null) {
                     val sourcePtr = IdentifierReference(deref.chain, assignment.position)
@@ -749,15 +751,50 @@ _after:
                     if(targetDeref!=null) {
                         // ptr1^^ = ptr2^^   -->    memcopy(ptr2, ptr1, sizeof(struct))
                         val targetPtr = IdentifierReference(targetDeref.chain, assignment.position)
-                        val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
-                        require(program.memsizer.memorySize(targetDt.getOrUndef(), null)==size)
-                        val numBytes = NumericLiteral.optimalInteger(size, assignment.position)
                         val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
-                            mutableListOf(sourcePtr, targetPtr, numBytes),
+                            mutableListOf(sourcePtr, targetPtr, structSizeNum),
                             false, assignment.position)
                         return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
                     }
+                    val targetIdx = assignment.target.arrayindexed
+                    if(targetIdx!=null) {
+                        val constIndex = targetIdx.indexer.constIndex()
+                        if(constIndex!=null) {
+                            val idxType = targetIdx.inferType(program)
+                            if (idxType.isStructInstance) {
+                                // ptr1[idx]^^ = ptr2^^   -->    memcopy(ptr2, ptr1+idx*sizeof(struct), sizseof(struct))
+                                val offset = NumericLiteral.optimalInteger(constIndex * size, assignment.position)
+                                val target = BinaryExpression(targetIdx.plainarrayvar!!, "+", offset, assignment.position)
+                                val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                                    mutableListOf(sourcePtr, target, structSizeNum),
+                                    false, assignment.position)
+                                return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                            }
+                        }
+                    }
                 }
+
+                val sourceIdx = assignment.value as? ArrayIndexedExpression
+                if(sourceIdx!=null) {
+                    val constIndex = sourceIdx.indexer.constIndex()
+                    if(constIndex!=null) {
+                        val idxType = sourceIdx.inferType(program)
+                        if(idxType.isStructInstance) {
+                            val targetDeref = assignment.target.pointerDereference
+                            if(targetDeref!=null) {
+                                // ptr1^^ = ptr2[idx]  -->  memcopy(ptr2 + idx*sizeof(struct), ptr1, sizeof(struct))
+                                val offset = NumericLiteral.optimalInteger(constIndex * size, assignment.position)
+                                val targetPtr = IdentifierReference(targetDeref.chain, assignment.position)
+                                val source = BinaryExpression(sourceIdx.plainarrayvar!!, "+", offset, assignment.position)
+                                val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                                    mutableListOf(source, targetPtr, structSizeNum),
+                                    false, assignment.position)
+                                return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                            }
+                        }
+                    }
+                }
+
                 // TODO support other forms of struct instance assignments,  such as ptr^^ = array[2]^^  , array[3] = array[2],   array[3] = ptr^^
             }
         }

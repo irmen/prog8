@@ -1203,6 +1203,33 @@ main {
         errors.errors[3] shouldContain "assigning this value to struct instance not supported"
     }
 
+    xtest("assigning struct instances") {
+        val src="""
+main {
+    sub start() {
+        struct List {
+            bool b
+            uword value
+            float fv
+        }   ; sizeof = 11
+
+        ^^List lp1 = 10000
+        ^^List lp2 = 20000
+
+        lp2^^ = lp1^^           ; memcopy(lp1, lp2, 11)
+        lp2[2] = lp1^^          ; memcopy(lp1, lp2 + 22, 11)
+        lp2[2]^^ = lp1^^        ; memcopy(lp1, lp2 + 22, 11)  (same as above)  TODO fix astchecker to allow this case
+        lp2^^ = lp1[2]         ; memcopy(lp1 + 22, lp2, 11)
+        lp2^^ = lp1[2]^^       ; memcopy(lp1 + 22, lp2, 11)  (same as above)   TODO fix astchecker to allow this case
+        lp2[3] = lp1[2]        ; memcopy(lp1 + 22, lp2 + 33, 11)  TODO fix astchecker to allow this case
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), false, src, outputDir, errors=errors)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 99
+    }
+
     test("a.b.c[i]^^.value as expression where pointer is struct") {
         val src="""
 main {
@@ -1870,17 +1897,15 @@ main {
         ^^Node nodes
         n1^^=n2^^               ; ok
         bptr1^^=bptr2^^         ; ok
-        n2 = nodes[2]^^         ; cannot assign instance to pointer
-        n1^^=nodes[2]           ; cannot assign struct instances like this
+        n1^^=nodes[2]           ; ok
+        n2 = nodes[2]^^         ; cannot assign instance to pointer like this yet
   }
 }"""
         val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 4
+        errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "struct instance by value"
         errors.errors[1] shouldContain "no support for getting the target value of pointer array indexing"
-        errors.errors[2] shouldContain "struct instance by value"
-        errors.errors[3] shouldContain "assigning this value to struct instance not supported"
     }
 
     test("pointer variable usage detection in other block 1") {
