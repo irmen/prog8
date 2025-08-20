@@ -744,18 +744,21 @@ _after:
                 // special case simple struct instance assignment via memory copy
                 val deref = assignment.value as? PtrDereference
                 if(deref!=null) {
-                    // ptr1^^ = ptr2^^   -->    memcopy(ptr2, ptr1, sizeof(struct))
                     val sourcePtr = IdentifierReference(deref.chain, assignment.position)
-                    val targetPtr = IdentifierReference(assignment.target.pointerDereference!!.chain, assignment.position)
-                    val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
-                    require(program.memsizer.memorySize(targetDt.getOrUndef(), null)==size)
-                    val numBytes = NumericLiteral.optimalInteger(size, assignment.position)
-                    val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
-                        mutableListOf(sourcePtr, targetPtr, numBytes),
-                        false, assignment.position)
-                    return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                    val targetDeref = assignment.target.pointerDereference
+                    if(targetDeref!=null) {
+                        // ptr1^^ = ptr2^^   -->    memcopy(ptr2, ptr1, sizeof(struct))
+                        val targetPtr = IdentifierReference(targetDeref.chain, assignment.position)
+                        val size = program.memsizer.memorySize(sourceDt.getOrUndef(), null)
+                        require(program.memsizer.memorySize(targetDt.getOrUndef(), null)==size)
+                        val numBytes = NumericLiteral.optimalInteger(size, assignment.position)
+                        val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                            mutableListOf(sourcePtr, targetPtr, numBytes),
+                            false, assignment.position)
+                        return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                    }
                 }
-                // TODO support other forms of struct instance assignments?  such as ptr^^ = array[2]^^
+                // TODO support other forms of struct instance assignments,  such as ptr^^ = array[2]^^  , array[3] = array[2],   array[3] = ptr^^
             }
         }
 

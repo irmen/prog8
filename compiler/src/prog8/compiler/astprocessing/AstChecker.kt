@@ -694,7 +694,8 @@ internal class AstChecker(private val program: Program,
             return super.visit(assignment)
 
         // unfortunately the AST regarding pointer dereferencing is a bit of a mess, and we cannot do precise type checking on elements inside such expressions yet.
-        if(assignment.value.inferType(program).isUnknown) {
+        val valueDt = assignment.value.inferType(program)
+        if(valueDt.isUnknown) {
             val binexpr = assignment.value as? BinaryExpression
             if(assignment.target.multi==null) {
                 if (binexpr != null && binexpr.operator != ".")
@@ -702,6 +703,8 @@ internal class AstChecker(private val program: Program,
                 else
                     errors.err("invalid assignment value", assignment.value.position)
             }
+        } else if(valueDt.isStructInstance) {
+            errors.err("no support yet for assigning a struct instance by value", assignment.value.position)
         }
 
         super.visit(assignment)

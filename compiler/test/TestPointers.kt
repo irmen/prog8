@@ -325,12 +325,11 @@ main {
         cx16.r0L = ubyteptr[999]
         cx16.r1L = wordptr[999]
         cx16.r2L = array[9]
-        listptr2 = listptr[999]        
     }
 }"""
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 28
+        st.size shouldBe 27
 
         val a_zz = (st[20] as Assignment).value
         a_zz shouldBe instanceOf<ArrayIndexedExpression>()
@@ -1197,10 +1196,11 @@ main {
 
         val errors=ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors)
-        errors.errors.size shouldBe 3
-        errors.errors[0] shouldContain "doesn't match"
-        errors.errors[1] shouldContain "assigning this value to struct instance not supported"
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "struct instance by value"
+        errors.errors[1] shouldContain "doesn't match"
         errors.errors[2] shouldContain "assigning this value to struct instance not supported"
+        errors.errors[3] shouldContain "assigning this value to struct instance not supported"
     }
 
     test("a.b.c[i]^^.value as expression where pointer is struct") {
@@ -1876,9 +1876,11 @@ main {
 }"""
         val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "no support for getting the target value of pointer array indexing"
-        errors.errors[1] shouldContain "assigning this value to struct instance not supported"
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "struct instance by value"
+        errors.errors[1] shouldContain "no support for getting the target value of pointer array indexing"
+        errors.errors[2] shouldContain "struct instance by value"
+        errors.errors[3] shouldContain "assigning this value to struct instance not supported"
     }
 
     test("pointer variable usage detection in other block 1") {

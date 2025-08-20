@@ -1,15 +1,11 @@
 TODO
 ====
 
-fix compiler crash (virtual) for   ^^List @shared lp  ;   ^^List @shared temp = lp[2]
-fix invalid pointer arithmetic in 6502 code for &&lp[2]  (it adds 2 to the pointer itself rather than the value of the pointer, and 2 is wrong as well)
-
-
-
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
-- implement the TODO's in PointerAssignmentsGen. (mostly related to an array indexed pointer assignment target)
+- implement the TODO's in PointerAssignmentsGen.
+- implement some more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO)
 - scan through 6502 library modules to change untyped uword pointers to typed pointers
 - scan through 6502 examples to change untyped uword pointers to typed pointers
 - fix code size regressions (if any left)
