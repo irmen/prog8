@@ -225,15 +225,15 @@ sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor_ignored)  {
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 	%asm  {{
-        txa
-        asl a
-        tax
-        lda setchr._screenrows,x
-        sta $c4
-        lda setchr._screenrows+1,x
-        sta $c5
-        sty $c6
- 		rts
+		txa
+		asl a
+		tax
+		lda setchr._screenrows,x
+		sta $c4
+		lda setchr._screenrows+1,x
+		sta $c5
+		sty $c6
+		rts
 	}}
 }
 
