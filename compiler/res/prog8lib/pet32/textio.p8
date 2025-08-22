@@ -225,7 +225,7 @@ sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor_ignored)  {
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 	%asm  {{
-        stx $d8
+		stx $d8
 		txa
 		asl a
 		tax
