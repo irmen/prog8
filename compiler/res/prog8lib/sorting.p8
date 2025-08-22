@@ -10,7 +10,7 @@ sorting {
     ; NOTE: sorting is done in ascending order!!!
     ; Note: could be made slightly faster by using modifying dcode for the CPY after _loop but that compromises romability
 
-    asmsub gnomesort_ub(uword bytearray @AY, ubyte num_elements @X) {
+    asmsub gnomesort_ub(^^ubyte bytearray @AY, ubyte num_elements @X) {
         %asm {{
             stx  P8ZP_SCRATCH_REG
             sta  P8ZP_SCRATCH_W1
@@ -43,21 +43,21 @@ _done
         }}
     }
 
-    sub gnomesort_by_ub(uword @requirezp uw_keys, uword values, ubyte num_elements) {
+    sub gnomesort_by_ub(^^ubyte @requirezp ub_keys, ^^uword wordvalues, ubyte num_elements) {
         ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted ofcourse).
         ubyte @zp pos=1
         while pos != num_elements {
-            if uw_keys[pos]>=uw_keys[pos-1]
+            if ub_keys[pos]>=ub_keys[pos-1]
                 pos++
             else {
                 ; swap elements
-                cx16.r0L = uw_keys[pos-1]
-                uw_keys[pos-1] = uw_keys[pos]
-                uw_keys[pos] = cx16.r0L
-                uword @requirezp vptr = values + pos*$0002 -2
+                cx16.r0L = ub_keys[pos-1]
+                ub_keys[pos-1] = ub_keys[pos]
+                ub_keys[pos] = cx16.r0L
+                ^^uword @requirezp vptr = wordvalues + (pos-1)
                 cx16.r0 = peekw(vptr)
-                pokew(vptr, peekw(vptr+2))
-                pokew(vptr+2, cx16.r0)
+                pokew(vptr, peekw(vptr+1))
+                pokew(vptr+1, cx16.r0)
 
                 pos--
                 if_z
@@ -66,6 +66,7 @@ _done
         }
     }
 
+    ; TODO convert to ^^uword once code size regression is fixed
     sub gnomesort_uw(uword @requirezp values, ubyte num_elements) {
         ; Sorts the values array (no-split unsigned words).
         ; Max number of elements is 128. Clobbers R0 and R1.
@@ -87,6 +88,7 @@ _done
         }
     }
 
+    ; TODO convert to ^^uword once code size regression is fixed
     sub gnomesort_by_uw(uword @requirezp uw_keys, uword wordvalues, ubyte num_elements) {
         ; Sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
         ; both arrays should be no-split array of words. uw_keys are unsigned.
@@ -115,7 +117,7 @@ _done
 
     ; gnomesort_pointers is not worth it over shellshort_pointers.
 
-    sub shellsort_ub(uword @requirezp values, ubyte num_elements) {
+    sub shellsort_ub(^^ubyte @requirezp values, ubyte num_elements) {
         ; sorts the values array (unsigned bytes).
         num_elements--
         ubyte @zp gap
@@ -138,6 +140,7 @@ _done
         }
     }
 
+    ; TODO convert to ^^uword once code size regression is fixed
     sub shellsort_uw(uword @requirezp values, ubyte num_elements) {
         ; sorts the values array (no-split unsigned words).
         num_elements--
@@ -160,7 +163,8 @@ _done
         }
     }
 
-    sub shellsort_by_ub(uword @requirezp ub_keys, uword @requirezp wordvalues, ubyte num_elements) {
+    ; TODO convert to ^^uword once code size regression is fixed
+    sub shellsort_by_ub(^^ubyte @requirezp ub_keys, uword @requirezp wordvalues, ubyte num_elements) {
         ; sorts the 'wordvalues' array (no-split array of words) according to the 'ub_keys' array (which also gets sorted ofcourse).
         num_elements--
         ubyte @zp gap
@@ -186,6 +190,7 @@ _done
         }
     }
 
+    ; TODO convert to ^^uword once code size regression is fixed
     sub shellsort_by_uw(uword @requirezp uw_keys, uword @requirezp wordvalues, ubyte num_elements) {
         ; sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
         ; both arrays should be no-split array of words. uw_keys are unsigned.
@@ -236,7 +241,7 @@ _done
         }
     }
 
-    asmsub string_comparator(uword string1 @R0, uword string2 @R1) -> bool @Pc {
+    asmsub string_comparator(str string1 @R0, str string2 @R1) -> bool @Pc {
         ; R0 and R1 are the two strings, must return Carry=1 when R0<=R1, else Carry=0
         %asm {{
             lda  cx16.r1L

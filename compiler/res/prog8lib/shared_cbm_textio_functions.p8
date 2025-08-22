@@ -136,7 +136,7 @@ _allzero    lda  #'0'
         }}
     }
 
-    asmsub  input_chars  (uword buffer @ AY) clobbers(A) -> ubyte @ Y  {
+    asmsub  input_chars  (^^ubyte buffer @ AY) clobbers(A) -> ubyte @ Y  {
         ; ---- Input a string (max. 80 chars) from the keyboard, in PETSCII encoding.
         ;      Returns length in Y. (string is terminated with a 0 byte as well)
         ;      It assumes the keyboard is selected as I/O channel!

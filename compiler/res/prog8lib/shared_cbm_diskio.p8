@@ -101,7 +101,7 @@ io_error:
     }
 
 
-    sub diskname() -> uword {
+    sub diskname() -> str {
         ; -- Returns pointer to disk name string or 0 if failure.
 
         cbm.SETNAM(1, "$")
@@ -145,7 +145,7 @@ io_error:
 
     ; internal variables for the iterative file lister / loader
     bool list_skip_disk_name
-    uword list_pattern
+    ^^ubyte list_pattern
     uword list_blocks
     bool iteration_in_progress = false
     bool write_iteration_in_progress = false
@@ -154,7 +154,7 @@ io_error:
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
-    sub list_filenames(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
+    sub list_filenames(str pattern_ptr, str filenames_buffer, uword filenames_buf_size) -> ubyte {
         ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
         ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against.
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
@@ -163,7 +163,7 @@ io_error:
         ;    Note that no list of pointers of some form is returned, the names are just squashed together.
         ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
         ;    and registering when the next one starts after the 0-byte separator.
-    uword buffer_start = filenames_buffer
+        uword buffer_start = filenames_buffer
         ubyte files_found = 0
         if lf_start_list(pattern_ptr) {
             while lf_next_entry() {
@@ -187,7 +187,7 @@ io_error:
 
     ; ----- iterative file lister functions (uses the read io channel) -----
 
-    sub lf_start_list(uword pattern_ptr) -> bool {
+    sub lf_start_list(str pattern_ptr) -> bool {
         ; -- start an iterative file listing with optional pattern matching.
         ;    note: only a single iteration loop can be active at a time!
         cbm.SETNAM(1, "$")
@@ -217,7 +217,7 @@ io_error:
         return false
     }
 
-    sub lf_start_list_dirs(uword pattern_ptr) -> bool {
+    sub lf_start_list_dirs(str pattern_ptr) -> bool {
         ; -- start an iterative directory contents listing with optional pattern matching.
         ;    this version it only returns directory entries!
         ;    note: only a single iteration loop can be active at a time!
@@ -225,7 +225,7 @@ io_error:
         goto diskio.lf_start_list.start_list_internal
     }
 
-    sub lf_start_list_files(uword pattern_ptr) -> bool {
+    sub lf_start_list_files(str pattern_ptr) -> bool {
         ; -- start an iterative directory contents listing with optional pattern matching.
         ;    this version only returns actual file entries!
         ;    note: only a single iteration loop can be active at a time!
@@ -244,7 +244,7 @@ io_error:
         repeat {
             reset_read_channel()        ; use the input io channel again
 
-            uword nameptr = &list_filename
+            ^^ubyte nameptr = &list_filename
             ubyte blocks_lsb = cbm.CHRIN()
             ubyte blocks_msb = cbm.CHRIN()
 
@@ -311,7 +311,7 @@ close_end:
 
     ; ----- iterative file loader functions (uses the input io channel) -----
 
-    sub f_open(uword filenameptr) -> bool {
+    sub f_open(str filenameptr) -> bool {
         ; -- open a file for iterative reading with f_read
         ;    note: only a single iteration loop can be active at a time!
         ;    Returns true if the file is successfully opened and readable.
@@ -341,7 +341,7 @@ close_end:
         return false
     }
 
-    sub f_read(uword bufferpointer, uword num_bytes) -> uword {
+    sub f_read(str bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
         if not iteration_in_progress or num_bytes==0
@@ -393,7 +393,7 @@ close_end:
         return list_blocks  ; number of bytes read
     }
 
-    sub f_read_all(uword bufferpointer) -> uword {
+    sub f_read_all(str bufferpointer) -> uword {
         ; -- read the full rest of the file, returns number of bytes read.
         ;    It is assumed the file size is less than 64 K.
         ;    Usually you will just be using load() / load_raw() to read entire files!
@@ -413,8 +413,8 @@ close_end:
         return total_read
     }
 
-    asmsub f_readline(uword bufptr @AY) clobbers(X) -> ubyte @Y, ubyte @A {
-        ; Routine to read text lines from a text file. Lines must be less than 255 characters.
+    asmsub f_readline(^^ubyte bufptr @AY) clobbers(X) -> ubyte @Y, ubyte @A {
+        ; Routine to read a text line from a text file. Lines must be less than 255 characters.
         ; Reads characters from the input file UNTIL a newline or return character, or 0 byte (likely EOF).
         ; The line read will be 0-terminated in the buffer (and not contain the end of line character).
         ; The length of the line is returned in Y. Note that an empty line is okay and is length 0!
@@ -461,7 +461,7 @@ _end        jsr  cbm.READST
 
     ; ----- iterative file writing functions (uses write io channel) -----
 
-    sub f_open_w(uword filenameptr) -> bool {
+    sub f_open_w(str filenameptr) -> bool {
         ; -- open a file for iterative writing with f_write
         ;    WARNING: returns true if the open command was received by the device,
         ;    but this can still mean the file wasn't successfully opened for writing!
@@ -487,7 +487,7 @@ _end        jsr  cbm.READST
         return false
     }
 
-    sub f_write(uword bufferpointer, uword num_bytes) -> bool {
+    sub f_write(str bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
         ;    you can call this multiple times to append more data
         if num_bytes!=0 {
@@ -516,7 +516,7 @@ _end        jsr  cbm.READST
 
     ; ---- other functions ----
 
-    sub status() -> uword {
+    sub status() -> str {
         ; -- retrieve the disk drive's current status message
 
 ; TODO this doesn't seem to work reliably, sometimes READST returns 128 when the drive is just fine
@@ -527,7 +527,7 @@ _end        jsr  cbm.READST
 ;            return device_not_present_error
 ;        }
 
-        uword messageptr = &list_filename
+        ^^ubyte messageptr = &list_filename
         cbm.SETNAM(0, list_filename)
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()          ; open 15,8,15
@@ -586,7 +586,7 @@ io_error:
         return 255
     }
 
-    sub save(uword filenameptr, uword start_address, uword savesize) -> bool {
+    sub save(str filenameptr, uword start_address, uword savesize) -> bool {
         cbm.SETNAM(strings.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
         uword @shared end_address = start_address + savesize
@@ -617,7 +617,7 @@ io_error:
     ; If you specify a custom address_override, the first 2 bytes in the file are ignored
     ; and the rest is loaded at the given location in memory.
     ; Returns the end load address+1 if successful or 0 if a load error occurred.
-    sub load(uword filenameptr, uword address_override) -> uword {
+    sub load(str filenameptr, uword address_override) -> uword {
         cbm.SETNAM(strings.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
@@ -641,7 +641,7 @@ io_error:
     ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
     ; No program header is assumed in the file. Everything is loaded.
     ; See comments on load() for more details.
-    sub load_raw(uword filenameptr, uword start_address) -> uword {
+    sub load_raw(str filenameptr, uword start_address) -> uword {
         ; read the 2 header bytes separately to skip them
         if not f_open(filenameptr)
             return 0
@@ -654,12 +654,12 @@ io_error:
     }
 
     ; Load a prog8 compiled library binary blob at the given location into memory.
-    sub loadlib(uword libnameptr, uword libaddress) -> uword {
+    sub loadlib(str libnameptr, uword libaddress) -> uword {
         return load(libnameptr, libaddress)
     }
 
 
-    sub delete(uword filenameptr) {
+    sub delete(str filenameptr) {
         ; -- delete a file on the drive
         list_filename[0] = 's'
         list_filename[1] = ':'
@@ -671,7 +671,7 @@ io_error:
         cbm.CLOSE(1)
     }
 
-    sub rename(uword oldfileptr, uword newfileptr) {
+    sub rename(str oldfileptr, str newfileptr) {
         ; -- rename a file on the drive
         list_filename[0] = 'r'
         list_filename[1] = ':'
@@ -696,7 +696,7 @@ io_error:
         return false
     }
 
-    sub send_command(uword commandptr) {
+    sub send_command(str commandptr) {
         ; -- send a dos command to the drive
         cbm.SETNAM(strings.length(commandptr), commandptr)
         cbm.SETLFS(15, drivenumber, 15)

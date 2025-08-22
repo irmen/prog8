@@ -250,10 +250,13 @@ internal class AstChecker(private val program: Program,
 
                     BaseDataType.POINTER -> {
                         if (!iterableDt.isUnsignedWord) {
-                            if (iterableDt.isPointerArray) {
+                            if (iterableDt.isPointerArray || iterableDt.isUnsignedWordArray) {
                                 val elementDt = iterableDt.elementType()
-                                if(loopvar.datatype != elementDt)
-                                    errors.err("loopvar type differs from the pointer types in the collection", forLoop.position)
+                                if(loopvar.datatype != elementDt) {
+                                    if(!elementDt.isUnsignedWord)
+                                        errors.err("loopvar type differs from the pointer types in the collection", forLoop.position)
+                                }
+
                             } else
                                 errors.err("pointer loop variable can only loop over pointers or unsigned words", forLoop.position)
                         }

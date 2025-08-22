@@ -1,163 +1,228 @@
-%import textio
-%import floats
-
 %option no_sysinit
-%zeropage basicsafe
-
+%zeropage kernalsafe
+%import textio
+%import compression
+%import math
+%import sorting
+%import strings
+%import diskio
 
 main {
     sub start() {
-        struct List {
-            bool b
-            uword value
-            float fv
-        }   ; sizeof = 11
+;        test_compression()
+        test_sorting1()
+        test_sorting2()
+;        test_math()
+;        test_syslib()
+;        test_strings()
+;        test_conv()
+;        test_diskio()
+;        test_textio()
 
-        ^^List lp1 = 10000
-        ^^List lp2 = 20000
+        repeat {}
+    }
 
-        lp2^^ = lp1^^           ; memcopy(lp1, lp2, 11)
-        lp2[2] = lp1^^          ; memcopy(lp1, lp2 + 22, 11)
-        ; lp2[2]^^ = lp1^^        ; memcopy(lp1, lp2 + 22, 11)  (same as above)  TODO fix astchecker to allow this case
-        lp2^^ = lp1[2]         ; memcopy(lp1 + 22, lp2, 11)
-        ; lp2^^ = lp1[2]^^       ; memcopy(lp1 + 22, lp2, 11)  (same as above)   TODO fix astchecker to allow this case
-        ; lp2[3] = lp1[2]        ; memcopy(lp1 + 22, lp2 + 33, 11)  TODO fix astchecker to allow this case
+    sub test_diskio() {
+        txt.print("--diskio--\n")
+        sys.memset(target, len(target), 0)
+        diskio.delete("derp.bin")
+        void diskio.f_open_w("derp.bin")
+        repeat 12
+            void diskio.f_write("derpderp123", 11)
+        diskio.f_close_w()
+
+        void diskio.f_open("derp.bin")
+        diskio.f_read(target, 60)
+        txt.print(target)
+        txt.nl()
+    }
+
+    ubyte[100] target
+
+    sub test_conv() {
+        txt.print("--conv--\n")
+        txt.print_b(-111)
+        txt.spc()
+        txt.print_ub(222)
+        txt.spc()
+        txt.print_uw(22222)
+        txt.spc()
+        txt.print_w(-22222)
+        txt.nl()
+        txt.print_ubbin(222, true)
+        txt.spc()
+        txt.print_ubhex(222, true)
+        txt.spc()
+        txt.print_uwbin(2222, true)
+        txt.spc()
+        txt.print_uwhex(2222, true)
+        txt.nl()
+        txt.print_ub0(1)
+        txt.spc()
+        txt.print_uw0(123)
+        txt.nl()
+    }
+
+    sub test_strings() {
+        txt.print("--strings--\n")
+        ubyte idx
+        bool found
+        idx, found = strings.rfind(source, '1')
+        txt.print_ub(idx)
+        txt.nl()
+    }
+
+    sub test_textio() {
+        txt.print("--textio--\n")
+        txt.print("enter some input: ")
+        void txt.input_chars(&target)
+        txt.print(target)
+        txt.nl()
+    }
+
+    sub test_syslib() {
+        txt.print("--syslib--\n")
+        sys.internal_stringcopy(source, target)
+        txt.print(target)
+        txt.nl()
+        sys.memset(target, sizeof(target), 0)
+        txt.print(target)
+        txt.nl()
+        sys.memcopy(source, target, len(source))
+        txt.print(target)
+        txt.nl()
+        sys.memsetw(&target as ^^uword, 20, $5051)
+        txt.print(target)
+        txt.nl()
+        txt.print_b(sys.memcmp(source, target, len(source)))
+        txt.nl()
+    }
+
+    sub test_sorting1() {
+        txt.print("--sorting (shell)--\n")
+        ubyte[] bytes1 = [77,33,44,99,11,55]
+        ubyte[] bytes2 = [77,33,44,99,11,55]
+        uword[] @nosplit values1 = [1,2,3,4,5,6]
+        uword[] @nosplit words1 = [777,333,444,999,111,555]
+        uword[] @nosplit words2 = [777,333,444,999,111,555]
+        uword[] @nosplit values2 = [1,2,3,4,5,6]
+        sorting.shellsort_ub(&bytes1, len(bytes1))
+        sorting.shellsort_by_ub(&bytes2, &values1, len(bytes2))
+        sorting.shellsort_uw(&words1, len(words1))
+        sorting.shellsort_by_uw(&words2, &values2, len(words2))
+
+        for cx16.r0L in bytes1 {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0L in bytes2 {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in values1 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in words1 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in words2 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in values2 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+
+    }
+
+    sub test_sorting2() {
+        txt.print("--sorting (gnome)--\n")
+        ubyte[] bytes1 = [77,33,44,99,11,55]
+        ubyte[] bytes2 = [77,33,44,99,11,55]
+        uword[] @nosplit values1 = [1,2,3,4,5,6]
+        uword[] @nosplit words1 = [777,333,444,999,111,555]
+        uword[] @nosplit words2 = [777,333,444,999,111,555]
+        uword[] @nosplit values2 = [1,2,3,4,5,6]
+        sorting.gnomesort_ub(&bytes1, len(bytes1))
+        sorting.gnomesort_by_ub(&bytes2, &values1, len(bytes2))
+        sorting.gnomesort_uw(&words1, len(words1))
+        sorting.gnomesort_by_uw(&words2, &values2, len(words2))
+
+        for cx16.r0L in bytes1 {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0L in bytes2 {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in values1 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in words1 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in words2 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+        for cx16.r0 in values2 {
+            txt.print_uw(cx16.r0)
+            txt.spc()
+        }
+        txt.nl()
+
+    }
+
+    sub test_math() {
+        txt.print("--math--\n")
+        txt.print("expected 15567: ")
+        txt.print_uw(math.crc16(source, len(source)))
+        txt.print("\nexpected 8747,54089: ")
+        math.crc32(source, len(source))
+        txt.print_uw(cx16.r14)
+        txt.chrout(',')
+        txt.print_uw(cx16.r15)
+        txt.nl()
+    }
+
+    str source = petscii:"Lorem ipsuuuuuuuuuuuum dollllllllllllllloooooooor sit ametttttttttttttttt, cccccccccccccccconsecteeeeetuuuuuur aaaaaaaaa111111222222333333444444"
+
+    sub test_compression() {
+        txt.print("--compression--\n")
+
+        ubyte[256] compressed
+        ubyte[256] decompressed
+
+        txt.print_uw(len(source))
+        txt.nl()
+
+        uword size = compression.encode_rle(source, len(source), compressed, true)
+        txt.print_uw(size)
+        txt.nl()
+
+        size = compression.decode_rle(compressed, decompressed, sizeof(decompressed))
+        txt.print_uw(size)
+        txt.nl()
+        txt.print(source)
+        txt.nl()
+        txt.print(decompressed)
+        txt.nl()
     }
 }
-
-
-
-;main {
-;    sub start() {
-;        floatprob()
-;        basicpointers()
-;
-;        ; TODO test address-of with array indexed as well
-;    }
-;
-;    sub floatprob() {
-;        uword @shared dummy
-;        ^^float[10] floatptrs
-;        ^^float fptr1 = 20000 + 3*sizeof(float)
-;        ^^float fptr2 = 20000
-;        txt.print_uw(&floatptrs)
-;        txt.spc()
-;        txt.print_uw(&floatptrs[3])   ; NOTE: will be 3 because the pointer array is split-words .  This codegen is OK!
-;        txt.nl()
-;
-;        txt.print_uw(fptr1)
-;        txt.spc()
-;        txt.print_uw(fptr2)
-;        txt.spc()
-;        txt.print_uw(& fptr2[3])
-;        txt.spc()
-;        txt.print_uw(&& fptr2[3])
-;        txt.spc()
-;        cx16.r0L = 3
-;        txt.print_uw(& fptr2[cx16.r0L])
-;        txt.spc()
-;        txt.print_uw(&& fptr2[cx16.r0L])
-;        txt.nl()
-;        cx16.r0L = 2
-;        txt.print_uw(& fptr2[cx16.r0L+1])
-;        txt.spc()
-;        txt.print_uw(&& fptr2[cx16.r0L+1])
-;        txt.nl()
-;
-;        pokef(20000+3*sizeof(float), 3.1415927)
-;        txt.print_f(fptr1^^)
-;        txt.spc()
-;        txt.print_f(fptr2[3])
-;        txt.nl()
-;    }
-;
-;    sub basicpointers() {
-;        ^^bool bptr = 20000
-;        ^^float fptr = 20100
-;        ^^word wptr = 20200
-;        ^^ubyte ubptr = 20300
-;
-;        txt.print("direct deref:\n")
-;        txt.print_bool(bptr^^)
-;        txt.spc()
-;        txt.print_f(fptr^^)
-;        txt.spc()
-;        txt.print_w(wptr^^)
-;        txt.spc()
-;        txt.print_ub(ubptr^^)
-;        txt.nl()
-;
-;        @(20000) = 1
-;        pokef(20100, 3.1415927)
-;        pokew(20200, -22222 as uword)
-;        @(20300) = 123
-;
-;        txt.print_bool(bptr^^)
-;        txt.spc()
-;        txt.print_f(fptr^^)
-;        txt.spc()
-;        txt.print_w(wptr^^)
-;        txt.spc()
-;        txt.print_ub(ubptr^^)
-;        txt.nl()
-;
-;
-;        txt.print("indexed deref (const):\n")
-;        @(20003) = 1
-;        pokef(20100+3*sizeof(float), 9.876543)
-;        pokew(20200+3*2, -11111 as uword)
-;        @(20300+3) = 42
-;
-;        txt.print_bool(bptr[3])
-;        txt.spc()
-;        txt.print_f(fptr[3])
-;        txt.spc()
-;        txt.print_w(wptr[3])
-;        txt.spc()
-;        txt.print_ub(ubptr[3])
-;        txt.nl()
-;
-;
-;        txt.print("indexed deref (var):\n")
-;        cx16.r0L = 3
-;        txt.print_bool(bptr[cx16.r0L])
-;        txt.spc()
-;        txt.print_f(fptr[cx16.r0L])
-;        txt.spc()
-;        txt.print_w(wptr[cx16.r0L])
-;        txt.spc()
-;        txt.print_ub(ubptr[cx16.r0L])
-;        txt.nl()
-;
-;        txt.print("indexed deref (expr):\n")
-;        cx16.r0L = 2
-;        txt.print_bool(bptr[cx16.r0L+1])
-;        txt.spc()
-;        txt.print_f(fptr[cx16.r0L+1])
-;        txt.spc()
-;        txt.print_w(wptr[cx16.r0L+1])
-;        txt.spc()
-;        txt.print_ub(ubptr[cx16.r0L+1])
-;        txt.nl()
-;    }
-;}
-;
-;
-;;        ^^Node[5] nodesarray
-;;
-;;        cx16.r0L = nodesarray[2].weight
-;;        cx16.r0L = nodes[2].weight
-;
-;
-;;main {
-;;    sub start() {
-;;        struct List {
-;;            bool b
-;;            uword value
-;;        }
-;;
-;;        ^^List[10] listarray
-;;        cx16.r0 = listarray[2].value
-;;        cx16.r1 = listarray[3]^^.value
-;;    }
-;;}

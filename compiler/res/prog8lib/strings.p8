@@ -5,7 +5,7 @@
 strings {
     %option no_symbol_prefixing, ignore_unused
 
-    asmsub length(uword string @AY) clobbers(A) -> ubyte @Y {
+    asmsub length(str string @AY) clobbers(A) -> ubyte @Y {
         ; Returns the number of bytes in the string.
         ; This value is determined during runtime and counts upto the first terminating 0 byte in the string,
         ; regardless of the size of the string during compilation time. Don’t confuse this with len and sizeof!
@@ -23,7 +23,7 @@ strings {
         }}
     }
 
-    asmsub left(uword source @AX, ubyte length @Y, uword target @R1) clobbers(A, Y) {
+    asmsub left(str source @AX, ubyte length @Y, str target @R1) clobbers(A, Y) {
         ; Copies the left side of the source string of the given length to target string.
         ; It is assumed the target string buffer is large enough to contain the result.
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
@@ -50,7 +50,7 @@ _loop		dey
         }}
     }
 
-    asmsub right(uword source @AY, ubyte length @X, uword target @R1) clobbers(A,Y) {
+    asmsub right(str source @AY, ubyte length @X, str target @R1) clobbers(A,Y) {
         ; Copies the right side of the source string of the given length to target string.
         ; It is assumed the target string buffer is large enough to contain the result.
         ; Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
@@ -89,7 +89,7 @@ _loop		dey
         }}
     }
 
-    asmsub slice(uword source @R0, ubyte start @A, ubyte length @Y, uword target @R1) clobbers(A, Y) {
+    asmsub slice(str source @R0, ubyte start @A, ubyte length @Y, str target @R1) clobbers(A, Y) {
         ; Copies a segment from the source string, starting at the given index,
         ;  and of the given length to target string.
         ; It is assumed the target string buffer is large enough to contain the result.
@@ -127,7 +127,7 @@ _startloop	dey
         }}
     }
 
-    asmsub find(uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
+    asmsub find(str string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string,
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
         %asm {{
@@ -152,7 +152,7 @@ _found	tya
     }
 
 
-    asmsub find_eol(uword string @AY) -> ubyte @A, bool @Pc {
+    asmsub find_eol(str string @AY) -> ubyte @A, bool @Pc {
         ; Locates the position of the first End Of Line character in the string.
         ; This is a convenience function that looks for both a CR or LF (byte 13 or byte 10) as being a possible Line Ending.
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
@@ -178,7 +178,7 @@ _found	tya
         }}
     }
 
-    asmsub rfind(uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
+    asmsub rfind(str string @AY, ubyte character @X) -> ubyte @A, bool @Pc {
         ; Locates the first position of the given character in the string, starting from the right.
         ; returns Carry set if found + index in A, or Carry clear if not found (and A will be 255, an invalid index).
         %asm {{
@@ -203,14 +203,14 @@ _found      tya
         }}
     }
 
-    asmsub contains(uword string @AY, ubyte character @X) -> bool @Pc {
+    asmsub contains(str string @AY, ubyte character @X) -> bool @Pc {
         ; Just return true/false if the character is in the given string or not.
         %asm {{
             jmp  find
         }}
     }
 
-    asmsub copy(uword source @R0, uword target @AY) clobbers(A) -> ubyte @Y {
+    asmsub copy(str source @R0, str target @AY) clobbers(A) -> ubyte @Y {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
         ; Often you don’t have to call this explicitly and can just write string1 = string2
@@ -224,7 +224,7 @@ _found      tya
         }}
     }
 
-    asmsub append(uword target @R0, uword suffix @R1) clobbers(Y) -> ubyte @A {
+    asmsub append(str target @R0, str suffix @R1) clobbers(Y) -> ubyte @A {
         ; Append the suffix string to the target. (make sure the buffer is large enough!)
         ; Returns the length of the resulting string.
         %asm {{
@@ -249,7 +249,7 @@ _found      tya
         }}
     }
 
-    asmsub compare(uword string1 @R0, uword string2 @AY) clobbers(Y) -> byte @A {
+    asmsub compare(str string1 @R0, str string2 @AY) clobbers(Y) -> byte @A {
         ; Compares two strings for sorting.
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
         ; Note that you can also directly compare strings and string values with eachother using
@@ -263,7 +263,7 @@ _found      tya
         }}
     }
 
-    asmsub ncompare(uword string1 @R0, uword string2 @AY, ubyte length @X) clobbers(X, Y) -> byte @A {
+    asmsub ncompare(str string1 @R0, str string2 @AY, ubyte length @X) clobbers(X, Y) -> byte @A {
         ; Compares two strings for sorting.
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
         ; Only compares the strings from index 0 up to the length argument.
@@ -276,7 +276,7 @@ _found      tya
         }}
     }
 
-    asmsub lower(uword st @AY) -> ubyte @Y {
+    asmsub lower(str st @AY) -> ubyte @Y {
         ; Lowercases the petscii string in-place. Returns length of the string.
         ; (for efficiency, non-letter characters > 128 will also not be left intact,
         ;  but regular text doesn't usually contain those characters anyway.)
@@ -299,7 +299,7 @@ _done       rts
         }}
     }
 
-    asmsub upper(uword st @AY) -> ubyte @Y {
+    asmsub upper(str st @AY) -> ubyte @Y {
         ; Uppercases the petscii string in-place. Returns length of the string.
         %asm {{
             sta  P8ZP_SCRATCH_W1

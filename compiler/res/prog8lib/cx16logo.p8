@@ -6,7 +6,7 @@ cx16logo {
     %option ignore_unused
 
     sub logo_at(ubyte column, ubyte row) {
-        uword strptr
+        ^^ubyte strptr
         for strptr in logo_lines {
             txt.plot(column, row)
             txt.print(strptr)
@@ -15,7 +15,7 @@ cx16logo {
     }
 
     sub logo() {
-        uword strptr
+        ^^ubyte strptr
         for strptr in logo_lines {
             txt.print(strptr)
             txt.nl()

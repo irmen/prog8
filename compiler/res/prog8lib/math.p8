@@ -547,7 +547,7 @@ log2_tab
         }}
     }
 
-    sub crc16(uword data, uword length) -> uword {
+    sub crc16(^^ubyte data, uword length) -> uword {
         ; calculates the CRC16 (XMODEM) checksum of the buffer.
         ; There are also "streaming" crc16_start/update/end routines below, that allow you to calculate crc16 for data that doesn't fit in a single memory block.
         crc16_start()
@@ -602,7 +602,7 @@ log2_tab
         return cx16.r15
     }
 
-    sub crc32(uword data, uword length) {
+    sub crc32(^^ubyte data, uword length) {
         ; Calculates the CRC-32 (ISO-HDLC/PKZIP) checksum of the buffer.
         ; because prog8 doesn't have 32 bits integers, we have to split up the calculation over 2 words.
         ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
