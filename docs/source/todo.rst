@@ -23,19 +23,9 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - scan through 6502 library modules to change untyped uword pointers to typed pointers;  shared, cx16, c64, c128, pet32, custom targets
     shared: done
     cx16: done
-    c64:
-    - diskio
-    - floats
-    - graphics
-    - syslib
-    - textio
-    c128:
-    - diskio
-    - syslib
-    - textio
-    pet32:
-    - syslib
-    - textio
+    c64: done
+    c128: done
+    pet32: done
     custom atari:
     - syslib
     - textio

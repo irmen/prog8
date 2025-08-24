@@ -57,7 +57,7 @@ cbm {
 
 ; ---- CBM ROM kernal routines (C64 addresses) ----
 
-extsub $AB1E = STROUT(uword strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use txt.print instead)
+extsub $AB1E = STROUT(str strptr @ AY) clobbers(A, X, Y)      ; print null-terminated string (use txt.print instead)
 extsub $E544 = CLEARSCR() clobbers(A,X,Y)                       ; clear the screen
 extsub $E566 = HOMECRSR() clobbers(A,X,Y)                       ; cursor to top left of screen
 extsub $EA31 = IRQDFRT() clobbers(A,X,Y)                        ; default IRQ routine
@@ -687,7 +687,7 @@ _loop       lda  P8ZP_SCRATCH_W1
         }}
     }
 
-    asmsub internal_stringcopy(uword source @R0, uword target @AY) clobbers (A,Y) {
+    asmsub internal_stringcopy(str source @R0, str target @AY) clobbers (A,Y) {
         ; Called when the compiler wants to assign a string value to another string.
         %asm {{
 		sta  P8ZP_SCRATCH_W1
