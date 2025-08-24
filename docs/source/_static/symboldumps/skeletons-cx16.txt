@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 893e16d8 in branch structs
+Prerelease version from git commit c04908a9 in branch structs6502
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -15,11 +15,11 @@ bmx  {
     ubyte  bitsperpixel 
     ubyte  border 
     ubyte  compression 
-    uword  error_message 
+    ^^ubyte  error_message 
     ubyte[]  header 
     uword  height 
     ubyte  old_drivenumber 
-    uword @shared  palette_buffer_ptr 
+    ^^ubyte @shared  palette_buffer_ptr 
     uword  palette_entries 
     ubyte  palette_start 
     ubyte  vera_colordepth 
@@ -182,16 +182,16 @@ diskio  {
     uword  list_blocks 
     str  list_filename 
     str  list_filetype 
-    uword  list_pattern 
+    ^^ubyte  list_pattern 
     bool  list_skip_disk_name 
     bool  write_iteration_in_progress 
     chdir  (str path) 
-    curdir  () -> uword 
-    delete  (uword filenameptr) 
+    curdir  () -> str 
+    delete  (str filenameptr) 
     directory  () -> bool 
     directory_dirs  () -> bool 
     directory_files  () -> bool 
-    diskname  () -> uword 
+    diskname  () -> str 
     exists  (str filename) -> bool 
     f_close  () 
     f_close_w  () 
@@ -200,7 +200,7 @@ diskio  {
     f_open_w_seek  (str filename) -> bool 
     f_read  (uword bufferpointer, uword num_bytes) -> uword 
     f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (uword bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
+    f_readline  (^^ubyte bufptr @AY) -> clobbers (X) -> ubyte @Y, ubyte @A 
     f_seek  (uword pos_hiword, uword pos_loword) 
     f_seek_w  (uword pos_hiword, uword pos_loword) 
     f_tell  () -> uword @R0, uword @R1, uword @R2, uword @R3 
@@ -209,29 +209,29 @@ diskio  {
     get_loadaddress  (str filename) -> uword 
     internal_f_open_w  (str filename, bool open_for_seeks) -> bool 
     internal_f_tell  () 
-    internal_load_routine  (uword filenameptr, uword address_override, bool headerless) -> uword 
-    internal_save_routine  (uword filenameptr, uword startaddress, uword savesize, bool headerless) -> bool 
+    internal_load_routine  (str filenameptr, uword address_override, bool headerless) -> uword 
+    internal_save_routine  (str filenameptr, uword startaddress, uword savesize, bool headerless) -> bool 
     lf_end_list  () 
     lf_next_entry  () -> bool 
-    lf_start_list  (uword pattern_ptr) -> bool 
-    lf_start_list_dirs  (uword pattern_ptr) -> bool 
-    lf_start_list_files  (uword pattern_ptr) -> bool 
-    list_filenames  (uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
-    load  (uword filenameptr, uword address_override) -> uword 
-    load_raw  (uword filenameptr, uword startaddress) -> uword 
+    lf_start_list  (str pattern_ptr) -> bool 
+    lf_start_list_dirs  (str pattern_ptr) -> bool 
+    lf_start_list_files  (str pattern_ptr) -> bool 
+    list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
+    load  (str filenameptr, uword address_override) -> uword 
+    load_raw  (str filenameptr, uword startaddress) -> uword 
     load_size  (ubyte startbank, uword startaddress, uword endaddress) -> uword 
-    loadlib  (uword libnameptr, uword libaddress) -> uword 
+    loadlib  (str libnameptr, uword libaddress) -> uword 
     mkdir  (str name) 
     read4hex  () -> uword 
     relabel  (str name) 
-    rename  (uword oldfileptr, uword newfileptr) 
+    rename  (str oldfileptr, str newfileptr) 
     reset_read_channel  () 
     reset_write_channel  () 
     rmdir  (str name) 
-    save  (uword filenameptr, uword startaddress, uword savesize) -> bool 
-    save_raw  (uword filenameptr, uword startaddress, uword savesize) -> bool 
-    send_command  (uword commandptr) 
-    status  () -> uword 
+    save  (str filenameptr, uword startaddress, uword savesize) -> bool 
+    save_raw  (str filenameptr, uword startaddress, uword savesize) -> bool 
+    send_command  (str commandptr) 
+    status  () -> str 
     status_code  () -> ubyte 
     vload  (str name @R0, ubyte bank @A, uword startaddress @R1) -> clobbers (X,Y) -> bool @A 
     vload_raw  (str name @R0, ubyte bank @A, uword startaddress @R1) -> clobbers (X,Y) -> bool @A 
@@ -263,6 +263,7 @@ emudbg  {
     &ubyte  EMU_RECORD_WAV 
     &ubyte  EMU_SAVE_ON_EXIT 
     console_chrout  (ubyte char) 
+    console_nl  () 
     console_value1  (ubyte value) 
     console_value2  (ubyte value) 
     console_write  (str isoString) 
@@ -301,7 +302,7 @@ floats  {
     FLOATS  () -> clobbers (A,X,Y)  = $fe8a
     FMULT  (uword mflpt @AY) -> clobbers (A,X,Y)  = $fe1e
     FMULTT  () -> clobbers (A,X,Y)  = $fe21
-    FOUT  () -> clobbers (X) -> uword @AY  = $fe06
+    FOUT  () -> clobbers (X) -> str @AY  = $fe06
     FPWR  (uword mflpt @AY) -> clobbers (A,X,Y)  = $fe36
     FPWRT  () -> clobbers (A,X,Y)  = $fe39
     FREADSA  (byte value @A) -> clobbers (A,X,Y) 
@@ -336,7 +337,7 @@ floats  {
     SIN  () -> clobbers (A,X,Y)  = $fe42
     SQR  () -> clobbers (A,X,Y)  = $fe30
     TAN  () -> clobbers (A,X,Y)  = $fe45
-    VAL_1  (uword string @XY, ubyte length @A) -> clobbers (A,X,Y) -> float @FAC1  = $fe09
+    VAL_1  (str string @XY, ubyte length @A) -> clobbers (A,X,Y) -> float @FAC1  = $fe09
     ZEROFC  () -> clobbers (A,X,Y)  = $fe72
     atan  (float value) -> float 
     atan2  (float y, float x) -> float 
@@ -405,7 +406,7 @@ gfx_hires  {
     safe_rect  (uword xx, uword yy, uword rwidth, uword rheight, ubyte color) 
     safe_vertical_line  (uword xx, uword yy, uword lheight, ubyte color) 
     set_8_pixels_from_bits  (ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) -> clobbers (X) 
-    text  (uword xx, uword yy, ubyte color, uword sctextptr) 
+    text  (uword xx, uword yy, ubyte color, str sctextptr) 
     text_charset  (ubyte charset) 
     text_mode  () 
     vertical_line  (uword xx, uword yy, uword lheight, ubyte color) 
@@ -444,7 +445,7 @@ gfx_lores  {
     safe_rect  (uword xx, ubyte yy, uword rwidth, ubyte rheight, ubyte color) 
     safe_vertical_line  (uword xx, ubyte yy, ubyte lheight, ubyte color) 
     set_8_pixels_from_bits  (ubyte bits @R0, ubyte oncolor @A, ubyte offcolor @Y) -> clobbers (X) 
-    text  (uword xx, uword yy, ubyte color, uword textptr) 
+    text  (uword xx, uword yy, ubyte color, str textptr) 
     text_charset  (ubyte charset) 
     text_mode  () 
     vertical_line  (uword xx, ubyte yy, ubyte lheight, ubyte color) 
@@ -486,11 +487,11 @@ math  {
     cos8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
     cosr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
     cosr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
-    crc16  (uword data, uword length) -> uword 
+    crc16  (^^ubyte data, uword length) -> uword 
     crc16_end  () -> uword 
     crc16_start  () 
     crc16_update  (ubyte value @A) 
-    crc32  (uword data, uword length) 
+    crc32  (^^ubyte data, uword length) 
     crc32_end  () 
     crc32_end_result  () -> uword @R15, uword @R14 
     crc32_start  () 
@@ -626,6 +627,23 @@ psg  {
 }
 
 
+LIBRARY MODULE NAME: sorting
+----------------------------
+
+sorting  {
+    gnomesort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements) 
+    gnomesort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements) 
+    gnomesort_ub  (^^ubyte bytearray @AY, ubyte num_elements @X) 
+    gnomesort_uw  (uword wordvalues, ubyte num_elements) 
+    shellsort_by_ub  (^^ubyte ub_keys, uword wordvalues, ubyte num_elements) 
+    shellsort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements) 
+    shellsort_pointers  (uword pointers, ubyte num_elements, uword comparefunc) 
+    shellsort_ub  (^^ubyte values, ubyte num_elements) 
+    shellsort_uw  (uword values, ubyte num_elements) 
+    string_comparator  (str string1 @R0, str string2 @R1) -> bool @Pc 
+}
+
+
 LIBRARY MODULE NAME: sprites
 ----------------------------
 
@@ -669,13 +687,13 @@ LIBRARY MODULE NAME: strings
 ----------------------------
 
 strings  {
-    append  (uword target @R0, uword suffix @R1) -> clobbers (Y) -> ubyte @A 
-    compare  (uword string1 @R0, uword string2 @AY) -> clobbers (Y) -> byte @A 
-    contains  (uword string @AY, ubyte character @X) -> bool @Pc 
-    copy  (uword source @R0, uword target @AY) -> clobbers (A) -> ubyte @Y 
+    append  (str target @R0, str suffix @R1) -> clobbers (Y) -> ubyte @A 
+    compare  (str string1 @R0, str string2 @AY) -> clobbers (Y) -> byte @A 
+    contains  (str string @AY, ubyte character @X) -> bool @Pc 
+    copy  (str source @R0, str target @AY) -> clobbers (A) -> ubyte @Y 
     endswith  (str st, str suffix) -> bool 
-    find  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    find_eol  (uword string @AY) -> ubyte @A, bool @Pc 
+    find  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
+    find_eol  (str string @AY) -> ubyte @A, bool @Pc 
     findstr  (str haystack, str needle) -> ubyte 
     hash  (str string @AY) -> ubyte @A 
     isdigit  (ubyte petsciichar @A) -> bool @Pc 
@@ -684,25 +702,25 @@ strings  {
     isprint  (ubyte petsciichar @A) -> bool @Pc 
     isspace  (ubyte petsciichar @A) -> bool @Pc 
     isupper  (ubyte petsciichar @A) -> bool @Pc 
-    left  (uword source @AX, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
-    length  (uword string @AY) -> clobbers (A) -> ubyte @Y 
-    lower  (uword st @AY) -> ubyte @Y 
+    left  (str source @AX, ubyte length @Y, str target @R1) -> clobbers (A,Y) 
+    length  (str string @AY) -> clobbers (A) -> ubyte @Y 
+    lower  (str st @AY) -> ubyte @Y 
     lowerchar  (ubyte character @A) -> ubyte @A 
     lstrip  (str s) 
     lstripped  (str s) -> str 
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
-    ncompare  (uword string1 @R0, uword string2 @AY, ubyte length @X) -> clobbers (X,Y) -> byte @A 
+    ncompare  (str string1 @R0, str string2 @AY, ubyte length @X) -> clobbers (X,Y) -> byte @A 
     pattern_match  (str string @AY, str pattern @R0) -> clobbers (Y) -> bool @A 
-    rfind  (uword string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    right  (uword source @AY, ubyte length @X, uword target @R1) -> clobbers (A,Y) 
+    rfind  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
+    right  (str source @AY, ubyte length @X, str target @R1) -> clobbers (A,Y) 
     rstrip  (str s) 
     rtrim  (str s) 
-    slice  (uword source @R0, ubyte start @A, ubyte length @Y, uword target @R1) -> clobbers (A,Y) 
+    slice  (str source @R0, ubyte start @A, ubyte length @Y, str target @R1) -> clobbers (A,Y) 
     startswith  (str st, str prefix) -> bool 
     strip  (str s) 
     trim  (str s) 
-    upper  (uword st @AY) -> ubyte @Y 
+    upper  (str st @AY) -> ubyte @Y 
     upperchar  (ubyte character @A) -> ubyte @A 
 }
 
@@ -1117,7 +1135,7 @@ cx16  {
     get_charset  () -> ubyte @A 
     get_chrin_keyhandler  () -> ubyte @R0, uword @R1 
     get_default_palette  () -> ubyte @A, uword @XY 
-    get_program_args  (uword buffer @R0, ubyte buf_size @R1, bool binary @Pc) 
+    get_program_args  (^^ubyte buffer @R0, ubyte buf_size @R1, bool binary @Pc) 
     get_screen_mode  () -> ubyte @A, ubyte @X, ubyte @Y 
     getlfs  () -> ubyte @X, ubyte @A, ubyte @Y 
     getrambank  () -> ubyte @A 
@@ -1200,7 +1218,7 @@ cx16  {
     set_default_palette  () 
     set_led_state  (bool on) 
     set_line_irq_handler  (uword rasterline @R0, uword address @AY) -> clobbers (A,Y) 
-    set_program_args  (uword args_ptr, ubyte args_size) 
+    set_program_args  (str args_ptr, ubyte args_size) 
     set_screen_mode  (ubyte mode @A) -> clobbers (A,X,Y) 
     set_sprcol_irq_handler  (uword address @AY) -> clobbers (A) 
     set_vsync_irq_handler  (uword address @AY) -> clobbers (A) 
@@ -1267,7 +1285,7 @@ sys  {
     exit2  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) 
     exit3  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) 
     get_as_returnaddress  (uword address @XY) -> uword @AX 
-    internal_stringcopy  (uword source @R0, uword target @AY) -> clobbers (A,Y) 
+    internal_stringcopy  (str source @R0, str target @AY) -> clobbers (A,Y) 
     irqsafe_clear_irqd  () 
     irqsafe_set_irqd  () 
     memcmp  (uword address1 @R0, uword address2 @R1, uword size @AY) -> byte @A 
@@ -1338,7 +1356,7 @@ txt  {
     getclr  (ubyte col @A, ubyte row @Y) -> ubyte @A 
     height  () -> clobbers (X,Y) -> ubyte @A 
     home  () 
-    input_chars  (uword buffer @AY) -> clobbers (A) -> ubyte @Y 
+    input_chars  (^^ubyte buffer @AY) -> clobbers (A) -> ubyte @Y 
     iso  () 
     iso16  () 
     iso5  () 
@@ -1364,6 +1382,8 @@ txt  {
     print_uwhex  (uword value @AY, bool prefix @Pc) -> clobbers (A,X,Y) 
     print_w  (word value @AY) -> clobbers (A,X,Y) 
     row  (ubyte rownum @A) -> clobbers (A,X,Y) 
+    rvs_off  () 
+    rvs_on  () 
     scroll_down  () -> clobbers (A,X,Y) 
     scroll_left  () -> clobbers (A,X,Y) 
     scroll_right  () -> clobbers (A,X,Y) 

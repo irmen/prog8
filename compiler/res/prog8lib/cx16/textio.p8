@@ -17,26 +17,6 @@ const long VERA_TEXTMATRIX = $1b000
 extsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
 
 
-sub clear_screen() {
-    chrout(147)
-}
-
-sub cls() {
-    chrout(147)
-}
-
-sub home() {
-    chrout(19)
-}
-
-sub nl() {
-    chrout('\n')
-}
-
-sub spc() {
-    chrout(' ')
-}
-
 sub bell() {
     chrout(7)
 }

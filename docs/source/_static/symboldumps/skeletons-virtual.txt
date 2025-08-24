@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 893e16d8 in branch structs
+Prerelease version from git commit c04908a9 in branch structs6502
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -271,6 +271,17 @@ monogfx  {
 }
 
 
+LIBRARY MODULE NAME: sorting
+----------------------------
+
+sorting  {
+    shellsort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements) 
+    shellsort_by_uw  (^^uword uw_keys, ^^uword wordvalues, ubyte num_elements) 
+    shellsort_ub  (^^ubyte values, ubyte num_elements) 
+    shellsort_uw  (^^uword values, ubyte num_elements) 
+}
+
+
 LIBRARY MODULE NAME: strings
 ----------------------------
 
@@ -515,6 +526,7 @@ txt  {
     chrout  (ubyte char) 
     clear_screen  () 
     cls  () 
+    color  (ubyte txtcol) 
     column  (ubyte col) 
     height  () -> ubyte 
     home  () 
@@ -537,6 +549,8 @@ txt  {
     print_uwbin  (uword value, bool prefix) 
     print_uwhex  (uword value, bool prefix) 
     print_w  (word value) 
+    rvs_off  () 
+    rvs_on  () 
     setchr  (ubyte col, ubyte row, ubyte char) 
     spc  () 
     uppercase  () 

@@ -7,6 +7,7 @@
 %import cx16logo
 %import math
 %import prog8_lib
+%import sorting
 %import strings
 %import syslib
 %import test_stack

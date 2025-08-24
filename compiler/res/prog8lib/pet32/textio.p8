@@ -15,26 +15,6 @@ const ubyte DEFAULT_HEIGHT = 25
 extsub $FFD2 = chrout(ubyte character @ A)    ; for consistency. You can also use cbm.CHROUT directly ofcourse. Note: takes a PETSCII encoded character.
 
 
-sub  clear_screen() {
-    chrout(147)
-}
-
-sub cls() {
-    chrout(147)
-}
-
-sub home() {
-    chrout(19)
-}
-
-sub nl() {
-    chrout('\n')
-}
-
-sub spc() {
-    chrout(' ')
-}
-
 sub bell() {
     chrout(7)
 }
@@ -225,20 +205,16 @@ sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor_ignored)  {
 
 asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 	%asm  {{
-	    jsr  home
-	    cpy  #0
-	    beq  +
--	    lda  #29
-	    jsr  chrout
-	    dey
-	    bne  -
-+	    cpx  #0
-	    beq  +
--       lda  #17
-        jsr  chrout
-        dex
-        bne  -
-+		rts
+		stx $d8
+		txa
+		asl a
+		tax
+		lda setchr._screenrows,x
+		sta $c4
+		lda setchr._screenrows+1,x
+		sta $c5
+		sty $c6
+		rts
 	}}
 }
 

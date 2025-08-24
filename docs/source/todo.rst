@@ -20,7 +20,6 @@ this doesn't work:
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
-- update the docs about the libraries so they also use typed pointers where appropriate, regenerate skeletons
 - implement the TODO's in PointerAssignmentsGen.
 - scan through 6502 examples to change untyped uword pointers to typed pointers
 - fix code size regressions (if any left)
