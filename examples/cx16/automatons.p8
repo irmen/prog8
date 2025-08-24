@@ -55,7 +55,7 @@ main {
         for cx16.r9L in "Cellular Automaton #" {
             cx16.GRAPH_put_next_char(cx16.r9L)
         }
-        uword num_str = conv.str_ub(number)
+        ^^ubyte num_str = conv.str_ub(number)
         do {
             cx16.GRAPH_put_next_char(@(num_str))
             num_str++

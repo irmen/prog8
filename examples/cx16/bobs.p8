@@ -176,7 +176,7 @@ main {
         uword vmem = vmembase * 2048        ; mkword(vmembase,0) * 8
         ubyte bank = vmembase>=32 as ubyte
         vmem += 35
-        uword number_str = conv.str_uw0(number)
+        ^^ubyte number_str = conv.str_uw0(number)
         uword pixelsptr = &numberpixels + (number_str[1] & 15)*7
         ubyte pix
         cx16.VERA_CTRL = 0

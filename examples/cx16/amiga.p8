@@ -158,7 +158,7 @@ widget {
         }
     }
 
-    sub icon(uword x, uword y, uword caption) {
+    sub icon(uword x, uword y, str caption) {
         const ubyte width = 56
         const ubyte height = 28
         highlightedrect(x, y, width, height, false, false)
@@ -170,7 +170,7 @@ widget {
     }
 
 
-    sub window_titlebar(uword x, uword y, uword width, uword titlestr, bool active) {
+    sub window_titlebar(uword x, uword y, uword width, str titlestr, bool active) {
         const ubyte height = 11
         widget.highlightedrect(x+widget.window_close_icon.width, y, width-64, height, true, active)
         gfx_hires.plot(x+widget.window_close_icon.width, y+height-1, 1) ; correct bottom left corner

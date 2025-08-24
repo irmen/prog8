@@ -1,6 +1,10 @@
 TODO
 ====
 
+c64 (and cx16 as well) fileselector has 2 issues when using ^^ubyte (code size and compiler error about return statement)
+cx16 life code size regression when using ^^ubyte
+
+
 pointer arithmetic precedence issue?:
     ^^uword values
     cx16.r0 = values + (pos-1)      ; different outcome as:
@@ -9,7 +13,7 @@ pointer arithmetic precedence issue?:
 sorting.gnomesort_uw()   : when converted to ^^uword, the resulting code is MUCH larger than before  (peek/poke code gen problem?)
 (same with shellsort_uw and others)
 
-this doesn't work:
+this doesn't work but probably should:
         ^^uword xpositions_ptr
         repeat num_sprites {
             pokew(cx16.VERA_DATA0, xpositions_ptr^^)        ; must set data0 and data1 at the same time
@@ -21,7 +25,6 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
 - implement the TODO's in PointerAssignmentsGen.
-- scan through 6502 examples to change untyped uword pointers to typed pointers
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?
 - optimize deref()  to not always add the field offset to the pointer value but using it in the Y register instead

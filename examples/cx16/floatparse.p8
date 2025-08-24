@@ -60,7 +60,7 @@ main {
         txt.nl()
     }
 
-    sub parse(uword stringptr) -> float {
+    sub parse(str stringptr) -> float {
         if @(stringptr)==0
             return 0.0
 

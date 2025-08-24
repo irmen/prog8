@@ -373,7 +373,7 @@ market {
         }
     }
 
-    sub match(uword nameptr) -> ubyte {
+    sub match(str nameptr) -> ubyte {
         ubyte ci
         for ci in 0 to len(names)-1 {
             if util.prefix_matches(nameptr, names[ci])
@@ -429,7 +429,7 @@ galaxy {
         market.init(lsb(seed[0])+msb(seed[2]))
     }
 
-    sub search_closest_planet(uword nameptr) -> bool {
+    sub search_closest_planet(str nameptr) -> bool {
         ubyte x = planet.x
         ubyte y = planet.y
         ubyte current_planet_num = planet.number
@@ -911,7 +911,7 @@ planet {
             }
         }
 
-        sub concat_string(uword str_ptr) {
+        sub concat_string(str str_ptr) {
             repeat {
                 ubyte c = @(str_ptr)
                 if c==0
@@ -1005,7 +1005,7 @@ planet {
 }
 
 util {
-    sub prefix_matches(uword prefixptr, uword stringptr) -> bool {
+    sub prefix_matches(str prefixptr, str stringptr) -> bool {
         repeat {
             ubyte pc = @(prefixptr)
             ubyte sc = @(stringptr)
@@ -1019,7 +1019,7 @@ util {
         }
     }
 
-    sub print_right(ubyte width, uword s) {
+    sub print_right(ubyte width, str s) {
         repeat width - strings.length(s) {
             txt.spc()
         }
