@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 06e16789 in branch master
+Prerelease version from git commit 8a717c74 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -526,6 +526,7 @@ txt  {
     chrout  (ubyte char) 
     clear_screen  () 
     cls  () 
+    color  (ubyte txtcol) 
     column  (ubyte col) 
     height  () -> ubyte 
     home  () 
@@ -548,6 +549,8 @@ txt  {
     print_uwbin  (uword value, bool prefix) 
     print_uwhex  (uword value, bool prefix) 
     print_w  (word value) 
+    rvs_off  () 
+    rvs_on  () 
     setchr  (ubyte col, ubyte row, ubyte char) 
     spc  () 
     uppercase  () 

@@ -53,6 +53,21 @@ sub uppercase() {
     ; not supported
 }
 
+sub rvs_on() {
+    print("\x1b[7m")
+}
+
+sub rvs_off() {
+    print("\x1b[0m")
+}
+
+sub color (ubyte txtcol) {
+    print("\x1b[3")
+    chrout('0' + txtcol)
+    chrout('m')
+}
+
+
 sub chrout(ubyte char) {
     %ir {{
         loadm.b r99100,txt.chrout.char

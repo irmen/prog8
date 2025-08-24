@@ -23,6 +23,14 @@ txt {
         chrout(' ')
     }
 
+    sub rvs_on() {
+        txt.chrout(18)
+    }
+
+    sub rvs_off() {
+        txt.chrout(146)
+    }
+
 
     asmsub  print (str text @ AY) clobbers(A,Y)  {
     	; ---- print zero terminated string, in PETSCII encoding, from A/Y

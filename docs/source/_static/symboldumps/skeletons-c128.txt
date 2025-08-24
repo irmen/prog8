@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 06e16789 in branch master
+Prerelease version from git commit 8a717c74 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -785,6 +785,8 @@ txt  {
     print_uwhex  (uword value @AY, bool prefix @Pc) -> clobbers (A,X,Y) 
     print_w  (word value @AY) -> clobbers (A,X,Y) 
     row  (ubyte rownum @A) -> clobbers (A,X,Y) 
+    rvs_off  () 
+    rvs_on  () 
     scroll_down  (bool alsocolors @Pc) -> clobbers (A,X) 
     scroll_left  (bool alsocolors @Pc) -> clobbers (A,X,Y) 
     scroll_right  (bool alsocolors @Pc) -> clobbers (A,X) 
