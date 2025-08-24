@@ -2474,7 +2474,7 @@ internal class AstChecker(private val program: Program,
         else if (targetDatatype.isPointer) {
             if(sourceDatatype.isPointer) {
                 if(!(sourceDatatype isAssignableTo targetDatatype))
-                    errors.err("cannot assign different pointer type", position)
+                    errors.err("cannot assign different pointer type, expected $targetDatatype got $sourceDatatype", position)
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
             } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)

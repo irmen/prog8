@@ -89,18 +89,18 @@ sprites {
         sprite_reg = VERA_SPRITEREGS + 2 + first_spritenum*$0008
         cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
         cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)
-        repeat num_sprites {
-            cx16.VERA_DATA0 = @(xpositions_ptr)
-            cx16.VERA_DATA1 = @(xpositions_ptr+num_sprites)
-            xpositions_ptr ++
-        }
+        tovera(xpositions_ptr)
         sprite_reg += 2
         cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
         cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)
-        repeat num_sprites {
-            cx16.VERA_DATA0 = @(ypositions_ptr)
-            cx16.VERA_DATA1 = @(ypositions_ptr+num_sprites)
-            ypositions_ptr ++
+        tovera(ypositions_ptr)
+
+        sub tovera(uword positions @R0) {
+            repeat num_sprites {
+                cx16.VERA_DATA0 = @(cx16.r0)
+                cx16.VERA_DATA1 = @(cx16.r0+num_sprites)
+                cx16.r0 ++
+            }
         }
     }
 
@@ -109,20 +109,19 @@ sprites {
         sprite_reg = VERA_SPRITEREGS + 2 + first_spritenum*$0008
         cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
         cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)
-        repeat num_sprites {
-            cx16.VERA_DATA0 = @(xpositions_ptr)
-            xpositions_ptr ++
-            cx16.VERA_DATA1 = @(xpositions_ptr)
-            xpositions_ptr ++
-        }
+        tovera(xpositions_ptr)
         sprite_reg += 2
         cx16.vaddr_autoincr(1, sprite_reg, 0, 8)
         cx16.vaddr_autoincr(1, sprite_reg+1, 1, 8)
-        repeat num_sprites {
-            cx16.VERA_DATA0 = @(ypositions_ptr)
-            ypositions_ptr ++
-            cx16.VERA_DATA1 = @(ypositions_ptr)
-            ypositions_ptr ++
+        tovera(ypositions_ptr)
+
+        sub tovera(uword positions @R0) {
+            repeat num_sprites {
+                cx16.VERA_DATA0 = @(cx16.r0)
+                cx16.r0 ++
+                cx16.VERA_DATA1 = @(cx16.r0)
+                cx16.r0 ++
+            }
         }
     }
 

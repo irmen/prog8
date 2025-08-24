@@ -743,7 +743,7 @@ skip:
     const ubyte charset_bank = $1
     const uword charset_addr = $f000       ; in bank 1, so $1f000
 
-    sub text(uword @zp xx, uword yy, ubyte color, uword textptr) {
+    sub text(uword @zp xx, uword yy, ubyte color, str textptr) {
         ; -- Write some text at the given pixel position. The text string must be in an encoding approprite for the charset.
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         uword chardataptr

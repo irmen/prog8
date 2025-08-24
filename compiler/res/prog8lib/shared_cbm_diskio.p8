@@ -154,7 +154,7 @@ io_error:
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
-    sub list_filenames(str pattern_ptr, str filenames_buffer, uword filenames_buf_size) -> ubyte {
+    sub list_filenames(str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
         ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against.
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
@@ -341,7 +341,7 @@ close_end:
         return false
     }
 
-    sub f_read(str bufferpointer, uword num_bytes) -> uword {
+    sub f_read(uword bufferpointer, uword num_bytes) -> uword {
         ; -- read from the currently open file, up to the given number of bytes.
         ;    returns the actual number of bytes read.  (checks for End-of-file and error conditions)
         if not iteration_in_progress or num_bytes==0
@@ -393,7 +393,7 @@ close_end:
         return list_blocks  ; number of bytes read
     }
 
-    sub f_read_all(str bufferpointer) -> uword {
+    sub f_read_all(uword bufferpointer) -> uword {
         ; -- read the full rest of the file, returns number of bytes read.
         ;    It is assumed the file size is less than 64 K.
         ;    Usually you will just be using load() / load_raw() to read entire files!
@@ -487,7 +487,7 @@ _end        jsr  cbm.READST
         return false
     }
 
-    sub f_write(str bufferpointer, uword num_bytes) -> bool {
+    sub f_write(uword bufferpointer, uword num_bytes) -> bool {
         ; -- write the given number of bytes to the currently open file
         ;    you can call this multiple times to append more data
         if num_bytes!=0 {

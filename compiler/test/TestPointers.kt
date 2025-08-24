@@ -1721,6 +1721,26 @@ main {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("correct type of address of split and nosplit arrays") {
+        val src="""
+main {
+    sub start() {
+        uword[10] @split @shared splitarray
+        uword[10] @nosplit @shared nosplitarray
+
+        ^^uword ptr1 = &&splitarray
+        ^^ubyte ptr2 = &&splitarray
+        ^^uword ptr3 = &&nosplitarray
+        ^^ubyte ptr4 = &&nosplitarray
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "7:24: cannot assign different pointer type, expected ^^uword got ^^ubyte"
+        errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte got ^^uword"
+    }
+
     test("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
         val src="""
 main {

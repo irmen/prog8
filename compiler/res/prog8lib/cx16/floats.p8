@@ -21,8 +21,8 @@ extsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 'facmo' 
 ; (tip: use GIVAYFAY to use A/Y input; lo/hi switched to normal order)
 extsub $fe03 = GIVAYF(ubyte lo @ Y, ubyte hi @ A) clobbers(A,X,Y)
 
-extsub $fe06 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
-extsub $fe09 = VAL_1(uword string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1      ; convert ASCII string in XY and length in A, to floating point in FAC1. WARNING: only implemented in ROM 47+. Safer to use floats.parse() instead.
+extsub $fe06 = FOUT() clobbers(X) -> str @ AY             ; fac1 -> string, address returned in AY
+extsub $fe09 = VAL_1(str string @XY, ubyte length @A) clobbers(A,X,Y) -> float @FAC1      ; convert ASCII string in XY and length in A, to floating point in FAC1. WARNING: only implemented in ROM 47+. Safer to use floats.parse() instead.
 
 ; GETADR: fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ; (tip: use GETADRAY to get A/Y output; lo/hi switched to normal little endian order)

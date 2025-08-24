@@ -9,30 +9,44 @@ pointer arithmetic precedence issue?:
 sorting.gnomesort_uw()   : when converted to ^^uword, the resulting code is MUCH larger than before  (peek/poke code gen problem?)
 (same with shellsort_uw and others)
 
+this doesn't work:
+        ^^uword xpositions_ptr
+        repeat num_sprites {
+            pokew(cx16.VERA_DATA0, xpositions_ptr^^)        ; must set data0 and data1 at the same time
+            xpositions_ptr ++
+        }
+
 
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
 - scan through 6502 library modules to change untyped uword pointers to typed pointers;  shared, cx16, c64, c128, pet32, custom targets
-    *shared:*
-    (done) sorting    (on hold because of code size issues)
-    (done) conv
-    (done) shared_cbm_diskio
-    (done) shared_cbm_textio_functions
-    (done) buffers
-    (done) compression
-    (done) coroutines
-    (done) cx16logo
-    (done) math
-    (done) prog8_lib
-    (done) prog8_math
-    (done) shared_compression
-    (done) shared_float_functions
-    (done) shared_string_functions
-    (done) strings
-    (done) test_stack
+    shared: done
+    cx16: done
+    c64:
+    - diskio
+    - floats
+    - graphics
+    - syslib
+    - textio
+    c128:
+    - diskio
+    - syslib
+    - textio
+    pet32:
+    - syslib
+    - textio
+    custom atari:
+    - syslib
+    - textio
+    custom f256:
+    - syslib
+    - textio
+    custom neo, tinyc64, cx16, pet:
+    - syslib
 
-- update the docs about the libraries so they also use typed pointers where appropriate
+
+- update the docs about the libraries so they also use typed pointers where appropriate, regenerate skeletons
 - implement the TODO's in PointerAssignmentsGen.
 - scan through 6502 examples to change untyped uword pointers to typed pointers
 - fix code size regressions (if any left)

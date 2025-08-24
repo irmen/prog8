@@ -1470,7 +1470,7 @@ sub search_x16edit() -> ubyte {
         }}
     }
 
-    sub set_program_args(uword args_ptr, ubyte args_size) {
+    sub set_program_args(str args_ptr, ubyte args_size) {
         ; -- Set the inter-program arguments.
         ; standardized way to pass arguments between programs is in ram bank 0, address $bf00-$bfff.
         ; see https://github.com/X16Community/x16-docs/blob/101759f3bfa5e6cce4e8c5a0b67cb0f2f1c6341e/X16%20Reference%20-%2008%20-%20Memory%20Map.md#bank-0
@@ -1482,7 +1482,7 @@ sub search_x16edit() -> ubyte {
         rambank(sys.pop())
     }
 
-    asmsub get_program_args(uword buffer @R0, ubyte buf_size @R1, bool binary @Pc) {
+    asmsub get_program_args(^^ubyte buffer @R0, ubyte buf_size @R1, bool binary @Pc) {
         ; -- Retrieve the inter-program arguments. If binary=false, it treats them as a string (stops copying at first zero).
         ; standardized way to pass arguments between programs is in ram bank 0, address $bf00-$bfff.
         ; see https://github.com/X16Community/x16-docs/blob/101759f3bfa5e6cce4e8c5a0b67cb0f2f1c6341e/X16%20Reference%20-%2008%20-%20Memory%20Map.md#bank-0
@@ -1759,7 +1759,7 @@ _loop       lda  P8ZP_SCRATCH_W1
         }}
     }
 
-    asmsub internal_stringcopy(uword source @R0, uword target @AY) clobbers (A,Y) {
+    asmsub internal_stringcopy(str source @R0, str target @AY) clobbers (A,Y) {
         ; Called when the compiler wants to assign a string value to another string.
         %asm {{
 		sta  P8ZP_SCRATCH_W1

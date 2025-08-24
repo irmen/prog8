@@ -825,7 +825,7 @@ set_byte:
         cx16.screen_set_charset(charset, 0)
     }
 
-    sub text(uword @zp xx, uword yy, ubyte color, uword sctextptr) {
+    sub text(uword @zp xx, uword yy, ubyte color, str sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
         uword chardataptr

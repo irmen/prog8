@@ -19,9 +19,9 @@ bmx {
     uword palette_entries       ; 1-256
     ubyte palette_start
     ubyte compression
-    uword @shared palette_buffer_ptr = 0    ; should you want to load or save the palette into main memory instead of directly into vram
+    ^^ubyte @shared palette_buffer_ptr = 0    ; should you want to load or save the palette into main memory instead of directly into vram
 
-    uword error_message             ; pointer to error message, or 0 if all ok
+    ^^ubyte error_message             ; pointer to error message, or 0 if all ok
     ubyte old_drivenumber
 
     sub open(ubyte drivenumber, str filename) -> bool {
