@@ -296,23 +296,13 @@ _after:
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
         fun isStringComparison(leftDt: InferredTypes.InferredType, rightDt: InferredTypes.InferredType): Boolean {
-            if (leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.STR)
-                return true
-            if (leftDt issimpletype BaseDataType.UWORD && rightDt issimpletype BaseDataType.STR || leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.UWORD)
-                return true
-            if(leftDt.isPointer && leftDt.getOrUndef().sub==BaseDataType.UBYTE) {
-                return if(rightDt issimpletype BaseDataType.STR || rightDt.issimpletype(BaseDataType.UWORD))
-                    true
-                else
-                    rightDt.isPointer && rightDt.getOrUndef().sub==BaseDataType.UBYTE
+            return when {
+                leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.STR -> true
+                leftDt issimpletype BaseDataType.UWORD && rightDt issimpletype BaseDataType.STR || leftDt issimpletype BaseDataType.STR && rightDt issimpletype BaseDataType.UWORD -> true
+                leftDt.isPointer && leftDt.getOrUndef().sub == BaseDataType.UBYTE -> rightDt issimpletype BaseDataType.STR
+                rightDt.isPointer && rightDt.getOrUndef().sub == BaseDataType.UBYTE -> leftDt issimpletype BaseDataType.STR
+                else -> false
             }
-            if(rightDt.isPointer && rightDt.getOrUndef().sub==BaseDataType.UBYTE) {
-                return if(leftDt issimpletype BaseDataType.STR || leftDt.issimpletype(BaseDataType.UWORD))
-                    true
-                else
-                    leftDt.isPointer && leftDt.getOrUndef().sub==BaseDataType.UBYTE
-            }
-            return false
         }
 
         if(expr.operator=="in") {

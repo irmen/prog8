@@ -2020,4 +2020,115 @@ other {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("pointer comparisons against a value") {
+        val src="""
+%option enable_floats
+%zeropage basicsafe
+
+main {
+    struct Node {
+        bool flag
+    }
+
+    ^^ubyte @shared ptr1
+    ^^bool @shared ptr2
+    ^^uword @shared ptr3
+    ^^float @shared ptr4
+    ^^Node @shared ptr5
+
+    sub start() {
+        bool bb1,bb2
+
+        bb1 = ptr1 == 5000 
+        bb2 = ptr1 != 5000 
+        bb1 = ptr2 == 5000
+        bb2 = ptr2 != 5000
+        bb1 = ptr3 == 5000
+        bb2 = ptr3 != 5000
+        bb1 = ptr4 == 5000
+        bb2 = ptr4 != 5000
+        bb1 = ptr5 == 5000
+        bb2 = ptr5 != 5000
+
+        bb1 = ptr1 < 5000
+        bb2 = ptr1 > 5000
+        bb1 = ptr2 < 5000
+        bb2 = ptr2 > 5000
+        bb1 = ptr3 < 5000
+        bb2 = ptr3 > 5000
+        bb1 = ptr4 < 5000
+        bb2 = ptr4 > 5000
+        bb1 = ptr5 < 5000
+        bb2 = ptr5 > 5000
+
+        bb1 = ptr1 == cx16.r0
+        bb2 = ptr1 != cx16.r0
+        bb1 = ptr2 == cx16.r0
+        bb2 = ptr2 != cx16.r0
+        bb1 = ptr3 == cx16.r0
+        bb2 = ptr3 != cx16.r0
+        bb1 = ptr4 == cx16.r0
+        bb2 = ptr4 != cx16.r0
+        bb1 = ptr5 == cx16.r0
+        bb2 = ptr5 != cx16.r0
+
+        bb1 = ptr1 < cx16.r0
+        bb2 = ptr1 > cx16.r0
+        bb1 = ptr2 < cx16.r0
+        bb2 = ptr2 > cx16.r0
+        bb1 = ptr3 < cx16.r0
+        bb2 = ptr3 > cx16.r0
+        bb1 = ptr4 < cx16.r0
+        bb2 = ptr4 > cx16.r0
+        bb1 = ptr5 < cx16.r0
+        bb2 = ptr5 > cx16.r0
+
+        bb1 = ptr1 == cx16.r0+10
+        bb2 = ptr1 != cx16.r0+10
+        bb1 = ptr2 == cx16.r0+10
+        bb2 = ptr2 != cx16.r0+10
+        bb1 = ptr3 == cx16.r0+10
+        bb2 = ptr3 != cx16.r0+10
+        bb1 = ptr4 == cx16.r0+10
+        bb2 = ptr4 != cx16.r0+10
+        bb1 = ptr5 == cx16.r0+10
+        bb2 = ptr5 != cx16.r0+10
+
+        bb1 = ptr1 < cx16.r0+10
+        bb2 = ptr1 > cx16.r0+10
+        bb1 = ptr2 < cx16.r0+10
+        bb2 = ptr2 > cx16.r0+10
+        bb1 = ptr3 < cx16.r0+10
+        bb2 = ptr3 > cx16.r0+10
+        bb1 = ptr4 < cx16.r0+10
+        bb2 = ptr4 > cx16.r0+10
+        bb1 = ptr5 < cx16.r0+10
+        bb2 = ptr5 > cx16.r0+10
+        
+        if ptr1 == 5000  cx16.r0++
+        if ptr1 != 5000  cx16.r0++
+        if ptr3 == 5000  cx16.r0++
+        if ptr3 != 5000  cx16.r0++
+        if ptr1 > 5000  cx16.r0++
+        if ptr3 > 5000  cx16.r0++
+
+        if ptr1 == cx16.r0  cx16.r0++
+        if ptr1 != cx16.r0  cx16.r0++
+        if ptr3 == cx16.r0  cx16.r0++
+        if ptr3 != cx16.r0  cx16.r0++
+        if ptr1 > cx16.r0  cx16.r0++
+        if ptr3 > cx16.r0  cx16.r0++
+
+        if ptr1 == cx16.r0+10  cx16.r0++
+        if ptr1 != cx16.r0+10  cx16.r0++
+        if ptr3 == cx16.r0+10  cx16.r0++
+        if ptr3 != cx16.r0+10  cx16.r0++
+        if ptr1 > cx16.r0+10  cx16.r0++
+        if ptr3 > cx16.r0+10  cx16.r0++        
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
+
 })
