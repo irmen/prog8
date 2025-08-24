@@ -129,7 +129,7 @@ f256 {
             pla             ; restore col
             clc
             adc  screen_ptr
-            sta  screen_ptr 
+            sta  screen_ptr
             bcc  +
             inc  screen_ptr+1
     +       rts
@@ -397,7 +397,7 @@ sys {
         }}
     }
 
-    asmsub internal_stringcopy(uword source @R0, uword target @AY) clobbers (A,Y) {
+    asmsub internal_stringcopy(str source @R0, str target @AY) clobbers (A,Y) {
         ; Called when the compiler wants to assign a string value to another string.
         %asm {{
 		sta  P8ZP_SCRATCH_W1

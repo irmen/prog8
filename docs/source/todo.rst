@@ -20,22 +20,6 @@ this doesn't work:
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
-- scan through 6502 library modules to change untyped uword pointers to typed pointers;  shared, cx16, c64, c128, pet32, custom targets
-    shared: done
-    cx16: done
-    c64: done
-    c128: done
-    pet32: done
-    custom atari:
-    - syslib
-    - textio
-    custom f256:
-    - syslib
-    - textio
-    custom neo, tinyc64, cx16, pet:
-    - syslib
-
-
 - update the docs about the libraries so they also use typed pointers where appropriate, regenerate skeletons
 - implement the TODO's in PointerAssignmentsGen.
 - scan through 6502 examples to change untyped uword pointers to typed pointers
