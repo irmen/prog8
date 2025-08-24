@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 893e16d8 in branch structs
+Prerelease version from git commit 06e16789 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -224,6 +224,23 @@ math  {
     sin8u  (ubyte angle @A) -> clobbers (Y) -> ubyte @A 
     sinr8  (ubyte radians @A) -> clobbers (Y) -> byte @A 
     sinr8u  (ubyte radians @A) -> clobbers (Y) -> ubyte @A 
+}
+
+
+LIBRARY MODULE NAME: sorting
+----------------------------
+
+sorting  {
+    gnomesort_by_ub  (uword uw_keys, uword values, ubyte num_elements) 
+    gnomesort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements) 
+    gnomesort_ub  (uword bytearray @AY, ubyte num_elements @X) 
+    gnomesort_uw  (uword values, ubyte num_elements) 
+    shellsort_by_ub  (uword ub_keys, uword wordvalues, ubyte num_elements) 
+    shellsort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements) 
+    shellsort_pointers  (uword pointers, ubyte num_elements, uword comparefunc) 
+    shellsort_ub  (uword values, ubyte num_elements) 
+    shellsort_uw  (uword values, ubyte num_elements) 
+    string_comparator  (uword string1 @R0, uword string2 @R1) -> bool @Pc 
 }
 
 

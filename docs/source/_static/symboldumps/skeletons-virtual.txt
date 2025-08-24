@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 893e16d8 in branch structs
+Prerelease version from git commit 06e16789 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -268,6 +268,17 @@ monogfx  {
     text_charset  (ubyte charset) 
     textmode  () 
     vertical_line  (uword xx, uword yy, uword lheight, bool draw) 
+}
+
+
+LIBRARY MODULE NAME: sorting
+----------------------------
+
+sorting  {
+    shellsort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements) 
+    shellsort_by_uw  (^^uword uw_keys, ^^uword wordvalues, ubyte num_elements) 
+    shellsort_ub  (^^ubyte values, ubyte num_elements) 
+    shellsort_uw  (^^uword values, ubyte num_elements) 
 }
 
 
