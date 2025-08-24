@@ -3,6 +3,27 @@ txt {
 
     %option merge, no_symbol_prefixing, ignore_unused
 
+    sub clear_screen() {
+        chrout(147)
+    }
+
+    sub cls() {
+        chrout(147)
+    }
+
+    sub home() {
+        chrout(19)
+    }
+
+    sub nl() {
+        chrout('\n')
+    }
+
+    sub spc() {
+        chrout(' ')
+    }
+
+
     asmsub  print (str text @ AY) clobbers(A,Y)  {
     	; ---- print zero terminated string, in PETSCII encoding, from A/Y
     	; note: the compiler contains an optimization that will replace

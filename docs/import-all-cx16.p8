@@ -17,6 +17,7 @@
 %import palette
 %import prog8_lib
 %import psg
+%import sorting
 %import sprites
 %import strings
 %import syslib
