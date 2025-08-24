@@ -15,7 +15,7 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 
 - scan through 6502 library modules to change untyped uword pointers to typed pointers;  shared, cx16, c64, c128, pet32, custom targets
     *shared:*
-    sorting    (first fix code size issue)
+    (done) sorting    (on hold because of code size issues)
     (done) conv
     (done) shared_cbm_diskio
     (done) shared_cbm_textio_functions
@@ -32,6 +32,7 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
     (done) strings
     (done) test_stack
 
+- update the docs about the libraries so they also use typed pointers where appropriate
 - implement the TODO's in PointerAssignmentsGen.
 - scan through 6502 examples to change untyped uword pointers to typed pointers
 - fix code size regressions (if any left)
@@ -41,3 +42,4 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - optimize the multiplications in assignAddressOfIndexedPointer()
 - optimize the float copying in assignIndexedPointer() (also word?)
 - implement some more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
+- try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size

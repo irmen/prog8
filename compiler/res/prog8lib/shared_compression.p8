@@ -5,7 +5,7 @@ compression {
 
     %option ignore_unused, merge
 
-    sub encode_rle_outfunc(^^ubyte data, uword size, uword output_function, bool is_last_block) {
+    sub encode_rle_outfunc(uword data, uword size, uword output_function, bool is_last_block) {
         ; -- Compress the given data block using ByteRun1 aka PackBits RLE encoding.
         ;    output_function = address of a routine that gets a byte arg in A,
         ;                      which is the next RLE byte to write to the compressed output buffer or file.
@@ -35,7 +35,7 @@ compression {
 
         sub output_literals() {
             call_output_function(literals_length-1)
-            ^^ubyte dataptr = data + literals_start_idx
+            uword dataptr = data + literals_start_idx
             ubyte i
             for i in 0 to literals_length-1 {
                 call_output_function(@(dataptr))
@@ -70,7 +70,7 @@ compression {
             call_output_function(128)
     }
 
-    sub encode_rle(^^ubyte data, uword size, ^^ubyte target, bool is_last_block) -> uword {
+    sub encode_rle(uword data, uword size, uword target, bool is_last_block) -> uword {
         ; -- Compress the given data block using ByteRun1 aka PackBits RLE encoding.
         ;    Returns the size of the compressed RLE data. Worst case result storage size needed = (size + (size+126) / 127) + 1.
         ;    is_last_block = usually true, but you can set it to false if you want to concatenate multiple
@@ -79,7 +79,7 @@ compression {
         uword idx = 0
         uword literals_start_idx = 0
         ubyte literals_length = 0
-        ^^ubyte orig_target = target
+        uword orig_target = target
 
         sub next_same_span() {
             ; returns length in cx16.r1L, and the byte value in cx16.r1H
@@ -94,7 +94,7 @@ compression {
         sub output_literals() {
             @(target) = literals_length-1
             target++
-            ^^ubyte dataptr = data + literals_start_idx
+            uword dataptr = data + literals_start_idx
             ubyte i
             for i in 0 to literals_length-1 {
                 @(target) = @(dataptr)
@@ -136,7 +136,7 @@ compression {
         return target-orig_target
     }
 
-    asmsub decode_rle_srcfunc(uword source_function @AY, ^^ubyte target @R0, uword maxsize @R1) clobbers(X) -> uword @AY {
+    asmsub decode_rle_srcfunc(uword source_function @AY, uword target @R0, uword maxsize @R1) clobbers(X) -> uword @AY {
         ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
         ;    Also stops decompressing when the maxsize has been reached. Returns the size of the decompressed data.
         ;    Instead of a source buffer, you provide a callback function that must return the next byte to decompress in A.
@@ -239,7 +239,7 @@ _end
         }}
     }
 
-    asmsub decode_rle(^^ubyte compressed @AY, ^^ubyte target @R0, uword maxsize @R1) clobbers(X) -> uword @AY {
+    asmsub decode_rle(uword compressed @AY, uword target @R0, uword maxsize @R1) clobbers(X) -> uword @AY {
         ; -- Decodes "ByteRun1" (aka PackBits) RLE compressed data. Control byte value 128 ends the decoding.
         ;    Also stops decompressing if the maxsize has been reached.
         ;    Returns the size of the decompressed data.
@@ -355,7 +355,7 @@ _end
     }
 
 
-	asmsub decode_zx0(^^ubyte compressed @R0, ^^ubyte target @R1) clobbers(A,X,Y) {
+	asmsub decode_zx0(uword compressed @R0, uword target @R1) clobbers(A,X,Y) {
         ; Decompress a block of data compressed in the ZX0 format
         ; This can be produced using the "salvador" compressor with -classic
         ; It has faster decompression than LZSA and a better compression ratio as well.
@@ -624,7 +624,7 @@ zx0_gamma_done: tax                             ; Preserve bit-buffer.
     }
 
 
-    asmsub decode_tscrunch(^^ubyte compressed @R0, ^^ubyte target @R1) clobbers(A,X,Y) {
+    asmsub decode_tscrunch(uword compressed @R0, uword target @R1) clobbers(A,X,Y) {
         ; Decompress a block of data compressed by TSCRUNCH
         ; see https://github.com/tonysavon/TSCrunch
         ; It has extremely fast decompression (approaching RLE speeds),
@@ -865,7 +865,7 @@ lzput 	= cx16.r3	; 2 bytes
     }
 
 
-    asmsub decode_tscrunch_inplace(^^ubyte compressed @R0) clobbers(A,X,Y) {
+    asmsub decode_tscrunch_inplace(uword compressed @R0) clobbers(A,X,Y) {
         ; Decompress a block of data compressed by TSCRUNCH *in place*
         ; This can save an extra memory buffer if you are reading crunched data from a file into a buffer.
         ; see https://github.com/tonysavon/TSCrunch

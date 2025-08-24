@@ -325,6 +325,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     fun largerSizeThan(other: DataType): Boolean = base.largerSizeThan(other.base)
     fun equalsSize(other: DataType): Boolean = base.equalsSize(other.base)
 
+    // note: for pointer types, size() doesn't return the size of the pointer itself but the size of the thing it points to
     fun size(memsizer: IMemSizer): Int = if(sub!=null) {
             memsizer.memorySize(sub)
         } else if(subType!=null) {

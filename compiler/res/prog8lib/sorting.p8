@@ -66,21 +66,20 @@ _done
         }
     }
 
-    ; TODO convert to ^^uword once code size regression is fixed
-    sub gnomesort_uw(uword @requirezp values, ubyte num_elements) {
-        ; Sorts the values array (no-split unsigned words).
-        ; Max number of elements is 128. Clobbers R0 and R1.
+    sub gnomesort_uw(uword @requirezp wordvalues, ubyte num_elements) {
+        ; Sorts the wordvalues array (no-split unsigned words).
+        ; Max number of elements is 128 to keep indexing code size small and fast. Clobbers R0 and R1.
         ubyte @zp pos=2
         num_elements *= 2
         while pos != num_elements {
             cx16.r1L = pos-2
-            if peekw(values+pos) >= peekw(values + cx16.r1L)
+            if peekw(wordvalues+pos) >= peekw(wordvalues + cx16.r1L)
                 pos += 2
             else {
                 ; swap elements
-                cx16.r0 = peekw(values + cx16.r1L)
-                pokew(values + cx16.r1L, peekw(values + pos))
-                pokew(values + pos, cx16.r0)
+                cx16.r0 = peekw(wordvalues + cx16.r1L)
+                pokew(wordvalues + cx16.r1L, peekw(wordvalues + pos))
+                pokew(wordvalues + pos, cx16.r0)
                 pos-=2
                 if_z
                     pos+=2
@@ -88,11 +87,10 @@ _done
         }
     }
 
-    ; TODO convert to ^^uword once code size regression is fixed
     sub gnomesort_by_uw(uword @requirezp uw_keys, uword wordvalues, ubyte num_elements) {
         ; Sorts the 'wordvalues' array according to the 'uw_keys' array (which also gets sorted ofcourse).
         ; both arrays should be no-split array of words. uw_keys are unsigned.
-        ; Max number of elements is 128. Clobbers R0 and R1.
+        ; Max number of elements is 128 to keep indexing code size small and fast. Clobbers R0 and R1.
         ubyte @zp pos=2
         num_elements *= 2
         while pos != num_elements {

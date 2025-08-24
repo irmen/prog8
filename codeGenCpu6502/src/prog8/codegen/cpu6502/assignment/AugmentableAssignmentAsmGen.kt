@@ -2277,7 +2277,7 @@ $shortcutLabel:""")
 
     private fun inplacemodificationWordWithVariable(name: String, dt: DataType, operator: String, otherName: String, valueDt: DataType, block: PtBlock?) {
         require(dt.isWord)
-        require(valueDt.isInteger)
+        require(valueDt.isInteger || valueDt.isPointer)
         when {
             valueDt.isByte -> {
                 // the other variable is a BYTE type so optimize for that

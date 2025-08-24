@@ -348,6 +348,39 @@ class StatementOptimizer(private val program: Program,
                 }
 
             }
+
+            // pointer arithmetic for 6502 target
+            if (options.compTarget.cpu != CpuType.VIRTUAL) {
+                if(!assignment.isAugmentable && (bexpr.operator=="+" || bexpr.operator=="-")) {
+                    if(targetIDt.isUnsignedWord || targetIDt.getOrUndef().isPointerToByte) {
+                        val leftDt = bexpr.left.inferType(program).getOrUndef()
+                        val rightDt = bexpr.right.inferType(program).getOrUndef()
+
+                        fun setSizedValue(a: Assignment, value: Expression, size: Int) {
+                            val sized = BinaryExpression(value, "*", NumericLiteral.optimalInteger(size, value.position), value.position)
+                            a.value = sized
+                            sized.linkParents(a)
+                        }
+
+                        if (leftDt.isPointer && !leftDt.isPointerToByte) {
+                            // uword x = pointer + value    -->  x=value * sizeof ,  x += pointer
+                            val size = leftDt.size(options.compTarget)
+                            setSizedValue(assignment, bexpr.right, size)
+                            val pointerAdd = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
+                            val a2 = Assignment(assignment.target.copy(), pointerAdd, assignment.origin, assignment.position)
+                            return listOf(IAstModification.InsertAfter(assignment, a2, parent as IStatementContainer))
+                        } else if (rightDt.isPointer && !rightDt.isPointerToByte) {
+                            // uword x = value + pointer  -->  x=value * sizeof,  x += pointer
+                            val size = rightDt.size(options.compTarget)
+                            setSizedValue(assignment, bexpr.left, size)
+                            assignment.linkParents(parent)
+                            val pointerAdd = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
+                            val a2 = Assignment(assignment.target.copy(), pointerAdd, assignment.origin, assignment.position)
+                            return listOf(IAstModification.InsertAfter(assignment, a2, parent as IStatementContainer))
+                        }
+                    }
+                }
+            }
         }
 
         // word = lsb(word)
