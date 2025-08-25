@@ -840,7 +840,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                         // don't multiply simply shift
                         offset = PtBinaryExpression("<<", DataType.UWORD, expr.position)
                         offset.add(transformExpression(expr.right))
-                        offset.add(PtNumber(BaseDataType.UWORD, log2(structSize.toDouble()), expr.position))
+                        offset.add(PtNumber(BaseDataType.UBYTE, log2(structSize.toDouble()), expr.position))
                     }
                     else {
                         offset = PtBinaryExpression("*", DataType.UWORD, expr.position)

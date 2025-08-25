@@ -332,11 +332,11 @@ main {
         st.size shouldBe 27
 
         val a_zz = (st[20] as Assignment).value
-        a_zz shouldBe instanceOf<ArrayIndexedExpression>()
+        a_zz shouldBe instanceOf<FunctionCallExpression>()
         val a_fl = (st[21] as Assignment).value
-        a_fl shouldBe instanceOf<ArrayIndexedExpression>()
+        a_fl shouldBe instanceOf<FunctionCallExpression>()
         val a_bb = (st[22] as Assignment).value
-        a_bb shouldBe instanceOf<ArrayIndexedExpression>()
+        a_bb shouldBe instanceOf<DirectMemoryRead>()
         val a_r0 = (st[23] as Assignment).value
         a_r0 shouldBe instanceOf<DirectMemoryRead>()
         val a_r1 = (st[24] as Assignment).value
@@ -885,28 +885,6 @@ main {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
-    test("uword as pointer versus pointer to uword difference") {
-        val src="""
-main {
-    sub start() {
-        uword  @shared ptr1
-        ^^uword  @shared ptr2
-
-        ptr1[2] = 1
-        ptr2[2] = 1
-    }
-}"""
-
-        compileText(C64Target(), false, src, outputDir) shouldNotBe null
-        val result = compileText(VMTarget(), false, src, outputDir)!!
-        val st = result.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 8
-        val a1 = st[5] as PtAssignment
-        val a2 = st[6] as PtAssignment
-        a1.target.memory shouldNotBe null
-        a2.target.array shouldNotBe null
-    }
-
     test("array indexing on non pointer fields give correct error messages") {
         val src="""
 main {
@@ -1021,15 +999,15 @@ main {
         val dr7 = (st[17] as Assignment).target.pointerDereference!!
         val dr8 = (st[18] as Assignment).target.pointerDereference!!
 
-        val dr9 = (st[19] as Assignment).value as PtrDereference
+        val dr9 = (st[19] as Assignment).value as FunctionCallExpression
         val dr10 = (st[20] as Assignment).value as PtrDereference
         val dr11 = (st[21] as Assignment).target.pointerDereference!!
-        val dr12 = (st[22] as Assignment).target.pointerDereference!!
+        (st[22] as FunctionCallStatement).target.nameInSource shouldBe listOf("pokew")
 
         val dr13 = (st[23] as Assignment).value as PtrDereference
-        val dr14 = (st[24] as Assignment).value as PtrDereference
+        ((st[24] as Assignment).value as FunctionCallExpression).target.nameInSource shouldBe listOf("peekf")
         val dr15 = (st[25] as Assignment).target.pointerDereference!!
-        val dr16 = (st[26] as Assignment).target.pointerDereference!!
+        (st[26] as FunctionCallStatement).target.nameInSource shouldBe listOf("pokef")
 
         dr0.chain shouldBe listOf("l1", "s")
         dr0.derefLast shouldBe true
@@ -1051,23 +1029,16 @@ main {
         dr8.chain shouldBe listOf("l1", "s")
         dr8.derefLast shouldBe true
 
-        dr9.chain shouldBe listOf("wptr")
-        dr9.derefLast shouldBe true
+        dr9.target.nameInSource shouldBe listOf("peekw")
         dr10.chain shouldBe listOf("wptr")
         dr10.derefLast shouldBe true
         dr11.chain shouldBe listOf("wptr")
         dr11.derefLast shouldBe true
-        dr12.chain shouldBe listOf("wptr")
-        dr12.derefLast shouldBe true
 
         dr13.chain shouldBe listOf("fptr")
         dr13.derefLast shouldBe true
-        dr14.chain shouldBe listOf("fptr")
-        dr14.derefLast shouldBe true
         dr15.chain shouldBe listOf("fptr")
         dr15.derefLast shouldBe true
-        dr16.chain shouldBe listOf("fptr")
-        dr16.derefLast shouldBe true
     }
 
     test("global and local pointer vars") {
@@ -1719,6 +1690,84 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("array indexing on a pointer with a word size index works") {
+        val src="""
+%import floats
+
+main {
+   sub start() {
+        ^^ubyte @shared ptr1 = $4000
+        ^^uword @shared ptr2 = $4000
+        ^^float @shared ptr3 = $4000
+        ^^bool @shared ptr4 = $4000
+        uword @shared untyped = $4000
+        float @shared fl
+        bool @shared bb, bb2
+
+        untyped[$1000] = 0
+        ptr1[$1000] = 0
+        ptr2[$1000] = 0
+        ptr3[$1000] = 0
+        ptr4[$1000] = false
+        untyped[$1000] = 99
+        ptr1[$1000] = 99
+        ptr2[$1000] = 99
+        ptr3[$1000] = 99
+        ptr4[$1000] = true
+        untyped[$1000] = cx16.r0L
+        ptr1[$1000] = cx16.r0L
+        ptr2[$1000] = cx16.r0L
+        ptr3[$1000] = fl
+        ptr4[$1000] = bb
+        untyped[$1000] = cx16.r0L+1
+        ptr1[$1000] = cx16.r0L+1
+        ptr2[$1000] = cx16.r0L+1
+        ptr3[$1000] = fl+1.1
+        ptr4[$1000] = bb xor bb2
+
+        untyped[$1000 + cx16.r0] = 0
+        ptr1[$1000 + cx16.r0] = 0
+        ptr2[$1000 + cx16.r0] = 0
+        ptr3[$1000 + cx16.r0] = 0
+        ptr4[$1000 + cx16.r0] = false
+        untyped[$1000 + cx16.r0] = 99
+        ptr1[$1000 + cx16.r0] = 99
+        ptr2[$1000 + cx16.r0] = 99
+        ptr3[$1000 + cx16.r0] = 99
+        ptr4[$1000 + cx16.r0] = true
+        untyped[$1000 + cx16.r0] = cx16.r0L
+        ptr1[$1000 + cx16.r0] = cx16.r0L
+        ptr2[$1000 + cx16.r0] = cx16.r0L
+        ptr3[$1000 + cx16.r0] = fl
+        ptr4[$1000 + cx16.r0] = bb
+        untyped[$1000 + cx16.r0] = cx16.r0L+1
+        ptr1[$1000 + cx16.r0] = cx16.r0L+1
+        ptr2[$1000 + cx16.r0] = cx16.r0L+1
+        ptr3[$1000 + cx16.r0] = fl+1.1
+        ptr4[$1000 + cx16.r0] = bb xor bb2
+
+        cx16.r0L = untyped[$1000]
+        cx16.r1L = ptr1[$1000]
+        cx16.r2 = ptr2[$1000]
+        fl = ptr3[$1000]
+        bb = ptr4[$1000]
+        cx16.r0L = untyped[cx16.r0]
+        cx16.r1L = ptr1[cx16.r0]
+        cx16.r2 = ptr2[cx16.r0]
+        fl = ptr3[cx16.r0]
+        bb = ptr4[cx16.r0]
+        cx16.r0L = untyped[cx16.r0+1]
+        cx16.r1L = ptr1[cx16.r0+1]
+        cx16.r2 = ptr2[cx16.r0+1]
+        fl = ptr3[cx16.r0+1]
+        bb = ptr4[cx16.r0+1]
+    }
+}"""
+
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
     test("correct type of address of split and nosplit arrays") {

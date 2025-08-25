@@ -2,7 +2,6 @@ TODO
 ====
 
 c64 (and cx16 as well) fileselector has 2 issues when using ^^ubyte (code size and compiler error about return statement)
-cx16 life code size regression when using ^^ubyte
 
 
 pointer arithmetic precedence issue?:
@@ -33,3 +32,5 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - optimize the float copying in assignIndexedPointer() (also word?)
 - implement some more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size
+- should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
+  or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?

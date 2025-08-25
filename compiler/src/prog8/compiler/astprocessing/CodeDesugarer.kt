@@ -240,6 +240,7 @@ _after:
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         // replace pointervar[word] by @(pointervar+word) to avoid the
         // "array indexing is limited to byte size 0..255" error for pointervariables.
+        // (uses pokew or pokef if the ointer is a word or float pointer).
 
         if(arrayIndexedExpression.pointerderef!=null) {
             return noModifications
@@ -247,7 +248,7 @@ _after:
 
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
-        if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || (arrayVar.datatype.isPointer && arrayVar.datatype.sub==BaseDataType.UBYTE))) {
+        if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || arrayVar.datatype.isPointer)) {
             val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
             val address = BinaryExpression(
                 arrayIndexedExpression.plainarrayvar!!.copy(),
@@ -255,22 +256,58 @@ _after:
                 wordIndex,
                 arrayIndexedExpression.position
             )
-            return if (parent is AssignTarget) {
-                // assignment to array
-                val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
-                val newtarget = AssignTarget(
-                    null,
-                    null,
-                    memwrite,
-                    null,
-                    false,
-                    position = arrayIndexedExpression.position
-                )
-                listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
-            } else {
-                // read from array
-                val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
-                listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
+            if(arrayVar.datatype.isUnsignedWord || arrayVar.datatype.sub?.isByte==true) {
+                return if (parent is AssignTarget) {
+                    // assignment to array
+                    val memwrite = DirectMemoryWrite(address, arrayIndexedExpression.position)
+                    val newtarget = AssignTarget(null, null, memwrite, null, false, position = arrayIndexedExpression.position)
+                    listOf(IAstModification.ReplaceNode(parent, newtarget, parent.parent))
+                } else {
+                    // read from array
+                    val memread = DirectMemoryRead(address, arrayIndexedExpression.position)
+                    val replacement = if(arrayVar.datatype.sub?.isSigned==true)
+                            TypecastExpression(memread, DataType.BYTE, true, memread.position)
+                        else
+                            memread
+                    listOf(IAstModification.ReplaceNode(arrayIndexedExpression, replacement, parent))
+                }
+            } else if(arrayVar.datatype.sub?.isWord==true) {
+                // use peekw/pokew
+                if(parent is AssignTarget) {
+                    val assignment = parent.parent as Assignment
+                    val args = mutableListOf(address, assignment.value)
+                    val poke = FunctionCallStatement(IdentifierReference(listOf("pokew"), arrayIndexedExpression.position), args, false, arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, poke, assignment.parent))
+                } else {
+                    val peek = FunctionCallExpression(IdentifierReference(listOf("peekw"), arrayIndexedExpression.position), mutableListOf(address), arrayIndexedExpression.position)
+                    val replacement = if(arrayVar.datatype.sub?.isSigned==true)
+                            TypecastExpression(peek, DataType.WORD, true, peek.position)
+                        else
+                            peek
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, replacement, parent))
+                }
+            } else if(arrayVar.datatype.sub==BaseDataType.BOOL) {
+                // use peekbool/pokebool
+                if(parent is AssignTarget) {
+                    val assignment = parent.parent as Assignment
+                    val args = mutableListOf(address, assignment.value)
+                    val poke = FunctionCallStatement(IdentifierReference(listOf("pokebool"), arrayIndexedExpression.position), args, false, arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, poke, assignment.parent))
+                } else {
+                    val peek = FunctionCallExpression(IdentifierReference(listOf("peekbool"), arrayIndexedExpression.position), mutableListOf(address), arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, peek, parent))
+                }
+            } else if(arrayVar.datatype.sub==BaseDataType.FLOAT) {
+                // use peekf/pokef
+                if(parent is AssignTarget) {
+                    val assignment = parent.parent as Assignment
+                    val args = mutableListOf(address, assignment.value)
+                    val poke = FunctionCallStatement(IdentifierReference(listOf("pokef"), arrayIndexedExpression.position), args, false, arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, poke, assignment.parent))
+                } else {
+                    val peek = FunctionCallExpression(IdentifierReference(listOf("peekf"), arrayIndexedExpression.position), mutableListOf(address), arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, peek, parent))
+                }
             }
         } else if(arrayVar!=null && (arrayVar.type==VarDeclType.MEMORY || arrayVar.datatype.isString || arrayVar.datatype.isPointer || arrayVar.datatype.isArray)) {
             return noModifications

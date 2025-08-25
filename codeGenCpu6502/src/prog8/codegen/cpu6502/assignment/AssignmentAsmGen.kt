@@ -3606,7 +3606,9 @@ $endLabel""")
             if(indexVar!=null) {
                 asmgen.out("  ldy  ${asmgen.asmVariableName(indexVar)} |  sta  ${target.asmVarname},y")
             } else {
-                require(target.array.index.type.isByteOrBool)
+                require(target.array.index.type.isByte) {
+                    "wot"
+                }
                 asmgen.saveRegisterStack(register, false)
                 asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.Y)
                 asmgen.out("  pla |  sta  ${target.asmVarname},y")

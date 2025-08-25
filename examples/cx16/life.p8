@@ -1,4 +1,7 @@
-; conway's game of life.
+; Conway's game of life.
+; the world is represented by a matrix of bytes (the cells) that can be 1 (alive) or 0 (dead)
+; numeric byte is used because we need to count the number of neighbors and that would require casts if we used booleans.
+; (but you totally could use booleans)
 
 %import math
 %import textio
@@ -7,9 +10,9 @@ main {
     const ubyte WIDTH = 80
     const ubyte HEIGHT = 60-4
     const uword STRIDE = $0002+WIDTH
-    uword world1 = memory("world1", (WIDTH+2)*(HEIGHT+2), 0)
-    uword world2 = memory("world2", (WIDTH+2)*(HEIGHT+2), 0)
-    uword @requirezp active_world = world1
+    ^^ubyte world1 = memory("world1", (WIDTH+2)*(HEIGHT+2), 0)
+    ^^ubyte world2 = memory("world2", (WIDTH+2)*(HEIGHT+2), 0)
+    ^^ubyte @requirezp active_world = world1
 
    sub start() {
         ; cx16.set_screen_mode(3)
@@ -91,7 +94,7 @@ main {
         const ubyte DYOFFSET = 2
         ubyte[2] cell_chars = [sc:' ', sc:'●']
 
-        uword @requirezp new_world = world1
+        ^^ubyte @requirezp new_world = world1
         if active_world == world1
             new_world = world2
 
@@ -102,8 +105,8 @@ main {
         ; It's more readable to use active_world[offset] etc, but offset is a word value, and this produces
         ; inefficient assembly code because we can't use a register indexed mode in this case. Costly inside a loop.
 
-        uword @requirezp new_world_ptr = new_world + STRIDE+1-DXOFFSET
-        uword @requirezp active_world_ptr = active_world + STRIDE+1-DXOFFSET
+        ^^ubyte @requirezp new_world_ptr = new_world + STRIDE+1-DXOFFSET
+        ^^ubyte @requirezp active_world_ptr = active_world + STRIDE+1-DXOFFSET
 
         ubyte x
         ubyte y
@@ -114,7 +117,7 @@ main {
             for x in DXOFFSET to WIDTH+DXOFFSET-1 {
                 ; count the living neighbors
                 ubyte cell = @(active_world_ptr + x)
-                uword @requirezp ptr = active_world_ptr + x - STRIDE - 1
+                ^^ubyte @requirezp ptr = active_world_ptr + x - STRIDE - 1
                 ubyte neighbors = @(ptr) + @(ptr+1) + @(ptr+2) +
                                   @(ptr+STRIDE) + cell + @(ptr+STRIDE+2) +
                                   @(ptr+STRIDE*2) + @(ptr+STRIDE*2+1) + @(ptr+STRIDE*2+2)

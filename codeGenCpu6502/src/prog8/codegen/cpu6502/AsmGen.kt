@@ -719,6 +719,8 @@ class AsmGen6502Internal (
         val reg = register.toString().lowercase()
         val indexnum = expr.index.asConstInteger()
         if (indexnum != null) {
+            if(indexnum > 255)
+                throw AssemblyError("array index $indexnum is larger than a byte ${expr.position}")
             val indexValue = if(expr.splitWords)
                 indexnum
             else
@@ -726,6 +728,9 @@ class AsmGen6502Internal (
             out("  ld$reg  #$indexValue")
             return
         }
+
+        if(!expr.index.type.isByte)
+            throw AssemblyError("array index $indexnum is larger than a byte ${expr.position}")
 
         if(expr.splitWords) {
             assignExpressionToRegister(expr.index, RegisterOrPair.fromCpuRegister(register))
@@ -806,15 +811,15 @@ class AsmGen6502Internal (
                     when(target.kind) {
                         TargetStorageKind.VARIABLE -> {
                             if (isTargetCpu(CpuType.CPU6502))
-                                out("lda  #0 |  sta  ${target.asmVarname}")
+                                out("  lda  #0 |  sta  ${target.asmVarname}")
                             else
-                                out("stz  ${target.asmVarname}")
+                                out("  stz  ${target.asmVarname}")
                         }
                         TargetStorageKind.MEMORY -> {
                             val address = target.memory!!.address.asConstInteger()
                             if(address!=null) {
                                 if (isTargetCpu(CpuType.CPU6502))
-                                    out("lda  #0 |  sta  ${address.toHex()}")
+                                    out("  lda  #0 |  sta  ${address.toHex()}")
                                 else
                                     out("  stz  ${address.toHex()}")
                                 return

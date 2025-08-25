@@ -1594,8 +1594,15 @@ internal class AstChecker(private val program: Program,
         }
         else {
             if (leftDt.isBool || rightDt.isBool) {
-                if(expr.operator!="==" && expr.operator!="!=")
-                    errors.err("operator requires numeric operands", expr.right.position)
+                if(expr.operator!="==" && expr.operator!="!=") {
+                    val msg = when(expr.operator) {
+                        "^" -> "operator requires numeric operands, did you mean logical 'xor'?"
+                        "&" -> "operator requires numeric operands, did you mean logical 'and'?"
+                        "|" -> "operator requires numeric operands, did you mean logical 'or'?"
+                        else -> "operator requires numeric operands"
+                    }
+                    errors.err(msg, expr.right.position)
+                }
             }
         }
     }
