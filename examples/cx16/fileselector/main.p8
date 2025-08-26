@@ -39,5 +39,5 @@ fselector {
     extsub $a006 = config_appearance(ubyte column @R0, ubyte row @R1, ubyte max_entries @R2, ubyte normalcolors @R3, ubyte selectedcolors @R4) clobbers(A)
 
     ; show the file selector dialog. Normal pattern would be "*" to include everything.  Returns the selected entry name, or 0 if error or nothing selected.
-    extsub $a009 = select(str pattern @AY) clobbers(X) -> uword @AY
+    extsub $a009 = select(str pattern @AY) clobbers(X) -> str @AY
 }

@@ -53,6 +53,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                                 || removeWeirdBranches(chunk1, chunk2, indexedInstructions)
                                 || removeDoubleSecClc(chunk1, indexedInstructions)
                                 || cleanupPushPop(chunk1, indexedInstructions)
+                                || simplifyConstantReturns(chunk1, indexedInstructions)
                     } while (changed)
                 }
             }
@@ -452,6 +453,25 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // detect multiple registers being assigned the same value (and not changed) - use only 1 of them  (hard!)
             // ...
 */
+        }
+        return changed
+    }
+
+    private fun simplifyConstantReturns(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        //  use a RETURNI when a RETURNR is just returning a constant that was loaded into a register just before
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(ins.opcode==Opcode.RETURNR) {
+                if(idx>0) {
+                    val insBefore = chunk.instructions[idx-1]
+                    if(insBefore.opcode == Opcode.LOAD && insBefore.immediate!=null) {
+                        val constvalue = insBefore.immediate!!
+                        chunk.instructions[idx] = IRInstruction(Opcode.RETURNI, ins.type, immediate = constvalue)
+                        chunk.instructions.removeAt(idx-1)
+                        changed = true
+                    }
+                }
+            }
         }
         return changed
     }

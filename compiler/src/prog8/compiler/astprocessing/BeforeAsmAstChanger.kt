@@ -88,7 +88,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             ) {
                 if(!subroutine.inline) {
                     if(outerScope is Subroutine && outerScope.returntypes.isNotEmpty()) {
-                        if(outerScope.returntypes.size>1 || !outerScope.returntypes[0].isNumericOrBool) {
+                        if(outerScope.returntypes.size>1 || !(outerScope.returntypes[0].isNumericOrBool || outerScope.returntypes[0].isPointer)) {
                             errors.err("subroutine is missing a return statement to avoid falling through into nested subroutine", outerStatements[subroutineStmtIdx-1].position)
                         } else {
                             val zero = defaultZero(outerScope.returntypes[0].base, Position.DUMMY)

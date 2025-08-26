@@ -100,7 +100,20 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         else -> false
     }
 
-    fun asConstInteger(): Int? = (this as? PtNumber)?.number?.toInt() ?: (this as? PtBool)?.asInt()
+    fun asConstInteger(): Int? {
+        return when(this) {
+            is PtBool -> asInt()
+            is PtNumber -> number.toInt()
+            is PtTypeCast -> {
+                if(this.value is PtNumber && type.isPointer) {
+                    (this.value as PtNumber).number.toInt()
+                }
+                else null
+            }
+            else -> null
+        }
+    }
+
     fun asConstValue(): Double? = (this as? PtNumber)?.number ?: (this as? PtBool)?.asInt()?.toDouble()
 
     fun isSimple(): Boolean {

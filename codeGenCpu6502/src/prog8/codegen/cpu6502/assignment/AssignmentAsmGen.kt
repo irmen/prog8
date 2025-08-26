@@ -2171,7 +2171,7 @@ $endLabel""")
                 if(targetDt.isPointer) {
                     // assign a number to a pointer type
                     require(valueDt.isInteger)
-                    assignConstantWord(target, value.number.toInt())
+                    return assignConstantWord(target, value.number.toInt())
                 }
                 else
                     throw AssemblyError("literal value cast should have been const-folded away (target type=$targetDt)")

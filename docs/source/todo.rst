@@ -1,7 +1,10 @@
 TODO
 ====
 
-c64 (and cx16 as well) fileselector has 2 issues when using ^^ubyte (code size and compiler error about return statement)
+c64 (and cx16 as well) fileselector code size increases significantly when using ^^ubyte for the uword name_ptr variable...
+- it calls prog8_math.multiply_words even when the multiplier is constant 1
+- conditional expression  if name_ptr!=0   contains redundant boolean processing instructions
+
 
 
 pointer arithmetic precedence issue?:
@@ -34,3 +37,52 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size
 - should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
   or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?
+
+
+OTHER
+-----
+
+not all source lines are correctly reported in the IR file, for example the below code omits line 5:
+[examples/test.p8: line 4 col 6-8]  sub start() {
+[examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
+[examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
+[examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
+[examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
+
+
+%option enable_floats
+
+main {
+    sub start() {
+        cx16.r1 = select1()
+        cx16.r2 = select2()
+        cx16.r3 = select3()
+        cx16.r4 = select4()
+        cx16.r5 = select5()
+    }
+
+    sub select1() -> uword {
+        cx16.r0L++
+        return 2000
+    }
+
+    sub select2() -> str {
+        cx16.r0L++
+        return 2000
+    }
+
+    sub select3() -> ^^ubyte {
+        cx16.r0L++
+        return 2000
+    }
+
+    sub select4() -> ^^bool {
+        cx16.r0L++
+        return 2000
+    }
+
+    sub select5() -> ^^float {
+        cx16.r0L++
+        return 2000
+    }
+}

@@ -21,7 +21,7 @@ main {
         fileselector.configure_appearance(10, 10, 20, $b3, $d0)
 
         ; show all files, using just the * wildcard
-        uword chosen = fileselector.select("*")
+        ^^ubyte chosen = fileselector.select("*")
 
         txt.nl()
         txt.nl()
@@ -54,7 +54,7 @@ fileselector {
     ubyte chr_topleft, chr_topright, chr_botleft, chr_botright, chr_horiz_top, chr_horiz_other, chr_vert, chr_jointleft, chr_jointright
 
     ubyte num_visible_files
-    uword name_ptr
+    uword name_ptr      ; TODO fix code size bloat when making this ^^ubyte
 
 
     sub configure_settings(ubyte drivenumber, ubyte show_types, ubyte rambank) {
@@ -75,7 +75,7 @@ fileselector {
         colors_selected = selected
     }
 
-    sub select(str pattern) -> uword {
+    sub select(str pattern) -> str {
         str defaultpattern="*"
         if pattern==0
             pattern = &defaultpattern
@@ -85,7 +85,7 @@ fileselector {
         return cx16.r0
     }
 
-    sub internal_select(str pattern) -> uword {
+    sub internal_select(str pattern) -> str {
         num_visible_files = 0
         diskio.list_filename[0] = 0
         name_ptr = diskio.diskname()
@@ -280,7 +280,7 @@ fileselector {
             pokew(filename_ptrs, 0)
         }
 
-        sub print_filename(uword name) {
+        sub print_filename(str name) {
             repeat 28 {      ; maximum length displayed
                 if @(name)==0
                     break
@@ -423,7 +423,7 @@ fileselector {
         }
     }
 
-    sub get_names(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
+    sub get_names(str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         filenames_buffer[0]=0

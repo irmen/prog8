@@ -52,7 +52,7 @@ fileselector {
     ubyte chr_topleft, chr_topright, chr_botleft, chr_botright, chr_horiz_top, chr_horiz_other, chr_vert, chr_jointleft, chr_jointright
 
     ubyte num_visible_files
-    uword name_ptr
+    uword name_ptr      ; TODO fix code size bloat when making this ^^ubyte
 
 
     sub configure(ubyte drivenumber, ubyte show_types) {
@@ -74,14 +74,14 @@ fileselector {
         colors_selected = selected
     }
 
-    sub select(str pattern) -> uword {
+    sub select(str pattern) -> str {
         sys.save_prog8_internals()
         cx16.r0 = internal_select(pattern)
         sys.restore_prog8_internals()
         return cx16.r0
     }
 
-    sub internal_select(str pattern) -> uword {
+    sub internal_select(str pattern) -> str {
         str defaultpattern="*"
         if pattern==0
             pattern = &defaultpattern
@@ -285,7 +285,7 @@ fileselector {
             pokew(filename_ptrs, 0)
         }
 
-        sub print_filename(uword name) {
+        sub print_filename(str name) {
             repeat 28 {      ; maximum length displayed
                 if @(name)==0
                     break
@@ -438,7 +438,7 @@ fileselector {
         }
     }
 
-    sub get_names(uword pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
+    sub get_names(str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         filenames_buffer[0]=0
