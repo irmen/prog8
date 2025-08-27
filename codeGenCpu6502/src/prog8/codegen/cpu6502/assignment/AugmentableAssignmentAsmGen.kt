@@ -898,7 +898,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     private fun tryInplaceModifyWithRemovedRedundantCast(value: PtTypeCast, target: AsmAssignTarget, operator: String): Boolean {
-        if (target.datatype == value.type) {
+        if (target.datatype == value.type || (target.datatype.isPointer && value.type.isWord)) {
             val childDt = value.value.type
             if (!value.type.isFloat && (value.type.equalsSize(childDt) || value.type.largerSizeThan(childDt))) {
                 // this typecast is redundant here; the rest of the code knows how to deal with the uncasted value.

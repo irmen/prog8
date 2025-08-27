@@ -1,36 +1,26 @@
-%option enable_floats
-
 main {
     sub start() {
-        cx16.r1 = select1()
-        cx16.r2 = select2()
-        cx16.r3 = select3()
-        cx16.r4 = select4()
-        cx16.r5 = select5()
-    }
+        ^^ubyte @shared ptr = 2000
+        cx16.r0L = 10
+        ptr += cx16.r0L
 
-    sub select1() -> uword {
-        cx16.r0L++
-        return 2000
-    }
+        if ptr==0
+            cx16.r0L++
 
-    sub select2() -> str {
-        cx16.r0L++
-        return 2000
-    }
+        if ptr!=0
+            cx16.r0L++
 
-    sub select3() -> ^^ubyte {
-        cx16.r0L++
-        return 2000
-    }
+        if ptr==9999
+            cx16.r0L++
 
-    sub select4() -> ^^bool {
-        cx16.r0L++
-        return 2000
-    }
+        if ptr!=9999
+            cx16.r0L++
 
-    sub select5() -> ^^float {
-        cx16.r0L++
-        return 2000
+        if ptr==cx16.r0+2000
+            cx16.r0L++
+
+        if ptr!=cx16.r0+2000
+            cx16.r0L++
+
     }
 }

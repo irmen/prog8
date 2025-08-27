@@ -12,7 +12,7 @@ main {
     sub start() {
 
         ;; fileselector.configure(1, 5, 5, 8)
-        uword chosen = fileselector.select("*")
+        ^^ubyte chosen = fileselector.select("*")
         txt.nl()
         if chosen!=0 {
             txt.print("\nchosen: ")
@@ -35,7 +35,7 @@ fileselector {
     ubyte max_lines = 15
 
     str chosen_filename = "?" * 32
-    uword name_ptr
+    ^^ubyte name_ptr
     ubyte num_visible_files
 
     sub configure(ubyte column, ubyte row, ubyte max_entries, ubyte drivenumber) {
@@ -45,7 +45,7 @@ fileselector {
         diskio.drivenumber = drivenumber
     }
 
-    sub select(str pattern) -> uword {
+    sub select(str pattern) -> str {
         if sys.target==64 {
             ; c64 has memory at $c000
             filenamesbuffer = $c000
@@ -198,7 +198,7 @@ fileselector {
             pokew(filename_ptrs, 0)
         }
 
-        sub print_filename(uword name) {
+        sub print_filename(str name) {
             repeat 28 {      ; maximum length displayed
                 cx16.r0L = @(name)
                 if_z

@@ -1106,6 +1106,9 @@ internal class AssignmentAsmGen(
                 else -> return false
             }
         } else {
+            if(!expr.right.type.isFloat && (value==0 || value==1))
+                throw AssemblyError("multiplication by 0 or 1 should not happen ${expr.position}")
+
             when {
                 expr.type.isByte -> {
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type.isSigned)
@@ -1932,14 +1935,24 @@ internal class AssignmentAsmGen(
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }
-                    dt.isWord -> {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt.isSigned)
-                        asmgen.out("""
-                            sty  P8ZP_SCRATCH_B1
-                            ora  P8ZP_SCRATCH_B1
-                            beq  +
-                            lda  #1
-+                           eor  #1""")
+                    dt.isWord || dt.isPointer -> {
+                        if(expr.left is PtIdentifier) {
+                            val varname = asmgen.asmVariableName(expr.left as PtIdentifier)
+                            asmgen.out("""
+                                lda  $varname
+                                ora  $varname+1
+                                beq  +
+                                lda  #1
++                               eor  #1""")
+                        } else {
+                            assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt.isSigned)
+                            asmgen.out("""
+                                sty  P8ZP_SCRATCH_B1
+                                ora  P8ZP_SCRATCH_B1
+                                beq  +
+                                lda  #1
++                               eor  #1""")
+                        }
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }
@@ -1964,11 +1977,21 @@ internal class AssignmentAsmGen(
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }
-                    dt.isWord -> {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt.isSigned)
-                        asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
-                        asmgen.out("  beq  + |  lda  #1")
-                        asmgen.out("+")
+                    dt.isWord || dt.isPointer -> {
+                        if(expr.left is PtIdentifier) {
+                            val varname = asmgen.asmVariableName(expr.left as PtIdentifier)
+                            asmgen.out("""
+                                lda  $varname
+                                ora  $varname+1
+                                beq  +
+                                lda  #1
++""")
+                        } else {
+                            assignExpressionToRegister(expr.left, RegisterOrPair.AY, dt.isSigned)
+                            asmgen.out("  sty  P8ZP_SCRATCH_B1 |  ora  P8ZP_SCRATCH_B1")
+                            asmgen.out("  beq  + |  lda  #1")
+                            asmgen.out("+")
+                        }
                         assignRegisterByte(assign.target, CpuRegister.A, false, false)
                         return true
                     }

@@ -54,7 +54,7 @@ fileselector {
     ubyte chr_topleft, chr_topright, chr_botleft, chr_botright, chr_horiz_top, chr_horiz_other, chr_vert, chr_jointleft, chr_jointright
 
     ubyte num_visible_files
-    uword name_ptr      ; TODO fix code size bloat when making this ^^ubyte
+    ^^ubyte name_ptr
 
 
     sub configure_settings(ubyte drivenumber, ubyte show_types, ubyte rambank) {

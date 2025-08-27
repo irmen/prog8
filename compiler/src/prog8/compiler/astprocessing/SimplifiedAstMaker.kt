@@ -209,13 +209,21 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                                 return assign
                             }
                         } else {
-                            val multiplication = PtBinaryExpression("*", DataType.UWORD, srcAssign.position)
-                            multiplication.add(transformExpression(augmentedValue))
-                            multiplication.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), srcAssign.position))
-                            val assign = PtAugmentedAssign(operator, srcAssign.position)
-                            assign.add(transform(srcAssign.target))
-                            assign.add(multiplication)
-                            return assign
+                            if(structSize>1) {
+                                val multiplication = PtBinaryExpression("*", DataType.UWORD, srcAssign.position)
+                                multiplication.add(transformExpression(augmentedValue))
+                                multiplication.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), srcAssign.position))
+                                val assign = PtAugmentedAssign(operator, srcAssign.position)
+                                assign.add(transform(srcAssign.target))
+                                assign.add(multiplication)
+                                return assign
+                            } else {
+                                // size = 1, no multiplication needed
+                                val assign = PtAugmentedAssign(operator, srcAssign.position)
+                                assign.add(transform(srcAssign.target))
+                                assign.add(transformExpression(augmentedValue))
+                                return assign
+                            }
                         }
                     } else
                         throw FatalAstException("unexpected augmented assignment operator on pointer ${expr.operator}")

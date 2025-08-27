@@ -1,10 +1,9 @@
 TODO
 ====
 
-c64 (and cx16 as well) fileselector code size increases significantly when using ^^ubyte for the uword name_ptr variable...
-- it calls prog8_math.multiply_words even when the multiplier is constant 1
-- conditional expression  if name_ptr!=0   contains redundant boolean processing instructions
+invalid ast transformation is done on  cx16.r1 = ptr - cx16.r0L
 
+peekw(ptr + cx16.r0L)  generates bloated code  (compare with peekw(word + cx16.r0L) )
 
 
 pointer arithmetic precedence issue?:
