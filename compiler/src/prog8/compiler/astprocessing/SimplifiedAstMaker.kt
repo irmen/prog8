@@ -785,7 +785,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         } else {
             if(srcExpr.left.inferType(program).isPointer || srcExpr.right.inferType(program).isPointer) {
-                if (srcExpr.operator == "+") return transformWithPointerArithmetic(srcExpr)
+                if (srcExpr.operator == "+" || srcExpr.operator == "-") return transformWithPointerArithmetic(srcExpr)
                 else if (srcExpr.operator in ComparisonOperators) return transformWithPointerComparison(srcExpr)
             } else if(srcExpr.left.inferType(program).isPointer) {
                 return when (srcExpr.operator) {

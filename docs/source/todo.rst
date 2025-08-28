@@ -1,17 +1,6 @@
 TODO
 ====
 
-peekw(ptr + cx16.r0L)  generates bloated code  (compare with peekw(word + cx16.r0L) )
-
-
-pointer arithmetic precedence issue?:
-    ^^uword values
-    cx16.r0 = values + (pos-1)      ; different outcome as:
-    cx16.r0 = values + pos -1
-
-sorting.gnomesort_uw()   : when converted to ^^uword, the resulting code is MUCH larger than before  (peek/poke code gen problem?)
-(same with shellsort_uw and others)
-
 this doesn't work but probably should:
         ^^uword xpositions_ptr
         repeat num_sprites {
@@ -31,9 +20,10 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - optimize the multiplications in assignAddressOfIndexedPointer()
 - optimize the float copying in assignIndexedPointer() (also word?)
 - implement some more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
-- try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size
+- try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size, see test.p8 in commit d394dc1e
 - should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
   or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?
+- add struct and pointer benchamrk to benchmark program?
 
 
 OTHER

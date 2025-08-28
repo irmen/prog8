@@ -835,6 +835,86 @@ main {
         (a4v.right as TypecastExpression).expression shouldBe instanceOf<IdentifierReference>()
     }
 
+    test("pointer arithmetic") {
+        val src="""
+main {
+    sub start() {
+        ^^uword @shared ptr
+
+        add1()
+        add2()
+        sub1()
+        sub2()
+
+        sub add1() {
+            ptr += 5
+            cx16.r0 = ptr + 5
+            cx16.r0 = peekw(ptr + 5)
+        }
+
+        sub add2() {
+            ptr += cx16.r0L
+            cx16.r0 = ptr + cx16.r0L
+            cx16.r0 = peekw(ptr + cx16.r0L)
+        }
+
+        sub sub1() {
+            ptr -= 5
+            cx16.r0 = ptr - 5
+            cx16.r0 = peekw(ptr - 5)
+        }
+
+        sub sub2() {
+            ptr -= cx16.r0L
+            cx16.r0 = ptr - cx16.r0L
+            cx16.r0 = peekw(ptr - cx16.r0L)
+        }
+    }
+}"""
+
+        val result = compileText(Cx16Target(), false, src, outputDir)!!
+        val st = result.codegenAst!!.entrypoint()!!.children
+        st.size shouldBe 12
+        val add1 = (st[8] as PtSub).children
+        val add2 = (st[9] as PtSub).children
+        val sub1 = (st[10] as PtSub).children
+        val sub2 = (st[11] as PtSub).children
+        add1.size shouldBe 5
+        add2.size shouldBe 5
+        sub1.size shouldBe 5
+        sub2.size shouldBe 5
+
+        ((add1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
+        (((add1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+        val add1peek = (add1[3] as PtAssignment).value as PtBuiltinFunctionCall
+        ((add1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+
+        val add2expr1 = (add2[1] as PtAugmentedAssign).value as PtBinaryExpression
+        add2expr1.operator shouldBe "*"     // TODO must be <<1 as well but that is an optimization yet left to implement
+        (add2expr1.right as PtNumber).number shouldBe 2.0
+        val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
+        add2expr2.operator shouldBe "<<"
+        (add2expr2.right as PtNumber).number shouldBe 1.0
+        val add2expr3 = (((add2[3] as PtAssignment).value as PtBuiltinFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
+        add2expr3.operator shouldBe "<<"
+        (add2expr3.right as PtNumber).number shouldBe 1.0
+
+        ((sub1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
+        (((sub1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+        val sub1peek = (sub1[3] as PtAssignment).value as PtBuiltinFunctionCall
+        ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
+
+        val sub2expr1 = (sub2[1] as PtAugmentedAssign).value as PtBinaryExpression
+        sub2expr1.operator shouldBe "*"     // TODO must be <<1 as well but that is an optimization yet left to implement
+        (sub2expr1.right as PtNumber).number shouldBe 2.0
+        val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
+        sub2expr2.operator shouldBe "<<"
+        (sub2expr2.right as PtNumber).number shouldBe 1.0
+        val sub2expr3 = (((sub2[3] as PtAssignment).value as PtBuiltinFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
+        sub2expr3.operator shouldBe "<<"
+        (sub2expr3.right as PtNumber).number shouldBe 1.0
+    }
+
     test("odd pointer arithmetic") {
         val src="""
 main{

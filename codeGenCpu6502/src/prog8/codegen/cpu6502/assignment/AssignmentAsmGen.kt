@@ -1410,25 +1410,48 @@ internal class AssignmentAsmGen(
         } else if(dt.isWord || dt.isPointer) {
 
             fun doAddOrSubWordExpr() {
-                asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
-                if(expr.operator=="+")
-                    asmgen.out("""
+                if(expr.left is PtIdentifier) {
+                    val symname = asmgen.asmVariableName(expr.left as PtIdentifier)
+                    assignExpressionToRegister(expr.right, RegisterOrPair.AY, dt.isSigned)
+                    if(expr.operator=="+")
+                        asmgen.out("""
                                 clc
-                                adc  P8ZP_SCRATCH_W1
+                                adc  $symname
                                 tax
                                 tya
-                                adc  P8ZP_SCRATCH_W1+1
+                                adc  $symname+1
                                 tay
                                 txa""")
-                else
-                    asmgen.out("""
+                    else
+                        asmgen.out("""
                                 sec
-                                sbc  P8ZP_SCRATCH_W1
+                                sbc  $symname
                                 tax
                                 tya
-                                sbc  P8ZP_SCRATCH_W1+1
+                                sbc  $symname+1
                                 tay
                                 txa""")
+                } else {
+                    asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
+                    if(expr.operator=="+")
+                        asmgen.out("""
+                                    clc
+                                    adc  P8ZP_SCRATCH_W1
+                                    tax
+                                    tya
+                                    adc  P8ZP_SCRATCH_W1+1
+                                    tay
+                                    txa""")
+                    else
+                        asmgen.out("""
+                                    sec
+                                    sbc  P8ZP_SCRATCH_W1
+                                    tax
+                                    tya
+                                    sbc  P8ZP_SCRATCH_W1+1
+                                    tay
+                                    txa""")
+                }
                 assignRegisterpairWord(target, RegisterOrPair.AY)
             }
 

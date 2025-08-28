@@ -1,38 +1,34 @@
 main {
     sub start() {
-
         ^^uword @shared ptr
-        uword @shared ww
 
-        one()
-        two()
-        three()
-        four()
+;        add1()
+;        add2()
+        sub1()
+;        sub2()
 
-        sub one() { ; TODO horrific code bloat
+        sub add1() {
+            ptr += 5
+            cx16.r0 = ptr + 5
+            cx16.r0 = peekw(ptr + 5)
+        }
+
+        sub add2() {
+            ptr += cx16.r0L
             cx16.r0 = ptr + cx16.r0L
-            cx16.r1 = peekw(ptr + cx16.r0L)
-            pokew(ptr + cx16.r0L, 9999)
+            cx16.r0 = peekw(ptr + cx16.r0L)
         }
 
-        sub two() {
-            ; efficient code, no calls to peekw / pokew
-            cx16.r0 = ww + cx16.r0L * 2
-            cx16.r1 = peekw(ww + cx16.r0L * 2)
-            pokew(ww + cx16.r0L * 2, 9999)
+        sub sub1() {
+            ptr -= 5
+            cx16.r0 = ptr - 5
+            cx16.r0 = peekw(ptr - 5)
         }
 
-        sub three() {
-            ; TODO semi-efficient code,  calls peekw/pokew
+        sub sub2() {
+            ptr -= cx16.r0L
             cx16.r0 = ptr - cx16.r0L
-            cx16.r1 = peekw(ptr - cx16.r0L)
-            pokew(ptr - cx16.r0L, 9999)
-        }
-
-        sub four() {        ; TODO funnily enough, horrific code bloat on regular uword
-            cx16.r0 = (ww - cx16.r0L * 2) as uword
-            cx16.r1 = peekw((ww - cx16.r0L * 2) as uword)
-            pokew((ww - cx16.r0L * 2) as uword, 9999)
+            cx16.r0 = peekw(ptr - cx16.r0L)
         }
     }
 }
