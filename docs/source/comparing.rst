@@ -1,8 +1,8 @@
 .. _comparingprog8:
 
-============================
+****************************
 Prog8 versus other languages
-============================
+****************************
 
 This chapter is meant for new Prog8 users coming with existing knowledge in another programming language such as C or Python.
 It discusses some key design aspects of Prog8 and how it differs from what you may know from those languages.

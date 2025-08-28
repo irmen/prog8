@@ -5,7 +5,6 @@ Prog8 documentation - |version|
     :align: center
     :alt: Prog8 logo
 
-.. index:: what is Prog8
 
 What is Prog8?
 --------------
@@ -231,9 +230,3 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     portingguide.rst
     software.rst
     todo.rst
-
-
-Index
-=====
-
-* :ref:`genindex`

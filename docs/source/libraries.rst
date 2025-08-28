@@ -1,6 +1,6 @@
-=====================================
+*************************************
 Library modules and builtin functions
-=====================================
+*************************************
 
 The compiler provides several library modules with useful subroutine and variables.
 There are also a bunch of builtin functions.
