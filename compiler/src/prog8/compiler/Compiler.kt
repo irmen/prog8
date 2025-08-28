@@ -199,7 +199,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     args.errors.report()
                     intermediateAst
                 }
-                simplifiedAstDuration =simplifiedAstDuration2
+                simplifiedAstDuration = simplifiedAstDuration2
 
                 createAssemblyDuration = measureTime {
                     if (!createAssemblyAndAssemble(

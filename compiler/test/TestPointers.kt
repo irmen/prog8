@@ -872,7 +872,7 @@ main {
     }
 }"""
 
-        val result = compileText(Cx16Target(), false, src, outputDir)!!
+        val result = compileText(Cx16Target(), true, src, outputDir)!!
         val st = result.codegenAst!!.entrypoint()!!.children
         st.size shouldBe 12
         val add1 = (st[8] as PtSub).children
@@ -890,8 +890,8 @@ main {
         ((add1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
         val add2expr1 = (add2[1] as PtAugmentedAssign).value as PtBinaryExpression
-        add2expr1.operator shouldBe "*"     // TODO must be <<1 as well but that is an optimization yet left to implement
-        (add2expr1.right as PtNumber).number shouldBe 2.0
+        add2expr1.operator shouldBe "<<"
+        (add2expr1.right as PtNumber).number shouldBe 1.0
         val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
         add2expr2.operator shouldBe "<<"
         (add2expr2.right as PtNumber).number shouldBe 1.0
@@ -905,8 +905,8 @@ main {
         ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
         val sub2expr1 = (sub2[1] as PtAugmentedAssign).value as PtBinaryExpression
-        sub2expr1.operator shouldBe "*"     // TODO must be <<1 as well but that is an optimization yet left to implement
-        (sub2expr1.right as PtNumber).number shouldBe 2.0
+        sub2expr1.operator shouldBe "<<"
+        (sub2expr1.right as PtNumber).number shouldBe 1.0
         val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
         sub2expr2.operator shouldBe "<<"
         (sub2expr2.right as PtNumber).number shouldBe 1.0

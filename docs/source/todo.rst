@@ -1,18 +1,11 @@
 TODO
 ====
 
-this doesn't work but probably should:
-        ^^uword xpositions_ptr
-        repeat num_sprites {
-            pokew(cx16.VERA_DATA0, xpositions_ptr^^)        ; must set data0 and data1 at the same time
-            xpositions_ptr ++
-        }
-
 
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
-- implement the TODO's in PointerAssignmentsGen.
+- implement the remaining TODO's in PointerAssignmentsGen.
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?
 - optimize deref()  to not always add the field offset to the pointer value but using it in the Y register instead
@@ -23,7 +16,7 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size, see test.p8 in commit d394dc1e
 - should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
   or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?
-- add struct and pointer benchamrk to benchmark program?
+- add struct and pointer benchmark to benchmark program?
 
 
 OTHER

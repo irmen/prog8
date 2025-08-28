@@ -4,14 +4,15 @@ import prog8.code.StExtSub
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
-import prog8.code.target.VMTarget
+import kotlin.math.log2
 
 
 fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: SymbolTable, errors: IErrorReporter) {
     if (!options.optimize)
         return
     while (errors.noErrors() &&
-        optimizeAssignTargets(program, st) + optimizeWordPlusTimesTwo(program, options) > 0) {
+        optimizeAssignTargets(program, st)
+        + optimizeBinaryExpressions(program, options) > 0) {
         // keep rolling
     }
 }
@@ -100,16 +101,12 @@ internal fun isSame(identifier: PtIdentifier, type: DataType, returnedRegister: 
 }
 
 
-private fun optimizeWordPlusTimesTwo(program: PtProgram, options: CompilationOptions): Int {
-    if(options.compTarget.name== VMTarget.NAME)
-        return 0
+private fun optimizeBinaryExpressions(program: PtProgram, options: CompilationOptions): Int {
     var changes = 0
     walkAst(program) { node: PtNode, depth: Int ->
         if (node is PtBinaryExpression) {
-            if(node.operator=="*" && node.right.type.isWord && node.right.asConstValue()==2.0) {
-                TODO("optimize word + byte*2 (usually already replaced by w+b<<2)")
-            }
-            else if(node.operator=="<<" && node.right.asConstValue()==1.0) {
+            val constvalue = node.right.asConstValue()
+            if(node.operator=="<<" && constvalue==1.0) {
                 val typecast=node.left as? PtTypeCast
                 if(typecast!=null && typecast.type.isWord && typecast.value is PtIdentifier) {
                     val addition = node.parent as? PtBinaryExpression
@@ -131,6 +128,23 @@ private fun optimizeWordPlusTimesTwo(program: PtProgram, options: CompilationOpt
                         changes++
                     }
                 }
+            }
+            else if (node.operator=="*" && !node.right.type.isFloat) {
+                if (constvalue in powersOfTwoFloat) {
+                    // x * power-of-two -> bitshift
+                    val numshifts = log2(constvalue!!)
+                    val shift = PtBinaryExpression("<<", node.type, node.position)
+                    shift.add(node.left)
+                    shift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
+                    shift.parent = node.parent
+                    val index = node.parent.children.indexOf(node)
+                    node.parent.children[index] = shift
+                    changes++
+                } else if(constvalue in negativePowersOfTwoFloat) {
+                    TODO("x * negative power-of-two -> bitshift  ${node.position}")
+                }
+            } else if(node.operator=="*" && !node.right.type.isFloat && constvalue in negativePowersOfTwoFloat) {
+                TODO("x * negative power-of-two -> bitshift  ${node.position}")
             }
         }
         true

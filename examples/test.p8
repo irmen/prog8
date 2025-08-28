@@ -2,10 +2,10 @@ main {
     sub start() {
         ^^uword @shared ptr
 
-;        add1()
-;        add2()
+        add1()
+        add2()
         sub1()
-;        sub2()
+        sub2()
 
         sub add1() {
             ptr += 5
