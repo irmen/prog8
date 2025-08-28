@@ -351,7 +351,7 @@ class StatementOptimizer(private val program: Program,
 
             // pointer arithmetic for 6502 target
             if (options.compTarget.cpu != CpuType.VIRTUAL) {
-                if(!assignment.isAugmentable && (bexpr.operator=="+" || bexpr.operator=="-")) {
+                if(bexpr.operator=="+" && !assignment.isAugmentable) {
                     if(targetIDt.isUnsignedWord || targetIDt.getOrUndef().isPointerToByte) {
                         val leftDt = bexpr.left.inferType(program).getOrUndef()
                         val rightDt = bexpr.right.inferType(program).getOrUndef()
