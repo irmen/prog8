@@ -1,6 +1,6 @@
-====================
+********************
 Programming in Prog8
-====================
+********************
 
 This chapter describes a high level overview of the elements that make up a program.
 

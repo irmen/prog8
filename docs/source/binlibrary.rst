@@ -1,8 +1,8 @@
 .. _loadable_library:
 
-=========================
+*************************
 Binary Loadable Libraries
-=========================
+*************************
 
 **also called 'Library Blobs'.**
 

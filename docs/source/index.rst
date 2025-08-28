@@ -5,10 +5,11 @@ Prog8 documentation - |version|
     :align: center
     :alt: Prog8 logo
 
-.. index:: what is Prog8
 
+
+*************************************
 What is Prog8?
---------------
+*************************************
 
 This is a compiled programming language targeting the 8-bit 6502 CPU family.
 The language aims to provide many conveniences over raw assembly code (even when using a macro assembler),
@@ -196,8 +197,9 @@ when the exact same program is compiled for the Commander X16 target, and run on
     :alt: result when run on CX16 emulator
 
 
+********************
 Getting the software
---------------------
+********************
 
 Usually you just download a fat jar of an official released compiler version, but you can also build it yourself from source.
 Detailed instructions on how to obtain a version of the compiler are in :ref:`building_compiler`.
@@ -231,9 +233,3 @@ Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-fil
     portingguide.rst
     software.rst
     todo.rst
-
-
-Index
-=====
-
-* :ref:`genindex`

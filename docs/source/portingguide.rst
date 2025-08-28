@@ -1,9 +1,9 @@
 
 .. _portingguide:
 
-=============
+*************
 Porting Guide
-=============
+*************
 
 Here is a guide for porting Prog8 to other compilation targets.
 Answers to the questions below are used to configure the new target and supporting libraries.

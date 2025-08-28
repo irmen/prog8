@@ -1,8 +1,8 @@
 .. _variables:
 
-====================
+********************
 Variables and Values
-====================
+********************
 
 Because this is such a big subject, variables and values have their own chapter.
 Structs and pointers are in a separate chapter again: :ref:`pointers`.

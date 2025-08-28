@@ -1,8 +1,8 @@
 .. _pointers:
 
-====================
+********************
 Structs and Pointers
-====================
+********************
 
 .. attention::
     The 6502 cpu lacks some features (addressing modes, registers) to make pointers work efficiently.

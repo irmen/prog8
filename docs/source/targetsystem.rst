@@ -1,6 +1,6 @@
-===========================
+***************************
 Target system specification
-===========================
+***************************
 
 Prog8 targets the following hardware:
 
