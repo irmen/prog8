@@ -5,6 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
+import kotlin.math.log2
 
 
 internal class PtrTarget(target: AsmAssignTarget) {
@@ -460,15 +461,27 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
         } else {
             asmgen.assignExpressionToRegister(index, RegisterOrPair.AY)
-            // TODO use bit shift if eltSize is power of 2?
-            // TODO use asmgen.optimizedWordMultiplications
-            if(eltSize>1)
-                asmgen.out("""
-                    sta  prog8_math.multiply_words.multiplier
-                    sty  prog8_math.multiply_words.multiplier+1
-                    lda  #<$eltSize
-                    ldy  #>$eltSize
-                    jsr  prog8_math.multiply_words""")
+            if(eltSize>1) {
+                if(eltSize in powersOfTwoInt) {
+                    val shift = log2(eltSize.toDouble()).toInt()
+                    asmgen.out("  sty  P8ZP_SCRATCH_REG")
+                    repeat(shift) {
+                        asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_REG")
+                    }
+                    asmgen.out("  ldy  P8ZP_SCRATCH_REG")
+                } else if(eltSize in asmgen.optimizedWordMultiplications) {
+                    asmgen.out("  jsr  prog8_math.mul_word_${eltSize}")
+                } else {
+                    asmgen.out(
+                        """
+                        sta  prog8_math.multiply_words.multiplier
+                        sty  prog8_math.multiply_words.multiplier+1
+                        lda  #<$eltSize
+                        ldy  #>$eltSize
+                        jsr  prog8_math.multiply_words"""
+                    )
+                }
+            }
             addArrayBaseAddressToOffsetInAY()
         }
         asmgen.assignRegister(RegisterOrPair.AY, target)
