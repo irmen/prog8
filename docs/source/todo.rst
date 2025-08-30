@@ -1,9 +1,6 @@
 TODO
 ====
 
-examples/pointers/sorting.p8 fails to compile for 6502.
-
-
 not all source lines are correctly reported in the IR file,
 for example the below subroutine only shows the sub() line:
         sub two() {

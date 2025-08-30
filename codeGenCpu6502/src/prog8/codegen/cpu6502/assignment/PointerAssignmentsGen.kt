@@ -41,7 +41,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     internal fun assignWordVar(target: PtrTarget, varName: String, sourceDt: DataType) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectWordVar(varName, sourceDt, zpPtrVar)
+        asmgen.storeIndirectWordVar(varName, sourceDt, zpPtrVar)
     }
 
     internal fun assignFAC1(target: PtrTarget) {
@@ -54,41 +54,41 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     internal fun assignFloatVar(target: PtrTarget, varName: String) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectFloatVar(varName, zpPtrVar)
+        asmgen.storeIndirectFloatVar(varName, zpPtrVar)
     }
 
     internal fun assignByteVar(target: PtrTarget, varName: String) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectByteVar(varName, zpPtrVar)
+        asmgen.storeIndirectByteVar(varName, zpPtrVar)
     }
 
     internal fun assignByteReg(target: PtrTarget, register: CpuRegister, signed: Boolean, extendWord: Boolean) {
         asmgen.saveRegisterStack(register, false)
         val zpPtrVar = deref(target.pointer)
         asmgen.restoreRegisterStack(register, false)
-        storeIndirectByteReg(register, zpPtrVar, signed, extendWord && target.dt.isWord)
+        asmgen.storeIndirectByteReg(register, zpPtrVar, signed, extendWord && target.dt.isWord)
     }
 
     internal fun assignWordReg(target: PtrTarget, regs: RegisterOrPair) {
         saveOnStack(regs)
         val zpPtrVar = deref(target.pointer)
         restoreFromStack(regs)
-        storeIndirectWordReg(regs, zpPtrVar)
+        asmgen.storeIndirectWordReg(regs, zpPtrVar)
     }
 
     internal fun assignWord(target: PtrTarget, word: Int) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectWord(word, zpPtrVar)
+        asmgen.storeIndirectWord(word, zpPtrVar)
     }
 
     internal fun assignByte(target: PtrTarget, byte: Int) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectByte(byte, zpPtrVar)
+        asmgen.storeIndirectByte(byte, zpPtrVar)
     }
 
     internal fun assignFloat(target: PtrTarget, float: Double) {
         val zpPtrVar = deref(target.pointer)
-        storeIndirectFloat(float, zpPtrVar)
+        asmgen.storeIndirectFloat(float, zpPtrVar)
     }
 
     internal fun assignByteMemory(target: PtrTarget, address: UInt) {
@@ -189,15 +189,15 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun assignPointerDerefExpression(target: AsmAssignTarget, value: PtPointerDeref) {
         val zpPtrVar = deref(value)
         if(value.type.isByteOrBool) {
-            loadIndirectByte(zpPtrVar)
+            asmgen.loadIndirectByte(zpPtrVar)
             asmgen.assignRegister(RegisterOrPair.A, target)
         }
         else if(value.type.isWord || value.type.isPointer) {
-            loadIndirectWord(zpPtrVar)
+            asmgen.loadIndirectWord(zpPtrVar)
             asmgen.assignRegister(RegisterOrPair.AY, target)
         }
         else if(value.type.isFloat) {
-            loadIndirectFloat(zpPtrVar)
+            asmgen.loadIndirectFloat(zpPtrVar)
             asmgen.assignRegister(RegisterOrPair.FAC1, target)
         }
         else if(value.type.isLong)
@@ -427,15 +427,15 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
         when {
             field.first.isByteOrBool -> {
-                loadIndirectByte("P8ZP_SCRATCH_W1")
+                asmgen.loadIndirectByte("P8ZP_SCRATCH_W1")
                 return RegisterOrPair.A
             }
             field.first.isWord || field.first.isPointer -> {
-                loadIndirectWord("P8ZP_SCRATCH_W1")
+                asmgen.loadIndirectWord("P8ZP_SCRATCH_W1")
                 return RegisterOrPair.AY
             }
             field.first.isFloat -> {
-                loadIndirectFloat("P8ZP_SCRATCH_W1")
+                asmgen.loadIndirectFloat("P8ZP_SCRATCH_W1")
                 return RegisterOrPair.FAC1
             }
             field.first.isLong -> {
@@ -505,184 +505,6 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             addArrayBaseAddressToOffsetInAY()
         }
         asmgen.assignRegister(RegisterOrPair.AY, target)
-    }
-
-    internal fun loadIndirectByte(zpPtrVar: String) {
-        // loads byte pointed to by the ptrvar into A
-        if(asmgen.isTargetCpu(CpuType.CPU65C02))
-            asmgen.out("  lda  ($zpPtrVar)")
-        else
-            asmgen.out("  ldy  #0 |  lda  ($zpPtrVar),y")
-    }
-
-    private fun loadIndirectFloat(zpPtrVar: String) {
-        // loads float pointed to by the ptrvar into FAC1
-        asmgen.out("""
-            lda  $zpPtrVar
-            ldy  $zpPtrVar+1
-            jsr  floats.MOVFM
-        """)
-    }
-
-    private fun loadIndirectWord(zpPtrVar: String) {
-        // loads word pointed to by the ptr var into AY
-        asmgen.out("""
-            ldy  #0
-            lda  ($zpPtrVar),y
-            tax
-            iny
-            lda  ($zpPtrVar),y
-            tay
-            txa""")
-    }
-
-    private fun storeIndirectByte(byte: Int, zpPtrVar: String) {
-        if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
-            asmgen.out("  lda  #$byte |  sta  ($zpPtrVar)")
-        } else {
-            if (byte == 0) {
-                asmgen.out("  lda  #0 |  tay |  sta  ($zpPtrVar),y")
-            } else {
-                asmgen.out("  lda  #$byte |  ldy  #0 |  sta  ($zpPtrVar),y")
-            }
-        }
-    }
-
-    private fun storeIndirectByteVar(varname: String, zpPtrVar: String) {
-        if(asmgen.isTargetCpu(CpuType.CPU65C02))
-            asmgen.out("  lda  $varname |  sta  ($zpPtrVar)")
-        else
-            asmgen.out("  lda  $varname |  ldy  #0 |  sta  ($zpPtrVar),y")
-    }
-
-    private fun storeIndirectWord(word: Int, zpPtrVar: String) {
-        if(word==0) {
-            asmgen.out("""
-                lda  #0
-                tay
-                sta  ($zpPtrVar),y
-                iny
-                sta  ($zpPtrVar),y""")
-        } else {
-            asmgen.out("""
-                lda  #<$word
-                ldy  #0
-                sta  ($zpPtrVar),y
-                lda  #>$word
-                iny
-                sta  ($zpPtrVar),y""")
-        }
-    }
-
-    private fun storeIndirectByteReg(register: CpuRegister, zpPtrVar: String, signed: Boolean, extendWord: Boolean) {
-        if(extendWord) {
-            when(register) {
-                CpuRegister.A -> {}
-                CpuRegister.X -> asmgen.out("  txa")
-                CpuRegister.Y -> asmgen.out("  tya")
-            }
-            asmgen.signExtendAXlsb(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
-            asmgen.out("""
-                ldy  #0
-                sta  ($zpPtrVar),y
-                iny
-                txa
-                sta  ($zpPtrVar),y""")
-            return
-        }
-
-        when(register) {
-            CpuRegister.A -> {
-                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  sta  ($zpPtrVar)") else asmgen.out("  ldy  #0 |  sta  ($zpPtrVar),y")
-            }
-            CpuRegister.X -> {
-                asmgen.out("  txa")
-                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  sta  ($zpPtrVar)") else asmgen.out("  ldy  #0 |  sta  ($zpPtrVar),y")
-            }
-            CpuRegister.Y -> {
-                asmgen.out("  tya")
-                if(asmgen.isTargetCpu(CpuType.CPU65C02)) asmgen.out("  sta  ($zpPtrVar)") else asmgen.out("  ldy  #0 |  sta  ($zpPtrVar),y")
-            }
-        }
-    }
-
-
-    private fun storeIndirectWordReg(regs: RegisterOrPair, zpPtrVar: String) {
-        when(regs) {
-            RegisterOrPair.AX -> {
-                asmgen.out("""
-                    ldy  #0
-                    sta  ($zpPtrVar),y
-                    txa
-                    iny
-                    sta  ($zpPtrVar),y""")
-            }
-            RegisterOrPair.AY -> {
-                asmgen.out("""
-                    sty  P8ZP_SCRATCH_REG
-                    ldy  #0
-                    sta  ($zpPtrVar),y
-                    lda  P8ZP_SCRATCH_REG
-                    iny
-                    sta  ($zpPtrVar),y""")
-            }
-            RegisterOrPair.XY -> {
-                asmgen.out("""
-                    sty  P8ZP_SCRATCH_REG
-                    txa
-                    ldy  #0
-                    sta  ($zpPtrVar),y
-                    lda  P8ZP_SCRATCH_REG
-                    iny
-                    sta  ($zpPtrVar),y""")
-            }
-            in Cx16VirtualRegisters -> {
-                val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
-                asmgen.out("""
-                    lda  $regname
-                    ldy  #0
-                    sta  ($zpPtrVar),y
-                    lda  $regname+1
-                    iny
-                    sta  ($zpPtrVar),y""")
-            }
-            else -> throw AssemblyError("wrong word reg")
-        }
-    }
-
-
-    private fun storeIndirectWordVar(varname: String, sourceDt: DataType, zpPtrVar: String) {
-        if(sourceDt.isByteOrBool) TODO("implement byte/bool to word pointer assignment")
-        asmgen.out("""
-            lda  $varname
-            ldy  #0
-            sta  ($zpPtrVar),y
-            lda  $varname+1
-            iny
-            sta  ($zpPtrVar),y""")
-    }
-
-    private fun storeIndirectFloat(float: Double, zpPtrVar: String) {
-        val floatConst = allocator.getFloatAsmConst(float)
-        asmgen.out("""
-            lda  #<$floatConst
-            ldy  #>$floatConst
-            sta  P8ZP_SCRATCH_W2
-            sty  P8ZP_SCRATCH_W2+1
-            lda  $zpPtrVar
-            ldy  $zpPtrVar+1
-            jsr  floats.copy_float2""")
-    }
-
-    private fun storeIndirectFloatVar(varname: String, zpPtrVar: String) {
-        asmgen.out("""
-            lda  #<$varname
-            ldy  #>$varname+1
-            sta  P8ZP_SCRATCH_W1
-            sty  P8ZP_SCRATCH_W1+1
-            lda  $zpPtrVar
-            ldy  $zpPtrVar+1
-            jsr  floats.copy_float""")
     }
 
     private fun inplaceWordShiftRight(target: PtrTarget, value: AsmAssignSource) {
@@ -926,7 +748,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
         fun multiply() {
             // on entry here: number placed in routine argument variable
-            loadIndirectWord(ptrZpVar)
+            asmgen.loadIndirectWord(ptrZpVar)
             asmgen.out("""
                     jsr  prog8_math.multiply_words
                     tax
@@ -994,7 +816,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 val number = value.number!!.number.toInt()
                 if(number in powersOfTwoInt)
                     throw AssemblyError("divide by power of two should have been a shift $value.position")
-                loadIndirectWord(ptrZpVar)
+                asmgen.loadIndirectWord(ptrZpVar)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1

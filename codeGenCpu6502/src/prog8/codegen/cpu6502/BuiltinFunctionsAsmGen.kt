@@ -805,10 +805,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
-                    if (asmgen.isTargetCpu(CpuType.CPU65C02))
-                        asmgen.out("  sta  ($varname)")
-                    else
-                        asmgen.out("  ldy  #0 |  sta  ($varname),y")
+                    asmgen.storeIndirectByteReg(CpuRegister.A, varname, false, false)
                     return
                 }
             }
@@ -838,10 +835,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
             asmgen.restoreRegisterStack(CpuRegister.A, false)
         }
-        if(asmgen.isTargetCpu(CpuType.CPU65C02))
-            asmgen.out("  sta  (P8ZP_SCRATCH_W1)")
-        else
-            asmgen.out("  ldy  #0 |  sta  (P8ZP_SCRATCH_W1),y")
+        asmgen.storeIndirectByteReg(CpuRegister.A, "P8ZP_SCRATCH_W1", false, false)
     }
 
     private fun funcPokeW(fcall: PtBuiltinFunctionCall) {
@@ -857,20 +851,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                    if (asmgen.isTargetCpu(CpuType.CPU65C02)) {
-                        asmgen.out("""
-                            sta  ($varname)
-                            txa
-                            ldy  #1
-                            sta  ($varname),y""")
-                    } else {
-                        asmgen.out("""
-                            ldy  #0
-                            sta  ($varname),y
-                            txa
-                            iny
-                            sta  ($varname),y""")
-                    }
+                    asmgen.storeIndirectWordReg(RegisterOrPair.AX, varname)
                     return
                 }
             }
@@ -921,13 +902,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(addrExpr)
-                if(asmgen.isZpVar(addrExpr)) {
-                    // pointervar is already in the zero page, no need to copy
-                    if (asmgen.isTargetCpu(CpuType.CPU65C02))
-                        asmgen.out("  lda  ($varname)")
-                    else
-                        asmgen.out("  ldy  #0 |  lda  ($varname),y")
-                } else fallback()
+                if(asmgen.isZpVar(addrExpr))
+                    asmgen.loadIndirectByte(varname)
+                else
+                    fallback()
             }
             is PtBinaryExpression -> {
                 val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)
@@ -963,25 +941,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(addrExpr)
-                if(asmgen.isZpVar(addrExpr)) {
-                    // pointervar is already in the zero page, no need to copy
-                    if (asmgen.isTargetCpu(CpuType.CPU65C02)) {
-                        asmgen.out("""
-                            ldy  #1
-                            lda  ($varname),y
-                            tay
-                            lda  ($varname)""")
-                    } else {
-                        asmgen.out("""
-                            ldy  #0
-                            lda  ($varname),y
-                            tax
-                            iny
-                            lda  ($varname),y
-                            tay
-                            txa""")
-                    }
-                } else fallback()
+                if(asmgen.isZpVar(addrExpr))
+                    asmgen.loadIndirectWord(varname)
+                else
+                    fallback()
             }
             is PtBinaryExpression -> {
                 val result = asmgen.pointerViaIndexRegisterPossible(addrExpr)

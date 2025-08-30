@@ -1887,7 +1887,221 @@ $repeatLabel""")
         return null
     }
 
-    fun romableError(problem: String, pos: Position, assemblerShouldFail: Boolean = true) {
+    internal fun loadIndirectByte(zpPtrVar: String) {
+        // loads byte pointed to by the ptrvar into A
+        if(isTargetCpu(CpuType.CPU65C02))
+            out("  lda  ($zpPtrVar)")
+        else
+            out("  ldy  #0 |  lda  ($zpPtrVar),y")
+    }
+
+    internal fun loadIndirectFloat(zpPtrVar: String) {
+        // loads float pointed to by the ptrvar into FAC1
+        out("""
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.MOVFM
+        """)
+    }
+
+    internal fun loadIndirectWord(zpPtrVar: String) {
+        // loads word pointed to by the ptr var into AY
+        if(isTargetCpu(CpuType.CPU65C02))
+            out("""
+                ldy  #1
+                lda  ($zpPtrVar),y
+                tay
+                lda  ($zpPtrVar)""")
+        else
+            out("""
+                ldy  #0
+                lda  ($zpPtrVar),y
+                tax
+                iny
+                lda  ($zpPtrVar),y
+                tay
+                txa""")
+    }
+
+    internal fun storeIndirectByte(byte: Int, zpPtrVar: String) {
+        if(isTargetCpu(CpuType.CPU65C02)) {
+            out("  lda  #$byte |  sta  ($zpPtrVar)")
+        } else {
+            if (byte == 0) {
+                out("  lda  #0 |  tay |  sta  ($zpPtrVar),y")
+            } else {
+                out("  lda  #$byte |  ldy  #0 |  sta  ($zpPtrVar),y")
+            }
+        }
+    }
+
+    internal fun storeIndirectByteVar(varname: String, zpPtrVar: String) {
+        if(isTargetCpu(CpuType.CPU65C02))
+            out("  lda  $varname |  sta  ($zpPtrVar)")
+        else
+            out("  lda  $varname |  ldy  #0 |  sta  ($zpPtrVar),y")
+    }
+
+    internal fun storeIndirectWord(word: Int, zpPtrVar: String) {
+        if(word==0) {
+            out("""
+                lda  #0
+                tay
+                sta  ($zpPtrVar),y
+                iny
+                sta  ($zpPtrVar),y""")
+        } else {
+            out("""
+                lda  #<$word
+                ldy  #0
+                sta  ($zpPtrVar),y
+                lda  #>$word
+                iny
+                sta  ($zpPtrVar),y""")
+        }
+    }
+
+    internal fun storeIndirectByteReg(register: CpuRegister, zpPtrVar: String, signed: Boolean, extendWord: Boolean) {
+        if(extendWord) {
+            when(register) {
+                CpuRegister.A -> {}
+                CpuRegister.X -> out("  txa")
+                CpuRegister.Y -> out("  tya")
+            }
+            signExtendAXlsb(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
+            out("""
+                ldy  #0
+                sta  ($zpPtrVar),y
+                iny
+                txa
+                sta  ($zpPtrVar),y""")
+            return
+        }
+
+        when(register) {
+            CpuRegister.A -> {
+                if(isTargetCpu(CpuType.CPU65C02)) out("  sta  ($zpPtrVar)") else out("  ldy  #0 |  sta  ($zpPtrVar),y")
+            }
+            CpuRegister.X -> {
+                out("  txa")
+                if(isTargetCpu(CpuType.CPU65C02)) out("  sta  ($zpPtrVar)") else out("  ldy  #0 |  sta  ($zpPtrVar),y")
+            }
+            CpuRegister.Y -> {
+                out("  tya")
+                if(isTargetCpu(CpuType.CPU65C02)) out("  sta  ($zpPtrVar)") else out("  ldy  #0 |  sta  ($zpPtrVar),y")
+            }
+        }
+    }
+
+    internal fun storeIndirectWordReg(regs: RegisterOrPair, zpPtrVar: String) {
+        when(regs) {
+            RegisterOrPair.AX -> {
+                if(isTargetCpu(CpuType.CPU65C02))
+                    out("""
+                        sta  ($zpPtrVar)
+                        txa
+                        ldy  #1
+                        sta  ($zpPtrVar),y""")
+                else
+                    out("""
+                        ldy  #0
+                        sta  ($zpPtrVar),y
+                        txa
+                        iny
+                        sta  ($zpPtrVar),y""")
+            }
+            RegisterOrPair.AY -> {
+                if(isTargetCpu(CpuType.CPU65C02))
+                    out("""
+                        sta  ($zpPtrVar)
+                        tya
+                        ldy  #1
+                        sta  ($zpPtrVar),y""")
+                else
+                    out("""
+                        sty  P8ZP_SCRATCH_REG
+                        ldy  #0
+                        sta  ($zpPtrVar),y
+                        lda  P8ZP_SCRATCH_REG
+                        iny
+                        sta  ($zpPtrVar),y""")
+            }
+            RegisterOrPair.XY -> {
+                if(isTargetCpu(CpuType.CPU65C02))
+                    out("""
+                        txa
+                        sta  ($zpPtrVar)
+                        tya
+                        ldy  #1
+                        sta  ($zpPtrVar),y""")
+                else
+                    out("""
+                        sty  P8ZP_SCRATCH_REG
+                        txa
+                        ldy  #0
+                        sta  ($zpPtrVar),y
+                        lda  P8ZP_SCRATCH_REG
+                        iny
+                        sta  ($zpPtrVar),y""")
+            }
+            in Cx16VirtualRegisters -> {
+                val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
+                out("""
+                    lda  $regname
+                    ldy  #0
+                    sta  ($zpPtrVar),y
+                    lda  $regname+1
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
+            else -> throw AssemblyError("wrong word reg")
+        }
+    }
+
+    internal fun storeIndirectWordVar(varname: String, sourceDt: DataType, zpPtrVar: String) {
+        if(sourceDt.isByteOrBool) TODO("implement byte/bool to word pointer assignment")
+        if(isTargetCpu(CpuType.CPU65C02))
+            out("""
+                lda  $varname
+                sta  ($zpPtrVar)
+                lda  $varname+1
+                ldy  #1
+                sta  ($zpPtrVar),y""")
+        else
+            out("""
+                lda  $varname
+                ldy  #0
+                sta  ($zpPtrVar),y
+                lda  $varname+1
+                iny
+                sta  ($zpPtrVar),y""")
+    }
+
+    internal fun storeIndirectFloat(float: Double, zpPtrVar: String) {
+        val floatConst = allocator.getFloatAsmConst(float)
+        out("""
+            lda  #<$floatConst
+            ldy  #>$floatConst
+            sta  P8ZP_SCRATCH_W2
+            sty  P8ZP_SCRATCH_W2+1
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.copy_float2""")
+    }
+
+    internal fun storeIndirectFloatVar(varname: String, zpPtrVar: String) {
+        out("""
+            lda  #<$varname
+            ldy  #>$varname+1
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.copy_float""")
+    }
+
+
+    internal fun romableError(problem: String, pos: Position, assemblerShouldFail: Boolean = true) {
         if(options.romable) {
             // until the code generation can provide an alternative, we have to report about code generated that is incompatible with ROMable code mode...
             errors.warn("problem for ROMable code: $problem", pos)
