@@ -1121,6 +1121,62 @@ main {
         dr15.derefLast shouldBe true
     }
 
+    test("indexing pointers to structs") {
+        val src="""
+%import floats
+
+main{
+    struct Country {
+        str name
+        float population        ; millions
+        uword area              ; 1000 km^2
+        ubyte code
+    }
+
+    ^^Country[10] countries        ; won't be fully filled
+    ubyte num_countries
+
+    sub start() {
+
+        thing(countries[0])
+        thing(countries[1])
+
+        ^^Country @shared fp = 9999
+        countries[0] = fp
+        countries[1] = fp
+
+        thing(countries[0])
+        thing(countries[1])
+
+        countries[0] = Country("Indonesia", 285.72, 1904, 44)
+        countries[1] = Country("Congo", 112.83, 2344, 55)
+
+        thing(countries[0])
+        thing(countries[1])
+
+        float fl
+        thing(countries[0].name)
+        thing(countries[0].area)
+        thingb(countries[0].code)
+        fl = countries[0].population
+        thing(countries[1].name)
+        thing(countries[1].area)
+        thingb(countries[1].code)
+        fl = countries[1].population
+    }
+    
+    sub thing(uword a) {
+        a++
+    }
+
+    sub thingb(ubyte a) {
+        a++
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
+
     test("global and local pointer vars") {
         val src="""
 main {

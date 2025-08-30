@@ -2978,7 +2978,7 @@ $endLabel""")
                         target.datatype.isByte -> {
                             asmgen.out(" lda  $varName  | sta  ${target.asmVarname}+$scaledIdx")
                         }
-                        target.datatype.isWord -> {
+                        target.datatype.isWord || target.datatype.isPointer -> {
                             if(target.array.splitWords)
                                 asmgen.out("""
                                     lda  $varName
@@ -3002,7 +3002,7 @@ $endLabel""")
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             asmgen.out(" lda  $varName |  sta  ${target.asmVarname},y")
                         }
-                        target.datatype.isWord -> {
+                        target.datatype.isWord || target.datatype.isPointer -> {
                             asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
                             if(target.array.splitWords)
                                 asmgen.out("""

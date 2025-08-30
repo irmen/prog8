@@ -2,6 +2,8 @@
 %import strings
 %import textio
 
+%zeropage basicsafe
+
 main{
     struct Country {
         str name
@@ -13,6 +15,7 @@ main{
     ubyte num_countries
 
     sub start() {
+        txt.lowercase()
         ; because pointer array initialization is not supported yet, we have to add the countries in separate statements for now
         add(Country("Indonesia", 285.72, 1904))
         add(Country("Congo", 112.83, 2344))

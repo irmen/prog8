@@ -408,6 +408,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
 
         // add field offset to pointer in AY
+        // TODO instead of explicitly adding, use Y register as the index
         val offset = extraFieldOffset + field.second.toInt()
         if(offset>0) {
             if(offset<256) {
@@ -422,10 +423,26 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
         }
 
-        // AY now points to the field whose value we wanted
-        // TODO: get the *value* at that location !???
-
-        return RegisterOrPair.AY
+        // AY now points to the field whose value we wanted, now get the actual value at that location
+        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+        when {
+            field.first.isByteOrBool -> {
+                loadIndirectByte("P8ZP_SCRATCH_W1")
+                return RegisterOrPair.A
+            }
+            field.first.isWord || field.first.isPointer -> {
+                loadIndirectWord("P8ZP_SCRATCH_W1")
+                return RegisterOrPair.AY
+            }
+            field.first.isFloat -> {
+                loadIndirectFloat("P8ZP_SCRATCH_W1")
+                return RegisterOrPair.FAC1
+            }
+            field.first.isLong -> {
+                TODO("read long")
+            }
+            else -> throw AssemblyError("unsupported dereference type ${field.first} ${binExpr.position}")
+        }
     }
 
     internal fun assignAddressOfIndexedPointer(target: AsmAssignTarget, arrayVarName: String, arrayDt: DataType, index: PtExpression) {
@@ -1121,7 +1138,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     lda  (P8ZP_SCRATCH_W1),y""")
                 asmgen.assignRegister(RegisterOrPair.A, target)
             }
-            target.datatype.isWord -> {
+            target.datatype.isWord || target.datatype.isPointer -> {
                 asmgen.out("""
                     ldy  #1
                     lda  (P8ZP_SCRATCH_W1),y
