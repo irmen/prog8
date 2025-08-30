@@ -422,6 +422,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
         }
 
+        // AY now points to the field whose value we wanted
+        // TODO: get the *value* at that location !???
+
         return RegisterOrPair.AY
     }
 

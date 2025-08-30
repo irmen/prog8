@@ -585,6 +585,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.out(if(operator=="+") "  jsr  floats.inc_var_f" else "  jsr  floats.dec_var_f")
                 return true
             }
+            array.type.isPointer -> TODO("indexed inc/dec on pointer ${array.position}")
             else -> return false
         }
     }
