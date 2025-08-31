@@ -447,26 +447,11 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         fun complicatedFallback() {
             // slow fallback routine that can deal with any expression for value
             require(value.type.isWord)
-            asmgen.pushCpuStack(BaseDataType.UWORD, value)
 
-            if (scale == null || scale == 1) {
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UWORD)
-            } else {
-                // P8ZP_SCRATCH_W1 = value * scale
-                // TODO optimize this when the value is a binary expression with operator '+'
-                val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
-                mult.parent = value.parent
-                mult.add(value)
-                mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
-                val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
-                val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_W1")
-                val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
-                asmgen.translateNormalAssignment(assign, value.definingISub())
-            }
-
-            asmgen.restoreRegisterStack(CpuRegister.Y, false)       // msb
-            asmgen.restoreRegisterStack(CpuRegister.A, false)       // lsb
-            asmgen.out("""
+            fun restoreAYandAddAsmVariable(varname: String) {
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)       // msb
+                asmgen.restoreRegisterStack(CpuRegister.A, false)       // lsb
+                asmgen.out("""
                         clc
                         adc  P8ZP_SCRATCH_W1
                         pha
@@ -474,6 +459,31 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                         adc  P8ZP_SCRATCH_W1+1
                         tay
                         pla""")
+            }
+
+            if (scale == null || scale == 1) {
+                asmgen.pushCpuStack(BaseDataType.UWORD, value)
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UWORD)
+                restoreAYandAddAsmVariable("P8ZP_SCRATCH_W1")
+            } else {
+                // P8ZP_SCRATCH_W1 = value * scale
+                if(value is PtBinaryExpression && value.operator=="+" && value.right is PtNumber) {
+                    // (x + y) * scale == (x * scale) + (y * scale)
+                    addUnsignedWordToAY(value.left, scale)
+                    addUnsignedWordToAY(value.right, scale)
+                } else {
+                    asmgen.pushCpuStack(BaseDataType.UWORD, value)
+                    val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
+                    mult.parent = value.parent
+                    mult.add(value)
+                    mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
+                    val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
+                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_W1")
+                    val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
+                    asmgen.translateNormalAssignment(assign, value.definingISub())
+                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_W1")
+                }
+            }
         }
 
         when(value) {

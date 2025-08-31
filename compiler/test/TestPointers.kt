@@ -1027,7 +1027,7 @@ main {
         st[8] shouldBe instanceOf<Assignment>()
     }
 
-    test("indexing pointers with index 0 is just a direct pointer dereference") {
+    test("indexing pointers with index 0 is just a direct pointer dereference except when followed by a struct field lookup") {
         val src="""
 %import floats
 main {
@@ -1062,12 +1062,16 @@ main {
         f2 = fptr[0]
         fptr^^ = 1.234
         fptr[0] = 1.234
+        
+        ; not changed to dereference:
+        cx16.r0L = l1[0].n
+        cx16.r1L = l1[1].n
     }
 }"""
 
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 28
+        st.size shouldBe 30
         val dr0 = (st[10] as Assignment).value as PtrDereference
         val dr1 = (st[11] as Assignment).value as PtrDereference
         val dr2 = (st[12] as Assignment).value as PtrDereference
@@ -1119,6 +1123,20 @@ main {
         dr13.derefLast shouldBe true
         dr15.chain shouldBe listOf("fptr")
         dr15.derefLast shouldBe true
+
+        val list0 = (st[27] as Assignment).value as BinaryExpression
+        val list1 = (st[28] as Assignment).value as BinaryExpression
+
+        list0.operator shouldBe "."
+        (list0.right as IdentifierReference).nameInSource shouldBe listOf("n")
+        val list0left = list0.left as ArrayIndexedExpression
+        list0left.plainarrayvar!!.nameInSource shouldBe listOf("l1")
+        list0left.indexer.constIndex() shouldBe 0
+        list1.operator shouldBe "."
+        (list1.right as IdentifierReference).nameInSource shouldBe listOf("n")
+        val list1left = list0.left as ArrayIndexedExpression
+        list1left.plainarrayvar!!.nameInSource shouldBe listOf("l1")
+        list1left.indexer.constIndex() shouldBe 0
     }
 
     test("indexing pointers to structs") {

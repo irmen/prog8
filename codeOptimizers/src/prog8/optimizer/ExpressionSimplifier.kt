@@ -430,11 +430,13 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         if(arrayIndexedExpression.indexer.constIndex()==0) {
             if(arrayIndexedExpression.plainarrayvar!=null) {
-                val dt = arrayIndexedExpression.plainarrayvar!!.inferType(program).getOrUndef()
-                if(dt.isPointer) {
-                    // pointer[0]  -->   pointer^^
-                    val deref = PtrDereference(arrayIndexedExpression.plainarrayvar!!.nameInSource, true, arrayIndexedExpression.plainarrayvar!!.position)
-                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression,deref, parent))
+                if((arrayIndexedExpression.parent as? BinaryExpression)?.operator !=".") {
+                    val dt = arrayIndexedExpression.plainarrayvar!!.inferType(program).getOrUndef()
+                    if(dt.isPointer) {
+                        // pointer[0]  -->   pointer^^
+                        val deref = PtrDereference(arrayIndexedExpression.plainarrayvar!!.nameInSource, true, arrayIndexedExpression.plainarrayvar!!.position)
+                        return listOf(IAstModification.ReplaceNode(arrayIndexedExpression,deref, parent))
+                    }
                 }
             }
             val ptrDeref = arrayIndexedExpression.pointerderef
