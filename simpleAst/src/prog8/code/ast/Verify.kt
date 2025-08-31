@@ -8,5 +8,9 @@ fun verifyFinalAstBeforeAsmGen(program: PtProgram, options: CompilationOptions, 
     walkAst(program) { node, _ ->
         if(node is PtSub)
             require(node.children[0] is PtSubSignature)
+
+        require(node is PtProgram || node.parentHasBeenSet()) {
+            "node $node hasn't got a parent node"
+        }
     }
 }

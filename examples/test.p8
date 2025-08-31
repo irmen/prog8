@@ -10,59 +10,32 @@ main{
         ubyte code
     }
 
-    ^^bool @shared bptr = 2000
-    ^^uword @shared wptr = 2000
-    ^^float @shared fptr = 2000
     ^^Country @shared cptr = 2000
     ^^Country[10] countries
-    bool b1, b2
-    uword w1, w2
-    float f1, f2
+    ^^ubyte name1, name2
+    float pop1, pop2
+    uword area1, area2
+    ubyte code1, code2
 
     sub start() {
-        txt.print_uw(&bptr)
-        txt.nl()
-
-        booltest()
-        wordtest()
-        floattest()
-        structtest()
-
+        structname_array()
+        structname_ptr()
         repeat{}
     }
 
-    sub booltest() {
-        b1 = bptr^^
-        b2 = bptr[0]
-        b1 = bptr[5]
-        b2 = bptr[cx16.r0L]
-        b1 = bptr[cx16.r0]
-        b2 = bptr[cx16.r0L+5]
+    sub structname_array() {
+        name1 = countries[0].name
+        name2 = countries[1].name
+        name1 = countries[cx16.r0L].name
+        name2 = countries[cx16.r0L+5].name
     }
 
-    sub wordtest() {
-        w1 = wptr^^
-        w2 = wptr[0]
-        w1 = wptr[5]
-        w2 = wptr[cx16.r0L]
-        w1 = wptr[cx16.r0]
-        w2 = wptr[cx16.r0L+5]
-    }
-
-    sub floattest() {
-        f1 = fptr^^
-        f2 = fptr[0]
-        f1 = fptr[5]
-        f2 = fptr[cx16.r0L]
-        f1 = fptr[cx16.r0]
-        f2 = fptr[cx16.r0L+5]
-    }
-
-    sub structtest() {
-        cx16.r0 = countries[0]
-        cx16.r1 = countries[1]
-        cx16.r0 = countries[cx16.r0L]
-        cx16.r1 = countries[cx16.r0L+5]
+    sub structname_ptr() {
+        name1 = cptr^^.name
+        ;name1 = cptr[0].name        ; TODO fix compiler error about '.' expression
+        name2 = cptr[1].name
+        name1 = cptr[cx16.r0].name
+        name2 = cptr[cx16.r0+5].name
     }
 ;
 ;        countries[0] = Country("Indonesia", 285.72, 1904, 42)

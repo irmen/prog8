@@ -392,10 +392,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             if(constindex!=null) {
                 extraFieldOffset = struct.size.toInt() * constindex.number.toInt()
             } else {
-                TODO("add non-const offset to pointer in AY")
-//                val (chunks, indexReg) = codeGen.loadIndexReg(left.index, struct.size.toInt(), true, false)
-//                result += chunks
-//                addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
+                addUnsignedWordToAY(left.index, struct.size.toInt())
             }
             field = struct.getField(right.name, asmgen.program.memsizer)
 
@@ -442,6 +439,87 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 TODO("read long")
             }
             else -> throw AssemblyError("unsupported dereference type ${field.first} ${binExpr.position}")
+        }
+    }
+
+    private fun addUnsignedWordToAY(value: PtExpression, scale: Int?) {
+
+        fun complicatedFallback() {
+            // slow fallback routine that can deal with any expression for value
+            require(value.type.isWord)
+            asmgen.pushCpuStack(BaseDataType.UWORD, value)
+
+            if (scale == null || scale == 1) {
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UWORD)
+            } else {
+                // P8ZP_SCRATCH_W1 = value * scale
+                // TODO optimize this when the value is a binary expression with operator '+'
+                val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
+                mult.parent = value.parent
+                mult.add(value)
+                mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
+                val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
+                val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_W1")
+                val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
+                asmgen.translateNormalAssignment(assign, value.definingISub())
+            }
+
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)       // msb
+            asmgen.restoreRegisterStack(CpuRegister.A, false)       // lsb
+            asmgen.out("""
+                        clc
+                        adc  P8ZP_SCRATCH_W1
+                        pha
+                        tya
+                        adc  P8ZP_SCRATCH_W1+1
+                        tay
+                        pla""")
+        }
+
+        when(value) {
+            is PtNumber -> {
+                val num = if(scale!=null) value.number.toInt() * scale else value.number.toInt()
+                require(num>=0)
+                if(num<1)
+                    return
+                else if (num<256) {
+                    asmgen.out("""
+                        clc
+                        adc  #$num
+                        bcc  +
+                        iny
++""")
+                } else {
+                    asmgen.out("""
+                        clc
+                        adc  #<$num
+                        pha
+                        tya
+                        adc  #>$num
+                        tay
+                        pla""")
+                }
+            }
+            is PtIdentifier -> {
+                require(value.type.isWord)
+                val varname = asmgen.asmVariableName(value)
+                if(scale==null || scale==1) {
+                    asmgen.out("""
+                        clc
+                        adc  $varname
+                        pha
+                        tya
+                        adc  $varname+1
+                        tay
+                        pla""")
+                } else {
+                    // AY += var * scale
+                    complicatedFallback()
+                }
+            }
+            else -> {
+                complicatedFallback()
+            }
         }
     }
 
