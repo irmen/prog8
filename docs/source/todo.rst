@@ -56,6 +56,8 @@ main {
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
+- BUG: example fountain-x16.p8 has problems with the X values (likely related to new deref() with invalid offset value handling afterwards?)
+
 - implement the remaining TODO's in PointerAssignmentsGen.
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?

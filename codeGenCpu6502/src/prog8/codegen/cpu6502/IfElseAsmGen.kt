@@ -67,8 +67,8 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         val dereference = stmt.condition as? PtPointerDeref
         if(dereference!=null) {
-            val zpPtrVar = pointergen.deref(dereference)
-            asmgen.loadIndirectByte(zpPtrVar)
+            val (zpPtrVar, offset) = pointergen.deref(dereference)
+            asmgen.loadIndirectByte(zpPtrVar, offset)
             return if (jumpAfterIf != null)
                 translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
             else

@@ -10,57 +10,50 @@ main{
         ubyte code
     }
 
-    ^^Country @shared cptr = 2000
-    ^^Country[10] countries
-    ^^ubyte name1, name2
-    float pop1, pop2
-    uword area1, area2
-    ubyte code1, code2
+    ^^Country @shared cptr = 20000
+    ^^Country @shared @nozp cptr2 = 20000
+    ^^Country @shared @requirezp cptr3 = 20000
+    word @shared @nozp nonzeropage
+    word @shared idontcare
+    ^^ubyte @shared ubptr = 20000
 
     sub start() {
-        structname_array()
-        structname_ptr()
-        repeat{}
+        ubptr^^ += 10
+        cptr.code = 20
+        cptr.code += 10
+;        cptr.name = "name1"
+;        cptr.population = 1.111
+;        cptr.area = 11111
+;        cptr ++
+;        cptr.name = "name2"
+;        cptr.population = 2.222
+;        cptr.area = 22222
+;        cptr = 20000
+;
+;        dump()
+;        printnames()
     }
 
-    sub structname_array() {
-        name1 = countries[0].name
-        name2 = countries[1].name
-        name1 = countries[cx16.r0L].name
-        name2 = countries[cx16.r0L+5].name
+    sub printnames() {
+        txt.print(cptr[0].name)
+        txt.nl()
+        txt.print(cptr[1].name)
+        txt.nl()
     }
 
-    sub structname_ptr() {
-        name1 = cptr^^.name
-        ;name1 = cptr[0].name        ; TODO fix compiler error about '.' expression
-        name2 = cptr[1].name
-        name1 = cptr[cx16.r0].name
-        name2 = cptr[cx16.r0+5].name
+    sub dump() {
+        txt.print(cptr[0].name)
+        txt.spc()
+        txt.print_f(cptr[0].population)
+        txt.spc()
+        txt.print_uw(cptr[0].area)
+        txt.nl()
+        txt.print(cptr[1].name)
+        txt.spc()
+        txt.print_f(cptr[1].population)
+        txt.spc()
+        txt.print_uw(cptr[1].area)
+        txt.nl()
     }
-;
-;        countries[0] = Country("Indonesia", 285.72, 1904, 42)
-;        countries[1] = Country("Congo", 112.83, 2344, 55)
-;
-;        txt.print_uw(countries[0])
-;        txt.spc()
-;        txt.print_uw(countries[1])
-;        txt.nl()
-;
-;        txt.print(countries[0].name)
-;        txt.spc()
-;        txt.print_uw(countries[0].area)
-;        txt.spc()
-;        txt.print_ub(countries[0].code)
-;        txt.spc()
-;;        txt.print_f(countries[0].population)
-;        txt.nl()
-;        txt.print(countries[1].name)
-;        txt.spc()
-;        txt.print_uw(countries[1].area)
-;        txt.spc()
-;        txt.print_ub(countries[1].code)
-;        txt.spc()
-;;        txt.print_f(countries[1].population)
-;        txt.nl()
 }
 

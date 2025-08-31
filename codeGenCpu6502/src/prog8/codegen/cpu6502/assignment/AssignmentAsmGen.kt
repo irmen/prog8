@@ -465,7 +465,18 @@ internal class AssignmentAsmGen(
                     assignAddressOf(assign.target, sourceName, value.isMsbForSplitArray, identifier.type, value.arrayIndexExpr)
                 } else {
                     val ptrderef = value.dereference!!
-                    val zpPtrVar = pointergen.deref(ptrderef)
+                    val (zpPtrVar, offset) = pointergen.deref(ptrderef)
+                    if (offset > 0u) {
+                        // add offset to the pointer
+                        asmgen.out("""
+                            lda  $zpPtrVar
+                            clc
+                            adc  #$offset
+                            sta  $zpPtrVar
+                            bcc  +
+                            inc  $zpPtrVar+1
++""")
+                    }
                     assignVariableWord(assign.target, zpPtrVar, DataType.UWORD)
                 }
             }
@@ -2874,6 +2885,7 @@ $endLabel""")
         }
 
         // address of a normal variable
+        require(!msb)
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("""
@@ -2904,7 +2916,7 @@ $endLabel""")
                     else -> throw AssemblyError("can't load address in a single 8-bit register")
                 }
             }
-            TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), sourceName, msb, arrayDt, arrayIndexExpr)
+            TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), sourceName)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }

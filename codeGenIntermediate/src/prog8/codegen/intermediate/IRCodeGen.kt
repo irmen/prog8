@@ -1985,7 +1985,7 @@ class IRCodeGen(
         return chunk
     }
 
-    internal fun evaluatePointerAddressIntoReg(result: MutableList<IRCodeChunkBase>, deref: PtPointerDeref): Pair<Int, UInt> {
+    internal fun evaluatePointerAddressIntoReg(result: MutableList<IRCodeChunkBase>, deref: PtPointerDeref): Pair<Int, UByte> {
         // calculates the pointer address and returns the register it's in + remaining offset into the struct  (so that LOADFIELD/STOREFIELD instructions can be used)
         val pointerTr = expressionEval.translateExpression(deref.startpointer)
         result += pointerTr.chunks
@@ -1994,8 +1994,8 @@ class IRCodeGen(
         return pointerTr.resultReg to offset
     }
 
-    internal fun storeValueAtPointersLocation(result: MutableList<IRCodeChunkBase>, addressReg: Int, offset: UInt, type: DataType, valueIsZero: Boolean, existingValueRegister: Int) {
-        if(offset==0u) {
+    internal fun storeValueAtPointersLocation(result: MutableList<IRCodeChunkBase>, addressReg: Int, offset: UByte, type: DataType, valueIsZero: Boolean, existingValueRegister: Int) {
+        if(offset<=0u) {
             val irdt = irType(type)
             val instr = if(type.isFloat) {
                 if (valueIsZero) IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = addressReg)

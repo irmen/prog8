@@ -1,10 +1,11 @@
-; Particle fountain.
+; Particle fountain. (for the cx16 target)
 ; This is NOT necessarily the most efficient or idiomatic Prog8 way to do this!
 ; But it is just an example for how you could allocate and use structs dynamically.
 ; It uses a linked list to store all active particles.
 
 
 %import math
+%import syslib
 
 main  {
 
@@ -15,7 +16,7 @@ main  {
         ^^Particle next
     }
 
-    const uword MAX_PARTICLES = 450
+    const uword MAX_PARTICLES = 400
     const ubyte GRAVITY = 1
 
     ^^Particle particles            ; linked list of all active particles
@@ -26,10 +27,12 @@ main  {
         repeat 4
             spawnrandom()
 
-        sys.gfx_enable(0)       ; enable lo res screen
+        cx16.set_screen_mode(128)       ; enable lowres graphics
+        cx16.GRAPH_set_colors(1,1,0)
+        cx16.GRAPH_clear()
 
         repeat {
-            sys.gfx_clear(0)
+            clear_particles()
             update_particles()
             sys.wait(2)
             sys.waitvsync()
@@ -39,7 +42,7 @@ main  {
     sub spawnrandom() {
         if active_particles < MAX_PARTICLES {
             ^^Particle pp = arena.alloc(sizeof(Particle))
-            pp.next = if particles!=0 particles else 0
+            pp.next = particles
             particles = pp
             initparticle(pp)
             active_particles++
@@ -54,6 +57,15 @@ main  {
            pp.speedx=1
         pp.speedy = -10 - math.rnd() % 12
         pp.brightness = 255
+    }
+
+    sub clear_particles() {
+        ^^Particle pp = particles
+        while pp!=0 {
+            cx16.FB_cursor_position(pp.x as uword, pp.y as uword)
+            cx16.FB_set_pixel(0)
+            pp = pp.next
+        }
     }
 
     sub update_particles() {
@@ -71,7 +83,9 @@ main  {
                 pp.x = clamp(pp.x, 0, 319)
             }
 
-            sys.gfx_plot(pp.x as uword, pp.y as uword, pp.brightness)
+            cx16.FB_cursor_position(pp.x as uword, pp.y as uword)
+            cx16.FB_set_pixel(pp.brightness)
+
             if pp.brightness>=7
                 pp.brightness -= 7
 

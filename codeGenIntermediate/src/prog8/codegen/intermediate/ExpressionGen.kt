@@ -161,7 +161,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         val (instructions, offset) = traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerReg)
         result += instructions
-        if(offset==0u) {
+        if(offset<=0u) {
             val irdt = irType(deref.type)
             return if(deref.type.isFloat) {
                 val resultReg = codeGen.registers.next(IRDataType.FLOAT)
@@ -1638,7 +1638,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         val right = binExpr.right as? PtIdentifier
         require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
         val result = mutableListOf<IRCodeChunkBase>()
-        val field: Pair<DataType, UInt>
+        val field: Pair<DataType, UByte>
         val pointerReg: Int
         var extraFieldOffset = 0
 
@@ -1715,7 +1715,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return ExpressionCodeResult(result, fieldVmDt, resultReg, resultFpReg)
     }
 
-    internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): Pair<IRCodeChunks, UInt> {
+    internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): Pair<IRCodeChunks, UByte> {
         // returns instructions to calculate the pointer address, and the offset into the struct it points to
         // so that LOADFIELD and STOREFIELD opcodes can be used instead of having an explicit extra ADD
 

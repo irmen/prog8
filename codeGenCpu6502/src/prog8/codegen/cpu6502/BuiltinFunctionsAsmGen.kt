@@ -805,7 +805,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
-                    asmgen.storeIndirectByteReg(CpuRegister.A, varname, false, false)
+                    asmgen.storeIndirectByteReg(CpuRegister.A, varname, 0u, false, false)
                     return
                 }
             }
@@ -835,7 +835,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_W1", DataType.UWORD)
             asmgen.restoreRegisterStack(CpuRegister.A, false)
         }
-        asmgen.storeIndirectByteReg(CpuRegister.A, "P8ZP_SCRATCH_W1", false, false)
+        asmgen.storeIndirectByteReg(CpuRegister.A, "P8ZP_SCRATCH_W1", 0u, false, false)
     }
 
     private fun funcPokeW(fcall: PtBuiltinFunctionCall) {
@@ -851,7 +851,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 if(asmgen.isZpVar(addrExpr)) {
                     // pointervar is already in the zero page, no need to copy
                     asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AX)
-                    asmgen.storeIndirectWordReg(RegisterOrPair.AX, varname)
+                    asmgen.storeIndirectWordReg(RegisterOrPair.AX, varname, 0u)
                     return
                 }
             }
@@ -903,7 +903,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(addrExpr)
                 if(asmgen.isZpVar(addrExpr))
-                    asmgen.loadIndirectByte(varname)
+                    asmgen.loadIndirectByte(varname, 0u)
                 else
                     fallback()
             }
@@ -942,7 +942,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(addrExpr)
                 if(asmgen.isZpVar(addrExpr))
-                    asmgen.loadIndirectWord(varname)
+                    asmgen.loadIndirectWord(varname, 0u)
                 else
                     fallback()
             }

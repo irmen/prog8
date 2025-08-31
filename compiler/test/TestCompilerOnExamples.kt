@@ -141,6 +141,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "banking/program",
             "fileselector/standalone",
             "fileselector/main",
+            "pointers/fountain-cx16",
             "amiga",
             "audioroutines",
             "automatons",
@@ -220,6 +221,10 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "swirl-float",
             "tehtriz",
             "textelite",
+            "pointers/animalgame",
+            "pointers/binarytree",
+            "pointers/sortedlist",
+            "pointers/sorting"
         ),
         listOf(false, true),
         listOf(C64Target(), Cx16Target())
@@ -247,10 +252,10 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             "pixelshader",
             "sincos",
             "pointers/animalgame",
-            "pointers/binarytree",       // TODO add to "c64" later as well
-            "pointers/sortedlist",       // TODO add to "c64" later as well
-            "pointers/fountain",         // TODO add to "c64" later as well
-            "pointers/sorting"          // TODO add to "c64" later as well
+            "pointers/binarytree",
+            "pointers/sortedlist",
+            "pointers/fountain-virtual",
+            "pointers/sorting"
         ),
         listOf(false, true)
     )

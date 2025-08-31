@@ -293,12 +293,14 @@ class StStruct(
     astNode: PtStructDecl?
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
-    fun getField(name: String, sizer: IMemSizer): Pair<DataType, UInt> {
+    fun getField(name: String, sizer: IMemSizer): Pair<DataType, UByte> {
         // returns type and byte offset of the given field
         var offset = 0
         for((dt, definedname) in fields) {
-            if(name==definedname)
-                return dt to offset.toUInt()
+            if(name==definedname) {
+                require(offset<=255)
+                return dt to offset.toUByte()
+            }
             offset += sizer.memorySize(dt, null)
         }
         throw NoSuchElementException("field $name not found in struct ${this.name}")

@@ -1887,81 +1887,130 @@ $repeatLabel""")
         return null
     }
 
-    internal fun loadIndirectByte(zpPtrVar: String) {
+    internal fun loadIndirectByte(zpPtrVar: String, offset: UByte) {
         // loads byte pointed to by the ptrvar into A
-        if(isTargetCpu(CpuType.CPU65C02))
-            out("  lda  ($zpPtrVar)")
-        else
-            out("  ldy  #0 |  lda  ($zpPtrVar),y")
+        if (offset > 0u) {
+            out("  ldy  #$offset |  lda  ($zpPtrVar),y")
+        } else {
+            if(isTargetCpu(CpuType.CPU65C02))
+                out("  lda  ($zpPtrVar)")
+            else
+                out("  ldy  #0 |  lda  ($zpPtrVar),y")
+        }
     }
 
-    internal fun loadIndirectFloat(zpPtrVar: String) {
+    internal fun loadIndirectFloat(zpPtrVar: String, offset: UByte) {
         // loads float pointed to by the ptrvar into FAC1
+        if (offset > 0u) {
+            out("""
+                lda  $zpPtrVar
+                ldy  $zpPtrVar+1
+                clc
+                adc  #$offset
+                bcc  +
+                iny
++               jsr  floats.MOVFM""")
+            return
+        }
+
         out("""
             lda  $zpPtrVar
             ldy  $zpPtrVar+1
-            jsr  floats.MOVFM
-        """)
+            jsr  floats.MOVFM""")
     }
 
-    internal fun loadIndirectWord(zpPtrVar: String) {
+    internal fun loadIndirectWord(zpPtrVar: String, offset: UByte) {
         // loads word pointed to by the ptr var into AY
-        if(isTargetCpu(CpuType.CPU65C02))
+        if (offset > 0u) {
             out("""
-                ldy  #1
-                lda  ($zpPtrVar),y
-                tay
-                lda  ($zpPtrVar)""")
-        else
-            out("""
-                ldy  #0
-                lda  ($zpPtrVar),y
-                tax
-                iny
-                lda  ($zpPtrVar),y
-                tay
-                txa""")
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    tax
+                    iny
+                    lda  ($zpPtrVar),y
+                    tay
+                    txa""")
+        } else {
+            if(isTargetCpu(CpuType.CPU65C02))
+                out("""
+                    ldy  #1
+                    lda  ($zpPtrVar),y
+                    tay
+                    lda  ($zpPtrVar)""")
+            else
+                out("""
+                    ldy  #0
+                    lda  ($zpPtrVar),y
+                    tax
+                    iny
+                    lda  ($zpPtrVar),y
+                    tay
+                    txa""")
+        }
     }
 
-    internal fun storeIndirectByte(byte: Int, zpPtrVar: String) {
-        if(isTargetCpu(CpuType.CPU65C02)) {
-            out("  lda  #$byte |  sta  ($zpPtrVar)")
+    internal fun storeIndirectByte(byte: Int, zpPtrVar: String, offset: UByte) {
+        if (offset > 0u) {
+            out("  lda  #$byte |  ldy  #$offset |  sta  ($zpPtrVar),y")
         } else {
-            if (byte == 0) {
-                out("  lda  #0 |  tay |  sta  ($zpPtrVar),y")
+            if(isTargetCpu(CpuType.CPU65C02)) {
+                out("  lda  #$byte |  sta  ($zpPtrVar)")
             } else {
-                out("  lda  #$byte |  ldy  #0 |  sta  ($zpPtrVar),y")
+                if (byte == 0)
+                    out("  lda  #0 |  tay |  sta  ($zpPtrVar),y")
+                else
+                    out("  lda  #$byte |  ldy  #0 |  sta  ($zpPtrVar),y")
             }
         }
     }
 
-    internal fun storeIndirectByteVar(varname: String, zpPtrVar: String) {
-        if(isTargetCpu(CpuType.CPU65C02))
-            out("  lda  $varname |  sta  ($zpPtrVar)")
-        else
-            out("  lda  $varname |  ldy  #0 |  sta  ($zpPtrVar),y")
+    internal fun storeIndirectByteVar(varname: String, zpPtrVar: String, offset: UByte) {
+        if (offset > 0u) {
+            out("  lda  $varname |  ldy  #$offset |  sta  ($zpPtrVar),y")
+        } else {
+            if(isTargetCpu(CpuType.CPU65C02))
+                out("  lda  $varname |  sta  ($zpPtrVar)")
+            else
+                out("  lda  $varname |  ldy  #0 |  sta  ($zpPtrVar),y")
+        }
     }
 
-    internal fun storeIndirectWord(word: Int, zpPtrVar: String) {
-        if(word==0) {
-            out("""
-                lda  #0
-                tay
-                sta  ($zpPtrVar),y
-                iny
-                sta  ($zpPtrVar),y""")
-        } else {
+    internal fun storeIndirectWord(word: Int, zpPtrVar: String, offset: UByte) {
+        if (offset > 0u) {
             out("""
                 lda  #<$word
-                ldy  #0
+                ldy  #$offset
                 sta  ($zpPtrVar),y
                 lda  #>$word
                 iny
                 sta  ($zpPtrVar),y""")
+        } else {
+            if(word==0) {
+                out("""
+                    lda  #0
+                    tay
+                    sta  ($zpPtrVar),y
+                    iny
+                    sta  ($zpPtrVar),y""")
+            } else {
+                out("""
+                    lda  #<$word
+                    ldy  #0
+                    sta  ($zpPtrVar),y
+                    lda  #>$word
+                    iny
+                    sta  ($zpPtrVar),y""")
+            }
         }
     }
 
-    internal fun storeIndirectByteReg(register: CpuRegister, zpPtrVar: String, signed: Boolean, extendWord: Boolean) {
+    internal fun storeIndirectByteReg(
+        register: CpuRegister,
+        zpPtrVar: String,
+        offset: UByte,
+        signed: Boolean,
+        extendWord: Boolean
+    ) {
         if(extendWord) {
             when(register) {
                 CpuRegister.A -> {}
@@ -1970,11 +2019,20 @@ $repeatLabel""")
             }
             signExtendAXlsb(if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
             out("""
-                ldy  #0
+                ldy  #$offset
                 sta  ($zpPtrVar),y
                 iny
                 txa
                 sta  ($zpPtrVar),y""")
+            return
+        }
+
+        if(offset > 0u) {
+            when(register) {
+                CpuRegister.A -> out("  ldy  #$offset |  sta  ($zpPtrVar),y")
+                CpuRegister.X -> out("  txa |  ldy  #$offset |  sta  ($zpPtrVar),y")
+                CpuRegister.Y -> out("  tya |  ldy  #$offset |  sta  ($zpPtrVar),y")
+            }
             return
         }
 
@@ -1993,92 +2051,169 @@ $repeatLabel""")
         }
     }
 
-    internal fun storeIndirectWordReg(regs: RegisterOrPair, zpPtrVar: String) {
-        when(regs) {
-            RegisterOrPair.AX -> {
-                if(isTargetCpu(CpuType.CPU65C02))
+    internal fun storeIndirectWordReg(regs: RegisterOrPair, zpPtrVar: String, offset: UByte) {
+        if (offset > 0u) {
+            when(regs) {
+                RegisterOrPair.AX -> {
                     out("""
-                        sta  ($zpPtrVar)
-                        txa
-                        ldy  #1
-                        sta  ($zpPtrVar),y""")
-                else
-                    out("""
-                        ldy  #0
+                        ldy  #$offset
                         sta  ($zpPtrVar),y
                         txa
                         iny
                         sta  ($zpPtrVar),y""")
-            }
-            RegisterOrPair.AY -> {
-                if(isTargetCpu(CpuType.CPU65C02))
-                    out("""
-                        sta  ($zpPtrVar)
-                        tya
-                        ldy  #1
-                        sta  ($zpPtrVar),y""")
-                else
+                }
+
+                RegisterOrPair.AY -> {
                     out("""
                         sty  P8ZP_SCRATCH_REG
-                        ldy  #0
+                        ldy  #$offset
                         sta  ($zpPtrVar),y
                         lda  P8ZP_SCRATCH_REG
                         iny
                         sta  ($zpPtrVar),y""")
-            }
-            RegisterOrPair.XY -> {
-                if(isTargetCpu(CpuType.CPU65C02))
-                    out("""
-                        txa
-                        sta  ($zpPtrVar)
-                        tya
-                        ldy  #1
-                        sta  ($zpPtrVar),y""")
-                else
+                }
+
+                RegisterOrPair.XY -> {
                     out("""
                         sty  P8ZP_SCRATCH_REG
                         txa
-                        ldy  #0
+                        ldy  #$offset
                         sta  ($zpPtrVar),y
                         lda  P8ZP_SCRATCH_REG
                         iny
                         sta  ($zpPtrVar),y""")
+                }
+
+                in Cx16VirtualRegisters -> {
+                    val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
+                    out("""
+                        lda  $regname
+                        ldy  #$offset
+                        sta  ($zpPtrVar),y
+                        lda  $regname+1
+                        iny
+                        sta  ($zpPtrVar),y""")
+                }
+
+                else -> throw AssemblyError("wrong word reg")
             }
-            in Cx16VirtualRegisters -> {
-                val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
-                out("""
-                    lda  $regname
-                    ldy  #0
-                    sta  ($zpPtrVar),y
-                    lda  $regname+1
-                    iny
-                    sta  ($zpPtrVar),y""")
+        } else {
+            when(regs) {
+                RegisterOrPair.AX -> {
+                    if(isTargetCpu(CpuType.CPU65C02))
+                        out("""
+                            sta  ($zpPtrVar)
+                            txa
+                            ldy  #1
+                            sta  ($zpPtrVar),y""")
+                    else
+                        out("""
+                            ldy  #0
+                            sta  ($zpPtrVar),y
+                            txa
+                            iny
+                            sta  ($zpPtrVar),y""")
+                }
+
+                RegisterOrPair.AY -> {
+                    if(isTargetCpu(CpuType.CPU65C02))
+                        out("""
+                            sta  ($zpPtrVar)
+                            tya
+                            ldy  #1
+                            sta  ($zpPtrVar),y""")
+                    else
+                        out("""
+                            sty  P8ZP_SCRATCH_REG
+                            ldy  #0
+                            sta  ($zpPtrVar),y
+                            lda  P8ZP_SCRATCH_REG
+                            iny
+                            sta  ($zpPtrVar),y""")
+                }
+
+                RegisterOrPair.XY -> {
+                    if(isTargetCpu(CpuType.CPU65C02))
+                        out("""
+                            txa
+                            sta  ($zpPtrVar)
+                            tya
+                            ldy  #1
+                            sta  ($zpPtrVar),y""")
+                    else
+                        out("""
+                            sty  P8ZP_SCRATCH_REG
+                            txa
+                            ldy  #0
+                            sta  ($zpPtrVar),y
+                            lda  P8ZP_SCRATCH_REG
+                            iny
+                            sta  ($zpPtrVar),y""")
+                }
+
+                in Cx16VirtualRegisters -> {
+                    val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
+                    out("""
+                        lda  $regname
+                        ldy  #0
+                        sta  ($zpPtrVar),y
+                        lda  $regname+1
+                        iny
+                        sta  ($zpPtrVar),y""")
+                }
+
+                else -> throw AssemblyError("wrong word reg")
             }
-            else -> throw AssemblyError("wrong word reg")
         }
     }
 
-    internal fun storeIndirectWordVar(varname: String, sourceDt: DataType, zpPtrVar: String) {
+    internal fun storeIndirectWordVar(varname: String, sourceDt: DataType, zpPtrVar: String, offset: UByte) {
         if(sourceDt.isByteOrBool) TODO("implement byte/bool to word pointer assignment")
-        if(isTargetCpu(CpuType.CPU65C02))
+        if (offset > 0u) {
             out("""
                 lda  $varname
-                sta  ($zpPtrVar)
-                lda  $varname+1
-                ldy  #1
-                sta  ($zpPtrVar),y""")
-        else
-            out("""
-                lda  $varname
-                ldy  #0
+                ldy  #$offset
                 sta  ($zpPtrVar),y
                 lda  $varname+1
                 iny
                 sta  ($zpPtrVar),y""")
+        } else {
+            if(isTargetCpu(CpuType.CPU65C02))
+                out("""
+                    lda  $varname
+                    sta  ($zpPtrVar)
+                    lda  $varname+1
+                    ldy  #1
+                    sta  ($zpPtrVar),y""")
+            else
+                out("""
+                    lda  $varname
+                    ldy  #0
+                    sta  ($zpPtrVar),y
+                    lda  $varname+1
+                    iny
+                    sta  ($zpPtrVar),y""")
+        }
     }
 
-    internal fun storeIndirectFloat(float: Double, zpPtrVar: String) {
+    internal fun storeIndirectFloat(float: Double, zpPtrVar: String, offset: UByte) {
         val floatConst = allocator.getFloatAsmConst(float)
+        if (offset > 0u) {
+            out("""
+                lda  #<$floatConst
+                ldy  #>$floatConst
+                sta  P8ZP_SCRATCH_W2
+                sty  P8ZP_SCRATCH_W2+1
+                lda  $zpPtrVar
+                ldy  $zpPtrVar+1
+                clc
+                adc  #$offset
+                bcc  +
+                iny
++               jsr  floats.copy_float2""")
+            return
+        }
+
         out("""
             lda  #<$floatConst
             ldy  #>$floatConst
@@ -2089,7 +2224,23 @@ $repeatLabel""")
             jsr  floats.copy_float2""")
     }
 
-    internal fun storeIndirectFloatVar(varname: String, zpPtrVar: String) {
+    internal fun storeIndirectFloatVar(varname: String, zpPtrVar: String, offset: UByte) {
+        if (offset > 0u) {
+            out("""
+                lda  #<$varname
+                ldy  #>$varname+1
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  $zpPtrVar
+                ldy  $zpPtrVar+1
+                clc
+                adc  #$offset
+                bcc  +
+                iny
++               jsr  floats.copy_float""")
+            return
+        }
+
         out("""
             lda  #<$varname
             ldy  #>$varname+1
