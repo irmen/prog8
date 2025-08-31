@@ -215,9 +215,7 @@ class AstPreprocessor(val program: Program,
 
         // prefer to put pointer variables into zeropage if no other preference is given (to avoid having to copy the pointer var to zp every time)
         if(decl.datatype.isPointer && decl.zeropage== ZeropageWish.DONTCARE) {
-            val newDecl = VarDecl(decl.type, decl.origin, decl.datatype, ZeropageWish.PREFER_ZEROPAGE,
-                decl.splitwordarray, decl.arraysize, decl.name, decl.names, decl.value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
-            return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
+            decl.zeropage = ZeropageWish.PREFER_ZEROPAGE
         }
 
         return noModifications

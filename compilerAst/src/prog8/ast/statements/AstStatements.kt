@@ -243,7 +243,7 @@ class VarDecl(
     var type: VarDeclType,
     val origin: VarDeclOrigin,
     val datatype: DataType,
-    val zeropage: ZeropageWish,
+    var zeropage: ZeropageWish,
     val splitwordarray: SplitWish,
     var arraysize: ArrayIndex?,
     override val name: String,

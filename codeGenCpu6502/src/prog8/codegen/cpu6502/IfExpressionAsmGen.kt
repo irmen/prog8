@@ -9,7 +9,9 @@ import prog8.codegen.cpu6502.assignment.TargetStorageKind
 internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, private val assignmentAsmGen: AssignmentAsmGen, private val errors: IErrorReporter) {
 
     internal fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
-        require(target.datatype==expr.type || target.datatype.isUnsignedWord && expr.type.isString)
+        require(target.datatype==expr.type ||
+                target.datatype.isUnsignedWord && (expr.type.isString || expr.type.isPointer) ||
+                target.datatype.isPointer && (expr.type.isUnsignedWord || expr.type.isPointer || expr.type.isString))
         val falseLabel = asmgen.makeLabel("ifexpr_false")
         val endLabel = asmgen.makeLabel("ifexpr_end")
         evalIfExpressionConditonAndBranchWhenFalse(expr.condition, falseLabel)
