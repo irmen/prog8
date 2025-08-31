@@ -133,10 +133,13 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         if(decl.isArray)
             output("]")
 
-        if(decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE)
-            output(" @requirezp")
-        else if(decl.zeropage == ZeropageWish.PREFER_ZEROPAGE)
-            output(" @zp")
+        when (decl.zeropage) {
+            ZeropageWish.REQUIRE_ZEROPAGE -> output(" @requirezp")
+            ZeropageWish.PREFER_ZEROPAGE -> output(" @zp")
+            ZeropageWish.NOT_IN_ZEROPAGE -> output(" @nozp")
+            else -> {}
+        }
+
         if(decl.sharedWithAsm)
             output(" @shared")
         when(decl.alignment) {

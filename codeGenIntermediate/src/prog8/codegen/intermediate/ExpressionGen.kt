@@ -1680,18 +1680,37 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         // add field offset to pointer and load the value into the result register
         val fieldVmDt = irType(field.first)
+        val fieldOffset = field.second.toInt() + extraFieldOffset
         var resultFpReg = -1
         var resultReg = -1
         if (fieldVmDt == IRDataType.FLOAT)
             resultFpReg = codeGen.registers.next(IRDataType.FLOAT)
         else
             resultReg = codeGen.registers.next(fieldVmDt)
-        result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = field.second.toInt() + extraFieldOffset)
-            it += if (fieldVmDt == IRDataType.FLOAT)
-                IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultFpReg, reg1 = pointerReg)
-            else
-                IRInstruction(Opcode.LOADI, fieldVmDt, reg1 = resultReg, reg2 = pointerReg)
+        if(fieldOffset==0) {
+            // no offset, can use current pointer directly
+            result += IRCodeChunk(null, null).also {
+                it += if (fieldVmDt == IRDataType.FLOAT)
+                    IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultFpReg, reg1 = pointerReg)
+                else
+                    IRInstruction(Opcode.LOADI, fieldVmDt, reg1 = resultReg, reg2 = pointerReg)
+            }
+        } else {
+            // actually have to add an offset
+            if(fieldOffset<=255) {
+                if(fieldVmDt==IRDataType.FLOAT)
+                    addInstr(result, IRInstruction(Opcode.LOADFIELD, fieldVmDt, fpReg1 = resultFpReg, reg1 = pointerReg, immediate = fieldOffset), null)
+                else
+                    addInstr(result, IRInstruction(Opcode.LOADFIELD, fieldVmDt, reg1 = resultReg, reg2 = pointerReg, immediate = fieldOffset), null)
+            } else {
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldOffset)
+                    it += if (fieldVmDt == IRDataType.FLOAT)
+                        IRInstruction(Opcode.LOADI, IRDataType.FLOAT, fpReg1 = resultFpReg, reg1 = pointerReg)
+                    else
+                        IRInstruction(Opcode.LOADI, fieldVmDt, reg1 = resultReg, reg2 = pointerReg)
+                }
+            }
         }
         return ExpressionCodeResult(result, fieldVmDt, resultReg, resultFpReg)
     }

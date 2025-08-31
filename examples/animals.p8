@@ -106,9 +106,9 @@ main {
         txt.print(name)
         txt.print("? ")
         void txt.input_chars(userinput)
-        txt.print("\nfor a ")
+        txt.print("\nin case of the ")
         txt.print(name)
-        txt.print(", what is the answer to that; yes or no? ")
+        txt.print(", what is the answer to that question? ")
         str answer = "x"*10
         void txt.input_chars(answer)
 

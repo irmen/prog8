@@ -83,7 +83,7 @@ main {
             ubyte question_length = txt.input_chars(userinput)
             uword question_copy = arena.alloc(question_length+1)
             void strings.copy(userinput, question_copy)
-            txt.print("In case of the ")
+            txt.print("\nIn case of the ")
             txt.print(new_animal)
             txt.print(", what is the answer to that question? ")
             ubyte yesno = ask_yes_no()

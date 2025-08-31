@@ -27,7 +27,7 @@ main {
         txt.print_bool(btree.contains(606))
         txt.nl()
 
-        txt.print("Removing some numbers.\n")
+        txt.print("removing some numbers.\n")
         btree.remove(9999)
         btree.remove(97)
         btree.remove(187)

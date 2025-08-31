@@ -11,6 +11,8 @@ Structs and Pointers
     to rather large and inefficient assembly code most of the time, when compared to direct array access or regular variables.
     At least try to place heavily used pointer variables in zero page using ``@requirezp`` on their declaration,
     if zero page space allows.
+    Pointer variables that don't have a zeropage tag specified will be treated as having ``@zp`` so they get
+    priority over other variables to be placed into zeropage.
 
 .. note::
     Due to some limitations in the language parser, not all pointer related syntax is currently supported
