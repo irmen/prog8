@@ -1148,12 +1148,19 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 asmgen.assignRegister(RegisterOrPair.A, target)
             }
             target.datatype.isWord || target.datatype.isPointer -> {
-                asmgen.out("""
-                    ldy  #1
-                    lda  (P8ZP_SCRATCH_W1),y
-                    tax
-                    dey
-                    lda  (P8ZP_SCRATCH_W1),y""")
+                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                    asmgen.out("""
+                        ldy  #1
+                        lda  (P8ZP_SCRATCH_W1),y
+                        tax
+                        lda  (P8ZP_SCRATCH_W1)""")
+                else
+                    asmgen.out("""
+                        ldy  #1
+                        lda  (P8ZP_SCRATCH_W1),y
+                        tax
+                        dey
+                        lda  (P8ZP_SCRATCH_W1),y""")
                 asmgen.assignRegister(RegisterOrPair.AX, target)
             }
             target.datatype.isLong -> {

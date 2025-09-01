@@ -16,7 +16,7 @@ main  {
         ^^Particle next
     }
 
-    const uword MAX_PARTICLES = 400
+    const uword MAX_PARTICLES = 300
     const ubyte GRAVITY = 1
 
     ^^Particle particles            ; linked list of all active particles
@@ -34,7 +34,7 @@ main  {
         repeat {
             clear_particles()
             update_particles()
-            sys.wait(2)
+            sys.waitvsync()
             sys.waitvsync()
         }
     }
@@ -84,7 +84,7 @@ main  {
             }
 
             cx16.FB_cursor_position(pp.x as uword, pp.y as uword)
-            cx16.FB_set_pixel(pp.brightness)
+            cx16.FB_set_pixel(16+pp.brightness/16)
 
             if pp.brightness>=7
                 pp.brightness -= 7
