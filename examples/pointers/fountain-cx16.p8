@@ -2,6 +2,10 @@
 ; This is NOT necessarily the most efficient or idiomatic Prog8 way to do this!
 ; But it is just an example for how you could allocate and use structs dynamically.
 ; It uses a linked list to store all active particles.
+; NOTE: this example uses the X16's kernal graphics routines to plot the pixels.
+;       those are relatively slow, and the program will run a lot faster if you use
+;       the gfx_lores or monogfx prog8 library instead. However those increase the
+;       PRG size by a lot because they embed a large multiplication lookup table.
 
 
 %import math
