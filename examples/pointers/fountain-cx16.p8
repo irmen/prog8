@@ -84,7 +84,7 @@ main  {
             }
 
             cx16.FB_cursor_position(pp.x as uword, pp.y as uword)
-            cx16.FB_set_pixel(pp.brightness)
+            cx16.FB_set_pixel(16 + pp.brightness / 17)
 
             if pp.brightness>=7
                 pp.brightness -= 7
