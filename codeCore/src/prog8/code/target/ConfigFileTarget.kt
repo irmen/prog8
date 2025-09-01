@@ -33,6 +33,7 @@ class ConfigFileTarget(
     val zpScratchReg: UInt,
     val zpScratchW1: UInt,
     val zpScratchW2: UInt,
+    val zpScratchPtr: UInt,
     val virtualregistersStart: UInt,
     val zpFullsafe: List<UIntRange>,
     val zpKernalsafe: List<UIntRange>,
@@ -132,6 +133,7 @@ class ConfigFileTarget(
                 props.getInteger("zp_scratch_reg"),
                 props.getInteger("zp_scratch_w1"),
                 props.getInteger("zp_scratch_w2"),
+                props.getInteger("zp_scratch_ptr"),
                 props.getInteger("virtual_registers"),
                 zpFullsafe,
                 zpKernalsafe,
@@ -159,7 +161,7 @@ class ConfigFileTarget(
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = ConfigurableZeropage(
-            zpScratchB1, zpScratchReg, zpScratchW1, zpScratchW2,
+            zpScratchB1, zpScratchReg, zpScratchW1, zpScratchW2, zpScratchPtr,
             virtualregistersStart,
             zpBasicsafe,
             zpKernalsafe,

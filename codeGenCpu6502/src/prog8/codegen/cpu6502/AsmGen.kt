@@ -523,7 +523,7 @@ class AsmGen6502Internal (
 
     internal fun loadByteFromPointerIntoA(pointervar: PtIdentifier): String {
         // returns the source name of the zero page pointervar if it's already in the ZP,
-        // otherwise returns "P8ZP_SCRATCH_W1" which is the intermediary
+        // otherwise returns "P8ZP_SCRATCH_PTR" which is the intermediary
         val symbol = symbolTable.lookup(pointervar.name)
         when (val target = symbol!!.astNode) {
             is PtLabel -> {
@@ -542,10 +542,10 @@ class AsmGen6502Internal (
                         out("""
                             lda  $sourceName
                             ldy  $sourceName+1
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  (P8ZP_SCRATCH_W1)""")
-                        "P8ZP_SCRATCH_W1"
+                            sta  P8ZP_SCRATCH_PTR
+                            sty  P8ZP_SCRATCH_PTR+1
+                            lda  (P8ZP_SCRATCH_PTR)""")
+                        "P8ZP_SCRATCH_PTR"
                     }
                 } else {
                     return if (allocator.isZpVar((target as PtNamedNode).scopedName)) {
@@ -556,11 +556,11 @@ class AsmGen6502Internal (
                         out("""
                             lda  $sourceName
                             ldy  $sourceName+1
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
+                            sta  P8ZP_SCRATCH_PTR
+                            sty  P8ZP_SCRATCH_PTR+1
                             ldy  #0
-                            lda  (P8ZP_SCRATCH_W1),y""")
-                        "P8ZP_SCRATCH_W1"
+                            lda  (P8ZP_SCRATCH_PTR),y""")
+                        "P8ZP_SCRATCH_PTR"
                     }
                 }
             }
@@ -577,10 +577,10 @@ class AsmGen6502Internal (
             } else {
                 out("""
                     ldy  $sourceName
-                    sty  P8ZP_SCRATCH_W2
+                    sty  P8ZP_SCRATCH_PTR
                     ldy  $sourceName+1
-                    sty  P8ZP_SCRATCH_W2+1
-                    sta  (P8ZP_SCRATCH_W2)""")
+                    sty  P8ZP_SCRATCH_PTR+1
+                    sta  (P8ZP_SCRATCH_PTR)""")
             }
         } else {
             if (allocator.isZpVar(pointervar.name)) {
@@ -589,11 +589,11 @@ class AsmGen6502Internal (
             } else {
                 out("""
                     ldy  $sourceName
-                    sty  P8ZP_SCRATCH_W2
+                    sty  P8ZP_SCRATCH_PTR
                     ldy  $sourceName+1
-                    sty  P8ZP_SCRATCH_W2+1
+                    sty  P8ZP_SCRATCH_PTR+1
                     ldy  #0
-                    sta  (P8ZP_SCRATCH_W2),y""")
+                    sta  (P8ZP_SCRATCH_PTR),y""")
             }
         }
     }

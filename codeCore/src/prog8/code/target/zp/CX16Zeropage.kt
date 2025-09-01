@@ -9,6 +9,7 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_REG = 0x7bu     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0x7cu      // temp storage 1 for a word  $7c+$7d
     override val SCRATCH_W2 = 0x7eu      // temp storage 2 for a word  $7e+$7f
+    override val SCRATCH_PTR = 0x22u     // temp storage for a pointer $22+$23
 
 
     init {

@@ -71,6 +71,7 @@ internal class ProgramAndVarsGen(
         asmgen.out("P8ZP_SCRATCH_REG = ${zp.SCRATCH_REG}")
         asmgen.out("P8ZP_SCRATCH_W1 = ${zp.SCRATCH_W1}    ; word")
         asmgen.out("P8ZP_SCRATCH_W2 = ${zp.SCRATCH_W2}    ; word")
+        asmgen.out("P8ZP_SCRATCH_PTR = ${zp.SCRATCH_PTR}  ; word")
         if(compTarget.name=="c64") {
             if(options.floats)
                 asmgen.out("PROG8_C64_BANK_CONFIG=31  ; basic+IO+kernal")

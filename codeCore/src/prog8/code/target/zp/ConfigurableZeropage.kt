@@ -10,6 +10,8 @@ class ConfigurableZeropage(
     override val SCRATCH_REG: UInt,     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1: UInt,      // temp storage 1 for a word
     override val SCRATCH_W2: UInt,      // temp storage 2 for a word
+    override val SCRATCH_PTR: UInt,     // temp storage for a pointer
+
     val virtualRegistersStart: UInt,        // location of 32 bytes for the r0-r15 virtual registers
     basicsafe: List<UIntRange>,
     kernalsafe: List<UIntRange>,

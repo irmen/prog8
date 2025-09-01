@@ -14,6 +14,7 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_REG = 0xb4u     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0xb6u      // temp storage 1 for a word
     override val SCRATCH_W2 = 0xb8u      // temp storage 2 for a word
+    override val SCRATCH_PTR = 0xb1u     // temp storage for a pointer $b1+$b2
 
     init {
         if (options.floats && options.zeropage !in arrayOf(
@@ -34,7 +35,7 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
             }
             ZeropageType.FLOATSAFE,
             ZeropageType.BASICSAFE -> {
-                free.addAll(0xb3u..0xbau)       // TODO more?
+                free.addAll(0xb1u..0xbau)       // TODO more?
             }
             ZeropageType.DONTUSE -> {
                 free.clear()  // don't use zeropage at all

@@ -25,12 +25,12 @@ Memory Map
 
 Zeropage
 ========
-#. *Absolute requirement:* Provide three times 2 consecutive bytes (i.e. three 16-bit pointers) in the zeropage that are free to use at all times.
+#. *Absolute requirement:* Provide four times 2 consecutive bytes (i.e. four 16-bit words) in the zeropage that are free to use at all times.
 #. Provide list of any additional free zeropage locations for a normal running system (BASIC + Kernal enabled)
 #. Provide list of any additional free zeropage locations when BASIC is off, but floating point routines should still work
 #. Provide list of any additional free zeropage locations when only the Kernal remains enabled
 
-Only the three 16-bit pointers are absolutely required to be able to use prog8 on the system.
+Only the four 16-bit zero page words are absolutely required to be able to use prog8 on the system.
 But more known available zeropage locations mean smaller and faster programs.
 
 

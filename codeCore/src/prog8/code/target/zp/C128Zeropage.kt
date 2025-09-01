@@ -14,6 +14,7 @@ class C128Zeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_REG = 0x75u     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0xfbu      // temp storage 1 for a word  $fb+$fc
     override val SCRATCH_W2 = 0xfdu      // temp storage 2 for a word  $fd+$fe
+    override val SCRATCH_PTR = 0x0bu     // temp storage for a pointer $0b+$0c
 
     init {
         if (options.floats && options.zeropage !in arrayOf(

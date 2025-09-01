@@ -113,7 +113,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     internal fun deref(pointer: PtPointerDeref, forceTemporary: Boolean=false, addOffsetToPointer: Boolean=false): Pair<String, UByte> {
         // walk the pointer deref chain and leaves the final pointer value in a ZP var
-        // this will often be the temp var P8ZP_SCRATCH_W1 but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
+        // this will often be the temp var P8ZP_SCRATCH_PTR but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
         // returs the ZP var to use as a pointer, and possibly a Y register offset (if it's >=1).
 
         // TODO optimize away the use of a temporary var if it turns out that the field offset is 0 (and the var is in zp already)
@@ -125,37 +125,37 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 return pointer.startpointer.name to 0u
             else {
                 // have to copy it to temp zp var
-                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_W1", DataType.UWORD)
-                return "P8ZP_SCRATCH_W1" to 0u
+                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                return "P8ZP_SCRATCH_PTR" to 0u
             }
         }
 
-        // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_W1
-        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_W1", DataType.UWORD)
+        // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_PTR
+        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
 
         fun addFieldOffset(fieldoffset: UInt) {
             if(fieldoffset==0u)
                 return
             require(fieldoffset<=0xffu)
             asmgen.out("""
-                lda  P8ZP_SCRATCH_W1
+                lda  P8ZP_SCRATCH_PTR
                 clc
                 adc  #$fieldoffset
-                sta  P8ZP_SCRATCH_W1
+                sta  P8ZP_SCRATCH_PTR
                 bcc  +
-                inc  P8ZP_SCRATCH_W1+1
+                inc  P8ZP_SCRATCH_PTR+1
 +""")
         }
 
         fun updatePointer() {
             asmgen.out("""
                 ldy  #0
-                lda  (P8ZP_SCRATCH_W1),y
+                lda  (P8ZP_SCRATCH_PTR),y
                 tax
                 iny
-                lda  (P8ZP_SCRATCH_W1),y
-                sta  P8ZP_SCRATCH_W1+1
-                stx  P8ZP_SCRATCH_W1""")
+                lda  (P8ZP_SCRATCH_PTR),y
+                sta  P8ZP_SCRATCH_PTR+1
+                stx  P8ZP_SCRATCH_PTR""")
         }
 
         // traverse deref chain
@@ -166,7 +166,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             val fieldinfo = struct!!.getField(deref, asmgen.program.memsizer)
             val fieldoffset = fieldinfo.second
             struct = fieldinfo.first.subType as StStruct
-            // get new pointer from field (P8ZP_SCRATCH_W1 += fieldoffset, read pointer from new location)
+            // get new pointer from field (P8ZP_SCRATCH_PTR += fieldoffset, read pointer from new location)
             addFieldOffset(fieldoffset.toUInt())
             updatePointer()
         }
@@ -178,13 +178,13 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             addFieldOffset(fieldinfo.second.toUInt())
             require(fieldinfo.first.isPointer)
             updatePointer()
-            return "P8ZP_SCRATCH_W1" to 0u
+            return "P8ZP_SCRATCH_PTR" to 0u
         } else {
             if(addOffsetToPointer) {
                 addFieldOffset(fieldinfo.second.toUInt())
-                return "P8ZP_SCRATCH_W1" to 0u
+                return "P8ZP_SCRATCH_PTR" to 0u
             } else
-                return "P8ZP_SCRATCH_W1" to fieldinfo.second
+                return "P8ZP_SCRATCH_PTR" to fieldinfo.second
         }
     }
 
@@ -424,18 +424,18 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
 
         // AY now points to the field whose value we wanted, now get the actual value at that location
-        asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+        asmgen.out("  sta  P8ZP_SCRATCH_PTR |  sty  P8ZP_SCRATCH_PTR+1")
         when {
             field.first.isByteOrBool -> {
-                asmgen.loadIndirectByte("P8ZP_SCRATCH_W1", 0u)
+                asmgen.loadIndirectByte("P8ZP_SCRATCH_PTR", 0u)
                 return RegisterOrPair.A
             }
             field.first.isWord || field.first.isPointer -> {
-                asmgen.loadIndirectWord("P8ZP_SCRATCH_W1", 0u)
+                asmgen.loadIndirectWord("P8ZP_SCRATCH_PTR", 0u)
                 return RegisterOrPair.AY
             }
             field.first.isFloat -> {
-                asmgen.loadIndirectFloat("P8ZP_SCRATCH_W1", 0u)
+                asmgen.loadIndirectFloat("P8ZP_SCRATCH_PTR", 0u)
                 return RegisterOrPair.FAC1
             }
             field.first.isLong -> {
@@ -456,20 +456,20 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 asmgen.restoreRegisterStack(CpuRegister.A, false)       // lsb
                 asmgen.out("""
                         clc
-                        adc  P8ZP_SCRATCH_W1
+                        adc  P8ZP_SCRATCH_PTR
                         pha
                         tya
-                        adc  P8ZP_SCRATCH_W1+1
+                        adc  P8ZP_SCRATCH_PTR+1
                         tay
                         pla""")
             }
 
             if (scale == null || scale == 1) {
                 asmgen.pushCpuStack(BaseDataType.UWORD, value)
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UWORD)
-                restoreAYandAddAsmVariable("P8ZP_SCRATCH_W1")
+                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR")
             } else {
-                // P8ZP_SCRATCH_W1 = value * scale
+                // P8ZP_SCRATCH_PTR = value * scale
                 if(value is PtBinaryExpression && value.operator=="+" && value.right is PtNumber) {
                     // (x + y) * scale == (x * scale) + (y * scale)
                     addUnsignedWordToAY(value.left, scale)
@@ -481,10 +481,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     mult.add(value)
                     mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
                     val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_W1")
+                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_PTR")
                     val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign, value.definingISub())
-                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_W1")
+                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR")
                 }
             }
         }
@@ -641,7 +641,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.REGISTER -> {
                 require(value.datatype.isWord)
                 val register = value.register!!
-                asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, null, target.position, variableAsmName = "P8ZP_SCRATCH_W1"))
+                asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, null, target.position, variableAsmName = "P8ZP_SCRATCH_PTR"))
                 require(register.isWord())
                 TODO("<< register")
             }
@@ -689,7 +689,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.REGISTER -> {
                 require(value.datatype.isWord)
                 val register = value.register!!
-                asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, null, target.position, variableAsmName = "P8ZP_SCRATCH_W1"))
+                asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, null, target.position, variableAsmName = "P8ZP_SCRATCH_PTR"))
                 require(register.isWord())
                 TODO("<< register")
             }
@@ -743,17 +743,17 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.REGISTER -> {
                 require(value.datatype.isWord)
                 val register = value.register!!
-                asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, null, target.position, variableAsmName = "P8ZP_SCRATCH_W1"))
+                asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, null, target.position, variableAsmName = "P8ZP_SCRATCH_PTR"))
                 require(register.isWord())
                 asmgen.out("""
                     ldy  #$offset
                     lda  ($ptrZpVar),y
                     clc
-                    adc  P8ZP_SCRATCH_W1
+                    adc  P8ZP_SCRATCH_PTR
                     sta  ($ptrZpVar),y
                     iny
                     lda  ($ptrZpVar),y
-                    adc  P8ZP_SCRATCH_W1+1
+                    adc  P8ZP_SCRATCH_PTR+1
                     sta  ($ptrZpVar),y""")
             }
             else -> throw AssemblyError("weird source value $value")
@@ -889,7 +889,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         val (ptrZpVar, _) = deref(target.pointer, addOffsetToPointer = true)
 
         fun divide(signed: Boolean) {
-            // on entry here: number placed in P8ZP_SCRATCH_W1, divisor placed in AY
+            // on entry here: number placed in P8ZP_SCRATCH_PTR, divisor placed in AY
             if(signed) asmgen.out("jsr  prog8_math.divmod_w_asm")
             else asmgen.out("jsr  prog8_math.divmod_uw_asm")
             asmgen.out("""
@@ -909,8 +909,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     throw AssemblyError("divide by power of two should have been a shift $value.position")
                 asmgen.loadIndirectWord(ptrZpVar, 0u)
                 asmgen.out("""
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
+                    sta  P8ZP_SCRATCH_PTR
+                    sty  P8ZP_SCRATCH_PTR+1
                     lda  #<$number
                     ldy  #>$number""")
                 divide(target.dt.isSigned)
@@ -1138,29 +1138,29 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, index: PtExpression, arrayDt: DataType) {
-        val ptrZp = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, target.scope, target.position, variableAsmName="P8ZP_SCRATCH_W1")
+        val ptrZp = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, target.scope, target.position, variableAsmName="P8ZP_SCRATCH_PTR")
         assignAddressOfIndexedPointer(ptrZp, arrayVarName, arrayDt, index)
         when {
             target.datatype.isByteOrBool -> {
                 asmgen.out("""
                     ldy  #0
-                    lda  (P8ZP_SCRATCH_W1),y""")
+                    lda  (P8ZP_SCRATCH_PTR),y""")
                 asmgen.assignRegister(RegisterOrPair.A, target)
             }
             target.datatype.isWord || target.datatype.isPointer -> {
                 if(asmgen.isTargetCpu(CpuType.CPU65C02))
                     asmgen.out("""
                         ldy  #1
-                        lda  (P8ZP_SCRATCH_W1),y
+                        lda  (P8ZP_SCRATCH_PTR),y
                         tax
-                        lda  (P8ZP_SCRATCH_W1)""")
+                        lda  (P8ZP_SCRATCH_PTR)""")
                 else
                     asmgen.out("""
                         ldy  #1
-                        lda  (P8ZP_SCRATCH_W1),y
+                        lda  (P8ZP_SCRATCH_PTR),y
                         tax
                         dey
-                        lda  (P8ZP_SCRATCH_W1),y""")
+                        lda  (P8ZP_SCRATCH_PTR),y""")
                 asmgen.assignRegister(RegisterOrPair.AX, target)
             }
             target.datatype.isLong -> {
@@ -1169,8 +1169,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             target.datatype.isFloat -> {
                 // TODO optimize the float copying to avoid having to go through FAC1
                 asmgen.out("""
-                    lda  P8ZP_SCRATCH_W1
-                    ldy  P8ZP_SCRATCH_W1+1
+                    lda  P8ZP_SCRATCH_PTR
+                    ldy  P8ZP_SCRATCH_PTR+1
                     jsr  floats.MOVFM""")
                 asmgen.assignRegister(RegisterOrPair.FAC1, target)
             }

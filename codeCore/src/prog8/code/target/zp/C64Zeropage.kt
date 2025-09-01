@@ -9,6 +9,7 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
     override val SCRATCH_REG = 0x03u     // temp storage for a register byte, must be B1+1
     override val SCRATCH_W1 = 0xfbu      // temp storage 1 for a word  $fb+$fc
     override val SCRATCH_W2 = 0xfdu      // temp storage 2 for a word  $fd+$fe
+    override val SCRATCH_PTR = 0x9bu     // temp storage for a pointer $9b+$9c
 
 
     init {
@@ -21,7 +22,6 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         if (options.zeropage == ZeropageType.FULL) {
             free.addAll(0x02u..0xffu)
-            free.removeAll(arrayOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1+1u, SCRATCH_W2, SCRATCH_W2+1u))
             free.removeAll(arrayOf(0xa0u, 0xa1u, 0xa2u, 0x91u, 0xc0u, 0xc5u, 0xcbu, 0xf5u, 0xf6u))        // these are updated by IRQ
         } else {
             if (options.zeropage == ZeropageType.KERNALSAFE || options.zeropage == ZeropageType.FLOATSAFE) {

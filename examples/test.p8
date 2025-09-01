@@ -1,59 +1,61 @@
 %import textio
-%import floats
-%zeropage floatsafe
+%zeropage basicsafe
 
-main{
-    struct Country {
-        str name
-        float population        ; millions
-        uword area              ; 1000 km^2
-        ubyte code
+
+main {
+    struct Ptr {
+        word value
+        byte bvalue
     }
-
-    ^^Country @shared cptr = 20000
-    ^^Country @shared @nozp cptr2 = 20000
-    ^^Country @shared @requirezp cptr3 = 20000
-    word @shared @nozp nonzeropage
-    word @shared idontcare
-    ^^ubyte @shared ubptr = 20000
 
     sub start() {
-        ubptr^^ += 10
-        cptr.code = 20
-        cptr.code += 10
-;        cptr.name = "name1"
-;        cptr.population = 1.111
-;        cptr.area = 11111
-;        cptr ++
-;        cptr.name = "name2"
-;        cptr.population = 2.222
-;        cptr.area = 22222
-;        cptr = 20000
-;
-;        dump()
-;        printnames()
+        ^^Ptr pp = Ptr()
+        uword @nozp plainptr = &pp.bvalue
+        pp.value = -999
+        pp.bvalue = -99
+        txt.print_w(clamp(pp.value, 10, 2000))
+        txt.spc()
+        txt.print_b(clamp(pp.bvalue, 10, 100))
+        txt.spc()
+        pp.bvalue = 5
+        txt.print_ub(clamp(plainptr[0], 10, 100))
+        txt.nl()
+
+        pp.value = 5000
+        pp.bvalue = 120
+        txt.print_w(clamp(pp.value, 10, 2000))
+        txt.spc()
+        txt.print_b(clamp(pp.bvalue, 10, 100))
+        txt.spc()
+        pp.bvalue = 120
+        txt.print_ub(clamp(plainptr[0], 10, 100))
+        txt.nl()
+
+        pp.value = 1234
+        pp.bvalue = 66
+        txt.print_w(clamp(pp.value, 10, 2000))
+        txt.spc()
+        txt.print_b(clamp(pp.bvalue, 10, 100))
+        txt.spc()
+        pp.bvalue = 66
+        txt.print_ub(clamp(plainptr[0], 10, 100))
+        txt.nl()
     }
 
-    sub printnames() {
-        txt.print(cptr[0].name)
-        txt.nl()
-        txt.print(cptr[1].name)
-        txt.nl()
-    }
-
-    sub dump() {
-        txt.print(cptr[0].name)
-        txt.spc()
-        txt.print_f(cptr[0].population)
-        txt.spc()
-        txt.print_uw(cptr[0].area)
-        txt.nl()
-        txt.print(cptr[1].name)
-        txt.spc()
-        txt.print_f(cptr[1].population)
-        txt.spc()
-        txt.print_uw(cptr[1].area)
-        txt.nl()
-    }
 }
 
+;%import floats
+;
+;main {
+;    sub start() {
+;        struct List {
+;            uword s
+;            float fl
+;            uword n
+;        }
+;        ^^List  l = List()
+;        l.n[cx16.r0L] = 99
+;;        l.s[cx16.r0L+2] = 42
+;;        l.n[cx16.r0L+2] = 99
+;    }
+;}

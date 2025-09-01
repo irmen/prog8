@@ -104,4 +104,6 @@ private class VirtualZeropage(options: CompilationOptions): Zeropage(options) {
         get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
     override val SCRATCH_W2: UInt
         get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
+    override val SCRATCH_PTR: UInt
+        get() = throw IllegalStateException("virtual shouldn't use this zeropage variable")
 }

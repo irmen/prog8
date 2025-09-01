@@ -23,8 +23,9 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
 
     abstract val SCRATCH_B1 : UInt      // temp storage for a single byte
     abstract val SCRATCH_REG : UInt     // temp storage for a register byte, must be B1+1
-    abstract val SCRATCH_W1 : UInt      // temp storage 1 for a word  $fb+$fc
-    abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word  $fb+$fc
+    abstract val SCRATCH_W1 : UInt      // temp storage 1 for a word
+    abstract val SCRATCH_W2 : UInt      // temp storage 2 for a word
+    abstract val SCRATCH_PTR : UInt     // temp storage for a pointer
 
 
     // the variables allocated into Zeropage.
@@ -38,7 +39,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
             for (reserved in options.zpReserved)
                 reserve(reserved)
 
-            free.removeAll(arrayOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u))
+            free.removeAll(arrayOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u, SCRATCH_PTR, SCRATCH_PTR+1u))
         }
     }
 
