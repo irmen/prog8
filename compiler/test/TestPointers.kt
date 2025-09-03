@@ -872,13 +872,13 @@ main {
     }
 }"""
 
-        val result = compileText(Cx16Target(), true, src, outputDir)!!
-        val st = result.codegenAst!!.entrypoint()!!.children
-        st.size shouldBe 12
-        val add1 = (st[8] as PtSub).children
-        val add2 = (st[9] as PtSub).children
-        val sub1 = (st[10] as PtSub).children
-        val sub2 = (st[11] as PtSub).children
+        val result = compileText(VMTarget(), true, src, outputDir)!!
+        val st = result.codegenAst!!.allBlocks().first { it.name=="main" }.children
+        st.size shouldBe 5
+        val add1 = (st[1] as PtSub).children
+        val add2 = (st[2] as PtSub).children
+        val sub1 = (st[3] as PtSub).children
+        val sub2 = (st[4] as PtSub).children
         add1.size shouldBe 5
         add2.size shouldBe 5
         sub1.size shouldBe 5

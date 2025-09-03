@@ -53,6 +53,14 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
             }
         }
 
+        if(typecast.type.isUnsignedWord && sourceDt.isPointer) {
+            // remove all typecasts of pointers to unsigned words if they're not part of a pointer arithmetic expression.
+            val expr = typecast.parent as? BinaryExpression
+            if(expr==null || (expr.operator!="+" && expr.operator!="-")) {
+                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+            }
+        }
+
         return noModifications
     }
 

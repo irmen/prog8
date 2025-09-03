@@ -211,7 +211,10 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     val structsize = expr.left.inferType(program).getOrUndef().size(program.memsizer)
                     // pointer + byte  ->  (pointer as uword) + (byte as uword * structsize)   (yields better code on 6502 than the plain pointer arithmetic)
                     val ptrCast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
-                    val multiply = BinaryExpression(expr.right, "*", NumericLiteral(BaseDataType.UWORD, structsize.toDouble(), expr.right.position), expr.right.position)
+                    val multiply = if(structsize>1)
+                            BinaryExpression(expr.right, "*", NumericLiteral(BaseDataType.UWORD, structsize.toDouble(), expr.right.position), expr.right.position)
+                        else
+                            expr.right
                     val replacement = BinaryExpression(ptrCast, expr.operator, multiply, expr.position)
                     return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
                 }
