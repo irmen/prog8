@@ -56,6 +56,8 @@ main {
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
+- SIZE REGRESSION:  binarytree incresed with a dozen bytes or so, fountain-cx16 with a few, sortedlist with 20 or so
+
 - implement the remaining TODO's in PointerAssignmentsGen.
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?

@@ -6,6 +6,7 @@ import prog8.ast.Program
 import prog8.ast.defaultZero
 import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
+import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -199,6 +200,20 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                         val newExpr = BinaryExpression(expr.left, "<", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
                         return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
                     }
+                }
+            }
+        }
+
+        if(expr.operator=="+" || expr.operator=="-") {
+            if(options.compTarget.name!=VMTarget.NAME && expr.left.inferType(program).isPointer) {
+                val cast = expr.right as? TypecastExpression
+                if(cast!=null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
+                    val structsize = expr.left.inferType(program).getOrUndef().size(program.memsizer)
+                    // pointer + byte  ->  (pointer as uword) + (byte as uword * structsize)   (yields better code on 6502 than the plain pointer arithmetic)
+                    val ptrCast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
+                    val multiply = BinaryExpression(expr.right, "*", NumericLiteral(BaseDataType.UWORD, structsize.toDouble(), expr.right.position), expr.right.position)
+                    val replacement = BinaryExpression(ptrCast, expr.operator, multiply, expr.position)
+                    return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
                 }
             }
         }
