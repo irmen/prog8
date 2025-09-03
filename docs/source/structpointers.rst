@@ -167,6 +167,11 @@ The struct type creates a new name scape, so accessing the fields of a struct is
     This is because the 6502 CPU is not particularly well equipped to dealing with pointers and accessing struct fields via offsets,
     as compared to direct variable access or array indexing. The prog8 program code may be easier to work with though!
 
+.. note::
+    Accessing the first field in a struct is more efficient than subsequent fields, because it
+    is at offset 0 so no additional addition has to be done on a pointer to reach the first field.
+    Try to put the most often accessed field as the first field to gain a rather substantial code size and efficiency boost.
+
 
 Static initialization of structs
 ================================

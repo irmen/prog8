@@ -116,23 +116,6 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         // this will often be the temp var P8ZP_SCRATCH_PTR but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
         // returs the ZP var to use as a pointer, and possibly a Y register offset (if it's >=1).
 
-        // TODO optimize away the use of a temporary var if it turns out that the field offset is 0 (and the var is in zp already)
-
-        if(pointer.chain.isEmpty()) {
-            // TODO: do we have to look at derefLast ?
-
-            if(!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
-                return pointer.startpointer.name to 0u
-            else {
-                // have to copy it to temp zp var
-                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-                return "P8ZP_SCRATCH_PTR" to 0u
-            }
-        }
-
-        // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_PTR
-        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-
         fun addFieldOffset(fieldoffset: UInt) {
             if(fieldoffset==0u)
                 return
@@ -147,6 +130,40 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 +""")
         }
 
+        var struct: StStruct? = null
+        if(pointer.startpointer.type.subType!=null)
+            struct = pointer.startpointer.type.subType as StStruct
+
+        if(pointer.chain.isEmpty()) {
+            require(!pointer.derefLast)     // TODO is this always okay here?
+            if(!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
+                return pointer.startpointer.name to 0u
+            else {
+                // have to copy it to temp zp var
+                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                return "P8ZP_SCRATCH_PTR" to 0u
+            }
+        } else if(pointer.chain.size==1) {
+            require(!pointer.derefLast)     // TODO is this always okay here?
+            val field = struct!!.getField(pointer.chain[0], asmgen.program.memsizer)
+            if(addOffsetToPointer) {
+                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                addFieldOffset(field.second.toUInt())
+                return "P8ZP_SCRATCH_PTR" to 0u
+            } else {
+                if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
+                    return pointer.startpointer.name to field.second
+                else {
+                    // have to copy it to temp zp var
+                    asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                    return "P8ZP_SCRATCH_PTR" to field.second
+                }
+            }
+        }
+
+        // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_PTR
+        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+
         fun updatePointer() {
             asmgen.out("""
                 ldy  #0
@@ -159,9 +176,6 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
 
         // traverse deref chain
-        var struct: StStruct? = null
-        if(pointer.startpointer.type.subType!=null)
-            struct = pointer.startpointer.type.subType as StStruct
         for(deref in pointer.chain.dropLast(1)) {
             val fieldinfo = struct!!.getField(deref, asmgen.program.memsizer)
             val fieldoffset = fieldinfo.second
