@@ -495,8 +495,25 @@ internal class AssignmentAsmGen(
             }
             is PtBinaryExpression -> {
                 if(value.operator==".") {
-                    val reg = pointergen.operatorDereference(value)
-                    asmgen.assignRegister(reg, assign.target)
+                    val (zpPtrVar, offset, dt) = pointergen.operatorDereference(value)
+                    when {
+                        dt.isByteOrBool -> {
+                            asmgen.loadIndirectByte(zpPtrVar, offset)
+                            asmgen.assignRegister(RegisterOrPair.A, assign.target)
+                        }
+                        dt.isWord ||dt.isPointer -> {
+                            asmgen.loadIndirectWord(zpPtrVar, offset)
+                            asmgen.assignRegister(RegisterOrPair.AY, assign.target)
+                        }
+                        dt.isFloat -> {
+                            asmgen.loadIndirectFloat(zpPtrVar, offset)
+                            asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
+                        }
+                        dt.isLong -> {
+                            TODO("read long")
+                        }
+                        else -> throw AssemblyError("unsupported dereference type ${dt} ${value.position}")
+                    }
                 }
                 else {
                     if (!attemptAssignOptimizedBinexpr(value, assign)) {

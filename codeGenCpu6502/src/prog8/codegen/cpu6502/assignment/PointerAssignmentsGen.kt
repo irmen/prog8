@@ -114,9 +114,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun deref(pointer: PtPointerDeref, forceTemporary: Boolean=false, addOffsetToPointer: Boolean=false): Pair<String, UByte> {
         // walk the pointer deref chain and leaves the final pointer value in a ZP var
         // this will often be the temp var P8ZP_SCRATCH_PTR but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
-        // returs the ZP var to use as a pointer, and possibly a Y register offset (if it's >=1).
+        // returns the ZP var to use as a pointer, and a Y register offset (which can be zero)
 
-        fun addFieldOffset(fieldoffset: UInt) {
+        fun addFieldOffsetToScratchPointer(fieldoffset: UInt) {
             if(fieldoffset==0u)
                 return
             require(fieldoffset<=0xffu)
@@ -130,41 +130,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 +""")
         }
 
-        var struct: StStruct? = null
-        if(pointer.startpointer.type.subType!=null)
-            struct = pointer.startpointer.type.subType as StStruct
-
-        if(pointer.chain.isEmpty()) {
-            require(!pointer.derefLast)     // TODO is this always okay here?
-            if(!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
-                return pointer.startpointer.name to 0u
-            else {
-                // have to copy it to temp zp var
-                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-                return "P8ZP_SCRATCH_PTR" to 0u
-            }
-        } else if(pointer.chain.size==1) {
-            require(!pointer.derefLast)     // TODO is this always okay here?
-            val field = struct!!.getField(pointer.chain[0], asmgen.program.memsizer)
-            if(addOffsetToPointer) {
-                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-                addFieldOffset(field.second.toUInt())
-                return "P8ZP_SCRATCH_PTR" to 0u
-            } else {
-                if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
-                    return pointer.startpointer.name to field.second
-                else {
-                    // have to copy it to temp zp var
-                    asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-                    return "P8ZP_SCRATCH_PTR" to field.second
-                }
-            }
-        }
-
-        // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_PTR
-        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-
-        fun updatePointer() {
+        fun updateScratchPointer() {
             asmgen.out("""
                 ldy  #0
                 lda  (P8ZP_SCRATCH_PTR),y
@@ -175,27 +141,78 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 stx  P8ZP_SCRATCH_PTR""")
         }
 
+        var struct: StStruct? = null
+        if(pointer.startpointer.type.subType!=null)
+            struct = pointer.startpointer.type.subType as StStruct
+
+        if(pointer.chain.isEmpty()) {
+            if(pointer.derefLast) {
+                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                updateScratchPointer()
+                return "P8ZP_SCRATCH_PTR" to 0u
+            } else {
+                if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
+                    return pointer.startpointer.name to 0u
+                else {
+                    asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                    return "P8ZP_SCRATCH_PTR" to 0u
+                }
+            }
+        } else if(pointer.chain.size==1) {
+            val field = struct!!.getField(pointer.chain[0], asmgen.program.memsizer)
+            if(addOffsetToPointer) {
+                asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                addFieldOffsetToScratchPointer(field.second.toUInt())
+                if(pointer.derefLast)
+                    updateScratchPointer()
+                return "P8ZP_SCRATCH_PTR" to 0u
+            } else {
+                if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name)) {
+                    if(pointer.derefLast) {
+                        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                        addFieldOffsetToScratchPointer(field.second.toUInt())
+                        return "P8ZP_SCRATCH_PTR" to 0u
+                    }
+                    else
+                        return pointer.startpointer.name to field.second
+                }
+                else {
+                    // have to copy it to temp zp var
+                    asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                    if(pointer.derefLast) {
+                        addFieldOffsetToScratchPointer(field.second.toUInt())
+                        return "P8ZP_SCRATCH_PTR" to 0u
+                    }
+                    else
+                        return "P8ZP_SCRATCH_PTR" to field.second
+                }
+            }
+        }
+
+        // walk pointer chain, calculate pointer address using P8ZP_SCRATCH_PTR
+        asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+
         // traverse deref chain
         for(deref in pointer.chain.dropLast(1)) {
             val fieldinfo = struct!!.getField(deref, asmgen.program.memsizer)
             val fieldoffset = fieldinfo.second
             struct = fieldinfo.first.subType as StStruct
             // get new pointer from field (P8ZP_SCRATCH_PTR += fieldoffset, read pointer from new location)
-            addFieldOffset(fieldoffset.toUInt())
-            updatePointer()
+            addFieldOffsetToScratchPointer(fieldoffset.toUInt())
+            updateScratchPointer()
         }
 
         val field = pointer.chain.last()
         val fieldinfo = struct!!.getField(field, asmgen.program.memsizer)
 
         if(pointer.derefLast) {
-            addFieldOffset(fieldinfo.second.toUInt())
+            addFieldOffsetToScratchPointer(fieldinfo.second.toUInt())
             require(fieldinfo.first.isPointer)
-            updatePointer()
+            updateScratchPointer()
             return "P8ZP_SCRATCH_PTR" to 0u
         } else {
             if(addOffsetToPointer) {
-                addFieldOffset(fieldinfo.second.toUInt())
+                addFieldOffsetToScratchPointer(fieldinfo.second.toUInt())
                 return "P8ZP_SCRATCH_PTR" to 0u
             } else
                 return "P8ZP_SCRATCH_PTR" to fieldinfo.second
@@ -384,8 +401,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("array ptr assign word var ${target.position}")
     }
 
-    internal fun operatorDereference(binExpr: PtBinaryExpression): RegisterOrPair {
+    internal fun operatorDereference(binExpr: PtBinaryExpression): Triple<String, UByte, DataType> {
         // the only case we support here is:   a.b.c[i] . value
+        // returns the ZP var to use as a pointer, and a Y register offset (which can be zero), and finally the datatype of the field
         val left = binExpr.left as? PtArrayIndexer
         val right = binExpr.right as? PtIdentifier
         require(binExpr.operator=="." && left!=null && right!=null) {"invalid dereference expression ${binExpr.position}"}
@@ -421,41 +439,21 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             field = struct.getField(right.name, asmgen.program.memsizer)
         }
 
-        // add field offset to pointer in AY
-        // TODO instead of explicitly adding, use Y register as the index
         val offset = extraFieldOffset + field.second.toInt()
-        if(offset>0) {
-            if(offset<256) {
-                asmgen.out("""
-                    clc
-                    adc  #$offset
-                    bcc  +
-                    iny
-+""")
-            } else {
-                TODO("add field offset word $offset to pointer in AY")
-            }
-        }
-
-        // AY now points to the field whose value we wanted, now get the actual value at that location
-        asmgen.out("  sta  P8ZP_SCRATCH_PTR |  sty  P8ZP_SCRATCH_PTR+1")
-        when {
-            field.first.isByteOrBool -> {
-                asmgen.loadIndirectByte("P8ZP_SCRATCH_PTR", 0u)
-                return RegisterOrPair.A
-            }
-            field.first.isWord || field.first.isPointer -> {
-                asmgen.loadIndirectWord("P8ZP_SCRATCH_PTR", 0u)
-                return RegisterOrPair.AY
-            }
-            field.first.isFloat -> {
-                asmgen.loadIndirectFloat("P8ZP_SCRATCH_PTR", 0u)
-                return RegisterOrPair.FAC1
-            }
-            field.first.isLong -> {
-                TODO("read long")
-            }
-            else -> throw AssemblyError("unsupported dereference type ${field.first} ${binExpr.position}")
+        // TODO avoid always using a zp scratch reg below if the only thing we dereferenced above is a pointer variable that is already in zeropage itself
+        if(offset>=256) {
+            // add field offset to pointer if it doesn't fit in the index register
+            asmgen.out("""
+                clc
+                adc  #<$offset
+                sta  P8ZP_SCRATCH_PTR
+                tya
+                adc  #>$offset
+                sta  P8ZP_SCRATCH_PTR+1""")
+            return Triple("P8ZP_SCRATCH_PTR", 0u, field.first)
+        } else {
+            asmgen.out("  sta  P8ZP_SCRATCH_PTR |  sty  P8ZP_SCRATCH_PTR+1")
+            return Triple("P8ZP_SCRATCH_PTR", offset.toUByte(), field.first)
         }
     }
 
