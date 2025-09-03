@@ -65,6 +65,7 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
   or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?
 - add struct and pointer benchmark to benchmark program?
+- optimize addUnsignedByteOrWordToAY in PointerAssignmentsGen a bit more
 - support for typed function pointers?  (&routine could be typed by default as well then)
 - support @nosplit pointer arrays?
 - support pointer to pointer?

@@ -4,6 +4,7 @@ import prog8.code.StExtSub
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.target.VMTarget
 import kotlin.math.log2
 
 
@@ -106,7 +107,7 @@ private fun optimizeBinaryExpressions(program: PtProgram, options: CompilationOp
     walkAst(program) { node: PtNode, depth: Int ->
         if (node is PtBinaryExpression) {
             val constvalue = node.right.asConstValue()
-            if(node.operator=="<<" && constvalue==1.0) {
+            if(node.operator=="<<" && constvalue==1.0 && options.compTarget.name!=VMTarget.NAME) {
                 val typecast=node.left as? PtTypeCast
                 if(typecast!=null && typecast.type.isWord && typecast.value is PtIdentifier) {
                     val addition = node.parent as? PtBinaryExpression

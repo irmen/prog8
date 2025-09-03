@@ -427,7 +427,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             if(constindex!=null) {
                 extraFieldOffset = struct.size.toInt() * constindex.number.toInt()
             } else {
-                addUnsignedWordToAY(left.index, struct.size.toInt())
+                addUnsignedByteOrWordToAY(left.index, struct.size.toInt())
             }
             field = struct.getField(right.name, asmgen.program.memsizer)
 
@@ -457,46 +457,81 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
-    private fun addUnsignedWordToAY(value: PtExpression, scale: Int?) {
+    private fun addUnsignedByteOrWordToAY(value: PtExpression, scale: Int?) {
+        // TODO generate more optimal code from this, a bit too much stack and temporary variable juggling seems to be done in some easy cases...
 
         fun complicatedFallback() {
             // slow fallback routine that can deal with any expression for value
-            require(value.type.isWord)
 
-            fun restoreAYandAddAsmVariable(varname: String) {
+            fun restoreAYandAddAsmVariable(varname: String, isByte: Boolean) {
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)       // msb
                 asmgen.restoreRegisterStack(CpuRegister.A, false)       // lsb
-                asmgen.out("""
+                if(isByte) {
+                    asmgen.out("""
                         clc
-                        adc  P8ZP_SCRATCH_PTR
+                        adc  $varname
+                        bcc  +
+                        iny
++""")
+                } else {
+                    asmgen.out("""
+                        clc
+                        adc  $varname
                         pha
                         tya
-                        adc  P8ZP_SCRATCH_PTR+1
+                        adc  $varname+1
                         tay
                         pla""")
+                }
             }
 
             if (scale == null || scale == 1) {
-                asmgen.pushCpuStack(BaseDataType.UWORD, value)
-                asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-                restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR")
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                if(value.type.isUnsignedWord) {
+                    asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W2", DataType.UWORD)
+                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_W2", false)
+                } else {
+                    asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_REG", DataType.UBYTE)
+                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_REG", true)
+                }
             } else {
-                // P8ZP_SCRATCH_PTR = value * scale
+                // P8ZP_SCRATCH_W2 = value * scale
                 if(value is PtBinaryExpression && value.operator=="+" && value.right is PtNumber) {
                     // (x + y) * scale == (x * scale) + (y * scale)
-                    addUnsignedWordToAY(value.left, scale)
-                    addUnsignedWordToAY(value.right, scale)
-                } else {
-                    asmgen.pushCpuStack(BaseDataType.UWORD, value)
+                    addUnsignedByteOrWordToAY(value.left, scale)
+                    addUnsignedByteOrWordToAY(value.right, scale)
+                } else if(value is PtIdentifier) {
+                    // no need to save AY on the stack in this case we can slightly optimize it by storing them in a temp variable instead
+                    asmgen.out("  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")
                     val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
                     mult.parent = value.parent
                     mult.add(value)
                     mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
                     val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_PTR")
+                    val target = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UWORD, value.definingISub(), value.position, register = RegisterOrPair.AY)
                     val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign, value.definingISub())
-                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR")
+                    asmgen.out("""
+                        clc
+                        adc  P8ZP_SCRATCH_W2
+                        pha
+                        tya
+                        adc  P8ZP_SCRATCH_W2+1
+                        tay
+                        pla""")
+                } else {
+                    asmgen.saveRegisterStack(CpuRegister.A, false)
+                    asmgen.saveRegisterStack(CpuRegister.Y, false)
+                    val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
+                    mult.parent = value.parent
+                    mult.add(value)
+                    mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
+                    val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
+                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_W2")
+                    val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
+                    asmgen.translateNormalAssignment(assign, value.definingISub())
+                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_W2", false)
                 }
             }
         }
@@ -526,23 +561,34 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 }
             }
             is PtIdentifier -> {
-                require(value.type.isWord)
                 val varname = asmgen.asmVariableName(value)
                 if(scale==null || scale==1) {
-                    asmgen.out("""
-                        clc
-                        adc  $varname
-                        pha
-                        tya
-                        adc  $varname+1
-                        tay
-                        pla""")
+                    if(value.type.isUnsignedWord)
+                        asmgen.out("""
+                            clc
+                            adc  $varname
+                            pha
+                            tya
+                            adc  $varname+1
+                            tay
+                            pla""")
+                    else if(value.type.isUnsignedByte) {
+                        asmgen.out("""
+                            clc
+                            adc  $varname
+                            bcc  +
+                            iny
++""")
+                    } else {
+                        throw AssemblyError("weird index type ${value.type} ${value.position}")
+                    }
                 } else {
                     // AY += var * scale
                     complicatedFallback()
                 }
             }
             else -> {
+                // AY += var * scale
                 complicatedFallback()
             }
         }
@@ -1150,6 +1196,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, index: PtExpression, arrayDt: DataType) {
+        TODO("assign indexed pointer from array $arrayVarName  at ${target.position}")
         val ptrZp = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, target.scope, target.position, variableAsmName="P8ZP_SCRATCH_PTR")
         assignAddressOfIndexedPointer(ptrZp, arrayVarName, arrayDt, index)
         when {
