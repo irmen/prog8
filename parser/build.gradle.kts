@@ -21,6 +21,11 @@ tasks.compileJava {
     dependsOn(tasks.generateGrammarSource)
 }
 
+tasks.compileKotlin {
+    dependsOn(tasks.generateGrammarSource)
+}
+
+
 sourceSets {
     main {
         java {

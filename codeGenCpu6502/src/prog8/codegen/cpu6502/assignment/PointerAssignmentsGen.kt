@@ -146,17 +146,13 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             struct = pointer.startpointer.type.subType as StStruct
 
         if(pointer.chain.isEmpty()) {
-            if(pointer.derefLast) {
+            require(pointer.derefLast)
+            // just return the pointer itself
+            if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
+                return pointer.startpointer.name to 0u
+            else {
                 asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-                updateScratchPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
-            } else {
-                if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
-                    return pointer.startpointer.name to 0u
-                else {
-                    asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
-                    return "P8ZP_SCRATCH_PTR" to 0u
-                }
             }
         } else if(pointer.chain.size==1) {
             val field = struct!!.getField(pointer.chain[0], asmgen.program.memsizer)
