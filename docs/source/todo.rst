@@ -56,6 +56,10 @@ main {
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
+- allow struct initialization syntax in an array such as [ Node(), Node(), Node() ],  update sorting example to use list of countries like that
+- remove support for assigning struct init syntax to a pointer var (or at least make it a warning? because it is super confusing that this won't give you a new struct every time but simply refers to a single static instance)
+  removing it also makes it possible to remove the hacky way the struct instance symbol is now generated (with those hashes of the position in the source)
+  OR: change the syntax so it no longer resembles a function call, maybe:  ptr = ^^Node { 0,1,2 }
 - implement the remaining TODO's in PointerAssignmentsGen.
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?

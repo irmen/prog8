@@ -178,15 +178,16 @@ Static initialization of structs
 
 You can 'allocate' and statically initialize a struct. This behave much like initializing arrays does,
 and it won't reset to the original value when the program is restarted, so beware.
-*Remember that the struct is statically allocated, and appears just once:* this means that, for instance, if you do this in a subroutine that gets
-called multiple times, the struct will be the same instance every time. Read below if you need *dynamic* struct allocation.
-There are two ways to initialize a struct like this:
+*Remember that the struct is statically allocated, and appears just once in the memory:*
+This means that, for instance, if you do this in a subroutine that gets
+called multiple times, or inside a loop, the struct *will be the same instance every time*. Similar to how `memory()` behaves.get
+Read below if you need *dynamic* struct allocation! There are two ways to initialize a struct in static manners:
 
 ``^^Node ptr = Node(1,2,3,4)``
-    statically allocates a Node with its fields set to 1,2,3,4 and puts the address of this struct in ptr.
+    statically places a Node instance in memory, with its fields set to 1,2,3,4 and puts the address of this struct in ptr.
     The values between the parenthesis must correspond exactly with the first to last declared fields in the struct type.
 ``Node()``
-    (without arguments) Allocates a node in BSS variable space instead, which gets zeroed out at program startup.
+    (without arguments) Places a node instance in BSS variable space instead, which gets zeroed out at program startup.
 
 
 Dynamic allocation of structs
