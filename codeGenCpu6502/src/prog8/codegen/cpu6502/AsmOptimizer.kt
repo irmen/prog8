@@ -73,6 +73,13 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationT
         numberOfOptimizations++
     }
 
+    mods = optimizeAddWordToSameVariable(linesByFourteen)
+    if(mods.isNotEmpty()) {
+        apply(mods, lines)
+        linesByFourteen = getLinesBy(lines, 14)
+        numberOfOptimizations++
+    }
+
     return numberOfOptimizations
 }
 
@@ -765,5 +772,60 @@ private fun optimizeUnneededTempvarInAdd(linesByFour: Sequence<List<IndexedValue
         }
     }
 
+    return mods
+}
+
+private fun optimizeAddWordToSameVariable(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
+    /*
+        ; P8ZP_SCRATCH_PTR += AY :
+        clc
+        adc  P8ZP_SCRATCH_PTR
+        pha
+        tya
+        adc  P8ZP_SCRATCH_PTR+1
+        tay
+        pla
+        sta  P8ZP_SCRATCH_PTR
+        sty  P8ZP_SCRATCH_PTR+1
+
+	    ->
+
+        clc
+    	adc  P8ZP_SCRATCH_PTR
+    	sta  P8ZP_SCRATCH_PTR
+    	tya
+    	adc  P8ZP_SCRATCH_PTR+1
+    	sta  P8ZP_SCRATCH_PTR+1
+     */
+    val mods = mutableListOf<Modification>()
+    for (lines in linesByFourteen) {
+        val first = lines[0].value.trimStart()
+        val second = lines[1].value.trimStart()
+        val third = lines[2].value.trimStart()
+        val fourth = lines[3].value.trimStart()
+        val fifth = lines[4].value.trimStart()
+        val sixth = lines[5].value.trimStart()
+        val seventh = lines[6].value.trimStart()
+        val eight = lines[7].value.trimStart()
+        val ninth = lines[8].value.trimStart()
+
+        if(first=="clc" && second.startsWith("adc") && third=="pha" && fourth=="tya" &&
+            fifth.startsWith("adc") && sixth=="tay" && seventh=="pla" && eight.startsWith("sta") && ninth.startsWith("sty")) {
+            val var2 = second.substring(4)
+            val var5 = fifth.substring(4).substringBefore('+')
+            val var8 = eight.substring(4)
+            val var9 = ninth.substring(4).substringBefore('+')
+            if(var2==var5 && var2==var8 && var2==var9) {
+                if(fifth.endsWith("$var5+1") && ninth.endsWith("$var9+1")) {
+                    mods.add(Modification(lines[2].index, false, "  sta  $var2"))
+                    mods.add(Modification(lines[5].index, false, "  sta  $var2+1"))
+                    mods.add(Modification(lines[6].index, true, null))
+                    mods.add(Modification(lines[7].index, true, null))
+                    mods.add(Modification(lines[8].index, true, null))
+                    mods.add(Modification(lines[9].index, true, null))
+                }
+            }
+        }
+    }
     return mods
 }

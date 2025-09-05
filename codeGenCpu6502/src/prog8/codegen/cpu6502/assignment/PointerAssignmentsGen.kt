@@ -485,21 +485,21 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
                 if(value.type.isUnsignedWord) {
-                    asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W2", DataType.UWORD)
-                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_W2", false)
+                    asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR", false)
                 } else {
                     asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_REG", DataType.UBYTE)
                     restoreAYandAddAsmVariable("P8ZP_SCRATCH_REG", true)
                 }
             } else {
-                // P8ZP_SCRATCH_W2 = value * scale
+                // P8ZP_SCRATCH_PTR = value * scale
                 if(value is PtBinaryExpression && value.operator=="+" && value.right is PtNumber) {
                     // (x + y) * scale == (x * scale) + (y * scale)
                     addUnsignedByteOrWordToAY(value.left, scale)
                     addUnsignedByteOrWordToAY(value.right, scale)
                 } else if(value is PtIdentifier) {
                     // no need to save AY on the stack in this case we can slightly optimize it by storing them in a temp variable instead
-                    asmgen.out("  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")
+                    asmgen.out("  sta  P8ZP_SCRATCH_PTR |  sty  P8ZP_SCRATCH_PTR+1")
                     val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
                     mult.parent = value.parent
                     mult.add(value)
@@ -510,10 +510,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     asmgen.translateNormalAssignment(assign, value.definingISub())
                     asmgen.out("""
                         clc
-                        adc  P8ZP_SCRATCH_W2
+                        adc  P8ZP_SCRATCH_PTR
                         pha
                         tya
-                        adc  P8ZP_SCRATCH_W2+1
+                        adc  P8ZP_SCRATCH_PTR+1
                         tay
                         pla""")
                 } else {
@@ -524,10 +524,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     mult.add(value)
                     mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
                     val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_W2")
+                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_PTR")
                     val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
                     asmgen.translateNormalAssignment(assign, value.definingISub())
-                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_W2", false)
+                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR", false)
                 }
             }
         }
