@@ -822,7 +822,6 @@ private fun optimizeAddWordToSameVariable(linesByFourteen: Sequence<List<Indexed
                     mods.add(Modification(lines[6].index, true, null))
                     mods.add(Modification(lines[7].index, true, null))
                     mods.add(Modification(lines[8].index, true, null))
-                    mods.add(Modification(lines[9].index, true, null))
                 }
             }
         }
