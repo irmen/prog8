@@ -1280,15 +1280,30 @@ main {
         ^^List l2 = 3000
         ^^Foo f1 = 4000
 
-        l1^^ = l2^^
+        l1^^ = l2^^     ; memcpy1
+        l1[3] = l2^^    ; memcpy2
+        ; TODO add more supported syntax here when they're implemented in the future
     }
 }"""
 
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 10
-        (st[8] as FunctionCallStatement).target.nameInSource shouldBe listOf("sys", "memcopy")
+        st.size shouldBe 11
+        val memcpy1 = st[8] as FunctionCallStatement
+        memcpy1.target.nameInSource shouldBe listOf("sys", "memcopy")
+        (memcpy1.args[0] as IdentifierReference).nameInSource shouldBe listOf("l2")
+        (memcpy1.args[1] as IdentifierReference).nameInSource shouldBe listOf("l1")
+        (memcpy1.args[2] as NumericLiteral).number shouldBe 13.0  // sizeof(List)
+        val memcpy2 = st[9] as FunctionCallStatement
+        memcpy2.target.nameInSource shouldBe listOf("sys", "memcopy")
+        (memcpy2.args[0] as IdentifierReference).nameInSource shouldBe listOf("l2")
+        val memcpy2value = memcpy2.args[1] as BinaryExpression
+        memcpy2value.operator shouldBe "+"
+        (memcpy2value.left as IdentifierReference).nameInSource shouldBe listOf("l1")
+        (memcpy2value.right as NumericLiteral).number shouldBe 3.0    // just rely on pointer arithmetic later
+        (memcpy2.args[2] as NumericLiteral).number shouldBe 13.0  // sizeof(List)
+
     }
 
     test("assigning pointer dereferences should be same type") {

@@ -56,6 +56,8 @@ main {
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
+- in CodeDesugarer there is support for ptr1[idx]^^ = ptr2^^  into memcopy() but it doesn't seem to trigger?
+
 - allow struct initialization syntax in an array such as [ Node(), Node(), Node() ],  update sorting example to use list of countries like that
 - remove support for assigning struct init syntax to a pointer var (or at least make it a warning? because it is super confusing that this won't give you a new struct every time but simply refers to a single static instance)
   removing it also makes it possible to remove the hacky way the struct instance symbol is now generated (with those hashes of the position in the source)
