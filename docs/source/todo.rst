@@ -56,6 +56,15 @@ main {
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
+- Bugs:
+        ;node2.type = 10     ;; TODO: fix undefined symbol error
+        ;^^StructAlias node3 = 30000
+        ; node3.type = 10     ;; TODO: fix "unknown field 'type"  error
+
+        ^^OtherNodeAlias other = 20000
+        other++         ;; TODO fix compiler crash Key POINTER is missing in the map
+
+
 - in CodeDesugarer there is support for ptr1[idx]^^ = ptr2^^  into memcopy() but it doesn't seem to trigger?
 
 - allow struct initialization syntax in an array such as [ Node(), Node(), Node() ],  update sorting example to use list of countries like that

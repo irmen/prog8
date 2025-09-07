@@ -2349,4 +2349,40 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("struct and pointer aliasing") {
+        val src="""
+main {
+    sub start() {
+        alias1()
+        alias2()
+        alias3()
+    }
+
+    sub alias1() {
+        alias TheNode = structdefs.Node
+        ^^TheNode node = 20000
+        node.value = 100        ; TODO fix unknown field 'value'
+    }
+
+    sub alias2() {
+        ^^structdefs.Node node = 20000
+        alias thing = node
+        thing.value=200         ; TODO fix undefined symbol: thing.value
+    }
+
+    sub alias3() {
+        alias TheNode = structdefs.Node
+        ^^TheNode node = 20000
+        node++      ;; TODO fix compiler crash Key POINTER is missing in the map
+    }
+}
+
+structdefs {
+    struct Node {
+        ubyte value
+    }
+}"""
+
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
 })

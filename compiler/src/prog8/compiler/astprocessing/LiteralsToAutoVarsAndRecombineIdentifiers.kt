@@ -148,6 +148,15 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             }
         }
 
+        if(target==null && identifier.nameInSource.size>1) {
+            // maybe the first component of the scoped name is an alias?
+            val tgt2 = identifier.definingScope.lookup(identifier.nameInSource.take(1)) as? Alias
+            if(tgt2!=null && parent !is Alias) {
+                if(tgt2.target.targetStatement() !is Alias)
+                    return listOf(IAstModification.ReplaceNode(identifier, tgt2.target.copy(position = identifier.position), parent))
+            }
+        }
+
         // don't replace an identifier in an Alias or when the alias points to another alias (that will be resolved first elsewhere)
         if(target is Alias && parent !is Alias) {
             if(target.target.targetStatement() !is Alias)
