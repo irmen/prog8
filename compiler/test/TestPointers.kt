@@ -1282,6 +1282,15 @@ main {
 
         l1^^ = l2^^     ; memcpy1
         l1[3] = l2^^    ; memcpy2
+        l1[3]^^ = l2^^    ; memcpy3
+        l1[cx16.r0] = l2^^    ; memcpy4
+        l1[cx16.r0]^^ = l2^^    ; memcpy5
+             
+       l2^^ = l1[2]     ;memcpy6
+       l2^^ = l1[2]^^   ;memcpy7
+       l2^^ = l1[cx16.r0L]      ;memcpy8
+       l2^^ = l1[cx16.r0L]^^   ;memcpy9
+
         ; TODO add more supported syntax here when they're implemented in the future
     }
 }"""
@@ -1289,13 +1298,22 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 11
+        st.size shouldBe 18
         val memcpy1 = st[8] as FunctionCallStatement
+        val memcpy2 = st[9] as FunctionCallStatement
+        val memcpy3 = st[10] as FunctionCallStatement
+        val memcpy4 = st[11] as FunctionCallStatement
+        val memcpy5 = st[12] as FunctionCallStatement
+        val memcpy6 = st[13] as FunctionCallStatement
+        val memcpy7 = st[14] as FunctionCallStatement
+        val memcpy8 = st[15] as FunctionCallStatement
+        val memcpy9 = st[16] as FunctionCallStatement
+
         memcpy1.target.nameInSource shouldBe listOf("sys", "memcopy")
         (memcpy1.args[0] as IdentifierReference).nameInSource shouldBe listOf("l2")
         (memcpy1.args[1] as IdentifierReference).nameInSource shouldBe listOf("l1")
         (memcpy1.args[2] as NumericLiteral).number shouldBe 13.0  // sizeof(List)
-        val memcpy2 = st[9] as FunctionCallStatement
+
         memcpy2.target.nameInSource shouldBe listOf("sys", "memcopy")
         (memcpy2.args[0] as IdentifierReference).nameInSource shouldBe listOf("l2")
         val memcpy2value = memcpy2.args[1] as BinaryExpression
@@ -1304,6 +1322,17 @@ main {
         (memcpy2value.right as NumericLiteral).number shouldBe 3.0    // just rely on pointer arithmetic later
         (memcpy2.args[2] as NumericLiteral).number shouldBe 13.0  // sizeof(List)
 
+        (memcpy3.target isSameAs memcpy2.target) shouldBe true
+        memcpy3.args.zip(memcpy2.args).all { it.first isSameAs it.second} shouldBe true
+
+        (memcpy5.target isSameAs memcpy4.target) shouldBe true
+        memcpy5.args.zip(memcpy4.args).all { it.first isSameAs it.second} shouldBe true
+
+        (memcpy7.target isSameAs memcpy6.target) shouldBe true
+        memcpy7.args.zip(memcpy6.args).all { it.first isSameAs it.second} shouldBe true
+
+        (memcpy9.target isSameAs memcpy8.target) shouldBe true
+        memcpy9.args.zip(memcpy8.args).all { it.first isSameAs it.second} shouldBe true
     }
 
     test("assigning pointer dereferences should be same type") {

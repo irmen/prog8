@@ -56,17 +56,6 @@ main {
 STRUCTS and TYPED POINTERS (6502 codegen specific)
 --------------------------------------------------
 
-- Bugs:
-        ;node2.type = 10     ;; TODO: fix undefined symbol error
-        ;^^StructAlias node3 = 30000
-        ; node3.type = 10     ;; TODO: fix "unknown field 'type"  error
-
-        ^^OtherNodeAlias other = 20000
-        other++         ;; TODO fix compiler crash Key POINTER is missing in the map
-
-
-- in CodeDesugarer there is support for ptr1[idx]^^ = ptr2^^  into memcopy() but it doesn't seem to trigger?
-
 - allow struct initialization syntax in an array such as [ Node(), Node(), Node() ],  update sorting example to use list of countries like that
 - remove support for assigning struct init syntax to a pointer var (or at least make it a warning? because it is super confusing that this won't give you a new struct every time but simply refers to a single static instance)
   removing it also makes it possible to remove the hacky way the struct instance symbol is now generated (with those hashes of the position in the source)
@@ -75,7 +64,7 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?
 - optimize the float copying in assignIndexedPointer() (also word?)
-- implement some more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
+- implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size, see test.p8 in commit d394dc1e
 - should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
   or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?

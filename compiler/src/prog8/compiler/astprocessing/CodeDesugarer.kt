@@ -795,6 +795,20 @@ _after:
                             return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
                         }
                     }
+                    val indexedDeref = assignment.target.arrayIndexedDereference
+                    if(indexedDeref!=null) {
+                        val idxType = indexedDeref.inferType(program)
+                        if (idxType.isStructInstance && indexedDeref.chain.size==1 && indexedDeref.derefLast) {
+                            // ptr[idx]^^ = ptr2^^   -->  memcopy(ptr2, ptr1+idx, sizeof(struct))        ; relies on pointer arithmetic
+                            val arrayvar = IdentifierReference(listOf(indexedDeref.chain[0].first), indexedDeref.position)
+                            val index = indexedDeref.chain[0].second!!.indexExpr
+                            val target = BinaryExpression(arrayvar, "+", index, assignment.position)
+                            val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                                mutableListOf(sourcePtr, target, structSizeNum),
+                                false, assignment.position)
+                            return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                        }
+                    }
                 }
 
                 val sourceIdx = assignment.value as? ArrayIndexedExpression
@@ -809,6 +823,27 @@ _after:
                             val memcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "memcopy"), assignment.position),
                                 mutableListOf(source, targetPtr, structSizeNum),
                                 false, assignment.position)
+                            return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
+                        }
+                    }
+                }
+
+                val sourceIndexDeref = assignment.value as? ArrayIndexedPtrDereference
+                if(sourceIndexDeref!=null) {
+                    val idxType = sourceIndexDeref.inferType(program)
+                    if(idxType.isStructInstance && sourceIndexDeref.chain.size==1 && sourceIndexDeref.derefLast && sourceIndexDeref.chain[0].second?.indexExpr!=null) {
+                        val targetDeref = assignment.target.pointerDereference
+                        if(targetDeref!=null) {
+                            // ptr1^^ = ptr2[idx]^^   -->  memcopy(ptr2 + idx, ptr1, sizeof(struct))       ; relies on pointer arithmetic
+                            val chain = sourceIndexDeref.chain.map { it.first }
+                            val sourcePtr = IdentifierReference(chain, assignment.position)
+                            val source = BinaryExpression(sourcePtr, "+", sourceIndexDeref.chain[0].second!!.indexExpr, assignment.position)
+                            val targetPtr = IdentifierReference(targetDeref.chain, assignment.position)
+                            val memcopy = FunctionCallStatement(
+                                IdentifierReference(listOf("sys", "memcopy"), assignment.position),
+                                mutableListOf(source, targetPtr, structSizeNum),
+                                false, assignment.position
+                            )
                             return listOf(IAstModification.ReplaceNode(assignment, memcopy, parent))
                         }
                     }
