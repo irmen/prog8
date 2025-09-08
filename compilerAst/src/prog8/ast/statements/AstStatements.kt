@@ -1413,7 +1413,7 @@ class DirectMemoryWrite(var addressExpression: Expression, override val position
 
 class OnGoto(
     val isCall: Boolean,
-    val index: Expression,
+    var index: Expression,
     val labels: List<IdentifierReference>,
     val elsepart: AnonymousScope?,
     override val position: Position
@@ -1433,6 +1433,7 @@ class OnGoto(
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun replaceChildNode(node: Node, replacement: Node) {
-        throw FatalAstException("can't replace")
+        if (node === index) index = replacement as Expression
+        else throw FatalAstException("can't replace")
     }
 }
