@@ -1,9 +1,6 @@
 TODO
 ====
 
-SIZE REGRESSION: rockrunner is a few dozen bytes larger than with 11.4.1
-
-
 not all source lines are correctly reported in the IR file,
 for example the below subroutine only shows the sub() line:
         sub two() {

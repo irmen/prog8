@@ -1,14 +1,21 @@
-%import textio
 %zeropage basicsafe
 
 main {
-    sub start() {
-        uword @shared z = 100
-        ubyte @shared x = 200
+    ubyte @shared prefix_len = 3
 
-        for x in 15 downto 1 {
-            txt.print_uw(x*$0002-z)     ; TODO fix 6502 optimization bug
-            txt.nl()
-        }
+    sub start() {
+        startswith1("irmen")
+        startswith2("irmen")
     }
+
+    sub startswith1(uword @zp st) {
+        cx16.r9L = st[prefix_len]
+        st[prefix_len] = 'a'
+    }
+
+    sub startswith2(str @zp st) {
+        cx16.r9L = st[prefix_len]
+        st[prefix_len] = 'a'
+    }
+
 }
