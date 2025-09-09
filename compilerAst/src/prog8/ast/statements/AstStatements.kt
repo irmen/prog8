@@ -638,6 +638,7 @@ data class AssignTarget(
                     is DirectMemoryWrite -> memoryAddress = replacement
                     is PtrDereference -> pointerDereference = replacement
                     is ArrayIndexedPtrDereference -> arrayIndexedDereference = replacement
+                    is IdentifierReference -> identifier = replacement
                     else -> throw FatalAstException("invalid replacement for AssignTarget.arrayindexed: $replacement")
                 }
             }
@@ -652,6 +653,7 @@ data class AssignTarget(
                     is DirectMemoryWrite -> memoryAddress = replacement
                     is PtrDereference -> pointerDereference = replacement
                     is ArrayIndexedPtrDereference -> arrayIndexedDereference = replacement
+                    is IdentifierReference -> identifier = replacement
                     else -> throw FatalAstException("invalid replacement for AssignTarget.pointerDereference: $replacement")
                 }
             }
@@ -666,6 +668,7 @@ data class AssignTarget(
                     is DirectMemoryWrite -> memoryAddress = replacement
                     is PtrDereference -> pointerDereference = replacement
                     is ArrayIndexedPtrDereference -> arrayIndexedDereference = replacement
+                    is IdentifierReference -> identifier = replacement
                     else -> throw FatalAstException("invalid replacement for AssignTarget.arrayIndexedDereference: $replacement")
                 }
             }

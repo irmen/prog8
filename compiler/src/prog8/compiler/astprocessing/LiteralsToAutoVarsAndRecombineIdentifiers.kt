@@ -152,8 +152,10 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             // maybe the first component of the scoped name is an alias?
             val tgt2 = identifier.definingScope.lookup(identifier.nameInSource.take(1)) as? Alias
             if(tgt2!=null && parent !is Alias) {
-                if(tgt2.target.targetStatement() !is Alias)
-                    return listOf(IAstModification.ReplaceNode(identifier, tgt2.target.copy(position = identifier.position), parent))
+                if(tgt2.target.targetStatement() !is Alias) {
+                    val actual = IdentifierReference(tgt2.target.nameInSource + identifier.nameInSource.drop(1), identifier.position)
+                    return listOf(IAstModification.ReplaceNode(identifier, actual, parent))
+                }
             }
         }
 
@@ -194,6 +196,24 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                         throw FatalAstException("didn't expect pointer[idx] in this phase already")
                     }
                 }
+            }
+        }
+        return noModifications
+    }
+
+    override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {
+        // TODO handle aliases?
+        return noModifications
+    }
+
+    override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
+        // handle aliases
+        // maybe the first component of the dereference chain is an alias?
+        val tgt2 = deref.definingScope.lookup(deref.chain.take(1)) as? Alias
+        if(tgt2!=null && parent !is Alias) {
+            if(tgt2.target.targetStatement() !is Alias) {
+                val actual = IdentifierReference(tgt2.target.nameInSource + deref.chain.drop(1), deref.position)
+                return listOf(IAstModification.ReplaceNode(deref, actual, parent))
             }
         }
         return noModifications

@@ -2385,33 +2385,71 @@ main {
         alias1()
         alias2()
         alias3()
+        alias4()
     }
 
     sub alias1() {
         alias TheNode = structdefs.Node
         ^^TheNode node = 20000
-        node.value = 100        ; TODO fix unknown field 'value'
+        node.value = 100
     }
 
     sub alias2() {
         ^^structdefs.Node node = 20000
         alias thing = node
-        thing.value=200         ; TODO fix undefined symbol: thing.value
+        thing.value=200
     }
 
     sub alias3() {
         alias TheNode = structdefs.Node
         ^^TheNode node = 20000
-        node++      ;; TODO fix compiler crash Key POINTER is missing in the map
+        node++
+    }
+
+    sub alias4() {
+        alias currentElement = structdefs.element
+        currentElement = 20000
+
+        ; all 3 should be the same:
+        structdefs.element.value = 42
+        currentElement.value = 42
+        currentElement^^.value = 42
+
+        ; all 3 should be the same:
+        structdefs.element.value2 = 4242
+        currentElement.value2 = 4242
+        currentElement^^.value2 = 4242
+
+        cx16.r0 = currentElement^^.value2
+        cx16.r1 = currentElement.value2
     }
 }
 
 structdefs {
     struct Node {
         ubyte value
+        uword value2
     }
-}"""
 
-        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    ^^Node @shared element
+}
+"""
+
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val st = result.compilerAst.allBlocks.single{it.name == "main"}
+        val alias4 = (st.statements[4] as Subroutine).statements
+        alias4.size shouldBe 10
+        val a1t = (alias4[1] as Assignment).target
+        val a2t = (alias4[2] as Assignment).target
+        val a3t = (alias4[3] as Assignment).target
+        val a4t = (alias4[4] as Assignment).target
+        val a5t = (alias4[5] as Assignment).target
+        val a6t = (alias4[6] as Assignment).target
+        a1t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value")
+        a2t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value")
+        a3t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value")
+        a4t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value2")
+        a5t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value2")
+        a6t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value2")
     }
 })
