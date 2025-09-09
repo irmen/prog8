@@ -52,9 +52,13 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         asmgen.storeIndirectFloatVar(varName, zpPtrVar, offset)
     }
 
-    internal fun assignByteVar(target: PtrTarget, varName: String) {
+    internal fun assignByteVar(target: PtrTarget, varName: String, extendToWord: Boolean, signed: Boolean) {
         val (zpPtrVar, offset) = deref(target.pointer)
-        asmgen.storeIndirectByteVar(varName, zpPtrVar, offset)
+        if(extendToWord) {
+            TODO("assign byte var to word pointer ${target.position}  signed=$signed")
+        } else {
+            asmgen.storeIndirectByteVar(varName, zpPtrVar, offset)
+        }
     }
 
     internal fun assignByteReg(target: PtrTarget, register: CpuRegister, signed: Boolean, extendWord: Boolean) {
@@ -62,6 +66,11 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         val (zpPtrVar, offset) = deref(target.pointer)
         asmgen.restoreRegisterStack(register, false)
         asmgen.storeIndirectByteReg(register, zpPtrVar, offset, signed, extendWord && target.dt.isWord)
+    }
+
+    internal fun assignByteToWord(target: PtrTarget, value: PtExpression) {
+        asmgen.assignExpressionToRegister(value, RegisterOrPair.AX, target.dt.isSigned)
+        assignWordReg(target, RegisterOrPair.AX)
     }
 
     internal fun assignWordReg(target: PtrTarget, regs: RegisterOrPair) {
@@ -108,6 +117,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     internal fun inplaceWordNegate(target: PtrTarget, ignoreDatatype: Boolean, scope: IPtSubroutine?) {
         TODO("inplace word negate pointer deref ${target.position}")
+    }
+
+    internal fun inplaceFloatNegate(target: PtrTarget, scope: IPtSubroutine?) {
+        TODO("inplace float negate pointer deref ${target.position}")
     }
 
 

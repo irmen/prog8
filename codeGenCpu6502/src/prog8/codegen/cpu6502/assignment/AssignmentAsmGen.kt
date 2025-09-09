@@ -2411,7 +2411,11 @@ $endLabel""")
                     assignExpressionToRegister(value, target.register!!, targetDt.isSigned)
                     return
                 }
-                else -> throw AssemblyError("weird target")
+                TargetStorageKind.POINTER -> {
+                    pointergen.assignByteToWord(PtrTarget(target), value)
+                    return
+                }
+                else -> throw AssemblyError("weird target at ${target.position}")
             }
         }
 
@@ -2435,7 +2439,7 @@ $endLabel""")
                     assignExpressionToRegister(value, RegisterOrPair.AY, true)
                     asmgen.out("  jsr  floats.GIVAYFAY")
                 }
-                else -> throw AssemblyError("invalid dt")
+                else -> throw AssemblyError("invalid dt at ${target.position}")
             }
             if(target.register==RegisterOrPair.FAC2) {
                 asmgen.out("  jsr  floats.MOVEF")
@@ -3257,7 +3261,7 @@ $endLabel""")
                     else -> throw AssemblyError("weird register")
                 }
             }
-            TargetStorageKind.POINTER -> pointergen.assignByteVar(PtrTarget(target), varName)
+            TargetStorageKind.POINTER -> pointergen.assignByteVar(PtrTarget(target), varName, false, false)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -3347,6 +3351,7 @@ $endLabel""")
                     else -> throw AssemblyError("only reg pairs allowed as word target ${wordtarget.register}")
                 }
             }
+            TargetStorageKind.POINTER -> pointergen.assignByteVar(PtrTarget(wordtarget), sourceName, extendToWord=true, signed=true)
             else -> throw AssemblyError("target type isn't word")
         }
     }
@@ -3419,6 +3424,7 @@ $endLabel""")
                     else -> throw AssemblyError("only reg pairs allowed as word target")
                 }
             }
+            TargetStorageKind.POINTER -> pointergen.assignByteVar(PtrTarget(wordtarget), sourceName, extendToWord=true, signed=false)
             else -> throw AssemblyError("target type isn't word")
         }
     }
@@ -4293,6 +4299,7 @@ $endLabel""")
                     }
                     else -> throw AssemblyError("word regs can only be pair")
                 }
+                TargetStorageKind.POINTER -> TODO("assign membyte into word pointer target ${wordtarget.position}")
                 else -> throw AssemblyError("other types aren't word")
             }
         } else if (identifier != null) {
@@ -4326,6 +4333,7 @@ $endLabel""")
                         else -> throw AssemblyError("word regs can only be pair")
                     }
                 }
+                TargetStorageKind.POINTER -> TODO("assign membyte into word pointer ${wordtarget.position}")
                 else -> throw AssemblyError("other types aren't word")
             }
         }
@@ -4603,6 +4611,7 @@ $endLabel""")
                             sta  ${target.asmVarname}+1""")
                     }
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
+                    TargetStorageKind.POINTER -> pointergen.inplaceFloatNegate(PtrTarget(target), scope)
                     else -> throw AssemblyError("weird target for in-place float negation")
                 }
             }

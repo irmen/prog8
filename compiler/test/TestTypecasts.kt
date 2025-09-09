@@ -961,4 +961,20 @@ main {
 
         compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
+
+    test("assign typecasted value to struct field") {
+        val src = """
+main {
+    struct element {
+        word  y
+    }
+
+    sub start() {
+        ^^element zp_element = 20000
+        zp_element.y = cx16.r0L as byte
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
 })

@@ -1,6 +1,9 @@
 TODO
 ====
 
+SIZE REGRESSION: rockrunner and assem became 200 bytes larger than before
+
+
 not all source lines are correctly reported in the IR file,
 for example the below subroutine only shows the sub() line:
         sub two() {

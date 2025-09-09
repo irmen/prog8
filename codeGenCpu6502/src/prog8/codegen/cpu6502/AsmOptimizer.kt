@@ -73,7 +73,7 @@ internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationT
         numberOfOptimizations++
     }
 
-    mods = optimizeAddWordToSameVariable(linesByFourteen)
+    mods = optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen)
     if(mods.isNotEmpty()) {
         apply(mods, lines)
         linesByFourteen = getLinesBy(lines, 14)
@@ -453,14 +453,25 @@ private fun optimizeStoreLoadSame(
 
 
         // lda X + sta X,  ldy X + sty X,   ldx X + stx X  -> the second instruction can be eliminated
-        if ((first.startsWith("lda ") && second.startsWith("sta ")) ||
-            (first.startsWith("ldx ") && second.startsWith("stx ")) ||
-            (first.startsWith("ldy ") && second.startsWith("sty "))
+        if (first.startsWith("lda ") && second.startsWith("sta ") ||
+            first.startsWith("ldx ") && second.startsWith("stx ") ||
+            first.startsWith("ldy ") && second.startsWith("sty ")
         ) {
             val firstLoc = first.substring(4).trimStart()
             val secondLoc = second.substring(4).trimStart()
             if (firstLoc == secondLoc)
                 mods.add(Modification(lines[2].index, true, null))
+        }
+
+        //  all 3 registers:  lda VALUE + sta SOMEWHERE + lda VALUE  -> last load can be eliminated
+        if (first.startsWith("lda ") && second.startsWith("sta ") && third.startsWith("lda ") ||
+            first.startsWith("ldx ") && second.startsWith("stx ") && third.startsWith("ldx ") ||
+            first.startsWith("ldy ") && second.startsWith("sty ") && third.startsWith("ldy ")
+        ) {
+            val firstVal = first.substring(4).trimStart()
+            val thirdVal = third.substring(4).trimStart()
+            if (firstVal == thirdVal)
+                mods.add(Modification(lines[3].index, true, null))
         }
     }
     return mods
@@ -701,23 +712,32 @@ private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<
         optimize('x', lines)
         optimize('y', lines)
 
-        val first = lines[1].value.trimStart()
-        val second = lines[2].value.trimStart()
-        val third = lines[3].value.trimStart()
+        val first = lines[0].value.trimStart()
+        val second = lines[1].value.trimStart()
+        val third = lines[2].value.trimStart()
+        val fourth = lines[3].value.trimStart()
 
         // phy + ldy + pla -> tya + ldy
         // phx + ldx + pla -> txa + ldx
         // pha + lda + pla -> nop
+        // pha + tya + tay + pla -> nop
+        // pha + txa + tax + pla -> nop
         when (first) {
             "phy" if second.startsWith("ldy ") && third=="pla" -> {
-                mods.add(Modification(lines[3].index, true, null))
-                mods.add(Modification(lines[1].index, false, "  tya"))
+                mods.add(Modification(lines[2].index, true, null))
+                mods.add(Modification(lines[0].index, false, "  tya"))
             }
             "phx" if second.startsWith("ldx ") && third=="pla" -> {
-                mods.add(Modification(lines[3].index, true, null))
-                mods.add(Modification(lines[1].index, false, "  txa"))
+                mods.add(Modification(lines[2].index, true, null))
+                mods.add(Modification(lines[0].index, false, "  txa"))
             }
             "pha" if second.startsWith("lda ") && third=="pla" -> {
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[1].index, true, null))
+                mods.add(Modification(lines[2].index, true, null))
+            }
+            "pha" if ((second=="tya" && third=="tay") || (second=="txa" && third=="tax")) && fourth=="pla" -> {
+                mods.add(Modification(lines[0].index, true, null))
                 mods.add(Modification(lines[1].index, true, null))
                 mods.add(Modification(lines[2].index, true, null))
                 mods.add(Modification(lines[3].index, true, null))
@@ -728,7 +748,6 @@ private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<
 
     return mods
 }
-
 
 private fun optimizeTSBtoRegularOr(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
     // Asm peephole:   lda var2 / tsb var1 / lda var1  Replace this with this to save 1 cycle:   lda var1 / ora var2 / sta var1
@@ -775,9 +794,9 @@ private fun optimizeUnneededTempvarInAdd(linesByFour: Sequence<List<IndexedValue
     return mods
 }
 
-private fun optimizeAddWordToSameVariable(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
     /*
-        ; P8ZP_SCRATCH_PTR += AY :
+        ; FIRST SEQUYENCE: P8ZP_SCRATCH_PTR += AY :
         clc
         adc  P8ZP_SCRATCH_PTR
         pha
@@ -796,7 +815,37 @@ private fun optimizeAddWordToSameVariable(linesByFourteen: Sequence<List<Indexed
     	tya
     	adc  P8ZP_SCRATCH_PTR+1
     	sta  P8ZP_SCRATCH_PTR+1
-     */
+
+
+    	also SECOND SEQUENCE:
+
+        ldx  VALUE/  ldy  VALUE
+	    sta  SOMEWHERE_WITHOUT_,x_OR_,y
+	    txa /   tya
+    	ldy  #1
+    	sta  SOMEWHERE
+     	 -->
+    	sta  SOMEWHERE_WITHOUT_,x_OR_,y
+    	lda  VALUE
+    	ldy  #1
+    	sta  SOMEWHERE
+
+
+        also THIRD SEQUENCE:
+
+        ldx  VALUE
+	    ldy  #0
+	    sta  SOMEWHERE_WITHOUT_,x
+	    txa
+	    iny
+	    sta  SOMEWHERE
+         -->
+	    ldy  #0
+	    sta  SOMEWHERE_WITHOUT_,x
+	    lda  VALUE
+	    iny
+	    sta  SOMEWHERE
+    */
     val mods = mutableListOf<Modification>()
     for (lines in linesByFourteen) {
         val first = lines[0].value.trimStart()
@@ -809,6 +858,7 @@ private fun optimizeAddWordToSameVariable(linesByFourteen: Sequence<List<Indexed
         val eight = lines[7].value.trimStart()
         val ninth = lines[8].value.trimStart()
 
+        // FIRST SEQUENCE
         if(first=="clc" && second.startsWith("adc") && third=="pha" && fourth=="tya" &&
             fifth.startsWith("adc") && sixth=="tay" && seventh=="pla" && eight.startsWith("sta") && ninth.startsWith("sty")) {
             val var2 = second.substring(4)
@@ -825,6 +875,38 @@ private fun optimizeAddWordToSameVariable(linesByFourteen: Sequence<List<Indexed
                 }
             }
         }
+
+        // SECOND SEQUENCE
+        if(first.startsWith("ldx ") && second.startsWith("sta ") &&
+            third=="txa" && fourth.startsWith("ldy ") && fifth.startsWith("sta ")
+        ) {
+            if(",x" !in second) {
+                val value = first.substring(4)
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[2].index, false, "  lda  $value"))
+            }
+        }
+        if(first.startsWith("ldy ") && second.startsWith("sta ") &&
+            third=="tya" && fourth.startsWith("ldy ") && fifth.startsWith("sta ")
+        ) {
+            if(",y" !in second) {
+                val value = first.substring(4)
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[2].index, false, "  lda  $value"))
+            }
+        }
+
+        // THIRD SEQUENCE
+        if(first.startsWith("ldx ") && second.startsWith("ldy ") && third.startsWith("sta ") &&
+            fourth=="txa" && fifth=="iny" && sixth.startsWith("sta ")
+        ) {
+            if(",x" !in third) {
+                val value = first.substring(4)
+                mods.add(Modification(lines[0].index, true, null))
+                mods.add(Modification(lines[3].index, false, "  lda  $value"))
+            }
+        }
+
     }
     return mods
 }

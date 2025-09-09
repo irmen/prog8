@@ -831,6 +831,10 @@ class AsmGen6502Internal (
                             assignExpressionToRegister(zero, target.register!!)
                             return
                         }
+                        TargetStorageKind.POINTER -> {
+                            TODO("assign to pointer ${target.position}")
+                            return
+                        }
                         else -> { }
                     }
                 }
