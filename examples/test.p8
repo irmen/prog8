@@ -1,21 +1,19 @@
 %zeropage basicsafe
 
 main {
-    ubyte @shared prefix_len = 3
+    struct Node {
+        ubyte id
+    }
+
+    ^^byte @shared bptr = 2000
+    ^^word @shared swptr = 2000
+    ^^uword @shared uwptr = 2000
+    ^^Node @shared node = 2000
 
     sub start() {
-        startswith1("irmen")
-        startswith2("irmen")
+        alias nid = node.id
+        cx16.r0 = mkword(0, cx16.r9L)
+        swptr^^ = mkword(0, cx16.r9L) as word
+        uwptr^^ = mkword(0, cx16.r9L)
     }
-
-    sub startswith1(uword @zp st) {
-        cx16.r9L = st[prefix_len]
-        st[prefix_len] = 'a'
-    }
-
-    sub startswith2(str @zp st) {
-        cx16.r9L = st[prefix_len]
-        st[prefix_len] = 'a'
-    }
-
 }

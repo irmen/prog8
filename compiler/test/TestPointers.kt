@@ -2386,6 +2386,7 @@ main {
         alias2()
         alias3()
         alias4()
+        alias5()
     }
 
     sub alias1() {
@@ -2422,6 +2423,11 @@ main {
 
         cx16.r0 = currentElement^^.value2
         cx16.r1 = currentElement.value2
+    }
+    
+    sub alias5() {
+        alias nid = structdefs.element.value
+        nid++
     }
 }
 

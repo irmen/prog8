@@ -140,8 +140,8 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
 
         if(target is StructFieldRef) {
             // replace a.b.c.d   by  a^^.b^^.c^^.d
-            // but only if we're not part of a binary expression with '.' operator (those are handled elsewhere)
-            if(parent !is BinaryExpression || parent.operator != ".") {
+            // but only if we're not part of an alias or a binary expression with '.' operator (those are handled elsewhere)
+            if(parent !is Alias && (parent !is BinaryExpression || parent.operator != ".")) {
                 val chain = identifier.nameInSource
                 val deref = PtrDereference(chain, false, identifier.position)
                 return listOf(IAstModification.ReplaceNode(identifier, deref, parent))

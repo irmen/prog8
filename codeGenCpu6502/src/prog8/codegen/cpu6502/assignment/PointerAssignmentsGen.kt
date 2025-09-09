@@ -55,7 +55,12 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun assignByteVar(target: PtrTarget, varName: String, extendToWord: Boolean, signed: Boolean) {
         val (zpPtrVar, offset) = deref(target.pointer)
         if(extendToWord) {
-            TODO("assign byte var to word pointer ${target.position}  signed=$signed")
+            asmgen.out("  lda  $varName")
+            if(signed)
+                asmgen.signExtendAXlsb(BaseDataType.BYTE)
+            else
+                asmgen.signExtendAXlsb(BaseDataType.UBYTE)
+            asmgen.storeIndirectWordReg(RegisterOrPair.AX, zpPtrVar, offset)
         } else {
             asmgen.storeIndirectByteVar(varName, zpPtrVar, offset)
         }

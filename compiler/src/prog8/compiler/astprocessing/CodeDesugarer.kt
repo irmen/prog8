@@ -525,6 +525,9 @@ _after:
             val firstDt = firstTarget?.datatype
             if (firstDt?.isPointer == true) {
                 // the a.b.c.d can be a pointer dereference chain ending in a struct field;  a^^.b^^.c^^.d
+                // don't change aliases!
+                if(parent is Alias)
+                    return noModifications
 
                 val chain = mutableListOf(identifier.nameInSource[0])
                 var struct = firstDt.subType
