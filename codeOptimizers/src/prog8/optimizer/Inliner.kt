@@ -243,9 +243,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     private fun canInline(sub: Subroutine, fcall: IFunctionCall): Boolean {
-        if(!sub.inline)
+        if (!sub.inline)
             return false
-        if(options.compTarget.name!=VMTarget.NAME) {
+        if (options.compTarget.name != VMTarget.NAME) {
             val stmt = sub.statements.single()
             if (stmt is IFunctionCall) {
                 val existing = (fcall as Node).definingScope.lookup(stmt.target.nameInSource.take(1))

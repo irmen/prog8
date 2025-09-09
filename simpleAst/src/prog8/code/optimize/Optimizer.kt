@@ -111,7 +111,7 @@ private fun optimizeBinaryExpressions(program: PtProgram, options: CompilationOp
                 val typecast=node.left as? PtTypeCast
                 if(typecast!=null && typecast.type.isWord && typecast.value is PtIdentifier) {
                     val addition = node.parent as? PtBinaryExpression
-                    if(addition!=null && (addition.operator=="+" || addition.operator=="-") && addition.type.isWord) {
+                    if(addition!=null && addition.operator=="+" && addition.type.isWord) {
                         // word + (byte<<1 as uword) (== word + byte*2)  -->  (word + (byte as word)) + (byte as word)
                         val parent = addition.parent
                         val index = parent.children.indexOf(addition)

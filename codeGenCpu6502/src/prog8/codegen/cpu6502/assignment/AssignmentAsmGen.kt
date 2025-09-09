@@ -1438,27 +1438,29 @@ internal class AssignmentAsmGen(
         } else if(dt.isWord || dt.isPointer) {
 
             fun doAddOrSubWordExpr() {
-                if(expr.left is PtIdentifier) {
+                if(expr.operator=="+" && expr.left.type.isWord && expr.left is PtIdentifier) {
                     val symname = asmgen.asmVariableName(expr.left as PtIdentifier)
-                    assignExpressionToRegister(expr.right, RegisterOrPair.AY, dt.isSigned)
-                    if(expr.operator=="+")
-                        asmgen.out("""
-                                clc
-                                adc  $symname
-                                tax
-                                tya
-                                adc  $symname+1
-                                tay
-                                txa""")
-                    else
-                        asmgen.out("""
-                                sec
-                                sbc  $symname
-                                tax
-                                tya
-                                sbc  $symname+1
-                                tay
-                                txa""")
+                    assignExpressionToRegister(expr.right, RegisterOrPair.AY, expr.right.type.isSigned)
+                    asmgen.out("""
+                            clc
+                            adc  $symname
+                            tax
+                            tya
+                            adc  $symname+1
+                            tay
+                            txa""")
+                }
+                else if(expr.operator=="-" && expr.right.type.isWord && expr.right is PtIdentifier) {
+                    val symname = asmgen.asmVariableName(expr.right as PtIdentifier)
+                    assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type.isSigned)
+                    asmgen.out("""
+                            sec
+                            sbc  $symname
+                            tax
+                            tya
+                            sbc  $symname+1
+                            tay
+                            txa""")
                 } else {
                     asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
                     if(expr.operator=="+")
@@ -1603,7 +1605,7 @@ internal class AssignmentAsmGen(
                         if(right.type.isSigned) {
                             // we need to sign extend, do this via temporary word variable
                             asmgen.assignExpressionToVariable(right, "P8ZP_SCRATCH_W1", DataType.WORD)
-                            assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
+                            assignExpressionToRegister(left, RegisterOrPair.AY, left.type.isSigned)
                             if(expr.operator=="+") {
                                 asmgen.out("""
                                 clc
@@ -1624,7 +1626,7 @@ internal class AssignmentAsmGen(
                                 txa""")
                             }
                         } else {
-                            assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
+                            assignExpressionToRegister(left, RegisterOrPair.AY, left.type.isSigned)
                             val castedSymname = asmgen.asmVariableName(castedValue)
                             if (expr.operator == "+")
                                 asmgen.out("""

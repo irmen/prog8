@@ -1,8 +1,7 @@
 TODO
 ====
 
-SIZE REGRESSION: rockrunner is a bit larger than with 11.4.1
-BUG: rockrunner level exit sound doesn't play anymore (11.4.1 was still ok) (can test with demo and warp)
+SIZE REGRESSION: rockrunner is a few dozen bytes larger than with 11.4.1
 
 
 not all source lines are correctly reported in the IR file,

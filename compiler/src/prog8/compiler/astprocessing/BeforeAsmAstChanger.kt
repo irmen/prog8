@@ -44,7 +44,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
         // Most code generation targets only support subroutine inlining on asmsub subroutines
         // So we reset the flag here to be sure it doesn't cause problems down the line in the codegen.
-        if(!subroutine.isAsmSubroutine && options.compTarget.name!=VMTarget.NAME)
+        if(!subroutine.isAsmSubroutine && options.compTarget.name != VMTarget.NAME)
             subroutine.inline = false
 
         val mods = mutableListOf<IAstModification>()
@@ -205,7 +205,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         }
 
         if(expr.operator=="+" || expr.operator=="-") {
-            if(options.compTarget.name!=VMTarget.NAME && expr.left.inferType(program).isPointer) {
+            if(options.compTarget.name != VMTarget.NAME && expr.left.inferType(program).isPointer) {
                 val cast = expr.right as? TypecastExpression
                 if(cast!=null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
                     val structsize = expr.left.inferType(program).getOrUndef().size(program.memsizer)
