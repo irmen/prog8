@@ -220,8 +220,11 @@ class AstPreprocessor(val program: Program,
         }
 
         // prefer to put pointer variables into zeropage if no other preference is given (to avoid having to copy the pointer var to zp every time)
-        if(decl.datatype.isPointer && decl.zeropage== ZeropageWish.DONTCARE) {
-            decl.zeropage = ZeropageWish.PREFER_ZEROPAGE
+        // NOT for library pointers and NOT for subroutine parameters (otherwise ZP is eaten up way too fast)
+        if(decl.datatype.isPointer && decl.zeropage==ZeropageWish.DONTCARE) {
+            if(decl.origin!= VarDeclOrigin.SUBROUTINEPARAM && !decl.definingModule.isLibrary) {
+                decl.zeropage = ZeropageWish.PREFER_ZEROPAGE
+            }
         }
 
         return noModifications
