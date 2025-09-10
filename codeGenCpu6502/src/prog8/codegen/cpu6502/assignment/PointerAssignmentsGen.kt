@@ -908,15 +908,16 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isWord)
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AX)
+                asmgen.assignExpressionToVariable(value.expression!!, "P8ZP_SCRATCH_W1", DataType.UWORD)
                 asmgen.out("""
                     ldy  #$offset
+                    lda  ($zpPtrVar),y
                     sec
-                    sbc  ($zpPtrVar),y
+                    sbc  P8ZP_SCRATCH_W1
                     sta  ($zpPtrVar),y
                     iny
-                    txa
-                    sbc  ($zpPtrVar),y
+                    lda  ($zpPtrVar),y  
+                    sbc  P8ZP_SCRATCH_W1+1
                     sta  ($zpPtrVar),y""")
             }
             SourceStorageKind.REGISTER -> TODO("register - word")
@@ -1129,11 +1130,12 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                         sta  ($zpPtrVar),y""")
             }
             SourceStorageKind.EXPRESSION -> {
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.A)
+                asmgen.assignExpressionToVariable(value.expression!!, "P8ZP_SCRATCH_REG", DataType.UBYTE)
                 asmgen.out("""
                     ldy  #$offset
+                    lda  ($zpPtrVar),y
                     sec
-                    sbc  ($zpPtrVar),y
+                    sbc  P8ZP_SCRATCH_REG
                     sta  ($zpPtrVar),y""")
             }
             SourceStorageKind.REGISTER -> TODO("register - byte  ${target.position}")
