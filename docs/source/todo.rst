@@ -58,6 +58,7 @@ STRUCTS and TYPED POINTERS
 
 - allow struct initialization syntax in an array such as [ Node(), Node(), Node() ],  update sorting example to use list of countries like that
 - fix code size regressions (if any left)
+- optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - update structpointers.rst docs with 6502 specific things?
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize the float copying in assignIndexedPointer() (also word?)

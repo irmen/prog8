@@ -467,17 +467,19 @@ internal class AssignmentAsmGen(
                     val ptrderef = value.dereference!!
                     val (zpPtrVar, offset) = pointergen.deref(ptrderef)
                     if (offset > 0u) {
-                        // add offset to the pointer
+                        // need to add offset to pointer but not modify the original!
                         asmgen.out("""
                             lda  $zpPtrVar
+                            ldx  $zpPtrVar+1
                             clc
                             adc  #$offset
-                            sta  $zpPtrVar
                             bcc  +
-                            inc  $zpPtrVar+1
+                            inx                            
 +""")
+                        assignRegisterpairWord(assign.target, RegisterOrPair.AX)
+                    } else {
+                        assignVariableWord(assign.target, zpPtrVar, DataType.UWORD)
                     }
-                    assignVariableWord(assign.target, zpPtrVar, DataType.UWORD)
                 }
             }
             is PtBool -> throw AssemblyError("source kind should have been literalboolean")
