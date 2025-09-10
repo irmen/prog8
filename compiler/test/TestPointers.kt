@@ -191,9 +191,9 @@ main {
     }
 
     sub start() {
-        ^^Node n1 = Node(false, 1.1, 1111, 0)
-        ^^Node n2 = Node(false, 2.2, 2222, 0)
-        ^^Node n3 = Node(true, 3.3, 3333, 0)
+        ^^Node n1 = ^^Node : [false, 1.1, 1111, 0]
+        ^^Node n2 = ^^Node : [false, 2.2, 2222, 0]
+        ^^Node n3 = ^^Node : [true, 3.3, 3333, 0]
 
         n1.next = n2
         n2.next = n3
@@ -436,10 +436,10 @@ main {
     }
 
     sub start() {
-        ^^MNode mn1 = MNode()
+        ^^MNode mn1 = ^^MNode : []
         mn1 = func(mn1)
 
-        ^^thing.Node n1 = thing.Node()
+        ^^thing.Node n1 = ^^thing.Node : []
         n1 = thing.func(n1)
     }
 }
@@ -558,11 +558,11 @@ main {
     }
 
     sub start() {
-        ^^MyNode @shared m1 = MyNode()
-        ^^MyNode @shared m2 = MyNode(true, 0)
+        ^^MyNode @shared m1 = ^^MyNode : []
+        ^^MyNode @shared m2 = ^^MyNode : [true, 0]
 
-        ^^thing.Node @shared n1 = thing.Node()
-        ^^thing.Node @shared n2 = thing.Node(true, 0)
+        ^^thing.Node @shared n1 = ^^thing.Node : []
+        ^^thing.Node @shared n2 = ^^thing.Node : [true, 0]
     }
 }
 
@@ -590,11 +590,11 @@ main {
     }
 
     sub start() {
-        ^^MyNode m1 = MyNode()
-        ^^MyNode m2 = MyNode(true, 0)
+        ^^MyNode m1 = ^^MyNode : []
+        ^^MyNode m2 = ^^MyNode : [true, 0]
 
-        ^^thing.Node n1 = thing.Node()
-        ^^thing.Node n2 = thing.Node(true, 0)
+        ^^thing.Node n1 = ^^thing.Node : []
+        ^^thing.Node n2 = ^^thing.Node : [true, 0]
     }
 }
 
@@ -626,7 +626,7 @@ main {
     }
 
     sub start() {
-        ^^Node ptr = Node(true)      ; error
+        ^^Node ptr = ^^Node : [true]      ; error
     }
 }"""
 
@@ -634,7 +634,7 @@ main {
         compileText(VMTarget(), false, src, outputDir, errors=errors)
         val err = errors.errors
         err.size shouldBe 1
-        err[0] shouldContain("expected 3 or 0, got 1")
+        err[0] shouldContain("expected 3 or 0 but got 1, missing: value, next")
     }
 
     test("pointer uword compatibility") {
@@ -646,7 +646,7 @@ main {
     }
 
     sub start() {
-        cx16.r0 = MyNode()
+        cx16.r0 = ^^MyNode : []
 
         ^^MyNode @shared ptr1 = cx16.r0
 
@@ -949,7 +949,7 @@ main {
             uword s
             uword n
         }
-        ^^List  l = List()
+        ^^List  l = ^^List : []
         l.s[2] = 42
         l.s[300] = 42
         l.n[2] = 99
@@ -974,7 +974,7 @@ main {
         uword ptr
     }
     sub start() {
-        ^^List @shared l1 = List()
+        ^^List @shared l1 = ^^List : []
         bool ss = l1.s[1]
         ubyte ub = l1.n[1]
         uword uw = l1.ptr[1]        
@@ -1006,12 +1006,12 @@ main {
         ^^List next
     }
     sub start() {
-        ^^List l1 = List()  
-        ^^List l2 = List()  
+        ^^List l1 = ^^List : []  
+        ^^List l2 = ^^List : []  
         l1.s[2] = 1
         l2.n=10
         
-        ^^List l3 = List()
+        ^^List l3 = ^^List : []
         cx16.r0L = l3.next.n        
     }
 }"""
@@ -1036,7 +1036,7 @@ main {
         ubyte n
     }
     sub start() {
-        ^^List l1 = List()
+        ^^List l1 = ^^List : []
         ^^word @shared wptr
         ^^float @shared fptr
         float f1,f2
@@ -1166,8 +1166,8 @@ main{
         thing(countries[0])
         thing(countries[1])
 
-        countries[0] = Country("Indonesia", 285.72, 1904, 44)
-        countries[1] = Country("Congo", 112.83, 2344, 55)
+        countries[0] = ^^Country : ["Indonesia", 285.72, 1904, 44]
+        countries[1] = ^^Country : ["Congo", 112.83, 2344, 55]
 
         thing(countries[0])
         thing(countries[1])
@@ -1720,7 +1720,7 @@ main {
     }
 
     sub start() {
-        ^^Node n = Node("question string", "animal name string")
+        ^^Node n = ^^Node : ["question string", "animal name string"]
         ^^ubyte @shared q = n.question
         ^^ubyte @shared a = n.animal
     }
@@ -1741,10 +1741,10 @@ main {
     }
 
     sub start() {
-        ^^Enemy @shared e1 = Enemy()
-        ^^Enemy @shared e2 = Enemy(1,2,3,true)
-        ^^Enemy @shared e3 = Enemy(1,2,3,4)         ; TODO type error for the boolean
-        ^^Enemy @shared e4 = Enemy(1,2,3,4.555)     ; TODO type error for the boolean
+        ^^Enemy @shared e1 = ^^Enemy: []
+        ^^Enemy @shared e2 = ^^Enemy: [1,2,3,true]
+        ^^Enemy @shared e3 = ^^Enemy: [1,2,3,4]         ; TODO type error for the boolean
+        ^^Enemy @shared e4 = ^^Enemy: [1,2,3,4.555]     ; TODO type error for the boolean
 
         e3.elite = 99
         e4.elite = 3.444
@@ -1753,11 +1753,9 @@ main {
 
         val errors=ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain "incompatible type"
-        errors.errors[1] shouldContain "incompatible type"
-        errors.errors[2] shouldContain "doesn't match target type"
-        errors.errors[3] shouldContain "doesn't match target type"
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "doesn't match target type"
+        errors.errors[1] shouldContain "doesn't match target type"
     }
 
     test("local and global struct pointer qualified name lookups") {

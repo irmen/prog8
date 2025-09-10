@@ -65,7 +65,7 @@ SINGLECHAR :
 
 TAG: '@' ('a'..'z' | '0'..'9')+ ;
 
-ARRAYSIG : '[' [ \t]* ']' ;
+EMPTYARRAYSIG : '[' [ \t]* ']' ;
 
 NOT_IN: 'not' [ \t]+ 'in' [ \t] ;
 
@@ -159,7 +159,7 @@ directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','?
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype (arrayindex | ARRAYSIG)? TAG* identifierlist ;
+vardecl: datatype (arrayindex | EMPTYARRAYSIG)? TAG* identifierlist ;
 
 identifierlist: identifier (',' identifier)* ;
 
@@ -225,7 +225,9 @@ expression :
     | addressof
     | expression typecast
     | if_expression
+    | branchcondition_expression
     | pointerdereference
+    | staticstructinitializer
     ;
 
 
@@ -243,9 +245,9 @@ directmemory : '@' '(' expression ')';
 
 addressof : <assoc=right> (ADDRESS_OF | TYPED_ADDRESS_OF | | ADDRESS_OF_LSB | ADDRESS_OF_MSB) scoped_identifier arrayindex? ;
 
-functioncall : scoped_identifier '(' expression_list? ')'  ;
+functioncall : scoped_identifier '(' EOL? expression_list? EOL? ')'  ;
 
-functioncall_stmt : VOID? scoped_identifier '(' expression_list? ')'  ;
+functioncall_stmt : VOID? scoped_identifier '(' EOL? expression_list? EOL? ')'  ;
 
 expression_list :
     expression (',' EOL? expression)*           // you can split the expression list over several lines
@@ -267,7 +269,7 @@ integerliteral :  intpart=(DEC_INTEGER | HEX_INTEGER | BIN_INTEGER) ;
 
 booleanliteral :  'true' | 'false' ;
 
-arrayliteral :  '[' EOL? expression (',' EOL? expression)* ','? EOL? ']' ;       // you can split the values over several lines, trailing comma allowed
+arrayliteral :  EMPTYARRAYSIG | '[' EOL? expression? (',' EOL? expression)* ','? EOL? ']' ;       // you can split the values over several lines, trailing comma allowed
 
 stringliteral : (encoding=UNICODEDNAME ':')? STRING ;
 
@@ -333,6 +335,9 @@ else_part :  ELSE EOL? (statement | statement_block) ;   // statement is constra
 
 if_expression :  'if' expression EOL? expression EOL? ELSE EOL? expression ;
 
+branchcondition_expression:  branchcondition expression EOL? ELSE EOL? expression ;
+
+
 // This is a cursed mix of IdentifierReference (scoped identifiers) and binary expressions with '.' dereference operators.
 // but it is needed for now to not have to rewrite all of Prog8's dependence on how the IdentifierReference now works (fully qualified identifier string inside)
 // in the future this probably has to be reworked completely to split up the scoped identifier names and just rely on the '.' operator exclusively,
@@ -363,3 +368,5 @@ whenstmt: 'when' expression EOL? '{' EOL? (when_choice | EOL) * '}' EOL? ;
 when_choice:  (expression_list | ELSE ) '->' (statement | statement_block ) ;
 
 ongoto: ON expression kind=(GOTO | CALL) directivenamelist EOL? else_part? ;
+
+staticstructinitializer: POINTER? scoped_identifier ':' arrayliteral ;

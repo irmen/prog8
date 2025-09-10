@@ -155,7 +155,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val name = if(identifiers.size==1) identifiername else "<multiple>"
 
         val arrayIndex = ctx.arrayindex()?.accept(this) as ArrayIndex?
-        val isArray = ctx.ARRAYSIG() != null || arrayIndex != null
+        val isArray = ctx.EMPTYARRAYSIG() != null || arrayIndex != null
 
         val baseDt = dataTypeFor(ctx.datatype()) ?: DataType.UNDEFINED
         val dt = if(!isArray) baseDt else {
@@ -493,7 +493,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         }
         val zp = getZpOption(tags)
         var datatype = dataTypeFor(decl.datatype()) ?: DataType.UNDEFINED
-        if(decl.ARRAYSIG()!=null || decl.arrayindex()!=null)
+        if(decl.EMPTYARRAYSIG()!=null || decl.arrayindex()!=null)
             datatype = datatype.elementToArray()
 
         val identifiers = decl.identifierlist().identifier()
@@ -549,6 +549,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitIf_expression(ctx: If_expressionContext): IfExpression {
         val (condition, truevalue, falsevalue) = ctx.expression().map { it.accept(this) as Expression }
         return IfExpression(condition, truevalue, falsevalue, ctx.toPosition())
+    }
+
+    override fun visitBranchcondition_expression(ctx: Branchcondition_expressionContext): IfExpression {
+        val branchcondition = branchCondition(ctx.branchcondition())
+        val (truevalue, falsevalue) = ctx.expression().map { it.accept(this) as Expression }
+        throw SyntaxError("branchcondition expression not yet supported", ctx.toPosition())
     }
 
     override fun visitBranch_stmt(ctx: Branch_stmtContext): ConditionalBranch {
@@ -607,6 +613,15 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val index = ctx.expression().accept(this) as Expression
         val labels = ctx.directivenamelist().scoped_identifier().map { it.accept(this) as IdentifierReference }
         return OnGoto(isCall, index, labels, elsepart, ctx.toPosition())
+    }
+
+    override fun visitStaticstructinitializer(ctx: StaticstructinitializerContext): StaticStructInitializer {
+        if(ctx.POINTER()==null)
+            throw SyntaxError("struct initializer requires '^^' before struct name", ctx.toPosition())
+        val struct = ctx.scoped_identifier().accept(this) as IdentifierReference
+        val array = ctx.arrayliteral()
+        val args = if(array==null) mutableListOf() else (array.accept(this) as ArrayLiteral).value.toMutableList()
+        return StaticStructInitializer(struct, args, ctx.toPosition())
     }
 
     override fun visitPointerDereferenceTarget(ctx: PointerDereferenceTargetContext): AssignTarget {
@@ -681,7 +696,6 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitSinglederef(ctx: SinglederefContext) = throw FatalAstException("should not be called")
     override fun visitPointertype(ctx: PointertypeContext) = throw FatalAstException("should not be called")
 
-
     private fun getname(identifier: IdentifierContext): String = identifier.children[0].text
 
     private fun ParserRuleContext.toPosition() : Position {
@@ -718,7 +732,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     private fun asmSubroutineParam(pctx: Asmsub_paramContext): AsmSubroutineParameter {
         val vardecl = pctx.vardecl()
         var datatype = dataTypeFor(vardecl.datatype()) ?: DataType.UNDEFINED
-        if(vardecl.ARRAYSIG()!=null || vardecl.arrayindex()!=null)
+        if(vardecl.EMPTYARRAYSIG()!=null || vardecl.arrayindex()!=null)
             datatype = datatype.elementToArray()
         val (registerorpair, statusregister) = parseParamRegister(pctx.register, pctx.toPosition())
         val identifiers = vardecl.identifierlist().identifier()

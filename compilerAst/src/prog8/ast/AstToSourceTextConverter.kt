@@ -566,4 +566,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     override fun visit(deref: ArrayIndexedPtrDereference) {
         output("???? Array Indexed Ptr Dereference should have been converted to other AST nodes ????")
     }
+
+    override fun visit(initializer: StaticStructInitializer) {
+        output("^^")
+        initializer.structname.accept(this)
+        output(" : ")
+        outputListMembers(initializer.args.toTypedArray())
+    }
 }

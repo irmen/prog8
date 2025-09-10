@@ -4,6 +4,7 @@ import prog8.ast.IFunctionCall
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.FunctionCallExpression
+import prog8.ast.expressions.StaticStructInitializer
 import prog8.ast.expressions.StringLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
@@ -30,13 +31,14 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         errors.warn("name '$name' shadows the definition at ${existing.position.file} line ${existing.position.line}", position)
     }
 
-    private fun invalidNumberOfArgsError(pos: Position, numArgs: Int, params: List<String>) {
+    private fun invalidNumberOfArgsError(pos: Position, numArgs: Int, params: List<String>, zeroAllowed: Boolean=false) {
+        val expected = if(zeroAllowed) "${params.size} or 0" else "${params.size}"
         if(numArgs<params.size) {
             val missing = params.drop(numArgs).joinToString(", ")
-            errors.err("invalid number of arguments: expected ${params.size} got $numArgs, missing: $missing", pos)
+            errors.err("invalid number of arguments: expected $expected but got $numArgs, missing: $missing", pos)
         }
         else
-            errors.err("invalid number of arguments: expected ${params.size} got $numArgs", pos)
+            errors.err("invalid number of arguments: expected $expected but got $numArgs", pos)
     }
 
     override fun visit(alias: Alias) {
@@ -165,6 +167,14 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
     override fun visit(functionCallExpr: FunctionCallExpression) =  visitFunctionCall(functionCallExpr)
     override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
+
+    override fun visit(initializer: StaticStructInitializer) {
+        val fields = initializer.structname.targetStructDecl()!!.fields
+        if(initializer.args.isNotEmpty() && initializer.args.size != fields.size) {
+            val pos = (if(initializer.args.any()) initializer.args[0] else initializer).position
+            invalidNumberOfArgsError(pos, initializer.args.size, fields.map { it.second }, true)
+        }
+    }
 
     private fun visitFunctionCall(call: IFunctionCall) {
         if(call.target.nameInSource==listOf("rnd") || call.target.nameInSource==listOf("rndw")) {

@@ -101,6 +101,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is TypecastExpression -> transform(expr)
             is IfExpression -> transform(expr)
             is PtrDereference -> transform(expr)
+            is StaticStructInitializer -> transform(expr)
             is ArrayIndexedPtrDereference -> throw FatalAstException("this should have been converted to some other ast nodes")
         }
     }
@@ -414,19 +415,18 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         }
 
-        val targetStruct = srcCall.target.targetStructDecl()
-        val call =
-            if(targetStruct!=null) {
-                // a call to a struct yields a pointer to a struct instance and means: allocate a statically initialized struct instance of that type
-                PtBuiltinFunctionCall("prog8_lib_structalloc", false, true, DataType.pointer(targetStruct), srcCall.position)
-            } else {
-                // regular function call
-                val (target, _) = srcCall.target.targetNameAndType(program)
-                val iType = srcCall.inferType(program)
-                PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
-            }
-
+        val (target, _) = srcCall.target.targetNameAndType(program)
+        val iType = srcCall.inferType(program)
+        val call = PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
         for (arg in srcCall.args)
+            call.add(transformExpression(arg))
+        return call
+    }
+
+    private fun transform(initializer: StaticStructInitializer): PtBuiltinFunctionCall {
+        val targetStruct = initializer.structname.targetStructDecl()!!
+        val call = PtBuiltinFunctionCall("prog8_lib_structalloc", false, true, DataType.pointer(targetStruct), initializer.position)
+        for (arg in initializer.args)
             call.add(transformExpression(arg))
         return call
     }

@@ -322,7 +322,7 @@ main {
         ubyte n
     }
     sub start() {
-        ^^List l1 = List()
+        ^^List l1 = ^^List:[]
         l1.s^^ = 2 
     }
 }"""

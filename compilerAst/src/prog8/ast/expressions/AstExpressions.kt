@@ -1753,6 +1753,41 @@ class ArrayIndexedPtrDereference(
 }
 
 
+class StaticStructInitializer(var structname: IdentifierReference,
+                              val args: MutableList<Expression>,
+                              override val position: Position) : Expression() {
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        structname.linkParents(this)
+        args.forEach { it.linkParents(this) }
+    }
+
+    override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position)
+    override val isSimple = args.all { it.isSimple }
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===structname)
+            structname=replacement as IdentifierReference
+        else {
+            val idx = args.indexOfFirst { it===node }
+            args[idx] = replacement as Expression
+        }
+        replacement.parent = this
+    }
+
+    override fun constValue(program: Program) = null
+    override fun toString(): String = "StaticStructInitializer(struct=$structname, pos=$position)"
+
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
+
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = structname.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
+
+    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UWORD)
+}
+
+
 fun invertCondition(cond: Expression, program: Program): Expression {
     if(cond is BinaryExpression) {
         val invertedOperator = invertedComparisonOperator(cond.operator)

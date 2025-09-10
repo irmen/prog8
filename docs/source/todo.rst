@@ -53,16 +53,13 @@ main {
 }
 
 
-STRUCTS and TYPED POINTERS (6502 codegen specific)
---------------------------------------------------
+STRUCTS and TYPED POINTERS
+--------------------------
 
 - allow struct initialization syntax in an array such as [ Node(), Node(), Node() ],  update sorting example to use list of countries like that
-- remove support for assigning struct init syntax to a pointer var (or at least make it a warning? because it is super confusing that this won't give you a new struct every time but simply refers to a single static instance)
-  removing it also makes it possible to remove the hacky way the struct instance symbol is now generated (with those hashes of the position in the source)
-  OR: change the syntax so it no longer resembles a function call, maybe:  ptr = ^^Node { 0,1,2 }
-- implement the remaining TODO's in PointerAssignmentsGen.
 - fix code size regressions (if any left)
 - update structpointers.rst docs with 6502 specific things?
+- implement the remaining TODO's in PointerAssignmentsGen.
 - optimize the float copying in assignIndexedPointer() (also word?)
 - implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size, see test.p8 in commit d394dc1e
@@ -80,6 +77,8 @@ STRUCTS and TYPED POINTERS (6502 codegen specific)
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- make InferredType.knownfor() return one out of  statically allocated instances instead of creating new object every call
+- add if-expression versions for the conditionals if_cc, if_cs, if_vc etc etc   so you can write  a = b + if_cs 1 else 0   (make sure it gets compiled to nice instructions lda #0; rol a etc.)  See visitBranchcondition_expression()
 - %breakpoint after an assignment is parsed as part of the expression (x % breakpoint), that should not happen
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1

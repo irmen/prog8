@@ -15,7 +15,7 @@ import kotlin.math.sign
 class TypecastsAdder(val program: Program, val options: CompilationOptions, val errors: IErrorReporter) : AstWalker() {
     /*
      * Make sure any value assignments get the proper type casts if needed to cast them into the target variable's type.
-     * (this includes function call arguments)
+     * (this includes function call arguments and struct initializer arguments)
      */
 
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
@@ -283,11 +283,10 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
 
     private fun afterFunctionCallArgs(call: IFunctionCall): Iterable<IAstModification> {
         // see if a typecast is needed to convert the arguments into the required parameter type
-
-        val modifications = mutableListOf<IAstModification>()
-        val paramsPossibleDatatypes = when(val sub = call.target.targetStatement(program.builtinFunctions)) {
+        val paramsPossibleDatatypes: List<List<DataType>>
+        when(val sub = call.target.targetStatement(program.builtinFunctions)) {
             is BuiltinFunctionPlaceholder -> {
-                BuiltinFunctions.getValue(sub.name).parameters.map {
+                paramsPossibleDatatypes = BuiltinFunctions.getValue(sub.name).parameters.map {
                     it.possibleDatatypes.map { dt ->
                         if(dt.isArray)
                             DataType.arrayFor(BaseDataType.BOOL, false)     // the builtin function signature doesn't tell us the element type....
@@ -298,66 +297,16 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                 }
             }
-            is Subroutine -> sub.parameters.map { listOf(it.type) }
-            is StructDecl -> sub.fields.map { listOf(it.first) }
-            else -> emptyList()
-        }
-
-        paramsPossibleDatatypes.zip(call.args).forEach {
-            val possibleTargetDt = it.first.first()
-            val targetDt = if(possibleTargetDt.isPointer) DataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
-            val argIdt = it.second.inferType(program)
-            if (argIdt.isKnown && !targetDt.isStructInstance) {
-                val argDt = argIdt.getOrUndef()
-                if (argDt !in it.first) {
-                    val identifier = it.second as? IdentifierReference
-                    val number = it.second as? NumericLiteral
-                    if(number!=null) {
-                        addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
-                    } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
-                        if(!identifier.isSubroutineParameter()) {
-                            // We allow STR/ARRAY values for UWORD or ^^UBYTE parameters.
-                            if(!argDt.isString || it.second is IdentifierReference) {
-                                modifications += IAstModification.ReplaceNode(
-                                    identifier,
-                                    AddressOf(identifier, null, null, false, true, it.second.position),
-                                    call as Node
-                                )
-                            }
-                        }
-                    } else if(targetDt.isBool) {
-                        addTypecastOrCastedValueModification(modifications, it.second, DataType.BOOL, call as Node)
-                    } else if(!targetDt.isIterable && argDt isAssignableTo targetDt) {
-                        if(!argDt.isString || !targetDt.isUnsignedWord)
-                            addTypecastOrCastedValueModification(modifications, it.second, targetDt, call as Node)
-                    }
-                }
-            } else {
-                val identifier = it.second as? IdentifierReference
-                if(identifier!=null && targetDt.isUnsignedWord) {
-                    val dt = identifier.inferType(program)
-                    if(dt.isArray || dt.isString) {
-                        // take the address of the identifier
-                        modifications += IAstModification.ReplaceNode(
-                            identifier,
-                            AddressOf(identifier, null, null, false, false,it.second.position),
-                            call as Node
-                        )
-                    } else if(dt.isUnknown) {
-                        val subOrLabel = identifier.targetStatement()
-                        if(subOrLabel is Subroutine || subOrLabel is Label) {
-                            // take the address of the subroutine or label
-                            modifications += IAstModification.ReplaceNode(
-                                identifier,
-                                AddressOf(identifier, null, null, false, false, it.second.position),
-                                call as Node
-                            )
-                        }
-                    }
-                }
+            is Subroutine -> {
+                paramsPossibleDatatypes = sub.parameters.map { listOf(it.type) }
             }
+            is StructDecl -> {
+                errors.err("invalid struct initializer syntax, use ^^Struct : [...]", call.target.position)
+                return emptyList()
+            }
+            else -> paramsPossibleDatatypes = emptyList()
         }
-        return modifications
+        return fixupArgumentList(paramsPossibleDatatypes, call.args, call as Node)
     }
 
     override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
@@ -671,6 +620,77 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             }
         }
         return noModifications
+    }
+
+    override fun after(initializer: StaticStructInitializer, parent: Node): Iterable<IAstModification> {
+        // see if a typecast is needed to convert the arguments into the required field type
+        return if(initializer.args.isEmpty())
+            noModifications
+        else {
+            val struct = initializer.structname.targetStructDecl()!!
+            val paramsPossibleDatatypes = struct.fields.map { listOf(it.first) }
+            fixupArgumentList(paramsPossibleDatatypes, initializer.args, initializer)
+        }
+    }
+
+    private fun fixupArgumentList(possibleDatatypes: List<List<DataType>>, args: List<Expression>, parent: Node): List<IAstModification> {
+        require(possibleDatatypes.size==args.size)
+        val modifications = mutableListOf<IAstModification>()
+        possibleDatatypes.zip(args).forEach {
+            val possibleTargetDt = it.first.first()
+            val targetDt = if(possibleTargetDt.isPointer) DataType.UWORD else possibleTargetDt      // use UWORD instead of a pointer type (using words for pointers is allowed without further casting)
+            val argIdt = it.second.inferType(program)
+            if (argIdt.isKnown && !targetDt.isStructInstance) {
+                val argDt = argIdt.getOrUndef()
+                if (argDt !in it.first) {
+                    val identifier = it.second as? IdentifierReference
+                    val number = it.second as? NumericLiteral
+                    if(number!=null) {
+                        addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
+                    } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
+                        if(!identifier.isSubroutineParameter()) {
+                            // We allow STR/ARRAY values for UWORD or ^^UBYTE parameters.
+                            if(!argDt.isString || it.second is IdentifierReference) {
+                                modifications += IAstModification.ReplaceNode(
+                                    identifier,
+                                    AddressOf(identifier, null, null, false, true, it.second.position),
+                                    parent
+                                )
+                            }
+                        }
+                    } else if(targetDt.isBool) {
+                        addTypecastOrCastedValueModification(modifications, it.second, DataType.BOOL, parent)
+                    } else if(!targetDt.isIterable && argDt isAssignableTo targetDt) {
+                        if(!argDt.isString || !targetDt.isUnsignedWord)
+                            addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
+                    }
+                }
+            } else {
+                val identifier = it.second as? IdentifierReference
+                if(identifier!=null && targetDt.isUnsignedWord) {
+                    val dt = identifier.inferType(program)
+                    if(dt.isArray || dt.isString) {
+                        // take the address of the identifier
+                        modifications += IAstModification.ReplaceNode(
+                            identifier,
+                            AddressOf(identifier, null, null, false, false,it.second.position),
+                            parent
+                        )
+                    } else if(dt.isUnknown) {
+                        val subOrLabel = identifier.targetStatement()
+                        if(subOrLabel is Subroutine || subOrLabel is Label) {
+                            // take the address of the subroutine or label
+                            modifications += IAstModification.ReplaceNode(
+                                identifier,
+                                AddressOf(identifier, null, null, false, false, it.second.position),
+                                parent
+                            )
+                        }
+                    }
+                }
+            }
+        }
+        return modifications
     }
 
     private fun addTypecastOrCastedValueModification(

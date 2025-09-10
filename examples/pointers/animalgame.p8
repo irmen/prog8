@@ -88,7 +88,7 @@ main {
             txt.print(", what is the answer to that question? ")
             ubyte yesno = ask_yes_no()
 
-            ; cannot use struct initializer  db.Node(....)  here because we need to have a new node every time
+            ; cannot use static struct initializer here because we need to have a new node every time
             ^^db.Node new_animal_node = arena.alloc(sizeof(db.Node))
             new_animal_node.animal = new_animal_copy
             new_animal_node.question = new_animal_node.negative = new_animal_node.positive = 0
@@ -126,12 +126,12 @@ db {
     ^^Node first
 
     sub init() {
-        first = Node("does it swim", 0, 0, 0)
-        ^^Node question = Node("can it fly", 0, 0, 0)
+        first = ^^Node: ["does it swim", 0, 0, 0]
+        ^^Node question = ^^Node: ["can it fly", 0, 0, 0]
         first.negative = question
-        first.positive = Node(0, "dolphin", 0, 0)
-        question.negative = Node(0, "horse", 0, 0)
-        question.positive = Node(0, "eagle", 0, 0)
+        first.positive = ^^Node: [0, "dolphin", 0, 0]
+        question.negative = ^^Node: [0, "horse", 0, 0]
+        question.positive = ^^Node: [0, "eagle", 0, 0]
     }
 }
 

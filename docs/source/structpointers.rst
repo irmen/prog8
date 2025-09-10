@@ -180,14 +180,16 @@ You can 'allocate' and statically initialize a struct. This behave much like ini
 and it won't reset to the original value when the program is restarted, so beware.
 *Remember that the struct is statically allocated, and appears just once in the memory:*
 This means that, for instance, if you do this in a subroutine that gets
-called multiple times, or inside a loop, the struct *will be the same instance every time*. Similar to how `memory()` behaves.get
-Read below if you need *dynamic* struct allocation! There are two ways to initialize a struct in static manners:
+called multiple times, or inside a loop, the struct *will be the same instance every time*.
+Read below if you need *dynamic* struct allocation!
+You write a static struct initialization expression like this:
 
-``^^Node ptr = Node(1,2,3,4)``
-    statically places a Node instance in memory, with its fields set to 1,2,3,4 and puts the address of this struct in ptr.
-    The values between the parenthesis must correspond exactly with the first to last declared fields in the struct type.
-``Node()``
-    (without arguments) Places a node instance in BSS variable space instead, which gets zeroed out at program startup.
+``^^Node : [1,2,3,4]``
+    statically places an instance of struct 'Node' in memory, with its fields set to 1,2,3,4 and returns the address of this struct.
+    The values in the initialization array must correspond exactly with the first to last declared fields in the struct type.
+``^^Node : []``
+    (without values) Places a 'Node' instance in BSS variable space instead, which gets zeroed out at program startup.
+    Returns the address of this empty struct.
 
 
 Dynamic allocation of structs
@@ -197,6 +199,27 @@ There is no real 'dynamic' memory allocation in Prog8. Everything is statically 
 However, it is possible to write a dynamic memory handling library yourself (it has to track memory blocks manually).
 If you ask such a library to give you a pointer to a piece of memory with size ``sizeof(Enemy)`` you can use that as
 a dynamic pointer to an Enemy struct.
+
+An example of how a super simple dynamic allocator could look like::
+
+    ^^Node newnode = allocator.alloc(sizeof(Node))
+    ...
+
+    allocator {
+        ; extremely trivial arena allocator
+        uword buffer = memory("arena", 2000, 0)
+        uword next = buffer
+
+        sub alloc(ubyte size) -> uword {
+            defer next += size
+            return next
+        }
+
+        sub freeall() {
+            ; cannot free individual allocations only the whole arena at once
+            next = buffer
+        }
+    }
 
 
 Address-Of: untyped vs typed

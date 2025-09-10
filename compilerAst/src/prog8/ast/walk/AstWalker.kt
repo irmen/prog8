@@ -109,6 +109,7 @@ abstract class AstWalker {
     open fun before(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(initializer: StaticStructInitializer, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -159,6 +160,7 @@ abstract class AstWalker {
     open fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(initializer: StaticStructInitializer, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
@@ -287,6 +289,13 @@ abstract class AstWalker {
     fun visit(field: StructFieldRef, parent: Node) {
         track(before(field, parent), field, parent)
         track(after(field, parent), field, parent)
+    }
+
+    fun visit(iniitializer: StaticStructInitializer, parent: Node) {
+        track(before(iniitializer, parent), iniitializer, parent)
+        iniitializer.structname.accept(this, iniitializer)
+        iniitializer.args.forEach { it.accept(this, iniitializer) }
+        track(after(iniitializer, parent), iniitializer, parent)
     }
 
     fun visit(subroutine: Subroutine, parent: Node) {

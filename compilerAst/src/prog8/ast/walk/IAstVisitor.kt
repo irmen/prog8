@@ -60,6 +60,11 @@ interface IAstVisitor {
         functionCallExpr.args.forEach { it.accept(this) }
     }
 
+    fun visit(initializer: StaticStructInitializer) {
+        initializer.structname.accept(this)
+        initializer.args.forEach { it.accept(this) }
+    }
+
     fun visit(functionCallStatement: FunctionCallStatement) {
         functionCallStatement.target.accept(this)
         functionCallStatement.args.forEach { it.accept(this) }
