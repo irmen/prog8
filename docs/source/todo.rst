@@ -78,7 +78,6 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- make InferredType.knownfor() return one out of  statically allocated instances instead of creating new object every call
 - add if-expression versions for the conditionals if_cc, if_cs, if_vc etc etc   so you can write  a = b + if_cs 1 else 0   (make sure it gets compiled to nice instructions lda #0; rol a etc.)  See visitBranchcondition_expression()
 - %breakpoint after an assignment is parsed as part of the expression (x % breakpoint), that should not happen
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed

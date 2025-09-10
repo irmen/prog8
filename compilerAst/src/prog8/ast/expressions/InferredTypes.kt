@@ -73,30 +73,53 @@ object InferredTypes {
     private val unknownInstance = InferredType.unknown()
     private val voidInstance = InferredType.void()
 
+    private val instancesBaseDt = mapOf(
+        BaseDataType.BOOL to InferredType.known(BaseDataType.BOOL),
+        BaseDataType.UBYTE to InferredType.known(BaseDataType.UBYTE),
+        BaseDataType.BYTE to InferredType.known(BaseDataType.BYTE),
+        BaseDataType.UWORD to InferredType.known(BaseDataType.UWORD),
+        BaseDataType.WORD to InferredType.known(BaseDataType.WORD),
+        BaseDataType.LONG to InferredType.known(BaseDataType.LONG),
+        BaseDataType.FLOAT to InferredType.known(BaseDataType.FLOAT),
+        BaseDataType.STR to InferredType.known(BaseDataType.STR),
+        BaseDataType.UNDEFINED to InferredType.known(BaseDataType.UNDEFINED)
+    )
+
+    private val instancesDt = mapOf(
+        DataType.UBYTE to instancesBaseDt.getValue(BaseDataType.UBYTE),
+        DataType.BYTE to instancesBaseDt.getValue(BaseDataType.BYTE),
+        DataType.UWORD to instancesBaseDt.getValue(BaseDataType.UWORD),
+        DataType.WORD to instancesBaseDt.getValue(BaseDataType.WORD),
+        DataType.LONG to instancesBaseDt.getValue(BaseDataType.LONG),
+        DataType.FLOAT to instancesBaseDt.getValue(BaseDataType.FLOAT),
+        DataType.BOOL to instancesBaseDt.getValue(BaseDataType.BOOL),
+        DataType.STR to instancesBaseDt.getValue(BaseDataType.STR),
+        DataType.UNDEFINED to instancesBaseDt.getValue(BaseDataType.UNDEFINED)
+    )
+
     fun void() = voidInstance
     fun unknown() = unknownInstance
-    fun knownFor(baseDt: BaseDataType): InferredType = InferredType.known(baseDt)
-    fun knownFor(type: DataType): InferredType = when {
-        type.isUnsignedByte -> InferredType.known(BaseDataType.UBYTE)
-        type.isSignedByte -> InferredType.known(BaseDataType.BYTE)
-        type.isUnsignedWord -> InferredType.known(BaseDataType.UWORD)
-        type.isSignedWord -> InferredType.known(BaseDataType.WORD)
-        type.isBool -> InferredType.known(BaseDataType.BOOL)
-        type.isFloat -> InferredType.known(BaseDataType.FLOAT)
-        type.isString -> InferredType.known(BaseDataType.STR)
-        type.isLong -> InferredType.known(BaseDataType.LONG)
-        type.isPointerArray -> InferredType.known(type)
-        type.isSplitWordArray -> {
-            when(type.sub) {
-                BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
-                BaseDataType.WORD -> InferredType.known(DataType.arrayFor(BaseDataType.WORD))
-                BaseDataType.STR -> InferredType.known(DataType.arrayFor(BaseDataType.STR))
-                else -> throw IllegalArgumentException("invalid sub type")
+    fun knownFor(baseDt: BaseDataType): InferredType = instancesBaseDt.getValue(baseDt)
+    fun knownFor(type: DataType): InferredType {
+        val instance = instancesDt[type]
+        if(instance!=null)
+            return instance
+        else
+            return when {
+                type.isPointerArray -> InferredType.known(type)
+                type.isSplitWordArray -> {
+                    when (type.sub) {
+                        BaseDataType.UWORD -> InferredType.known(DataType.arrayFor(BaseDataType.UWORD))
+                        BaseDataType.WORD -> InferredType.known(DataType.arrayFor(BaseDataType.WORD))
+                        BaseDataType.STR -> InferredType.known(DataType.arrayFor(BaseDataType.STR))
+                        else -> throw IllegalArgumentException("invalid sub type")
+                    }
+                }
+
+                type.isArray -> InferredType.known(type)
+                type.isPointer -> InferredType.known(type)
+                type.isStructInstance -> InferredType.known(type)
+                else -> throw IllegalArgumentException("invalid type $type")
             }
-        }
-        type.isArray -> InferredType.known(type)
-        type.isPointer -> InferredType.known(type)
-        type.isStructInstance -> InferredType.known(type)
-        else -> throw IllegalArgumentException("invalid type $type")
     }
 }
