@@ -551,10 +551,10 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         return IfExpression(condition, truevalue, falsevalue, ctx.toPosition())
     }
 
-    override fun visitBranchcondition_expression(ctx: Branchcondition_expressionContext): IfExpression {
-        val branchcondition = branchCondition(ctx.branchcondition())
+    override fun visitBranchcondition_expression(ctx: Branchcondition_expressionContext): BranchConditionExpression {
+        val condition = branchCondition(ctx.branchcondition())
         val (truevalue, falsevalue) = ctx.expression().map { it.accept(this) as Expression }
-        throw SyntaxError("branchcondition expression not yet supported", ctx.toPosition())
+        return BranchConditionExpression(condition, truevalue, falsevalue, ctx.toPosition())
     }
 
     override fun visitBranch_stmt(ctx: Branch_stmtContext): ConditionalBranch {

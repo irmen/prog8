@@ -54,6 +54,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                                 || removeDoubleSecClc(chunk1, indexedInstructions)
                                 || cleanupPushPop(chunk1, indexedInstructions)
                                 || simplifyConstantReturns(chunk1, indexedInstructions)
+                                || removeNeedlessLoads(chunk1, indexedInstructions)
                     } while (changed)
                 }
             }
@@ -346,6 +347,29 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                             chunk.instructions.removeAt(idx)
                             changed = true
                         }
+                    }
+                }
+            }
+        }
+        return changed
+    }
+
+    private fun removeNeedlessLoads(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        /*
+load.b r2,#2
+loadr.b r1,r2
+jump p8_label_gen_2
+         */
+        var changed=false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if(idx>=2 && ins.opcode in OpcodesThatJump) {
+                val previous = indexedInstructions[idx-1].value
+                val previous2 = indexedInstructions[idx-2].value
+                if(previous.opcode==Opcode.LOADR && previous2.opcode in OpcodesThatLoad) {
+                    if(previous.reg2==previous2.reg1) {
+                        chunk.instructions[idx-2] = previous2.copy(reg1=previous.reg1)
+                        chunk.instructions.removeAt(idx-1)
+                        changed=true
                     }
                 }
             }

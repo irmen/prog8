@@ -742,6 +742,12 @@ An example, to select the number of cards to use depending on what game is playe
     else
         numcards = 52
 
+The expression form is also available for the conditionals ``if_cc``, ``if_cs``, ``if_z`` etc.
+(These particular variants for checking the value of the Carry status bit actually compile into very efficient branchless assembly code)::
+
+    ubyte carryvalue = if_cs 1 else 0
+
+
 
 on .. goto / on .. call statement (jump table)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

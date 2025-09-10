@@ -83,6 +83,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtArrayIndexer -> translate(expr)
             is PtBinaryExpression -> translate(expr)
             is PtIfExpression -> translate(expr)
+            is PtBranchCondExpression -> translate(expr)
             is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr)
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
@@ -248,6 +249,69 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
             result += IRCodeChunk(falseLabel, null)
             addToResult(result, falseTr, -1, trueTr.resultFpReg)
+            result += IRCodeChunk(endLabel, null)
+            return ExpressionCodeResult(result, irDt, -1, trueTr.resultFpReg)
+        }
+    }
+
+    private fun translate(branchExpr: PtBranchCondExpression): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val trueTr = translateExpression(branchExpr.truevalue)
+        val falseTr = translateExpression(branchExpr.falsevalue)
+        val trueLabel = codeGen.createLabelName()
+        val endLabel = codeGen.createLabelName()
+        val irDt = irType(branchExpr.type)
+
+        if(branchExpr.condition==BranchCondition.CC && irDt==IRDataType.BYTE) {
+            if(branchExpr.truevalue.asConstInteger()==0 && branchExpr.falsevalue.asConstInteger()==1) {
+                result.add(IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, irDt, reg1=trueTr.resultReg, immediate = 0)
+                    it += IRInstruction(Opcode.ROXL, irDt, reg1=trueTr.resultReg)
+                })
+                return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+            }
+            else if(branchExpr.truevalue.asConstInteger()==1 && branchExpr.falsevalue.asConstInteger()==0) {
+                result.add(IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, irDt, reg1=trueTr.resultReg, immediate = 0)
+                    it += IRInstruction(Opcode.ROXL, irDt, reg1=trueTr.resultReg)
+                    it += IRInstruction(Opcode.XOR, irDt, reg1=trueTr.resultReg, immediate = 1)
+                })
+                return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+            }
+        }
+        else if(branchExpr.condition==BranchCondition.CS) {
+            if(branchExpr.truevalue.asConstInteger()==0 && branchExpr.falsevalue.asConstInteger()==1) {
+                result.add(IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, irDt, reg1=trueTr.resultReg, immediate = 0)
+                    it += IRInstruction(Opcode.ROXL, irDt, reg1=trueTr.resultReg)
+                    it += IRInstruction(Opcode.XOR, irDt, reg1=trueTr.resultReg, immediate = 1)
+                })
+                return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+            }
+            else if(branchExpr.truevalue.asConstInteger()==1 && branchExpr.falsevalue.asConstInteger()==0) {
+                result.add(IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOAD, irDt, reg1=trueTr.resultReg, immediate = 0)
+                    it += IRInstruction(Opcode.ROXL, irDt, reg1=trueTr.resultReg)
+                })
+                return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+            }
+        }
+
+        val branchInstr = codeGen.IRBranchInstr(branchExpr.condition, trueLabel)
+        addInstr(result, branchInstr, null)
+
+        if (irDt != IRDataType.FLOAT) {
+            addToResult(result, falseTr, trueTr.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            result += IRCodeChunk(trueLabel, null)
+            addToResult(result, trueTr, trueTr.resultReg, -1)
+            result += IRCodeChunk(endLabel, null)
+            return ExpressionCodeResult(result, irDt, trueTr.resultReg, -1)
+        } else {
+            addToResult(result, falseTr, -1, trueTr.resultFpReg)
+            addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = endLabel), null)
+            result += IRCodeChunk(trueLabel, null)
+            addToResult(result, trueTr, -1, trueTr.resultFpReg)
             result += IRCodeChunk(endLabel, null)
             return ExpressionCodeResult(result, irDt, -1, trueTr.resultFpReg)
         }

@@ -514,6 +514,23 @@ val OpcodesThatDependOnCarry = arrayOf(
     Opcode.ROXRM
 )
 
+val OpcodesThatLoad = arrayOf(
+    Opcode.LOAD,
+    Opcode.LOADM,
+    Opcode.LOADI,
+    Opcode.LOADX,
+    Opcode.LOADIX,
+    Opcode.LOADR,
+    Opcode.LOADHA,
+    Opcode.LOADHX,
+    Opcode.LOADHY,
+    Opcode.LOADHAX,
+    Opcode.LOADHAY,
+    Opcode.LOADHXY,
+    Opcode.LOADFIELD,
+    Opcode.LOADHFACZERO,
+    Opcode.LOADHFACONE
+)
 val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry
 
 

@@ -1660,6 +1660,42 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
     }
 }
 
+class BranchConditionExpression(var condition: BranchCondition, var truevalue: Expression, var falsevalue: Expression, override val position: Position) : Expression() {
+
+    override lateinit var parent: Node
+
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        truevalue.linkParents(this)
+        falsevalue.linkParents(this)
+    }
+
+    override val isSimple: Boolean = truevalue.isSimple && falsevalue.isSimple
+
+    override fun constValue(program: Program) = null
+    override fun toString() = "BranchExpr(cond=$condition, true=$truevalue, false=$falsevalue, pos=$position)"
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean = truevalue.referencesIdentifier(nameInSource) || falsevalue.referencesIdentifier(nameInSource)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        val t1 = truevalue.inferType(program)
+        val t2 = falsevalue.inferType(program)
+        if(t1==t2) return t1
+        if(t1.isPointer && t2.isUnsignedWord || t1.isUnsignedWord && t2.isPointer) return InferredTypes.knownFor(BaseDataType.UWORD)
+        return InferredTypes.unknown()
+    }
+
+    override fun copy(): Expression = BranchConditionExpression(condition, truevalue.copy(), falsevalue.copy(), position)
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(replacement !is Expression)
+            throw FatalAstException("invalid replace")
+        else if(node===truevalue) truevalue=replacement
+        else if(node===falsevalue) falsevalue=replacement
+        else throw FatalAstException("invalid replace")
+    }
+}
+
 class PtrDereference(
     val chain: List<String>,
     val derefLast: Boolean,

@@ -141,6 +141,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtPointerDeref -> false
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
+            is PtBranchCondExpression -> truevalue.isSimple() && falsevalue.isSimple()
         }
     }
 
@@ -259,6 +260,12 @@ class PtIfExpression(type: DataType, position: Position): PtExpression(type, pos
         get() = children[2] as PtExpression
 }
 
+class PtBranchCondExpression(val condition: BranchCondition, type: DataType, position: Position): PtExpression(type, position) {
+    val truevalue: PtExpression
+        get() = children[0] as PtExpression
+    val falsevalue: PtExpression
+        get() = children[1] as PtExpression
+}
 
 class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, position) {
     val needle: PtExpression

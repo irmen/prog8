@@ -114,6 +114,7 @@ abstract class AstWalker {
     open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(branchExpr: BranchConditionExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
@@ -165,6 +166,7 @@ abstract class AstWalker {
     open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(branchExpr: BranchConditionExpression, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
@@ -508,6 +510,13 @@ abstract class AstWalker {
         ifExpr.truevalue.accept(this, ifExpr)
         ifExpr.falsevalue.accept(this, ifExpr)
         track(after(ifExpr, parent), ifExpr, parent)
+    }
+
+    fun visit(branchExpr: BranchConditionExpression, parent: Node) {
+        track(before(branchExpr, parent), branchExpr, parent)
+        branchExpr.truevalue.accept(this, branchExpr)
+        branchExpr.falsevalue.accept(this, branchExpr)
+        track(after(branchExpr, parent), branchExpr, parent)
     }
 
     fun visit(inlineAssembly: InlineAssembly, parent: Node) {

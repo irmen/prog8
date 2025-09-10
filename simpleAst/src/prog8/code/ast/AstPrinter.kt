@@ -188,6 +188,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             }
             is PtDefer -> "<defer>"
             is PtIfExpression -> "<ifexpr>"
+            is PtBranchCondExpression -> "<branchexpr> if_${node.condition.name.lowercase()}"
             is PtJmpTable -> "<jmptable>"
             is PtStructDecl -> {
                 "struct ${node.name} { " + node.fields.joinToString("  ") { "${it.first} ${it.second}" } + " }"

@@ -100,6 +100,11 @@ interface IAstVisitor {
         ifExpr.falsevalue.accept(this)
     }
 
+    fun visit(branchExpr: BranchConditionExpression) {
+        branchExpr.truevalue.accept(this)
+        branchExpr.falsevalue.accept(this)
+    }
+
     fun visit(label: Label) {
     }
 

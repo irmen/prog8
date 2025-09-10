@@ -44,6 +44,69 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         }
     }
 
+    internal fun assignBranchCondExpression(target: AsmAssignTarget, expr: PtBranchCondExpression) {
+        require(target.datatype==expr.type ||
+                target.datatype.isUnsignedWord && (expr.type.isString || expr.type.isPointer) ||
+                target.datatype.isPointer && (expr.type.isUnsignedWord || expr.type.isPointer || expr.type.isString))
+
+        if(target.kind==TargetStorageKind.REGISTER && target.datatype.isUnsignedByte && target.register==RegisterOrPair.A) {
+            if(expr.condition==BranchCondition.CC) {
+                if(expr.truevalue.asConstInteger()==0 && expr.falsevalue.asConstInteger()==1) {
+                    asmgen.out("  lda  #0 |  rol a")
+                    return
+                }
+                else if(expr.truevalue.asConstInteger()==1 && expr.falsevalue.asConstInteger()==0) {
+                    asmgen.out("  lda  #0 |  rol a |  eor  #1")
+                    return
+                }
+            }
+            else if(expr.condition==BranchCondition.CS) {
+                if(expr.truevalue.asConstInteger()==0 && expr.falsevalue.asConstInteger()==1) {
+                    asmgen.out("  lda  #0 |  rol a |  eor  #1")
+                    return
+                }
+                else if(expr.truevalue.asConstInteger()==1 && expr.falsevalue.asConstInteger()==0) {
+                    asmgen.out("  lda  #0 |  rol a")
+                    return
+                }
+            }
+        }
+
+        val trueLabel = asmgen.makeLabel("branchexpr_true")
+        val endLabel = asmgen.makeLabel("branchexpr_end")
+        val branch = asmgen.branchInstruction(expr.condition, false)
+
+        asmgen.out("  $branch  $trueLabel")
+
+        when {
+            expr.type.isByteOrBool -> {
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A)
+                asmgen.jmp(endLabel)
+                asmgen.out(trueLabel)
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.A)
+                asmgen.out(endLabel)
+                assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
+            }
+            expr.type.isWord || expr.type.isString -> {
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY)
+                asmgen.jmp(endLabel)
+                asmgen.out(trueLabel)
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY)
+                asmgen.out(endLabel)
+                assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
+            }
+            expr.type.isFloat -> {
+                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.FAC1, true)
+                asmgen.jmp(endLabel)
+                asmgen.out(trueLabel)
+                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.FAC1, true)
+                asmgen.out(endLabel)
+                asmgen.assignRegister(RegisterOrPair.FAC1, target)
+            }
+            else -> throw AssemblyError("weird dt")
+        }
+    }
+
     private fun evalIfExpressionConditonAndBranchWhenFalse(condition: PtExpression, falseLabel: String) {
         when (condition) {
             is PtBinaryExpression -> {

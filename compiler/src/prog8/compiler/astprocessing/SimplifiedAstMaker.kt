@@ -100,6 +100,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is StringLiteral -> transform(expr)
             is TypecastExpression -> transform(expr)
             is IfExpression -> transform(expr)
+            is BranchConditionExpression -> transform(expr)
             is PtrDereference -> transform(expr)
             is StaticStructInitializer -> transform(expr)
             is ArrayIndexedPtrDereference -> throw FatalAstException("this should have been converted to some other ast nodes")
@@ -139,6 +140,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         ifexpr.add(transformExpression(ifExpr.truevalue))
         ifexpr.add(transformExpression(ifExpr.falsevalue))
         return ifexpr
+    }
+
+    private fun transform(branchExpr: BranchConditionExpression): PtBranchCondExpression {
+        val type = branchExpr.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
+        val bexpr = PtBranchCondExpression(branchExpr.condition, type, branchExpr.position)
+        bexpr.add(transformExpression(branchExpr.truevalue))
+        bexpr.add(transformExpression(branchExpr.falsevalue))
+        return bexpr
     }
 
     private fun transform(srcDefer: Defer): PtDefer {

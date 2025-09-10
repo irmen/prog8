@@ -66,6 +66,13 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         ifExpr.falsevalue.accept(this)
     }
 
+    override fun visit(branchExpr: BranchConditionExpression) {
+        output("if_${branchExpr.condition.name.lowercase()} ")
+        branchExpr.truevalue.accept(this)
+        output(" else ")
+        branchExpr.falsevalue.accept(this)
+    }
+
     override fun visit(continueStmt: Continue) {
         output("continue")
     }

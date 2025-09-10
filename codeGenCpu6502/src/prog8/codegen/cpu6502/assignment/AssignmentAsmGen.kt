@@ -526,6 +526,7 @@ internal class AssignmentAsmGen(
                 }
             }
             is PtIfExpression -> asmgen.assignIfExpression(assign.target, value)
+            is PtBranchCondExpression -> asmgen.assignBranchCondExpression(assign.target, value)
             is PtPointerDeref -> pointergen.assignPointerDerefExpression(assign.target, value)
             else -> throw AssemblyError("weird assignment value type $value")
         }

@@ -860,7 +860,7 @@ class AsmGen6502Internal (
         }
     }
 
-    private fun branchInstruction(condition: BranchCondition, complement: Boolean) =
+    internal fun branchInstruction(condition: BranchCondition, complement: Boolean) =
             if(complement) {
                 when (condition) {
                     BranchCondition.CS -> "bcc"
@@ -1696,6 +1696,10 @@ $repeatLabel""")
 
     internal fun assignIfExpression(target: AsmAssignTarget, value: PtIfExpression) {
         ifExpressionAsmgen.assignIfExpression(target, value)
+    }
+
+    internal fun assignBranchCondExpression(target: AsmAssignTarget, value: PtBranchCondExpression) {
+        ifExpressionAsmgen.assignBranchCondExpression(target, value)
     }
 
     internal fun cmpAwithByteValue(value: PtExpression, useSbc: Boolean) {

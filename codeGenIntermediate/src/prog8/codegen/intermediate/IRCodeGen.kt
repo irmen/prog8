@@ -336,7 +336,7 @@ class IRCodeGen(
         return result
     }
 
-    private fun IRBranchInstr(condition: BranchCondition, label: String?=null, address: Int?=null): IRInstruction {
+    internal fun IRBranchInstr(condition: BranchCondition, label: String?=null, address: Int?=null): IRInstruction {
         if(label!=null)
             return when(condition) {
                 BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
