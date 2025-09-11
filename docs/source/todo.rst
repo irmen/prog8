@@ -2,55 +2,57 @@ TODO
 ====
 
 not all source lines are correctly reported in the IR file,
-for example the below subroutine only shows the sub() line:
-        sub two() {
-            cx16.r0 = peekw(ww + cx16.r0L * 2)
+for example the below subroutine only shows the sub() line::
+
+    sub two() {
+        cx16.r0 = peekw(ww + cx16.r0L * 2)
+    }
+
+and for example the below code omits line 5::
+
+    [examples/test.p8: line 4 col 6-8]  sub start() {
+    [examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
+    [examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
+    [examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
+    [examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
+
+
+    %option enable_floats
+
+    main {
+        sub start() {
+            cx16.r1 = select1()
+            cx16.r2 = select2()
+            cx16.r3 = select3()
+            cx16.r4 = select4()
+            cx16.r5 = select5()
         }
 
-and for example the below code omits line 5:
-[examples/test.p8: line 4 col 6-8]  sub start() {
-[examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
-[examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
-[examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
-[examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
+        sub select1() -> uword {
+            cx16.r0L++
+            return 2000
+        }
 
+        sub select2() -> str {
+            cx16.r0L++
+            return 2000
+        }
 
-%option enable_floats
+        sub select3() -> ^^ubyte {
+            cx16.r0L++
+            return 2000
+        }
 
-main {
-    sub start() {
-        cx16.r1 = select1()
-        cx16.r2 = select2()
-        cx16.r3 = select3()
-        cx16.r4 = select4()
-        cx16.r5 = select5()
+        sub select4() -> ^^bool {
+            cx16.r0L++
+            return 2000
+        }
+
+        sub select5() -> ^^float {
+            cx16.r0L++
+            return 2000
+        }
     }
-
-    sub select1() -> uword {
-        cx16.r0L++
-        return 2000
-    }
-
-    sub select2() -> str {
-        cx16.r0L++
-        return 2000
-    }
-
-    sub select3() -> ^^ubyte {
-        cx16.r0L++
-        return 2000
-    }
-
-    sub select4() -> ^^bool {
-        cx16.r0L++
-        return 2000
-    }
-
-    sub select5() -> ^^float {
-        cx16.r0L++
-        return 2000
-    }
-}
 
 
 STRUCTS and TYPED POINTERS
