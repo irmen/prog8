@@ -85,7 +85,7 @@ Future Things and Ideas
 - enums?
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
-- Kotlin: can we use inline value classes in certain spots?
+- Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
 - add float support to the configurable compiler targets
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
@@ -106,7 +106,7 @@ Future Things and Ideas
 
 IR/VM
 -----
-- possible to use LOADFIELD/STOREFIELD instructions more?
+- is it possible to use LOADFIELD/STOREFIELD instructions more?
 - pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit 88b074c208450c58aa32469745afa03e4c5f564a
 - change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
