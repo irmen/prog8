@@ -16,6 +16,7 @@
 %import b_textelite
 %import b_maze
 %import b_sprites
+%import b_btree
 
 %zeropage basicsafe
 %option no_sysinit
@@ -67,10 +68,6 @@ main {
         benchmark_score[benchmark_number]  = circles.draw(false, 300)
         benchmark_number++
 
-;        announce_benchmark("circles with kernal")
-;        benchmark_score[benchmark_number]  = circles.draw(true, 300)
-;        benchmark_number++
-
         announce_benchmark("text-elite")
         benchmark_score[benchmark_number]  = textelite.bench(120)
         benchmark_number++
@@ -79,13 +76,17 @@ main {
         benchmark_score[benchmark_number]  = animsprites.benchmark(300)
         benchmark_number++
 
+        announce_benchmark("btree-struct-pointers")
+        benchmark_score[benchmark_number]  = btree.benchmark(200)
+        benchmark_number++
+
         benchmark_names[benchmark_number] = 0
         benchmark_score[benchmark_number] = 0
 
         cx16.set_screen_mode(3)
         txt.uppercase()
         txt.color2(1, 6)
-        uword final_score
+        uword total_score
         benchmark_number = 0
         txt.print("\nscore benchmark\n\n")
         do {
@@ -93,14 +94,14 @@ main {
             txt.print_uw(benchmark_score[benchmark_number])
             txt.column(6)
             txt.print(benchmark_names[benchmark_number])
-            final_score += benchmark_score[benchmark_number]
+            total_score += benchmark_score[benchmark_number]
             txt.nl()
             benchmark_number++
         } until benchmark_names[benchmark_number]==0
 
-        txt.print("\n\nfinal score : ")
-        txt.print_uw(final_score)
-        txt.nl()
+        txt.print("\n\ntotal score : ")
+        txt.print_uw(total_score)
+        txt.print(" (higher=better)\n")
 
         sub announce_benchmark(str name) {
             benchmark_names[benchmark_number] = name

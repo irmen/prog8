@@ -16,6 +16,7 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 - 'c128': the Commodore 128  (*limited support*)
 - 'pet32': the Commodore PET 4032  (*limited support*)
 - 'virtual': a builtin virtual machine
+- custom targets via a separate configuration file (see :ref:`customizable_target`)
 
 This chapter explains some relevant system details of the c64 and cx16 machines.
 

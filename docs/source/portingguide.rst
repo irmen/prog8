@@ -5,8 +5,14 @@
 Porting Guide
 *************
 
-Here is a guide for porting Prog8 to other compilation targets.
+Here is a guide for making Prog8 work for other compilation targets.
 Answers to the questions below are used to configure the new target and supporting libraries.
+
+**It is not required to change the compiler itself to make it support new compilation targets.**
+A few of the most commonly used ones are built-in (such as c64, cx16), but you can use
+separate configuration files to create new targets that the compiler can use.
+See :ref:`customizable_target` for details about this. You still need to provide most of the
+information asked for in this porting guide and code that into the configuration file.
 
 .. note::
     The assembly code that prog8 generates is not suitable to be put into ROM. (It contains
@@ -25,7 +31,7 @@ Memory Map
 
 Zeropage
 ========
-#. *Absolute requirement:* Provide four times 2 consecutive bytes (i.e. four 16-bit words) in the zeropage that are free to use at all times.
+#. *Absolute requirement:* Provide four words (16 bit byte pairs) in the zeropage that are free to use at all times.
 #. Provide list of any additional free zeropage locations for a normal running system (BASIC + Kernal enabled)
 #. Provide list of any additional free zeropage locations when BASIC is off, but floating point routines should still work
 #. Provide list of any additional free zeropage locations when only the Kernal remains enabled
@@ -43,14 +49,13 @@ RAM, ROM, I/O
 #. what part(s) of the address space is memory-mapped I/O registers?
 #. is there a block of "high ram" available (ram that is not the main ram used to load programs in) that could be used for variables?
 #. is there a banking system? How does it work (how do you select Ram/Rom banks)? How is the default bank configuration set?
-   Note that prog8 itself has no notion of banking, but this knowledge may be required for proper system initialization.
 
 Character encodings
 -------------------
-#. if not PETSCII or CBM screencodes: provide the primary character encoding table that the system uses (i.e. how is text represented in memory)
+#. provide the primary character encoding table that the system uses (i.e. how is text represented in memory. For example, PETSCII)
 #. provide alternate character encodings (if any)
 #. what are the system's standard character screen dimensions?
-#. is there a screen character matrix directly accessible in Ram? What's it address? Same for color attributes if any.
+#. is there a screen character matrix directly accessible in RAM? What's it address? Same for color attributes if any.
 
 
 ROM routines
@@ -63,7 +68,7 @@ The more the merrier.
 
 Floating point
 ==============
-Prog8 can support floating point math *if* the target system has floating point math routines in ROM. If that is the case:
+Prog8 can support floating point math *if* the target system has suitable floating point math routines in ROM. If that is the case:
 
 #. what is the binary representation format of the floating point numbers? (how many bytes, how the bits are set up)
 #. what are the valid minimum negative and maximum positive floating point values?

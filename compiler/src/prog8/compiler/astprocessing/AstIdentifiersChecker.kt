@@ -169,10 +169,12 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
 
     override fun visit(initializer: StaticStructInitializer) {
-        val fields = initializer.structname.targetStructDecl()!!.fields
-        if(initializer.args.isNotEmpty() && initializer.args.size != fields.size) {
-            val pos = (if(initializer.args.any()) initializer.args[0] else initializer).position
-            invalidNumberOfArgsError(pos, initializer.args.size, fields.map { it.second }, true)
+        val struct = initializer.structname.targetStructDecl()
+        if(struct!=null) {
+            if (initializer.args.isNotEmpty() && initializer.args.size != struct.fields.size) {
+                val pos = (if (initializer.args.any()) initializer.args[0] else initializer).position
+                invalidNumberOfArgsError(pos, initializer.args.size, struct.fields.map { it.second }, true)
+            }
         }
     }
 

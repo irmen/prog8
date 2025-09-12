@@ -58,7 +58,7 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- allow struct initialization syntax in an array such as [ Node(), Node(), Node() ],  update sorting example to use list of countries like that
+- allow struct initialization syntax in an array such as [ ^^Node:[], ^^Node:[], ^^Node:[] ],  update sorting example to use list of countries like that
 - fix code size regressions (if any left)
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - update structpointers.rst docs with 6502 specific things?
@@ -68,7 +68,6 @@ STRUCTS and TYPED POINTERS
 - try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size, see test.p8 in commit d394dc1e
 - should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
   or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?
-- add struct and pointer benchmark to benchmark program?
 - optimize addUnsignedByteOrWordToAY in PointerAssignmentsGen a bit more
 - support for typed function pointers?  (&routine could be typed by default as well then)
 - support @nosplit pointer arrays?
