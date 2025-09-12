@@ -26,7 +26,7 @@ class VarConstantValueTypeAdjuster(
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
 
         if(decl.parent is AnonymousScope)
-            throw FatalAstException("vardecl may no longer occur in anonymousscope")
+            throw FatalAstException("vardecl may no longer occur in anonymousscope ${decl.position}")
 
         try {
             val declConstValue = decl.value?.constValue(program)

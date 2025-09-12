@@ -1318,9 +1318,30 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
         else
             definingScope.lookup(nameInSource)
-    fun targetVarDecl(): VarDecl? = targetStatement() as? VarDecl
-    fun targetSubroutine(): Subroutine? = targetStatement() as? Subroutine
-    fun targetStructDecl(): StructDecl? = targetStatement() as? StructDecl
+    fun targetVarDecl(): VarDecl? {
+        // follows aliases
+        val t = targetStatement()
+        return if(t is Alias)
+            t.target.targetVarDecl()
+        else
+            t as? VarDecl
+    }
+    fun targetSubroutine(): Subroutine? {
+        // follows aliases
+        val t = targetStatement()
+        return if(t is Alias)
+            t.target.targetSubroutine()
+        else
+            t as? Subroutine
+    }
+    fun targetStructDecl(): StructDecl? {
+        // follows aliases
+        val t = targetStatement()
+        return if(t is Alias)
+            t.target.targetStructDecl()
+        else
+            t as? StructDecl
+    }
     fun targetStructFieldRef(): StructFieldRef? {
         if(nameInSource.size<2) return null
         return targetStatement() as? StructFieldRef

@@ -1273,11 +1273,11 @@ internal class AstChecker(private val program: Program,
         }
 
         if(array.parent is VarDecl) {
-            if (!array.value.all { it is NumericLiteral || it is AddressOf || (it is FunctionCallExpression && it.target.targetStructDecl()!=null) }) {
+            if (!array.value.all { it is NumericLiteral || it is AddressOf || it is StaticStructInitializer }) {
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
             }
 
-            if(array.value.any { it is FunctionCallExpression }) {
+            if(array.value.any { it is StaticStructInitializer }) {
                 errors.err("it is not yet possible to use struct initializations in an array, you have to do it one by one for now", array.value[0].position)
                 // TODO this is because later in the simplified AST the allocate struct variable is still missing somehow
             }
@@ -1898,34 +1898,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(target is StructDecl) {
-            // it's a static struct inializer, check the values
-            if(args.isNotEmpty()) {
-                args.forEach {
-                    if(it is IdentifierReference) {
-                        val target = it.targetVarDecl()
-                        if(target!=null && target.datatype.isPointer) {
-                            errors.err("a pointer variable cannot be used in a static initialization value because its value is only known at runtime (use 0 here, and assign it later manually)", it.position)
-                        }
-                    }
-                }
-                if (!args.all { it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral)})
-                    errors.err("initialization value contains non-constant elements", args[0].position)
-                if (target.fields.size != args.size)
-                    errors.err("initialization value needs to have same number of values as the struct has fields, or be empty: expected ${target.fields.size} or 0, got ${args.size}", args[0].position)
-                else
-                    target.fields.zip(args).withIndex().forEach { (index, fv) ->
-                        val (field, value) = fv
-                        val valueDt = value.inferType(program)
-                        if(valueDt isNotAssignableTo field.first) {
-                            errors.err("value #${index+1} has incompatible type $valueDt for field '${field.second}' (${field.first})", value.position)
-                        }
-                    }
-            }
-
-            // TODO rest?
-        }
-
         args.forEach{
             checkLongType(it)
             if(it.inferType(program).isStructInstance)
@@ -2396,6 +2368,7 @@ internal class AstChecker(private val program: Program,
                     else
                         cast.valueOrZero().number
                 }
+                is StaticStructInitializer -> it.structname.hashCode() and 0xffff
                 else -> -9999999
             }
         }
@@ -2420,7 +2393,7 @@ internal class AstChecker(private val program: Program,
             else -> throw FatalAstException("invalid type $targetDt")
         }
         if (!correct) {
-            if (value.parent is VarDecl && !value.value.all { it is NumericLiteral || it is AddressOf })
+            if (value.parent is VarDecl && !value.value.all { it is NumericLiteral || it is AddressOf || it is StaticStructInitializer })
                 errors.err("initialization value contains non-constant elements", value.value[0].position)
             else
                 errors.err("array element out of range for type $targetDt", value.position)
@@ -2506,6 +2479,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(onGoto: OnGoto) {
+        val t = onGoto.index.inferType(program)
         if(!onGoto.index.inferType(program).getOrUndef().isUnsignedByte) {
             errors.err("on..goto index must be an unsigned byte", onGoto.index.position)
         }
@@ -2516,6 +2490,34 @@ internal class AstChecker(private val program: Program,
             errors.err("no support for assigning to a array indexed pointer target like this yet. Split the assignment statement by using an intermediate variable.", deref.position)
         else
             errors.err("no support for getting the target value of pointer array indexing like this yet. Split the expression by using an intermediate variable.", deref.position) // this may never occur anymore since more ArrayIndexedPtrDereference got rewritten
+    }
+
+    override fun visit(initializer: StaticStructInitializer) {
+        val args = initializer.args
+        if(args.isNotEmpty()) {
+            args.forEach {
+                if(it is IdentifierReference) {
+                    val target = it.targetVarDecl()
+                    if(target!=null && target.datatype.isPointer) {
+                        errors.err("a pointer variable cannot be used in a static initialization value because its value is only known at runtime (use 0 here, and assign it later manually)", it.position)
+                    }
+                }
+            }
+            if (!args.all { it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral)})
+                errors.err("initialization value contains non-constant elements", args[0].position)
+            val struct = initializer.structname.targetStructDecl()
+            if(struct!=null) {
+                require(args.size==struct.fields.size)
+                struct.fields.zip(args).withIndex().forEach { (index, fv) ->
+                    val (field, value) = fv
+                    val valueDt = value.inferType(program)
+                    if(valueDt isNotAssignableTo field.first)
+                        errors.err("value #${index+1} has incompatible type $valueDt for field '${field.second}' (${field.first})", value.position)
+                }
+            }
+        }
+
+        super.visit(initializer)
     }
 }
 

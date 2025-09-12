@@ -545,9 +545,9 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(onGoto: OnGoto) {
-        output(if(onGoto.isCall) "selectcall " else "selectgoto ")
+        output("on ")
         onGoto.index.accept(this)
-        output(" from (")
+        output(if(onGoto.isCall) " call (" else " goto (")
         onGoto.labels.forEachIndexed { idx, label ->
             label.accept(this)
             if(idx!=onGoto.labels.lastIndex)
