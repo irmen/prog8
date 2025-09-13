@@ -124,8 +124,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
         return if(parent is IStatementContainer)
             listOf(ScopeFlatten(scope, parent as IStatementContainer))
-        else
+        else {
+            if(scope.statements.any {it is VarDecl}) {
+                throw FatalAstException("there are leftover vardecls in the nested scope at ${scope.position}, they should have been moved/placed in the declaration scope (subroutine) by now")
+            }
             noModifications
+        }
     }
 
     private class ScopeFlatten(val scope: AnonymousScope, val into: IStatementContainer) : IAstModification {

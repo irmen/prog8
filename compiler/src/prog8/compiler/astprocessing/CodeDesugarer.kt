@@ -605,11 +605,15 @@ _after:
         }
 
         val replacementScope = AnonymousScope(if(conditionVar==null)
-                mutableListOf(ifSt, jumplistArray)
+                mutableListOf(ifSt)
             else
-                mutableListOf(conditionVar, assignIndex!!, ifSt, jumplistArray)
+                mutableListOf(conditionVar, assignIndex!!, ifSt)
             , ongoto.position)
-        return listOf(IAstModification.ReplaceNode(ongoto, replacementScope, parent))
+        val declscope = parent.definingScope
+        return listOf(
+            IAstModification.ReplaceNode(ongoto, replacementScope, parent),
+            IAstModification.InsertFirst(jumplistArray, declscope)
+        )
     }
 
     override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {

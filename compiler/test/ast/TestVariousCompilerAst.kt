@@ -1157,5 +1157,21 @@ main {
         decls.all { it.datatype.isPointerArray } shouldBe true
     }
 
+    test("on..call in nested scope compiles correctly with temp variable introduced") {
+        val src="""
+main {
+    sub start() {
+        if_cs {
+            on cx16.r0L call (func,func)
+        }
+    }
+
+    sub func() {
+    }
+}"""
+
+        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+    }
+
 })
 
