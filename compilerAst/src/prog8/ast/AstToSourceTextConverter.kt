@@ -213,7 +213,7 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
         output(") ")
         if(subroutine.asmClobbers.isNotEmpty()) {
-            output("-> clobbers (")
+            output(" clobbers (")
             val regs = subroutine.asmClobbers.toList().sorted()
             for(r in regs) {
                 output(r.toString())
