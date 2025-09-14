@@ -47,10 +47,16 @@ private fun convert(struct: StStruct): IRStStructDef =
     IRStStructDef(struct.scopedNameString, struct.fields, struct.size)
 
 
-private fun convertArrayElt(elt: StArrayElement): IRStArrayElement = if(elt.boolean!=null)
-    IRStArrayElement(elt.boolean, null, elt.addressOfSymbol)
-else
-    IRStArrayElement(null, elt.number, elt.addressOfSymbol)
+private fun convertArrayElt(elt: StArrayElement): IRStArrayElement {
+    return if (elt.boolean != null)
+        IRStArrayElement(elt.boolean, null, null)
+    else if(elt.number!=null)
+        IRStArrayElement(null, elt.number, null)
+    else {
+        val symbol = elt.addressOfSymbol ?: (StStructInstanceBlockName + "." + (elt.structInstance ?: elt.structInstanceUninitialized))
+        IRStArrayElement(null, null, symbol)
+    }
+}
 
 
 private fun convert(variable: StStaticVariable): IRStStaticVariable {
@@ -72,7 +78,6 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
             val newArray = mutableListOf<IRStArrayElement>()
             array.forEach {
                 if(it.addressOfSymbol!=null) {
-                    println("LOOKUP ${it.addressOfSymbol}")
                     val target = variable.lookup(it.addressOfSymbol!!) ?:
                         throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
                     newArray.add(IRStArrayElement(null, null, target.scopedNameString))

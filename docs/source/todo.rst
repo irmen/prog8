@@ -59,7 +59,6 @@ STRUCTS and TYPED POINTERS
 --------------------------
 
 - can we have some syntactic sugar to avoid the struct name pointer prefix for all array elements that are a struct instance?
-- fix VM so that pointers/sorting.p8 example works again (it worked when adding the struct instances in a loop, no longer now that they're static)
 - fix code size regressions (if any left)
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - update structpointers.rst docs with 6502 specific things?

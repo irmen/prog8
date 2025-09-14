@@ -126,7 +126,10 @@ class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSym
     init {
         if(bool!=null) require(number==null && addressOfSymbol==null)
         if(number!=null) require(bool==null && addressOfSymbol==null)
-        if(addressOfSymbol!=null) require(number==null || bool==null)
+        if(addressOfSymbol!=null) {
+            require(number==null || bool==null)
+            require('.' in addressOfSymbol) { "addressOfSymbol must be a scoped name" }
+        }
     }
 }
 
@@ -134,7 +137,7 @@ class IRStStructDef(name: String, val fields: List<Pair<DataType, String>>, val 
 
 class IRStStructInstance(name: String, val structName: String, val values: List<IRStructInitValue>, val size: UInt): IRStNode(name, IRStNodeType.STRUCTINSTANCE) {
     init {
-        require('.' in structName)
+        require('.' in structName) { "structName must be a scoped name" }
     }
 }
 

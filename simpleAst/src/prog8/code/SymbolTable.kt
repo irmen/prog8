@@ -123,7 +123,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
             val scopehash = call.parent.hashCode().toUInt().toString(16)
             val pos = "${call.position.line}_${call.position.startCol}"
             val hash = call.position.file.hashCode().toUInt().toString(16)
-            return "${structname.replace('.', '_')}_${hash}_${pos}_${scopehash}"
+            return "${structname.replace('.', '_')}_${hash}_${scopehash}_${pos}"
         }
     }
 }

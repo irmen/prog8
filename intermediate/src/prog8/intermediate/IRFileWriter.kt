@@ -241,8 +241,10 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             if(floats) it.number.toString()
             else it.number.toInt().toHex()
         }
-        else
+        else if(it.addressOfSymbol!=null)
             "@${it.addressOfSymbol}"
+        else
+            throw InternalCompilerException("weird array value")
     }
 
     private fun writeVariables() {
@@ -283,14 +285,18 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     lsbValue = variable.onetimeInitializationArrayValue.joinToString(",") {
                         if(it.number!=null)
                             (it.number.toInt() and 255).toHex()
-                        else
+                        else if (it.addressOfSymbol!=null)
                             "@<${it.addressOfSymbol}"
+                        else
+                            throw InternalCompilerException("weird array value")
                     }
                     msbValue = variable.onetimeInitializationArrayValue.joinToString(",") {
                         if(it.number!=null)
                             (it.number.toInt() shr 8).toHex()
-                        else
+                        else if(it.addressOfSymbol!=null)
                             "@>${it.addressOfSymbol}"
+                        else
+                            throw InternalCompilerException("weird array value")
                     }
                 }
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish} split=true")
@@ -388,8 +394,10 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     value.dt.isInteger || value.dt.isPointer -> {
                         if(value.value.number!=null)
                             value.value.number.toInt().toHex()
-                        else
+                        else if(value.value.addressOfSymbol!=null)
                             "@${value.value.addressOfSymbol}"
+                        else
+                            throw InternalCompilerException("weird field value")
                     }
                     value.dt == BaseDataType.FLOAT -> {
                         value.value.number.toString()
