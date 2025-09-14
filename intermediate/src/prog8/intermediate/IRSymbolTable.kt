@@ -1,6 +1,6 @@
 package prog8.intermediate
 
-import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
@@ -49,10 +49,9 @@ class IRSymbolTable {
         val prefix = "$label."
         val vars = table.filter { it.key.startsWith(prefix) }
         vars.forEach {
-            // check if attempt is made to delete interned strings, if so, refuse that.
-            if(!it.key.startsWith(INTERNED_STRINGS_MODULENAME)) {
+            // check if attempt is made to delete fixed modules, if so, refuse that.
+            if(!PROG8_CONTAINER_MODULES.any { containername -> it.key.startsWith(containername)})
                 table.remove(it.key)
-            }
         }
     }
 

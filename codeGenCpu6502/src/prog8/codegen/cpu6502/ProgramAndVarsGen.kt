@@ -210,7 +210,7 @@ internal class ProgramAndVarsGen(
     private fun memorySlabs() {
         if(symboltable.allMemorySlabs.isNotEmpty()) {
             asmgen.out("; memory slabs\n  .section BSS_SLABS")
-            asmgen.out("prog8_slabs\t.block")
+            asmgen.out("$StMemorySlabBlockName\t.block")
             for (slab in symboltable.allMemorySlabs) {
                 if (slab.align > 1u)
                     asmgen.out("\t.align  ${slab.align.toHex()}")
@@ -434,6 +434,7 @@ internal class ProgramAndVarsGen(
         val (instancesNoInit, instances) = symboltable.allStructInstances.partition { it.initialValues.isEmpty() }
         asmgen.out("; struct instances without initialization values, as BSS zeroed at startup\n")
         asmgen.out("    .section BSS\n")
+        asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
         instancesNoInit.forEach {
             val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
             val zerovalues = structtype.fields.map { field ->
@@ -445,11 +446,17 @@ internal class ProgramAndVarsGen(
             }
             asmgen.out("${it.name}    .dstruct  ${it.structName}, ${zerovalues.joinToString(",")}\n")
         }
+        asmgen.out("    .endblock\n")
         asmgen.out("    .send BSS\n")
 
         asmgen.out("; struct instances with initialization values\n")
         asmgen.out("    .section STRUCTINSTANCES\n")
-        instances.forEach { asmgen.out("${it.name}    .dstruct  ${it.structName}, ${initValues(it).joinToString(",")}\n") }
+        asmgen.out("$StStructInstanceBlockName  .block\n")
+        instances.forEach {
+            val instancename = it.name.substringAfter('.')
+            asmgen.out("$instancename    .dstruct  ${it.structName}, ${initValues(it).joinToString(",")}\n")
+        }
+        asmgen.out("    .endblock\n")
         asmgen.out("    .send STRUCTINSTANCES\n")
     }
 
@@ -866,7 +873,7 @@ internal class ProgramAndVarsGen(
                 }
             }
             dt.isSplitWordArray -> {
-                if(dt.elementType().isUnsignedWord) {
+                if(dt.elementType().isUnsignedWord || dt.elementType().isPointer) {
                     val data = makeArrayFillDataUnsigned(dt, value, orNumberOfZeros)
                     asmgen.out("_array_$varname := ${data.joinToString()}")
                     asmgen.out("${varname}_lsb\t.byte <_array_$varname")
@@ -914,7 +921,7 @@ internal class ProgramAndVarsGen(
     private fun zeroFilledArray(numElts: Int): StArray {
         val values = mutableListOf<StArrayElement>()
         repeat(numElts) {
-            values.add(StArrayElement(0.0, null, null))
+            values.add(StArrayElement(0.0, null, null,null,null))
         }
         return values
     }
@@ -972,7 +979,7 @@ internal class ProgramAndVarsGen(
                     val number = it.number!!.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
-            dt.isArray && dt.elementType().isUnsignedWord -> array.map {
+            dt.isArray && (dt.elementType().isUnsignedWord || dt.elementType().isPointer) -> array.map {
                 if(it.number!=null) {
                     "$" + it.number!!.toInt().toString(16).padStart(4, '0')
                 }
@@ -984,8 +991,15 @@ internal class ProgramAndVarsGen(
                     else
                         asmgen.asmSymbolName(addrOfSymbol)
                 }
-                else
+                else if(it.structInstance!=null) {
+                    asmgen.asmSymbolName("${StStructInstanceBlockName}.${it.structInstance!!}")
+                }
+                else if(it.structInstanceUninitialized!=null) {
+                    asmgen.asmSymbolName("${StStructInstanceBlockName}_bss.${it.structInstanceUninitialized!!}")
+                }
+                else {
                     throw AssemblyError("weird array elt")
+                }
             }
             else -> throw AssemblyError("invalid dt")
         }

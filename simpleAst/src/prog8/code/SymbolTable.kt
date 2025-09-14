@@ -123,7 +123,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
             val scopehash = call.parent.hashCode().toUInt().toString(16)
             val pos = "${call.position.line}_${call.position.startCol}"
             val hash = call.position.file.hashCode().toUInt().toString(16)
-            return "prog8_struct_${structname.replace('.', '_')}_${hash}_${pos}_${scopehash}"
+            return "${structname.replace('.', '_')}_${hash}_${pos}_${scopehash}"
         }
     }
 }
@@ -338,13 +338,18 @@ class StExtSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType, val register: RegisterOrPair?)
 class StExtSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?, val boolean: Boolean?) {
+class StArrayElement(val number: Double?, val addressOfSymbol: String?, val structInstance: String?, val structInstanceUninitialized: String?, val boolean: Boolean?) {
     init {
-        if(number!=null) require(addressOfSymbol==null && boolean==null)
-        if(addressOfSymbol!=null) require(number==null && boolean==null)
-        if(boolean!=null) require(addressOfSymbol==null && number==null)
+        if(number!=null) require(addressOfSymbol==null && boolean==null && structInstance==null && structInstanceUninitialized==null)
+        if(addressOfSymbol!=null) require(number==null && boolean==null && structInstance==null && structInstanceUninitialized==null)
+        if(structInstance!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstanceUninitialized==null)
+        if(structInstanceUninitialized!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstance==null)
+        if(boolean!=null) require(addressOfSymbol==null && number==null &&structInstance==null && structInstanceUninitialized==null)
     }
 }
 
 typealias StString = Pair<String, Encoding>
 typealias StArray = List<StArrayElement>
+
+const val StMemorySlabBlockName = "prog8_slabs"
+const val StStructInstanceBlockName = "prog8_struct_instances"

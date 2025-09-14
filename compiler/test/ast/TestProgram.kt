@@ -13,10 +13,11 @@ import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.ast.Module
 import prog8.ast.Program
 import prog8.ast.statements.Block
+import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.ast.PtBlock
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
-import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.target.C64Target
 import prog8tests.helpers.DummyFunctions
 import prog8tests.helpers.DummyMemsizer
@@ -30,7 +31,7 @@ class TestProgram: FunSpec({
     context("Constructor") {
         test("withNameBuiltinsAndMemsizer") {
             val program = Program("foo", DummyFunctions, DummyMemsizer, DummyStringEncoder)
-            program.modules.size shouldBe 1
+            program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
             program.modules[0].name shouldBe INTERNED_STRINGS_MODULENAME
             program.modules[0].program shouldBeSameInstanceAs program
             program.modules[0].parent shouldBeSameInstanceAs program.namespace
@@ -45,7 +46,7 @@ class TestProgram: FunSpec({
             val retVal = program.addModule(m1)
 
             retVal shouldBeSameInstanceAs program
-            program.modules.size shouldBe 2
+            program.modules.size shouldBe PROG8_CONTAINER_MODULES.size + 1
             m1 shouldBeIn program.modules
             m1.program shouldBeSameInstanceAs program
             m1.parent shouldBeSameInstanceAs program.namespace
@@ -163,7 +164,7 @@ datablock2 ${'$'}8000 {
 
         val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true)!!
         result.compilerAst.allBlocks.size shouldBeGreaterThan 5
-        result.compilerAst.modules.drop(2).all { it.isLibrary } shouldBe true
+        result.compilerAst.modules.drop(PROG8_CONTAINER_MODULES.size+1).all { it.isLibrary } shouldBe true
         val mainMod = result.compilerAst.modules[0]
         mainMod.name shouldStartWith "on_the_fly"
         result.compilerAst.modules[1].name shouldBe "prog8_interned_strings"
@@ -183,7 +184,7 @@ datablock2 ${'$'}8000 {
         blocks[1].name shouldBe "p8_sys_startup"
         blocks[2].name shouldBe "p8b_otherblock1"
         blocks[3].name shouldBe "p8b_otherblock2"
-        blocks[4].name shouldBe "prog8_interned_strings"
+        blocks[4].name shouldBe INTERNED_STRINGS_MODULENAME
         blocks[5].name shouldBe "txt"
         blocks[5].library shouldBe true
         blocks[13].name shouldBe "p8b_datablock2"

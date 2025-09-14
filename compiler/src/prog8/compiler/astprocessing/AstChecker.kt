@@ -1277,11 +1277,6 @@ internal class AstChecker(private val program: Program,
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
             }
 
-            if(array.value.any { it is StaticStructInitializer }) {
-                errors.err("it is not yet possible to use struct initializations in an array, you have to do it one by one for now", array.value[0].position)
-                // TODO this is because later in the simplified AST the allocate struct variable is still missing somehow
-            }
-
         } else if(array.parent is ForLoop) {
             if (!array.value.all { it.constValue(program) != null })
                 errors.err("array literal for iteration must contain constants. Try using a separate array variable instead?", array.position)

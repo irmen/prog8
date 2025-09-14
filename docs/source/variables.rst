@@ -282,9 +282,10 @@ For instance ``30_000.999_999`` is a valid floating point number 30000.999999.
 
 Arrays
 ^^^^^^
-Arrays can be created from a list of booleans, bytes, words, floats, or addresses of other variables
-(such as explicit address-of expressions, strings, or other array variables) - values in an array literal
-always have to be constants. A trailing comma is allowed, sometimes this is easier when copying values
+Arrays can be created from a list of booleans, bytes, words, floats, addresses of other variables
+(such as explicit address-of expressions, strings, or other array variables), and struct initializers.
+The values in an array literal always have to be constants.
+A trailing comma is allowed, sometimes this is easier when copying values
 or when adding more stuff to the array later. Here are some examples of arrays::
 
     byte[10]  array                   ; array of 10 bytes, initially set to 0

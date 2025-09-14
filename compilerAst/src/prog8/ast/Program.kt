@@ -6,6 +6,7 @@ import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.GENERATED_LABEL_PREFIX
 import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.*
 import prog8.code.source.SourceCode
 
@@ -22,17 +23,19 @@ class Program(val name: String,
     val namespace: GlobalNamespace = GlobalNamespace(_modules)
 
     init {
-        // insert a container module for all interned strings later
-        val internedStringsModule = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated(INTERNED_STRINGS_MODULENAME))
-        val block = Block(INTERNED_STRINGS_MODULENAME, null, mutableListOf(), true, Position.DUMMY)
-        val directive = Directive("%option", listOf(DirectiveArg("no_symbol_prefixing", null, Position.DUMMY)), Position.DUMMY)
-        block.statements.add(directive)
-        directive.linkParents(block)
-        internedStringsModule.statements.add(block)
+        // insert container modules for all interned strings and struct instances
+        PROG8_CONTAINER_MODULES.forEach { containername ->
+            val module = Module(mutableListOf(), Position.DUMMY, SourceCode.Generated(containername))
+            val block = Block(containername, null, mutableListOf(), true, Position.DUMMY)
+            val directive = Directive("%option", listOf(DirectiveArg("no_symbol_prefixing", null, Position.DUMMY)), Position.DUMMY)
+            block.statements.add(directive)
+            directive.linkParents(block)
+            module.statements.add(block)
 
-        _modules.add(0, internedStringsModule)
-        internedStringsModule.linkParents(namespace)
-        internedStringsModule.program = this
+            _modules.add(0, module)
+            module.linkParents(namespace)
+            module.program = this
+        }
     }
 
     fun addModule(module: Module): Program {
@@ -67,7 +70,7 @@ class Program(val name: String,
         }
 
     val toplevelModule: Module
-        get() = modules.first { it.name!= INTERNED_STRINGS_MODULENAME }
+        get() = modules.first { it.name !in PROG8_CONTAINER_MODULES }
 
     private val internedStringsReferenceCounts = mutableMapOf<VarDecl, Int>()
 

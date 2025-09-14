@@ -1,5 +1,7 @@
 package prog8.codegen.cpu6502
 
+import prog8.code.StMemorySlabBlockName
+import prog8.code.StStructInstanceBlockName
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -385,7 +387,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val name = (fcall.args[0] as PtString).value
         require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}
 
-        val slabname = PtIdentifier("prog8_slabs.prog8_memoryslab_$name", DataType.UWORD, fcall.position)
+        val slabname = PtIdentifier("$StMemorySlabBlockName.memory_$name", DataType.UWORD, fcall.position)
         val addressOf = PtAddressOf(DataType.pointer(BaseDataType.UBYTE), false, fcall.position)
         addressOf.add(slabname)
         addressOf.parent = fcall
@@ -399,9 +401,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         if(discardResult)
             throw AssemblyError("should not discard result of struct allocation at $fcall")
         // ... don't need to pay attention to args here because struct instance is put together elsewhere we just have to get a pointer to it
-        val slabname = SymbolTable.labelnameForStructInstance(fcall)
+        val prefix = if(fcall.args.isEmpty()) "${StStructInstanceBlockName}_bss" else StStructInstanceBlockName
+        val labelname = PtIdentifier("$prefix.${SymbolTable.labelnameForStructInstance(fcall)}", fcall.type, fcall.position)
         val addressOf = PtAddressOf(fcall.type, true, fcall.position)
-        addressOf.add(PtIdentifier(slabname, fcall.type, fcall.position))
+        addressOf.add(labelname)
         addressOf.parent = fcall
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, fcall.type, expression = addressOf)
         val target = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, null, asmgen)

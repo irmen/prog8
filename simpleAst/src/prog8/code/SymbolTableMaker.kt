@@ -82,7 +82,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             numElements = (value.value.length + 1).toUInt()   // include the terminating 0-byte
                         }
                         is PtArray -> {
-                            initialArray = makeInitialArray(value)
+                            initialArray = makeInitialArray(value, scope)
                             initialString = null
                             initialNumeric = null
                             numElements = initialArray.size.toUInt()
@@ -119,22 +119,12 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     val size = (node.args[1] as PtNumber).number.toUInt()
                     val align = (node.args[2] as PtNumber).number.toUInt()
                     // don't add memory slabs in nested scope, just put them in the top level of the ST
-                    scope.first().add(StMemorySlab("prog8_memoryslab_$slabname", size, align, node))
+                    scope.first().add(StMemorySlab("memory_$slabname", size, align, node))
                 }
                 else if(node.name=="prog8_lib_structalloc") {
-                    val struct = node.type.subType!!
-                    if(struct is StStruct) {
-                        val label =  SymbolTable.labelnameForStructInstance(node)
-                        val initialValues = node.args.map {
-                            when(it) {
-                                is PtAddressOf -> StArrayElement(null, it.identifier!!.name, null)
-                                is PtBool -> StArrayElement(null, null, it.value)
-                                is PtNumber -> StArrayElement(it.number, null, null)
-                                else -> throw AssemblyError("invalid structalloc argument type $it")
-                            }
-                        }
-                        val scopedName = if(struct.astNode!=null) (struct.astNode as PtNamedNode).scopedName else struct.scopedNameString
-                        scope.first().add(StStructInstance(label, scopedName, initialValues, struct.size, null))
+                    val instance = handleStructAllocation(node)
+                    if(instance!=null) {
+                        scope.first().add(instance)  // don't add struct instances in nested scope, just put them in the top level of the ST
                     }
                 }
                 null
@@ -153,20 +143,50 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             scope.removeLast()
     }
 
-    private fun makeInitialArray(value: PtArray): List<StArrayElement> {
+    private fun handleStructAllocation(node: PtBuiltinFunctionCall): StStructInstance? {
+        val struct = node.type.subType as? StStruct ?: return null
+        val initialValues = node.args.map {
+            when(it) {
+                is PtAddressOf -> StArrayElement(null, it.identifier!!.name, null, null,null)
+                is PtBool -> StArrayElement(null, null, null, null, it.value)
+                is PtNumber -> StArrayElement(it.number, null, null, null, null)
+                else -> throw AssemblyError("invalid structalloc argument type $it")
+            }
+        }
+        val label =  SymbolTable.labelnameForStructInstance(node)
+        val scopedStructName = if(struct.astNode!=null) (struct.astNode as PtNamedNode).scopedName else struct.scopedNameString
+        return StStructInstance(label, scopedStructName, initialValues, struct.size, null)
+    }
+
+    private fun makeInitialArray(value: PtArray, scope: ArrayDeque<StNode>): List<StArrayElement> {
         return value.children.map {
             when(it) {
                 is PtAddressOf -> {
                     when {
                         it.isFromArrayElement -> TODO("address-of array element $it in initial array value")
-                        else -> StArrayElement(null, it.identifier!!.name, null)
+                        else -> StArrayElement(null, it.identifier!!.name, null, null,null)
                     }
                 }
-                is PtNumber -> StArrayElement(it.number, null, null)
-                is PtBool -> StArrayElement(null, null, it.value)
+                is PtNumber -> StArrayElement(it.number, null, null,null,null)
+                is PtBool -> StArrayElement(null, null, null,null,it.value)
                 is PtBuiltinFunctionCall -> {
-                    val labelname = SymbolTable.labelnameForStructInstance(it)
-                    StArrayElement(null, labelname, null)
+                    if(it.name=="prog8_lib_structalloc") {
+                        val instance = handleStructAllocation(it)
+                        if(instance==null) {
+                            val label = SymbolTable.labelnameForStructInstance(it)
+                            if (it.args.isEmpty())
+                                StArrayElement(null, null, null, label, null)
+                            else
+                                StArrayElement(null, null, label, null, null)
+                        } else {
+                            scope.first().add(instance)  // don't add struct instances in nested scope, just put them in the top level of the ST
+                            if (it.args.isEmpty())
+                                StArrayElement(null, null, null, instance.name, null)
+                            else
+                                StArrayElement(null, null, instance.name, null, null)
+                        }
+                    } else
+                        TODO("support for initial array element via ${it.name}  ${it.position}")
                 }
                 else -> throw AssemblyError("invalid array element $it")
             }

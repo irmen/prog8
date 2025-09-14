@@ -1,5 +1,7 @@
 package prog8.codegen.intermediate
 
+import prog8.code.StMemorySlabBlockName
+import prog8.code.StStructInstanceBlockName
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.AssemblyError
@@ -500,7 +502,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val name = (call.args[0] as PtString).value
         val code = IRCodeChunk(null, null)
         val resultReg = codeGen.registers.next(IRDataType.WORD)
-        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "$StMemorySlabPrefix.prog8_memoryslab_$name")
+        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "$StMemorySlabBlockName.memory_$name")
         return ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
     }
 
@@ -508,7 +510,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val code = IRCodeChunk(null, null)
         val resultReg = codeGen.registers.next(IRDataType.WORD)
         val labelname = SymbolTable.labelnameForStructInstance(call)
-        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = labelname)
+        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "${StStructInstanceBlockName}.$labelname")
         return ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
     }
 

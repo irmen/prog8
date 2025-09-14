@@ -21,6 +21,8 @@ internal fun postprocessSimplifiedAst(
 private fun processSubtypesIntoStReferences(program: PtProgram, st: SymbolTable) {
 
     fun getStStruct(subType: ISubType): StStruct {
+        if(subType is StStruct)
+            return subType
         val stNode = st.lookup(subType.scopedNameString) as? StStruct
         if(stNode != null)
             return stNode
@@ -28,7 +30,7 @@ private fun processSubtypesIntoStReferences(program: PtProgram, st: SymbolTable)
             throw FatalAstException("cannot find in ST: ${subType.scopedNameString} $subType")
     }
 
-    fun fixSubtype(type: DataType) {
+    fun fixSubtypeIntoStType(type: DataType) {
         if(type.subType!=null && type.subType !is StStruct) {
             type.subType = getStStruct(type.subType!!)
         }
@@ -36,13 +38,21 @@ private fun processSubtypesIntoStReferences(program: PtProgram, st: SymbolTable)
 
     fun fixSubtypes(node: PtNode) {
         when(node) {
-            is IPtVariable -> fixSubtype(node.type)
-            is PtPointerDeref -> fixSubtype(node.type)
-            is PtStructDecl -> node.fields.forEach { fixSubtype(it.first) }
-            is PtAsmSub -> node.returns.forEach { fixSubtype(it.second) }
-            is PtExpression -> fixSubtype(node.type)
-            is PtSubSignature -> node.returns.forEach { fixSubtype(it) }
-            is PtSubroutineParameter -> fixSubtype(node.type)
+            is IPtVariable -> {
+                fixSubtypeIntoStType(node.type)
+                // if it's an array, fix the subtypes of its elements as well
+                if(node.type.isArray && node is PtVariable) {
+                    (node.value as? PtArray)?.let {array ->
+                        array.children.forEach { fixSubtypes(it) }
+                    }
+                }
+            }
+            is PtPointerDeref -> fixSubtypeIntoStType(node.type)
+            is PtStructDecl -> node.fields.forEach { fixSubtypeIntoStType(it.first) }
+            is PtAsmSub -> node.returns.forEach { fixSubtypeIntoStType(it.second) }
+            is PtExpression -> fixSubtypeIntoStType(node.type)
+            is PtSubSignature -> node.returns.forEach { fixSubtypeIntoStType(it) }
+            is PtSubroutineParameter -> fixSubtypeIntoStType(node.type)
             else -> { /* has no datatype */ }
         }
     }

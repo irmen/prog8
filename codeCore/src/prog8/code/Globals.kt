@@ -5,8 +5,9 @@ import java.nio.file.Path
 import kotlin.io.path.absolute
 
 
-// the automatically generated module where all string literals are interned to:
 const val INTERNED_STRINGS_MODULENAME = "prog8_interned_strings"
+
+val PROG8_CONTAINER_MODULES = arrayOf(INTERNED_STRINGS_MODULENAME)      // option to add more if needed one day
 
 // all automatically generated labels everywhere need to have the same label name prefix:
 const val GENERATED_LABEL_PREFIX = "p8_label_gen_"

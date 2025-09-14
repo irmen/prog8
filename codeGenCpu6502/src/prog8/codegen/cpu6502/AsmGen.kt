@@ -252,6 +252,14 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                         newValue.add(newAddr)
                     }
                 }
+                is PtBuiltinFunctionCall -> {
+                    // could be a struct instance or memory slab "allocation"
+                    if (elt.name != "prog8_lib_structalloc" && elt.name != "memory")
+                        throw AssemblyError("weird array value element $elt")
+                    else {
+                        newValue.add(elt)
+                    }
+                }
                 else -> throw AssemblyError("weird array value element $elt")
             }
         }

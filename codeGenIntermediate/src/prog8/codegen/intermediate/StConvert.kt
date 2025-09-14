@@ -72,7 +72,9 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
             val newArray = mutableListOf<IRStArrayElement>()
             array.forEach {
                 if(it.addressOfSymbol!=null) {
-                    val target = variable.lookup(it.addressOfSymbol!!) ?: throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
+                    println("LOOKUP ${it.addressOfSymbol}")
+                    val target = variable.lookup(it.addressOfSymbol!!) ?:
+                        throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
                     newArray.add(IRStArrayElement(null, null, target.scopedNameString))
                 } else {
                     newArray.add(convertArrayElt(it))
@@ -129,11 +131,11 @@ private fun convert(constant: StConstant): IRStConstant {
 }
 
 
-private fun convert(variable: StMemorySlab): IRStMemorySlab {
-    return if('.' in variable.name)
-        IRStMemorySlab(variable.name, variable.size, variable.align)
+private fun convert(mem: StMemorySlab): IRStMemorySlab {
+    return if('.' in mem.name)
+        IRStMemorySlab(mem.name, mem.size, mem.align)
     else
-        IRStMemorySlab("$StMemorySlabPrefix.${variable.name}", variable.size, variable.align)
+        IRStMemorySlab("$StMemorySlabBlockName.${mem.name}", mem.size, mem.align)
 }
 
 
@@ -142,8 +144,8 @@ private fun convert(instance: StStructInstance, fields: Iterable<Pair<DataType, 
         val elt = convertArrayElt(value)
         IRStructInitValue(field.first.base, elt)
     }
-    return IRStStructInstance(instance.name, instance.structName, values, instance.size)
+    return if('.' in instance.name)
+        IRStStructInstance(instance.name, instance.structName, values, instance.size)
+    else
+        IRStStructInstance("${StStructInstanceBlockName}.${instance.name}", instance.structName, values, instance.size)
 }
-
-
-internal const val StMemorySlabPrefix = "prog8_slabs"       // TODO also add  ".prog8_memoryslab_"  ?

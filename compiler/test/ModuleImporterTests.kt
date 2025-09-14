@@ -10,6 +10,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
 import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.IErrorReporter
 import prog8.code.source.SourceCode
 import prog8.compiler.ModuleImporter
@@ -49,7 +50,7 @@ class TestModuleImporter: FunSpec({
                 withClue(".file should point to specified path") {
                     error1.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
                 }
-                program.modules.size shouldBe 1
+                program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
                 val error2 = importer.importMainModule(srcPathAbs).getErrorOrElse { error("should have import error") }
                 withClue(".file should be normalized") {
                     "${error2.file}" shouldBe "${error2.file.normalize()}"
@@ -57,7 +58,7 @@ class TestModuleImporter: FunSpec({
                 withClue(".file should point to specified path") {
                     error2.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
                 }
-                program.modules.size shouldBe 1
+                program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
             }
 
             test("testDirectory") {
@@ -75,7 +76,7 @@ class TestModuleImporter: FunSpec({
                             it.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
                         }
                     }
-                program.modules.size shouldBe 1
+                program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
 
                 shouldThrow<FileSystemException> { importer.importMainModule(srcPathAbs) }
                     .let {
@@ -86,7 +87,7 @@ class TestModuleImporter: FunSpec({
                             it.file.absolutePath shouldBe "${srcPathAbs.normalize()}"
                         }
                     }
-                program.modules.size shouldBe 1
+                program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
             }
         }
 
@@ -101,7 +102,7 @@ class TestModuleImporter: FunSpec({
                 val path = assumeReadableFile(searchIn[0], fileName)
 
                 val module = importer.importMainModule(path.absolute()).getOrElse { throw it }
-                program.modules.size shouldBe 2
+                program.modules.size shouldBe PROG8_CONTAINER_MODULES.size+1
                 module shouldBeIn program.modules
                 module.program shouldBe program
             }
@@ -118,7 +119,7 @@ class TestModuleImporter: FunSpec({
                 }
 
                 val module = importer.importMainModule(path).getOrElse { throw it }
-                program.modules.size shouldBe 2
+                program.modules.size shouldBe PROG8_CONTAINER_MODULES.size+1
                 module shouldBeIn program.modules
                 module.program shouldBe program
             }
@@ -131,7 +132,7 @@ class TestModuleImporter: FunSpec({
                 assumeReadableFile(searchIn, path)
 
                 val module = importer.importMainModule(path).getOrElse { throw it }
-                program.modules.size shouldBe 2
+                program.modules.size shouldBe PROG8_CONTAINER_MODULES.size+1
                 module shouldBeIn program.modules
                 module.program shouldBe program
             }
@@ -152,7 +153,7 @@ class TestModuleImporter: FunSpec({
                                 withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
-                        program.modules.size shouldBe 1
+                        program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
                     }
                 }
 
@@ -170,9 +171,10 @@ class TestModuleImporter: FunSpec({
                             withClue("line; should be 1-based") { it.position.line shouldBe 2 }
                             withClue("startCol; should be 0-based") { it.position.startCol shouldBe 4 }
                             withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
+                            }
                         }
-                    }
-                    withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
+                        withClue("imported module with error in it should not be present") { program.modules.size shouldBe PROG8_CONTAINER_MODULES.size }
+                        program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
                         program.modules[0].name shouldBe INTERNED_STRINGS_MODULENAME
                     }
                 }
@@ -203,14 +205,14 @@ class TestModuleImporter: FunSpec({
                     withClue(count[n] + " call / NO .p8 extension") { errors.noErrors() shouldBe false }
                     errors.errors.single() shouldContain "0:0: no module found with name i_do_not_exist"
                     errors.report()
-                    program.modules.size shouldBe 1
+                    program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
 
                     val result2 = importer.importImplicitLibraryModule(filenameWithExt)
                     withClue(count[n] + " call / with .p8 extension") { result2 shouldBe null }
                     withClue(count[n] + " call / with .p8 extension") { importer.errors.noErrors() shouldBe false }
                     errors.errors.single() shouldContain "0:0: no module found with name i_do_not_exist.p8"
                     errors.report()
-                    program.modules.size shouldBe 1
+                    program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
                 }
             }
         }
@@ -232,7 +234,7 @@ class TestModuleImporter: FunSpec({
                                 withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
-                        program.modules.size shouldBe 1
+                        program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
                     }
                 }
 
@@ -254,7 +256,7 @@ class TestModuleImporter: FunSpec({
                                 withClue("endCol; should be 0-based") { it.position.endCol shouldBe 6 }
                             }
                         }
-                        withClue("imported module with error in it should not be present") { program.modules.size shouldBe 1 }
+                        withClue("imported module with error in it should not be present") { program.modules.size shouldBe PROG8_CONTAINER_MODULES.size }
                         program.modules[0].name shouldBe INTERNED_STRINGS_MODULENAME
                         importer.errors.report()
                     }

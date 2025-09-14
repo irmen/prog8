@@ -5,7 +5,7 @@ import io.kotest.matchers.string.shouldContain
 import prog8.ast.AstToSourceTextConverter
 import prog8.ast.Module
 import prog8.ast.Program
-import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.source.SourceCode
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser.parseModule
@@ -38,10 +38,12 @@ class TestAstToSourceText: AnnotationSpec() {
     }
 
     @Test
-    fun testMentionsInternedStringsModule() {
+    fun testMentionsProg8ContainerModules() {
         val orig = SourceCode.Text("\n")
         val (txt, _) = roundTrip(parseModule(orig))
-        txt shouldContain Regex(";.*$INTERNED_STRINGS_MODULENAME")
+        PROG8_CONTAINER_MODULES.forEach {
+            txt shouldContain Regex(";.*$it")
+        }
     }
 
     @Test

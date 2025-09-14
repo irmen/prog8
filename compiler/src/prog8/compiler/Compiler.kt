@@ -5,6 +5,7 @@ import prog8.ast.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
+import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
 import prog8.code.ast.printAst
@@ -176,17 +177,21 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     println("*********** COMPILER AST END *************\n")
                 }
 
+                var symbolTable: SymbolTable
+
                 val (intermediateAst, simplifiedAstDuration2) = measureTimedValue {
                     val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
                     val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
-                    val symbolTable = stMaker.make()
+                    symbolTable = stMaker.make()
 
                     postprocessSimplifiedAst(intermediateAst, symbolTable, compilationOptions, args.errors)
                     args.errors.report()
+                    symbolTable = stMaker.make()        // need an updated ST because the postprocessing changes stuff
 
                     if (compilationOptions.optimize) {
                         optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable, args.errors)
                         args.errors.report()
+                        symbolTable = stMaker.make()        // need an updated ST because the optimization changes stuff
                     }
 
                     if (args.printAst2) {
@@ -204,6 +209,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 createAssemblyDuration = measureTime {
                     if (!createAssemblyAndAssemble(
                             intermediateAst,
+                            symbolTable,
                             args.errors,
                             compilationOptions,
                             program.generatedLabelSequenceNumber
@@ -558,6 +564,7 @@ private fun postprocessAst(program: Program, errors: IErrorReporter, compilerOpt
 }
 
 private fun createAssemblyAndAssemble(program: PtProgram,
+                                      symbolTable: SymbolTable,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions,
                                       lastGeneratedLabelSequenceNr: Int
@@ -571,10 +578,6 @@ private fun createAssemblyAndAssemble(program: PtProgram,
         VmCodeGen()
     else
         throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
-
-    // need to make a new symboltable here to capture possible changes made by optimization steps performed earlier!
-    val stMaker = SymbolTableMaker(program, compilerOptions)
-    val symbolTable = stMaker.make()
 
     val assembly = asmgen.generate(program, symbolTable, compilerOptions, errors)
     errors.report()

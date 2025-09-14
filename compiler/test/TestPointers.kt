@@ -1731,6 +1731,30 @@ main {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
+    test("struct initializers in array") {
+        val src="""
+main {
+    struct Node {
+        ubyte id
+        str name
+        uword array
+    }
+
+    sub start() {
+        ^^Node[] @shared nodes = [
+            ^^Node:[1,"one", 1000 ],
+            ^^Node:[2,"two", 2000 ],
+            ^^Node:[3,"three", 3000],
+            ^^Node:[],
+            ^^Node:[],
+            ^^Node:[],
+        ]
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
     test("type error for invalid bool field initializer") {
         val src="""
 main {
