@@ -668,7 +668,7 @@ but perhaps the provided ones can be of service too.
     Returns next random byte 0-255 from the pseudo-RNG sequence.
     Does not work in ROM code; use rnd_rom instead.
 
-``rnd ()``
+``rnd_rom ()``
     Returns next random byte 0-255 from the pseudo-RNG sequence.
     Works in ROM code, but make sure to initialize the seed values using rndseed_rom.
 

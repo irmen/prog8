@@ -627,9 +627,12 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         return if(initializer.args.isEmpty())
             noModifications
         else {
-            val struct = initializer.structname.targetStructDecl()!!
-            val paramsPossibleDatatypes = struct.fields.map { listOf(it.first) }
-            fixupArgumentList(paramsPossibleDatatypes, initializer.args, initializer)
+            val struct = initializer.structname.targetStructDecl()
+            if(struct!=null) {
+                val paramsPossibleDatatypes = struct.fields.map { listOf(it.first) }
+                fixupArgumentList(paramsPossibleDatatypes, initializer.args, initializer)
+            }
+            else noModifications
         }
     }
 
