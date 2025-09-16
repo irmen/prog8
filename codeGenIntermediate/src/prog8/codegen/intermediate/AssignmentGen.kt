@@ -137,63 +137,75 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             val inplaceInstrs = mutableListOf<IRCodeChunkBase>()
             val (addressReg, fieldOffset) = codeGen.evaluatePointerAddressIntoReg(inplaceInstrs, pointerDeref)
             val oldvalueReg = codeGen.registers.next(targetDt)
-            var operandTr = ExpressionCodeResult(emptyList(), IRDataType.BYTE, -1, -1)
-            if(augAssign.operator!="or=" && augAssign.operator!="and=") {
-                // for everything except the shortcircuit boolean operators, we can evaluate the value here unconditionally
-                operandTr = expressionEval.translateExpression(value)
-                inplaceInstrs += operandTr.chunks
-            }
-            if(targetDt== IRDataType.FLOAT) {
-                if(fieldOffset>0u)
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.LOADFIELD, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg, immediate = fieldOffset.toInt()), null)
-                else
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.LOADI, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg), null)
-                when(augAssign.operator) {
-                    "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
-                    "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
-                    "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
-                    "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVSR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
-                    "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
-                    "+" -> { /* inplace + is a no-op */ }
-                    else -> throw AssemblyError("invalid augmented assign operator for floats ${augAssign.operator}")
+
+            if((augAssign.operator=="+=" || augAssign.operator=="-=") && value.asConstInteger()==1 || value.asConstInteger()==2) {
+                // INC/DEC optimization instead of ADD/SUB
+
+                loadfield(inplaceInstrs, addressReg, fieldOffset, targetDt, oldvalueReg)
+                val instr = if(augAssign.operator=="+=") Opcode.INC else Opcode.DEC
+                repeat(value.asConstInteger()!!) {
+                    addInstr(inplaceInstrs, IRInstruction(instr, targetDt, reg1 = oldvalueReg), null)
                 }
+
             } else {
-                if(fieldOffset>0u)
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.LOADFIELD, targetDt, reg1 = oldvalueReg, reg2 = addressReg, immediate = fieldOffset.toInt()), null)
-                else
-                    addInstr(inplaceInstrs, IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg), null)
-                when(augAssign.operator) {
-                    "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "|=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    ">>=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSRN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                    "or=" -> {
-                        val shortcutLabel = codeGen.createLabelName()
-                        addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
-                        val valueTr = expressionEval.translateExpression(value)
-                        inplaceInstrs += valueTr.chunks
-                        addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
-                        inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+
+                var operandTr = ExpressionCodeResult(emptyList(), IRDataType.BYTE, -1, -1)
+                if(augAssign.operator!="or=" && augAssign.operator!="and=") {
+                    // for everything except the shortcircuit boolean operators, we can evaluate the value here unconditionally
+                    operandTr = expressionEval.translateExpression(value)
+                    // note: the instructions to load the value will be placed after the LOADFIELD instruction so that later optimizations about what modification is actually done, are easier
+                }
+                if(targetDt== IRDataType.FLOAT) {
+
+                    loadfield(inplaceInstrs, addressReg, fieldOffset, targetDt, oldvalueReg)
+                    inplaceInstrs += operandTr.chunks
+                    when(augAssign.operator) {
+                        "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                        "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                        "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                        "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVSR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                        "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, fpReg1 = oldvalueReg, fpReg2 = operandTr.resultFpReg), null)
+                        "+" -> { /* inplace + is a no-op */ }
+                        else -> throw AssemblyError("invalid augmented assign operator for floats ${augAssign.operator}")
                     }
-                    "and=" -> {
-                        val shortcutLabel = codeGen.createLabelName()
-                        addInstr(inplaceInstrs, IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel), null)
-                        val valueTr = expressionEval.translateExpression(value)
-                        inplaceInstrs += valueTr.chunks
-                        addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
-                        inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+
+                } else {
+
+                    loadfield(inplaceInstrs, addressReg, fieldOffset, targetDt, oldvalueReg)
+                    inplaceInstrs += operandTr.chunks
+                    when(augAssign.operator) {
+                        "+=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ADDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "|=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        ">>=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSRN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "or=" -> {
+                            val shortcutLabel = codeGen.createLabelName()
+                            addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
+                            val valueTr = expressionEval.translateExpression(value)
+                            inplaceInstrs += valueTr.chunks
+                            addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
+                            inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+                        }
+                        "and=" -> {
+                            val shortcutLabel = codeGen.createLabelName()
+                            addInstr(inplaceInstrs, IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel), null)
+                            val valueTr = expressionEval.translateExpression(value)
+                            inplaceInstrs += valueTr.chunks
+                            addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
+                            inplaceInstrs += IRCodeChunk(shortcutLabel, null)
+                        }
+                        "-" -> addInstr(inplaceInstrs, IRInstruction(Opcode.NEG, targetDt, reg1 = oldvalueReg), null)
+                        "~" -> addInstr(inplaceInstrs, IRInstruction(Opcode.INV, targetDt, reg1 = oldvalueReg), null)
+                        "not" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XOR, targetDt, reg1 = oldvalueReg, immediate = 1), null)
+                        "+" -> { /* inplace + is a no-op */ }
+                        else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
                     }
-                    "-" -> addInstr(inplaceInstrs, IRInstruction(Opcode.NEG, targetDt, reg1 = oldvalueReg), null)
-                    "~" -> addInstr(inplaceInstrs, IRInstruction(Opcode.INV, targetDt, reg1 = oldvalueReg), null)
-                    "not" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XOR, targetDt, reg1 = oldvalueReg, immediate = 1), null)
-                    "+" -> { /* inplace + is a no-op */ }
-                    else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
                 }
             }
 
@@ -220,6 +232,42 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
         chunks.filterIsInstance<IRCodeChunk>().firstOrNull()?.appendSrcPosition(augAssign.position)
         return chunks
+    }
+
+    private fun loadfield(
+        inplaceInstrs: MutableList<IRCodeChunkBase>,
+        addressReg: Int,
+        fieldOffset: UByte,
+        targetDt: IRDataType,
+        oldvalueReg: Int
+    ) {
+        if (targetDt == IRDataType.FLOAT) {
+            if (fieldOffset > 0u)
+                addInstr(
+                    inplaceInstrs,
+                    IRInstruction(Opcode.LOADFIELD, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg, immediate = fieldOffset.toInt()),
+                    null
+                )
+            else
+                addInstr(
+                    inplaceInstrs,
+                    IRInstruction(Opcode.LOADI, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg),
+                    null
+                )
+        } else {
+            if (fieldOffset > 0u)
+                addInstr(
+                    inplaceInstrs,
+                    IRInstruction(Opcode.LOADFIELD, targetDt, reg1 = oldvalueReg, reg2 = addressReg, immediate = fieldOffset.toInt()),
+                    null
+                )
+            else
+                addInstr(
+                    inplaceInstrs,
+                    IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg),
+                    null
+                )
+        }
     }
 
     private fun fallbackAssign(origAssign: PtAugmentedAssign): IRCodeChunks {

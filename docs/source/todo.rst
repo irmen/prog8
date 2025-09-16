@@ -58,10 +58,8 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- fix code size regressions (if any left)
-- optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
-- update structpointers.rst docs with 6502 specific things?
 - implement the remaining TODO's in PointerAssignmentsGen.
+- optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - optimize the float copying in assignIndexedPointer() (also word?)
 - implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size, see test.p8 in commit d394dc1e

@@ -2,38 +2,62 @@
 %zeropage basicsafe
 
 main {
+    word bignum
+
+    struct Node {
+        ubyte id
+        str name
+        bool flag
+        word counter
+    }
+
     sub start() {
-        txt.print_uw(allocator.alloc(10))
+        ^^Node test = []
+        bignum = 11111
+        test.counter = 22222
+
+        txt.print_w(bignum)
         txt.spc()
-        txt.print_uw(allocator.alloc(20))
+        bignum++
+
+        txt.print_w(bignum)
         txt.spc()
-        txt.print_uw(allocator.alloc(30))
+        bignum--
+
+        txt.print_w(bignum)
         txt.nl()
 
-        allocator.freeall()
+        txt.print_w(test.counter)
+        txt.spc()
+        test.counter ++
 
-        txt.print_uw(allocator.alloc(10))
+        txt.print_w(test.counter)
         txt.spc()
-        txt.print_uw(allocator.alloc(20))
+        test.counter --
+
+        txt.print_w(test.counter)
+        txt.nl()
+
+        txt.print_w(bignum)
         txt.spc()
-        txt.print_uw(allocator.alloc(30))
+        bignum+=5555
+
+        txt.print_w(bignum)
+        txt.spc()
+        bignum-=5555
+
+        txt.print_w(bignum)
+        txt.nl()
+
+        txt.print_w(test.counter)
+        txt.spc()
+        test.counter += 5555
+
+        txt.print_w(test.counter)
+        txt.spc()
+        test.counter -= 5555
+
+        txt.print_w(test.counter)
         txt.nl()
     }
 }
-
-
-    allocator {
-        ; extremely trivial allocator allocator
-        uword buffer = memory("allocator", 2000, 0)
-        uword next = buffer
-
-        sub alloc(ubyte size) -> uword {
-            defer next += size
-            return next
-        }
-
-        sub freeall() {
-            ; cannot free individual allocations only the whole allocator at once
-            next = buffer
-        }
-    }

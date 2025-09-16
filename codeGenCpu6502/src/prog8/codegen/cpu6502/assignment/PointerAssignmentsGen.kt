@@ -257,16 +257,26 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun inplaceModification(target: PtrTarget, operator: String, value: AsmAssignSource) {
         when (operator) {
             "+" -> {
-                if(target.dt.isByte) inplaceByteAdd(target, value)
-                else if(target.dt.isWord) inplaceWordAdd(target, value)
-                else if(target.dt.isFloat) inplaceFloatAddOrMul(target, "FADD", value)
-                else throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                if(target.dt.isByte && value.number?.number==1.0 || value.number?.number==2.0) {
+                    val amount = value.number.number.toInt()
+                    inplaceByteInc(target, amount)
+                } else {
+                    if (target.dt.isByte) inplaceByteAdd(target, value)
+                    else if (target.dt.isWord) inplaceWordAdd(target, value)
+                    else if (target.dt.isFloat) inplaceFloatAddOrMul(target, "FADD", value)
+                    else throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                }
             }
             "-" -> {
-                if(target.dt.isByte) inplaceByteSub(target, value)
-                else if(target.dt.isWord) inplaceWordSub(target, value)
-                else if(target.dt.isFloat) inplaceFloatSubOrDiv(target, "FSUB", value)
-                else throw AssemblyError("weird dt ${target.position}")
+                if(target.dt.isByte && value.number?.number==1.0 || value.number?.number==2.0) {
+                    val amount = value.number.number.toInt()
+                    inplaceByteDec(target, amount)
+                } else {
+                    if (target.dt.isByte) inplaceByteSub(target, value)
+                    else if (target.dt.isWord) inplaceWordSub(target, value)
+                    else if (target.dt.isFloat) inplaceFloatSubOrDiv(target, "FSUB", value)
+                    else throw AssemblyError("weird dt ${target.position}")
+                }
             }
             "*" -> {
                 if(target.dt.isByte) TODO("inplaceByteMul(target, value)  ${target.position}")
@@ -1184,6 +1194,46 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
+    private fun inplaceByteInc(target: PtrTarget, amount: Int) {
+        require(amount==1 || amount==2)
+        val (zpPtrVar, offset) = deref(target.pointer)
+        if(offset==0.toUByte() && asmgen.isTargetCpu(CpuType.CPU65C02)) {
+            asmgen.out("  lda  ($zpPtrVar)")
+            repeat(amount) {
+                asmgen.out("  inc  a")
+            }
+            asmgen.out("  sta  ($zpPtrVar)")
+        }
+        else {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                clc
+                adc  #$amount
+                sta  ($zpPtrVar),y""")
+        }
+    }
+
+    private fun inplaceByteDec(target: PtrTarget, amount: Int) {
+        require(amount==1 || amount==2)
+        val (zpPtrVar, offset) = deref(target.pointer)
+        if(offset==0.toUByte() && asmgen.isTargetCpu(CpuType.CPU65C02)) {
+            asmgen.out("  lda  ($zpPtrVar)")
+            repeat(amount) {
+                asmgen.out("  dec  a")
+            }
+            asmgen.out("  sta  ($zpPtrVar)")
+        }
+        else {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                sec
+                sbc  #$amount
+                sta  ($zpPtrVar),y""")
+        }
+    }
+
     private fun inplaceByteAdd(target: PtrTarget, value: AsmAssignSource) {
         val (zpPtrVar, offset) = deref(target.pointer)
         when(value.kind) {
@@ -1544,44 +1594,44 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, index: PtExpression, arrayDt: DataType) {
         TODO("assign indexed pointer from array $arrayVarName  at ${target.position}")
-        val ptrZp = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, target.scope, target.position, variableAsmName="P8ZP_SCRATCH_PTR")
-        assignAddressOfIndexedPointer(ptrZp, arrayVarName, arrayDt, index)
-        when {
-            target.datatype.isByteOrBool -> {
-                asmgen.out("""
-                    ldy  #0
-                    lda  (P8ZP_SCRATCH_PTR),y""")
-                asmgen.assignRegister(RegisterOrPair.A, target)
-            }
-            target.datatype.isWord || target.datatype.isPointer -> {
-                if(asmgen.isTargetCpu(CpuType.CPU65C02))
-                    asmgen.out("""
-                        ldy  #1
-                        lda  (P8ZP_SCRATCH_PTR),y
-                        tax
-                        lda  (P8ZP_SCRATCH_PTR)""")
-                else
-                    asmgen.out("""
-                        ldy  #1
-                        lda  (P8ZP_SCRATCH_PTR),y
-                        tax
-                        dey
-                        lda  (P8ZP_SCRATCH_PTR),y""")
-                asmgen.assignRegister(RegisterOrPair.AX, target)
-            }
-            target.datatype.isLong -> {
-                TODO("assign long from pointer to $target ${target.position}")
-            }
-            target.datatype.isFloat -> {
-                // TODO optimize the float copying to avoid having to go through FAC1
-                asmgen.out("""
-                    lda  P8ZP_SCRATCH_PTR
-                    ldy  P8ZP_SCRATCH_PTR+1
-                    jsr  floats.MOVFM""")
-                asmgen.assignRegister(RegisterOrPair.FAC1, target)
-            }
-            else -> throw AssemblyError("weird dt ${target.datatype}")
-        }
+//        val ptrZp = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, target.scope, target.position, variableAsmName="P8ZP_SCRATCH_PTR")
+//        assignAddressOfIndexedPointer(ptrZp, arrayVarName, arrayDt, index)
+//        when {
+//            target.datatype.isByteOrBool -> {
+//                asmgen.out("""
+//                    ldy  #0
+//                    lda  (P8ZP_SCRATCH_PTR),y""")
+//                asmgen.assignRegister(RegisterOrPair.A, target)
+//            }
+//            target.datatype.isWord || target.datatype.isPointer -> {
+//                if(asmgen.isTargetCpu(CpuType.CPU65C02))
+//                    asmgen.out("""
+//                        ldy  #1
+//                        lda  (P8ZP_SCRATCH_PTR),y
+//                        tax
+//                        lda  (P8ZP_SCRATCH_PTR)""")
+//                else
+//                    asmgen.out("""
+//                        ldy  #1
+//                        lda  (P8ZP_SCRATCH_PTR),y
+//                        tax
+//                        dey
+//                        lda  (P8ZP_SCRATCH_PTR),y""")
+//                asmgen.assignRegister(RegisterOrPair.AX, target)
+//            }
+//            target.datatype.isLong -> {
+//                TODO("assign long from pointer to $target ${target.position}")
+//            }
+//            target.datatype.isFloat -> {
+//                // TODO optimize the float copying to avoid having to go through FAC1
+//                asmgen.out("""
+//                    lda  P8ZP_SCRATCH_PTR
+//                    ldy  P8ZP_SCRATCH_PTR+1
+//                    jsr  floats.MOVFM""")
+//                asmgen.assignRegister(RegisterOrPair.FAC1, target)
+//            }
+//            else -> throw AssemblyError("weird dt ${target.datatype}")
+//        }
     }
 
     private fun saveOnStack(regs: RegisterOrPair) {
