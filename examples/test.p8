@@ -13,20 +13,24 @@ main {
     }
 
     sub start() {
-        ^^Node[] @shared nodeswithtype = [
-            ^^Node: [1,"one", 1000, true, 1.111],
-            ^^Node: [],
-        ]
+        ^^Node test = []
 
-        ^^Node derp2 = ^^Foobar: []
-
-        ^^Node[] @shared nodeswithout = [
-            [2,"two", 2000, false, 2.222],
-            [1,2,3,true,5],
-            []
-        ]
-
-        ^^Node @shared nptrwithtype = ^^Node : [1, "one", 1000, false, 3.333]
-        ^^Node @shared nptrwithouttype = [1, "one", 1000, false, 3.333]
+        test.id ++
+        test.array += 1000
+        test.id <<= 2
+        test.id <<= cx16.r0L
+        test.id >>= 3
+        test.id >>= cx16.r0L
+        test.id &= 1
+;        test.id *= 5        ; TODO implement this
+;        test.id /= 5        ; TODO implement this
+        test.array ^= 1000
+        test.array |= 1000
+        test.array &= 1000
+        test.array >>= 3
+        test.array >>= cx16.r0L
+        test.array <<= 2
+        test.array <<= cx16.r0L
+        test.array *= 5
     }
 }

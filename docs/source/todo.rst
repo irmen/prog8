@@ -90,6 +90,7 @@ Future Things and Ideas
     7     }
     8     modifications.forEach { it.perform() }
     9 }
+- improve ANTLR grammar with better error handling (according to Qwen AI)
 - allow memory() to occur in array initializer
 - %breakpoint after an assignment is parsed as part of the expression (x % breakpoint), that should not happen
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
@@ -120,6 +121,26 @@ Future Things and Ideas
 IR/VM
 -----
 - is it possible to use LOADFIELD/STOREFIELD instructions more?
+- make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
+    SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
+    FUNCTION_PARAMS,     // For passing function parameters
+    FUNCTION_RETURNS,    // For function return values
+    TEMPORARY,           // Short-lived temporary values
+    LOCAL_VARIABLES,     // Local variables within functions
+    GLOBAL_VARIABLES,    // Global/static variables
+    HARDWARE_MAPPED,     // Mapped to CPU hardware registers
+    LOOP_INDICES,        // Used as loop counters
+    ADDRESS_CALCULATION  // Used for pointer arithmetic
+  Categorizing registers by lifetime can significantly improve allocation:
+   - Short-lived: Temporary registers used in expressions
+   - Medium-lived: Local variables within a function
+  Registers could be categorized by how frequently they're accessed:
+   - Hot Registers: Frequently accessed (should be allocated to faster physical registers)
+   - Warm Registers: Moderately accessed
+   - Cold Registers: Rarely accessed (can be spilled to memory if needed)
+  We already have type-based pools
+    - byte, word, float registers
+
 - pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit 88b074c208450c58aa32469745afa03e4c5f564a
 - change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
