@@ -22,12 +22,21 @@ class Prog8WorkspaceService: WorkspaceService {
 
     override fun symbol(params: WorkspaceSymbolParams): CompletableFuture<Either<MutableList<out SymbolInformation>, MutableList<out WorkspaceSymbol>>> {
         logger.info("symbol $params")
-        return super.symbol(params)
+        // TODO: Implement workspace symbol search
+        // This is just a placeholder implementation
+        val symbols = mutableListOf<WorkspaceSymbol>()
+        val symbol = WorkspaceSymbol(
+            "workspaceSymbol",
+            SymbolKind.Function,
+            Either.forLeft(Location("file:///example.p8", Range(Position(0, 0), Position(0, 10))))
+        )
+        symbols.add(symbol)
+        return CompletableFuture.completedFuture(Either.forRight(symbols))
     }
 
     override fun resolveWorkspaceSymbol(workspaceSymbol: WorkspaceSymbol): CompletableFuture<WorkspaceSymbol> {
         logger.info("resolveWorkspaceSymbol $workspaceSymbol")
-        return super.resolveWorkspaceSymbol(workspaceSymbol)
+        return CompletableFuture.completedFuture(workspaceSymbol)
     }
 
     override fun didChangeConfiguration(params: DidChangeConfigurationParams) {

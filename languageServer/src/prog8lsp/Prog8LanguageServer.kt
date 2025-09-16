@@ -1,7 +1,7 @@
 package prog8lsp
 
-import org.eclipse.lsp4j.InitializeParams
-import org.eclipse.lsp4j.InitializeResult
+import org.eclipse.lsp4j.*
+import org.eclipse.lsp4j.jsonrpc.messages.Either
 import org.eclipse.lsp4j.services.*
 import java.io.Closeable
 import java.util.concurrent.CompletableFuture
@@ -18,7 +18,46 @@ class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
     override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> = async.compute {
         logger.info("Initializing LanguageServer")
 
-        InitializeResult()
+        val result = InitializeResult()
+        val capabilities = ServerCapabilities()
+        
+        // Text document synchronization
+        capabilities.textDocumentSync = Either.forLeft(TextDocumentSyncKind.Full)
+        
+        // Completion support
+        val completionOptions = CompletionOptions()
+        completionOptions.resolveProvider = true
+        completionOptions.triggerCharacters = listOf(".", ":")
+        capabilities.completionProvider = completionOptions
+        
+        // Document symbol support
+        capabilities.documentSymbolProvider = Either.forLeft(true)
+        
+        // Hover support
+        capabilities.hoverProvider = Either.forLeft(true)
+        
+        // Definition support
+        capabilities.definitionProvider = Either.forLeft(true)
+        
+        // Code action support
+        val codeActionOptions = CodeActionOptions()
+        codeActionOptions.codeActionKinds = listOf(CodeActionKind.QuickFix)
+        capabilities.codeActionProvider = Either.forRight(codeActionOptions)
+        
+        // Document formatting support
+        capabilities.documentFormattingProvider = Either.forLeft(true)
+        capabilities.documentRangeFormattingProvider = Either.forLeft(true)
+        
+        // Rename support
+        val renameOptions = RenameOptions()
+        renameOptions.prepareProvider = true
+        capabilities.renameProvider = Either.forRight(renameOptions)
+        
+        // Workspace symbol support
+        capabilities.workspaceSymbolProvider = Either.forLeft(true)
+        
+        result.capabilities = capabilities
+        result
     }
 
     override fun shutdown(): CompletableFuture<Any> {
