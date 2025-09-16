@@ -1733,18 +1733,21 @@ main {
 
     test("struct initializers in array") {
         val src="""
+%option enable_floats
 main {
     struct Node {
         ubyte id
         str name
         uword array
+        bool flag
+        float speed
     }
 
     sub start() {
         ^^Node[] @shared nodes = [
-            ^^Node:[1,"one", 1000 ],
-            ^^Node:[2,"two", 2000 ],
-            ^^Node:[3,"three", 3000],
+            ^^Node:[1,"one", 1000, true, 1.111 ],
+            ^^Node:[2,"two", 2000, false, 2.222 ],
+            ^^Node:[3,"three", 3000, true, 3.333 ],
             ^^Node:[],
             ^^Node:[],
             ^^Node:[],
@@ -1755,7 +1758,7 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    test("type error for invalid bool field initializer") {
+    test("type error for invalid field initializer") {
         val src="""
 main {
     struct Enemy {
@@ -1767,9 +1770,9 @@ main {
     sub start() {
         ^^Enemy @shared e1 = ^^Enemy: []
         ^^Enemy @shared e2 = ^^Enemy: [1,2,3,true]
-        ^^Enemy @shared e3 = ^^Enemy: [1,2,3,4]         ; TODO type error for the boolean
-        ^^Enemy @shared e4 = ^^Enemy: [1,2,3,4.555]     ; TODO type error for the boolean
-
+        ^^Enemy @shared e3 = ^^Enemy: [1,2,3,4]      
+        ^^Enemy @shared e4 = ^^Enemy: [1,2,3,4.444]  
+        
         e3.elite = 99
         e4.elite = 3.444
     }
@@ -1782,6 +1785,70 @@ main {
         errors.errors[1] shouldContain "value #4 has incompatible type"
         errors.errors[2] shouldContain "doesn't match target type"
         errors.errors[3] shouldContain "doesn't match target type"
+    }
+
+    test("long and short form struct initializers") {
+        val src="""
+%option enable_floats
+
+main {
+    struct Node {
+        ubyte id
+        str name
+        uword array
+        bool flag
+        float perc
+    }
+
+    sub start() {
+        ^^Node[] @shared nodeswithtype = [
+            ^^Node: [1,"one", 1000, true, 1.111],
+            ^^Node: [],
+        ]
+
+        ^^Node[] @shared nodeswithout = [
+            [2,"two", 2000, false, 2.222],
+            [],
+        ]
+
+        ^^Node @shared nptrwithtype = ^^Node : [1, "one", 1000, false, 3.333]
+        ^^Node @shared nptrwithouttype = [1, "one", 1000, false, 3.333]
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("type error for wrong type in pointer array and assignment") {
+        val src="""
+main {
+    struct Node {
+        ubyte id
+    }
+    struct Foobar {
+        bool thing
+    }
+
+    sub start() {
+        ^^Node[] onlynodes = [
+            ^^Node: [],
+            ^^Foobar: []
+        ]
+        
+        uword multipleok = [
+            ^^Node: [],
+            ^^Foobar: []
+        ]        
+        
+        ^^Node node = ^^Foobar: []
+    }
+}"""
+        val errors=ErrorReporterForTests()
+        compileText(C64Target(), false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "wrong pointer type in array"
+        errors.errors[1] shouldContain "wrong pointer type in array"
+        // TODO check that they belong to onlynodes and node
     }
 
     test("local and global struct pointer qualified name lookups") {

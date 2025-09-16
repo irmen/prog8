@@ -58,7 +58,8 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- can we have some syntactic sugar to avoid the struct name pointer prefix for all array elements that are a struct instance?
+- fix type checks for wrong pointer types in pointer array initalizer and assignment
+- fix the pointers/hashtable.p8 example
 - fix code size regressions (if any left)
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - update structpointers.rst docs with 6502 specific things?
@@ -79,6 +80,16 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- optimization conflict detection:
+    1 fun applyModificationsSafely(modifications: List<IAstModification>) {
+    2     // Can check for conflicts before applying
+    3     modifications.groupBy { getTargetNode(it) }.forEach { target, mods ->
+    4         if (mods.size > 1) {
+    5             // Handle or report conflicting modifications
+    6         }
+    7     }
+    8     modifications.forEach { it.perform() }
+    9 }
 - allow memory() to occur in array initializer
 - %breakpoint after an assignment is parsed as part of the expression (x % breakpoint), that should not happen
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed

@@ -333,7 +333,7 @@ class VarDecl(
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression && (value==null || node===value))
         value = replacement     // note: any datatype differences between the value and the decl itself, will be fixed by a separate ast walker step
-        replacement.parent = this
+        replacement.linkParents(this)
     }
 
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)

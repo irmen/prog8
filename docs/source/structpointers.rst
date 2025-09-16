@@ -18,8 +18,8 @@ Structs and Pointers
     Due to some limitations in the language parser, not all pointer related syntax is currently supported
     if it is a pointer to a struct type.
     The compiler tries its best to give a descriptive error message but sometimes there is still a
-    parser limitation that has to be worked around at the moment. For example, this syntax is not supported
-    right now and will result in a parse error::
+    parser limitation that has to be worked around at the moment. For example, this pointer arithmetic
+    indexing syntax is not supported right now and will result in a parse error::
 
         ^^Node  np
         np[2].field = 9999
@@ -29,6 +29,8 @@ Structs and Pointers
 
         ^^Node thirdnode = &&np[2]
         thirdnode.field = 9999
+
+    *Note: this example is not regular array indexing syntax, it's pointer arithmetic by indexing on the pointer itself. Regular array syntax is supported just fine for arrays containing pointers etc.*
 
 
 
@@ -139,12 +141,13 @@ You can copy the whole contents of a struct to another one by assigning the dere
     e1^^ = e2^^     ; copies all fields of e2 into e1
 
 
-The struct type creates a new name scape, so accessing the fields of a struct is done as usual with the dotted notation::
+The struct type creates a new name scape, so accessing the fields of a struct is done as usual with the dotted notation.
+Because it implies pointer dereferencing you can usually omit the explicit `^^`, prog8 will know what it means::
 
     if e1.ypos > 300
         e1.health -= 10
 
-    ; notice that that implicitly dereferences the pointer variable, actually it is doing this:
+    ; explicit dereferencing notation:
 
     if e1^^.ypos > 300
         e1^^.health -= 10
@@ -184,12 +187,39 @@ called multiple times, or inside a loop, the struct *will be the same instance e
 Read below if you need *dynamic* struct allocation!
 You write a static struct initialization expression like this:
 
-``^^Node : [1,2,3,4]``
-    statically places an instance of struct 'Node' in memory, with its fields set to 1,2,3,4 and returns the address of this struct.
+``^^Node : [1,"one", 1000, true, 1.111]``
+    statically places an instance of struct 'Node' in memory, with its fields set to 1, "one", 1000 etcetera and returns the address of this struct.
     The values in the initialization array must correspond exactly with the first to last declared fields in the struct type.
 ``^^Node : []``
     (without values) Places a 'Node' instance in BSS variable space instead, which gets zeroed out at program startup.
     Returns the address of this empty struct.
+
+It is also possible to put struct initializer inside arrays to make them all statically initialized and accessible via the array::
+
+    ^^Node[] allnodes = [
+        ^^Node: [1,"one", 1000, true, 1.111],
+        ^^Node: [2,"two", 2000, false, 2.222],
+        ^^Node: [],
+        ^^Node: [],
+    ]
+
+Short form initializers
+^^^^^^^^^^^^^^^^^^^^^^^
+
+If the required type can be inferred from the context you can also omit the struct pointer type prefix altogether.
+The initializer value then is syntactically the same as an array, but Prog8 internally turns it back into a proper
+struct initializer value based on the the type of the array element or pointer variable it is assigned to.
+So you can write the above in short form as::
+
+    ^^Node nodepointer = [1,2,3,4]
+
+    ^^Node[] allnodes = [
+        [1,"one", 1000, true, 1.111],
+        [2,"two", 2000, false, 2.222],
+        [],
+        []
+    ]
+
 
 
 Dynamic allocation of structs

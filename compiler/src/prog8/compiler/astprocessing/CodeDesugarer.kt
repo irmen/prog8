@@ -876,4 +876,68 @@ _after:
             errors.err(error, ifExpr.condition.position)
         return noModifications
     }
+
+    override fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> {
+
+        fun convertArrayIntoStructInitializer(array: ArrayLiteral, struct: ISubType): StaticStructInitializer {
+            val structname = IdentifierReference(struct.scopedNameString.split("."), array.position)
+            return StaticStructInitializer(structname, array.value.toMutableList(), array.position)
+        }
+
+        fun checkNumberOfElements(struct: StructDecl, array: ArrayLiteral): Boolean {
+            val numValues = array.value.size
+            if (numValues>0 && struct.fields.size != numValues) {
+                if (numValues < struct.fields.size) {
+                    val missing = struct.fields.drop(numValues).joinToString(", ") { it.second }
+                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got ${numValues}, missing: $missing", array.position)
+                } else
+                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got ${numValues}", array.position)
+                return false
+            }
+            return true
+        }
+
+        if(parent is VarDecl) {
+            if (parent.datatype.isPointerArray && parent.datatype.elementType().subType!=null) {
+                val struct = parent.datatype.elementType().subType as StructDecl
+                val allremovals = mutableListOf<VarDecl>()
+                var noErrors = true
+                var changes = false
+                array.value.withIndex().forEach { (index, elt) ->
+                    if(elt is ArrayLiteral) {
+                        noErrors = noErrors and checkNumberOfElements(struct, elt)
+                        if(noErrors) {
+                            array.value[index] = convertArrayIntoStructInitializer(elt, struct)
+                            changes = true
+                        }
+                    } else if(elt is IdentifierReference) {
+                        val arrayvar = elt.targetVarDecl()!!.value as ArrayLiteral
+                        noErrors = noErrors and checkNumberOfElements(struct, arrayvar)
+                        if(noErrors) {
+                            array.value[index] = convertArrayIntoStructInitializer(arrayvar, struct)
+                            allremovals += elt.targetVarDecl()!!
+                            changes = true
+                        }
+                    }
+                }
+
+                if(changes && noErrors) {
+                    array.linkParents(parent)
+                    return allremovals.map { IAstModification.Remove(it, it.parent as IStatementContainer) }
+                }
+            }
+        }
+        else if(parent is Assignment) {
+            val targetDt = parent.target.inferType(program).getOrUndef()
+            if(targetDt.isPointer && targetDt.subType!=null) {
+                val struct = targetDt.subType as StructDecl
+                if(checkNumberOfElements(struct, array)) {
+                    val initializser = convertArrayIntoStructInitializer(array, struct)
+                    return listOf(IAstModification.ReplaceNode(array, initializser, parent))
+                }
+            }
+        }
+
+        return noModifications
+    }
 }
