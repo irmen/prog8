@@ -68,6 +68,9 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 56 = CLOSE_FILE
 57 = CLOSE_FILE_WRITE
 58 = ncompare strings
+59 = print_i32 ; print signed 32 bits integer (prog8 long)
+60 = i32 to string  ; put string representation of signed 32 bits integer (prog8 long) into memory
+61 = decimal string to prog8 long (i32 signed)
 */
 
 enum class Syscall {
@@ -130,6 +133,9 @@ enum class Syscall {
     CLOSE_FILE,
     CLOSE_FILE_WRITE,
     NCOMPARE_STRINGS,
+    PRINT_I32,
+    I32_TO_STRING,
+    STR_TO_LONG,
     ;
 
     companion object {
@@ -143,6 +149,7 @@ object SysCalls {
             when(it.reg.dt) {
                 IRDataType.BYTE -> vm.registers.getUB(it.reg.registerNum)
                 IRDataType.WORD -> vm.registers.getUW(it.reg.registerNum)
+                IRDataType.LONG -> vm.registers.getSL(it.reg.registerNum)
                 IRDataType.FLOAT -> vm.registers.getFloat(it.reg.registerNum)
             }
         }
@@ -164,6 +171,7 @@ object SysCalls {
         when(returns.dt) {
             IRDataType.BYTE -> vm.registers.setUB(returns.registerNum, vv.toInt().toUByte())
             IRDataType.WORD -> vm.registers.setUW(returns.registerNum, vv.toInt().toUShort())
+            IRDataType.LONG -> vm.registers.setSL(returns.registerNum, vv.toInt())
             IRDataType.FLOAT -> vm.registers.setFloat(returns.registerNum, vv)
         }
     }
@@ -197,6 +205,10 @@ object SysCalls {
                 print(value)
             }
             Syscall.PRINT_U16 -> {
+                val value = getArgValues(callspec.arguments, vm).single()
+                print(value)
+            }
+            Syscall.PRINT_I32 -> {
                 val value = getArgValues(callspec.arguments, vm).single()
                 print(value)
             }
@@ -258,6 +270,17 @@ object SysCalls {
                 val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.returns.single(), 0, vm)
                 val value = try {
                     match.value.toShort()
+                } catch(_: NumberFormatException) {
+                    0
+                }
+                return returnValue(callspec.returns.single(), value, vm)
+            }
+            Syscall.STR_TO_LONG -> {
+                val stringAddr = getArgValues(callspec.arguments, vm).single() as UShort
+                val memstring = vm.memory.getString(stringAddr.toInt())
+                val match = Regex("^[+-]?\\d+").find(memstring) ?: return returnValue(callspec.returns.single(), 0, vm)
+                val value = try {
+                    match.value.toInt()
                 } catch(_: NumberFormatException) {
                     0
                 }
@@ -634,6 +657,10 @@ object SysCalls {
             }
             Syscall.CLOSE_FILE -> vm.close_file_read()
             Syscall.CLOSE_FILE_WRITE -> vm.close_file_write()
+            Syscall.I32_TO_STRING -> {
+                val (number, stringbuffer) = getArgValues(callspec.arguments, vm)
+                vm.memory.setString((stringbuffer as UShort).toInt(), number.toString(), true)
+            }
         }
     }
 }

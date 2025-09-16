@@ -141,7 +141,7 @@ sub  str_uw  (uword value) -> str {
 }
 
 sub  str_w  (word value) -> str {
-    ; ---- convert the (signed) word in A/Y in decimal string form, without left padding 0's
+    ; ---- convert the (signed) word into decimal string form, without left padding 0's
     ^^ubyte out_ptr = &string_out
     if value<0 {
         @(out_ptr) = '-'
@@ -150,6 +150,16 @@ sub  str_w  (word value) -> str {
     }
     internal_str_uw(value as uword, out_ptr)
     return string_out
+}
+
+sub  str_l  (long value) -> str {
+    ; ---- convert the (signed) long into decimal string form, without left padding 0's
+    %ir {{
+        loadm.l r99200,conv.str_l.value
+        load.w r99000,conv.string_out
+        syscall 60 (r99200.l, r99000.w) : r99000.w
+        returnr.w r99000
+    }}
 }
 
 sub internal_str_uw(uword value, str out_ptr) {

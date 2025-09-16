@@ -228,6 +228,22 @@ asmsub  str_w  (word value @ AY) clobbers(X) -> str @AY  {
 	}}
 }
 
+asmsub  str_l  (uword msw @ R0, uword lsw @ R1) clobbers(X) -> str @AY  {
+	; ---- convert the long in R0:R1 into decimal string form, without left padding 0s
+	%asm {{
+	    lda  #'?'
+	    sta  string_out
+	    lda  #'?'
+	    sta  string_out+1
+	    lda  #0
+	    sta  string_out+2
+	    ; TODO implement this!
+	    sta  string_out
+	    lda  #<string_out
+	    ldy  #>string_out
+	    rts
+	}}
+}
 
 ; ---- string conversion to numbers -----
 

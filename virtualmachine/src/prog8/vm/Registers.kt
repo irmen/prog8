@@ -6,14 +6,14 @@ package prog8.vm
  * A,X and Y "physical" 6502 registers.
  */
 class Registers {
-    private val registers = Array<UShort>(99999) { 0u }
+    private val registers = Array<Int>(99999) { 0 }
     private val floatRegisters = Array(99999) { 0.0 }
     var cpuA: UByte = 0u
     var cpuX: UByte = 0u
     var cpuY: UByte = 0u
 
     fun reset() {
-        registers.fill(0u)
+        registers.fill(0)
         floatRegisters.fill(0.0)
         cpuA = 0u
         cpuX = 0u
@@ -21,28 +21,34 @@ class Registers {
     }
 
     fun setUB(reg: Int, value: UByte) {
-        registers[reg] = registers[reg] and 0xff00u or value.toUShort()
+        registers[reg] = value.toInt()
     }
 
     fun setSB(reg: Int, value: Byte) {
-        registers[reg] = registers[reg] and 0xff00u or (value.toUShort() and 0x00ffu)
+        registers[reg] = value.toInt()
     }
 
     fun setUW(reg: Int, value: UShort) {
-        registers[reg] = value
+        registers[reg] = value.toInt()
     }
 
     fun setSW(reg: Int, value: Short) {
-        registers[reg] = value.toUShort()
+        registers[reg] = value.toInt()
+    }
+
+    fun setSL(reg: Int, value: Int) {
+        registers[reg] = value
     }
 
     fun getUB(reg: Int) = registers[reg].toUByte()
 
     fun getSB(reg: Int) = registers[reg].toByte()
 
-    fun getUW(reg: Int) = registers[reg]
+    fun getUW(reg: Int) = registers[reg].toUShort()
 
     fun getSW(reg: Int) = registers[reg].toShort()
+
+    fun getSL(reg: Int) = registers[reg]
 
     fun getFloat(reg:Int) = floatRegisters[reg]
 

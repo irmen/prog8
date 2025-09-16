@@ -82,7 +82,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        checkLongType(identifier)
         val stmt = identifier.targetStatement(program.builtinFunctions)
         if(stmt==null) {
             if(identifier.parent is ArrayIndexedExpression) {
@@ -361,10 +360,6 @@ internal class AstChecker(private val program: Program,
             errors.err("Labels can only be defined in the scope of a block, a loop body, or within another subroutine", label.position)
         }
         super.visit(label)
-    }
-
-    override fun visit(numLiteral: NumericLiteral) {
-        checkLongType(numLiteral)
     }
 
     private fun hasReturnOrExternalJumpOrRts(scope: IStatementContainer): Boolean {
@@ -813,7 +808,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(addressOf: AddressOf) {
-        checkLongType(addressOf)
         val variable=addressOf.identifier?.targetVarDecl()
         if (variable!=null) {
             if (variable.type == VarDeclType.CONST && addressOf.arrayIndex == null)
@@ -862,8 +856,6 @@ internal class AstChecker(private val program: Program,
         if(decl.names.size>1)
             throw InternalCompilerException("vardecls with multiple names should have been converted into individual vardecls")
 
-        if(decl.datatype.isLong && decl.type!=VarDeclType.CONST)
-            errors.err("cannot use long type for variables; only for constants", decl.position)
         if(decl.type==VarDeclType.MEMORY) {
             if (decl.datatype.isString)
                 errors.err("strings cannot be memory-mapped", decl.position)
@@ -1329,7 +1321,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        checkLongType(expr)
         val dt = expr.expression.inferType(program).getOrUndef()
         if(!dt.isUndefined) {
 
@@ -1474,8 +1465,6 @@ internal class AstChecker(private val program: Program,
             return
         }
 
-        checkLongType(expr)
-
         val leftIDt = expr.left.inferType(program)
         val rightIDt = expr.right.inferType(program)
         if(!leftIDt.isKnown || !rightIDt.isKnown) {
@@ -1614,7 +1603,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(typecast: TypecastExpression) {
-        checkLongType(typecast)
         if(typecast.type.isPassByRef)
             errors.err("cannot type cast to string or array type", typecast.position)
 
@@ -1671,7 +1659,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(functionCallExpr: FunctionCallExpression) {
-        checkLongType(functionCallExpr)
         // this function call is (part of) an expression, which should be in a statement somewhere.
         val stmtOfExpression = findParentNode<Statement>(functionCallExpr)
                 ?: throw FatalAstException("cannot determine statement scope of function call expression at ${functionCallExpr.position}")
@@ -1905,7 +1892,6 @@ internal class AstChecker(private val program: Program,
         }
 
         args.forEach{
-            checkLongType(it)
             if(it.inferType(program).isStructInstance)
                 errors.err("structs can only be passed via a pointer", it.position)
         }
@@ -1918,7 +1904,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        checkLongType(arrayIndexedExpression)
         val target = arrayIndexedExpression.plainarrayvar?.targetStatement(program.builtinFunctions)
         if(target is VarDecl) {
             if (!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)
@@ -2162,17 +2147,6 @@ internal class AstChecker(private val program: Program,
         }
 
         super.visit(deref)
-    }
-
-    private fun checkLongType(expression: Expression) {
-        if(expression.inferType(program) issimpletype BaseDataType.LONG) {
-            if((expression.parent as? VarDecl)?.type!=VarDeclType.CONST) {
-                if (expression.parent !is RepeatLoop) {
-                    if (errors.noErrorForLine(expression.position))
-                        errors.err("integer overflow", expression.position)
-                }
-            }
-        }
     }
 
     private fun checkValueTypeAndRangeString(targetDt: DataType, value: StringLiteral) : Boolean {

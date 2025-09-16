@@ -136,8 +136,8 @@ ARITHMETIC
 ----------
 All have type b or w or f. Note: result types are the same as operand types! E.g. byte*byte->byte.
 
-exts        reg1, reg2                      - reg1 = signed extension of reg2 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long. The latter is not yet implemented yet as we don't have longs yet)
-ext         reg1, reg2                      - reg1 = unsigned extension of reg2 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. The latter is not yet implemented yet as we don't have longs yet)
+exts        reg1, reg2                      - reg1 = signed extension of reg2 (byte to word, or word to long)  (note: unlike M68k, exts.b -> word and exts.w -> long.)
+ext         reg1, reg2                      - reg1 = unsigned extension of reg2 (which in practice just means clearing the MSB / MSW) (note: unlike M68k, ext.b -> word and ext.w -> long. )
 inc         reg1                            - reg1 = reg1+1
 incm                           address      - memory at address += 1
 dec         reg1                            - reg1 = reg1-1
@@ -247,9 +247,9 @@ sei                                       - set interrupt disable flag
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 align        alignmentvalue               - represents a memory alignment directive
-lsig [b, w]   reg1, reg2                  - reg1 becomes the least significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
-msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2  (.w not yet implemented; requires 32 bits regs)
-concat [b, w] reg1, reg2, reg3            - reg1.w = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int (int not yet implemented; requires 32bits regs)
+lsig [b, w]   reg1, reg2                  - reg1 becomes the least significant byte (or word) of the word (or int) in reg2
+msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2
+concat [b, w] reg1, reg2, reg3            - reg1.w/l = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
 pushst                                    - push status register bits to stack
@@ -559,8 +559,8 @@ val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThat
 enum class IRDataType {
     BYTE,
     WORD,
-    FLOAT
-    // TODO add INT (32-bit)?   INT24 (24-bit)?
+    FLOAT,
+    LONG        // 32 bits integer
 }
 
 enum class OperandDirection {
@@ -623,6 +623,8 @@ data class InstructionFormat(val datatype: IRDataType?,
                     result[IRDataType.BYTE] = InstructionFormat(IRDataType.BYTE, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('W' in typespec)
                     result[IRDataType.WORD] = InstructionFormat(IRDataType.WORD, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
+                if('L' in typespec)
+                    result[IRDataType.LONG] = InstructionFormat(IRDataType.LONG, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
                 if('F' in typespec)
                     result[IRDataType.FLOAT] = InstructionFormat(IRDataType.FLOAT, reg1, reg2, reg3, fpreg1, fpreg2, address, immediate, funcCall, sysCall)
             }
@@ -643,12 +645,12 @@ data class InstructionFormat(val datatype: IRDataType?,
  */
 val instructionFormats = mutableMapOf(
     Opcode.NOP        to InstructionFormat.from("N"),
-    Opcode.LOAD       to InstructionFormat.from("BW,>r1,<i     | F,>fr1,<i"),
-    Opcode.LOADM      to InstructionFormat.from("BW,>r1,<a     | F,>fr1,<a"),
-    Opcode.LOADI      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<r1"),
-    Opcode.LOADX      to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
-    Opcode.LOADIX     to InstructionFormat.from("BW,>r1,<r2,<a | F,>fr1,<r1,<a"),
-    Opcode.LOADR      to InstructionFormat.from("BW,>r1,<r2    | F,>fr1,<fr2"),
+    Opcode.LOAD       to InstructionFormat.from("BWL,>r1,<i     | F,>fr1,<i"),
+    Opcode.LOADM      to InstructionFormat.from("BWL,>r1,<a     | F,>fr1,<a"),
+    Opcode.LOADI      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<r1"),
+    Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
+    Opcode.LOADIX     to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
+    Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
     Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
     Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
     Opcode.LOADHX     to InstructionFormat.from("B,>r1"),
@@ -656,16 +658,16 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADHAX    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHAY    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHXY    to InstructionFormat.from("W,>r1"),
-    Opcode.LOADFIELD  to InstructionFormat.from("BW,>r1,<r2,<i | F,>fr1,<r1,<i"),
+    Opcode.LOADFIELD  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
     Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
     Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
-    Opcode.STOREM     to InstructionFormat.from("BW,<r1,>a     | F,<fr1,>a"),
-    Opcode.STOREI     to InstructionFormat.from("BW,<r1,<r2    | F,<fr1,<r1"),
-    Opcode.STOREX     to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
-    Opcode.STOREIX    to InstructionFormat.from("BW,<r1,<r2,>a | F,<fr1,<r1,>a"),
-    Opcode.STOREZM    to InstructionFormat.from("BW,>a         | F,>a"),
-    Opcode.STOREZI    to InstructionFormat.from("BW,<r1        | F,<r1"),
-    Opcode.STOREZX    to InstructionFormat.from("BW,<r1,>a     | F,<r1,>a"),
+    Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
+    Opcode.STOREI     to InstructionFormat.from("BWL,<r1,<r2    | F,<fr1,<r1"),
+    Opcode.STOREX     to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
+    Opcode.STOREIX    to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
+    Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
+    Opcode.STOREZI    to InstructionFormat.from("BWL,<r1        | F,<r1"),
+    Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
     Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
     Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
     Opcode.STOREHX    to InstructionFormat.from("B,<r1"),
@@ -673,7 +675,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREHAX   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHAY   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHXY   to InstructionFormat.from("W,<r1"),
-    Opcode.STOREFIELD to InstructionFormat.from("BW,<r1,<r2,<i | F,<fr1,<r1,<i"),
+    Opcode.STOREFIELD to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
     Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
@@ -684,8 +686,8 @@ val instructionFormats = mutableMapOf(
     Opcode.CALLFARVB  to InstructionFormat.from("N,<r1,<a"),
     Opcode.SYSCALL    to InstructionFormat.from("N,syscall"),
     Opcode.RETURN     to InstructionFormat.from("N"),
-    Opcode.RETURNR    to InstructionFormat.from("BW,<r1        | F,<fr1"),
-    Opcode.RETURNI    to InstructionFormat.from("BW,<i         | F,<i"),
+    Opcode.RETURNR    to InstructionFormat.from("BWL,<r1        | F,<fr1"),
+    Opcode.RETURNI    to InstructionFormat.from("BWL,<i         | F,<i"),
     Opcode.BSTCC      to InstructionFormat.from("N,<a"),
     Opcode.BSTCS      to InstructionFormat.from("N,<a"),
     Opcode.BSTEQ      to InstructionFormat.from("N,<a"),
@@ -694,84 +696,84 @@ val instructionFormats = mutableMapOf(
     Opcode.BSTPOS     to InstructionFormat.from("N,<a"),
     Opcode.BSTVC      to InstructionFormat.from("N,<a"),
     Opcode.BSTVS      to InstructionFormat.from("N,<a"),
-    Opcode.BGTR       to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGT        to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.BLT        to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.BGTSR      to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGTS       to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.BLTS       to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.BGER       to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGE        to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.BLE        to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.BGESR      to InstructionFormat.from("BW,<r1,<r2,<a"),
-    Opcode.BGES       to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.BLES       to InstructionFormat.from("BW,<r1,<i,<a"),
-    Opcode.INC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
-    Opcode.INCM       to InstructionFormat.from("BW,<>a       | F,<>a"),
-    Opcode.DEC        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
-    Opcode.DECM       to InstructionFormat.from("BW,<>a       | F,<>a"),
-    Opcode.NEG        to InstructionFormat.from("BW,<>r1      | F,<>fr1"),
-    Opcode.NEGM       to InstructionFormat.from("BW,<>a       | F,<>a"),
-    Opcode.ADDR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.ADD        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.ADDM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.SUBR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.SUB        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.SUBM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.BGTR       to InstructionFormat.from("BWL,<r1,<r2,<a"),
+    Opcode.BGT        to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.BLT        to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.BGTSR      to InstructionFormat.from("BWL,<r1,<r2,<a"),
+    Opcode.BGTS       to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.BLTS       to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.BGER       to InstructionFormat.from("BWL,<r1,<r2,<a"),
+    Opcode.BGE        to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.BLE        to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.BGESR      to InstructionFormat.from("BWL,<r1,<r2,<a"),
+    Opcode.BGES       to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.BLES       to InstructionFormat.from("BWL,<r1,<i,<a"),
+    Opcode.INC        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
+    Opcode.INCM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
+    Opcode.DEC        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
+    Opcode.DECM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
+    Opcode.NEG        to InstructionFormat.from("BWL,<>r1      | F,<>fr1"),
+    Opcode.NEGM       to InstructionFormat.from("BWL,<>a       | F,<>a"),
+    Opcode.ADDR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
+    Opcode.ADD        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.ADDM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.SUBR       to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
+    Opcode.SUB        to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.SUBM       to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
     Opcode.MULR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.MUL        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
     Opcode.MULM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.MULSR      to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.MULS       to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.MULSM      to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.MULSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
+    Opcode.MULS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.MULSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
     Opcode.DIVR       to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
     Opcode.DIV        to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
     Opcode.DIVM       to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.DIVSR      to InstructionFormat.from("BW,<>r1,<r2  | F,<>fr1,<fr2"),
-    Opcode.DIVS       to InstructionFormat.from("BW,<>r1,<i   | F,<>fr1,<i"),
-    Opcode.DIVSM      to InstructionFormat.from("BW,<r1,<>a   | F,<fr1,<>a"),
-    Opcode.SQRT       to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
-    Opcode.SQUARE     to InstructionFormat.from("BW,>r1,<r2   | F,>fr1,<fr2"),
-    Opcode.SGN        to InstructionFormat.from("BW,>r1,<r2   | F,>r1,<fr1"),
+    Opcode.DIVSR      to InstructionFormat.from("BWL,<>r1,<r2  | F,<>fr1,<fr2"),
+    Opcode.DIVS       to InstructionFormat.from("BWL,<>r1,<i   | F,<>fr1,<i"),
+    Opcode.DIVSM      to InstructionFormat.from("BWL,<r1,<>a   | F,<fr1,<>a"),
+    Opcode.SQRT       to InstructionFormat.from("BWL,>r1,<r2   | F,>fr1,<fr2"),
+    Opcode.SQUARE     to InstructionFormat.from("BWL,>r1,<r2   | F,>fr1,<fr2"),
+    Opcode.SGN        to InstructionFormat.from("BWL,>r1,<r2   | F,>r1,<fr1"),
     Opcode.MODR       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.MOD        to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<i"),
-    Opcode.CMP        to InstructionFormat.from("BW,<r1,<r2"),
-    Opcode.CMPI       to InstructionFormat.from("BW,<r1,<i"),
-    Opcode.EXT        to InstructionFormat.from("BW,>r1,<r2"),
-    Opcode.EXTS       to InstructionFormat.from("BW,>r1,<r2"),
-    Opcode.ANDR       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.AND        to InstructionFormat.from("BW,<>r1,<i"),
-    Opcode.ANDM       to InstructionFormat.from("BW,<r1,<>a"),
-    Opcode.ORR        to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.OR         to InstructionFormat.from("BW,<>r1,<i"),
-    Opcode.ORM        to InstructionFormat.from("BW,<r1,<>a"),
-    Opcode.XORR       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.XOR        to InstructionFormat.from("BW,<>r1,<i"),
-    Opcode.XORM       to InstructionFormat.from("BW,<r1,<>a"),
-    Opcode.INV        to InstructionFormat.from("BW,<>r1"),
-    Opcode.INVM       to InstructionFormat.from("BW,<>a"),
-    Opcode.ASRN       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.ASRNM      to InstructionFormat.from("BW,<r1,<>a"),
-    Opcode.LSRN       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.LSRNM      to InstructionFormat.from("BW,<r1,<>a"),
-    Opcode.LSLN       to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.LSLNM      to InstructionFormat.from("BW,<r1,<>a"),
-    Opcode.ASR        to InstructionFormat.from("BW,<>r1"),
-    Opcode.ASRM       to InstructionFormat.from("BW,<>a"),
-    Opcode.LSR        to InstructionFormat.from("BW,<>r1"),
-    Opcode.LSRM       to InstructionFormat.from("BW,<>a"),
-    Opcode.LSL        to InstructionFormat.from("BW,<>r1"),
-    Opcode.LSLM       to InstructionFormat.from("BW,<>a"),
-    Opcode.ROR        to InstructionFormat.from("BW,<>r1"),
-    Opcode.RORM       to InstructionFormat.from("BW,<>a"),
-    Opcode.ROXR       to InstructionFormat.from("BW,<>r1"),
-    Opcode.ROXRM      to InstructionFormat.from("BW,<>a"),
-    Opcode.ROL        to InstructionFormat.from("BW,<>r1"),
-    Opcode.ROLM       to InstructionFormat.from("BW,<>a"),
-    Opcode.ROXL       to InstructionFormat.from("BW,<>r1"),
-    Opcode.ROXLM      to InstructionFormat.from("BW,<>a"),
+    Opcode.CMP        to InstructionFormat.from("BWL,<r1,<r2"),
+    Opcode.CMPI       to InstructionFormat.from("BWL,<r1,<i"),
+    Opcode.EXT        to InstructionFormat.from("BWL,>r1,<r2"),
+    Opcode.EXTS       to InstructionFormat.from("BWL,>r1,<r2"),
+    Opcode.ANDR       to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.AND        to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.ANDM       to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.ORR        to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.OR         to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.ORM        to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.XORR       to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.XOR        to InstructionFormat.from("BWL,<>r1,<i"),
+    Opcode.XORM       to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.INV        to InstructionFormat.from("BWL,<>r1"),
+    Opcode.INVM       to InstructionFormat.from("BWL,<>a"),
+    Opcode.ASRN       to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.ASRNM      to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.LSRN       to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.LSRNM      to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.LSLN       to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.LSLNM      to InstructionFormat.from("BWL,<r1,<>a"),
+    Opcode.ASR        to InstructionFormat.from("BWL,<>r1"),
+    Opcode.ASRM       to InstructionFormat.from("BWL,<>a"),
+    Opcode.LSR        to InstructionFormat.from("BWL,<>r1"),
+    Opcode.LSRM       to InstructionFormat.from("BWL,<>a"),
+    Opcode.LSL        to InstructionFormat.from("BWL,<>r1"),
+    Opcode.LSLM       to InstructionFormat.from("BWL,<>a"),
+    Opcode.ROR        to InstructionFormat.from("BWL,<>r1"),
+    Opcode.RORM       to InstructionFormat.from("BWL,<>a"),
+    Opcode.ROXR       to InstructionFormat.from("BWL,<>r1"),
+    Opcode.ROXRM      to InstructionFormat.from("BWL,<>a"),
+    Opcode.ROL        to InstructionFormat.from("BWL,<>r1"),
+    Opcode.ROLM       to InstructionFormat.from("BWL,<>a"),
+    Opcode.ROXL       to InstructionFormat.from("BWL,<>r1"),
+    Opcode.ROXLM      to InstructionFormat.from("BWL,<>a"),
     Opcode.BIT        to InstructionFormat.from("B,<a"),
 
     Opcode.FFROMUB    to InstructionFormat.from("F,>fr1,<r1"),
@@ -797,8 +799,8 @@ val instructionFormats = mutableMapOf(
 
     Opcode.LSIG       to InstructionFormat.from("BW,>r1,<r2"),
     Opcode.MSIG       to InstructionFormat.from("BW,>r1,<r2"),
-    Opcode.PUSH       to InstructionFormat.from("BW,<r1       | F,<fr1"),
-    Opcode.POP        to InstructionFormat.from("BW,>r1       | F,>fr1"),
+    Opcode.PUSH       to InstructionFormat.from("BWL,<r1       | F,<fr1"),
+    Opcode.POP        to InstructionFormat.from("BWL,>r1       | F,>fr1"),
     Opcode.PUSHST     to InstructionFormat.from("N"),
     Opcode.POPST      to InstructionFormat.from("N"),
     Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2,<r3"),
@@ -903,6 +905,7 @@ data class IRInstruction(
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
                     IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }
+                    IRDataType.LONG -> require(immediate in -2147483647..2147483647) { "immediate value out of range for long: $immediate" }
                     IRDataType.FLOAT, null -> {}
                 }
             }
@@ -1083,8 +1086,7 @@ data class IRInstruction(
             // some word instructions have byte reg1
             return when (opcode) {
                 Opcode.STOREZX, Opcode.SQRT -> IRDataType.BYTE
-                Opcode.EXT, Opcode.EXTS -> TODO("ext.w into long type")
-                Opcode.CONCAT -> TODO("concat.w into long type")
+                Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> IRDataType.LONG
                 else -> IRDataType.WORD
             }
         }
@@ -1107,7 +1109,7 @@ data class IRInstruction(
         if(opcode==Opcode.MSIG || opcode==Opcode.LSIG)
             return when(type) {
                 IRDataType.BYTE -> IRDataType.WORD
-                IRDataType.WORD -> TODO("msig/lsig.w from long type")
+                IRDataType.WORD -> IRDataType.LONG
                 else -> null
             }
         if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
@@ -1125,6 +1127,7 @@ data class IRInstruction(
         when(type) {
             IRDataType.BYTE -> result.add(".b ")
             IRDataType.WORD -> result.add(".w ")
+            IRDataType.LONG -> result.add(".l ")
             IRDataType.FLOAT -> result.add(".f ")
             else -> result.add(" ")
         }
@@ -1154,6 +1157,7 @@ data class IRInstruction(
                 when(it.reg.dt) {
                     IRDataType.BYTE -> result.add("${location}r${it.reg.registerNum}.b$cpuReg,")
                     IRDataType.WORD -> result.add("${location}r${it.reg.registerNum}.w$cpuReg,")
+                    IRDataType.LONG -> result.add("${location}r${it.reg.registerNum}.l$cpuReg,")
                     IRDataType.FLOAT -> result.add("${location}fr${it.reg.registerNum}.f$cpuReg,")
                 }
             }
@@ -1175,12 +1179,14 @@ data class IRInstruction(
                         when (returnspec.dt) {
                             IRDataType.BYTE -> "r${returnspec.registerNum}.b"
                             IRDataType.WORD -> "r${returnspec.registerNum}.w"
+                            IRDataType.LONG -> "r${returnspec.registerNum}.l"
                             IRDataType.FLOAT -> "fr${returnspec.registerNum}.f"
                         }
                     } else {
                         when (returnspec.dt) {
                             IRDataType.BYTE -> "r${returnspec.registerNum}.b@" + cpuReg
                             IRDataType.WORD -> "r${returnspec.registerNum}.w@" + cpuReg
+                            IRDataType.LONG -> "r${returnspec.registerNum}.l@" + cpuReg
                             IRDataType.FLOAT -> "r${returnspec.registerNum}.f@" + cpuReg
                         }
                     }

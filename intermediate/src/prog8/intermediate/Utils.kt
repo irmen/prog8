@@ -53,6 +53,7 @@ fun convertIRType(typestr: String): IRDataType? {
         "" -> null
         ".b" -> IRDataType.BYTE
         ".w" -> IRDataType.WORD
+        ".l" -> IRDataType.LONG
         ".f" -> IRDataType.FLOAT
         else -> throw IRParseException("invalid type $typestr")
     }
@@ -78,7 +79,7 @@ fun parseIRValue(value: String): Double {
 }
 
 
-private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.f)?(.*)""", RegexOption.IGNORE_CASE)
+private val instructionPattern = Regex("""([a-z]+)(\.b|\.w|\.l|\.f)?(.*)""", RegexOption.IGNORE_CASE)
 private val labelPattern = Regex("""_([a-zA-Z\d\._]+):""")
 
 fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
@@ -207,6 +208,10 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 if (immediateInt!=null && (immediateInt < -32768 || immediateInt > 65535))
                     throw IRParseException("immediate value out of range for word: $immediateInt")
             }
+            IRDataType.LONG -> {
+                if (immediateInt!=null && immediateInt < -2147483647)
+                    throw IRParseException("immediate value out of range for long: $immediateInt")
+            }
             IRDataType.FLOAT -> {}
             null -> {}
         }
@@ -271,6 +276,7 @@ private fun parseCall(rest: String): ParsedCall {
         val type = when(match.groups[2]!!.value) {
             "b" -> IRDataType.BYTE
             "w" -> IRDataType.WORD
+            "l" -> IRDataType.LONG
             "f" -> IRDataType.FLOAT
             else -> throw IRParseException("invalid type spec in $reg")
         }
@@ -359,6 +365,7 @@ fun irType(type: DataType): IRDataType {
         BaseDataType.UBYTE,
         BaseDataType.BYTE -> IRDataType.BYTE
         BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> IRDataType.WORD
+        BaseDataType.LONG -> IRDataType.LONG
         BaseDataType.FLOAT -> IRDataType.FLOAT
         BaseDataType.STRUCT_INSTANCE -> throw AssemblyError("no support for struct instances yet so no IR datatype for $type")
         else -> throw AssemblyError("no IR datatype for $type")

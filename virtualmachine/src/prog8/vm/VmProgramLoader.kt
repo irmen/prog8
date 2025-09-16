@@ -236,6 +236,7 @@ class VmProgramLoader {
                         dt.isSignedByte -> memory.setSB(addr, 0)
                         dt.isUnsignedWord || dt.isPointer -> memory.setUW(addr, 0u)
                         dt.isSignedWord -> memory.setSW(addr, 0)
+                        dt.isLong -> memory.setSL(addr, 0)
                         dt.isFloat -> memory.setFloat(addr, 0.0)
                         else -> throw IRParseException("invalid dt")
                     }
@@ -248,6 +249,7 @@ class VmProgramLoader {
                     variable.dt.isSignedByte -> memory.setSB(addr, it.toInt().toByte())
                     variable.dt.isUnsignedWord -> memory.setUW(addr, it.toInt().toUShort())
                     variable.dt.isSignedWord -> memory.setSW(addr, it.toInt().toShort())
+                    variable.dt.isLong -> memory.setSL(addr, it.toInt())
                     variable.dt.isFloat -> memory.setFloat(addr, it)
                     else -> throw IRParseException("invalid dt")
                 }

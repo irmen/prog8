@@ -7,6 +7,7 @@ internal class RegisterPool {
     // everything from 99000 onwards is reserved for special purposes:
     // 99000 - 99099 : WORD registers for syscall arguments and response value(s)
     // 99100 - 99199 : BYTE registers for syscall arguments and response value(s)
+    // 99200 - 99299 : LONG registers for syscall arguments and response value(s)
 
     private var nextRegister: Int=1
     private val registerTypes: MutableMap<Int, IRDataType> = mutableMapOf()
@@ -18,6 +19,8 @@ internal class RegisterPool {
             registerTypes[i] = IRDataType.WORD
         for(i in 99100..99199)
             registerTypes[i] = IRDataType.BYTE
+        for(i in 99200..99299)
+            registerTypes[i] = IRDataType.LONG
     }
 
     fun next(type: IRDataType): Int {

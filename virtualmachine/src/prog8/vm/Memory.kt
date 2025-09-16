@@ -32,6 +32,10 @@ class Memory {
         return (mem[address] + 256u*mem[address+1]).toUShort()
     }
 
+    fun getSL(address: Int): Int {
+        return (mem[address] + 256u*mem[address+1] + 65536u*mem[address+2] + 16777216u*mem[address+3]).toInt()
+    }
+
     fun getSW(address: Int): Short {
         return (mem[address].toInt() + mem[address+1].toInt()*256).toShort()
     }
@@ -44,6 +48,14 @@ class Memory {
     fun setSW(address: Int, value: Short) {
         val uv = value.toUShort()
         mem[address+1]  = (uv.toInt() ushr 8).toUByte()
+        mem[address] = uv.toUByte()
+    }
+
+    fun setSL(address: Int, value: Int) {
+        val uv = value.toUInt()
+        mem[address+3] = (uv shr 24).toUByte()
+        mem[address+2] = (uv shr 16).toUByte()
+        mem[address+1] = (uv shr 8).toUByte()
         mem[address] = uv.toUByte()
     }
 

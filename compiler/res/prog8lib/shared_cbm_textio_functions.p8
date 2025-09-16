@@ -165,6 +165,11 @@ _allzero    lda  #'0'
         }}
     }
 
+    sub  print_l (long value)   {
+        ; ---- print the (signed) long in decimal form, without left padding 0's
+        print(conv.str_l(msw(value), lsw(value)))
+    }
+
     asmsub  input_chars  (^^ubyte buffer @ AY) clobbers(A) -> ubyte @ Y  {
         ; ---- Input a string (max. 80 chars) from the keyboard, in PETSCII encoding.
         ;      Returns length in Y. (string is terminated with a 0 byte as well)

@@ -151,6 +151,14 @@ sub  print_w  (word value) {
     print(conv.str_w(value))
 }
 
+sub  print_l  (long value) {
+    ; ---- print the (signed) long in decimal form, without left padding 0's
+    %ir {{
+        loadm.l r99200,txt.print_l.value
+        syscall 59 (r99200.l)
+    }}
+}
+
 sub  input_chars  (str buffer) -> ubyte  {
     ; ---- Input a string (max. 80 chars) from the keyboard. Returns length of input. (string is terminated with a 0 byte as well)
     ;      It assumes the keyboard is selected as I/O channel!
