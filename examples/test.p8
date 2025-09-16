@@ -16,14 +16,9 @@ main {
         ^^Node[] @shared nodeswithtype = [
             ^^Node: [1,"one", 1000, true, 1.111],
             ^^Node: [],
-            ^^Foobar: []        ; TODO fix so that type error
         ]
 
-        ^^Node derp = ^^Foobar: []      ; TODO fix so that type error
-        ^^Node derp2 = ^^Node: []
-
-        ^^ubyte bptr = derp2 as ^^ubyte
-        bptr = derp as ^^ubyte
+        ^^Node derp2 = ^^Foobar: []
 
         ^^Node[] @shared nodeswithout = [
             [2,"two", 2000, false, 2.222],

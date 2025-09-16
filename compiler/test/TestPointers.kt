@@ -1845,10 +1845,13 @@ main {
 }"""
         val errors=ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "wrong pointer type in array"
-        errors.errors[1] shouldContain "wrong pointer type in array"
-        // TODO check that they belong to onlynodes and node
+        errors.errors.size shouldBe 6
+        errors.errors[0] shouldContain "11:30: initialization value for pointer array"
+        errors.errors[1] shouldContain "11:30: undefined array type"        // a bit redundant but can't be helped
+        errors.errors[2] shouldContain "13:13: struct initializer element has invalid type"
+        errors.errors[3] shouldContain "16:28: invalid assignment value"
+        errors.errors[4] shouldContain "16:28: undefined array type"
+        errors.errors[5] shouldContain "21:23: cannot assign different pointer type"
     }
 
     test("local and global struct pointer qualified name lookups") {
@@ -2075,8 +2078,8 @@ main {
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "7:24: cannot assign different pointer type, expected ^^uword got ^^ubyte"
-        errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte got ^^uword"
+        errors.errors[0] shouldContain "7:24: cannot assign different pointer type, expected ^^uword or uword but got ^^ubyte"
+        errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte or uword but got ^^uword"
     }
 
     test("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {

@@ -58,7 +58,6 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- fix type checks for wrong pointer types in pointer array initalizer and assignment
 - fix the pointers/hashtable.p8 example
 - fix code size regressions (if any left)
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
@@ -73,6 +72,7 @@ STRUCTS and TYPED POINTERS
 - support for typed function pointers?  (&routine could be typed by default as well then)
 - support @nosplit pointer arrays?
 - support pointer to pointer?
+- the type of struct initializer arrays should not be uword[] but ^^struct[]
 - really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 

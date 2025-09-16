@@ -1269,12 +1269,23 @@ internal class AstChecker(private val program: Program,
             val arrayspec = ArrayIndex.forArray(array)
             checkValueTypeAndRangeArray(array.type.getOrUndef(), arrayspec, array)
         } else {
-            errors.err("undefined array type (multiple element types?)", array.position)
+            errors.err("undefined array type (multiple or incompatible element types?)", array.position)
         }
 
         if(array.parent is VarDecl) {
             if (!array.value.all { it is NumericLiteral || it is AddressOf || it is StaticStructInitializer }) {
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
+            }
+
+            val elementDt = (array.parent as VarDecl).datatype.elementType()
+            if(elementDt.isPointer) {
+                // all elements in the initializer array should be of the same element type
+                array.value.forEach {
+                    val valueDt = it.inferType(program).getOrUndef()
+                    if(!valueDt.isUnsignedWord && valueDt != elementDt) {
+                        errors.err("struct initializer element has invalid type, expected $elementDt or uword but got $valueDt", it.position)
+                    }
+                }
             }
 
         } else if(array.parent is ForLoop) {
@@ -2449,7 +2460,7 @@ internal class AstChecker(private val program: Program,
         else if (targetDatatype.isPointer) {
             if(sourceDatatype.isPointer) {
                 if(!(sourceDatatype isAssignableTo targetDatatype))
-                    errors.err("cannot assign different pointer type, expected $targetDatatype got $sourceDatatype", position)
+                    errors.err("cannot assign different pointer type, expected $targetDatatype or uword but got $sourceDatatype", position)
             } else if(sourceDatatype.isString && targetDatatype.sub?.isByte==true) {
                 // assigning a string to a byte pointer is allowed.
             } else if(!sourceDatatype.isUnsignedWord && !sourceDatatype.isStructInstance)

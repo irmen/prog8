@@ -1841,7 +1841,13 @@ class StaticStructInitializer(var structname: IdentifierReference,
 
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = structname.referencesIdentifier(nameInSource) || args.any{it.referencesIdentifier(nameInSource)}
 
-    override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UWORD)
+    override fun inferType(program: Program): InferredTypes.InferredType {
+        val struct = structname.targetStructDecl()
+        return if(struct==null)
+            InferredTypes.unknown()
+        else
+            InferredTypes.knownFor(DataType.pointer(struct))
+    }
 }
 
 
