@@ -414,6 +414,15 @@ class StructDecl(override val name: String, val fields: Array<Pair<DataType, Str
 
     override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second==name }?.first
     override val scopedNameString by lazy { scopedName.joinToString(".") }
+
+    fun offsetof(fieldname: String, sizer: IMemSizer): UByte? {
+        fields.fold(0) { offset, field ->
+            if (field.second == fieldname)
+                return offset.toUByte()
+            offset + sizer.memorySize(field.first, 1)
+        }
+        return null
+    }
 }
 
 class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, val type: DataType, override val name: String, override val position: Position): Statement(), INamedStatement {

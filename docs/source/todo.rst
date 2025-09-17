@@ -61,7 +61,6 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- add offsetof()
 - fix code size regressions (if any left)
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - update structpointers.rst docs with 6502 specific things?

@@ -1,36 +1,50 @@
-%option enable_floats
+%import textio
+%zeropage basicsafe
 
 main {
-    struct Node {
-        ubyte id
-        str name
-        uword array
-        bool flag
-        float perc
-    }
-    struct Foobar {
-        bool thing
-    }
-
     sub start() {
-        ^^Node test = []
+        txt.print("expected: 0 10 30\n")
+        counter = 0
+        txt.print_ub(nodefer(10))
+        txt.spc()
+        txt.print_ub(nodefer(20))
+        txt.spc()
+        txt.print_ub(nodefer(30))
+        txt.nl()
 
-        test.id ++
-        test.array += 1000
-        test.id <<= 2
-        test.id <<= cx16.r0L
-        test.id >>= 3
-        test.id >>= cx16.r0L
-        test.id &= 1
-;        test.id *= 5        ; TODO implement this
-;        test.id /= 5        ; TODO implement this
-        test.array ^= 1000
-        test.array |= 1000
-        test.array &= 1000
-        test.array >>= 3
-        test.array >>= cx16.r0L
-        test.array <<= 2
-        test.array <<= cx16.r0L
-        test.array *= 5
+        counter = 0
+        txt.print_ub(add(10))
+        txt.spc()
+        txt.print_ub(add(20))
+        txt.spc()
+        txt.print_ub(add(30))
+        txt.nl()
+
+        counter = 0
+        txt.print_ub(add2(10))
+        txt.spc()
+        txt.print_ub(add2(20))
+        txt.spc()
+        txt.print_ub(add2(30))
+        txt.nl()
+    }
+
+    ubyte counter = 0
+
+    sub nodefer(ubyte amount) -> ubyte {
+        ubyte result = counter
+        counter += amount
+        return result
+    }
+
+    sub add(ubyte amount) -> ubyte {
+        defer counter += amount         ; TODO FIX : BORKED!
+        return counter
+    }
+
+    sub add2(ubyte amount) -> ubyte {
+        cx16.r0L = 0
+        defer counter += amount
+        return counter + cx16.r0L
     }
 }

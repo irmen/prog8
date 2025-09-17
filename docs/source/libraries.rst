@@ -118,6 +118,11 @@ mkword (msb, lsb)
         Don't get confused by how the system actually stores this 16-bit word value in memory (which is
         in little-endian format, so lsb first then msb)
 
+offsetof (Struct.field)
+    The offset in bytes of the given field in the struct. The first field will always have offset 0.
+    Usually you just reference the fields directly but in some cases it might be useful to know how many
+    bytes from the start of the structure a field is located at.
+
 peek (address)
     same as @(address) - reads the byte at the given address in memory.
 

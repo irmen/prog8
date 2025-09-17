@@ -5,6 +5,7 @@ import prog8.ast.FatalAstException
 import prog8.ast.Program
 import prog8.ast.SyntaxError
 import prog8.ast.expressions.*
+import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
 import prog8.code.core.*
 import kotlin.math.*
@@ -15,6 +16,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "abs" to ::builtinAbs,
     "len" to ::builtinLen,
     "sizeof" to ::builtinSizeof,
+    "offsetof" to ::builtinOffsetof,
     "sgn" to ::builtinSgn,
     "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
     "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
@@ -88,6 +90,25 @@ private fun builtinAbs(args: List<Expression>, position: Position, program: Prog
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     return if (constval.type.isInteger) NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
     else throw SyntaxError("abs requires one integer argument", position)
+}
+
+private fun builtinOffsetof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    // 1 arg, "Struct.field"
+    if(args.size!=1)
+        throw SyntaxError("offsetof requires one argument", position)
+    val identifier = (args[0] as? IdentifierReference)?.nameInSource
+    if(identifier==null || identifier.size<2)
+        throw CannotEvaluateException("offsetof","argument should be an identifier of the form Struct.field")
+
+    val structname = identifier.dropLast(1)
+    val fieldname = identifier.last()
+    val struct = args[0].definingScope.lookup(structname) as? StructDecl
+    if(struct==null)
+        throw SyntaxError("cannot find struct '$structname'", args[0].position)
+    val offset = struct.offsetof(fieldname, program.memsizer)
+    if(offset==null)
+        throw SyntaxError("no such field '${identifier.joinToString(".")}'", args[0].position)
+    return NumericLiteral.optimalInteger(offset.toInt(), position)
 }
 
 private fun builtinSizeof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
