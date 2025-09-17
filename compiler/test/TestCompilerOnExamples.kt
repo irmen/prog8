@@ -223,6 +223,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             "textelite",
             "pointers/animalgame",
             "pointers/binarytree",
+            "pointers/hashtable",
             "pointers/sortedlist",
             "pointers/sorting"
         ),
@@ -253,6 +254,7 @@ class TestCompilerOnExamplesVirtual: FunSpec({
             "sincos",
             "pointers/animalgame",
             "pointers/binarytree",
+            "pointers/hashtable",
             "pointers/sortedlist",
             "pointers/fountain-virtual",
             "pointers/sorting"

@@ -1,6 +1,9 @@
 TODO
 ====
 
+fix defer() with the arena allocator ("return values are evaluated before the defer is executed")
+
+
 not all source lines are correctly reported in the IR file,
 for example the below subroutine only shows the sub() line::
 
@@ -58,7 +61,7 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- fix the pointers/hashtable.p8 example
+- add offsetof()
 - fix code size regressions (if any left)
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - update structpointers.rst docs with 6502 specific things?

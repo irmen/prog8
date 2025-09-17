@@ -3,16 +3,13 @@
 ; for efficient data storage and retrieval
 
 
-; TODO fix this AI generated code
-
-
-%import math
 %import strings
 %import textio
 %zeropage basicsafe
 
 main {
     sub start() {
+        txt.lowercase()
         txt.print("Doubly Linked List with Hash Table Cache Demo\n")
         txt.print("============================================\n\n")
 
@@ -66,6 +63,8 @@ main {
         cache.add("A", "First", 20)
         cache.add("B", "Second", 21)
         cache.add("C", "Third", 22)
+        cache.add("D", "Fourth", 23)
+        cache.add("E", "Fifth", 24)
 
         txt.print("Added entries with potential hash collisions.\n")
         txt.print("Forward traversal:\n")
@@ -91,29 +90,14 @@ cache {
 
     sub init() {
         ; Initialize hash table buckets to null
-        ubyte i
-        for i in 0 to HASH_TABLE_SIZE-1
-            hash_table[i] = 0
-    }
-
-    sub hash(str key) -> ubyte {
-        ; Simple hash function
-        ubyte hash_value = 0
-        ubyte i = 0
-        while key[i] != 0 {
-            hash_value = hash_value * 31 + key[i]
-            i++
-        }
-        return hash_value % HASH_TABLE_SIZE
+        sys.memsetw(hash_table, HASH_TABLE_SIZE, 0)
     }
 
     sub add(str name, str job, ubyte age) {
         ; Create new entry
         ^^Entry new_entry = arena.alloc(sizeof(Entry))
-        ubyte name_len = strings.length(name)
-        ubyte job_len = strings.length(job)
-        ^^ubyte name_copy = arena.alloc(name_len + 1)
-        ^^ubyte job_copy = arena.alloc(job_len + 1)
+        ^^ubyte name_copy = arena.alloc(strings.length(name) + 1)
+        ^^ubyte job_copy = arena.alloc(strings.length(job) + 1)
         void strings.copy(name, name_copy)
         void strings.copy(job, job_copy)
 
@@ -137,7 +121,7 @@ cache {
         }
 
         ; Add to hash table
-        ubyte bucket = hash(name)
+        ubyte bucket = strings.hash(name) % HASH_TABLE_SIZE
         new_entry.hash_next = hash_table[bucket]
         hash_table[bucket] = new_entry
 
@@ -149,7 +133,7 @@ cache {
 
     sub find(str name) -> ^^Entry {
         ; Find entry using hash table for O(1) average case
-        ubyte bucket = hash(name)
+        ubyte bucket = strings.hash(name) % HASH_TABLE_SIZE
         ^^Entry current = hash_table[bucket]
 
         while current != 0 {
@@ -179,7 +163,7 @@ cache {
             tail = to_remove.prev  ; Was the tail
 
         ; Remove from hash table
-        ubyte bucket = hash(name)
+        ubyte bucket = strings.hash(name) % HASH_TABLE_SIZE
         if hash_table[bucket] == to_remove {
             hash_table[bucket] = to_remove.hash_next
         } else {
@@ -241,7 +225,8 @@ arena {
     uword next = buffer
 
     sub alloc(ubyte size) -> uword {
-        defer next += size
-        return next
+        uword result = next
+        next += size
+        return result
     }
 }
