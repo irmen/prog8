@@ -3,48 +3,37 @@
 
 main {
     sub start() {
-        txt.print("expected: 0 10 30\n")
-        counter = 0
-        txt.print_ub(nodefer(10))
+        txt.print_uw(allocator.alloc(10))
         txt.spc()
-        txt.print_ub(nodefer(20))
+        txt.print_uw(allocator.alloc(20))
         txt.spc()
-        txt.print_ub(nodefer(30))
+        txt.print_uw(allocator.alloc(30))
         txt.nl()
 
-        counter = 0
-        txt.print_ub(add(10))
+        allocator.freeall()
+
+        txt.print_uw(allocator.alloc(10))
         txt.spc()
-        txt.print_ub(add(20))
+        txt.print_uw(allocator.alloc(20))
         txt.spc()
-        txt.print_ub(add(30))
+        txt.print_uw(allocator.alloc(30))
         txt.nl()
-
-        counter = 0
-        txt.print_ub(add2(10))
-        txt.spc()
-        txt.print_ub(add2(20))
-        txt.spc()
-        txt.print_ub(add2(30))
-        txt.nl()
-    }
-
-    ubyte counter = 0
-
-    sub nodefer(ubyte amount) -> ubyte {
-        ubyte result = counter
-        counter += amount
-        return result
-    }
-
-    sub add(ubyte amount) -> ubyte {
-        defer counter += amount         ; TODO FIX : BORKED!
-        return counter
-    }
-
-    sub add2(ubyte amount) -> ubyte {
-        cx16.r0L = 0
-        defer counter += amount
-        return counter + cx16.r0L
     }
 }
+
+
+    allocator {
+        ; extremely trivial allocator allocator
+        uword buffer = memory("allocator", 2000, 0)
+        uword next = buffer
+
+        sub alloc(ubyte size) -> uword {
+            defer next += size
+            return next
+        }
+
+        sub freeall() {
+            ; cannot free individual allocations only the whole allocator at once
+            next = buffer
+        }
+    }

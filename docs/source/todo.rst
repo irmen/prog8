@@ -1,9 +1,6 @@
 TODO
 ====
 
-fix defer() with the arena allocator ("return values are evaluated before the defer is executed")
-
-
 not all source lines are correctly reported in the IR file,
 for example the below subroutine only shows the sub() line::
 

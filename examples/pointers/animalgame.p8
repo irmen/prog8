@@ -141,8 +141,7 @@ arena {
     uword next = buffer
 
     sub alloc(ubyte size) -> uword {
-        uword result = next
-        next += size
-        return result
+        defer next += size
+        return next
     }
 }

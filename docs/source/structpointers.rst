@@ -241,9 +241,8 @@ An example of how a super simple dynamic allocator could look like::
         uword next = buffer
 
         sub alloc(ubyte size) -> uword {
-            uword result = next
-            next += size
-            return result
+            defer next += size
+            return next
         }
 
         sub freeall() {

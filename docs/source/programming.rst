@@ -1303,6 +1303,11 @@ It's possible to write a defer for a block of statements, but the advice is to k
     If a piece of inlined assembly somehow causes the routine to exit, the compiler cannot detect this,
     and defers won't be handled in such cases.
 
+.. attention::
+    Using defer always has a slight code overhead.
+    If you are returning non-constant values in a routine that uses defer, the compiler even has to insert some additional
+    code that uses the cpu stack to save some temporary values.
+
 
 Library routines and builtin functions
 --------------------------------------
