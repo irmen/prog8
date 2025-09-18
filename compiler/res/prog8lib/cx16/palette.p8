@@ -283,7 +283,7 @@ palette {
     ; NOTE: this routine requires rom version 49+
     alias set_default = cx16.set_default_palette
 
-    ; get the bank and address of the word-array containing the 256 default palette colors
+    ; get the bank and address (in A, and XY) of the word-array containing the 256 default palette colors
     ; NOTE: this routine requires rom version 49+
     alias get_default = cx16.get_default_palette
 }

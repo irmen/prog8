@@ -80,9 +80,9 @@ Subroutines
 Pointers and Structs
 --------------------
 
-Legacy 'untyped' pointers:
+*Legacy 'untyped' pointers:*
 
-- In Prog8 versions before 12.0 there was no support for typed pointers, only 'untyped' ones:
+- In Prog8 versions **before 12.0** there was no support for typed pointers, only 'untyped' ones:
   Variables of the ``uword`` datatype can be used as a pointer to one of the possible 65536 memory locations,
   so the value it points to is always a single byte. This is similar to ``uint8_t*`` from C.
   You have to deal with the uword manually if the object it points to is something different.
@@ -92,9 +92,9 @@ Legacy 'untyped' pointers:
 - Pointers don't have to be a variable, you can immediately access the value of a given memory location using ``@($d020)`` for instance.
   Reading is done by assigning it to a variable, writing is done by just assigning the new value to it.
 
-Typed pointers and structs:
+*Typed pointers and structs:*
 
-- Since version 12, prog8 supports struct types and typed pointers.
+- Since **version 12.0**, prog8 supports struct types and typed pointers.
 - Structs are a grouping of one or more fields, that together make up the struct type.
 - Typed pointers are just that: a pointer to a specific type (which can be a simple type such as float, or a struct type.)
 

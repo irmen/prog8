@@ -58,7 +58,6 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- the type of struct initializer arrays should not be uword[] but ^^struct[] ?
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - optimize addUnsignedByteOrWordToAY in PointerAssignmentsGen a bit more

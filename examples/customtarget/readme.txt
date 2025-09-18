@@ -4,8 +4,8 @@ more example materials.
 
 Look in the Makefile to see how to build or run the various programs.
 
-The user 'adiee5' has been working on a Nintendo Entertainment System (NES) compilation target
+*adiee5* has been working on a Nintendo Entertainment System (NES) compilation target
 and example program, you can find those efforts here on GitHub: https://github.com/adiee5/prog8-nes-target
-Note that the NES is a very alien architecture for Prog8 still and the support is very limited
-(for example, prog8 is not aware that the program code usually is going to end up in a ROM cartridge,
-and currently still generates code that might not work in ROM.)
+
+*gillham* has been working on a few other compilation targets, such as VIC-20 (various editions), Foenix, and CX16OS.
+you can find them here on GitHub: https://github.com/gillham/prog8targets
