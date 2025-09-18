@@ -1,63 +1,34 @@
-%import textio
-%zeropage basicsafe
-
 main {
-    word bignum
-
-    struct Node {
-        ubyte id
-        str name
-        bool flag
-        word counter
-    }
-
     sub start() {
-        ^^Node test = []
-        bignum = 11111
-        test.counter = 22222
+        ^^uword @shared ptr
 
-        txt.print_w(bignum)
-        txt.spc()
-        bignum++
+        add1()
+        add2()
+        sub1()
+        sub2()
 
-        txt.print_w(bignum)
-        txt.spc()
-        bignum--
+        sub add1() {
+            ptr += 5
+            cx16.r0 = ptr + 5
+            cx16.r0 = peekw(ptr + 5)
+        }
 
-        txt.print_w(bignum)
-        txt.nl()
+        sub add2() {
+            ptr += cx16.r0L
+            cx16.r0 = ptr + cx16.r0L
+            cx16.r0 = peekw(ptr + cx16.r0L)
+        }
 
-        txt.print_w(test.counter)
-        txt.spc()
-        test.counter ++
+        sub sub1() {
+            ptr -= 5
+            cx16.r0 = ptr - 5
+            cx16.r0 = peekw(ptr - 5)
+        }
 
-        txt.print_w(test.counter)
-        txt.spc()
-        test.counter --
-
-        txt.print_w(test.counter)
-        txt.nl()
-
-        txt.print_w(bignum)
-        txt.spc()
-        bignum+=5555
-
-        txt.print_w(bignum)
-        txt.spc()
-        bignum-=5555
-
-        txt.print_w(bignum)
-        txt.nl()
-
-        txt.print_w(test.counter)
-        txt.spc()
-        test.counter += 5555
-
-        txt.print_w(test.counter)
-        txt.spc()
-        test.counter -= 5555
-
-        txt.print_w(test.counter)
-        txt.nl()
+        sub sub2() {
+            ptr -= cx16.r0L
+            cx16.r0 = ptr - cx16.r0L
+            cx16.r0 = peekw(ptr - cx16.r0L)
+        }
     }
 }

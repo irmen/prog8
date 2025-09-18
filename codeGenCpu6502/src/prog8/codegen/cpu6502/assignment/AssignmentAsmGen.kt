@@ -5,6 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
+import kotlin.math.log2
 
 
 internal class AssignmentAsmGen(
@@ -1145,6 +1146,14 @@ internal class AssignmentAsmGen(
                     assignExpressionToRegister(expr.left, RegisterOrPair.A, expr.type.isSigned)
                     if (value in asmgen.optimizedByteMultiplications)
                         asmgen.out("  jsr  prog8_math.mul_byte_${value}")
+                    else if(value in powersOfTwoInt) {
+                        val shifts = log2(value.toDouble()).toInt()
+                        if(shifts>=8) {
+                            asmgen.out("  lda  #0")
+                        } else {
+                            repeat(shifts) { asmgen.out("  asl  a") }
+                        }
+                    }
                     else
                         asmgen.out("  ldy  #$value |  jsr  prog8_math.multiply_bytes")
                     assignRegisterByte(target, CpuRegister.A, false, true)
@@ -1155,7 +1164,26 @@ internal class AssignmentAsmGen(
                         assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
                         asmgen.out("  jsr  prog8_math.mul_word_${value}")
                     }
+                    else if(value in powersOfTwoInt) {
+                        val shifts = log2(value.toDouble()).toInt()
+                        if(shifts>=16) {
+                            assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
+                            asmgen.out("  lda  #0 |  ldy  #0")
+                        } else {
+                            if(target.kind==TargetStorageKind.VARIABLE && target.datatype.isWord) {
+                                assignExpressionToVariable(expr.left, target.asmVarname, target.datatype)
+                                repeat(shifts) { asmgen.out("  asl  ${target.asmVarname} |  rol  ${target.asmVarname}+1") }
+                                return true
+                            } else {
+                                assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
+                                asmgen.out("  sty  P8ZP_SCRATCH_REG")
+                                repeat(shifts) { asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_REG") }
+                                asmgen.out("  ldy  P8ZP_SCRATCH_REG")
+                            }
+                        }
+                    }
                     else {
+                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
                         if(expr.definingBlock()!!.options.veraFxMuls){
                             // cx16 verafx hardware mul
                             asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "cx16.r1")

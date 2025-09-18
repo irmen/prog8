@@ -58,18 +58,15 @@ and for example the below code omits line 5::
 STRUCTS and TYPED POINTERS
 --------------------------
 
+- the type of struct initializer arrays should not be uword[] but ^^struct[] ?
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
+- optimize addUnsignedByteOrWordToAY in PointerAssignmentsGen a bit more
 - optimize the float copying in assignIndexedPointer() (also word?)
 - implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
-- try to optimize pointer arithmetic used in peek/poke a bit more so the routines in sorting module can use typed pointers without increasing code size, see test.p8 in commit d394dc1e
-- should @(wordpointer) be equivalent to wordpointer^^ (that would require a LOT of code rewrite that now knows that @() is strictly byte based) ?
-  or do an implicit cast @(wpointer as ubyte^^)  ?  And/or add a warning about that?
-- optimize addUnsignedByteOrWordToAY in PointerAssignmentsGen a bit more
-- support for typed function pointers?  (&routine could be typed by default as well then)
 - support @nosplit pointer arrays?
 - support pointer to pointer?
-- the type of struct initializer arrays should not be uword[] but ^^struct[]
+- support for typed function pointers?  (&routine could be typed by default as well then)
 - really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 
