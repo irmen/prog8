@@ -12,12 +12,14 @@ internal object DummyMemsizer : IMemSizer {
             return when(dt.sub) {
                 BaseDataType.BOOL, BaseDataType.BYTE, BaseDataType.UBYTE -> numElements
                 BaseDataType.UWORD, BaseDataType.WORD -> numElements*2
+                BaseDataType.LONG -> numElements*4
                 BaseDataType.FLOAT -> numElements*5
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
         return when {
             dt.isByteOrBool -> 1 * (numElements ?: 1)
+            dt.isLong -> 4 * (numElements ?: 1)
             dt.isFloat -> 5 * (numElements ?: 1)
             else -> 2 * (numElements ?: 1)
         }

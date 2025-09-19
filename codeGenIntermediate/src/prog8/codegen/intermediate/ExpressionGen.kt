@@ -446,7 +446,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 else (it as PtNumber).number.toInt()
             }
             when {
-                elementDt.isIntegerOrBool -> {
+                elementDt.isWordOrByteOrBool -> {
                     if (elementDt.isByteOrBool) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_BYTE)
                     if (elementDt.isWord) require(haystack.size in 0..PtContainmentCheck.MAX_SIZE_FOR_INLINE_CHECKS_WORD)
                     val gottemLabel = codeGen.createLabelName()

@@ -46,6 +46,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             return when {
                 rightDt.isByteOrBool -> translateIfByte(stmt, jumpAfterIf)
                 rightDt.isWord || rightDt.isPointer -> translateIfWord(stmt, compareCond, jumpAfterIf)
+                rightDt.isLong -> translateIfLong(stmt, compareCond, jumpAfterIf)
                 rightDt.isFloat -> translateIfFloat(stmt, compareCond, jumpAfterIf)
                 else -> throw AssemblyError("weird dt")
             }
@@ -575,6 +576,32 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun translateIfLong(stmt: PtIfElse, condition: PtBinaryExpression, jumpAfterIf: PtJump?) {
+        val constValue = condition.right.asConstInteger()
+        if(constValue==0) {
+            // optimized comparisons with zero
+            return when (condition.operator) {
+                "==" -> longEqualsZero(condition.left, false, jumpAfterIf, stmt)
+                "!=" -> longEqualsZero(condition.left, true, jumpAfterIf, stmt)
+                "<" -> longLessZero(condition.left, false, jumpAfterIf, stmt)
+                "<=" -> longLessZero(condition.left, true, jumpAfterIf, stmt)
+                ">" -> longGreaterZero(condition.left, false, jumpAfterIf, stmt)
+                ">=" -> longGreaterZero(condition.left, true, jumpAfterIf, stmt)
+                else -> throw AssemblyError("expected comparison operator")
+            }
+        }
+
+        return when (condition.operator) {
+            "==" -> longEqualsValue(condition.left, condition.right, false, jumpAfterIf, stmt)
+            "!=" -> longEqualsValue(condition.left, condition.right, true, jumpAfterIf, stmt)
+            "<" -> TODO("long < 0")
+            "<=" -> TODO("long <= 0")
+            ">" -> TODO("long > 0")
+            ">=" -> TODO("long >= 0")
+            else -> throw AssemblyError("expected comparison operator")
+        }
+    }
+
     private fun translateIfWord(stmt: PtIfElse, condition: PtBinaryExpression, jumpAfterIf: PtJump?) {
         val signed = condition.left.type.isSigned
         val constValue = condition.right.asConstInteger()
@@ -606,7 +633,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     private fun wordGreaterEqualsZero(value: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         // special case for word>=0
         if(signed) {
-            loadAndCmp0MSB(value)
+            loadAndCmp0MSB(value, false)
             if (jump != null)
                 translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
             else
@@ -619,7 +646,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
     private fun wordLessZero(value: PtExpression, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
         // special case for word<0
         if(signed) {
-            loadAndCmp0MSB(value)
+            loadAndCmp0MSB(value, false)
             if (jump != null)
                 translateJumpElseBodies("bmi", "bpl", jump, stmt.elseScope)
             else
@@ -894,23 +921,31 @@ _jump                       jmp  (${target.asmLabel})
     }
 
 
-    private fun loadAndCmp0MSB(value: PtExpression) {
+    private fun loadAndCmp0MSB(value: PtExpression, long: Boolean) {
         when(value) {
             is PtArrayIndexer -> {
                 if(value.variable==null)
                     TODO("support for ptr indexing ${value.position}")
                 val varname = asmgen.asmVariableName(value.variable!!)
                 asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
-                if(value.splitWords)
+                if(value.splitWords) {
+                    require(!long)
                     asmgen.out("  lda  ${varname}_msb,y")
+                }
+                else if(long)
+                    asmgen.out("  lda  $varname+3,y")
                 else
                     asmgen.out("  lda  $varname+1,y")
             }
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(value)
-                asmgen.out("  lda  $varname+1")
+                if(long)
+                    asmgen.out("  lda  $varname+3")
+                else
+                    asmgen.out("  lda  $varname+1")
             }
             is PtAddressOf -> {
+                require(!long)
                 if(value.isFromArrayElement) {
                     asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
                     asmgen.out("  cpy  #0")
@@ -923,6 +958,7 @@ _jump                       jmp  (${target.asmLabel})
                 }
             }
             else -> {
+                require(!long)
                 asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
                 asmgen.out("  cpy  #0")
             }
@@ -1226,6 +1262,34 @@ _jump                       jmp  (${target.asmLabel})
         }
     }
 
+    private fun longEqualsZero(value: PtExpression, notEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
+        TODO("long == 0")
+    }
+
+    private fun longLessZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
+        if(lessEquals) {
+            TODO("long <= 0")
+        } else {
+            loadAndCmp0MSB(value, true)
+            if (jump != null)
+                translateJumpElseBodies("bmi", "bpl", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bpl", stmt)
+        }
+    }
+
+    private fun longGreaterZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
+        if(lessEquals) {
+            TODO("long >= 0")
+        } else {
+            loadAndCmp0MSB(value, true)
+            if (jump != null)
+                translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bmi", stmt)
+        }
+    }
+
     private fun wordEqualsZero(value: PtExpression, notEquals: Boolean, signed: Boolean, jump: PtJump?, stmt: PtIfElse) {
 
         // special case for (u)word == 0
@@ -1301,6 +1365,16 @@ _jump                       jmp  (${target.asmLabel})
                 else -> viaScratchReg("beq", "bne")
             }
         }
+    }
+
+    private fun longEqualsValue(
+        left: PtExpression,
+        right: PtExpression,
+        notEquals: Boolean,
+        jump: PtJump?,
+        stmt: PtIfElse
+    ) {
+        TODO("long == value")
     }
 
     private fun wordEqualsValue(

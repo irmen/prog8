@@ -14,6 +14,7 @@ internal class NormalMemSizer(val floatsize: Int): IMemSizer {
             return when(dt.sub) {
                 BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> numElements
                 BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.STR -> numElements * 2
+                BaseDataType.LONG -> numElements * 4
                 BaseDataType.FLOAT-> numElements * floatsize
                 BaseDataType.UNDEFINED -> throw IllegalArgumentException("undefined has no memory size")
                 else -> throw IllegalArgumentException("invalid sub type")

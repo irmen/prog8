@@ -106,6 +106,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             }
                         }
                     }
+                    target.datatype.isLong -> {
+                        when(value.kind) {
+                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationLongWithLiteralval(target.asmVarname, operator, value.boolean!!.asInt())
+                            SourceStorageKind.LITERALNUMBER -> inplacemodificationLongWithLiteralval(target.asmVarname, operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> inplacemodificationLongWithVariable(target.asmVarname, operator, value.asmVarname)
+                            SourceStorageKind.EXPRESSION -> TODO("inplace modify long with expression ${target.position}")
+                            SourceStorageKind.REGISTER -> TODO("32 bits register inplace modification? ${target.position}")
+                            SourceStorageKind.ARRAY -> TODO("inplace modify long with array ${target.position}")
+                            SourceStorageKind.MEMORY -> TODO("memread into long ${target.position}")
+                        }
+                    }
                     target.datatype.isFloat -> {
                         when(value.kind) {
                             SourceStorageKind.LITERALBOOLEAN -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.boolean!!.asInt().toDouble())
@@ -520,6 +531,132 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             TargetStorageKind.POINTER -> ptrgen.inplaceModification(PtrTarget(target), operator, value)
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
             TargetStorageKind.VOID -> { /* do nothing */ }
+        }
+    }
+
+    private fun inplacemodificationLongWithVariable(targetVar: String, operator: String, sourceVar: String) {
+        when(operator) {
+            "+" -> {
+                asmgen.out("""
+                    clc
+                    lda  $targetVar
+                    adc  $sourceVar
+                    sta  $targetVar
+                    lda  $targetVar+1
+                    adc  $sourceVar+1
+                    sta  $targetVar+1
+                    lda  $targetVar+2
+                    adc  $sourceVar+2
+                    sta  $targetVar+2
+                    lda  $targetVar+3
+                    adc  $sourceVar+3
+                    sta  $targetVar+3""")
+            }
+            "-" -> {
+                asmgen.out("""
+                    sec
+                    lda  $targetVar
+                    sbc  $sourceVar
+                    sta  $targetVar
+                    lda  $targetVar+1
+                    sbc  $sourceVar+1
+                    sta  $targetVar+1
+                    lda  $targetVar+2
+                    sbc  $sourceVar+2
+                    sta  $targetVar+2
+                    lda  $targetVar+3
+                    sbc  $sourceVar+3
+                    sta  $targetVar+3""")
+            }
+            else -> {
+                TODO("Not yet implemented")
+            }
+        }
+    }
+
+    private fun inplacemodificationLongWithLiteralval(variable: String, operator: String, value: Int) {
+        when(operator) {
+            "+" -> {
+                when(value) {
+                    0 -> {}
+                    1 -> {
+                        asmgen.out("""
+                            inc  $variable
+                            bne  +
+                            inc  $variable+1
+                            bne  +
+                            inc  $variable+2
+                            bne  +
+                            inc  $variable+3
++""")
+                    }
+                    else -> {
+                        if(value in 1..255) {
+                            TODO("optimized inplace long += $value")
+                        } else if(value in 1..65535) {
+                            TODO("optimized inplace long += $value")
+                        } else {
+                            val hex = value.toUInt().toString(16).padStart(8, '0')
+                            asmgen.out("""
+                                clc
+                                lda  $variable
+                                adc  #$${hex.substring(6,8)}
+                                sta  $variable
+                                lda  $variable+1
+                                adc  #$${hex.substring(4, 6)}
+                                sta  $variable+1
+                                lda  $variable+2
+                                adc  #$${hex.substring(2, 4)}
+                                sta  $variable+2
+                                lda  $variable+3
+                                adc  #$${hex.take(2)}
+                                sta  $variable+3""")
+                        }
+                    }
+                }
+            }
+            "-" -> {
+                when(value) {
+                    0 -> {}
+                    1 -> {
+                        asmgen.out("""
+                            lda  $variable
+                            bne  +
+                            dec  $variable+1
+                            bne  +
+                            dec  $variable+2
+                            bne  +
+                            dec  $variable+3
++                           dec  $variable""")
+                    }
+                    else -> {
+                        if(value in 1..255) {
+                            TODO("optimized inplace long += $value")
+                        } else if(value in 1..65535) {
+                            TODO("optimized inplace long += $value")
+                        } else {
+                            val hex = value.toUInt().toString(16).padStart(8, '0')
+                            asmgen.out("""
+                                sec
+                                lda  $variable
+                                sbc  #$${hex.substring(6,8)}
+                                sta  $variable
+                                lda  $variable+1
+                                sbc  #$${hex.substring(4, 6)}
+                                sta  $variable+1
+                                lda  $variable+2
+                                sbc  #$${hex.substring(2, 4)}
+                                sta  $variable+2
+                                lda  $variable+3
+                                sbc  #$${hex.take(2)}
+                                sta  $variable+3""")
+                        }
+                    }
+                }
+            }
+            else -> {
+                TODO("inplace long $operator $value")
+            }
         }
     }
 

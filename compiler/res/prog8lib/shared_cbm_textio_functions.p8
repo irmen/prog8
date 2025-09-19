@@ -165,9 +165,9 @@ _allzero    lda  #'0'
         }}
     }
 
-    sub  print_l (long value)   {
-        ; ---- print the (signed) long in decimal form, without left padding 0's
-        print(conv.str_l(msw(value), lsw(value)))
+    sub print_l(long value) {
+        ; prints a 32 bit value to the screen
+        print(conv.str_l(value))
     }
 
     asmsub  input_chars  (^^ubyte buffer @ AY) clobbers(A) -> ubyte @ Y  {

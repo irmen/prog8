@@ -41,7 +41,7 @@ sealed interface IPtSubroutine {
                         val others = returns.drop(1).map { type ->
                             when {
                                 type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLastOrNull()!!, null) to type
-                                type.isIntegerOrBool -> RegisterOrStatusflag(availableIntegerRegisters.removeLastOrNull()!!, null) to type
+                                type.isWordOrByteOrBool -> RegisterOrStatusflag(availableIntegerRegisters.removeLastOrNull()!!, null) to type
                                 else -> throw AssemblyError("unsupported return type $type")
                             }
                         }

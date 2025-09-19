@@ -2942,7 +2942,17 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun plusMinusMultAnyLongInplace(operator: String, reg1: Int, address: Int) {
-        TODO("Not yet implemented")
+        val memvalue = memory.getSL(address)
+        val operand = registers.getSL(reg1)
+        val result: Int
+        when(operator) {
+            "+" -> result = memvalue + operand
+            "-" -> result = memvalue - operand
+            "*" -> result = memvalue * operand
+            else -> throw IllegalArgumentException("operator word $operator")
+        }
+        memory.setSL(address, result)
+
     }
 
     private fun plusMinusMultAnyLongSigned(operator: String, reg1: Int, reg2: Int) {

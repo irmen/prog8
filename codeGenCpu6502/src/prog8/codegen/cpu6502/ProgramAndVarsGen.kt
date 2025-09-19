@@ -377,6 +377,7 @@ internal class ProgramAndVarsGen(
             dt.isSignedByte -> ".char"
             dt.isUnsignedWord || dt.isPointer -> ".word"
             dt.isSignedWord -> ".sint"
+            dt.isLong -> ".dint"
             dt.isFloat -> ".byte"
             else -> {
                 throw AssemblyError("weird dt")
@@ -418,14 +419,7 @@ internal class ProgramAndVarsGen(
             structtype.fields.withIndex().forEach { (index, field) ->
                 val dt = field.first
                 val varname = "f${index}"
-                val type = when {
-                    dt.isBool || dt.isUnsignedByte -> ".byte"
-                    dt.isSignedByte -> ".char"
-                    dt.isUnsignedWord || dt.isPointer -> ".word"
-                    dt.isSignedWord -> ".sint"
-                    dt.isFloat -> ".byte"   // TODO check that float bytes are passed as an array parameter
-                    else -> throw AssemblyError("weird dt")
-                }
+                val type = asmTypeString(dt)
                 asmgen.out("p8v_${field.second}  $type  \\$varname")        // note: struct field symbol prefixing done here because that is a lot simpler than fixing up all expressions in the AST
             }
             asmgen.out("    .endstruct\n")
@@ -781,6 +775,7 @@ internal class ProgramAndVarsGen(
             dt.isSignedByte -> asmgen.out("${variable.name}\t.char  ?")
             dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ?")
             dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  ?")
+            dt.isLong -> asmgen.out("${variable.name}\t.dint  ?")
             dt.isFloat -> asmgen.out("${variable.name}\t.fill  ${compTarget.FLOAT_MEM_SIZE}")
             dt.isSplitWordArray -> {
                 alignVar(variable.align)
@@ -829,6 +824,7 @@ internal class ProgramAndVarsGen(
 //            dt.isSignedByte -> asmgen.out("${variable.name}\t.char  $initialValue")
 //            dt.isUnsignedWord -> asmgen.out("${variable.name}\t.word  ${initialValue.toHex()}")
 //            dt.isSignedWord -> asmgen.out("${variable.name}\t.sint  $initialValue")
+//            dt.isLong -> asmgen.out("${variable.name}\t.dint  $initialValue")
 //            dt.isFloat -> {
 //                if(initialValue==0) {
 //                    asmgen.out("${variable.name}\t.byte  0,0,0,0,0  ; float")

@@ -228,22 +228,85 @@ asmsub  str_w  (word value @ AY) clobbers(X) -> str @AY  {
 	}}
 }
 
-asmsub  str_l  (uword msw @ R0, uword lsw @ R1) clobbers(X) -> str @AY  {
-	; ---- convert the long in R0:R1 into decimal string form, without left padding 0s
-	%asm {{
-	    lda  #'?'
-	    sta  string_out
-	    lda  #'?'
-	    sta  string_out+1
-	    lda  #0
-	    sta  string_out+2
-	    ; TODO implement this!
-	    sta  string_out
-	    lda  #<string_out
-	    ldy  #>string_out
-	    rts
-	}}
-}
+sub  str_l  (long value) -> str  {
+	; ---- convert the long value into decimal string form, without left padding 0s
+        ; source: https://codebase64.net/doku.php?id=base:32_bit_hexadecimal_to_decimal_conversion
+        bool negative
+        if value<0 {
+            negative = true
+            value = -value
+        }
+        %asm {{
+        jsr hex2dec
+
+        ldx  #0
+-       lda  result,x
+        bne  +
+        inx             ; skip leading zeros
+        cpx  #9
+        bne  -
+
+        ; convert to petscii numbers and return ptr to first nonzero
++       stx  P8ZP_SCRATCH_B1
+        inc  P8ZP_SCRATCH_B1
+-       lda  result,x
+        ora  #$30
+        sta  result,x
+        inx
+        cpx  #10
+        bne  -
+        lda  #0
+        sta  result,x
+        ; sign needed?
+        lda  negative
+        beq  +
+        dec  P8ZP_SCRATCH_B1
+        ldx  P8ZP_SCRATCH_B1
+        lda  #'-'
+        sta  result_sign,x
++       lda  #<result_sign
+        ldy  #>result_sign
+        clc
+        adc  P8ZP_SCRATCH_B1
+        bcc  +
+        iny
++       rts
+
+        ; converts 10 digits (32 bit values have max. 10 decimal digits)
+hex2dec
+        ldx  #9
+l3      jsr  div10
+        sta  result,x
+        dex
+        bpl  l3
+        rts
+
+        ; divides a 32 bit value by 10
+        ; remainder is returned in akku
+div10
+        ldy  #32         ; 32 bits
+        lda  #0
+        clc
+l4      rol
+        cmp  #10
+        bcc  skip
+        sbc  #10
+skip    rol  value
+        rol  value+1
+        rol  value+2
+        rol  value+3
+        dey
+        bpl  l4
+        rts
+
+    .section BSS
+result_sign  .byte  ?   ; room for the '-' sign
+result  .fill  10
+        .byte  ?        ; string 0 terminator
+    .send
+
+        }}
+    }
 
 ; ---- string conversion to numbers -----
 

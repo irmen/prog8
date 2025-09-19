@@ -222,6 +222,7 @@ internal class AssignmentAsmGen(
                     BaseDataType.BOOL -> assignConstantByte(assign.target, if(num==0.0) 0 else 1)
                     BaseDataType.UBYTE, BaseDataType.BYTE -> assignConstantByte(assign.target, num.toInt())
                     BaseDataType.UWORD, BaseDataType.WORD -> assignConstantWord(assign.target, num.toInt())
+                    BaseDataType.LONG -> assignConstantLong(assign.target, num.toInt())
                     BaseDataType.FLOAT -> assignConstantFloat(assign.target, num)
                     BaseDataType.POINTER -> assignConstantWord(assign.target, num.toInt())
                     else -> throw AssemblyError("weird numval type")
@@ -244,6 +245,7 @@ internal class AssignmentAsmGen(
                         else
                             assignVariableWord(assign.target, variable, assign.source.datatype)
                     }
+                    targetDt.isLong -> assignVariableLong(assign.target, variable, assign.source.datatype)
                     targetDt.isFloat -> assignVariableFloat(assign.target, variable)
                     targetDt.isString -> assignVariableString(assign.target, variable)
                     targetDt.isPointer -> assignVariableWord(assign.target, variable, assign.source.datatype)
@@ -536,7 +538,7 @@ internal class AssignmentAsmGen(
     private fun assignPrefixExpr(assign: AsmAssignment, value: PtPrefix, scope: IPtSubroutine?) {
         if(assign.target.array==null) {
             if(assign.source.datatype isAssignableTo assign.target.datatype || (assign.source.datatype.isBool && assign.target.datatype.isByte)) {
-                if(assign.source.datatype.isIntegerOrBool) {
+                if(assign.source.datatype.isWordOrByteOrBool) {
                     val signed = assign.source.datatype.isSigned
                     if(assign.source.datatype.isByteOrBool) {
                         assignExpressionToRegister(value.value, RegisterOrPair.A, signed)
@@ -2417,8 +2419,8 @@ $endLabel""")
             }
         }
 
-        if(targetDt.isInteger && valueDt.isIntegerOrBool && valueDt.isAssignableTo(targetDt)) {
-            require(targetDt.isWord && valueDt.isByteOrBool) {
+        if(targetDt.isInteger && valueDt.isByteOrBool && valueDt.isAssignableTo(targetDt)) {
+            require(targetDt.isWord) {
                 "should be byte to word assignment ${origTypeCastExpression.position}"
             }
             when(target.kind) {
@@ -3000,6 +3002,28 @@ $endLabel""")
                 }
             }
             else -> throw AssemblyError("string-assign to weird target")
+        }
+    }
+
+    private fun assignVariableLong(target: AsmAssignTarget, varName: String, sourceDt: DataType) {
+        require(sourceDt.isLong)
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                asmgen.out("""
+                    lda  $varName
+                    sta  ${target.asmVarname}
+                    lda  $varName+1
+                    sta  ${target.asmVarname}+1
+                    lda  $varName+2
+                    sta  ${target.asmVarname}+2
+                    lda  $varName+3
+                    sta  ${target.asmVarname}+3""")
+            }
+            TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+            TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+            TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+            TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
@@ -3929,6 +3953,49 @@ $endLabel""")
         }
     }
 
+    private fun assignConstantLong(target: AsmAssignTarget, long: Int) {
+        if(long==0 && asmgen.isTargetCpu(CpuType.CPU65C02)) {
+            // optimize setting zero value for this processor
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
+                    asmgen.out("""
+                        stz  ${target.asmVarname}
+                        stz  ${target.asmVarname}+1
+                        stz  ${target.asmVarname}+2
+                        stz  ${target.asmVarname}+3""")
+                }
+                TargetStorageKind.ARRAY -> TODO("assign long zero to array ${target.position}")
+                TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                TargetStorageKind.VOID -> { /* do nothing */ }
+            }
+            return
+        }
+
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                fun store(hexbyte: String, offset: Int) {
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02) && hexbyte=="00") {
+                        asmgen.out("  stz  ${target.asmVarname}+$offset")
+                    } else {
+                        asmgen.out("  lda  #$$hexbyte |  sta  ${target.asmVarname}+$offset")
+                    }
+                }
+                val hex = long.toUInt().toString(16).padStart(8, '0')
+                store(hex.substring(6,8), 0)
+                store(hex.substring(4,6), 1)
+                store(hex.substring(2,4), 2)
+                store(hex.substring(0,2), 3)
+            }
+            TargetStorageKind.ARRAY -> TODO("assign long $long to array ${target.position}")
+            TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+            TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+            TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+            TargetStorageKind.VOID -> { /* do nothing */ }
+        }
+    }
+
     private fun assignConstantWord(target: AsmAssignTarget, word: Int) {
         if(word==0 && asmgen.isTargetCpu(CpuType.CPU65C02)) {
             // optimize setting zero value for this processor
@@ -4624,6 +4691,31 @@ $endLabel""")
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
                     TargetStorageKind.POINTER -> pointergen.inplaceWordNegate(PtrTarget(target), ignoreDatatype, scope)
+                    TargetStorageKind.VOID -> { /* do nothing */ }
+                }
+            }
+            datatype.isLong -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
+                        asmgen.out("""
+                            lda  #0
+                            sec
+                            sbc  ${target.asmVarname}
+                            sta  ${target.asmVarname}
+                            lda  #0
+                            sbc  ${target.asmVarname}+1
+                            sta  ${target.asmVarname}+1
+                            lda  #0
+                            sbc  ${target.asmVarname}+2
+                            sta  ${target.asmVarname}+2
+                            lda  #0
+                            sbc  ${target.asmVarname}+3
+                            sta  ${target.asmVarname}+3""")
+                    }
+                    TargetStorageKind.ARRAY -> TODO(" - long array ${target.position}")
+                    TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                    TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                    TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }

@@ -50,8 +50,10 @@ enum class BaseDataType {
 val BaseDataType.isByte get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
 val BaseDataType.isByteOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL)
 val BaseDataType.isWord get() = this in arrayOf(BaseDataType.UWORD, BaseDataType.WORD)
+val BaseDataType.isLong get() = this == BaseDataType.LONG
 val BaseDataType.isInteger get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
 val BaseDataType.isIntegerOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
+val BaseDataType.isWordOrByteOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.BOOL)
 val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
 val BaseDataType.isNumericOrBool get() = this == BaseDataType.BOOL || this.isNumeric
 val BaseDataType.isSigned get() = this in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
@@ -344,6 +346,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     val isUnsignedWord =  base == BaseDataType.UWORD
     val isSignedWord =  base == BaseDataType.WORD
     val isInteger = base.isInteger
+    val isWordOrByteOrBool = base.isWordOrByteOrBool
     val isIntegerOrBool = base.isIntegerOrBool
     val isNumeric = base.isNumeric
     val isNumericOrBool = base.isNumericOrBool
