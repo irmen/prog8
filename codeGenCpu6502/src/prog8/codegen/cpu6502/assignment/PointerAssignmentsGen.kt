@@ -406,6 +406,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("array ptr assign const word ${target.position}")
     }
 
+    internal fun assignLong(target: IndexedPtrTarget, long: Int) {
+        TODO("array ptr assign const long ${target.position}")
+    }
+
     internal fun assignFloat(target: IndexedPtrTarget, float: Double) {
         TODO("array ptr assign const float ${target.position}")
     }

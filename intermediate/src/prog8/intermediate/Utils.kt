@@ -32,6 +32,7 @@ fun DataType.irTypeString(length: UInt?): String {
                 BaseDataType.UWORD -> "uword[$lengthStr]"
                 BaseDataType.BYTE -> "byte[$lengthStr]"
                 BaseDataType.WORD -> "word[$lengthStr]"
+                BaseDataType.LONG -> "long[$lengthStr]"
                 BaseDataType.BOOL -> "bool[$lengthStr]"
                 BaseDataType.FLOAT -> "float[$lengthStr]"
                 else -> throw IllegalArgumentException("invalid sub type")

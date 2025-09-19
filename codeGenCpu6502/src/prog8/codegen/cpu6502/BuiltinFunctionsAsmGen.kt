@@ -27,8 +27,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val sscope = fcall.definingISub()
 
         when (fcall.name) {
-            "lsw" -> throw AssemblyError("lsw() should have been removed or replaced by a const value")
-            "msw" -> throw AssemblyError("msw() should have been removed or replaced by a const value")
+            "msw" -> funcMsw(fcall, resultRegister)
+            "lsw" -> funcLsw(fcall, resultRegister)
             "msb" -> funcMsb(fcall, resultRegister)
             "lsb" -> funcLsb(fcall, resultRegister)
             "mkword" -> funcMkword(fcall, resultRegister)
@@ -1185,7 +1185,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcMsb(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
         if (!arg.type.isWord)
-            throw AssemblyError("msb required word argument")
+            throw AssemblyError("msb requires word argument")
         if (arg is PtNumber)
             throw AssemblyError("msb(const) should have been const-folded away")
         if (arg is PtIdentifier) {
@@ -1369,6 +1369,53 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         }
+    }
+
+    private fun funcMsw(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        val arg = fcall.args.single()
+        if (!arg.type.isLong)
+            throw AssemblyError("msw requires long argument")
+        if (arg is PtNumber)
+            throw AssemblyError("msw(const) should have been const-folded away")
+        if (arg is PtIdentifier) {
+            val sourceName = asmgen.asmVariableName(arg)
+            when(resultRegister) {
+                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+2 |  ldx  $sourceName+3")
+                null, RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+2 |  ldy  $sourceName+3")
+                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+2 |  ldy  $sourceName+3")
+                in Cx16VirtualRegisters -> {
+                    val regname = resultRegister.name.lowercase()
+                    asmgen.out("  lda  $sourceName+2 |  sta  cx16.$regname |  lda  $sourceName+3 |  sta  cx16.$regname+1")
+                }
+                else -> throw AssemblyError("invalid reg")
+            }
+        } else {
+            TODO("msw(expression) ${fcall.position} - use a temporary variable for now")
+        }
+    }
+
+    private fun funcLsw(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        val arg = fcall.args.single()
+        if (!arg.type.isLong)
+            throw AssemblyError("lsw requires long argument")
+        if (arg is PtNumber)
+            throw AssemblyError("lsw(const) should have been const-folded away")
+        if (arg is PtIdentifier) {
+            val sourceName = asmgen.asmVariableName(arg)
+            when(resultRegister) {
+                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  $sourceName+1")
+                null, RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  $sourceName+1")
+                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  $sourceName+1")
+                in Cx16VirtualRegisters -> {
+                    val regname = resultRegister.name.lowercase()
+                    asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  lda  $sourceName+1 |  sta  cx16.$regname+1")
+                }
+                else -> throw AssemblyError("invalid reg")
+            }
+        } else {
+            TODO("lsw(expression) ${fcall.position} - use a temporary variable for now")
+        }
+
     }
 
     private fun translateArguments(call: PtBuiltinFunctionCall, scope: IPtSubroutine?) {

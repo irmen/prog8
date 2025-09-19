@@ -871,6 +871,7 @@ main {
         DataType.forDt(BaseDataType.FLOAT).isFloat shouldBe true
 
         DataType.arrayFor(BaseDataType.UBYTE, true).isUnsignedByteArray shouldBe true
+        DataType.arrayFor(BaseDataType.LONG).isLongArray shouldBe true
         DataType.arrayFor(BaseDataType.FLOAT).isFloatArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD).isUnsignedWordArray shouldBe true
         DataType.arrayFor(BaseDataType.UWORD).isArray shouldBe true
@@ -885,9 +886,6 @@ main {
         }
         shouldThrow<NoSuchElementException> {
             DataType.arrayFor(BaseDataType.ARRAY)
-        }
-        shouldThrow<NoSuchElementException> {
-            DataType.arrayFor(BaseDataType.LONG)
         }
         shouldThrow<NoSuchElementException> {
             DataType.arrayFor(BaseDataType.UNDEFINED)

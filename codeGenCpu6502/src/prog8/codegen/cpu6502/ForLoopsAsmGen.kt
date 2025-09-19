@@ -505,137 +505,158 @@ $endLabel""")
             is StMemVar -> symbol.length!!
             else -> 0u
         }
-        when {
-            iterableDt.isString -> {
-                if(asmgen.options.romable) {
-                    val indexVar = asmgen.createTempVarReused(BaseDataType.UBYTE, false, stmt)
-                    asmgen.out("""
+
+        fun iterateStrings() {
+            if(asmgen.options.romable) {
+                val indexVar = asmgen.createTempVarReused(BaseDataType.UBYTE, false, stmt)
+                asmgen.out("""
                         ldy  #0
                         sty  $indexVar
 $loopLabel              lda  $iterableName,y
                         beq  $endLabel
                         sta  ${asmgen.asmVariableName(stmt.variable)}""")
-                    asmgen.translate(stmt.statements)
-                    asmgen.out("""
+                asmgen.translate(stmt.statements)
+                asmgen.out("""
                         inc  $indexVar
                         ldy  $indexVar
                         bne  $loopLabel
 $endLabel""")
-                } else {
-                    val indexVar = asmgen.makeLabel("for_index")
-                    asmgen.out("""
+            } else {
+                val indexVar = asmgen.makeLabel("for_index")
+                asmgen.out("""
                         ldy  #0
                         sty  $indexVar
 $loopLabel              lda  $iterableName,y
                         beq  $endLabel
                         sta  ${asmgen.asmVariableName(stmt.variable)}""")
-                    asmgen.translate(stmt.statements)
-                    asmgen.out("""
+                asmgen.translate(stmt.statements)
+                asmgen.out("""
                         inc  $indexVar
                         ldy  $indexVar
                         bne  $loopLabel
 $indexVar   .byte  0                        
 $endLabel""")
-                }
             }
-            iterableDt.isByteArray || iterableDt.isBoolArray -> {
-                val indexVar = if(asmgen.options.romable)
-                    asmgen.createTempVarReused(iterableDt.elementType().base, false, stmt)
-                else
-                    asmgen.makeLabel("for_index")
-                asmgen.out("""
+        }
+
+        fun iterateBytes() {
+            val indexVar = if(asmgen.options.romable)
+                asmgen.createTempVarReused(iterableDt.elementType().base, false, stmt)
+            else
+                asmgen.makeLabel("for_index")
+            asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
                     lda  $iterableName,y
                     sta  ${asmgen.asmVariableName(stmt.variable)}""")
-                asmgen.translate(stmt.statements)
-                if(numElements<=255u) {
-                    asmgen.out("""
+            asmgen.translate(stmt.statements)
+            if(numElements<=255u) {
+                asmgen.out("""
                         ldy  $indexVar
                         iny
                         cpy  #$numElements
                         beq  $endLabel
                         bne  $loopLabel""")
-                } else {
-                    // length is 256
-                    asmgen.out("""
+            } else {
+                // length is 256
+                asmgen.out("""
                         ldy  $indexVar
                         iny
                         bne  $loopLabel
                         beq  $endLabel""")
-                }
-                if(!asmgen.options.romable) {
-                    if(numElements>=16u) {
-                        // allocate index var on ZP if possible, otherwise inline
-                        val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
-                        result.fold(
-                            success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
-                            failure = { asmgen.out("$indexVar    .byte  0") }
-                        )
-                    } else {
-                        asmgen.out("$indexVar    .byte  0")
-                    }
-                }
-                asmgen.out(endLabel)
             }
-            iterableDt.isSplitWordArray -> {
-                val indexVar = if(asmgen.options.romable)
-                    asmgen.createTempVarReused(BaseDataType.UBYTE, false, stmt)
-                else
-                    asmgen.makeLabel("for_index")
-                val loopvarName = asmgen.asmVariableName(stmt.variable)
-                asmgen.out("""
+            if(!asmgen.options.romable) {
+                if(numElements>=16u) {
+                    // allocate index var on ZP if possible, otherwise inline
+                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    result.fold(
+                        success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                        failure = { asmgen.out("$indexVar    .byte  0") }
+                    )
+                } else {
+                    asmgen.out("$indexVar    .byte  0")
+                }
+            }
+            asmgen.out(endLabel)
+        }
+
+        fun iterateSplitWords() {
+            val indexVar = if(asmgen.options.romable)
+                asmgen.createTempVarReused(BaseDataType.UBYTE, false, stmt)
+            else
+                asmgen.makeLabel("for_index")
+            val loopvarName = asmgen.asmVariableName(stmt.variable)
+            asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
                     lda  ${iterableName}_lsb,y
                     sta  $loopvarName
                     lda  ${iterableName}_msb,y
                     sta  $loopvarName+1""")
-                asmgen.translate(stmt.statements)
-                if(numElements<=255u) {
-                    asmgen.out("""
+            asmgen.translate(stmt.statements)
+            if(numElements<=255u) {
+                asmgen.out("""
                         ldy  $indexVar
                         iny
                         cpy  #$numElements
                         beq  $endLabel
                         bne  $loopLabel""")
-                } else {
-                    // length is 256
-                    asmgen.out("""
+            } else {
+                // length is 256
+                asmgen.out("""
                         ldy  $indexVar
                         iny
                         bne  $loopLabel
                         beq  $endLabel""")
-                }
-                if(!asmgen.options.romable) {
-                    if(numElements>=16u) {
-                        // allocate index var on ZP if possible, otherwise inline
-                        val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
-                        result.fold(
-                            success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
-                            failure = { asmgen.out("$indexVar    .byte  0") }
-                        )
-                    } else {
-                        asmgen.out("$indexVar    .byte  0")
-                    }
-                }
-                asmgen.out(endLabel)
             }
-            iterableDt.isWordArray -> {
-                val indexVar = if(asmgen.options.romable)
-                    asmgen.createTempVarReused(BaseDataType.UBYTE, false, stmt)
-                else
-                    asmgen.makeLabel("for_index")
-                val loopvarName = asmgen.asmVariableName(stmt.variable)
-                asmgen.out("""
+            if(!asmgen.options.romable) {
+                if(numElements>=16u) {
+                    // allocate index var on ZP if possible, otherwise inline
+                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    result.fold(
+                        success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                        failure = { asmgen.out("$indexVar    .byte  0") }
+                    )
+                } else {
+                    asmgen.out("$indexVar    .byte  0")
+                }
+            }
+            asmgen.out(endLabel)
+        }
+
+        fun iterateWords(actuallyLongs: Boolean = false) {
+            val indexVar = if(asmgen.options.romable)
+                asmgen.createTempVarReused(BaseDataType.UBYTE, false, stmt)
+            else
+                asmgen.makeLabel("for_index")
+            val loopvarName = asmgen.asmVariableName(stmt.variable)
+            asmgen.out("""
                     ldy  #0
 $loopLabel          sty  $indexVar
                     lda  $iterableName,y
                     sta  $loopvarName
                     lda  $iterableName+1,y
                     sta  $loopvarName+1""")
-                asmgen.translate(stmt.statements)
-                if(numElements<=127u) {
+            if(actuallyLongs) {
+                asmgen.out("""
+                    lda  $iterableName+2,y
+                    sta  $loopvarName+2
+                    lda  $iterableName+3,y
+                    sta  $loopvarName+3""")
+            }
+            asmgen.translate(stmt.statements)
+            if(numElements<=127u) {
+                if(actuallyLongs) {
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        iny
+                        iny
+                        iny
+                        cpy  #${numElements*4u}
+                        beq  $endLabel
+                        bne  $loopLabel""")
+                } else {
                     asmgen.out("""
                         ldy  $indexVar
                         iny
@@ -643,6 +664,19 @@ $loopLabel          sty  $indexVar
                         cpy  #${numElements*2u}
                         beq  $endLabel
                         bne  $loopLabel""")
+                }
+            } else {
+                if(actuallyLongs) {
+                    // array size is 64 longs, 256 bytes
+                    asmgen.out("""
+                        ldy  $indexVar
+                        iny
+                        iny
+                        iny
+                        iny
+                        bne  $loopLabel
+                        beq  $endLabel""")
+
                 } else {
                     // array size is 128 words, 256 bytes
                     asmgen.out("""
@@ -652,23 +686,29 @@ $loopLabel          sty  $indexVar
                         bne  $loopLabel
                         beq  $endLabel""")
                 }
-                if(!asmgen.options.romable) {
-                    if(numElements>=16u) {
-                        // allocate index var on ZP if possible, otherwise inline
-                        val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
-                        result.fold(
-                            success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
-                            failure = { asmgen.out("$indexVar    .byte  0") }
-                        )
-                    } else {
-                        asmgen.out("$indexVar    .byte  0")
-                    }
+            }
+            if(!asmgen.options.romable) {
+                if(numElements>=16u) {
+                    // allocate index var on ZP if possible, otherwise inline
+                    val result = zeropage.allocate(indexVar, DataType.UBYTE, null, stmt.position, asmgen.errors)
+                    result.fold(
+                        success = { (address, _, _)-> asmgen.out("""$indexVar = $address  ; auto zp UBYTE""") },
+                        failure = { asmgen.out("$indexVar    .byte  0") }
+                    )
+                } else {
+                    asmgen.out("$indexVar    .byte  0")
                 }
-                asmgen.out(endLabel)
             }
-            iterableDt.isFloatArray -> {
-                throw AssemblyError("for loop with floating point variables is not supported")
-            }
+            asmgen.out(endLabel)
+        }
+
+        when {
+            iterableDt.isString -> iterateStrings()
+            iterableDt.isByteArray || iterableDt.isBoolArray -> iterateBytes()
+            iterableDt.isSplitWordArray -> iterateSplitWords()
+            iterableDt.isWordArray -> iterateWords()
+            iterableDt.isLongArray -> iterateWords(true)
+            iterableDt.isFloatArray -> throw AssemblyError("for loop with floating point variables is not supported")
             else -> throw AssemblyError("can't iterate over $iterableDt")
         }
         asmgen.loopEndLabels.removeLast()

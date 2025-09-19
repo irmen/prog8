@@ -3964,7 +3964,20 @@ $endLabel""")
                         stz  ${target.asmVarname}+2
                         stz  ${target.asmVarname}+3""")
                 }
-                TargetStorageKind.ARRAY -> TODO("assign long zero to array ${target.position}")
+                TargetStorageKind.ARRAY -> {
+                    val deref = target.array!!.pointerderef
+                    if(deref!=null) {
+                        pointergen.assignLong(IndexedPtrTarget(target), 0)
+                        return
+                    }
+                    asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
+                    asmgen.out("""
+                        lda  #0
+                        sta  ${target.asmVarname},y
+                        sta  ${target.asmVarname}+1,y
+                        sta  ${target.asmVarname}+2,y
+                        sta  ${target.asmVarname}+3,y""")
+                }
                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                 TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
                 TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
@@ -3988,7 +4001,24 @@ $endLabel""")
                 store(hex.substring(2,4), 2)
                 store(hex.substring(0,2), 3)
             }
-            TargetStorageKind.ARRAY -> TODO("assign long $long to array ${target.position}")
+            TargetStorageKind.ARRAY -> {
+                val deref = target.array!!.pointerderef
+                if(deref!=null) {
+                    pointergen.assignWord(IndexedPtrTarget(target), long)
+                    return
+                }
+                asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
+                val hex = long.toUInt().toString(16).padStart(8, '0')
+                asmgen.out("""
+                    lda  #$${hex.substring(6,8)}
+                    sta  ${target.asmVarname},y
+                    lda  #$${hex.substring(4, 6)}
+                    sta  ${target.asmVarname}+1,y
+                    lda  #$${hex.substring(2, 4)}
+                    sta  ${target.asmVarname}+2,y
+                    lda  #$${hex.take(2)}
+                    sta  ${target.asmVarname}+3,y""")
+            }
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
             TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
@@ -4009,7 +4039,7 @@ $endLabel""")
                 TargetStorageKind.ARRAY -> {
                     val deref = target.array!!.pointerderef
                     if(deref!=null) {
-                        pointergen.assignWord(IndexedPtrTarget(target), word)
+                        pointergen.assignWord(IndexedPtrTarget(target), 0)
                         return
                     }
                     asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)

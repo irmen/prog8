@@ -14,6 +14,21 @@ main {
 ;    }
 
     sub start() {
+        long[] array = [-1999888777, -999, 42, 0, 77, 123456, 999999999]
+        long xx
+        for xx in array {
+            txt.print_uw(msw(xx))
+            txt.spc()
+            txt.print_uw(lsw(xx))
+            txt.nl()
+        }
+        txt.nl()
+        array[2] = 0
+        array[3] = 222222222
+        array[4] = bignum
+        array[5]++
+        array[6]--
+
         txt.print_l(-1999888777)
         txt.spc()
         txt.print_l(-999)

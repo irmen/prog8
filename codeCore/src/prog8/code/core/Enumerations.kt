@@ -145,7 +145,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
             return if(splitwordarray && actualElementDt.isWord)
                 DataType(BaseDataType.ARRAY_SPLITW, actualElementDt, null)
             else {
-                if(actualElementDt.isNumericOrBool && actualElementDt != BaseDataType.LONG)
+                if(actualElementDt.isNumericOrBool)
                     DataType(BaseDataType.ARRAY, actualElementDt, null)
                 else
                     throw NoSuchElementException("invalid basic element dt $elementDt")
@@ -224,6 +224,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 BaseDataType.WORD -> "word[]"
                 BaseDataType.UBYTE -> "ubyte[]"
                 BaseDataType.UWORD -> "uword[]"
+                BaseDataType.LONG -> "long[]"
                 else -> throw IllegalArgumentException("invalid sub type")
             }
         }
@@ -286,6 +287,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
                 BaseDataType.BOOL -> "bool["
                 BaseDataType.BYTE -> "byte["
                 BaseDataType.WORD -> "@nosplit word["
+                BaseDataType.LONG -> "long["
                 BaseDataType.FLOAT -> "float["
                 else -> throw IllegalArgumentException("invalid sub type")
             }
@@ -365,6 +367,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     val isWordArray = base.isArray && !base.isPointerArray && (sub == BaseDataType.UWORD || sub == BaseDataType.WORD)
     val isUnsignedWordArray = base.isArray && !base.isPointerArray && sub == BaseDataType.UWORD
     val isSignedWordArray = base.isArray && !base.isPointerArray && sub == BaseDataType.WORD
+    val isLongArray = base.isArray && sub == BaseDataType.LONG
     val isFloatArray = base.isArray && !base.isPointerArray && sub == BaseDataType.FLOAT
     val isString = base == BaseDataType.STR
     val isBool = base == BaseDataType.BOOL

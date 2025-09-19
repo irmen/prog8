@@ -901,6 +901,16 @@ internal class ProgramAndVarsGen(
                         asmgen.out("  .sint  " + chunk.joinToString())
                 }
             }
+            dt.isLongArray -> {
+                val data = makeArrayFillDataSigned(dt, value, orNumberOfZeros)
+                if (data.size <= 16)
+                    asmgen.out("$varname\t.dint  ${data.joinToString()}")
+                else {
+                    asmgen.out(varname)
+                    for (chunk in data.chunked(16))
+                        asmgen.out("  .dint  " + chunk.joinToString())
+                }
+            }
             dt.isFloatArray -> {
                 val array = value ?: zeroFilledArray(orNumberOfZeros!!)
                 val floatFills = array.map {
@@ -1023,9 +1033,17 @@ internal class ProgramAndVarsGen(
                 val number = it.number!!.toInt()
                 "$" + number.toString(16).padStart(4, '0')
             }
-            dt.isArray && dt.elementType().isSignedWord -> array.map {
+            dt.isSignedWordArray -> array.map {
                 val number = it.number!!.toInt()
                 val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
+                if(number>=0)
+                    "$$hexnum"
+                else
+                    "-$$hexnum"
+            }
+            dt.isLongArray -> array.map {
+                val number = it.number!!.toInt()
+                val hexnum = number.absoluteValue.toString(16).padStart(8, '0')
                 if(number>=0)
                     "$$hexnum"
                 else

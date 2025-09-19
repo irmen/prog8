@@ -386,9 +386,6 @@ class TestMemory: FunSpec({
             shouldThrow<IllegalArgumentException> {
                 target.memorySize(BaseDataType.UNDEFINED)
             }
-            shouldThrow<NoSuchElementException> {
-                target.memorySize(DataType.arrayFor(BaseDataType.LONG), 10)
-            }
             target.memorySize(BaseDataType.BOOL) shouldBe 1
             target.memorySize(BaseDataType.BYTE) shouldBe 1
             target.memorySize(BaseDataType.WORD) shouldBe 2
@@ -397,6 +394,7 @@ class TestMemory: FunSpec({
 
             target.memorySize(DataType.BOOL, null) shouldBe 1
             target.memorySize(DataType.WORD, null) shouldBe 2
+            target.memorySize(DataType.LONG, null) shouldBe 4
             target.memorySize(DataType.FLOAT, null) shouldBe target.FLOAT_MEM_SIZE
 
             target.memorySize(DataType.STR, null) shouldBe 2
@@ -409,6 +407,7 @@ class TestMemory: FunSpec({
             target.memorySize(DataType.arrayFor(BaseDataType.BYTE), 10) shouldBe 10
             target.memorySize(DataType.arrayFor(BaseDataType.WORD), 10) shouldBe 20
             target.memorySize(DataType.arrayFor(BaseDataType.UWORD), 10) shouldBe 20
+            target.memorySize(DataType.arrayFor(BaseDataType.LONG), 10) shouldBe 40
             target.memorySize(DataType.arrayFor(BaseDataType.FLOAT), 10) shouldBe 10*target.FLOAT_MEM_SIZE
             target.memorySize(DataType.arrayFor(BaseDataType.WORD, true), 10) shouldBe 20
             target.memorySize(DataType.arrayFor(BaseDataType.UWORD, true), 10) shouldBe 20

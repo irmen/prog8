@@ -386,6 +386,17 @@ class VmProgramLoader {
                 }
             }
 
+            variable.dt.isLongArray -> {
+                for (elt in iElts) {
+                    val value = getInitializerValue(variable.dt, elt, symbolAddresses)
+                    value.fold(
+                        { memory.setSL(address, it.toInt()) },
+                        { throw IRParseException("didn't expect bool") }
+                    )
+                    address += 4
+                }
+            }
+
             variable.dt.isFloatArray -> {
                 for (elt in iElts) {
                     val value = getInitializerValue(variable.dt, elt, symbolAddresses)

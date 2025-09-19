@@ -240,6 +240,11 @@ internal class AstChecker(private val program: Program,
                             errors.err("word loop variable can only loop over bytes or words", forLoop.position)
                     }
 
+                    BaseDataType.LONG -> {
+                        if(!iterableDt.elementType().isInteger)
+                            errors.err("long loop variable can only loop over integers", forLoop.position)
+                    }
+
                     BaseDataType.FLOAT -> {
                         // Looping over float variables is very inefficient because the loopvar is going to
                         // get copied over with new values all the time. We don't support this for now.
@@ -941,6 +946,9 @@ internal class AstChecker(private val program: Program,
                         dt.isWordArray ->
                             if(arraySize > 128)
                                 err("regular word array length must be 1-128, use split array to get to 256")
+                        dt.isLongArray ->
+                            if(arraySize > 64)
+                                err("long array length must be 1-64")
                         dt.isFloatArray ->
                             if(arraySize > 51)
                                 err("float array length must be 1-51")
@@ -1043,6 +1051,10 @@ internal class AstChecker(private val program: Program,
                     decl.datatype.isWordArray -> {
                         if (length == 0 || length > 128)
                             err("regular word array length must be 1-128, use split array to get to 256")
+                    }
+                    decl.datatype.isLongArray -> {
+                        if (length == 0 || length > 64)
+                            err("long array length must be 1-64")
                     }
                     decl.datatype.isFloatArray -> {
                         if (length == 0 || length > 51)
@@ -2478,7 +2490,6 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(onGoto: OnGoto) {
-        val t = onGoto.index.inferType(program)
         if(!onGoto.index.inferType(program).getOrUndef().isUnsignedByte) {
             errors.err("on..goto index must be an unsigned byte", onGoto.index.position)
         }
