@@ -1,34 +1,18 @@
 main {
+    ubyte a,b
+
     sub start() {
-        ^^uword @shared ptr
+        func1()
+        func2()
+    }
 
-        add1()
-        add2()
-        sub1()
-        sub2()
+    sub func1() {
+        a = b
+        %breakpoint
+    }
 
-        sub add1() {
-            ptr += 5
-            cx16.r0 = ptr + 5
-            cx16.r0 = peekw(ptr + 5)
-        }
-
-        sub add2() {
-            ptr += cx16.r0L
-            cx16.r0 = ptr + cx16.r0L
-            cx16.r0 = peekw(ptr + cx16.r0L)
-        }
-
-        sub sub1() {
-            ptr -= 5
-            cx16.r0 = ptr - 5
-            cx16.r0 = peekw(ptr - 5)
-        }
-
-        sub sub2() {
-            ptr -= cx16.r0L
-            cx16.r0 = ptr - cx16.r0L
-            cx16.r0 = peekw(ptr - cx16.r0L)
-        }
+    sub func2() {
+        a = b
+        %breakpoint!
     }
 }

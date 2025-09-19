@@ -340,10 +340,20 @@ Directives
         }
 
 
-.. data:: %breakpoint
+.. data:: %breakpoint!  or  %breakpoint
 
     Level: not at module scope.
     Defines a debugging breakpoint at this location. See :ref:`debugging`
+    The version with the explamation point '!' at the end can be used even
+    if the breakpoint follows an expression. If you don't use the '!' version in this case
+    the compiler may think it is just a term in the expression (modulo operator and breakpoint operand value),
+    instead of a breakpoint directive::
+
+        a = b
+        %breakpoint       ; parse error because it thinks it is part of the previous line
+
+        a = b
+        %breakpoint!      ; parsed correctly as directive
 
 
 .. data:: %encoding <encodingname>

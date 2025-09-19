@@ -151,7 +151,7 @@ labeldef :  identifier ':'  ;
 
 unconditionaljump :  GOTO  expression ;
 
-directive : directivename (directivenamelist | (directivearg? | directivearg (',' directivearg)*))   ;
+directive : directivename '!'? (directivenamelist | (directivearg? | directivearg (',' directivearg)*))   ;
 
 directivename: '%' UNICODEDNAME;
 

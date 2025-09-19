@@ -1092,7 +1092,7 @@ internal class AstChecker(private val program: Program,
 
         if(decl.datatype.isStructInstance && decl.origin!=VarDeclOrigin.SUBROUTINEPARAM) {
             if(decl.type==VarDeclType.MEMORY)
-                errors.err("cannot declare memory mapped struct instances, use a pointer and memory allocation call or direct address assignment instead", decl.position)
+                errors.err("struct instances cannot be declared as memory-mapped currently, use a pointer and memory allocation call or direct address assignment instead", decl.position)
             else
                 errors.err("struct instances cannot be declared directly, use a pointer and memory allocation call or direct address assignment instead", decl.position)
         }

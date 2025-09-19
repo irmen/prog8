@@ -1173,5 +1173,30 @@ main {
         compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
+    test("breakpoint after expression") {
+        val src="""
+main {
+    ubyte a,b
+
+    sub start() {
+        func1()
+        func2()
+    }
+
+    sub func1() {
+        a = b
+        %breakpoint     ; parse error
+    }
+
+    sub func2() {
+        a = b
+        %breakpoint!     ; parse ok
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[1] shouldContain "12:10: undefined symbol: breakpoint"
+    }
 })
 

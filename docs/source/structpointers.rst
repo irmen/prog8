@@ -154,9 +154,11 @@ Because it implies pointer dereferencing you can usually omit the explicit `^^`,
 
 
 .. note::
-    Structs are only supported as a *reference type* (via a pointer). It is currently not possible to use them as a value type.
+    Structs are currently only supported as a *reference type* (they always have to be accessed through a pointer).
+    It is not yet possible to use them as a value type, or as memory-mapped types.
     This means you cannot create an array of structs either - only arrays of pointers to structs.
-    There are a couple of simple case where the compiler allows assignment of struct instances. You are allowed to write::
+    There are a couple of simple case where the compiler does allow assignment of struct instances though, and it will
+    automatically copy all the fields for you. You are allowed to write::
 
         ptr2^^ = ptr1^^
         ptr2^^ = ptr1[2]
@@ -166,14 +168,14 @@ Because it implies pointer dereferencing you can usually omit the explicit `^^`,
     In the future more cases may be supported.
 
 .. note::
-    Using structs instead of plain arrays may result in less efficent code being generated.
+    Using structs instead of plain arrays usually results in more and less efficent code being generated.
     This is because the 6502 CPU is not particularly well equipped to dealing with pointers and accessing struct fields via offsets,
     as compared to direct variable access or array indexing. The prog8 program code may be easier to work with though!
 
 .. note::
     Accessing the first field in a struct is more efficient than subsequent fields, because it
-    is at offset 0 so no additional addition has to be done on a pointer to reach the first field.
-    Try to put the most often accessed field as the first field to gain a rather substantial code size and efficiency boost.
+    is at offset 0 so no additional addition has to be computed on a pointer to reach the first field.
+    Try to put the most often accessed field as the first field to potentially gain a rather substantial boost in code efficiency.
 
 
 Static initialization of structs

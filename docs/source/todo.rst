@@ -85,7 +85,6 @@ Future Things and Ideas
     9 }
 - improve ANTLR grammar with better error handling (according to Qwen AI)
 - allow memory() to occur in array initializer
-- %breakpoint after an assignment is parsed as part of the expression (x % breakpoint), that should not happen
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
