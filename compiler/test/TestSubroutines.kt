@@ -240,6 +240,33 @@ main {
         errors.errors[1] shouldContain "9:25: invalid number of arguments"
     }
 
+    test("invalid number of args check on normal subroutine (in expression)") {
+        val text="""
+            main {
+              sub thing(ubyte a1, ubyte a2) -> ubyte {
+                return 42
+              }
+            
+              sub wrapper(ubyte value) {
+                value++
+              }
+
+              sub start() {
+                  wrapper(thing(1))
+                  wrapper(thing(1,2))
+                  wrapper(thing(1,2,3))
+              }
+            }
+        """
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "12:33: invalid number of arguments"
+        errors.errors[1] shouldContain "14:33: invalid number of arguments"
+    }
+
+
     test("invalid number of args check on asm subroutine") {
         val text="""
             main {
@@ -260,6 +287,35 @@ main {
         errors.errors[0] shouldContain "7:25: invalid number of arguments"
         errors.errors[1] shouldContain "9:25: invalid number of arguments"
     }
+
+    test("invalid number of args check on asm subroutine (in expression)") {
+        val text="""
+            main {
+              asmsub thing(ubyte a1 @A, ubyte a2 @Y) -> ubyte @A {
+                %asm {{
+                  rts
+                }}
+              }
+            
+              sub wrapper(ubyte value) {
+                value++
+              }
+
+              sub start() {
+                  wrapper(thing(1))
+                  wrapper(thing(1,2))
+                  wrapper(thing(1,2,3))
+              }
+            }
+        """
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), false, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "14:33: invalid number of arguments"
+        errors.errors[1] shouldContain "16:33: invalid number of arguments"
+    }
+
 
     test("invalid number of args check on call to label and builtin func") {
         val text="""

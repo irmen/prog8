@@ -165,8 +165,15 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(string)
     }
 
-    override fun visit(functionCallExpr: FunctionCallExpression) =  visitFunctionCall(functionCallExpr)
-    override fun visit(functionCallStatement: FunctionCallStatement) =  visitFunctionCall(functionCallStatement)
+    override fun visit(functionCallExpr: FunctionCallExpression) {
+        visitFunctionCall(functionCallExpr)
+        super.visit(functionCallExpr)
+    }
+
+    override fun visit(functionCallStatement: FunctionCallStatement) {
+        visitFunctionCall(functionCallStatement)
+        super.visit(functionCallStatement)
+    }
 
     override fun visit(initializer: StaticStructInitializer) {
         val struct = initializer.structname.targetStructDecl()
