@@ -313,12 +313,13 @@ asmsub banks(ubyte banks @A) {
     %asm {{
         and  #%00000111
         sta  P8ZP_SCRATCH_REG
+        php
         sei
         lda  $01
         and  #%11111000
         ora  P8ZP_SCRATCH_REG
         sta  $01
-        cli
+        plp
         rts
     }}
 }
@@ -511,6 +512,7 @@ save_SCRATCH_ZPWORD2	.word  ?
 
 asmsub  set_irq(uword handler @AY) clobbers(A)  {
 	%asm {{
+	    php
 	    sei
         sta  _vector
         sty  _vector+1
@@ -518,7 +520,7 @@ asmsub  set_irq(uword handler @AY) clobbers(A)  {
 		sta  cbm.CINV
 		lda  #>_irq_handler
 		sta  cbm.CINV+1
-		cli
+		plp
 		rts
 _irq_handler
         jsr  sys.save_prog8_internals
@@ -551,6 +553,7 @@ _vector	.word ?
 
 asmsub  restore_irq() clobbers(A) {
 	%asm {{
+	    php
 		sei
 		lda  #<cbm.IRQDFRT
 		sta  cbm.CINV
@@ -560,16 +563,17 @@ asmsub  restore_irq() clobbers(A) {
 		sta  c64.IREQMASK	; disable raster irq
 		lda  #%10000001
 		sta  c64.CIA1ICR	; restore CIA1 irq
-		cli
+		plp
 		rts
 	}}
 }
 
 asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
 	%asm {{
+	    php
 	    sei
-        sta  _vector
-        sty  _vector+1
+        sta  user_vector
+        sty  user_vector+1
         lda  cx16.r0
         ldy  cx16.r0+1
         jsr  _setup_raster_irq
@@ -577,7 +581,7 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
         sta  cbm.CINV
         lda  #>_raster_irq_handler
         sta  cbm.CINV+1
-        cli
+        plp
         rts
 
 _raster_irq_handler
@@ -600,9 +604,9 @@ _raster_irq_handler
 		rti
 
 _run_custom
-		jmp  (_vector)
+		jmp  (user_vector)
 		.section BSS
-_vector	.word ?
+user_vector	.word ?
 		.send BSS
 
 _setup_raster_irq
@@ -626,6 +630,23 @@ _setup_raster_irq
 		rts
 	}}
 }
+
+    asmsub update_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
+        ; -- just update the IRQ handler and raster line position for the raster IRQ
+        ;    this is much more efficient than calling set_rasterirq() again every time.
+        ;    (but you have to call that one initially at least once to setup the prog8 handler itself)
+        %asm {{
+            php
+            sei
+            sta  sys.set_rasterirq.user_vector
+            sty  sys.set_rasterirq.user_vector+1
+            lda  cx16.r0L
+            sta  c64.RASTER
+            ; TODO set high bit
+            plp
+            rts
+        }}
+    }
 
 
     asmsub reset_system()  {

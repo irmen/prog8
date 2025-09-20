@@ -97,6 +97,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             "library/main",
             "plasma",
             "rasterbars",
+            "simplemultiplexer",
             "sprites",
             "starfield",
             "tehtriz",

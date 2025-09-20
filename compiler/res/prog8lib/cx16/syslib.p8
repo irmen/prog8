@@ -1576,6 +1576,7 @@ sys {
 asmsub  set_irq(uword handler @AY) clobbers(A)  {
     ; Sets the handler for the VSYNC interrupt, and enable that interrupt.
 	%asm {{
+	    php
         sei
         sta  _vector
         sty  _vector+1
@@ -1585,7 +1586,7 @@ asmsub  set_irq(uword handler @AY) clobbers(A)  {
         sta  cbm.CINV+1
         lda  #1
         tsb  cx16.VERA_IEN      ; enable the vsync irq
-        cli
+        plp
         rts
 
 _irq_handler
@@ -1615,6 +1616,7 @@ _vector	.word ?
 
 asmsub  restore_irq() clobbers(A) {
 	%asm {{
+	    php
 	    sei
 	    lda  _orig_irqvec
 	    sta  cbm.CINV
@@ -1624,7 +1626,7 @@ asmsub  restore_irq() clobbers(A) {
 	    and  #%11110000     ; disable all Vera IRQs but the vsync
 	    ora  #%00000001
 	    sta  cx16.VERA_IEN
-	    cli
+	    plp
 	    rts
         .section BSS_NOCLEAR
 _orig_irqvec    .word  ?
@@ -1636,9 +1638,10 @@ _orig_irqvec    .word  ?
 asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
     ; Sets the handler for the LINE interrupt, and enable (only) that interrupt.
 	%asm {{
+	        php
             sei
-            sta  _vector
-            sty  _vector+1
+            sta  user_vector
+            sty  user_vector+1
             lda  cx16.r0
             ldy  cx16.r0+1
             lda  cx16.VERA_IEN
@@ -1652,7 +1655,7 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
             sta  cbm.CINV
             lda  #>_raster_irq_handler
             sta  cbm.CINV+1
-            cli
+            plp
             rts
 
 _raster_irq_handler
@@ -1668,13 +1671,30 @@ _raster_irq_handler
             pla
             rti
 _run_custom
-		    jmp  (_vector)
+		    jmp  (user_vector)
 		    .section BSS
-_vector	    .word ?
+user_vector	    .word ?
 		    .send BSS
 
 		    ; !notreached!
         }}
+}
+
+asmsub update_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
+    ; -- just update the IRQ handler and raster line position for the raster IRQ
+    ;    this is much more efficient than calling set_rasterirq() again every time.
+    ;    (but you have to call that one initially at least once to setup the prog8 handler itself)
+    %asm {{
+        php
+        sei
+        sta  sys.set_rasterirq.user_vector
+        sty  sys.set_rasterirq.user_vector+1
+        lda  cx16.r0L
+        ldy  cx16.r0H
+        jsr  set_rasterline
+        plp
+        rts
+    }}
 }
 
 asmsub  set_rasterline(uword line @AY) {
@@ -1732,13 +1752,15 @@ _loop       lda  P8ZP_SCRATCH_W1
             bne  +
             rts
 
-+           sei
++           php
+            sei
             jsr  cbm.RDTIM
-            cli
+            plp
             sta  P8ZP_SCRATCH_B1
--           sei
+-           php
+            sei
             jsr  cbm.RDTIM
-            cli
+            plp
             cmp  P8ZP_SCRATCH_B1
             beq  -
 
