@@ -155,6 +155,30 @@ asmsub  str_uwhex  (uword value @ AY) -> str @AY  {
 	}}
 }
 
+sub str_ulhex(long value) -> str {
+    %asm {{
+        lda  value+3
+        jsr  internal_ubyte2hex
+        sta  string_out
+        sty  string_out+1
+        lda  value+2
+        jsr  internal_ubyte2hex
+        sta  string_out+2
+        sty  string_out+3
+        lda  value+1
+        jsr  internal_ubyte2hex
+        sta  string_out+4
+        sty  string_out+5
+        lda  value
+        jsr  internal_ubyte2hex
+        sta  string_out+6
+        sty  string_out+7
+        lda  #0
+        sta  string_out+8
+    }}
+    return &string_out
+}
+
 asmsub  str_uw0  (uword value @ AY) clobbers(X) -> str @AY  {
 	; ---- convert the uword in A/Y in decimal string form, with left padding 0s (5 positions total)
 	%asm {{

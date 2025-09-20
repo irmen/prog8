@@ -136,6 +136,13 @@ sub  print_uwhex  (uword value, bool prefix) {
     print(conv.str_uwhex(value))
 }
 
+sub  print_ulhex  (long value, bool prefix) {
+    ; ---- print the ulong in hexadecimal form (4 digits)
+    if prefix
+        chrout('$')
+    print(conv.str_ulhex(value))
+}
+
 sub  print_uw0  (uword value)  {
     ; ---- print the uword value in decimal form, with left padding 0s (5 positions total)
     print(conv.str_uw0(value))

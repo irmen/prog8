@@ -16,7 +16,11 @@ main {
     sub start() {
         txt.print_l(mklong2($a000,$bbbb))
         txt.spc()
+        txt.print_ulhex(mklong2($a000,$bbbb), true)
+        txt.spc()
         txt.print_l(mklong(9,8,7,6))
+        txt.spc()
+        txt.print_ulhex(mklong(9,8,7,6), true)
         txt.nl()
         cx16.r8 = $a000
         cx16.r9 = $bbbb
@@ -26,7 +30,11 @@ main {
         cx16.r5L = 6
         txt.print_l(mklong2(cx16.r8, cx16.r9))
         txt.spc()
+        txt.print_ulhex(mklong2(cx16.r8, cx16.r9), true)
+        txt.spc()
         txt.print_l(mklong(cx16.r2L,cx16.r3L,cx16.r4L,cx16.r5L))
+        txt.spc()
+        txt.print_ulhex(mklong(cx16.r2L,cx16.r3L,cx16.r4L,cx16.r5L), true)
         txt.nl()
 
 ;        long[] array = [-1999888777, -999, 42, 0, 77, 123456, 999999999]

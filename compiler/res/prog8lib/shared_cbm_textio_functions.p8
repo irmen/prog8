@@ -109,6 +109,12 @@ txt {
         }}
     }
 
+    sub print_ulhex(long value, bool prefix) {
+        if prefix
+            cbm.CHROUT('$')
+        print(conv.str_ulhex(value))
+    }
+
     asmsub  print_uw0  (uword value @ AY) clobbers(A,X,Y)  {
         ; ---- print the uword in A/Y in decimal form, with left padding 0s (5 positions total)
         %asm {{

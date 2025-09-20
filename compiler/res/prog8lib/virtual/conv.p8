@@ -102,7 +102,7 @@ sub  str_uwbin  (uword value) -> str {
 }
 
 sub  str_uwhex  (uword value) -> str {
-    ; ---- convert the uword in A/Y in hexadecimal string form (4 digits)
+    ; ---- convert the uword in hexadecimal string form (4 digits)
     ubyte bits = msb(value)
     string_out[0] = hex_digits[bits>>4]
     string_out[1] = hex_digits[bits&15]
@@ -110,6 +110,26 @@ sub  str_uwhex  (uword value) -> str {
     string_out[2] = hex_digits[bits>>4]
     string_out[3] = hex_digits[bits&15]
     string_out[4] = 0
+    return string_out
+}
+
+sub  str_ulhex  (long value) -> str {
+    ; ---- convert the long in hexadecimal string form (8 digits)
+    uword upperw = msw(value)
+    uword lowerw = lsw(value)
+    ubyte bits = msb(upperw)
+    string_out[0] = hex_digits[bits>>4]
+    string_out[1] = hex_digits[bits&15]
+    bits = lsb(upperw)
+    string_out[2] = hex_digits[bits>>4]
+    string_out[3] = hex_digits[bits&15]
+    bits = msb(lowerw)
+    string_out[4] = hex_digits[bits>>4]
+    string_out[5] = hex_digits[bits&15]
+    bits = lsb(lowerw)
+    string_out[6] = hex_digits[bits>>4]
+    string_out[7] = hex_digits[bits&15]
+    string_out[8] = 0
     return string_out
 }
 
