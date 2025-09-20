@@ -170,6 +170,7 @@ Libraries
 Optimizations
 -------------
 
+- check that expressions such as  targetvar = value1 + value2  , targetvar = value1 ^ value2   etc.   use the target variable directly and not use needless temp var / registers
 - Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappered. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?

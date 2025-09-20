@@ -813,6 +813,9 @@ class AsmGen6502Internal (
     }
 
     internal fun assignExpressionTo(value: PtExpression, target: AsmAssignTarget) {
+
+        // this is basically the fallback assignment routine, it is RARELY called
+
         when {
             target.datatype.isByteOrBool -> {
                 if (value.asConstInteger()==0) {

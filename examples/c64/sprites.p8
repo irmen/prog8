@@ -7,17 +7,17 @@ main {
 
     sub start() {
 
-        txt.print("balloon sprites!\n...we are all floating...\n")
+        txt.print("balloon sprites!\n...we are all floating...\nborders are open too\n")
 
         ubyte @zp i
         for i in 0 to 7 {
             c64.set_sprite_ptr(i, &spritedata.balloonsprite)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
-            c64.SPXY[i*2] = 50+25*i
+            c64.SPXY[i*2] = 60+22*i
             c64.SPXY[i*2+1] = math.rnd()
         }
 
-        c64.SPENA = 255                ; enable all sprites
-        sys.set_rasterirq(&irq.irqhandler, 255)     ; enable animation
+        c64.SPENA = 255       ; enable all sprites
+        sys.set_rasterirq(&irq.irqhandler, 248)         ; trigger irq just above bottom border line
     }
 }
 
@@ -25,6 +25,7 @@ main {
 irq {
 
     sub irqhandler() -> bool {
+        c64.SCROLY = 19             ; 24 row mode, preparing for border opening
         c64.EXTCOL--
 
         ; float up & wobble horizontally
@@ -39,6 +40,7 @@ irq {
         }
 
         c64.EXTCOL++
+        c64.SCROLY = 27            ; 25 row mode, border is open
         return true
     }
 
