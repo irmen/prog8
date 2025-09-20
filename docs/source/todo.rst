@@ -1,6 +1,18 @@
 TODO
 ====
 
+LONG TYPE
+---------
+- call convention: return long  ->  return it in R0+R1....   because AY is only 16 bits...
+- call convention: long param -> passed as regular variable NOT via R0:R1    asmsubs don't have syntax for this so use explicit separate msw() and lsw() arguments...
+- make sure long + byte, long+word  etc work properly with value extension to long (singed and unsigned operands)
+- make sure == and != work with longs against byte and words as well signed and unsigned
+- implement << >> and the bitwise & | ^ operations on longs
+- how hard is it to also implement the other comparison operators on longs?
+- implement LONG testcases in testmemory
+- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_)
+- scan through library routines if there are opportunities to use the long?  such as RDTIM
+
 
 
 STRUCTS and TYPED POINTERS

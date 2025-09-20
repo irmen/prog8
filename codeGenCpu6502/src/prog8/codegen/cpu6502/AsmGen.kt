@@ -863,6 +863,90 @@ class AsmGen6502Internal (
                     ), value.definingISub()
                 )
             }
+            target.datatype.isLong -> {
+                if(value is PtNumber) {
+                    val hex = value.asConstInteger()!!.toString(16).padStart(8, '0')
+                    when(target.kind) {
+                        TargetStorageKind.VARIABLE -> {
+                            out("""
+                                lda  #${hex.substring(6,8)}
+                                sta  ${target.asmVarname}
+                                lda  #${hex.substring(4, 6)}
+                                sta  ${target.asmVarname}+1
+                                lda  #${hex.substring(2, 4)}
+                                sta  ${target.asmVarname}+2
+                                lda  #${hex.take(2)}
+                                sta  ${target.asmVarname}+3""")
+                        }
+                        TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                        TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                        TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                        TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                        TargetStorageKind.VOID -> { /* do nothing */ }
+                    }
+                } else if(value is PtIdentifier && value.type.isLong) {
+                    when (target.kind) {
+                        TargetStorageKind.VARIABLE -> {
+                            val valuesym = asmSymbolName(value)
+                            out(
+                                """
+                                lda  $valuesym
+                                sta  ${target.asmVarname}
+                                lda  $valuesym+1
+                                sta  ${target.asmVarname}+1
+                                lda  $valuesym+2
+                                sta  ${target.asmVarname}+2
+                                lda  $valuesym+3
+                                sta  ${target.asmVarname}+3"""
+                            )
+                        }
+
+                        TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                        TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                        TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                        TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                        TargetStorageKind.VOID -> { /* do nothing */ }
+                    }
+                } else if(value is PtTypeCast && value.type.isLong) {
+                    if(value.value is PtIdentifier) {
+                        val valuesym = asmSymbolName((value.value as PtIdentifier).name)
+                        if(value.value.type.isByte) {
+                            when (target.kind) {
+                                TargetStorageKind.VARIABLE -> {
+                                    out("  lda  $valuesym |  sta  ${target.asmVarname}")
+                                    signExtendVariableLsb(target.asmVarname, value.value.type.base)
+                                    signExtendLongVariableMsw(target.asmVarname, value.value.type.base)
+                                }
+                                TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                                TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                                TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                                TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                                TargetStorageKind.VOID -> { /* do nothing */ }
+                            }
+                        } else if(value.value.type.isWord) {
+                            when (target.kind) {
+                                TargetStorageKind.VARIABLE -> {
+                                    out("""
+                                        lda  $valuesym
+                                        sta  ${target.asmVarname}
+                                        lda  $valuesym+1
+                                        sta  ${target.asmVarname}+1""")
+                                    signExtendLongVariableMsw(target.asmVarname, value.value.type.base)
+                                }
+                                TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                                TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+                                TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                                TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                                TargetStorageKind.VOID -> { /* do nothing */ }
+                            }
+                        } else throw AssemblyError("weird casted type")
+                    } else {
+                        TODO("assign typecasted expression $value to a long target  ${target.position}  - use simple expressions and temporary variables for now")
+                    }
+                } else {
+                    TODO("assign long expression $value to a target  ${target.position} - use simple expressions and temporary variables for now")
+                }
+            }
             target.datatype.isFloat -> {
                 assignExpressionToRegister(value, RegisterOrPair.FAC1)
                 assignRegister(RegisterOrPair.FAC1, target)
@@ -1295,6 +1379,47 @@ $repeatLabel""")
                     bmi  +
                     lda  #0
 +                   sta  $asmvar+1""")
+            }
+            else -> throw AssemblyError("need byte type")
+        }
+    }
+
+    internal fun signExtendLongVariableMsw(asmvar: String, valueDt: BaseDataType) {
+        // sign extend signed word in a var to a full long in that variable
+        when(valueDt) {
+            BaseDataType.UBYTE -> {
+                if(isTargetCpu(CpuType.CPU65C02)) {
+                    out("""
+                        stz  $asmvar+1
+                        stz  $asmvar+2
+                        stz  $asmvar+3""")
+                }
+                else {
+                    out("""
+                        lda  #0
+                        sta  $asmvar+1
+                        sta  $asmvar+2
+                        sta  $asmvar+3""")
+                }
+            }
+            BaseDataType.BYTE -> {
+                out("""
+                    lda  $asmvar
+                    ora  #$7f
+                    bmi  +
+                    lda  #0
++                   sta  $asmvar+1
+                    sta  $asmvar+2
+                    sta  $asmvar+3""")
+            }
+            BaseDataType.WORD -> {
+                out("""
+                    lda  $asmvar+1
+                    ora  #$7f
+                    bmi  +
+                    lda  #0
++                   sta  $asmvar+2
+                    sta  $asmvar+3""")
             }
             else -> throw AssemblyError("need byte type")
         }

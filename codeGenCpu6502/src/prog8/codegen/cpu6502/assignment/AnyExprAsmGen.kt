@@ -42,6 +42,12 @@ internal class AnyExprAsmGen(
                 }
                 throw AssemblyError("expression should have been handled otherwise: word ${expr.operator} at ${expr.position}")
             }
+            expr.type.isLong -> {
+                require(expr.left.type.isLong && expr.right.type.isLong) {
+                    "both operands must be longs"
+                }
+                throw AssemblyError("expression should have been handled otherwise: long ${expr.operator} at ${expr.position}")
+            }
             expr.type.isFloat -> {
                 require(expr.left.type.isFloat && expr.right.type.isFloat) {
                     "both operands must be floats"

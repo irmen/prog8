@@ -2934,11 +2934,28 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun plusMinusMultAnyLong(operator: String, reg1: Int, reg2: Int) {
-        TODO("Not yet implemented")
+        val left = registers.getSL(reg1)
+        val right = registers.getSL(reg2)
+        val result: Int
+        when(operator) {
+            "+" -> result = left + right
+            "-" -> result = left - right
+            "*" -> result = left * right
+            else -> throw IllegalArgumentException("operator word $operator")
+        }
+        registers.setSL(reg1, result)
     }
 
     private fun plusMinusMultConstLong(operator: String, reg1: Int, value: Int) {
-        TODO("Not yet implemented")
+        val left = registers.getSL(reg1)
+        val result: Int
+        when(operator) {
+            "+" -> result = left + value
+            "-" -> result = left - value
+            "*" -> result = left * value
+            else -> throw IllegalArgumentException("operator long $operator")
+        }
+        registers.setSL(reg1, result)
     }
 
     private fun plusMinusMultAnyLongInplace(operator: String, reg1: Int, address: Int) {
@@ -2952,7 +2969,6 @@ class VirtualMachine(irProgram: IRProgram) {
             else -> throw IllegalArgumentException("operator word $operator")
         }
         memory.setSL(address, result)
-
     }
 
     private fun plusMinusMultAnyLongSigned(operator: String, reg1: Int, reg2: Int) {

@@ -775,6 +775,33 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }
             }
+            BaseDataType.LONG -> {
+                when(valueDt.base) {
+                    BaseDataType.UBYTE, BaseDataType.BOOL -> {
+                        // ubyte to long: double sign extend
+                        val wordreg = codeGen.registers.next(IRDataType.WORD)
+                        actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
+                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.BYTE, reg1 = wordreg, reg2=tr.resultReg), null)
+                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=wordreg), null)
+                    }
+                    BaseDataType.BYTE -> {
+                        // byte to long: double sign extend
+                        val wordreg = codeGen.registers.next(IRDataType.WORD)
+                        actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
+                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = wordreg, reg2=tr.resultReg), null)
+                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=wordreg), null)
+                    }
+                    BaseDataType.UWORD -> {
+                        actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
+                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                    }
+                    BaseDataType.WORD -> {
+                        actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
+                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                    }
+                    else -> throw AssemblyError("weird cast value type ${cast.position}")
+                }
+            }
             BaseDataType.FLOAT -> {
                 actualResultFpReg2 = codeGen.registers.next(IRDataType.FLOAT)
                 when(valueDt.base) {

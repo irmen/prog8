@@ -1380,6 +1380,7 @@ internal class AssignmentAsmGen(
     }
 
     private fun optimizedPlusMinExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+        // TODO can this use the target directly as intermediate, when it's a variable?  To save the final assignRegister call.
         val dt = expr.type
         val left = expr.left
         val right = expr.right
@@ -1694,7 +1695,100 @@ internal class AssignmentAsmGen(
                 }
             }
         }
+        else if(dt.isLong) {
+            return optimizedPlusMinLongExpr(expr, target)
+        }
         return false
+    }
+
+    private fun optimizedPlusMinLongExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
+        val left = expr.left
+        val right = expr.right
+        when(right) {
+            is PtIdentifier -> {
+                if(target.kind == TargetStorageKind.VARIABLE) {
+                    asmgen.assignExpressionTo(left, target)
+                    val rightsym = asmgen.asmVariableName(right)
+                    if (expr.operator == "+") {
+                        asmgen.out("""
+                            lda  ${target.asmVarname}
+                            clc
+                            adc  $rightsym
+                            sta  ${target.asmVarname}
+                            lda  ${target.asmVarname}+1
+                            adc  $rightsym+1
+                            sta  ${target.asmVarname}+1
+                            lda  ${target.asmVarname}+2
+                            adc  $rightsym+2
+                            sta  ${target.asmVarname}+2
+                            lda  ${target.asmVarname}+3
+                            adc  $rightsym+3
+                            sta  ${target.asmVarname}+3""")
+                    } else {
+                        asmgen.out("""
+                            lda  ${target.asmVarname}
+                            sec
+                            sbc  $rightsym
+                            sta  ${target.asmVarname}
+                            lda  ${target.asmVarname}+1
+                            sbc  $rightsym+1
+                            sta  ${target.asmVarname}+1
+                            lda  ${target.asmVarname}+2
+                            sbc  $rightsym+2
+                            sta  ${target.asmVarname}+2
+                            lda  ${target.asmVarname}+3
+                            sbc  $rightsym+3
+                            sta  ${target.asmVarname}+3""")
+                    }
+                    return true
+                } else {
+                    TODO("add/subtract long ${target.position} - use simple expressions and temporary variables for now")
+                }
+            }
+            is PtNumber -> {
+                val hex = right.number.toInt().toString(16).padStart(8, '0')
+                if (target.kind == TargetStorageKind.VARIABLE) {
+                    asmgen.assignExpressionTo(left, target)
+                    if (expr.operator == "+") {
+                        asmgen.out("""
+                            lda  ${target.asmVarname}
+                            clc
+                            adc  #$${hex.substring(6,8)}
+                            sta  ${target.asmVarname}
+                            lda  ${target.asmVarname}+1
+                            adc  #$${hex.substring(4, 6)}
+                            sta  ${target.asmVarname}+1
+                            lda  ${target.asmVarname}+2
+                            adc  #$${hex.substring(2, 4)}
+                            sta  ${target.asmVarname}+2
+                            lda  ${target.asmVarname}+3
+                            adc  #$${hex.take(2)}
+                            sta  ${target.asmVarname}+3""")
+                    } else {
+                        asmgen.out("""
+                            lda  ${target.asmVarname}
+                            sec
+                            sbc  #$${hex.substring(6, 8)}
+                            sta  ${target.asmVarname}
+                            lda  ${target.asmVarname}+1
+                            sbc  #$${hex.substring(4, 6)}
+                            sta  ${target.asmVarname}+1
+                            lda  ${target.asmVarname}+2
+                            sbc  #$${hex.substring(2, 4)}
+                            sta  ${target.asmVarname}+2
+                            lda  ${target.asmVarname}+3
+                            sbc  #$${hex.take(2)}
+                            sta  ${target.asmVarname}+3""")
+                    }
+                    return true
+                } else {
+                    TODO("add/subtract long ${target.position} - use simple expressions and temporary variables for now")
+                }
+            }
+            else -> {
+                TODO("add/subtract long ${target.position} - use simple expressions and temporary variables for now")
+            }
+        }
     }
 
     private fun optimizedPointerIndexPlusMinusByteIntoA(value: PtExpression, operator: String, mem: PtMemoryByte): Boolean {
@@ -2587,6 +2681,11 @@ $endLabel""")
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                         asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
                     }
+                    BaseDataType.LONG -> {
+                        asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
+                        asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
+                        asmgen.signExtendLongVariableMsw(targetAsmVarName, BaseDataType.WORD)
+                    }
                     BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
@@ -2643,6 +2742,14 @@ $endLabel""")
                     }
                     BaseDataType.UWORD, BaseDataType.POINTER -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
+                    }
+                    BaseDataType.LONG -> {
+                        asmgen.out("""
+                            lda  $sourceAsmVarName
+                            sta  $targetAsmVarName
+                            lda  $sourceAsmVarName+1
+                            sta  $targetAsmVarName+1""")
+                        asmgen.signExtendLongVariableMsw(targetAsmVarName, BaseDataType.WORD)
                     }
                     BaseDataType.FLOAT -> {
                         asmgen.out("""

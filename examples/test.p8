@@ -37,6 +37,28 @@ main {
         txt.print_ulhex(mklong(cx16.r2L,cx16.r3L,cx16.r4L,cx16.r5L), true)
         txt.nl()
 
+        long @shared lv = 111111111
+        long @shared lv2 = 1000000
+        word @shared ww = 1000
+        byte @shared bb = 1
+        long @shared result = lv + lv2
+        txt.print_l(result)
+        txt.spc()
+        result = lv + (ww as long)                ; TODO automatic cast
+        txt.print_l(result)
+        txt.spc()
+        result = lv + (bb as long)                ; TODO automatic cast
+        txt.print_l(result)
+        txt.nl()
+        txt.print_l(lv)
+        txt.spc()
+        txt.print_l(lv + 1)
+        txt.spc()
+        txt.print_l(lv + 1000)
+        txt.spc()
+        txt.print_l(lv + 1000000)
+        txt.nl()
+
 ;        long[] array = [-1999888777, -999, 42, 0, 77, 123456, 999999999]
 ;        long xx
 ;        for xx in array {
