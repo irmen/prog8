@@ -40,6 +40,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "pokef" -> funcPoke(call, IRDataType.FLOAT)
             "pokemon" -> funcPokemon(call)
             "mkword" -> funcMkword(call)
+            "mklong", "mklong2" -> funcMklong(call)
             "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword" -> funcClamp(call)
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(call)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(call)
@@ -281,6 +282,52 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             addInstr(result, IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=resultReg, reg2 = msbTr.resultReg, reg3 = lsbTr.resultReg), null)
         }
         return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
+    }
+
+    private fun funcMklong(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultReg = codeGen.registers.next(IRDataType.LONG)
+        if(call.args.size==2) {
+            // mklong2(word, word)
+            if((call.args[0] as? PtNumber)?.number == 0.0) {
+                // msw is 0, use EXT
+                val lswTr = exprGen.translateExpression(call.args[1])
+                addToResult(result, lswTr, lswTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.WORD, reg1=resultReg, reg2 = lswTr.resultReg), null)
+            } else {
+                val mswTr = exprGen.translateExpression(call.args[0])
+                addToResult(result, mswTr, mswTr.resultReg, -1)
+                val lswTr = exprGen.translateExpression(call.args[1])
+                addToResult(result, lswTr, lswTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.CONCAT, IRDataType.WORD, reg1=resultReg, reg2 = mswTr.resultReg, reg3 = lswTr.resultReg), null)
+            }
+        } else {
+            // mklong(msb, b3, b2, lsb)
+            if((call.args[0] as? PtNumber)?.number == 0.0 && (call.args[1] as? PtNumber)?.number == 0.0 && (call.args[2] as? PtNumber)?.number == 0.0) {
+                // use EXT.b + EXT.w
+                val lsbTr = exprGen.translateExpression(call.args[3])
+                addToResult(result, lsbTr, lsbTr.resultReg, -1)
+                val wordReg = codeGen.registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=wordReg, reg2 = lsbTr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.WORD, reg1=resultReg, reg2 = wordReg), null)
+            } else {
+                val msbTr = exprGen.translateExpression(call.args[0])
+                val b2Tr = exprGen.translateExpression(call.args[1])
+                val b1Tr = exprGen.translateExpression(call.args[2])
+                val lsbTr = exprGen.translateExpression(call.args[3])
+                addToResult(result, msbTr, msbTr.resultReg, -1)
+                addToResult(result, b2Tr, b2Tr.resultReg, -1)
+                addToResult(result, b1Tr, b1Tr.resultReg, -1)
+                addToResult(result, lsbTr, lsbTr.resultReg, -1)
+                val lswReg = codeGen.registers.next(IRDataType.WORD)
+                val mswReg = codeGen.registers.next(IRDataType.WORD)
+                addInstr(result, IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=mswReg, reg2 = msbTr.resultReg, reg3 = b2Tr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1=lswReg, reg2 = b1Tr.resultReg, reg3 = lsbTr.resultReg), null)
+                addInstr(result, IRInstruction(Opcode.CONCAT, IRDataType.WORD, reg1=resultReg, reg2 = mswReg, reg3 = lswReg), null)
+            }
+
+        }
+        return ExpressionCodeResult(result, IRDataType.LONG, resultReg, -1)
     }
 
     private fun funcClamp(call: PtBuiltinFunctionCall): ExpressionCodeResult {

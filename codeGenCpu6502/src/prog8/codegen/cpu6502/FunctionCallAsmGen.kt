@@ -206,8 +206,11 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
             is PtBuiltinFunctionCall -> {
                 if (arg.name in arrayOf("lsb", "msb", "lsw", "msw"))
                     return usesOtherRegistersWhileEvaluating(arg.args[0])
-                if (arg.name == "mkword")
+                if (arg.name == "mkword" || arg.name == "mklong2")
                     return usesOtherRegistersWhileEvaluating(arg.args[0]) || usesOtherRegistersWhileEvaluating(arg.args[1])
+                if (arg.name == "mklong")
+                    return usesOtherRegistersWhileEvaluating(arg.args[0]) || usesOtherRegistersWhileEvaluating(arg.args[1]) ||
+                           usesOtherRegistersWhileEvaluating(arg.args[2]) || usesOtherRegistersWhileEvaluating(arg.args[3])
                 return !arg.isSimple()
             }
             is PtAddressOf -> false

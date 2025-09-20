@@ -26,6 +26,8 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()} },
     "msw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 16 and 65535).toDouble()} },
     "mkword" to ::builtinMkword,
+    "mklong" to ::builtinMklong,
+    "mklong2" to ::builtinMklong,
     "clamp__ubyte" to ::builtinClampUByte,
     "clamp__byte" to ::builtinClampByte,
     "clamp__uword" to ::builtinClampUWord,
@@ -201,6 +203,29 @@ private fun builtinMkword(args: List<Expression>, position: Position, program: P
     val constLsb = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = (constMsb.number.toInt() shl 8) or constLsb.number.toInt()
     return NumericLiteral(BaseDataType.UWORD, result.toDouble(), position)
+}
+
+private fun builtinMklong(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    when(args.size) {
+        2 -> {
+            val constMsw = args[0].constValue(program) ?: throw NotConstArgumentException()
+            val constLsw = args[1].constValue(program) ?: throw NotConstArgumentException()
+            val result = (constMsw.number.toInt() shl 16) or constLsw.number.toInt()
+            return NumericLiteral(BaseDataType.LONG, result.toDouble(), position)
+        }
+        4 -> {
+            val constMsb = args[0].constValue(program) ?: throw NotConstArgumentException()
+            val constB2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+            val constB1 = args[2].constValue(program) ?: throw NotConstArgumentException()
+            val constLsb = args[3].constValue(program) ?: throw NotConstArgumentException()
+            val result = (constMsb.number.toInt() shl 24) or
+                    (constB2.number.toInt() shl 16) or
+                    (constB1.number.toInt() shl 8) or
+                    constLsb.number.toInt()
+            return NumericLiteral(BaseDataType.LONG, result.toDouble(), position)
+        }
+        else -> throw SyntaxError("mkword requires msw and lsw, or msb,b2,b1,lsb arguments", position)
+    }
 }
 
 private fun builtinSgn(args: List<Expression>, position: Position, program: Program): NumericLiteral {

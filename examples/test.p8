@@ -14,53 +14,68 @@ main {
 ;    }
 
     sub start() {
-        long[] array = [-1999888777, -999, 42, 0, 77, 123456, 999999999]
-        long xx
-        for xx in array {
-            txt.print_uw(msw(xx))
-            txt.spc()
-            txt.print_uw(lsw(xx))
-            txt.nl()
-        }
+        txt.print_l(mklong2($a000,$bbbb))
+        txt.spc()
+        txt.print_l(mklong(9,8,7,6))
         txt.nl()
-        array[2] = 0
-        array[3] = 222222222
-        array[4] = bignum
-        array[5]++
-        array[6]--
+        cx16.r8 = $a000
+        cx16.r9 = $bbbb
+        cx16.r2L = 9
+        cx16.r3L = 8
+        cx16.r4L = 7
+        cx16.r5L = 6
+        txt.print_l(mklong2(cx16.r8, cx16.r9))
+        txt.spc()
+        txt.print_l(mklong(cx16.r2L,cx16.r3L,cx16.r4L,cx16.r5L))
+        txt.nl()
 
-        txt.print_l(-1999888777)
-        txt.spc()
-        txt.print_l(-999)
-        txt.spc()
-        txt.print_l(-42)
-        txt.spc()
-        txt.print_l(0)
-        txt.spc()
-        txt.print_l(bignum)
-        txt.nl()
-        txt.print_l(bignum2)
-        txt.nl()
-        txt.print_l(-bignum2)
-        txt.nl()
-        bignum2 = -bignum2
-        bignum2++
-        bignum2++
-        txt.print_l(bignum2)
-        txt.nl()
-        bignum2--
-        bignum2--
-        txt.print_l(bignum2)
-        txt.spc()
-        txt.print_l(bignum)
-        txt.nl()
-        txt.nl()
-        bignum2 += bignum
-        txt.print_l(bignum2)
-        txt.nl()
-        bignum2 -= bignum
-        txt.print_l(bignum2)
-        txt.nl()
+;        long[] array = [-1999888777, -999, 42, 0, 77, 123456, 999999999]
+;        long xx
+;        for xx in array {
+;            txt.print_uw(msw(xx))
+;            txt.spc()
+;            txt.print_uw(lsw(xx))
+;            txt.nl()
+;        }
+;        txt.nl()
+;        array[2] = 0
+;        array[3] = 222222222
+;        array[4] = bignum
+;        array[5]++
+;        array[6]--
+;
+;        txt.print_l(-1999888777)
+;        txt.spc()
+;        txt.print_l(-999)
+;        txt.spc()
+;        txt.print_l(-42)
+;        txt.spc()
+;        txt.print_l(0)
+;        txt.spc()
+;        txt.print_l(bignum)
+;        txt.nl()
+;        txt.print_l(bignum2)
+;        txt.nl()
+;        txt.print_l(-bignum2)
+;        txt.nl()
+;        bignum2 = -bignum2
+;        bignum2++
+;        bignum2++
+;        txt.print_l(bignum2)
+;        txt.nl()
+;        bignum2--
+;        bignum2--
+;        txt.print_l(bignum2)
+;        txt.spc()
+;        txt.print_l(bignum)
+;        txt.nl()
+;        txt.nl()
+;        bignum2 += bignum
+;        txt.print_l(bignum2)
+;        txt.nl()
+;        bignum2 -= bignum
+;        txt.print_l(bignum2)
+;        txt.nl()
 
 ;        ^^Node test = []
 ;

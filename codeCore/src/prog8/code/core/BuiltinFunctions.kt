@@ -117,6 +117,8 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "msb"           to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
     "msw"           to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
     "mkword"        to FSignature(true, BaseDataType.UWORD, FParam("msb", BaseDataType.UBYTE), FParam("lsb", BaseDataType.UBYTE)),
+    "mklong"        to FSignature(true, BaseDataType.LONG, FParam("msb", BaseDataType.UBYTE), FParam("b2", BaseDataType.UBYTE), FParam("b1", BaseDataType.UBYTE), FParam("lsb", BaseDataType.UBYTE)),
+    "mklong2"       to FSignature(true, BaseDataType.LONG, FParam("msw", BaseDataType.UWORD), FParam("lsw", BaseDataType.UWORD)),
     "clamp"         to FSignature(true, null, FParam("value", BaseDataType.BYTE), FParam("minimum", BaseDataType.BYTE), FParam("maximum", BaseDataType.BYTE)),
     "clamp__byte"   to FSignature(true, BaseDataType.BYTE, FParam("value", BaseDataType.BYTE), FParam("minimum", BaseDataType.BYTE), FParam("maximum", BaseDataType.BYTE)),
     "clamp__ubyte"  to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UBYTE), FParam("minimum", BaseDataType.UBYTE), FParam("maximum", BaseDataType.UBYTE)),

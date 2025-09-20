@@ -32,6 +32,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "msb" -> funcMsb(fcall, resultRegister)
             "lsb" -> funcLsb(fcall, resultRegister)
             "mkword" -> funcMkword(fcall, resultRegister)
+            "mklong", "mklong2" -> funcMklong(fcall)  // result is in R0:R1
             "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword" -> funcClamp(fcall, resultRegister)
             "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(fcall, resultRegister)
             "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(fcall, resultRegister)
@@ -1112,6 +1113,40 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             asmgen.assignRegister(RegisterOrPair.AY, targetReg)
         } else {
             throw AssemblyError("max float not supported")
+        }
+    }
+
+    private fun funcMklong(fcall: PtBuiltinFunctionCall) {
+        // result long in R0:R1   (r0=lsw, r1=msw)
+
+        fun isArgRegister(expression: PtExpression, reg: RegisterOrPair): Boolean {
+            if(expression !is PtIdentifier)
+                return false
+            return expression.name.startsWith("cx16.${reg.name.lowercase()}")
+        }
+
+        if(fcall.args.size==2) {
+            // mklong2(msw, lsw)
+            if(isArgRegister(fcall.args[0], RegisterOrPair.R0) || isArgRegister(fcall.args[0], RegisterOrPair.R1) ||
+                isArgRegister(fcall.args[1], RegisterOrPair.R0) || isArgRegister(fcall.args[1], RegisterOrPair.R1)) {
+                error("cannot use R0 and/or R1 as arguments for mklong2 because the result should go into R0:R1 ${fcall.position}")
+            } else {
+                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r1", DataType.UWORD)
+                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r0", DataType.UWORD)
+            }
+        } else {
+            // mklong(msb, b2, b1, lsb)
+            if(isArgRegister(fcall.args[0], RegisterOrPair.R0) || isArgRegister(fcall.args[0], RegisterOrPair.R1) ||
+                isArgRegister(fcall.args[1], RegisterOrPair.R0) || isArgRegister(fcall.args[1], RegisterOrPair.R1) ||
+                isArgRegister(fcall.args[2], RegisterOrPair.R0) || isArgRegister(fcall.args[2], RegisterOrPair.R1) ||
+                isArgRegister(fcall.args[3], RegisterOrPair.R0) || isArgRegister(fcall.args[3], RegisterOrPair.R1)) {
+                error("cannot use R0 and/or R1 as arguments for mklong because the result should go into R0:R1 ${fcall.position}")
+            } else {
+                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r1H", DataType.UBYTE)
+                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r1L", DataType.UBYTE)
+                assignAsmGen.assignExpressionToVariable(fcall.args[2], "cx16.r0H", DataType.UBYTE)
+                assignAsmGen.assignExpressionToVariable(fcall.args[3], "cx16.r0L", DataType.UBYTE)
+            }
         }
     }
 

@@ -653,6 +653,10 @@ internal class AssignmentAsmGen(
                         else -> throw AssemblyError("str return value type mismatch with target")
                     }
                 }
+                returnDt== BaseDataType.LONG -> {
+                    // longs are in R0:R1 (r0=lsw, r1=msw)
+                    assignRegisterLong(target, RegisterOrPair.R0, RegisterOrPair.R1)
+                }
                 returnDt==BaseDataType.FLOAT -> {
                     // float result from function sits in FAC1
                     assignFAC1float(target)
@@ -3503,6 +3507,29 @@ $endLabel""")
                 asmgen.out("  stz  $vreg+1")
             else
                 asmgen.out("  lda  #0 |  sta  $vreg+1")
+        }
+    }
+
+    internal fun assignRegisterLong(target: AsmAssignTarget, lsw: RegisterOrPair, msw: RegisterOrPair) {
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                asmgen.out("""
+                    lda  cx16.r0L
+                    sta  ${target.asmVarname}
+                    lda  cx16.r0H
+                    sta  ${target.asmVarname}+1
+                    lda  cx16.r1L
+                    sta  ${target.asmVarname}+2
+                    lda  cx16.r1H
+                    sta  ${target.asmVarname}+3""")
+            }
+            TargetStorageKind.ARRAY -> {
+                TODO("assign 32 bits int in R0:R1 into array ${target.position}")
+            }
+            TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+            TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+            TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+            TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
 
