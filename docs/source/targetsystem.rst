@@ -197,6 +197,7 @@ These routines are::
     sys.set_irq(uword handler_address)
     sys.set_rasterirq(uword handler_address, uword rasterline)
     sys.update_rasterirq(uword handler_address, uword rasterline)
+    sys.set_rasterline(uword rasterline)
     sys.restore_irq()     ; set everything back to the systems default irq handler
 
 The IRQ handler routine must return a boolean value (0 or 1) in the A register:

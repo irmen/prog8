@@ -1,9 +1,12 @@
 ; Simple routines to control sprites.
 
 ; They're not written for high performance, but for simplicity.
-; That's why they control 1 sprite at a time. \
+; That's why they control 1 sprite at a time.
 ; The exceptions are pos_batch() and pos_batch_split(); these are quite efficient
 ; to update sprite positions of multiple sprites in one call.
+
+; HIGH PERFORMANCE sprite handling would probably have a copy of the sprite registers for each sprite instead,
+; and a unrolled loop that copies those into the VERA registers when needed.
 
 ; note: sprites z-order will be in front of all layers.
 ; note: collision mask is not supported here yet.

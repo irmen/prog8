@@ -112,7 +112,7 @@ Future Things and Ideas
 
 IR/VM
 -----
-- is it possible to use LOADFIELD/STOREFIELD instructions more?
+- is it possible to use LOADFIELD/STOREFIELD instructions even more?
 - make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
     FUNCTION_PARAMS,     // For passing function parameters
@@ -161,7 +161,6 @@ IR/VM
 Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
-- See if the raster interrupt handler on the C64 can be tweaked to be a more stable raster irq
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 - c128 target: make syslib more complete (missing kernal routines)?
@@ -172,7 +171,7 @@ Optimizations
 
 - check that expressions such as  targetvar = value1 + value2  , targetvar = value1 ^ value2   etc.   use the target variable directly and not use needless temp var / registers
 - Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
-- Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappered. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
+- Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - Compare output of some Oscar64 samples to what prog8 does for the equivalent code (see https://github.com/drmortalwombat/OscarTutorials/tree/main and https://github.com/drmortalwombat/oscar64/tree/main/samples)

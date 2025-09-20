@@ -567,9 +567,18 @@ asmsub  set_rasterirq(uword handler @AY, uword rasterpos @R0) clobbers(A) {
         sei
         sta  user_vector
         sty  user_vector+1
+
+        lda  #%01111111
+        sta  c64.CIA1ICR    ; "switch off" interrupts signals from cia-1
+        sta  c64.CIA2ICR    ; "switch off" interrupts signals from cia-2
+        lda  c64.CIA1ICR    ; ack previous irq
+        lda  c64.CIA2ICR    ; ack previous irq
         lda  cx16.r0
         ldy  cx16.r0+1
-        jsr  _setup_raster_irq
+        jsr  sys.set_rasterline
+        lda  #%00000001
+        sta  c64.IREQMASK   ; enable raster interrupt signals from vic
+
         lda  #<_raster_irq_handler
         sta  cbm.CINV
         lda  #>_raster_irq_handler
@@ -601,26 +610,7 @@ _run_custom
 user_vector	.word ?
 		.send BSS
 
-
-_setup_raster_irq
-		pha
-		lda  #%01111111
-		sta  c64.CIA1ICR    ; "switch off" interrupts signals from cia-1
-		sta  c64.CIA2ICR    ; "switch off" interrupts signals from cia-2
-		and  c64.SCROLY
-		sta  c64.SCROLY     ; clear most significant bit of raster position
-		lda  c64.CIA1ICR    ; ack previous irq
-		lda  c64.CIA2ICR    ; ack previous irq
-		pla
-		sta  c64.RASTER     ; set the raster line number where interrupt should occur
-		cpy  #0
-		beq  +
-		lda  c64.SCROLY
-		ora  #%10000000
-		sta  c64.SCROLY     ; set most significant bit of raster position
-+		lda  #%00000001
-		sta  c64.IREQMASK   ; enable raster interrupt signals from vic
-		rts
+        ; !notreached!
 	}}
 }
 
@@ -634,9 +624,23 @@ _setup_raster_irq
             sta  sys.set_rasterirq.user_vector
             sty  sys.set_rasterirq.user_vector+1
             lda  cx16.r0L
-            sta  c64.RASTER
-            ; TODO set high bit
+            ldy  cx16.r0H
+            jsr  sys.set_rasterline
             plp
+            rts
+        }}
+    }
+
+    asmsub  set_rasterline(uword line @AY) {
+        ; -- only set a new raster line for the raster IRQ
+        %asm {{
+            sta  c64.RASTER     ; set the raster line number where interrupt should occur
+            lda  c64.SCROLY
+            and  #%01111111
+            cpy  #0
+            beq  +
+            ora  #%10000000
+    +       sta  c64.SCROLY     ; clear most significant bit of raster position
             rts
         }}
     }

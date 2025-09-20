@@ -56,7 +56,7 @@ irq {
             sprites.set_sprites_Y(sprites_Y)
         }
 
-        sys.update_rasterirq(&irq.multiplexer, sprites_Y+1)
+        sys.set_rasterline(sprites_Y+1)
         c64.EXTCOL--
         return system_irq
     }
