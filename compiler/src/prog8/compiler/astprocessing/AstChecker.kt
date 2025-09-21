@@ -2260,6 +2260,20 @@ internal class AstChecker(private val program: Program,
                 }
                 return err("invalid word array initialization value ${value.type}, expected $targetDt")
             }
+            targetDt.isPointerArray -> {
+                val arraySpecSize = arrayspec.constIndex()
+                val arraySize = value.value.size
+                val maxLength = if(targetDt.isSplitWordArray) 256 else 128
+                if(arraySpecSize!=null && arraySpecSize>0) {
+                    if(arraySpecSize>maxLength)
+                        return err("array length must be 1-$maxLength")
+                    val expectedSize = arrayspec.constIndex() ?: return err("array size specifier must be constant integer value")
+                    if (arraySize != expectedSize)
+                        return err("array size mismatch (expecting $expectedSize, got $arraySize)")
+                    return true
+                }
+                return err("invalid array size, must be 1-$maxLength")
+            }
             targetDt.isFloatArray -> {
                 // value may be either a single float, or a float arraysize
                 if(value.type istype targetDt) {

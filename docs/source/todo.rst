@@ -1,66 +1,11 @@
 TODO
 ====
 
-not all source lines are correctly reported in the IR file,
-for example the below subroutine only shows the sub() line::
-
-    sub two() {
-        cx16.r0 = peekw(ww + cx16.r0L * 2)
-    }
-
-and for example the below code omits line 5::
-
-    [examples/test.p8: line 4 col 6-8]  sub start() {
-    [examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
-    [examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
-    [examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
-    [examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
-
-
-    %option enable_floats
-
-    main {
-        sub start() {
-            cx16.r1 = select1()
-            cx16.r2 = select2()
-            cx16.r3 = select3()
-            cx16.r4 = select4()
-            cx16.r5 = select5()
-        }
-
-        sub select1() -> uword {
-            cx16.r0L++
-            return 2000
-        }
-
-        sub select2() -> str {
-            cx16.r0L++
-            return 2000
-        }
-
-        sub select3() -> ^^ubyte {
-            cx16.r0L++
-            return 2000
-        }
-
-        sub select4() -> ^^bool {
-            cx16.r0L++
-            return 2000
-        }
-
-        sub select5() -> ^^float {
-            cx16.r0L++
-            return 2000
-        }
-    }
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
-- optimize addUnsignedByteOrWordToAY in PointerAssignmentsGen a bit more
 - optimize the float copying in assignIndexedPointer() (also word?)
 - implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - support @nosplit pointer arrays?
@@ -73,17 +18,7 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- optimization conflict detection:
-    1 fun applyModificationsSafely(modifications: List<IAstModification>) {
-    2     // Can check for conflicts before applying
-    3     modifications.groupBy { getTargetNode(it) }.forEach { target, mods ->
-    4         if (mods.size > 1) {
-    5             // Handle or report conflicting modifications
-    6         }
-    7     }
-    8     modifications.forEach { it.perform() }
-    9 }
-- improve ANTLR grammar with better error handling (according to Qwen AI)
+- improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - allow memory() to occur in array initializer
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1
@@ -141,10 +76,6 @@ IR/VM
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
-- sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
-     sub start() {
-     cx16.r0L = cx16.r1 as ubyte
-     cx16.r0sL = cx16.r1s as byte }
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
 - apparently for SSA form, the IRCodeChunk is not a proper "basic block" yet because the last operation should be a branch or return, and no other branches
@@ -156,6 +87,64 @@ IR/VM
 - the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...?
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change
+- sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
+     sub start() {
+     cx16.r0L = cx16.r1 as ubyte
+     cx16.r0sL = cx16.r1s as byte }
+     more detailed example:
+
+not all source lines are correctly reported in the IR file,
+for example the below subroutine only shows the sub() line::
+
+    sub two() {
+        cx16.r0 = peekw(ww + cx16.r0L * 2)
+    }
+
+and for example the below code omits line 5::
+
+    [examples/test.p8: line 4 col 6-8]  sub start() {
+    [examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
+    [examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
+    [examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
+    [examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
+
+
+    %option enable_floats
+
+    main {
+        sub start() {
+            cx16.r1 = select1()
+            cx16.r2 = select2()
+            cx16.r3 = select3()
+            cx16.r4 = select4()
+            cx16.r5 = select5()
+        }
+
+        sub select1() -> uword {
+            cx16.r0L++
+            return 2000
+        }
+
+        sub select2() -> str {
+            cx16.r0L++
+            return 2000
+        }
+
+        sub select3() -> ^^ubyte {
+            cx16.r0L++
+            return 2000
+        }
+
+        sub select4() -> ^^bool {
+            cx16.r0L++
+            return 2000
+        }
+
+        sub select5() -> ^^float {
+            cx16.r0L++
+            return 2000
+        }
+    }
 
 
 Libraries

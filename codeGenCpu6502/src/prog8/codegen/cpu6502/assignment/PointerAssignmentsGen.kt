@@ -499,10 +499,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     private fun addUnsignedByteOrWordToAY(value: PtExpression, scale: Int?) {
-        // TODO generate more optimal code from this, a bit too much stack and temporary variable juggling seems to be done in some easy cases...
 
         fun complicatedFallback() {
-            // slow fallback routine that can deal with any expression for value
+            // slow fallback routine that can deal with any expression for value (const number and variable have been dealt with already)
 
             fun restoreAYandAddAsmVariable(varname: String, isByte: Boolean) {
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)       // msb

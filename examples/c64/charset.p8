@@ -27,11 +27,9 @@ charset {
         ; copies the charset from ROM to RAM so we can modify it
 
         sys.set_irqd()
-        ubyte bank = @($0001)
-        @($0001) = bank & %11111011     ; enable CHAREN, so the character rom accessible at $d000
+        c64.banks(%011)  ; enable CHAREN, so the character rom accessible at $d000
         sys.memcopy($d000, CHARSET, 256*8*2)  ; copy the charset to RAM
-
-        @($0001) = bank         ; reset previous memory banking
+        c64.banks(%111)  ; enable I/O registers again
         sys.clear_irqd()
     }
 

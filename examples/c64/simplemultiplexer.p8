@@ -15,12 +15,12 @@ main {
         for i in 0 to 7 {
             c64.set_sprite_ptr(i, &sprites.balloonsprite)           ; alternatively, set directly:  c64.SPRPTR[i] = $0a00 / 64
         }
-        sprites.set_sprites_X(sprites.sprites_X_start)
+        sprites.set_sprites_X(0)
         sprites.set_sprites_Y(sprites.sprites_Y_start)
         c64.SPCOL[5] = 8   ; change blue balloon to different color
 
         c64.SPENA = 255       ; enable all sprites
-        irq.sprites_X = sprites.sprites_X_start
+        irq.first_sprite_X = 0
         irq.sprites_Y = sprites.sprites_Y_start
         sys.set_rasterirq(&irq.multiplexer, irq.sprites_Y+1)
 
@@ -30,7 +30,8 @@ main {
 }
 
 irq {
-    ubyte sprites_X, sprites_Y
+    uword first_sprite_X
+    ubyte sprites_Y
 
     ; Here is the actual multiplexing routine.
     ; it's a raster irq just after the start of the sprite,
@@ -45,12 +46,14 @@ irq {
         if sprites_Y > (255-24-1) {
             cx16.r2 = c64.RASTER + 23
             sprites_Y = sprites.sprites_Y_start
-            sprites_X++
+            first_sprite_X++
+            if first_sprite_X >= 340
+                first_sprite_X =0
             sprites.set_sprites_Y(sprites_Y)
             while c64.RASTER != cx16.r2 {
                 ; wait until raster line after sprite has been fully drawn (at least 24 lines down)
             }
-            sprites.set_sprites_X(sprites_X)        ; we can now update the X positions without risk of sprite tearing
+            sprites.set_sprites_X(first_sprite_X)        ; we can now update the X positions without risk of sprite tearing
             system_irq = true
         } else {
             sprites.set_sprites_Y(sprites_Y)
@@ -64,7 +67,6 @@ irq {
 }
 
 sprites {
-    const ubyte sprites_X_start = 60
     const ubyte sprites_Y_start = 55
 
     sub set_sprites_Y(ubyte y) {
@@ -73,10 +75,14 @@ sprites {
         }
     }
 
-    sub set_sprites_X(ubyte x) {
+    sub set_sprites_X(uword x) {
         for cx16.r0L in 0 to 14 step 2 {
-            c64.SPXY[cx16.r0L] = x
             x += 20
+            if x >= 340
+                x -= 340
+            c64.SPXY[cx16.r0L] = lsb(x)
+            cx16.r1L = msb(x)>>1
+            ror(c64.MSIGX)      ; rotata that MSB bit of the sprite X position into the MSB sprite X register for each sprite
         }
     }
 
