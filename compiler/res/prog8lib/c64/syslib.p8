@@ -713,6 +713,26 @@ _loop       lda  P8ZP_SCRATCH_W1
         }}
     }
 
+    asmsub waitrasterline(uword line @AY) {
+        ; -- CPU busy wait until the given raster line is reached
+        %asm {{
+            cpy  #0
+            bne  _larger
+-           cmp  c64.RASTER
+            bne  -
+            bit  c64.SCROLY
+            bmi  -
+            rts
+_larger
+            cmp  c64.RASTER
+            bne  _larger
+            bit  c64.SCROLY
+            bpl  _larger
+            rts
+        }}
+    }
+
+
     asmsub internal_stringcopy(str source @R0, str target @AY) clobbers (A,Y) {
         ; Called when the compiler wants to assign a string value to another string.
         %asm {{

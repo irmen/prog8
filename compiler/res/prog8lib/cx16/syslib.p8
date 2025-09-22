@@ -1781,6 +1781,26 @@ _loop       lda  P8ZP_SCRATCH_W1
         }}
     }
 
+    asmsub waitrasterline(uword line @AY) {
+        ; -- CPU busy wait until the given raster line is reached
+        %asm {{
+            cpy  #0
+            bne  _larger
+-           cmp  cx16.VERA_SCANLINE_L
+            bne  -
+            bit  cx16.VERA_IEN
+            bvs  -
+            rts
+_larger
+            cmp  cx16.VERA_SCANLINE_L
+            bne  _larger
+            bit  cx16.VERA_IEN
+            bvc  _larger
+            rts
+        }}
+    }
+
+
     asmsub internal_stringcopy(str source @R0, str target @AY) clobbers (A,Y) {
         ; Called when the compiler wants to assign a string value to another string.
         %asm {{

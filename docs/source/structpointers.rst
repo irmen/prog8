@@ -19,18 +19,18 @@ Structs and Pointers
     if it is a pointer to a struct type.
     The compiler tries its best to give a descriptive error message but sometimes there is still a
     parser limitation that has to be worked around at the moment. For example, this pointer arithmetic
-    indexing syntax is not supported right now and will result in a parse error::
+    indexing syntax is not supported right now *to assign to* and will result in a parse error (note that
+    using it as an expression value does work correctly)::
 
         ^^Node  np
-        np[2].field = 9999
+        np[2].field = 9999          ; cannot assign to this yet
+        ubyte value = np[2].field   ; this does work though.
 
     To work around this (and similar) cases you'll have to break up the expression in multiple steps,
     in this case something like::
 
-        ^^Node thirdnode = &&np[2]
-        thirdnode.field = 9999
-
-    *Note: this example is not regular array indexing syntax, it's pointer arithmetic by indexing on the pointer itself. Regular array syntax is supported just fine for arrays containing pointers etc.*
+        ^^Node thenode = &&np[2]
+        thenode.field = 9999
 
 
 

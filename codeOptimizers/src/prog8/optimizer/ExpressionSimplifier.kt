@@ -427,13 +427,18 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
         }
 
-        fun isPowerOfTwo(number: Double): Boolean {
+//        fun isPowerOfTwo(number: Double): Boolean {
+//            val intValue = number.toInt()
+//            return intValue > 0 && (intValue and (intValue - 1)) == 0
+//        }
+
+        fun isFactorOf256(number: Double): Boolean {
             val intValue = number.toInt()
-            return intValue > 0 && (intValue and (intValue - 1)) == 0
+            return intValue > 0 && (intValue and (intValue shl 8)) == 0
         }
 
         if (leftDt.isUnsignedWord && rightVal!=null) {
-            if ((rightVal.number == 255.0 && expr.operator == ">") || (rightVal.number == 256.0 && expr.operator == ">=")) {
+            if (expr.operator == ">" && rightVal.number == 255.0 || expr.operator == ">=" && rightVal.number == 256.0) {
                 // uword > 255  -->  msb(value)!=0
                 // uword >= 256 -->  msb(value)!=0
                 expr.operator = "!="
@@ -441,26 +446,53 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 expr.right = NumericLiteral(BaseDataType.UBYTE, 0.0, expr.right.position)
                 expr.linkParents(parent)
             }
-            else if(expr.operator==">=" && rightVal.number >= 256.0 && isPowerOfTwo(rightVal.number)) {
-                val msbFraction = floor(rightVal.number / 256.0)
+            else if(expr.operator==">=" && isFactorOf256(rightVal.number)) {
                 // uword >= $xx00 --> msb(value)>=xx
+                val msbFraction = floor(rightVal.number / 256.0)
                 expr.operator = ">="
                 expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
                 expr.right = NumericLiteral(BaseDataType.UBYTE, msbFraction, expr.right.position)
                 expr.linkParents(parent)
             }
-            else if(expr.operator==">" && rightVal.number >= 255.0 && isPowerOfTwo(rightVal.number+1)) {
-                val msbFraction = floor((rightVal.number+1) / 256.0)
-                // uword > $xxFF --> msb(value)>=xx
-                expr.operator = ">="
+            else if(expr.operator==">" && isFactorOf256(rightVal.number+1)) {
+                // uword > $xxFF --> msb(value)>xx
+                val msbFraction = floor((rightVal.number) / 256.0)
+                expr.operator = ">"
                 expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
                 expr.right = NumericLiteral(BaseDataType.UBYTE, msbFraction, expr.right.position)
                 expr.linkParents(parent)
             }
+            else if(expr.operator == "<" && rightVal.number == 256.0 || expr.operator == "<=" && rightVal.number == 255.0) {
+                // uword < 256  -->  msb(value)==0
+                // uword <= 255 -->  msb(value)==0
+                // OK!
+                expr.operator = "=="
+                expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
+                expr.right = NumericLiteral(BaseDataType.UBYTE, 0.0, expr.right.position)
+                expr.linkParents(parent)
+            }
+            else if(expr.operator == "<" && isFactorOf256(rightVal.number)) {
+                // uword < $xx00 --> msb(value)<xx
+                val msbFraction = floor(rightVal.number / 256.0)
+                expr.operator = "<"
+                expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
+                expr.right = NumericLiteral(BaseDataType.UBYTE, msbFraction, expr.right.position)
+                expr.linkParents(parent)
+            }
+            else if(expr.operator=="<=" && isFactorOf256(rightVal.number+1)) {
+                // uword <= $xxFF --> msb(value)<=xx
+                val msbFraction = floor((rightVal.number) / 256.0)
+                expr.operator = "<="
+                expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
+                expr.right = NumericLiteral(BaseDataType.UBYTE, msbFraction, expr.right.position)
+                expr.linkParents(parent)
+            }
+
         }
 
         return noModifications
     }
+
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         if(arrayIndexedExpression.indexer.constIndex()==0) {
