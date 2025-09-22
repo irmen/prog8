@@ -1952,7 +1952,10 @@ internal class AstChecker(private val program: Program,
                 errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
             }
         } else if(target!=null) {
-            throw FatalAstException("target is not a variable")
+            if(target is Subroutine || target is Label )
+                errors.err("cannot array index a subroutine or label directly, use an intermediate uword pointer = &symbol instead", arrayIndexedExpression.position)
+            else
+                errors.err("indexed symbol is not a suitable variable", arrayIndexedExpression.position)
         }
 
         if(arrayIndexedExpression.pointerderef!=null) {

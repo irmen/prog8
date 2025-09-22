@@ -2,16 +2,15 @@
 ; For an easy sprite multiplexer (actually, just a sprite duplicator) see the "simplemultiplexer" example.
 
 %import syslib
+%import math
+%import textio
 %option no_sysinit
 
 main {
     const ubyte NUM_SPRITES = 16
-
-    uword spritedata_base = memory("spritedata", 64*NUM_SPRITES, 64)
+    const uword spritedata_base = $3000     ; NOTE: in VIC bank 0 (and 2), the Char Rom is at $1000 so we can't store sprite data there
 
     sub start() {
-        ^^Sprite sprite
-
         ; first prepare the sprite graphics (put a different letter in each of the balloons)
         sys.set_irqd()
         c64.banks(%011)  ; enable CHAREN, so the character rom accessible at $d000 (inverse at $d400)
@@ -23,55 +22,59 @@ main {
             for cptr in 0 to 7 {
                 sprdat[7+cptr*3] = @($d400+(i+sc:'a')*$0008 + cptr)
             }
-            sprite = sprites[i]
+            ^^Sprite sprite = sprites[i]
             sprite.dataptr = lsb(spritedata_base/64) + i
         }
         c64.banks(%111)     ; enable IO registers again
         ; sys.clear_irqd()  ; do not re-enable IRQ as this will glitch the display because it interferes with raster timing
         c64.SPENA = 255    ; enable all sprites
 
-        ; Theoretically, all sprite Y values can be set in one go, and again after the last of the 8 hw sprites has started drawing, etc.
+        method1_before_each_sprite()
+
+        ; Theoretically, I think all sprite Y values can be set in one go, and again after the last of the 8 hw sprites has started drawing, etc.
         ; There's no strict need to set it right before the sprite is starting to draw. But it only saves a few cycles?
+        ; method2_after_old_sprite()
+
+    }
+
+    sub method1_before_each_sprite() {
+
+        ^^Sprite sprite
+        ubyte tt, virtual_sprite
+
         repeat {
-            c64.MSIGX = 0
-            for i in 0 to 7 {
-                sprite = sprites[i]
-                while c64.RASTER != sprite.y-4 or c64.SCROLY&$80!=0 {
-                    ; wait till line before sprite starts
-                }
+            for virtual_sprite in 0 to NUM_SPRITES-1 {
+                ubyte hw_sprite = virtual_sprite & 7
+                sprite = sprites[virtual_sprite]
+                sys.waitrasterline(sprite.y-3)      ; wait for a few lines above the sprite so we have time to set all attributes properly
                 c64.EXTCOL++
-                if sprite.x >= 256 {
-                    c64.MSIGX |= msigx[i]
-                }
-                c64.SPXY[i*2] = lsb(sprite.x)
-                c64.SPXY[i*2+1] = sprite.y
-                c64.SPCOL[i] = sprite.color
-                c64.SPRPTR[i] = sprite.dataptr
+                c64.SPXY[hw_sprite*2+1] = sprite.y
+                c64.SPXY[hw_sprite*2] = lsb(sprite.x)
+                if sprite.x >= 256
+                    c64.MSIGX |= msigx_setmask[hw_sprite]
+                else
+                    c64.MSIGX &= msigx_clearmask[hw_sprite]
+                c64.SPCOL[hw_sprite] = sprite.color
+                c64.SPRPTR[hw_sprite] = sprite.dataptr
                 c64.EXTCOL--
             }
 
-            c64.MSIGX = 0
-            for i in 0 to 7 {
-                sprite = sprites[i+8]
-                while c64.RASTER != sprite.y-4 or c64.SCROLY&$80!=0 {
-                    ; wait till line a bit before sprite starts
-                }
-                c64.EXTCOL++
-                if sprite.x >= 256 {
-                    c64.MSIGX |= msigx[i]
-                }
-                c64.SPXY[i*2] = lsb(sprite.x)
-                c64.SPXY[i*2+1] = sprite.y
-                c64.SPCOL[i] = sprite.color
-                c64.SPRPTR[i] = sprite.dataptr
-                c64.EXTCOL--
+            ; animate the sprites
+            ; TODO Y animation, sort virtual sprites by ascending Y
+            tt ++
+            ubyte st = tt
+            for virtual_sprite in 0 to NUM_SPRITES-1 {
+                sprite = sprites[virtual_sprite]
+                sprite.x = $0028 + math.sin8u(st)
+                st += 8
             }
 
             sys.waitvsync()
         }
     }
 
-    ubyte[8] msigx = [
+
+    ubyte[8] msigx_setmask = [
         %00000001,
         %00000010,
         %00000100,
@@ -79,7 +82,18 @@ main {
         %00010000,
         %00100000,
         %01000000,
-        %10000000,
+        %10000000
+    ]
+
+    ubyte[8] msigx_clearmask = [
+        %11111110,
+        %11111101,
+        %11111011,
+        %11110111,
+        %11101111,
+        %11011111,
+        %10111111,
+        %01111111
     ]
 
     struct Sprite {
@@ -90,7 +104,7 @@ main {
     }
 
 
-    ^^Sprite[NUM_SPRITES] @shared sprites = [
+    ^^Sprite[NUM_SPRITES]  sprites = [
         [0, $ff, 20, 60],
         [1, $ff, 40, 70],
         [2, $ff, 60, 80],
@@ -108,6 +122,7 @@ main {
         [15, $ff, 300, 200],
         [0, $ff, 320, 210],
     ]
+
 
     ubyte[] balloonsprite = [
         %00000000,%01111111,%00000000,
