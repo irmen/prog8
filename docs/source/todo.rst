@@ -1,8 +1,7 @@
 TODO
 ====
 
-- check that ptr array and just pointer arithmetic generate the same code when indexed
-- fix  ubyte x = sprites[i]^^.x  compiler crash
+- fix  ubyte x = sprites[i]^^.x  compiler crash  (2 times 'x')
 
 
 STRUCTS and TYPED POINTERS

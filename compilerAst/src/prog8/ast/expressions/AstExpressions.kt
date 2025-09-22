@@ -179,7 +179,12 @@ class BinaryExpression(
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(nameInSource: List<String>) = left.referencesIdentifier(nameInSource) || right.referencesIdentifier(nameInSource)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean {
+        return if(operator==".")
+            left.referencesIdentifier(nameInSource)
+        else
+            left.referencesIdentifier(nameInSource) || right.referencesIdentifier(nameInSource)
+    }
     override fun inferType(program: Program): InferredTypes.InferredType {
 
         val leftDt = left.inferType(program)
