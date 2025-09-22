@@ -91,6 +91,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator==".")
+            return noModifications
         val newExpr = applyAbsorptionLaws(expr)
         if(newExpr!=null)
             return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))

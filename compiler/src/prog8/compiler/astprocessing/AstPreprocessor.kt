@@ -174,6 +174,8 @@ class AstPreprocessor(val program: Program,
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator==".")
+            return noModifications
         if(expr.operator=="in") {
             val containment = ContainmentCheck(expr.left, expr.right, expr.position)
             return listOf(IAstModification.ReplaceNode(expr, containment, parent))

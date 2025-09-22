@@ -2552,4 +2552,23 @@ structdefs {
         a5t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value2")
         a6t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value2")
     }
+
+    test("assigning field with same name should not confuse compiler") {
+        val src="""
+main {
+
+    sub start() {
+        ubyte @shared ok = sprites[2].y    ; this one is fine...
+        ubyte @shared y = sprites[2].y     ; this used to crash
+    }
+
+    struct Sprite {
+        uword x
+        ubyte y
+    }
+
+    ^^Sprite[4] @shared sprites
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
 })

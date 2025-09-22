@@ -1,8 +1,6 @@
 TODO
 ====
 
-- fix  ubyte x = sprites[i]^^.x  compiler crash  (2 times 'x')
-
 
 STRUCTS and TYPED POINTERS
 --------------------------

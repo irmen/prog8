@@ -79,6 +79,9 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator==".")
+            return noModifications
+
         val leftDt = expr.left.inferType(program)
         val rightDt = expr.right.inferType(program)
         val leftCv = expr.left.constValue(program)

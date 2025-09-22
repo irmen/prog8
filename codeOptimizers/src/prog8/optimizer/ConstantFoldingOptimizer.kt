@@ -85,6 +85,8 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
      *        (X + c1) - c2  ->  X + (c1-c2)
      */
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator==".")
+            return noModifications
         val modifications = mutableListOf<IAstModification>()
         val leftconst = expr.left.constValue(program)
         val rightconst = expr.right.constValue(program)

@@ -153,6 +153,8 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator==".")
+            return noModifications
         if (options.compTarget.name == VMTarget.NAME)
             return noModifications
 

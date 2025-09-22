@@ -91,6 +91,8 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+        if(expr.operator==".")
+            return noModifications
         if(expr.operator=="<<" || expr.operator==">>") {
             val shifts = expr.right.constValue(program)
             if(shifts!=null) {
