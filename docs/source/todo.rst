@@ -1,7 +1,7 @@
 TODO
 ====
 
-- optimize  uword > 255  into  uword >= 256  (which should become   msb(w)!=0)   (what about signed word?)
+- check that ptr array and just pointer arithmetic generate the same code when indexed
 - fix  ubyte x = sprites[i]^^.x  compiler crash
 
 
@@ -52,6 +52,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- make MSIG instruction set flags and skip cmp #0 afterwards   (if msb(x)>0)
 - is it possible to use LOADFIELD/STOREFIELD instructions even more?
 - make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)

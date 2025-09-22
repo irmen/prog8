@@ -9,6 +9,7 @@ import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.log2
 
 
@@ -421,6 +422,38 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                         }
                     }
                 }
+            }
+        }
+
+        fun isPowerOfTwo(number: Double): Boolean {
+            val intValue = number.toInt()
+            return intValue > 0 && (intValue and (intValue - 1)) == 0
+        }
+
+        if (leftDt.isUnsignedWord && rightVal!=null) {
+            if ((rightVal.number == 255.0 && expr.operator == ">") || (rightVal.number == 256.0 && expr.operator == ">=")) {
+                // uword > 255  -->  msb(value)!=0
+                // uword >= 256 -->  msb(value)!=0
+                expr.operator = "!="
+                expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
+                expr.right = NumericLiteral(BaseDataType.UBYTE, 0.0, expr.right.position)
+                expr.linkParents(parent)
+            }
+            else if(expr.operator==">=" && rightVal.number >= 256.0 && isPowerOfTwo(rightVal.number)) {
+                val msbFraction = floor(rightVal.number / 256.0)
+                // uword >= $xx00 --> msb(value)>=xx
+                expr.operator = ">="
+                expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
+                expr.right = NumericLiteral(BaseDataType.UBYTE, msbFraction, expr.right.position)
+                expr.linkParents(parent)
+            }
+            else if(expr.operator==">" && rightVal.number >= 255.0 && isPowerOfTwo(rightVal.number+1)) {
+                val msbFraction = floor((rightVal.number+1) / 256.0)
+                // uword > $xxFF --> msb(value)>=xx
+                expr.operator = ">="
+                expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
+                expr.right = NumericLiteral(BaseDataType.UBYTE, msbFraction, expr.right.position)
+                expr.linkParents(parent)
             }
         }
 
