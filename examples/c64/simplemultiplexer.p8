@@ -82,7 +82,7 @@ sprites {
                 x -= 340
             c64.SPXY[cx16.r0L] = lsb(x)
             cx16.r1L = msb(x)>>1
-            ror(c64.MSIGX)      ; rotata that MSB bit of the sprite X position into the MSB sprite X register for each sprite
+            ror(c64.MSIGX)      ; rotate that MSB bit of the sprite X position into the MSB sprite X register for each sprite
         }
     }
 

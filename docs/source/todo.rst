@@ -1,9 +1,14 @@
 TODO
 ====
 
+- optimize  uword > 255  into  uword >= 256  (which should become   msb(w)!=0)   (what about signed word?)
+- fix  ubyte x = sprites[i]^^.x  compiler crash
+
+
 STRUCTS and TYPED POINTERS
 --------------------------
 
+- make this array indexed assignment work:   ^^Node np  /  np[2]^^.field = 9999     likely needs more support in the assignment target class  (remove Note in docs when fixed)
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - optimize the float copying in assignIndexedPointer() (also word?)
