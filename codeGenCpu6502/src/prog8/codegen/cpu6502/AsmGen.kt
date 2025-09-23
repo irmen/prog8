@@ -558,7 +558,7 @@ class AsmGen6502Internal (
                 } else {
                     return if (allocator.isZpVar((target as PtNamedNode).scopedName)) {
                         // pointervar is already in the zero page, no need to copy
-                        loadAFromZpPointerVar(sourceName, true)
+                        loadAFromZpPointerVar(sourceName)
                         sourceName
                     } else {
                         out("""
@@ -617,7 +617,7 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun loadAFromZpPointerVar(zpPointerVar: String, keepY: Boolean) {
+    internal fun loadAFromZpPointerVar(zpPointerVar: String, keepY: Boolean=false) {
         if (isTargetCpu(CpuType.CPU65C02))
             out("  lda  ($zpPointerVar)")
         else {

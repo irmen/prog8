@@ -393,7 +393,7 @@ internal class AssignmentAsmGen(
 
         // fallback assignmen through temporary pointer var
         assignExpressionToVariable(address, "P8ZP_SCRATCH_W2", DataType.UWORD)
-        asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
+        asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
         assignRegisterByte(target, CpuRegister.A, false, true)
     }
 
@@ -2245,7 +2245,7 @@ $endLabel""")
 
                     fun assignViaExprEval(addressExpression: PtExpression) {
                         asmgen.assignExpressionToVariable(addressExpression, "P8ZP_SCRATCH_W2", DataType.UWORD)
-                        asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2", false)
+                        asmgen.loadAFromZpPointerVar("P8ZP_SCRATCH_W2")
                         asmgen.out("  ldy  #0")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                     }
