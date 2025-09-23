@@ -463,15 +463,19 @@ private fun optimizeStoreLoadSame(
                 mods.add(Modification(lines[2].index, true, null))
         }
 
-        //  all 3 registers:  lda VALUE + sta SOMEWHERE + lda VALUE  -> last load can be eliminated
+        //  all 3 registers:  lda VALUE + sta SOMEWHERE + lda VALUE  -> last load can be eliminated IF NOT IO ADDRESS
         if (first.startsWith("lda ") && second.startsWith("sta ") && third.startsWith("lda ") ||
             first.startsWith("ldx ") && second.startsWith("stx ") && third.startsWith("ldx ") ||
             first.startsWith("ldy ") && second.startsWith("sty ") && third.startsWith("ldy ")
         ) {
             val firstVal = first.substring(4).trimStart()
             val thirdVal = third.substring(4).trimStart()
-            if (firstVal == thirdVal)
-                mods.add(Modification(lines[3].index, true, null))
+            if (firstVal == thirdVal) {
+                val address = getAddressArg(third, symbolTable)
+                if (address != null && !machine.isIOAddress(address)) {
+                    mods.add(Modification(lines[3].index, true, null))
+                }
+            }
         }
     }
     return mods

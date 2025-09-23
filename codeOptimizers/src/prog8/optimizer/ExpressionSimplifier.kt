@@ -434,7 +434,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
 
         fun isFactorOf256(number: Double): Boolean {
             val intValue = number.toInt()
-            return intValue > 0 && (intValue and (intValue shl 8)) == 0
+            return intValue >= 256 && (intValue and 0xFF) == 0
         }
 
         if (leftDt.isUnsignedWord && rightVal!=null) {
@@ -465,7 +465,6 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             else if(expr.operator == "<" && rightVal.number == 256.0 || expr.operator == "<=" && rightVal.number == 255.0) {
                 // uword < 256  -->  msb(value)==0
                 // uword <= 255 -->  msb(value)==0
-                // OK!
                 expr.operator = "=="
                 expr.left = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.left.position), mutableListOf(expr.left), expr.left.position)
                 expr.right = NumericLiteral(BaseDataType.UBYTE, 0.0, expr.right.position)

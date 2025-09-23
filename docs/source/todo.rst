@@ -1,15 +1,6 @@
 TODO
 ====
 
-REGRESSIONS:
-halloween , musicdemo is broken  (wrong fade colors, hangs)
-benchmark program: circles with gfx_lores  is broken   (black screen, returns immediately)
-megascroll is 20 bytes larger
-chess is a dozen bytes larger
-petaxian is much larger
-imageviewer/shell view: team17.iff blackscreen
-
-
 
 STRUCTS and TYPED POINTERS
 --------------------------
