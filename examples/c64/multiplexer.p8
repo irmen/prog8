@@ -1,5 +1,6 @@
-; TODO attempts to make a flexible sprite multiplexer
+; TODO in progress attempts to make a flexible sprite multiplexer
 ; For an easy sprite multiplexer (actually, just a sprite duplicator) see the "simplemultiplexer" example.
+; inspiration: https://codebase64.net/doku.php?id=base:sprite_multiplexing
 
 %import syslib
 %import math
@@ -7,15 +8,27 @@
 %option no_sysinit
 
 main {
-    const ubyte NUM_SPRITES = 16
+    const ubyte NUM_VSPRITES = 16
     const uword spritedata_base = $3000     ; NOTE: in VIC bank 0 (and 2), the Char Rom is at $1000 so we can't store sprite data there
 
     sub start() {
-        ; first prepare the sprite graphics (put a different letter in each of the balloons)
+        setup_sprite_graphics()
+        c64.SPENA = 255    ; enable all sprites
+
+        method1_wait_raster_before_each_sprite()
+
+        ; Theoretically, I think all sprite Y values can be set in one go, and again after the last of the 8 hw sprites has started drawing, etc.
+        ; There's no strict need to set it right before the sprite is starting to draw. But it only saves a few cycles?
+        ; method2_after_old_sprite()
+
+    }
+
+    sub setup_sprite_graphics() {
+        ; prepare the sprite graphics (put a different letter in each of the balloons)
         sys.set_irqd()
         c64.banks(%011)  ; enable CHAREN, so the character rom accessible at $d000 (inverse at $d400)
         ubyte i
-        for i in 0 to NUM_SPRITES-1 {
+        for i in 0 to NUM_VSPRITES-1 {
             uword sprdat = spritedata_base + $0040*i
             sys.memcopy(balloonsprite, sprdat, 64)
             ubyte cptr
@@ -27,25 +40,17 @@ main {
         }
         c64.banks(%111)     ; enable IO registers again
         ; sys.clear_irqd()  ; do not re-enable IRQ as this will glitch the display because it interferes with raster timing
-        c64.SPENA = 255    ; enable all sprites
-
-        method1_before_each_sprite()
-
-        ; Theoretically, I think all sprite Y values can be set in one go, and again after the last of the 8 hw sprites has started drawing, etc.
-        ; There's no strict need to set it right before the sprite is starting to draw. But it only saves a few cycles?
-        ; method2_after_old_sprite()
-
     }
 
-    sub method1_before_each_sprite() {
-
-        ^^Sprite sprite
-        ubyte tt, virtual_sprite
-
+    sub method1_wait_raster_before_each_sprite() {
         repeat {
-            for virtual_sprite in 0 to NUM_SPRITES-1 {
+            animate_sprites()
+            ; wait for raster lines and update hardware sprites
+            ubyte vs_index
+            for vs_index in 0 to NUM_VSPRITES-1 {
+                ubyte virtual_sprite = sort_virtualsprite[vs_index]
                 ubyte hw_sprite = virtual_sprite & 7
-                sprite = sprites[virtual_sprite]
+                ^^Sprite sprite = sprites[virtual_sprite]
                 sys.waitrasterline(sprite.y-3)      ; wait for a few lines above the sprite so we have time to set all attributes properly
                 c64.EXTCOL++
                 c64.SPXY[hw_sprite*2+1] = sprite.y
@@ -58,18 +63,59 @@ main {
                 c64.SPRPTR[hw_sprite] = sprite.dataptr
                 c64.EXTCOL--
             }
+        }
+    }
 
-            ; animate the sprites
-            ; TODO Y animation, sort virtual sprites by ascending Y
-            tt ++
-            ubyte st = tt
-            for virtual_sprite in 0 to NUM_SPRITES-1 {
-                sprite = sprites[virtual_sprite]
-                sprite.x = $0028 + math.sin8u(st)
-                st += 8
+    ubyte tt
+    sub animate_sprites() {
+        tt += 2
+        ubyte st = tt
+        ubyte virtual_sprite
+        for virtual_sprite in 0 to NUM_VSPRITES-1 {
+            ^^Sprite sprite = sprites[virtual_sprite]
+            sprite.x = $0028 + math.sin8u(st)
+            ; TODO  nice anim   sprite.y = $50 + math.cos8u(st*3)/2
+            st += 10
+            sort_ypositions[virtual_sprite] = sprite.y
+            sort_virtualsprite[virtual_sprite] = virtual_sprite
+            ; TODO keep working with the previously sorted result instead of rewriting the list every time, makes sorting faster if not much changes in the Y positions
+        }
+
+        ; TODO remove this simplistic anim but it's here to test the algorithms
+        sprite = sprites[0]
+        sprite.y++
+        sort_ypositions[0] = sprites[0].y
+        sprite = sprites[1]
+        sprite.y--
+        sort_ypositions[1] = sprites[1].y
+
+        ;c64.EXTCOL--
+        sort_virtual_sprites()
+        ;c64.EXTCOL++
+    }
+
+    ubyte[NUM_VSPRITES] sort_ypositions
+    ubyte[NUM_VSPRITES] sort_virtualsprite
+
+    ; TODO rewrite in assembly, sorting must be super fast
+    sub sort_virtual_sprites() {
+        ubyte @zp pos=1
+        while pos != NUM_VSPRITES {
+            if sort_ypositions[pos]>=sort_ypositions[pos-1]
+                pos++
+            else {
+                ; swap elements
+                cx16.r0L = sort_ypositions[pos-1]
+                sort_ypositions[pos-1] = sort_ypositions[pos]
+                sort_ypositions[pos] = cx16.r0L
+                ; swap virtual sprite indexes
+                cx16.r0L = sort_virtualsprite[pos-1]
+                sort_virtualsprite[pos-1] = sort_virtualsprite[pos]
+                sort_virtualsprite[pos] = cx16.r0L
+                pos--
+                if_z
+                    pos++
             }
-
-            sys.waitvsync()
         }
     }
 
@@ -104,7 +150,7 @@ main {
     }
 
 
-    ^^Sprite[NUM_SPRITES]  sprites = [
+    ^^Sprite[NUM_VSPRITES]  sprites = [
         [0, $ff, 20, 60],
         [1, $ff, 40, 70],
         [2, $ff, 60, 80],
