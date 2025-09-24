@@ -161,6 +161,7 @@ Libraries
 Optimizations
 -------------
 
+- more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?

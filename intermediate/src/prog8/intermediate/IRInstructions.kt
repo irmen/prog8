@@ -973,7 +973,7 @@ data class IRInstruction(
         when (this.reg2direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
-                writeRegsCounts[this.reg2!!] = writeRegsCounts.getValue(this.reg2)+1
+                readRegsCounts[this.reg2!!] = readRegsCounts.getValue(this.reg2)+1
                 val actualtype = determineReg2Type()
                 if(actualtype!=null) {
                     val existingType = regsTypes[reg2]
@@ -989,7 +989,7 @@ data class IRInstruction(
         when (this.reg3direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
-                writeRegsCounts[this.reg3!!] = writeRegsCounts.getValue(this.reg3)+1
+                readRegsCounts[this.reg3!!] = readRegsCounts.getValue(this.reg3)+1
                 val actualtype = determineReg3Type()
                 if(actualtype!=null) {
                     val existingType = regsTypes[reg3]
