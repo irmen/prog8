@@ -1,8 +1,11 @@
 main {
 
     sub start() {
-        ubyte @shared ok = sprites[2].y         ; this one is fine...
-        ubyte @shared y = sprites[2].y         ; TODO fix crash
+        ; TODO assigning to pointer indexed is not yet supported:
+        sprptr[2]^^.y = 99
+        sprptr[cx6.r0L]^^.y = 99
+        sprites[2]^^.y = 99
+        sprites[cx6.r0L]^^.y = 99
     }
 
     struct Sprite {
@@ -12,5 +15,6 @@ main {
 
 
     ^^Sprite[4] @shared sprites
+    ^^Sprite @shared sprptr
 }
 

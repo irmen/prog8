@@ -492,16 +492,26 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return noModifications
     }
 
-
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
         if(arrayIndexedExpression.indexer.constIndex()==0) {
             if(arrayIndexedExpression.plainarrayvar!=null) {
-                if((arrayIndexedExpression.parent as? BinaryExpression)?.operator !=".") {
+                val binexprParent = arrayIndexedExpression.parent as? BinaryExpression
+                if(binexprParent?.operator!=".") {
                     val dt = arrayIndexedExpression.plainarrayvar!!.inferType(program).getOrUndef()
                     if(dt.isPointer) {
                         // pointer[0]  -->   pointer^^
                         val deref = PtrDereference(arrayIndexedExpression.plainarrayvar!!.nameInSource, true, arrayIndexedExpression.plainarrayvar!!.position)
                         return listOf(IAstModification.ReplaceNode(arrayIndexedExpression,deref, parent))
+                    }
+                } else if(arrayIndexedExpression.pointerderef==null) {
+                    // possibly     pointer[0].field   -->  pointer.field
+                    val target = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
+                    if(target?.datatype?.isPointer==true) {
+                        val field = (binexprParent.right as? IdentifierReference)?.nameInSource
+                        if(field!=null) {
+                            val deref = PtrDereference(arrayIndexedExpression.plainarrayvar!!.nameInSource + field, false, arrayIndexedExpression.plainarrayvar!!.position)
+                            return listOf(IAstModification.ReplaceNode(arrayIndexedExpression.parent, deref, arrayIndexedExpression.parent.parent))
+                        }
                     }
                 }
             }

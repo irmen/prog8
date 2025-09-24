@@ -384,4 +384,25 @@ internal class StatementReorderer(
         )
         return listOf(IAstModification.ReplaceNode(assign, strcopy, assign.parent))
     }
+
+    override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {
+        if(parent is AssignTarget) {
+            val zeroIndexer = deref.chain.firstOrNull { it.second?.constIndex()==0 }
+            if(zeroIndexer!=null) {
+                val target = deref.definingScope.lookup(listOf(zeroIndexer.first))
+                if(target is VarDecl && target.datatype.isPointer) {
+                    val position = deref.chain.indexOf(zeroIndexer)
+                    val rest = deref.chain.drop(position + 1)
+                    if (rest.size == 1 && rest[0].second == null) {
+                        // pointer[0]^^.field = xxx  -->  pointer^^.field = xxx
+                        val noindexer = zeroIndexer.first to null
+                        val newchain = deref.chain.take(position) + noindexer + rest
+                        val newDeref = PtrDereference(newchain.map { it.first }, false, deref.position)
+                        return listOf(IAstModification.ReplaceNode(deref, newDeref, parent))
+                    }
+                }
+            }
+        }
+        return noModifications
+    }
 }

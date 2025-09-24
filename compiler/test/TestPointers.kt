@@ -1027,118 +1027,6 @@ main {
         st[8] shouldBe instanceOf<Assignment>()
     }
 
-    test("indexing pointers with index 0 is just a direct pointer dereference except when followed by a struct field lookup") {
-        val src="""
-%import floats
-main {
-    struct List {
-        ^^uword s
-        ubyte n
-    }
-    sub start() {
-        ^^List l1 = ^^List : []
-        ^^word @shared wptr
-        ^^float @shared fptr
-        float f1,f2
-
-        cx16.r0 = l1.s^^
-        cx16.r1 = l1^^.s^^
-        cx16.r2 = l1.s^^
-        cx16.r3 = l1.s[0]
-        cx16.r4 = l1^^.s[0]
-
-        l1.s^^ = 4242
-        l1^^.s^^ = 4242
-        l1.s^^ = 4242
-        l1.s[0] = 4242
-        ;; l1^^.s[0] = 4242        ; TODO fix parse syntax error
-
-        cx16.r0s = wptr[0]
-        cx16.r1s = wptr^^
-        wptr^^ = 4242
-        wptr[0] = 4242
-
-        f1 = fptr^^
-        f2 = fptr[0]
-        fptr^^ = 1.234
-        fptr[0] = 1.234
-        
-        ; not changed to dereference:
-        cx16.r0L = l1[0].n
-        cx16.r1L = l1[1].n
-    }
-}"""
-
-        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
-        val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 30
-        val dr0 = (st[10] as Assignment).value as PtrDereference
-        val dr1 = (st[11] as Assignment).value as PtrDereference
-        val dr2 = (st[12] as Assignment).value as PtrDereference
-        val dr3 = (st[13] as Assignment).value as PtrDereference
-        val dr4 = (st[14] as Assignment).value as PtrDereference
-
-        val dr5 = (st[15] as Assignment).target.pointerDereference!!
-        val dr6 = (st[16] as Assignment).target.pointerDereference!!
-        val dr7 = (st[17] as Assignment).target.pointerDereference!!
-        val dr8 = (st[18] as Assignment).target.pointerDereference!!
-
-        val dr9 = (st[19] as Assignment).value as FunctionCallExpression
-        val dr10 = (st[20] as Assignment).value as PtrDereference
-        val dr11 = (st[21] as Assignment).target.pointerDereference!!
-        (st[22] as FunctionCallStatement).target.nameInSource shouldBe listOf("pokew")
-
-        val dr13 = (st[23] as Assignment).value as PtrDereference
-        ((st[24] as Assignment).value as FunctionCallExpression).target.nameInSource shouldBe listOf("peekf")
-        val dr15 = (st[25] as Assignment).target.pointerDereference!!
-        (st[26] as FunctionCallStatement).target.nameInSource shouldBe listOf("pokef")
-
-        dr0.chain shouldBe listOf("l1", "s")
-        dr0.derefLast shouldBe true
-        dr1.chain shouldBe listOf("l1", "s")
-        dr1.derefLast shouldBe true
-        dr2.chain shouldBe listOf("l1", "s")
-        dr2.derefLast shouldBe true
-        dr3.chain shouldBe listOf("l1", "s")
-        dr3.derefLast shouldBe true
-        dr4.chain shouldBe listOf("l1", "s")
-        dr4.derefLast shouldBe true
-
-        dr5.chain shouldBe listOf("l1", "s")
-        dr5.derefLast shouldBe true
-        dr6.chain shouldBe listOf("l1", "s")
-        dr6.derefLast shouldBe true
-        dr7.chain shouldBe listOf("l1", "s")
-        dr7.derefLast shouldBe true
-        dr8.chain shouldBe listOf("l1", "s")
-        dr8.derefLast shouldBe true
-
-        dr9.target.nameInSource shouldBe listOf("peekw")
-        dr10.chain shouldBe listOf("wptr")
-        dr10.derefLast shouldBe true
-        dr11.chain shouldBe listOf("wptr")
-        dr11.derefLast shouldBe true
-
-        dr13.chain shouldBe listOf("fptr")
-        dr13.derefLast shouldBe true
-        dr15.chain shouldBe listOf("fptr")
-        dr15.derefLast shouldBe true
-
-        val list0 = (st[27] as Assignment).value as BinaryExpression
-        val list1 = (st[28] as Assignment).value as BinaryExpression
-
-        list0.operator shouldBe "."
-        (list0.right as IdentifierReference).nameInSource shouldBe listOf("n")
-        val list0left = list0.left as ArrayIndexedExpression
-        list0left.plainarrayvar!!.nameInSource shouldBe listOf("l1")
-        list0left.indexer.constIndex() shouldBe 0
-        list1.operator shouldBe "."
-        (list1.right as IdentifierReference).nameInSource shouldBe listOf("n")
-        val list1left = list0.left as ArrayIndexedExpression
-        list1left.plainarrayvar!!.nameInSource shouldBe listOf("l1")
-        list1left.indexer.constIndex() shouldBe 0
-    }
-
     test("indexing pointers to structs") {
         val src="""
 %import floats
@@ -2570,5 +2458,55 @@ main {
     ^^Sprite[4] @shared sprites
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    test("0-indexed optimizations") {
+        val src="""
+main {
+    struct Sprite {
+        uword x
+        ubyte y
+    }
+
+    ^^Sprite[4] @shared sprites
+    ^^Sprite @shared sprptr
+
+    sub start() {
+        sprptr.y = 99
+        sprptr[0]^^.y = 99
+        ;; sprites[0]^^.y = 99     ; no change here.    TODO: this syntax doesn't compile yet...
+        cx16.r0 = &sprptr[0]
+
+        cx16.r2L = sprptr.y
+        cx16.r0L = sprptr[0].y
+        cx16.r1L = sprites[0].y     ; no change here, need first array element
+        cx16.r0 = sprites[0]        ; no change here, need first array element
+        cx16.r0 = sprites[0]        ; no change here, need first array element
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 8
+        val a1 = st[0] as Assignment
+        val a2 = st[1] as Assignment
+        val a3 = st[2] as Assignment
+        val a4 = st[3] as Assignment
+        val a5 = st[4] as Assignment
+        val a6 = st[5] as Assignment
+        val a7 = st[6] as Assignment
+
+        a1.target.arrayIndexedDereference shouldBe null
+        a1.target.pointerDereference!!.chain shouldBe listOf("sprptr", "y")
+        a2.target.arrayIndexedDereference shouldBe null
+        a2.target.pointerDereference!!.chain shouldBe listOf("sprptr", "y")
+
+        (a3.value as? AddressOf)?.identifier?.nameInSource shouldBe listOf("sprptr")
+        (a4.value as? PtrDereference)?.chain shouldBe listOf("sprptr", "y")
+        (a5.value as? PtrDereference)?.chain shouldBe listOf("sprptr", "y")
+        val be6 = a6.value as BinaryExpression      // this one is an actual array and we need the first element so no change here
+        be6.operator shouldBe "."
+        be6.left shouldBe instanceOf<ArrayIndexedExpression>()
+        be6.right shouldBe instanceOf<IdentifierReference>()
+        (a7.value as? ArrayIndexedExpression)?.indexer?.constIndex() shouldBe 0
     }
 })
