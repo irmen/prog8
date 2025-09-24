@@ -126,11 +126,13 @@ class PrefixExpression(val operator: String, var expression: Expression, overrid
             "~" -> {
                 if(inferred.isBytes) InferredTypes.knownFor(BaseDataType.UBYTE)
                 else if(inferred.isWords) InferredTypes.knownFor(BaseDataType.UWORD)
+                else if(inferred.isLong) InferredTypes.knownFor(BaseDataType.LONG)          // TODO should be ULONG, but we don't have that type yet
                 else InferredTypes.unknown()
             }
             "-" -> {
                 if(inferred.isBytes) InferredTypes.knownFor(BaseDataType.BYTE)
                 else if(inferred.isWords) InferredTypes.knownFor(BaseDataType.WORD)
+                else if(inferred.isLong) InferredTypes.knownFor(BaseDataType.LONG)
                 else inferred
             }
             else -> throw FatalAstException("weird prefix expression operator")
@@ -331,6 +333,7 @@ class BinaryExpression(
                         BaseDataType.BYTE -> Pair(DataType.BYTE, left)
                         BaseDataType.UWORD -> Pair(DataType.UWORD, left)
                         BaseDataType.WORD -> Pair(DataType.WORD, left)
+                        BaseDataType.LONG -> Pair(DataType.LONG, left)
                         BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
@@ -341,6 +344,7 @@ class BinaryExpression(
                         BaseDataType.BYTE -> Pair(DataType.BYTE, null)
                         BaseDataType.UWORD -> Pair(DataType.WORD, left)
                         BaseDataType.WORD -> Pair(DataType.WORD, left)
+                        BaseDataType.LONG -> Pair(DataType.LONG, left)
                         BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
@@ -351,6 +355,7 @@ class BinaryExpression(
                         BaseDataType.BYTE -> Pair(DataType.WORD, right)
                         BaseDataType.UWORD -> Pair(DataType.UWORD, null)
                         BaseDataType.WORD -> Pair(DataType.WORD, left)
+                        BaseDataType.LONG -> Pair(DataType.LONG, left)
                         BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }
@@ -361,6 +366,18 @@ class BinaryExpression(
                         BaseDataType.BYTE -> Pair(DataType.WORD, right)
                         BaseDataType.UWORD -> Pair(DataType.WORD, right)
                         BaseDataType.WORD -> Pair(DataType.WORD, null)
+                        BaseDataType.LONG -> Pair(DataType.LONG, left)
+                        BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
+                        else -> Pair(leftDt, null)      // non-numeric datatype
+                    }
+                }
+                BaseDataType.LONG -> {
+                    when (rightDt.base) {
+                        BaseDataType.UBYTE -> Pair(DataType.LONG, right)
+                        BaseDataType.BYTE -> Pair(DataType.LONG, right)
+                        BaseDataType.UWORD -> Pair(DataType.LONG, right)
+                        BaseDataType.WORD -> Pair(DataType.LONG, right)
+                        BaseDataType.LONG -> Pair(DataType.LONG, null)
                         BaseDataType.FLOAT -> Pair(DataType.FLOAT, left)
                         else -> Pair(leftDt, null)      // non-numeric datatype
                     }

@@ -1522,7 +1522,7 @@ internal class AstChecker(private val program: Program,
                 if(rightDt.isWord) {
                     val shift = expr.right.constValue(program)?.number?.toInt()
                     if(shift==null || shift > 255) {
-                        errors.err("shift by a word value not supported, max is a byte", expr.position)
+                        errors.err("bit shift value can not be larger than a byte", expr.position)
                     }
                 }
             }
@@ -1553,8 +1553,9 @@ internal class AstChecker(private val program: Program,
                     errors.err("can only use string repeat with a constant number value", expr.left.position)
             } else if(leftDt.isBool && rightDt.isByte || leftDt.isByte && rightDt.isBool) {
                 // expression with one side BOOL other side (U)BYTE is allowed; bool==byte
-            } else if((expr.operator == "<<" || expr.operator == ">>") && (leftDt.isWord && rightDt.isByte)) {
-                // exception allowed: shifting a word by a byte
+            } else if((expr.operator == "<<" || expr.operator == ">>")
+                && (leftDt.isWord && rightDt.isByte || leftDt.isLong && rightDt.isByte || leftDt.isLong && rightDt.isWord)) {
+                // exception allowed: shifting a word by a byte, long by a word or byte
             } else if((expr.operator in BitwiseOperators) && (leftDt.isInteger && rightDt.isInteger)) {
                 // exception allowed: bitwise operations with any integers
             } else if((leftDt.isUnsignedWord && rightDt.isString) || (leftDt.isString && rightDt.isUnsignedWord)) {

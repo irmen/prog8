@@ -565,6 +565,7 @@ internal class ProgramAndVarsGen(
             else when(dt) {
                 BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL -> asmgen.out("$name    .byte  ?")
                 BaseDataType.UWORD, BaseDataType.WORD -> asmgen.out("$name    .word  ?")
+                BaseDataType.LONG -> asmgen.out("$name    .sint  ?")
                 BaseDataType.FLOAT -> asmgen.out("$name    .fill  ${options.compTarget.FLOAT_MEM_SIZE}")
                 else -> throw AssemblyError("weird dt for extravar $dt")
             }

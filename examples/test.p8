@@ -2,18 +2,58 @@
 %zeropage basicsafe
 
 main {
-    long bignum = 12345678
-    long bignum2 = -999999
-
-;    struct Node {
-;        ubyte id
-;        str name
-;        long array
-;        bool flag
-;        long counter
-;    }
-
     sub start() {
+
+        long @shared lv1, lv2
+        bool b1,b2
+
+        lv1 = $11223344
+        lv2 = $33883388
+        txt.print_ulhex(lv1, false)
+        txt.nl()
+        lv1 = ~lv1
+        txt.print_ulhex(lv1, false)
+        txt.nl()
+
+        txt.print_l(lv1<<3)     ; TODO fix compiler error
+        txt.nl()
+
+        lv2 <<= cx16.r0L
+        lv2 >>= cx16.r0L
+
+        lv1 <<= 3
+        lv2 <<= cx16.r0L
+        lv1 >>= 3
+        lv2 >>= cx16.r0L
+
+        lv1 += cx16.r0L
+        lv1 += cx16.r0
+
+        lv1 |= cx16.r0L
+        lv1 |= cx16.r0
+        lv1 |= lv2
+        lv1 &= cx16.r0L
+        lv1 &= cx16.r0
+        lv1 &= lv2
+        lv1 ^= cx16.r0L
+        lv1 ^= cx16.r0
+        lv1 ^= lv2
+
+        b1 = lv1 == cx16.r0L
+        b1 = lv2 == cx16.r0sL
+        b2 = lv1 == cx16.r0
+        b1 = lv2 == cx16.r0s
+        b2 = lv1 == lv2
+
+        b1 = lv1 != cx16.r0L
+        b2 = lv2 != cx16.r0sL
+        b1 = lv1 != cx16.r0
+        b2 = lv2 != cx16.r0s
+        b1 = lv1 != lv2
+    }
+
+/*
+    sub start2() {
         txt.print_l(mklong2($a000,$bbbb))
         txt.spc()
         txt.print_ulhex(mklong2($a000,$bbbb), true)
@@ -132,5 +172,6 @@ main {
 ;        test.counter = bignum2
 ;        test.counter --
     }
+*/
 
 }

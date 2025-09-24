@@ -587,13 +587,299 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sbc  $sourceVar+3
                     sta  $targetVar+3""")
             }
+            "<<" -> {
+                asmgen.out("""
+                    ldy  $sourceVar
+-                   asl  $targetVar
+                    rol  $targetVar+1
+                    rol  $targetVar+2
+                    rol  $targetVar+3
+                    dey
+                    bne  -""")
+            }
+            ">>" -> {
+                asmgen.out("""
+                    ldy  $sourceVar
+-                   lsr  $targetVar+3
+                    ror  $targetVar+2
+                    ror  $targetVar+1
+                    ror  $targetVar
+                    dey
+                    bne  -""")
+            }
+            "|" -> {
+                asmgen.out("""
+                    lda  $targetVar
+                    ora  $sourceVar
+                    sta  $targetVar  
+                    lda  $targetVar+1
+                    ora  $sourceVar+1
+                    sta  $targetVar+1
+                    lda  $targetVar+2
+                    ora  $sourceVar+2
+                    sta  $targetVar+2
+                    lda  $targetVar+3
+                    ora  $sourceVar+3
+                    sta  $targetVar+3""")
+            }
+            "&" -> {
+                asmgen.out("""
+                    lda  $targetVar
+                    and  $sourceVar
+                    sta  $targetVar  
+                    lda  $targetVar+1
+                    and  $sourceVar+1
+                    sta  $targetVar+1
+                    lda  $targetVar+2
+                    and  $sourceVar+2
+                    sta  $targetVar+2
+                    lda  $targetVar+3
+                    and  $sourceVar+3
+                    sta  $targetVar+3""")
+            }
+            "^" -> {
+                asmgen.out("""
+                    lda  $targetVar
+                    eor  $sourceVar
+                    sta  $targetVar  
+                    lda  $targetVar+1
+                    eor  $sourceVar+1
+                    sta  $targetVar+1
+                    lda  $targetVar+2
+                    eor  $sourceVar+2
+                    sta  $targetVar+2
+                    lda  $targetVar+3
+                    eor  $sourceVar+3
+                    sta  $targetVar+3""")
+            }
             else -> {
-                TODO("Not yet implemented")
+                TODO("in-place modify LONG with variable")
             }
         }
     }
 
     private fun inplacemodificationLongWithLiteralval(variable: String, operator: String, value: Int) {
+
+        fun inplaceLongShiftLeft() {
+            when {
+                value in 0..2 -> {
+                    repeat(value) {
+                        asmgen.out("""
+                            asl  $variable
+                            rol  $variable+1
+                            rol  $variable+2
+                            rol  $variable+3""")
+                    }
+                }
+                value in 3..7 -> {
+                    asmgen.out("""
+                        ldy  #$value
+-                       asl  $variable
+                        rol  $variable+1
+                        rol  $variable+2
+                        rol  $variable+3
+                        dey
+                        bne  -""")
+                }
+                value == 8 -> {
+                    asmgen.out("""
+                        lda  $variable+2
+                        sta  $variable+3
+                        lda  $variable+1
+                        sta  $variable+2
+                        lda  $variable
+                        sta  $variable+1
+                        lda  #0
+                        sta  $variable""")
+                }
+                value in 9..15 -> {
+                    val shift = value - 8
+                    asmgen.out("""
+                        lda  $variable+2
+                        sta  $variable+3
+                        lda  $variable+1
+                        sta  $variable+2
+                        lda  $variable
+                        sta  $variable+1
+                        lda  #0
+                        sta  $variable
+                        ldy  #$shift
+-                       asl  $variable+1
+                        rol  $variable+2
+                        rol  $variable+3
+                        dey
+                        bne  -""")
+                }
+                value == 16 -> {
+                    asmgen.out("""
+                        lda  $variable+1
+                        sta  $variable+3
+                        lda  $variable
+                        sta  $variable+2
+                        lda  #0
+                        sta  $variable
+                        sta  $variable+1""")
+                }
+                value in 17..23 -> {
+                    val shift = value-16
+                    asmgen.out("""
+                        lda  $variable+1
+                        sta  $variable+3
+                        lda  $variable
+                        sta  $variable+2
+                        lda  #0
+                        sta  $variable
+                        sta  $variable+1
+                        ldy  #$shift
+-                       asl  $variable+2
+                        rol  $variable+3
+                        dey
+                        bne  -""")
+                }
+                value == 24 -> {
+                    asmgen.out("""
+                        lda  $variable
+                        sta  $variable+3
+                        lda  #0
+                        sta  $variable
+                        sta  $variable+1
+                        sta  $variable+2""")
+                }
+                value <= 31 -> {
+                    val shift = value-24
+                    asmgen.out("""
+                        lda  $variable
+                        ldy  #$shift
+-                       asl  a
+                        dey
+                        bne  -
+                        sta  $variable+3
+                        lda  #0
+                        sta  $variable
+                        sta  $variable+1
+                        sta  $variable+2""")
+                }
+                else -> {
+                    asmgen.out("""
+                        lda  #0
+                        sta  $variable
+                        sta  $variable+1
+                        sta  $variable+2
+                        sta  $variable+3""")
+                }
+            }
+        }
+
+        fun inplaceLongShiftRight() {
+            when {
+                value in 0..2 -> {
+                    repeat(value) {
+                        asmgen.out("""
+                            lsr  $variable+3
+                            ror  $variable+2
+                            ror  $variable+1
+                            ror  $variable""")
+                    }
+                }
+                value in 3..7 -> {
+                    asmgen.out("""
+                        ldy  #$value
+-                       lsr  $variable+3
+                        ror  $variable+2
+                        ror  $variable+1
+                        ror  $variable
+                        dey
+                        bne  -""")
+                }
+                value == 8 -> {
+                    asmgen.out("""
+                        lda  $variable+1
+                        sta  $variable
+                        lda  $variable+2
+                        sta  $variable+1
+                        lda  $variable+3
+                        sta  $variable+2
+                        lda  #0
+                        sta  $variable+3""")
+                }
+                value in 9..15 -> {
+                    val shift = value - 8
+                    asmgen.out("""
+                        lda  $variable+1
+                        sta  $variable
+                        lda  $variable+2
+                        sta  $variable+1
+                        lda  $variable+3
+                        sta  $variable+2
+                        lda  #0
+                        sta  $variable+3
+                        ldy  #$shift
+-                       lsr  $variable+2
+                        ror  $variable+1
+                        ror  $variable
+                        dey
+                        bne  -""")
+                }
+                value == 16 -> {
+                    asmgen.out("""
+                        lda  $variable+3
+                        sta  $variable+1
+                        lda  $variable+2
+                        sta  $variable
+                        lda  #0
+                        sta  $variable+2
+                        sta  $variable+3""")
+                }
+                value in 17..23 -> {
+                    val shift = value-16
+                    asmgen.out("""
+                        lda  $variable+3
+                        sta  $variable+1
+                        lda  $variable+2
+                        sta  $variable
+                        lda  #0
+                        sta  $variable+2
+                        sta  $variable+3
+                        ldy  #$shift
+-                       lsr  $variable+1
+                        ror  $variable
+                        dey
+                        bne  -""")
+                }
+                value == 24 -> {
+                    asmgen.out("""
+                        lda  $variable+3
+                        sta  $variable
+                        lda  #0
+                        sta  $variable+1
+                        sta  $variable+2
+                        sta  $variable+3""")
+                }
+                value <= 31 -> {
+                    val shift = value-24
+                    asmgen.out("""
+                        lda  $variable+3
+                        ldy  #$shift
+-                       lsr  a
+                        dey
+                        bne  -
+                        sta  $variable
+                        lda  #0
+                        sta  $variable+1
+                        sta  $variable+2
+                        sta  $variable+3""")
+                }
+                else -> {
+                    asmgen.out("""
+                        lda  #0
+                        sta  $variable
+                        sta  $variable+1
+                        sta  $variable+2
+                        sta  $variable+3""")
+                }
+            }
+        }
+
         when(operator) {
             "+" -> {
                 when(value) {
@@ -672,6 +958,56 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                 }
+            }
+            "<<" -> if (value > 0) inplaceLongShiftLeft()
+            ">>" -> if (value > 0) inplaceLongShiftRight()
+            "|" -> {
+                val hex = value.toUInt().toString(16).padStart(8, '0')
+                asmgen.out("""
+                    lda  $variable
+                    ora  #$${hex.substring(6,8)}
+                    sta  $variable  
+                    lda  $variable+1
+                    ora  #$${hex.substring(4, 6)}
+                    sta  $variable+1
+                    lda  $variable+2
+                    ora  #$${hex.substring(2, 4)}
+                    sta  $variable+2
+                    lda  $variable+3
+                    ora  #$${hex.take(2)}
+                    sta  $variable+3""")
+            }
+            "&" -> {
+                val hex = value.toUInt().toString(16).padStart(8, '0')
+                asmgen.out("""
+                    lda  $variable
+                    and  #$${hex.substring(6,8)}
+                    sta  $variable  
+                    lda  $variable+1
+                    and  #$${hex.substring(4, 6)}
+                    sta  $variable+1
+                    lda  $variable+2
+                    and  #$${hex.substring(2, 4)}
+                    sta  $variable+2
+                    lda  $variable+3
+                    and  #$${hex.take(2)}
+                    sta  $variable+3""")
+            }
+            "^" -> {
+                val hex = value.toUInt().toString(16).padStart(8, '0')
+                asmgen.out("""
+                    lda  $variable
+                    eor  #$${hex.substring(6,8)}
+                    sta  $variable  
+                    lda  $variable+1
+                    eor  #$${hex.substring(4, 6)}
+                    sta  $variable+1
+                    lda  $variable+2
+                    eor  #$${hex.substring(2, 4)}
+                    sta  $variable+2
+                    lda  $variable+3
+                    eor  #$${hex.take(2)}
+                    sta  $variable+3""")
             }
             else -> {
                 TODO("inplace long $operator $value")
@@ -3159,7 +3495,7 @@ $shortcutLabel:""")
                         if(value is PtNumber && value.number<=255) {
                             TODO("shift a word var by ${value.number}")
                         } else {
-                            throw AssemblyError("shift by a word value not supported, max is a byte")
+                            throw AssemblyError("bit shift value can not be larger than a byte")
                         }
                     }
                     "&" -> {

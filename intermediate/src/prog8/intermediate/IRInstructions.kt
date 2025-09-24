@@ -194,7 +194,7 @@ asrn        reg1, reg2                       - reg1 = multi-shift reg1 right by 
 lsrn        reg1, reg2                       - reg1 = multi-shift reg1 right by reg2 bits + Carry is undefined
 lsln        reg1, reg2                       - reg1 = multi-shift reg1 left by reg2 bits + Carry is undefined
 asrnm       reg1,        address             - multi-shift memory right by reg1 bits (signed) + Carry is undefined
-lsrnm       reg1,        address             - multi-shift memoryright by reg1 bits + Carry is undefined
+lsrnm       reg1,        address             - multi-shift memory right by reg1 bits + Carry is undefined
 lslnm       reg1,        address             - multi-shift memory left by reg1 bits + Carry is undefined
 asr         reg1                             - shift reg1 right by 1 bits (signed) + set Carry to shifted bit
 lsr         reg1                             - shift reg1 right by 1 bits + set Carry to shifted bit

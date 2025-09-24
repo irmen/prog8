@@ -173,7 +173,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                 }
 
 
-                if((expr.operator!="<<" && expr.operator!=">>") || !leftDt.isWords || !rightDt.isBytes) {
+                if((expr.operator!="<<" && expr.operator!=">>") || !leftDt.isInteger || !rightDt.isBytes) {
                     // determine common datatype and add typecast as required to make left and right equal types
                     val (commonDt, toFix) = BinaryExpression.commonDatatype(leftDt.getOrUndef(), rightDt.getOrUndef(), expr.left, expr.right)
                     if(toFix!=null) {

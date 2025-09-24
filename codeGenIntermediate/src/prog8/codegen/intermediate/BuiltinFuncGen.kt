@@ -254,6 +254,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
+            BaseDataType.LONG -> TODO("SQRT LONG")
             BaseDataType.FLOAT -> {
                 addToResult(result, tr, -1, tr.resultFpReg)
                 val resultFpReg = codeGen.registers.next(IRDataType.FLOAT)

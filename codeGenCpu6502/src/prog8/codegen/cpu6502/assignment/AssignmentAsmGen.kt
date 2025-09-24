@@ -210,6 +210,7 @@ internal class AssignmentAsmGen(
                 when (assign.target.datatype.base) {
                     BaseDataType.BOOL, BaseDataType.UBYTE, BaseDataType.BYTE -> assignConstantByte(assign.target, num)
                     BaseDataType.UWORD, BaseDataType.WORD -> assignConstantWord(assign.target, num)
+                    BaseDataType.LONG -> assignConstantLong(assign.target, num)
                     BaseDataType.FLOAT -> assignConstantFloat(assign.target, num.toDouble())
                     else -> throw AssemblyError("weird numval type")
                 }
@@ -2654,6 +2655,7 @@ $endLabel""")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
+                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
                     BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
@@ -2714,6 +2716,7 @@ $endLabel""")
                     BaseDataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
+                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
                     BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
@@ -2811,6 +2814,7 @@ $endLabel""")
                         else
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
+                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
                     BaseDataType.FLOAT -> {
                         when(regs) {
                             RegisterOrPair.A -> asmgen.out("  tay")
@@ -2850,6 +2854,7 @@ $endLabel""")
                         asmgen.signExtendAYlsb(sourceDt)
                         asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
                     }
+                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
                     BaseDataType.FLOAT -> {
                         when(regs) {
                             RegisterOrPair.A -> {}
@@ -2881,6 +2886,7 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
+                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
                     BaseDataType.FLOAT -> {
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")
@@ -2910,6 +2916,7 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
+                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
                     BaseDataType.FLOAT -> {
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")
@@ -4747,6 +4754,26 @@ $endLabel""")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("~", assign), scope)
                     TargetStorageKind.POINTER -> pointergen.inplaceWordInvert(PtrTarget(target))
                     else -> throw AssemblyError("weird target")
+                }
+            }
+            targetDt.isLong -> {
+                when(target.kind) {
+                    TargetStorageKind.VARIABLE -> {
+                        asmgen.out("""
+                            lda  ${target.asmVarname}
+                            eor  #255
+                            sta  ${target.asmVarname}
+                            lda  ${target.asmVarname}+1
+                            eor  #255
+                            sta  ${target.asmVarname}+1
+                            lda  ${target.asmVarname}+2
+                            eor  #255
+                            sta  ${target.asmVarname}+2
+                            lda  ${target.asmVarname}+3
+                            eor  #255
+                            sta  ${target.asmVarname}+3""")
+                    }
+                    else -> TODO("LONG INVERT ${target.kind}  ${target.position}")
                 }
             }
             else -> throw AssemblyError("invert of invalid type")

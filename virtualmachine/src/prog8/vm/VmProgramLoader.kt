@@ -289,9 +289,13 @@ class VmProgramLoader {
                             memory.setUB(a, value.toInt().toUByte())
                             a++
                         }
-                        it.dt.isInteger || it.dt.isPointer -> {
+                        it.dt.isWord || it.dt.isPointer -> {
                             memory.setUW(a, value.toInt().toUShort())
-                            a+=2
+                            a += 2
+                        }
+                        it.dt == BaseDataType.LONG -> {
+                            memory.setSL(a, value.toInt())
+                            a += 4
                         }
                         it.dt == BaseDataType.FLOAT -> {
                             memory.setFloat(a, value)
