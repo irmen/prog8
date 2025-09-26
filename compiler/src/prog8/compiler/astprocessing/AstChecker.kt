@@ -2160,6 +2160,8 @@ internal class AstChecker(private val program: Program,
             else
                 errors.err("unable to determine type of dereferenced pointer expression", deref.position)
         }
+
+        super.visit(deref)
     }
 
     private fun checkLongType(expression: Expression) {
@@ -2509,10 +2511,10 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(deref: ArrayIndexedPtrDereference) {
-        if(deref.parent is AssignTarget)
-            errors.err("no support for assigning to an array indexed pointer target like this yet. Split the assignment statement by using an intermediate variable.", deref.position)
-        else
+        if(deref.parent !is AssignTarget)
             errors.err("no support for getting the target value of pointer array indexing like this yet. Split the expression by using an intermediate variable.", deref.position) // this may never occur anymore since more ArrayIndexedPtrDereference got rewritten
+
+        super.visit(deref)
     }
 
     override fun visit(initializer: StaticStructInitializer) {
@@ -2542,6 +2544,7 @@ internal class AstChecker(private val program: Program,
 
         super.visit(initializer)
     }
+
 }
 
 internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statement, errors: IErrorReporter) {

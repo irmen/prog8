@@ -571,7 +571,18 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(deref: ArrayIndexedPtrDereference) {
-        output("???? Array Indexed Ptr Dereference should have been converted to other AST nodes ????")
+        for(c in deref.chain) {
+            output(c.first)
+            c.second?.let {
+                output("[")
+                it.accept(this)
+                output("]")
+            }
+            if(c !== deref.chain.last())
+                output("^^.")
+        }
+        if(deref.derefLast)
+            output("^^")
     }
 
     override fun visit(initializer: StaticStructInitializer) {
