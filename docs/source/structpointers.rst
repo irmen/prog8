@@ -15,23 +15,24 @@ Structs and Pointers
     priority over other variables to be placed into zeropage.
 
 .. note::
-    Due to some limitations in the language parser, not all pointer related syntax is currently supported
-    if it is a pointer to a struct type.
+    Due to a few limitations in the language parser, some pointer related syntax is currently unsupported.
     The compiler tries its best to give a descriptive error message but sometimes there is still a
-    parser limitation that has to be worked around at the moment. For example, this pointer arithmetic
-    indexing syntax is not supported right now *to assign to* and will result in a parse error (note that
-    using it as an expression value does work correctly)::
+    parser limitation that has to be worked around at the moment. For example, this assigment syntax doesn't parse correctly::
 
         ^^Node  np
-        np[2].field = 9999          ; cannot assign to this yet
-        ubyte value = np[2].field   ; this does work though.
+        np[2].field = 9999          ; cannot use this syntax as assignment target right now
+        ubyte value = np[2].field   ; note that using it as expression value works fine
 
-    To work around this (and similar) cases you'll have to break up the expression in multiple steps,
-    in this case something like::
+    To work around this you'll have to explicitly write the pointer dereferencing operator,
+    or break up the expression in multiple steps (which can be beneficial too when you are assigning multiple fields
+    because it will save a pointer calculation for every assignment)::
 
+        ^^Node  np
+        np[2]^^.field = 9999
+
+        ; alternatively, split up:
         ^^Node thenode = &&np[2]
         thenode.field = 9999
-
 
 
 Legacy untyped pointers (uword)

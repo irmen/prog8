@@ -5,10 +5,10 @@ TODO
 STRUCTS and TYPED POINTERS
 --------------------------
 
-- make this array indexed assignment work:   ^^Node np  /  np[2]^^.field = 9999  (same for pointer arrays!)    likely needs more support in the assignment target class  (remove Note in docs when fixed)
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - optimize the float copying in assignIndexedPointer() (also word?)
+- optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - support @nosplit pointer arrays?
 - support pointer to pointer?

@@ -107,20 +107,6 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
     }
 
-    private fun transform(arrayIndexedDereference: ArrayIndexedPtrDereference): PtArrayIndexedPointerDeref {
-        val type = arrayIndexedDereference.inferType(program).getOrElse {
-            throw FatalAstException("unknown dt")
-        }
-        val chain = arrayIndexedDereference.chain.map {
-            if(it.second==null)
-                it.first to null
-            else
-                it.first to transformExpression(it.second!!.indexExpr)
-        }
-        return PtArrayIndexedPointerDeref(type, chain, arrayIndexedDereference.derefLast, arrayIndexedDereference.position)
-    }
-
-
     private fun transform(deref: PtrDereference): PtPointerDeref {
         val type = deref.inferType(program).getOrElse {
             throw FatalAstException("unknown dt")
@@ -284,7 +270,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             srcTarget.arrayindexed!=null -> target.add(transform(srcTarget.arrayindexed!!))
             srcTarget.memoryAddress!=null -> target.add(transform(srcTarget.memoryAddress!!))
             srcTarget.pointerDereference!=null -> target.add(transform(srcTarget.pointerDereference!!))
-            srcTarget.arrayIndexedDereference!=null -> target.add(transform(srcTarget.arrayIndexedDereference!!))
+            srcTarget.arrayIndexedDereference!=null -> throw FatalAstException("this should have been converted to some other ast nodes ${srcTarget.position}")
             !srcTarget.void -> throw FatalAstException("invalid AssignTarget")
         }
         return target

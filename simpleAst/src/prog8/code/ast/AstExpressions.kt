@@ -139,7 +139,6 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtRange -> true
             is PtString -> true
             is PtPointerDeref -> false
-            is PtArrayIndexedPointerDeref -> false
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
             is PtBranchCondExpression -> truevalue.isSimple() && falsevalue.isSimple()
@@ -451,15 +450,6 @@ class PtPointerDeref(type: DataType, val chain: List<String>, val derefLast: Boo
     init {
         require(!type.isUndefined)
     }
-}
-
-class PtArrayIndexedPointerDeref(
-    type: DataType,
-    val chain: List<Pair<String, PtExpression?>>,
-    val derefLast: Boolean,
-    position: Position
-) : PtExpression(type, position) {
-
 }
 
 

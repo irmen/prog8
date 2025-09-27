@@ -198,20 +198,6 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 val deref = if(node.derefLast) "^^" else ""
                 "deref  $chain $deref  ${type(node.type)}"
             }
-            is PtArrayIndexedPointerDeref -> {
-                buildString {
-                    for(c in node.chain) {
-                        append(c.first)
-                        c.second?.let {
-                            append("[${txt(it)}]")
-                        }
-                        if(c !== node.chain.last())
-                            append("^^.")
-                    }
-                    if(node.derefLast)
-                        append("^^")
-                }
-            }
         }
     }
 

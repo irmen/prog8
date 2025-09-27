@@ -10,8 +10,8 @@ internal enum class TargetStorageKind {
     ARRAY,
     MEMORY,
     REGISTER,
-    POINTER,        // wherever the pointer variable points to
-    VOID            // assign nothing - used in multi-value assigns for void placeholders
+    POINTER,
+    VOID              // assign nothing - used in multi-value assigns for void placeholders
 }
 
 internal enum class SourceStorageKind {
@@ -91,7 +91,6 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     array != null -> return AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, type, definingSub, target.position, array = array, origAstTarget =  this)
                     memory != null -> return AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, type, definingSub, target.position, memory =  memory, origAstTarget =  this)
                     pointerDeref != null -> return AsmAssignTarget(TargetStorageKind.POINTER, asmgen, type, definingSub, target.position, pointer = pointerDeref, origAstTarget =  this)
-                    indexedPointerDeref != null -> TODO("assign to indexed pointer  ${target.position} - for now, split up the assignment target using a temporary pointer variable")
                     else -> throw AssemblyError("weird target")
                 }
             }

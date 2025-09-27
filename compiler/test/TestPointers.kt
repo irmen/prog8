@@ -3,7 +3,6 @@ package prog8tests.compiler
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
-import io.kotest.matchers.comparables.shouldBeGreaterThanOrEqualTo
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -1346,31 +1345,32 @@ other {
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
     }
 
-    test("a.b.c[i]^^.value = X where pointer is struct gives good error message") {
+    test("support for assigning to indexed pointers") {
         val src="""
 main {
+
     sub start() {
-        other.foo.listarray[3]^^.value = cx16.r0
-        other.foo()
-    }
-}
+        sprptr[2]^^.y = 99
+        pokew(sprptr as uword + (sizeof(Sprite) as uword)*2 + offsetof(Sprite.y), 99)
+        sprptr[cx16.r0L]^^.y = 99
+        pokew(sprptr as uword + (sizeof(Sprite) as uword)*cx16.r0L + offsetof(Sprite.y), 99)
 
-other {
-    sub foo() {
-        struct List {
-            bool b
-            uword value
-        }
-
-        ^^List[10] listarray
-        listarray[3]^^.value = cx16.r0
-        listarray[3]^^ = 999        ; cannot assign word value to struct instance
+        sprites[2]^^.y = 99
+        pokew(sprites[2] as uword + offsetof(Sprite.y), 99)
+        sprites[cx16.r0L]^^.y = 99
+        pokew(sprites[cx16.r0L] as uword + offsetof(Sprite.y), 99)
     }
+
+    struct Sprite {
+        ubyte x
+        uword y
+    }
+
+    ^^Sprite[4] @shared sprites
+    ^^Sprite @shared sprptr
 }"""
-        val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBeGreaterThanOrEqualTo 1
-        errors.errors[0] shouldContain "assigning this value to struct instance not supported"
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
     xtest("array indexed assignment parses with and without explicit dereference after struct pointer [IGNORED because it's a parser error right now]") {

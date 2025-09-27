@@ -662,6 +662,61 @@ _after:
     override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {
         // get rid of the ArrayIndexedPtrDereference AST node, replace it with other AST nodes that are equivalent
 
+        fun pokeFunc(dt: DataType): Pair<String, DataType?> {
+            return when {
+                dt.isBool -> "pokebool" to null
+                dt.isUnsignedByte -> "poke" to null
+                dt.isSignedByte -> "poke" to DataType.UBYTE
+                dt.isUnsignedWord -> "pokew" to null
+                dt.isSignedWord -> "pokew" to DataType.UWORD
+                dt.isLong -> "pokel" to null
+                dt.isFloat -> "pokef" to null
+                else -> throw FatalAstException("can only deref a numeric or boolean pointer here")
+            }
+        }
+
+        if(parent is AssignTarget) {
+            if(!deref.derefLast) {
+                val assignment = parent.parent as Assignment
+                val field = deref.chain.last()
+                val ptr = deref.chain.dropLast(1)
+                if(field.second==null && ptr.last().second!=null) {
+                    val ptrName = ptr.map { it.first }
+                    val ptrVar = deref.definingScope.lookup(ptrName) as? VarDecl
+                    if(ptrVar!=null && (ptrVar.datatype.isPointer || ptrVar.datatype.isPointerArray)) {
+                        val struct = ptrVar.datatype.subType!! as StructDecl
+                        val offsetNumber = NumericLiteral.optimalInteger(struct.offsetof(field.first, program.memsizer)!!.toInt(), deref.position)
+                        val pointerIdentifier = IdentifierReference(ptrName, deref.position)
+                        val address: Expression
+                        if(ptrVar.datatype.isPointer) {
+                            // pointer[idx].field = value       -->  pokeXXX(pointer as uword + idx*sizeof(Struct) + offsetof(Struct.field), value)
+                            val structSize = ptrVar.datatype.dereference().size(program.memsizer)
+                            val pointerAsUword = TypecastExpression(pointerIdentifier, DataType.UWORD, true, deref.position)
+                            val idx = ptr.last().second!!.indexExpr
+                            val scaledIndex = BinaryExpression(idx, "*", NumericLiteral(BaseDataType.UWORD, structSize.toDouble(), deref.position), deref.position)
+                            val structAddr = BinaryExpression(pointerAsUword, "+", scaledIndex, deref.position)
+                            address = BinaryExpression(structAddr, "+", offsetNumber, deref.position)
+                        }
+                        else {
+                            // pointerarray[idx].field = value  -->  pokeXXX(pointerarray[idx] as uword + offsetof(Struct.field), value)
+                            val index = ArrayIndexedExpression(pointerIdentifier, null, ptr.last().second!!, deref.position)
+                            val pointerAsUword = TypecastExpression(index, DataType.UWORD, true, deref.position)
+                            address = BinaryExpression(pointerAsUword, "+", offsetNumber, deref.position)
+                        }
+                        val (pokeFunc, valueCast) = pokeFunc(parent.inferType(program).getOrUndef())
+                        val value = if(valueCast==null) assignment.value else TypecastExpression(assignment.value, valueCast, true, assignment.value.position)
+                        val pokeCall = FunctionCallStatement(IdentifierReference(listOf(pokeFunc), assignment.position),
+                            mutableListOf(address, value), false, assignment.position)
+
+                        if(assignment.isAugmentable)
+                            errors.warn("in-place assignment of indexed pointer variable currently is very inefficient, maybe use a temporary pointer variable", assignment.position)
+                        return listOf(IAstModification.ReplaceNode(assignment, pokeCall, assignment.parent))
+                    }
+                }
+            }
+        }
+
+
         if(deref.chain.last().second!=null && deref.derefLast && deref.chain.dropLast(1).all { it.second==null } ) {
 
             // parent could be Assigment directly, or a binexpr chained pointer expression (with '.' operator)
@@ -714,15 +769,7 @@ _after:
                 val dt = deref.inferType(program).getOrUndef()
                 if(dt.isNumericOrBool) {
                     // if it's something else beside number (like, a struct instance) we don't support rewriting that...
-                    val (pokeFunc, cast) =
-                        if (dt.isBool) "pokebool" to null
-                        else if (dt.isUnsignedByte) "poke" to null
-                        else if (dt.isSignedByte) "poke" to DataType.UBYTE
-                        else if (dt.isUnsignedWord) "pokew" to null
-                        else if (dt.isSignedWord) "pokew" to DataType.UWORD
-                        else if (dt.isLong) "pokel" to null
-                        else if (dt.isFloat) "pokef" to null
-                        else throw FatalAstException("can only deref a numeric or boolean pointer here")
+                    val (pokeFunc, cast) = pokeFunc(dt)
                     val indexer = deref.chain.last().second!!
                     val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
                     val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)

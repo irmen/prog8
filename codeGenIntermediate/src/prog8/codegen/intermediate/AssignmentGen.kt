@@ -596,9 +596,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     return result
 
                 }
-                indexedPointerDeref != null -> {
-                    TODO("assign to indexed pointer  ${assignment.target.position} - for now, split up the assignment target using a temporary pointer variable")
-                }
                 else -> {
                     throw AssemblyError("weird assigntarget")
                 }
