@@ -1369,10 +1369,8 @@ other {
 }"""
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
-        errors.errors.size shouldBeGreaterThanOrEqualTo 3
-        errors.errors[0] shouldContain "no support for"
-        errors.errors[1] shouldContain "no support for"
-        errors.errors[2] shouldContain "assigning this value to struct instance not supported"
+        errors.errors.size shouldBeGreaterThanOrEqualTo 1
+        errors.errors[0] shouldContain "assigning this value to struct instance not supported"
     }
 
     xtest("array indexed assignment parses with and without explicit dereference after struct pointer [IGNORED because it's a parser error right now]") {

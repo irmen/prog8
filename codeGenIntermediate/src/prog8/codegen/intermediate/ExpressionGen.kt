@@ -88,6 +88,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
             is PtPointerDeref -> translate(expr)
+            is PtArrayIndexedPointerDeref -> TODO("translate array indexed pointer deref expression $expr")
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")

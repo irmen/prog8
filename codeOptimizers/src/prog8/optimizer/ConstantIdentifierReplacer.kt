@@ -28,17 +28,13 @@ class VarConstantValueTypeAdjuster(
         if(decl.parent is AnonymousScope)
             throw FatalAstException("vardecl may no longer occur in anonymousscope ${decl.position}")
 
-        try {
-            val declConstValue = decl.value?.constValue(program)
-            if(declConstValue!=null && (decl.type== VarDeclType.VAR || decl.type==VarDeclType.CONST)
-                && declConstValue.type != decl.datatype.base) {
-                if(decl.datatype.isInteger && declConstValue.type == BaseDataType.FLOAT) {
-                    // avoid silent float roundings
-                    errors.err("refused truncating of float to avoid loss of precision", decl.value!!.position)
-                }
+        val declConstValue = decl.value?.constValue(program)
+        if(declConstValue!=null && (decl.type== VarDeclType.VAR || decl.type==VarDeclType.CONST)
+            && declConstValue.type != decl.datatype.base) {
+            if(decl.datatype.isInteger && declConstValue.type == BaseDataType.FLOAT) {
+                // avoid silent float roundings
+                errors.err("refused truncating of float to avoid loss of precision", decl.value!!.position)
             }
-        } catch (x: UndefinedSymbolError) {
-            errors.err(x.message, x.position)
         }
 
         // replace variables by constants, if possible
@@ -313,41 +309,36 @@ internal class ConstantIdentifierReplacer(
         if(!dt.isKnown || !dt.isNumeric && !dt.isBool)
             return noModifications
 
-        try {
-            val cval = identifier.constValue(program) ?: return noModifications
-            val arrayIdx = identifier.parent as? ArrayIndexedExpression
-            if(arrayIdx!=null && cval.type.isNumeric) {
-                // special case when the identifier is used as a pointer var
-                // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
-                // constpointer[x] = var -> @(constvalue+x) [directmemorywrite] = var
-                val add = BinaryExpression(NumericLiteral(cval.type, cval.number, identifier.position), "+", arrayIdx.indexer.indexExpr, identifier.position)
-                return if(arrayIdx.parent is AssignTarget) {
-                    val memwrite = DirectMemoryWrite(add, identifier.position)
-                    val assignTarget = AssignTarget(null, null, memwrite, null, false, position = identifier.position)
-                    listOf(IAstModification.ReplaceNode(arrayIdx.parent, assignTarget, arrayIdx.parent.parent))
-                } else {
-                    val memread = DirectMemoryRead(add, identifier.position)
-                    listOf(IAstModification.ReplaceNode(arrayIdx, memread, arrayIdx.parent))
-                }
+        val cval = identifier.constValue(program) ?: return noModifications
+        val arrayIdx = identifier.parent as? ArrayIndexedExpression
+        if(arrayIdx!=null && cval.type.isNumeric) {
+            // special case when the identifier is used as a pointer var
+            // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
+            // constpointer[x] = var -> @(constvalue+x) [directmemorywrite] = var
+            val add = BinaryExpression(NumericLiteral(cval.type, cval.number, identifier.position), "+", arrayIdx.indexer.indexExpr, identifier.position)
+            return if(arrayIdx.parent is AssignTarget) {
+                val memwrite = DirectMemoryWrite(add, identifier.position)
+                val assignTarget = AssignTarget(null, null, memwrite, null, false, position = identifier.position)
+                listOf(IAstModification.ReplaceNode(arrayIdx.parent, assignTarget, arrayIdx.parent.parent))
+            } else {
+                val memread = DirectMemoryRead(add, identifier.position)
+                listOf(IAstModification.ReplaceNode(arrayIdx, memread, arrayIdx.parent))
             }
-            when {
-                cval.type.isNumericOrBool -> {
-                    if(parent is AddressOf)
-                        return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
-                    return listOf(
-                        IAstModification.ReplaceNode(
-                            identifier,
-                            NumericLiteral(cval.type, cval.number, identifier.position),
-                            identifier.parent
-                        )
+        }
+        when {
+            cval.type.isNumericOrBool -> {
+                if(parent is AddressOf)
+                    return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
+                return listOf(
+                    IAstModification.ReplaceNode(
+                        identifier,
+                        NumericLiteral(cval.type, cval.number, identifier.position),
+                        identifier.parent
                     )
-                }
-                cval.type.isPassByRef -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
-                else -> return noModifications
+                )
             }
-        } catch (x: UndefinedSymbolError) {
-            errors.err(x.message, x.position)
-            return noModifications
+            cval.type.isPassByRef -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
+            else -> return noModifications
         }
     }
 

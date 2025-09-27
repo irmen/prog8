@@ -1,6 +1,5 @@
 package prog8.ast
 
-import prog8.ast.expressions.IdentifierReference
 import prog8.code.core.Position
 
 /**
@@ -19,6 +18,3 @@ open class SyntaxError(override var message: String, val position: Position) : A
 class ExpressionError(message: String, val position: Position) : AstException(message) {
     override fun toString() = "${position.toClickableStr()} Error: $message"
 }
-
-class UndefinedSymbolError(symbol: IdentifierReference)
-    : SyntaxError("undefined symbol: ${symbol.nameInSource.joinToString(".")}", symbol.position)

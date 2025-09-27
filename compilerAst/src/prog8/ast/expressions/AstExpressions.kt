@@ -1809,6 +1809,35 @@ class ArrayIndexedPtrDereference(
             }
 
         }
+
+
+        if(parent !is BinaryExpression || (parent as BinaryExpression).operator!=".") {
+            val indexPosition = this.chain.indexOfFirst { it.second!=null }
+            val identifier = this.chain.take(indexPosition+1).map {it.first}
+            val target = this.definingScope.lookup(identifier)
+            if(target is VarDecl && (target.datatype.isPointer || target.datatype.isPointerArray)) {
+                val sub = target.datatype.subType
+                if(sub!=null) {
+                    val field = this.chain.drop(indexPosition+1).singleOrNull()
+                    if(field==null) {
+                        return InferredTypes.knownFor(DataType.structInstance(sub))
+                    } else {
+                        val fieldDt= sub.getFieldType(field.first)!!
+                        return if(derefLast)
+                            InferredTypes.knownFor(fieldDt.dereference())
+                        else
+                            InferredTypes.knownFor(fieldDt)
+                    }
+                } else {
+                    require(indexPosition==this.chain.size-1) {"when indexing primitive pointer type there cannot be a field after it"}
+                    return if(derefLast)
+                        InferredTypes.knownFor(target.datatype.dereference())
+                    else
+                        InferredTypes.knownFor(target.datatype)
+                }
+            }
+        }
+
         // too hard to determine the type....?
         return InferredTypes.unknown()
     }

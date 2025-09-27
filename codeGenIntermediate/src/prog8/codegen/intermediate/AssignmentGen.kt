@@ -463,10 +463,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun translateRegularAssign(assignment: PtAssignment): IRCodeChunks {
         // note: assigning array and string values is done via an explicit memcopy/stringcopy function call.
-        val targetIdent = assignment.target.identifier
-        val targetMemory = assignment.target.memory
-        val targetArray = assignment.target.array
-        val targetPointerDeref = assignment.target.pointerDeref
         val valueDt = irType(assignment.value.type)
         val targetDt = irType(assignment.target.type)
         val result = mutableListOf<IRCodeChunkBase>()
@@ -507,98 +503,107 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             }
         }
 
-        if(targetIdent!=null) {
-            val instruction = if(zero) {
-                IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = targetIdent.name)
-            } else {
-                if (targetDt == IRDataType.FLOAT) {
-                    require(valueFpRegister>=0)
-                    IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = targetIdent.name)
-                }
-                else {
-                    require(valueRegister>=0)
-                    IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = targetIdent.name)
-                }
-            }
-            result += IRCodeChunk(null, null).also { it += instruction }
-            return result
-        }
-        else if(targetArray!=null) {
-            val eltSize = codeGen.program.memsizer.memorySize(targetArray.type, null)
-            val variable = targetArray.variable
-            if(variable==null)
-                translateRegularAssignPointerIndexed(result, targetArray.pointerderef!!, eltSize, targetArray, zero, targetDt, valueRegister, valueFpRegister)
-            else if(variable.type.isPointer)
-                assignToIndexedSimplePointer(result, variable, eltSize, targetArray, zero, targetDt, valueRegister, valueFpRegister)
-            else
-                translateRegularAssignArrayIndexed(result, variable.name, eltSize, targetArray, zero, targetDt, valueRegister, valueFpRegister)
-            return result
-        }
-        else if(targetMemory!=null) {
-            require(targetDt == IRDataType.BYTE) { "must be byte type ${targetMemory.position}"}
-            if(zero) {
-                if(targetMemory.address is PtNumber) {
-                    val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, address = (targetMemory.address as PtNumber).number.toInt()) }
-                    result += chunk
-                } else {
-                    val tr = expressionEval.translateExpression(targetMemory.address)
-                    val addressReg = tr.resultReg
-                    addToResult(result, tr, tr.resultReg, -1)
-                    result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.STOREZI, targetDt, reg1=addressReg)
-                    }
-                }
-            } else {
-                val constAddress = targetMemory.address as? PtNumber
-                if(constAddress!=null) {
-                    addInstr(result, IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=constAddress.number.toInt()), null)
-                    return result
-                }
-                val ptrWithOffset = targetMemory.address as? PtBinaryExpression
-                if(ptrWithOffset!=null) {
-                    if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier) {
-                        val constOffset = (ptrWithOffset.right as? PtNumber)?.number?.toInt()
-                        if(constOffset in 0..255) {
-                            val ptrName = (ptrWithOffset.left as PtIdentifier).name
-                            val pointerReg = codeGen.registers.next(IRDataType.WORD)
-                            result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=pointerReg, labelSymbol = ptrName)
-                                it += IRInstruction(Opcode.STOREFIELD, IRDataType.BYTE, reg1=valueRegister, reg2=pointerReg, immediate = constOffset)
-                            }
-                            return result
+        with(assignment.target) {
+            when {
+                identifier != null -> {
+                    val instruction = if(zero) {
+                        IRInstruction(Opcode.STOREZM, targetDt, labelSymbol = identifier!!.name)
+                    } else {
+                        if (targetDt == IRDataType.FLOAT) {
+                            require(valueFpRegister>=0)
+                            IRInstruction(Opcode.STOREM, targetDt, fpReg1 = valueFpRegister, labelSymbol = identifier!!.name)
+                        }
+                        else {
+                            require(valueRegister>=0)
+                            IRInstruction(Opcode.STOREM, targetDt, reg1 = valueRegister, labelSymbol = identifier!!.name)
                         }
                     }
-                    val offsetTypecast = ptrWithOffset.right as? PtTypeCast
-                    if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier && (ptrWithOffset.right.type.isByte || offsetTypecast?.value?.type?.isByte==true)) {
-                        // STOREIX only works with byte index.
-                        val tr = if(offsetTypecast?.value?.type?.isByte==true)
-                            expressionEval.translateExpression(offsetTypecast.value)
-                        else
-                            expressionEval.translateExpression(ptrWithOffset.right)
+                    result += IRCodeChunk(null, null).also { it += instruction }
+                    return result
+                }
+                memory != null -> {
+                    require(targetDt == IRDataType.BYTE) { "must be byte type ${memory!!.position}"}
+                    if(zero) {
+                        if(memory!!.address is PtNumber) {
+                            val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, address = (memory!!.address as PtNumber).number.toInt()) }
+                            result += chunk
+                        } else {
+                            val tr = expressionEval.translateExpression(memory!!.address)
+                            val addressReg = tr.resultReg
+                            addToResult(result, tr, tr.resultReg, -1)
+                            result += IRCodeChunk(null, null).also {
+                                it += IRInstruction(Opcode.STOREZI, targetDt, reg1=addressReg)
+                            }
+                        }
+                    } else {
+                        val constAddress = memory!!.address as? PtNumber
+                        if(constAddress!=null) {
+                            addInstr(result, IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=constAddress.number.toInt()), null)
+                            return result
+                        }
+                        val ptrWithOffset = memory!!.address as? PtBinaryExpression
+                        if(ptrWithOffset!=null) {
+                            if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier) {
+                                val constOffset = (ptrWithOffset.right as? PtNumber)?.number?.toInt()
+                                if(constOffset in 0..255) {
+                                    val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                                    val pointerReg = codeGen.registers.next(IRDataType.WORD)
+                                    result += IRCodeChunk(null, null).also {
+                                        it += IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=pointerReg, labelSymbol = ptrName)
+                                        it += IRInstruction(Opcode.STOREFIELD, IRDataType.BYTE, reg1=valueRegister, reg2=pointerReg, immediate = constOffset)
+                                    }
+                                    return result
+                                }
+                            }
+                            val offsetTypecast = ptrWithOffset.right as? PtTypeCast
+                            if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier && (ptrWithOffset.right.type.isByte || offsetTypecast?.value?.type?.isByte==true)) {
+                                // STOREIX only works with byte index.
+                                val tr = if(offsetTypecast?.value?.type?.isByte==true)
+                                    expressionEval.translateExpression(offsetTypecast.value)
+                                else
+                                    expressionEval.translateExpression(ptrWithOffset.right)
+                                addToResult(result, tr, tr.resultReg, -1)
+                                val ptrName = (ptrWithOffset.left as PtIdentifier).name
+                                addInstr(result, IRInstruction(Opcode.STOREIX, IRDataType.BYTE, reg1=valueRegister, reg2=tr.resultReg, labelSymbol = ptrName), null)
+                                return result
+                            }
+                        }
+
+                        val tr = expressionEval.translateExpression(memory!!.address)
+                        val addressReg = tr.resultReg
                         addToResult(result, tr, tr.resultReg, -1)
-                        val ptrName = (ptrWithOffset.left as PtIdentifier).name
-                        addInstr(result, IRInstruction(Opcode.STOREIX, IRDataType.BYTE, reg1=valueRegister, reg2=tr.resultReg, labelSymbol = ptrName), null)
+                        addInstr(result, IRInstruction(Opcode.STOREI, targetDt, reg1=valueRegister, reg2=addressReg), null)
                         return result
                     }
+
+                    return result
                 }
+                array != null -> {
+                    val eltSize = codeGen.program.memsizer.memorySize(array!!.type, null)
+                    val variable = array!!.variable
+                    if(variable==null)
+                        translateRegularAssignPointerIndexed(result, array!!.pointerderef!!, eltSize, array!!, zero, targetDt, valueRegister, valueFpRegister)
+                    else if(variable.type.isPointer)
+                        assignToIndexedSimplePointer(result, variable, eltSize, array!!, zero, targetDt, valueRegister, valueFpRegister)
+                    else
+                        translateRegularAssignArrayIndexed(result, variable.name, eltSize, array!!, zero, targetDt, valueRegister, valueFpRegister)
+                    return result
+                }
+                pointerDeref != null -> {
+                    val (addressReg, offset) = codeGen.evaluatePointerAddressIntoReg(result, pointerDeref!!)
+                    val actualValueReg = if(pointerDeref!!.type.isFloat) valueFpRegister else valueRegister
+                    codeGen.storeValueAtPointersLocation(result, addressReg, offset, pointerDeref!!.type, zero, actualValueReg)
+                    return result
 
-                val tr = expressionEval.translateExpression(targetMemory.address)
-                val addressReg = tr.resultReg
-                addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.STOREI, targetDt, reg1=valueRegister, reg2=addressReg), null)
-                return result
+                }
+                indexedPointerDeref != null -> {
+                    TODO("assign to indexed pointer  ${assignment.target.position} - for now, split up the assignment target using a temporary pointer variable")
+                }
+                else -> {
+                    throw AssemblyError("weird assigntarget")
+                }
             }
-
-            return result
         }
-        else if(targetPointerDeref!=null) {
-            val (addressReg, offset) = codeGen.evaluatePointerAddressIntoReg(result, targetPointerDeref)
-            val actualValueReg = if(targetPointerDeref.type.isFloat) valueFpRegister else valueRegister
-            codeGen.storeValueAtPointersLocation(result, addressReg, offset, targetPointerDeref.type, zero, actualValueReg)
-            return result
-        }
-        else
-            throw AssemblyError("weird assigntarget")
     }
 
     private fun assignToIndexedSimplePointer(
