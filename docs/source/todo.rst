@@ -1,11 +1,14 @@
 TODO
 ====
 
+CHECK THAT >> and << work correctly for negative longs
+implement the bitwise & | ^ operations as expressions on longs  (all types args)
+
+
 LONG TYPE
 ---------
 - call convention: return long  ->  return it in R0+R1....   because AY is only 16 bits...
 - call convention: long param -> passed as regular variable NOT via R0:R1?    asmsubs don't have syntax for this so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
-- implement the bitwise & | ^ operations as expressions on longs  (all types args)
 - make sure == and != work with longs against byte and words as well signed and unsigned
 - how hard is it to also implement the other comparison operators on longs?
 - implement rol() and ror() on longs  (also roxl and roxr)
@@ -173,6 +176,7 @@ Optimizations
 -------------
 
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
+- optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.
 - Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?

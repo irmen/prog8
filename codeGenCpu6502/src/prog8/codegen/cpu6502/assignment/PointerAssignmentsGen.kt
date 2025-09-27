@@ -446,6 +446,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("array ptr assign word var ${target.position}")
     }
 
+    internal fun assignLongVar(target: IndexedPtrTarget, varName: String) {
+        TODO("array ptr assign long var ${target.position}")
+    }
+
     internal fun operatorDereference(binExpr: PtBinaryExpression): Triple<String, UByte, DataType> {
         // the only case we support here is:   a.b.c[i] . value
         // returns the ZP var to use as a pointer, and a Y register offset (which can be zero), and finally the datatype of the field

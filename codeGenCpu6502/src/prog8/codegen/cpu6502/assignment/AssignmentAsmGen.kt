@@ -3171,7 +3171,24 @@ $endLabel""")
                     else -> throw AssemblyError("wrong dt ${target.position}")
                 }
             }
-            TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+            TargetStorageKind.ARRAY -> {
+                require(sourceDt.isLong)
+                val deref = target.array!!.pointerderef
+                if(deref!=null) {
+                    pointergen.assignLongVar(IndexedPtrTarget(target), varName)
+                    return
+                }
+                asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
+                asmgen.out("""
+                    lda  $varName
+                    sta  ${target.asmVarname},y
+                    lda  $varName+1
+                    sta  ${target.asmVarname}+1,y
+                    lda  $varName+2
+                    sta  ${target.asmVarname}+2,y
+                    lda  $varName+3
+                    sta  ${target.asmVarname}+3,y""")
+            }
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {
                 require(target.register in combinedLongRegisters)
@@ -4231,7 +4248,7 @@ $endLabel""")
             TargetStorageKind.ARRAY -> {
                 val deref = target.array!!.pointerderef
                 if(deref!=null) {
-                    pointergen.assignWord(IndexedPtrTarget(target), long)
+                    pointergen.assignLong(IndexedPtrTarget(target), long)
                     return
                 }
                 asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
@@ -4247,7 +4264,20 @@ $endLabel""")
                     sta  ${target.asmVarname}+3,y""")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-            TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+            TargetStorageKind.REGISTER -> {
+                require(target.register in combinedLongRegisters)
+                val regstart = target.register!!.name.take(2).lowercase()
+                val hex = long.toUInt().toString(16).padStart(8, '0')
+                asmgen.out("""
+                    lda  #$${hex.substring(6,8)}
+                    sta  cx16.$regstart
+                    lda  #$${hex.substring(4,6)}
+                    sta  cx16.$regstart+1
+                    lda  #$${hex.substring(2,4)}
+                    sta  cx16.$regstart+2
+                    lda  #$${hex.take(2)}
+                    sta  cx16.$regstart+3""")
+            }
             TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }

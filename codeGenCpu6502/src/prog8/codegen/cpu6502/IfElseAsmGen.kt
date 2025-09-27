@@ -1263,7 +1263,23 @@ _jump                       jmp  (${target.asmLabel})
     }
 
     private fun longEqualsZero(value: PtExpression, notEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        TODO("long == 0")
+        asmgen.assignExpressionToRegister(value, RegisterOrPair.R0R1_32, value.type.isSigned)
+        asmgen.out("""
+            lda  cx16.r0
+            ora  cx16.r0+1
+            ora  cx16.r0+2
+            ora  cx16.r0+3""")
+        if(notEquals) {
+            if (jump != null)
+                translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bne", stmt)
+        } else {
+            if (jump != null)
+                translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("beq", stmt)
+        }
     }
 
     private fun longLessZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
@@ -1374,7 +1390,72 @@ _jump                       jmp  (${target.asmLabel})
         jump: PtJump?,
         stmt: PtIfElse
     ) {
-        TODO("long == value")
+        // TODO this can be optimized somewhat more when the left operand is a variable as well
+        // we only optimize for a const right value for now
+
+        val constRight = right.asConstInteger()
+        val variableRight = (right as? PtIdentifier)?.name
+        if(constRight!=null) {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+            val hex = constRight.toUInt().toString(16).padStart(8, '0')
+            asmgen.out("""
+                lda  cx16.r0
+                cmp  #$${hex.substring(6,8)}
+                bne  +
+                lda  cx16.r0+1
+                cmp  #$${hex.substring(4, 6)}
+                bne  +
+                lda  cx16.r0+2
+                cmp  #$${hex.substring(2, 4)}
+                bne  +
+                lda  cx16.r0+3
+                cmp  #$${hex.take(2)}
++""")
+        } else if(variableRight!=null) {
+            require(right.type.isLong)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+            asmgen.out("""
+                lda  cx16.r0
+                cmp  $variableRight
+                bne  +
+                lda  cx16.r0+1
+                cmp  $variableRight+1
+                bne  +
+                lda  cx16.r0+2
+                cmp  $variableRight+2
+                bne  +
+                lda  cx16.r0+3
+                cmp  $variableRight+3
++""")
+        } else {
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.R2R3_32, left.type.isSigned)
+            asmgen.assignExpressionToRegister(right, RegisterOrPair.R0R1_32, right.type.isSigned)
+            asmgen.out("""
+                lda  cx16.r0
+                cmp  cx16.r2
+                bne  +
+                lda  cx16.r0+1
+                cmp  cx16.r2+1
+                bne  +
+                lda  cx16.r0+2
+                cmp  cx16.r2+2
+                bne  +
+                lda  cx16.r0+3
+                cmp  cx16.r2+3
++""")
+        }
+
+        if(notEquals) {
+            if (jump != null)
+                translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bne", stmt)
+        } else {
+            if (jump != null)
+                translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("beq", stmt)
+        }
     }
 
     private fun wordEqualsValue(

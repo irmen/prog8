@@ -111,7 +111,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.LITERALBOOLEAN -> inplacemodificationLongWithLiteralval(target.asmVarname, operator, value.boolean!!.asInt())
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationLongWithLiteralval(target.asmVarname, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationLongWithVariable(target.asmVarname, operator, value.asmVarname)
-                            SourceStorageKind.EXPRESSION -> TODO("inplace modify long with expression ${target.position}")
+                            SourceStorageKind.EXPRESSION -> inplacemodificationLongWithExpression(target.asmVarname, operator, value.expression!!)
                             SourceStorageKind.REGISTER -> TODO("32 bits register inplace modification? ${target.position}")
                             SourceStorageKind.ARRAY -> TODO("inplace modify long with array ${target.position}")
                             SourceStorageKind.MEMORY -> TODO("memread into long ${target.position}")
@@ -551,6 +551,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             TargetStorageKind.REGISTER -> throw AssemblyError("no asm gen for reg in-place modification")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
+    }
+
+    internal fun inplacemodificationLongWithExpression(targetVar: String, operator: String, value: PtExpression) {
+        assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R0R1_32, value.type.isSigned)
+        inplacemodificationLongWithVariable(targetVar, operator, "cx16.r0")
     }
 
     internal fun inplacemodificationLongWithVariable(targetVar: String, operator: String, sourceVar: String) {

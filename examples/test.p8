@@ -9,6 +9,37 @@ main {
 
         lv1 = $11223344
         lv2 = $33883388
+
+        txt.print_bool(lv1==0)
+        txt.spc()
+        txt.print_bool(lv1==1)
+        txt.spc()
+        txt.print_bool(lv1==$11000000)
+        txt.spc()
+        txt.print_bool(lv1==$11223344)
+        txt.nl()
+        txt.print_bool(lv1==lv2)
+        txt.spc()
+        lv2 = lv1
+        txt.print_bool(lv1==lv2)
+        txt.nl()
+
+
+        lv2 = $33883388
+        txt.print_bool(lv1!=0)
+        txt.spc()
+        txt.print_bool(lv1!=1)
+        txt.spc()
+        txt.print_bool(lv1!=$11000000)
+        txt.spc()
+        txt.print_bool(lv1!=$11223344)
+        txt.nl()
+        txt.print_bool(lv1!=lv2)
+        txt.spc()
+        lv2 = lv1
+        txt.print_bool(lv1!=lv2)
+        txt.nl()
+
         txt.print_ulhex(lv1, false)
         txt.nl()
         lv1 = ~lv1
@@ -59,11 +90,7 @@ main {
         b1 = lv1 != cx16.r0
         b2 = lv2 != cx16.r0s
         b1 = lv1 != lv2
-    }
-}
 
-/*
-    sub start2() {
         txt.print_l(mklong2($a000,$bbbb))
         txt.spc()
         txt.print_ulhex(mklong2($a000,$bbbb), true)
@@ -88,16 +115,16 @@ main {
         txt.nl()
 
         long @shared lv = 111111111
-        long @shared lv2 = 1000000
+        lv2 = 1000000
         word @shared ww = 1000
         byte @shared bb = 1
         long @shared result = lv + lv2
         txt.print_l(result)
         txt.spc()
-        result = lv + (ww as long)                ; TODO automatic cast
+        result = lv + ww
         txt.print_l(result)
         txt.spc()
-        result = lv + (bb as long)                ; TODO automatic cast
+        result = lv + bb
         txt.print_l(result)
         txt.nl()
         txt.print_l(lv)
@@ -109,79 +136,19 @@ main {
         txt.print_l(lv + 1000000)
         txt.nl()
 
-;        long[] array = [-1999888777, -999, 42, 0, 77, 123456, 999999999]
-;        long xx
-;        for xx in array {
-;            txt.print_uw(msw(xx))
-;            txt.spc()
-;            txt.print_uw(lsw(xx))
-;            txt.nl()
-;        }
-;        txt.nl()
-;        array[2] = 0
-;        array[3] = 222222222
-;        array[4] = bignum
-;        array[5]++
-;        array[6]--
-;
-;        txt.print_l(-1999888777)
-;        txt.spc()
-;        txt.print_l(-999)
-;        txt.spc()
-;        txt.print_l(-42)
-;        txt.spc()
-;        txt.print_l(0)
-;        txt.spc()
-;        txt.print_l(bignum)
-;        txt.nl()
-;        txt.print_l(bignum2)
-;        txt.nl()
-;        txt.print_l(-bignum2)
-;        txt.nl()
-;        bignum2 = -bignum2
-;        bignum2++
-;        bignum2++
-;        txt.print_l(bignum2)
-;        txt.nl()
-;        bignum2--
-;        bignum2--
-;        txt.print_l(bignum2)
-;        txt.spc()
-;        txt.print_l(bignum)
-;        txt.nl()
-;        txt.nl()
-;        bignum2 += bignum
-;        txt.print_l(bignum2)
-;        txt.nl()
-;        bignum2 -= bignum
-;        txt.print_l(bignum2)
-;        txt.nl()
-
-;        ^^Node test = []
-;
-;        bignum++
-;        bignum2--
-
-;        txt.print_l(bignum)
-;        txt.spc()
-;        txt.print_l(bignum2)
-;        txt.nl()
-;
-;        str output = "...................."
-;        txt.print_l(bignum)
-;        txt.spc()
-;        txt.print(conv.str_l(bignum))
-;        txt.nl()
-;
-;        bignum = 999999
-;        bignum--                        ; TODO this works in the current VM...
-;        bignum = -888888
-;
-;        test.counter = 0
-;        test.counter ++                 ; TODO ... why doesn't this? (requires plusMinusMultAnyLong routine)
-;        test.counter = bignum2
-;        test.counter --
+        long[] array = [-1999888777, -999, 42, 0, 77, 123456, 999999999]
+        long xx
+        for xx in array {
+            txt.print_uw(msw(xx))
+            txt.spc()
+            txt.print_uw(lsw(xx))
+            txt.nl()
+        }
+        txt.nl()
+        array[2] = 0
+        array[3] = 222222222
+        array[4] = lv1
+        array[5]++
+        array[6]--
     }
-*/
-
-;}
+}

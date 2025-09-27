@@ -1420,6 +1420,9 @@ $repeatLabel""")
                     sta  $asmvar+2
                     sta  $asmvar+3""")
             }
+            BaseDataType.UWORD -> {
+                out("  lda  #0 |  sta  $asmvar+2 |  sta  $asmvar+3")
+            }
             BaseDataType.WORD -> {
                 out("""
                     lda  $asmvar+1
