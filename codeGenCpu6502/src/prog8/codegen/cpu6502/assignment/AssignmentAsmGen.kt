@@ -1927,6 +1927,20 @@ internal class AssignmentAsmGen(
             assignRegisterpairWord(target, RegisterOrPair.AY)
             return true
         }
+        else if (expr.left.type.isLong && expr.right.type.isLong) {
+            // TODO optimize for when the left operand is const values or variables
+            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R2R3_32, expr.left.type.isSigned)
+            val constval = expr.right.asConstInteger()
+            val varname = (expr.right as? PtIdentifier)?.name
+            if(constval!=null)
+                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r2", expr.operator, constval)
+            else if(varname!=null)
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r2", expr.operator, varname)
+            else
+                augmentableAsmGen.inplacemodificationLongWithExpression("cx16.r2", expr.operator, expr.right)
+            assignRegisterLong(target, RegisterOrPair.R2R3_32)
+            return true
+        }
         return false
     }
 
