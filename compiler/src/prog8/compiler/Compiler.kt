@@ -500,6 +500,8 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
     }
 
     removeUnusedCode(program, errors,compilerOptions)
+    program.constantFold(errors, compilerOptions)
+
     for(numCycles in 0..10000) {
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors)
