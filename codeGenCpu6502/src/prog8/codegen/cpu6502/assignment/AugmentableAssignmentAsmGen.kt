@@ -605,7 +605,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             ">>" -> {
                 asmgen.out("""
                     ldy  $sourceVar
--                   lsr  $targetVar+3
+-                   lda  $targetVar+3
+                    asl  a    ; save sign bit
+                    ror  $targetVar+3
                     ror  $targetVar+2
                     ror  $targetVar+1
                     ror  $targetVar
@@ -780,99 +782,26 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 value in 0..2 -> {
                     repeat(value) {
                         asmgen.out("""
-                            lsr  $variable+3
+                            lda  $variable+3
+                            asl  a      ; save sign bit
+                            ror  $variable+3
                             ror  $variable+2
                             ror  $variable+1
                             ror  $variable""")
                     }
                 }
-                value in 3..7 -> {
+                // TODO optimize for more cases 8, 16, 24 etc but don't forget to take the sign bit into account!
+                value <= 31 -> {
                     asmgen.out("""
                         ldy  #$value
--                       lsr  $variable+3
+-                       lda  $variable+3
+                        asl  a      ; save sign bit
+                        ror  $variable+3
                         ror  $variable+2
                         ror  $variable+1
                         ror  $variable
                         dey
                         bne  -""")
-                }
-                value == 8 -> {
-                    asmgen.out("""
-                        lda  $variable+1
-                        sta  $variable
-                        lda  $variable+2
-                        sta  $variable+1
-                        lda  $variable+3
-                        sta  $variable+2
-                        lda  #0
-                        sta  $variable+3""")
-                }
-                value in 9..15 -> {
-                    val shift = value - 8
-                    asmgen.out("""
-                        lda  $variable+1
-                        sta  $variable
-                        lda  $variable+2
-                        sta  $variable+1
-                        lda  $variable+3
-                        sta  $variable+2
-                        lda  #0
-                        sta  $variable+3
-                        ldy  #$shift
--                       lsr  $variable+2
-                        ror  $variable+1
-                        ror  $variable
-                        dey
-                        bne  -""")
-                }
-                value == 16 -> {
-                    asmgen.out("""
-                        lda  $variable+3
-                        sta  $variable+1
-                        lda  $variable+2
-                        sta  $variable
-                        lda  #0
-                        sta  $variable+2
-                        sta  $variable+3""")
-                }
-                value in 17..23 -> {
-                    val shift = value-16
-                    asmgen.out("""
-                        lda  $variable+3
-                        sta  $variable+1
-                        lda  $variable+2
-                        sta  $variable
-                        lda  #0
-                        sta  $variable+2
-                        sta  $variable+3
-                        ldy  #$shift
--                       lsr  $variable+1
-                        ror  $variable
-                        dey
-                        bne  -""")
-                }
-                value == 24 -> {
-                    asmgen.out("""
-                        lda  $variable+3
-                        sta  $variable
-                        lda  #0
-                        sta  $variable+1
-                        sta  $variable+2
-                        sta  $variable+3""")
-                }
-                value <= 31 -> {
-                    val shift = value-24
-                    asmgen.out("""
-                        lda  $variable+3
-                        ldy  #$shift
--                       lsr  a
-                        dey
-                        bne  -
-                        sta  $variable
-                        lda  #0
-                        sta  $variable+1
-                        sta  $variable+2
-                        sta  $variable+3""")
                 }
                 else -> {
                     asmgen.out("""
