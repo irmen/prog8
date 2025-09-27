@@ -4,8 +4,7 @@ TODO
 LONG TYPE
 ---------
 - call convention: return long  ->  return it in R0+R1....   because AY is only 16 bits...
-- call convention: long param -> passed as regular variable NOT via R0:R1    asmsubs don't have syntax for this so use explicit separate msw() and lsw() arguments...
-- implement << >> expressions on longs
+- call convention: long param -> passed as regular variable NOT via R0:R1?    asmsubs don't have syntax for this so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
 - implement the bitwise & | ^ operations as expressions on longs  (all types args)
 - make sure == and != work with longs against byte and words as well signed and unsigned
 - how hard is it to also implement the other comparison operators on longs?

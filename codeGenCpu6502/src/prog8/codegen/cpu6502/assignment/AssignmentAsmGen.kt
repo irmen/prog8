@@ -656,7 +656,7 @@ internal class AssignmentAsmGen(
                 }
                 returnDt== BaseDataType.LONG -> {
                     // longs are in R0:R1 (r0=lsw, r1=msw)
-                    assignRegisterLong(target, RegisterOrPair.R0, RegisterOrPair.R1)
+                    assignRegisterLong(target, RegisterOrPair.R0R1_32)
                 }
                 returnDt==BaseDataType.FLOAT -> {
                     // float result from function sits in FAC1
@@ -1244,7 +1244,7 @@ internal class AssignmentAsmGen(
                     asmgen.out("  jsr  prog8_math.asl_byte_A")
                 assignRegisterByte(target, CpuRegister.A, signed, true)
                 return true
-            } else {
+            } else if(dt.isWord) {
                 assignExpressionToRegister(expr.left, RegisterOrPair.AY, signed)
                 asmgen.restoreRegisterStack(CpuRegister.X, true)
                 if(expr.operator==">>")
@@ -1255,6 +1255,12 @@ internal class AssignmentAsmGen(
                 else
                     asmgen.out("  jsr  prog8_math.asl_word_AY")
                 assignRegisterpairWord(target, RegisterOrPair.AY)
+                return true
+            } else if(dt.isLong) {
+                assignExpressionToRegister(expr.left, RegisterOrPair.R0R1_32, signed)
+                asmgen.out("  pla |  sta  P8ZP_SCRATCH_REG")
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r0", expr.operator, "P8ZP_SCRATCH_REG")
+                assignRegisterLong(target, RegisterOrPair.R0R1_32)
                 return true
             }
         }
@@ -1375,6 +1381,11 @@ internal class AssignmentAsmGen(
                         return true
                     }
                 }
+            } else if(dt.isLong) {
+                assignExpressionToRegister(expr.left, RegisterOrPair.R0R1_32, signed)
+                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r0", expr.operator, shifts)
+                assignRegisterLong(target, RegisterOrPair.R0R1_32)
+                return true
             }
         }
         return false
@@ -1787,7 +1798,11 @@ internal class AssignmentAsmGen(
                 }
             }
             else -> {
-                TODO("add/subtract long ${target.position} - use simple expressions and temporary variables for now")
+                assignExpressionToRegister(expr.left, RegisterOrPair.R2R3_32, expr.left.type.isSigned)
+                assignExpressionToRegister(expr.right, RegisterOrPair.R0R1_32, expr.right.type.isSigned)
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r2", expr.operator, "cx16.r0")
+                assignRegisterLong(target, RegisterOrPair.R2R3_32)
+                return true
             }
         }
     }
@@ -2519,8 +2534,8 @@ $endLabel""")
         }
 
         if(targetDt.isInteger && valueDt.isByteOrBool && valueDt.isAssignableTo(targetDt)) {
-            require(targetDt.isWord) {
-                "should be byte to word assignment ${origTypeCastExpression.position}"
+            require(targetDt.isWord || targetDt.isLong) {
+                "should be byte to word or long assignment ${origTypeCastExpression.position}"
             }
             when(target.kind) {
 //                TargetStorageKind.VARIABLE -> {
@@ -2541,7 +2556,7 @@ $endLabel""")
                     return
                 }
                 TargetStorageKind.REGISTER -> {
-                    // byte to word, just assign to registers
+                    // byte to word or long, just assign to registers
                     assignExpressionToRegister(value, target.register!!, targetDt.isSigned)
                     return
                 }
@@ -2686,7 +2701,7 @@ $endLabel""")
                     BaseDataType.LONG -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                         asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
-                        asmgen.signExtendLongVariableMsw(targetAsmVarName, BaseDataType.WORD)
+                        asmgen.signExtendLongVariable(targetAsmVarName, BaseDataType.WORD)
                     }
                     BaseDataType.FLOAT -> {
                         asmgen.out("""
@@ -2752,7 +2767,7 @@ $endLabel""")
                             sta  $targetAsmVarName
                             lda  $sourceAsmVarName+1
                             sta  $targetAsmVarName+1""")
-                        asmgen.signExtendLongVariableMsw(targetAsmVarName, BaseDataType.WORD)
+                        asmgen.signExtendLongVariable(targetAsmVarName, BaseDataType.WORD)
                     }
                     BaseDataType.FLOAT -> {
                         asmgen.out("""
@@ -3124,22 +3139,89 @@ $endLabel""")
     }
 
     private fun assignVariableLong(target: AsmAssignTarget, varName: String, sourceDt: DataType) {
-        require(sourceDt.isLong)
+        require(sourceDt.isByte || sourceDt.isWord || sourceDt.isLong) {
+            "need byte/word/long as source value to assign to long variable $varName  ${target.position}"
+        }
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                asmgen.out("""
-                    lda  $varName
-                    sta  ${target.asmVarname}
-                    lda  $varName+1
-                    sta  ${target.asmVarname}+1
-                    lda  $varName+2
-                    sta  ${target.asmVarname}+2
-                    lda  $varName+3
-                    sta  ${target.asmVarname}+3""")
+                when(sourceDt) {
+                    DataType.BYTE -> {
+                        TODO("signed byte to long var")
+                    }
+                    DataType.UBYTE -> {
+                        TODO("ubyte to long var")
+                    }
+                    DataType.WORD -> {
+                        TODO("signed word to long var")
+                    }
+                    DataType.UWORD -> {
+                        TODO("ubyte to long var")
+                    }
+                    DataType.LONG -> {
+                        asmgen.out("""
+                            lda  $varName
+                            sta  ${target.asmVarname}
+                            lda  $varName+1
+                            sta  ${target.asmVarname}+1
+                            lda  $varName+2
+                            sta  ${target.asmVarname}+2
+                            lda  $varName+3
+                            sta  ${target.asmVarname}+3""")
+                    }
+                    else -> throw AssemblyError("wrong dt ${target.position}")
+                }
             }
             TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-            TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+            TargetStorageKind.REGISTER -> {
+                require(target.register in combinedLongRegisters)
+                val regstart = target.register.toString().take(2).lowercase()
+                when(sourceDt) {
+                    DataType.BYTE -> {
+                        asmgen.out("  lda  $varName |  sta  cx16.$regstart")
+                        asmgen.signExtendLongVariable("cx16.$regstart", sourceDt.base)
+                    }
+                    DataType.UBYTE -> {
+                        asmgen.out("""
+                            lda  $varName
+                            sta  cx16.$regstart
+                            lda  #0
+                            sta  cx16.$regstart+1
+                            sta  cx16.$regstart+2
+                            sta  cx16.$regstart+3""")
+                    }
+                    DataType.WORD -> {
+                        asmgen.out("""
+                            lda  $varName
+                            sta  cx16.$regstart
+                            lda  $varName+1
+                            sta  cx16.$regstart+1""")
+                        asmgen.signExtendLongVariable("cx16.$regstart", sourceDt.base)
+                    }
+                    DataType.UWORD -> {
+                        asmgen.out("""
+                            lda  $varName
+                            sta  cx16.$regstart
+                            lda  $varName+1
+                            sta  cx16.$regstart+1
+                            lda  #0
+                            sta  cx16.$regstart+2
+                            sta  cx16.$regstart+3""")
+                    }
+                    DataType.LONG -> {
+                        asmgen.out("""
+                            lda  $varName
+                            sta  cx16.$regstart
+                            lda  $varName+1
+                            sta  cx16.$regstart+1
+                            lda  $varName+2
+                            sta  cx16.$regstart+2
+                            lda  $varName+3
+                            sta  cx16.$regstart+3""")
+                    }
+                    else -> throw AssemblyError("wrong dt ${target.position}")
+                }
+            }
             TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
@@ -3624,18 +3706,22 @@ $endLabel""")
         }
     }
 
-    internal fun assignRegisterLong(target: AsmAssignTarget, lsw: RegisterOrPair, msw: RegisterOrPair) {
+    internal fun assignRegisterLong(target: AsmAssignTarget, pairedRegisters: RegisterOrPair) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                asmgen.out("""
-                    lda  cx16.r0L
-                    sta  ${target.asmVarname}
-                    lda  cx16.r0H
-                    sta  ${target.asmVarname}+1
-                    lda  cx16.r1L
-                    sta  ${target.asmVarname}+2
-                    lda  cx16.r1H
-                    sta  ${target.asmVarname}+3""")
+                if(pairedRegisters in combinedLongRegisters) {
+                    val startreg = pairedRegisters.name.take(2).lowercase()
+                    asmgen.out("""
+                        lda  cx16.$startreg
+                        sta  ${target.asmVarname}
+                        lda  cx16.$startreg+1
+                        sta  ${target.asmVarname}+1
+                        lda  cx16.$startreg+2
+                        sta  ${target.asmVarname}+2
+                        lda  cx16.$startreg+3
+                        sta  ${target.asmVarname}+3""")
+                }
+                else throw AssemblyError("only combined vreg allowed as long target ${target.position}")
             }
             TargetStorageKind.ARRAY -> {
                 TODO("assign 32 bits int in R0:R1 into array ${target.position}")

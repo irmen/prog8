@@ -1554,7 +1554,11 @@ internal class AstChecker(private val program: Program,
             } else if(leftDt.isBool && rightDt.isByte || leftDt.isByte && rightDt.isBool) {
                 // expression with one side BOOL other side (U)BYTE is allowed; bool==byte
             } else if((expr.operator == "<<" || expr.operator == ">>")
-                && (leftDt.isWord && rightDt.isByte || leftDt.isLong && rightDt.isByte || leftDt.isLong && rightDt.isWord)) {
+                && (leftDt.isByte && rightDt.isByte ||
+                        leftDt.isWord && rightDt.isByte ||
+                        leftDt.isWord && rightDt.isWord ||
+                        leftDt.isLong && rightDt.isByte ||
+                        leftDt.isLong && rightDt.isWord)) {
                 // exception allowed: shifting a word by a byte, long by a word or byte
             } else if((expr.operator in BitwiseOperators) && (leftDt.isInteger && rightDt.isInteger)) {
                 // exception allowed: bitwise operations with any integers

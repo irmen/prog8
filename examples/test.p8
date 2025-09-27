@@ -15,7 +15,16 @@ main {
         txt.print_ulhex(lv1, false)
         txt.nl()
 
-        txt.print_l(lv1<<3)     ; TODO fix compiler error
+        lv1 = 999999
+        txt.print_l(lv1<<3)
+        txt.nl()
+        cx16.r4sL = -55
+        lv1 = 999999
+        txt.print_l(lv1+cx16.r4sL)
+        txt.nl()
+        cx16.r4s = -5555
+        lv1 = 999999
+        txt.print_l(lv1+cx16.r4s)
         txt.nl()
 
         lv2 <<= cx16.r0L
@@ -51,6 +60,7 @@ main {
         b2 = lv2 != cx16.r0s
         b1 = lv1 != lv2
     }
+}
 
 /*
     sub start2() {
@@ -174,4 +184,4 @@ main {
     }
 */
 
-}
+;}

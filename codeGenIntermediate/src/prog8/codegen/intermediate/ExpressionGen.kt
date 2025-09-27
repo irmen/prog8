@@ -797,11 +797,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     BaseDataType.UWORD -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
-                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     BaseDataType.WORD -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
-                        addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
+                        addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
                     else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }

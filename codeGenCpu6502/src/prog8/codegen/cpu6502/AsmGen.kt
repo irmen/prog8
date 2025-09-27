@@ -914,8 +914,7 @@ class AsmGen6502Internal (
                             when (target.kind) {
                                 TargetStorageKind.VARIABLE -> {
                                     out("  lda  $valuesym |  sta  ${target.asmVarname}")
-                                    signExtendVariableLsb(target.asmVarname, value.value.type.base)
-                                    signExtendLongVariableMsw(target.asmVarname, value.value.type.base)
+                                    signExtendLongVariable(target.asmVarname, value.value.type.base)
                                 }
                                 TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
@@ -931,11 +930,20 @@ class AsmGen6502Internal (
                                         sta  ${target.asmVarname}
                                         lda  $valuesym+1
                                         sta  ${target.asmVarname}+1""")
-                                    signExtendLongVariableMsw(target.asmVarname, value.value.type.base)
+                                    signExtendLongVariable(target.asmVarname, value.value.type.base)
                                 }
                                 TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-                                TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                                TargetStorageKind.REGISTER -> {
+                                    require(target.register in combinedLongRegisters)
+                                    val startreg = target.register.toString().take(2).lowercase()
+                                    out("""
+                                        lda  $valuesym
+                                        sta  cx16.$startreg
+                                        lda  $valuesym+1
+                                        sta  cx16.$startreg+1""")
+                                    signExtendLongVariable("cx16.$startreg", value.value.type.base)
+                                }
                                 TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
@@ -1384,7 +1392,7 @@ $repeatLabel""")
         }
     }
 
-    internal fun signExtendLongVariableMsw(asmvar: String, valueDt: BaseDataType) {
+    internal fun signExtendLongVariable(asmvar: String, valueDt: BaseDataType) {
         // sign extend signed word in a var to a full long in that variable
         when(valueDt) {
             BaseDataType.UBYTE -> {
@@ -1421,7 +1429,7 @@ $repeatLabel""")
 +                   sta  $asmvar+2
                     sta  $asmvar+3""")
             }
-            else -> throw AssemblyError("need byte type")
+            else -> throw AssemblyError("need byte or word type")
         }
     }
 

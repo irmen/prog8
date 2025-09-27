@@ -553,7 +553,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplacemodificationLongWithVariable(targetVar: String, operator: String, sourceVar: String) {
+    internal fun inplacemodificationLongWithVariable(targetVar: String, operator: String, sourceVar: String) {
         when(operator) {
             "+" -> {
                 asmgen.out("""
@@ -658,7 +658,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun inplacemodificationLongWithLiteralval(variable: String, operator: String, value: Int) {
+    internal fun inplacemodificationLongWithLiteralval(variable: String, operator: String, value: Int) {
 
         fun inplaceLongShiftLeft() {
             when {
