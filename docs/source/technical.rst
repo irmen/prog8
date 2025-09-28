@@ -135,7 +135,7 @@ Subroutine Calling Convention
 Calling a subroutine requires three steps:
 
 #. preparing the arguments (if any) and passing them to the routine.
-   Numeric types are passed by value (bytes, words, booleans, floats),
+   Numeric types are passed by value (bytes, words, longs, booleans, floats),
    but array types passed by reference which means as ``uword`` being a pointer to their address in memory.
    Strings are passed as a pointer to a byte: ``^^ubyte``.
 #. calling the subroutine
@@ -151,29 +151,16 @@ Regular subroutines
 - The arguments passed in a subroutine call are evaluated by the caller, and then put into those variables by the caller.
   The order of evaluation of subroutine call arguments *is unspecified* and should not be relied upon.
 - The subroutine is invoked.
-- The return value is not put into a variable, but the subroutine passes it back to the caller via register(s):
+- The return value is not put into a variable, but the subroutine passes it back to the caller via register(s). See below.
 
-  - A byte value will be put in ``A`` .
-  - A boolean value will be put in ``A`` too, as 0 or 1.
-  - A word or pointer value will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
-  - A float value will be put in the ``FAC1`` float 'register'.
+.. sidebar::
+    **Builtin functions can be different:**
 
-- In case of *multiple* return values:
+    some builtin functions are special and won't exactly follow the rules in this paragraph.
 
-  - for an ``asmsub`` or ``extsub`` the subroutine's signature specifies the output registers that contain the values explicitly,
-    just as for a single return value.
-  - for regular subroutines, the compiler will return the first of the return values via the cpu register ``A``` (or ``A + Y``` if it's a word value),
-    just like for subroutines that only return a single value.
-    The remainder of the return values are returned via the "virtual registers" cx16.r16-cx16.r0 (using R15 first and counting down to R0).
-    A floating point value is passed via FAC1 as usual (only a single floating point value is supported,
-    using FAC1 and FAC2 together unfortunately interferes with the values).
+**Single arguments will often be passed in registers:**
 
-
-**Builtin functions can be different:**
-some builtin functions are special and won't exactly follow these rules.
-
-**Some arguments will be passed in registers:**
-For single byte, word, and pointer arguments, the values are simply loaded in cpu registers by the caller before calling the subroutine.
+For *single* byte, word, long, and pointer arguments, the values are simply loaded in cpu registers by the caller before calling the subroutine.
 *The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
 otherwise all callers would have to store the values in those variables themselves.
 Note that his convention is also still used for subroutines that specify parameters to be put into
@@ -193,11 +180,30 @@ Single pointer parameter: ``sub foo(^^ubyte bar) { ... }``
     gets bar in the register pair A + Y (lsb in A, msb in Y), *subroutine* stores it into parameter variable
 
 Floating point parameter: ``sub foo(float bar) { ... }``
-    value for bar gets copied into the parameter variable *by the caller*
+    value for bar gets stored into the parameter variable *by the caller*
 
 Other: ``sub foo(ubyte bar, ubyte baz, ubyte zoo) { ... }``
-   register values indeterminate, values all get stored in the parameter variables *by the caller*
+   not using registers; all values get stored in the subroutine's parameter variables *by the caller*
 
+
+**Return value**
+
+- A byte return value will be put in ``A`` .
+- A boolean return value will be put in ``A`` too, as 0 or 1.
+- A word return or pointer value will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
+- A long return value will be put into ``cx16.r0 : cx16.r1`` (2 combined word registers to make up a single 32 bits long)
+- A float return value will be put in the ``FAC1`` float 'register'.
+
+In case of *multiple* return values:
+
+  - for an ``asmsub`` or ``extsub`` the subroutine's signature specifies the output registers that contain the values explicitly,
+    just as for a single return value.
+  - for regular subroutines, the compiler will return the first of the return values via the cpu register ``A``` (or ``A + Y``` if it's a word value),
+    just like for subroutines that only return a single value.
+    The remainder of the return values are returned via the "virtual registers" cx16.r16-cx16.r0 (using R15 first and counting down to R0).
+    Long values will take a pair of those "virtual registers" that combined make up a single 32 bits value.
+    A floating point value is passed via FAC1 as usual (only a single floating point value is supported,
+    using FAC1 and FAC2 together unfortunately interferes with the values).
 
 
 ``asmsub`` and ``extsub`` routines

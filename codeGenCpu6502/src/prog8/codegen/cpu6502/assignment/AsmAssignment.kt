@@ -142,7 +142,9 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.R10R11_32,
                     RegisterOrPair.R12R13_32,
                     RegisterOrPair.R14R15_32 -> {
-                        val dt = if(signed) DataType.LONG else TODO("unsigned long")
+                        val dt = if(signed) DataType.LONG
+                            else
+                                TODO("unsigned long")
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                 }

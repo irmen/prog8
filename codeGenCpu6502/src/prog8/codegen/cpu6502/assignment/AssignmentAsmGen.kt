@@ -710,22 +710,8 @@ internal class AssignmentAsmGen(
                         RegisterOrPair.AX -> assignVirtualRegister(target, RegisterOrPair.AX)
                         RegisterOrPair.AY -> assignVirtualRegister(target, RegisterOrPair.AY)
                         RegisterOrPair.XY -> assignVirtualRegister(target, RegisterOrPair.XY)
-                        RegisterOrPair.R0 -> assignVirtualRegister(target, RegisterOrPair.R0)
-                        RegisterOrPair.R1 -> assignVirtualRegister(target, RegisterOrPair.R1)
-                        RegisterOrPair.R2 -> assignVirtualRegister(target, RegisterOrPair.R2)
-                        RegisterOrPair.R3 -> assignVirtualRegister(target, RegisterOrPair.R3)
-                        RegisterOrPair.R4 -> assignVirtualRegister(target, RegisterOrPair.R4)
-                        RegisterOrPair.R5 -> assignVirtualRegister(target, RegisterOrPair.R5)
-                        RegisterOrPair.R6 -> assignVirtualRegister(target, RegisterOrPair.R6)
-                        RegisterOrPair.R7 -> assignVirtualRegister(target, RegisterOrPair.R7)
-                        RegisterOrPair.R8 -> assignVirtualRegister(target, RegisterOrPair.R8)
-                        RegisterOrPair.R9 -> assignVirtualRegister(target, RegisterOrPair.R9)
-                        RegisterOrPair.R10 -> assignVirtualRegister(target, RegisterOrPair.R10)
-                        RegisterOrPair.R11 -> assignVirtualRegister(target, RegisterOrPair.R11)
-                        RegisterOrPair.R12 -> assignVirtualRegister(target, RegisterOrPair.R12)
-                        RegisterOrPair.R13 -> assignVirtualRegister(target, RegisterOrPair.R13)
-                        RegisterOrPair.R14 -> assignVirtualRegister(target, RegisterOrPair.R14)
-                        RegisterOrPair.R15 -> assignVirtualRegister(target, RegisterOrPair.R15)
+                        in Cx16VirtualRegisters -> assignVirtualRegister(target, returnValue.first.registerOrPair!!)
+                        in combinedLongRegisters -> assignVirtualRegister(target, returnValue.first.registerOrPair!!)
                         else -> {
                             val sflag = returnValue.first.statusflag
                             if(sflag!=null)
@@ -778,6 +764,10 @@ internal class AssignmentAsmGen(
                 assignRegisterByte(target, CpuRegister.A, false, false)
             }
             target.datatype.isWord || target.datatype.isPointer -> assignRegisterpairWord(target, register)
+            target.datatype.isLong -> {
+                require(register in combinedLongRegisters)
+                assignRegisterLong(target, register)
+            }
             else -> throw AssemblyError("expected byte or word")
         }
     }

@@ -1285,7 +1285,7 @@ $repeatLabel""")
         if(returnvalue!=null) {
             val returnDt = sub.signature.returns.single()
             if (returnDt.isNumericOrBool || returnDt.isPointer) {
-                assignExpressionToRegister(returnvalue, returnRegs.single().first.registerOrPair!!)
+                assignExpressionToRegister(returnvalue, returnRegs.single().first.registerOrPair!!, returnDt.isSigned)
             }
             else {
                 // all else take its address and assign that also to AY register pair

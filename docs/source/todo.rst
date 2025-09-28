@@ -3,13 +3,13 @@ TODO
 
 LONG TYPE
 ---------
-- call convention: return long  ->  return it in R0+R1....   because AY is only 16 bits...
-- call convention: long param -> passed as regular variable NOT via R0:R1?    asmsubs don't have syntax for this so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
+- call convention: NEVER put LONG parameter into R0:R1 just use parameter variable (also fix convention doc)
+- call convention for asmsubs:  asmsubs don't have syntax for passing a long value so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
 - make sure == and != work with longs against byte and words as well signed and unsigned
 - how hard is it to also implement the other comparison operators on longs?
-- implement rol() and ror() on longs  (also roxl and roxr)
+- implement rol() and ror() on longs  (also rol2 and ror2)
 - implement LONG testcases in testmemory
-- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_)
+- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_l)
 - scan through library routines if there are opportunities to use the long?  such as RDTIM
 
 
