@@ -466,4 +466,15 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
 
     }
+
+    test("const long with small values") {
+        val src="""
+main {
+    sub start() {
+        const long notkaputt = 42
+        cx16.r0L = notkaputt
+    }
+}"""
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
 })

@@ -440,7 +440,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         val numval = decl.value as? NumericLiteral
         if(decl.type== VarDeclType.CONST && numval!=null) {
             val valueDt = numval.inferType(program)
-            if(valueDt issimpletype BaseDataType.LONG) {
+            if(valueDt issimpletype BaseDataType.LONG || decl.datatype.isLong) {
                 return noModifications  // this is handled in the numericalvalue case
             }
             if(!(valueDt istype decl.datatype)) {

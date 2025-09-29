@@ -1,8 +1,6 @@
-%import textio
-%zeropage basicsafe
-
 main {
     sub start() {
-        txt.print_bool(sys.cpu_is_65816())
+        const long notkaputt = 42
+        cx16.r0L = notkaputt
     }
 }

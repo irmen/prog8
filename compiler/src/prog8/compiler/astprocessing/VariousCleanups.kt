@@ -49,9 +49,11 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         val constValue = decl.value!!.constValue(program)!!
                         errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                     } else {
-                        // don't make it signed if it was unsigned and vice versa
-                        if(valueDt.isSigned && decl.datatype.isUnsigned ||
-                            valueDt.isUnsigned && decl.datatype.isSigned) {
+                        // don't make it signed if it was unsigned and vice versa, except when it is a long const declaration
+                        if(!decl.datatype.isLong &&
+                            (valueDt.isSigned && decl.datatype.isUnsigned ||
+                            valueDt.isUnsigned && decl.datatype.isSigned))
+                        {
                             val constValue = decl.value!!.constValue(program)!!
                             errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                         } else {
