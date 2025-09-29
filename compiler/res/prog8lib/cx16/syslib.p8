@@ -1454,22 +1454,6 @@ sub search_x16edit() -> ubyte {
     return 255
 }
 
-    asmsub cpu_is_65816() -> bool @A {
-        ; -- Returns true when you have a 65816 cpu, false when it's a 6502.
-        %asm {{
-			php
-			clv
-			.byte $e2, $ea  ; SEP #$ea, should be interpreted as 2 NOPs by 6502. 65c816 will set the Overflow flag.
-			bvc +
-			lda #1
-			plp
-			rts
-+			lda #0
-			plp
-			rts
-        }}
-    }
-
     sub set_program_args(str args_ptr, ubyte args_size) {
         ; -- Set the inter-program arguments.
         ; standardized way to pass arguments between programs is in ram bank 0, address $bf00-$bfff.
@@ -2135,6 +2119,21 @@ save_SCRATCH_ZPWORD2	.word  ?
         }}
     }
 
+    asmsub cpu_is_65816() -> bool @A {
+        ; -- Returns true when you have a 65816 cpu, false when it's a 6502.
+        %asm {{
+			php
+			clv
+			.byte $e2, $ea  ; SEP #$ea, should be interpreted as 2 NOPs by 6502. 65c816 will set the Overflow flag.
+			bvc +
+			lda #1
+			plp
+			rts
++			lda #0
+			plp
+			rts
+        }}
+    }
 }
 
 p8_sys_startup {

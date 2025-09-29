@@ -422,10 +422,6 @@ On the other targets, it only contains the definition of the 16 memory-mapped vi
 ``restore_virtual_registers()``
     restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
 
-``cpu_is_65816()``
-    Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
-    Note that Prog8 itself has no support yet for this CPU other than detecting its presence.
-
 ``reset_system ()``
     Soft-reset the system back to initial power-on BASIC prompt. (same as the routine in sys)
 
@@ -1059,6 +1055,10 @@ sys (part of syslib)
     - 64 = Commodore 64
     - 128 = Commodore 128
     - 255 = Virtual machine
+
+``cpu_is_65816()``
+    Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
+    Note that Prog8 itself has no support yet for this CPU other than detecting its presence.
 
 ``exit (returncode)``
     Immediately stops the program and exits it, with the returncode in the A register.

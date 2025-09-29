@@ -1,15 +1,8 @@
+%import textio
+%zeropage basicsafe
+
 main {
-
     sub start() {
-        sprptr[2]^^.y++
+        txt.print_bool(sys.cpu_is_65816())
     }
-
-    struct Sprite {
-        ubyte x
-        uword y
-    }
-
-    ^^Sprite[4] @shared sprites
-    ^^Sprite @shared sprptr
 }
-

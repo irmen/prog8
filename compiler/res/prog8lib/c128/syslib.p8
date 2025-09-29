@@ -1033,6 +1033,22 @@ _no_msb_size
         }}
     }
 
+    sub cpu_is_65816() -> bool {
+        ; Returns true when you have a 65816 cpu, false when it's a 6502.
+        ; The SuperCPU expansion for the C64/C128 contains a 65816.
+        %asm {{
+			php
+			clv
+			.byte $e2, $ea  ; SEP #$ea, should be interpreted as 2 NOPs by 6502. 65c816 will set the Overflow flag.
+			bvc +
+			lda #1
+			plp
+			rts
++			lda #0
+			plp
+			rts
+        }}
+    }
 }
 
 cx16 {
@@ -1209,12 +1225,6 @@ cx16 {
             rts
         }}
     }
-
-    sub cpu_is_65816() -> bool {
-        ; Returns true when you have a 65816 cpu, false when it's a 6502.
-        return false
-    }
-
 }
 
 p8_sys_startup {

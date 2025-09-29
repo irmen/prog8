@@ -509,6 +509,11 @@ save_SCRATCH_ZPWORD2	.word  ?
         }}
     }
 
+    sub cpu_is_65816() -> bool {
+        ; Returns true when you have a 65816 cpu, false when it's a 6502.
+        return false
+    }
+
 }
 
 cx16 {
@@ -684,11 +689,6 @@ cx16 {
             bpl  -
             rts
         }}
-    }
-
-    sub cpu_is_65816() -> bool {
-        ; Returns true when you have a 65816 cpu, false when it's a 6502.
-        return false
     }
 
 }
