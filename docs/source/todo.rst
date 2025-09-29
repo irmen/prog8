@@ -3,7 +3,6 @@ TODO
 
 LONG TYPE
 ---------
-- call convention: NEVER put LONG parameter into R0:R1 just use parameter variable (also fix convention doc)
 - call convention for asmsubs:  asmsubs don't have syntax for passing a long value so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
 - make sure == and != work with longs against byte and words as well signed and unsigned
 - how hard is it to also implement the other comparison operators on longs?
@@ -32,6 +31,9 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- After long variable type is completed: make all constants long by default (remove type name altogether), reduce to target type implictly if the actual value fits.
+  This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
+  Can give descriptive error message for old syntax that still includes the type name?
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - allow memory() to occur in array initializer
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed

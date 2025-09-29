@@ -160,7 +160,7 @@ Regular subroutines
 
 **Single arguments will often be passed in registers:**
 
-For *single* byte, word, long, and pointer arguments, the values are simply loaded in cpu registers by the caller before calling the subroutine.
+For *single* byte, word, and pointer arguments (not long or float), the values are simply loaded in cpu registers by the caller before calling the subroutine.
 *The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
 otherwise all callers would have to store the values in those variables themselves.
 Note that his convention is also still used for subroutines that specify parameters to be put into
@@ -179,7 +179,7 @@ Single word parameter: ``sub foo(uword bar) { ... }``
 Single pointer parameter: ``sub foo(^^ubyte bar) { ... }``
     gets bar in the register pair A + Y (lsb in A, msb in Y), *subroutine* stores it into parameter variable
 
-Floating point parameter: ``sub foo(float bar) { ... }``
+Long or Floating point parameter: ``sub foo(long bar) { ... }``, ``sub foo(float bar) { ... }``
     value for bar gets stored into the parameter variable *by the caller*
 
 Other: ``sub foo(ubyte bar, ubyte baz, ubyte zoo) { ... }``

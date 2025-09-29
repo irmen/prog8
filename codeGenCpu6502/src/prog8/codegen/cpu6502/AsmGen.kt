@@ -806,6 +806,7 @@ class AsmGen6502Internal (
             RegisterOrPair.AY,
             RegisterOrPair.XY -> assignmentAsmGen.assignRegisterpairWord(target, reg)
             in Cx16VirtualRegisters -> assignmentAsmGen.assignVirtualRegister(target, reg)
+            in combinedLongRegisters -> assignmentAsmGen.assignVirtualRegister(target, reg)
             RegisterOrPair.FAC1 -> assignmentAsmGen.assignFAC1float(target)
             RegisterOrPair.FAC2 -> assignmentAsmGen.assignFAC2float(target)
             else -> throw AssemblyError("invalid register")
@@ -1306,7 +1307,7 @@ $repeatLabel""")
                 assignExpressionTo(it.first as PtExpression, tgt)
             }
             assigns.first().also {
-                assignExpressionToRegister(it.first as PtExpression, it.second.first.registerOrPair!!)
+                assignExpressionToRegister(it.first as PtExpression, it.second.first.registerOrPair!!, (it.first as PtExpression).type.isSigned)
             }
         }
         out("  rts")

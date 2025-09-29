@@ -1976,12 +1976,17 @@ class IRCodeGen(
             in Cx16VirtualRegisters -> {
                 chunk += IRInstruction(Opcode.STOREM, paramDt, reg1=resultReg, labelSymbol = "cx16.${registerOrFlag.registerOrPair.toString().lowercase()}")
             }
+            in combinedLongRegisters -> {
+                require(paramDt==IRDataType.LONG)
+                val startreg = registerOrFlag.registerOrPair!!.name.take(2).lowercase()
+                chunk += IRInstruction(Opcode.STOREM, paramDt, reg1=resultReg, labelSymbol = "cx16.${startreg}")
+            }
             null -> when(registerOrFlag.statusflag) {
                 // TODO: do the statusflag argument as last
                 Statusflag.Pc -> chunk += IRInstruction(Opcode.LSR, paramDt, reg1=resultReg)
                 else -> throw AssemblyError("unsupported statusflag as param")
             }
-            else -> throw AssemblyError("unsupported register arg")
+            else -> throw AssemblyError("unsupported register arg $registerOrFlag")
         }
         return chunk
     }

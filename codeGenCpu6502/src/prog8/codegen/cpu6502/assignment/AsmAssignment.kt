@@ -114,39 +114,17 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     RegisterOrPair.FAC2 -> {
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.FLOAT, scope, pos, register = registers)
                     }
-                    RegisterOrPair.R0,
-                    RegisterOrPair.R1,
-                    RegisterOrPair.R2,
-                    RegisterOrPair.R3,
-                    RegisterOrPair.R4,
-                    RegisterOrPair.R5,
-                    RegisterOrPair.R6,
-                    RegisterOrPair.R7,
-                    RegisterOrPair.R8,
-                    RegisterOrPair.R9,
-                    RegisterOrPair.R10,
-                    RegisterOrPair.R11,
-                    RegisterOrPair.R12,
-                    RegisterOrPair.R13,
-                    RegisterOrPair.R14,
-                    RegisterOrPair.R15 -> {
+                    in Cx16VirtualRegisters -> {
                         val dt = if(signed) DataType.WORD else DataType.UWORD
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
-
-                    RegisterOrPair.R0R1_32,
-                    RegisterOrPair.R2R3_32,
-                    RegisterOrPair.R4R5_32,
-                    RegisterOrPair.R6R7_32,
-                    RegisterOrPair.R8R9_32,
-                    RegisterOrPair.R10R11_32,
-                    RegisterOrPair.R12R13_32,
-                    RegisterOrPair.R14R15_32 -> {
+                    in combinedLongRegisters -> {
                         val dt = if(signed) DataType.LONG
                             else
                                 TODO("unsigned long")
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
+                    else -> throw AssemblyError("weird register $registers")
                 }
     }
 
