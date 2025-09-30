@@ -267,12 +267,15 @@ sub  bin2uword(str string) -> uword {
     }
 }
 
-sub  any2uword(str string) -> uword {
+sub  any2uword(str string) -> uword, ubyte {
     ; -- convert any number string (any prefix allowed) to uword.
+    ;    returns the parsed word value, and the number of processed characters (including the prefix symbol)
+    ubyte length
+    while string[length]!=0 length++
     when string[0] {
-        '$' -> return hex2uword(string)
-        '%' -> return bin2uword(string)
-        else -> return str2uword(string)
+        '$' -> return hex2uword(string), length
+        '%' -> return bin2uword(string), length
+        else -> return str2uword(string), length
     }
 }
 

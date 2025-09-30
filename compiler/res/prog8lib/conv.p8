@@ -231,12 +231,12 @@ asmsub  str_w  (word value @ AY) clobbers(X) -> str @AY  {
 
 ; ---- string conversion to numbers -----
 
-asmsub  any2uword(str string @AY) clobbers(Y) -> ubyte @A {
+asmsub  any2uword(str string @AY) -> uword @AY, ubyte @X {
 	; -- parses a string into a 16 bit unsigned number. String may be in decimal, hex or binary format.
 	;    (the latter two require a $ or % prefix to be recognised)
 	;    (any non-digit character will terminate the number string that is parsed)
-	;    returns amount of processed characters in A, and the parsed number will be in cx16.r15.
-	;    if the string was invalid, 0 will be returned in A.
+	;    returns the parsed number word in AY, and the number of processed characters (including the prefix symbol) in X.
+	;    if the string was invalid, 0 will be returned as count in X (and the word value in AY will be undefined).
 	%asm {{
 	pha
 	sta  P8ZP_SCRATCH_W1
@@ -257,13 +257,7 @@ _hex	pla
 _bin	pla
 	jsr  bin2uword
 _result
-        pha
-        lda  cx16.r15
-        sta  P8ZP_SCRATCH_B1        ; result value
-        pla
-        sta  cx16.r15
-        sty  cx16.r15+1
-        lda  P8ZP_SCRATCH_B1
+        ldx  cx16.r15
         rts
 	}}
 }
