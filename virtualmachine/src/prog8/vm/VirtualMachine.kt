@@ -2358,6 +2358,7 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = registers.getUW(i.reg2!!)
                 registers.setUB(i.reg1!!, value.toUByte())
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> throw IllegalArgumentException("lsig.w not yet supported, requires 32-bits registers")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
@@ -2370,6 +2371,7 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val value = registers.getUW(i.reg2!!)
                 val newValue = value.toInt() ushr 8
+                statusbitsNZ(newValue, i.type!!)
                 registers.setUB(i.reg1!!, newValue.toUByte())
             }
             IRDataType.WORD -> throw IllegalArgumentException("msig.w not yet supported, requires 32-bits registers")
@@ -2383,7 +2385,9 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 val msb = registers.getUB(i.reg2!!)
                 val lsb = registers.getUB(i.reg3!!)
-                registers.setUW(i.reg1!!, ((msb.toInt() shl 8) or lsb.toInt()).toUShort())
+                val value = ((msb.toInt() shl 8) or lsb.toInt())
+                registers.setUW(i.reg1!!, value.toUShort())
+                statusbitsNZ(value.toInt(), i.type!!)
             }
             IRDataType.WORD -> throw IllegalArgumentException("concat.w not yet supported, requires 32-bits registers")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")

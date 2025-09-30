@@ -1,28 +1,15 @@
-%import conv
-%import textio
-%zeropage basicsafe
-
 main {
     sub start() {
-        uword value
-        ubyte size
+        uword @shared value
 
-        value, size = conv.any2uword("123")
-        txt.print_uw(value)
-        txt.spc()
-        txt.print_ub(size)
-        txt.nl()
+        if msb(value)>0
+            cx16.r0++
 
-        value, size = conv.any2uword("$ea31")
-        txt.print_uw(value)
-        txt.spc()
-        txt.print_ub(size)
-        txt.nl()
+        if lsb(value)>0
+            cx16.r0++
 
-        value, size = conv.any2uword("%11111110")
-        txt.print_uw(value)
-        txt.spc()
-        txt.print_ub(size)
-        txt.nl()
+        value = mkword(cx16.r0L, cx16.r1L)
+        if_z
+            cx16.r0++
     }
 }

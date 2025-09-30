@@ -49,7 +49,6 @@ Future Things and Ideas
 
 IR/VM
 -----
-- make MSIG instruction set flags and skip cmp #0 afterwards   (if msb(x)>0)
 - is it possible to use LOADFIELD/STOREFIELD instructions even more?
 - make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
@@ -75,8 +74,8 @@ IR/VM
 - change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
-- encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
+- encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
 - do something with the 'split' tag on split word arrays
@@ -86,10 +85,10 @@ IR/VM
   don't forget to take into account the data type of the register when it's going to be reused!
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
-  Variables replaced include all subroutine parameters!  So the only variables that remain as variables are arrays and strings.
+  Variables replaced include all subroutine parameters? Or not?  So the only variables that remain as variables are arrays and strings.
 - the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
-  maybe another representation is needed once actual codegeneration is done from the IR...?
-- ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change
+  maybe another representation is needed once actual codegeneration is done from the IR...? Should array operations be encoded in a more high level form in the IR?
+- ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change.. :(
 - sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
      sub start() {
      cx16.r0L = cx16.r1 as ubyte
@@ -170,4 +169,4 @@ Optimizations
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
   This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those checks should probably be removed, or be made permanent
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those checks should probably all be removed, or be made permanent
