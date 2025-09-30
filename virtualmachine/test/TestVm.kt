@@ -24,6 +24,7 @@ class TestVm: FunSpec( {
             noSysInit = false,
             romable = false,
             compTarget = target,
+            compilerVersion ="99.99",
             loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu
         )
@@ -94,7 +95,7 @@ class TestVm: FunSpec( {
     test("vmrunner") {
         val runner = VmRunner()
         val irSource="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test">
+<PROGRAM NAME="test" COMPILERVERSION="99.99">
 <OPTIONS>
 </OPTIONS>
 

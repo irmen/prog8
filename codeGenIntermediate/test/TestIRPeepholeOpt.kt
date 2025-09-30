@@ -23,6 +23,7 @@ class TestIRPeepholeOpt: FunSpec({
             noSysInit = true,
             romable = false,
             compTarget = target,
+            compilerVersion="99.99",
             loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu
         )

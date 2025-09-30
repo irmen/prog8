@@ -5,6 +5,7 @@ import prog8.ast.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Directive
+import prog8.buildversion.VERSION
 import prog8.code.SymbolTable
 import prog8.code.SymbolTableMaker
 import prog8.code.ast.PtProgram
@@ -456,7 +457,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
     return CompilationOptions(
         outputType, launcherType,
         zpType, zpReserved, zpAllowed, floatsEnabled, noSysInit, rombale,
-        compTarget, 0u, 0xffffu
+        compTarget, VERSION, 0u, 0xffffu
     )
 }
 

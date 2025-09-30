@@ -26,6 +26,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeCharacters("\n")
         xml.writeStartElement("PROGRAM")
         xml.writeAttribute("NAME", irProgram.name)
+        xml.writeAttribute("COMPILERVERSION", irProgram.options.compilerVersion)
         xml.writeCharacters("\n")
         writeOptions()
         writeAsmSymbols()

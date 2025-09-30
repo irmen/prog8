@@ -46,7 +46,8 @@ class IRFileReader {
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="PROGRAM") { "missing PROGRAM" }
         val programName = start.attributes.asSequence().single { it.name.localPart == "NAME" }.value
-        val options = parseOptions(reader)
+        val compilerVersion = start.attributes.asSequence().single { it.name.localPart == "COMPILERVERSION" }.value
+        val options = parseOptions(reader, compilerVersion)
         val asmsymbols = parseAsmSymbols(reader)
         val varsWithoutInitClean = parseVarsWithoutInit("VARIABLESNOINIT", false, reader)
         val varsWithoutInitDirty = parseVarsWithoutInit("VARIABLESNOINITDIRTY", true, reader)
@@ -81,7 +82,7 @@ class IRFileReader {
         return program
     }
 
-    private fun parseOptions(reader: XMLEventReader): CompilationOptions {
+    private fun parseOptions(reader: XMLEventReader, compilerVersion: String): CompilationOptions {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
         require(start.name.localPart=="OPTIONS") { "missing OPTIONS" }
@@ -136,6 +137,7 @@ class IRFileReader {
             false,
             romable,
             target,
+            compilerVersion,
             loadAddress,
             memtop,
             outputDir = outputDir,

@@ -21,6 +21,7 @@ class TestGoldenRam: FunSpec({
         noSysInit = false,
         romable = false,
         compTarget = VMTarget(),
+        compilerVersion="99.99",
         loadAddress = 999u,
         memtopAddress = 0xffffu
     )

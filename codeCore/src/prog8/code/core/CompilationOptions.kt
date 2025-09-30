@@ -13,6 +13,7 @@ class CompilationOptions(val output: OutputType,
                          val noSysInit: Boolean,
                          val romable: Boolean,
                          val compTarget: ICompilationTarget,
+                         val compilerVersion: String,
                          // these are set later, based on command line arguments or options in the source code:
                          var loadAddress: UInt,
                          var memtopAddress: UInt,

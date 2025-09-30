@@ -12,7 +12,7 @@ class TestLaunchEmu: FunSpec({
         val target = VMTarget()
         val tmpfile = kotlin.io.path.createTempFile(suffix=".p8ir")
         tmpfile.writeText("""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test">
+<PROGRAM NAME="test" COMPILERVERSION="99.99">
 <OPTIONS>
 </OPTIONS>
 

@@ -23,6 +23,7 @@ class TestIRFileInOut: FunSpec({
             noSysInit = true,
             romable = false,
             compTarget = target,
+            compilerVersion = "99.99",
             loadAddress = target.PROGRAM_LOAD_ADDRESS,
             memtopAddress = 0xffffu,
             outputDir = tempdir
@@ -32,7 +33,7 @@ class TestIRFileInOut: FunSpec({
         val generatedFile = writer.write()
         val lines = generatedFile.readLines()
         lines[0] shouldBe "<?xml version=\"1.0\" encoding=\"utf-8\"?>"
-        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\">"
+        lines[1] shouldBe "<PROGRAM NAME=\"unittest-irwriter\" COMPILERVERSION=\"99.99\">"
         lines.last() shouldBe "</PROGRAM>"
         generatedFile.deleteExisting()
         lines.size shouldBeGreaterThan 20
@@ -40,7 +41,7 @@ class TestIRFileInOut: FunSpec({
 
     test("test IR reader") {
         val source="""<?xml version="1.0" encoding="utf-8"?>
-<PROGRAM NAME="test-ir-reader">
+<PROGRAM NAME="test-ir-reader" COMPILERVERSION="99.99">
 <OPTIONS>
 compTarget=virtual
 output=PRG
