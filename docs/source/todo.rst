@@ -50,7 +50,6 @@ Future Things and Ideas
 
 IR/VM
 -----
-- TestVMCodegen: add tests for SSA block split/joins/check last instruction to be a valid SSE block ender
 - is it possible to use LOADFIELD/STOREFIELD instructions even more?
 - make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)

@@ -3,6 +3,8 @@ package prog8tests.vm
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.collections.shouldBeIn
+import io.kotest.matchers.ints.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -12,10 +14,7 @@ import prog8.ast.statements.Assignment
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
-import prog8.intermediate.IRDataType
-import prog8.intermediate.IRFileReader
-import prog8.intermediate.IRSubroutine
-import prog8.intermediate.Opcode
+import prog8.intermediate.*
 import prog8.vm.VmRunner
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -557,5 +556,33 @@ main  {
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("SSA basic blocks") {
+        val src= """
+main  {
+    sub start() {
+        func()
+    }
+
+    sub func() {
+        if cx16.r0<10 or cx16.r0>319 {
+            cx16.r1++
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val func = irProgram.blocks[0].children[1] as IRSubroutine
+        func.label shouldBe "main.func"
+        func.chunks.size shouldBe 11
+        for(chunk in func.chunks) {
+            if(chunk.next == null) {
+                chunk.instructions.last().opcode shouldBeIn OpcodesThatBranchUnconditionally
+            }
+            val branches = chunk.instructions.filter { it.opcode in OpcodesThatEndSSAblock }
+            branches.size shouldBeLessThanOrEqual 1
+        }
     }
 })
