@@ -548,4 +548,14 @@ main {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText(), true)
     }
+
+    test("correct reg types with sqrt") {
+        val src= """
+main  {
+    sub start() {
+        cx16.r0L= sqrt(cx16.r1)
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
 })

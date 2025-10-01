@@ -1082,7 +1082,7 @@ data class IRInstruction(
         if(type==IRDataType.WORD) {
             // some word instructions have byte reg1
             return when (opcode) {
-                in arrayOf(Opcode.STOREZX) -> IRDataType.BYTE
+                Opcode.STOREZX, Opcode.SQRT -> IRDataType.BYTE
                 Opcode.EXT, Opcode.EXTS -> TODO("ext.w into long type")
                 Opcode.CONCAT -> TODO("concat.w into long type")
                 else -> IRDataType.WORD
