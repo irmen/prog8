@@ -341,7 +341,7 @@ class TestVmCodeGen: FunSpec({
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
-        irChunks.size shouldBe 1
+        irChunks.size shouldBe 2
     }
 
     test("integer comparison expressions against zero") {
@@ -537,7 +537,7 @@ class TestVmCodeGen: FunSpec({
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
-        irChunks.size shouldBe 1
+        irChunks.size shouldBe 2
     }
 
     test("extsub allowed in ir-codegen") {

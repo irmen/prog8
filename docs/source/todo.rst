@@ -1,6 +1,9 @@
 TODO
 ====
 
+IR: rename <CODE> to <CHUNK> , put the code lines in a new sub node <CODE> for improved xml structure.
+TestVMCodegen: add tests for SSA block split/joins/check last instruction to be a valid SSE block ender
+
 
 STRUCTS and TYPED POINTERS
 --------------------------
@@ -80,7 +83,6 @@ IR/VM
 - implement more TODOs in AssignmentGen
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
-- apparently for SSA form, the IRCodeChunk is not a proper "basic block" yet because the last operation should be a branch or return, and no other branches
 - reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
   don't forget to take into account the data type of the register when it's going to be reused!
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)

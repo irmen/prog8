@@ -161,10 +161,10 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             if(chunk.label!=null)
                 return false
             if(previous is IRCodeChunk && chunk is IRCodeChunk) {
-                // if the previous chunk doesn't end in a jump or a return, flow continues into the next chunk
+                // if the previous chunk doesn't end in a SSA branching instruction, flow continues into the next chunk, so they may be joined
                 val lastInstruction = previous.instructions.lastOrNull()
                 if(lastInstruction!=null)
-                    return lastInstruction.opcode !in OpcodesThatJump
+                    return lastInstruction.opcode !in OpcodesThatEndSSAblock
                 return true
             }
             return false
@@ -300,16 +300,16 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // remove useless RETURN
             if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNR || ins.opcode==Opcode.RETURNI)) {
                 val previous = chunk.instructions[idx-1]
-                if(previous.opcode in OpcodesThatJump) {
+                if(previous.opcode in OpcodesThatBranchUnconditionally) {
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }
             }
 
             // replace subsequent opcodes that jump by just the first
-            if(idx>0 && (ins.opcode in OpcodesThatJump)) {
+            if(idx>0 && (ins.opcode in OpcodesThatBranchUnconditionally)) {
                 val previous = chunk.instructions[idx-1]
-                if(previous.opcode in OpcodesThatJump) {
+                if(previous.opcode in OpcodesThatBranchUnconditionally) {
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }
@@ -362,7 +362,7 @@ jump p8_label_gen_2
          */
         var changed=false
         indexedInstructions.reversed().forEach { (idx, ins) ->
-            if(idx>=2 && ins.opcode in OpcodesThatJump) {
+            if(idx>=2 && ins.opcode in OpcodesThatBranchUnconditionally) {
                 val previous = indexedInstructions[idx-1].value
                 val previous2 = indexedInstructions[idx-2].value
                 if(previous.opcode==Opcode.LOADR && previous2.opcode in OpcodesThatLoad) {

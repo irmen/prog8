@@ -763,7 +763,6 @@ main {
     test("address-of struct fields") {
         val src="""
 %import floats
-%import textio
 
 main {
     struct List {
@@ -1458,7 +1457,6 @@ other {
     test("passing arrays to subroutines via typed pointer parameters") {
         val src="""
 %import floats
-%import textio
 
 main {
     struct Node {

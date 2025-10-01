@@ -144,11 +144,11 @@ class IRProgram(val name: String,
         fun linkCodeChunk(chunk: IRCodeChunk, next: IRCodeChunkBase?) {
             // link sequential chunks
             val jump = chunk.instructions.lastOrNull()?.opcode
-            if (jump == null || jump !in OpcodesThatJump) {
+            if (jump == null || jump !in OpcodesThatBranchUnconditionally) {
                 // no jump at the end, so link to next chunk (if it exists)
                 if(next!=null) {
                     when (next) {
-                        is IRCodeChunk if chunk.instructions.lastOrNull()?.opcode !in OpcodesThatJump -> chunk.next = next
+                        is IRCodeChunk if chunk.instructions.lastOrNull()?.opcode !in OpcodesThatBranchUnconditionally -> chunk.next = next
                         is IRInlineAsmChunk -> chunk.next = next
                         is IRInlineBinaryChunk -> chunk.next =next
                         else -> throw AssemblyError("code chunk followed by invalid chunk type $next")
@@ -181,7 +181,7 @@ class IRProgram(val name: String,
                     is IRInlineAsmChunk -> {
                         if(next!=null) {
                             val lastInstr = chunk.instructions.lastOrNull()
-                            if(lastInstr==null || lastInstr.opcode !in OpcodesThatJump)
+                            if(lastInstr==null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
                                 chunk.next = next
                         }
                     }
@@ -210,7 +210,7 @@ class IRProgram(val name: String,
             if (chunk is IRCodeChunk) {
                 if(!emptyChunkIsAllowed)
                     require(chunk.instructions.isNotEmpty() || chunk.label != null)
-                if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatJump)
+                if(chunk.instructions.lastOrNull()?.opcode in OpcodesThatBranchUnconditionally)
                     require(chunk.next == null) { "chunk ending with a jump or return shouldn't be linked to next" }
                 else if (sub!=null) {
                     // if chunk is NOT the last in the block, it needs to link to next.
@@ -316,7 +316,7 @@ class IRProgram(val name: String,
                             chunks += chunk
                         chunk = IRCodeChunk(label, null)
                         val lastInstr = lastChunk.instructions.lastOrNull()
-                        if(lastInstr==null || lastInstr.opcode !in OpcodesThatJump)
+                        if(lastInstr==null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
                             lastChunk.next = chunk
                     }
                 )
@@ -325,7 +325,7 @@ class IRProgram(val name: String,
                 chunks += chunk
             chunks.lastOrNull()?.let {
                 val lastInstr = it.instructions.lastOrNull()
-                if(lastInstr==null || lastInstr.opcode !in OpcodesThatJump)
+                if(lastInstr==null || lastInstr.opcode !in OpcodesThatBranchUnconditionally)
                     it.next = asmChunk.next
             }
             return chunks
@@ -360,6 +360,78 @@ class IRProgram(val name: String,
             }
         }
     }
+
+    fun splitSSAchunks() {
+
+        class SplitInfo(val chunk: IRCodeChunkBase, val splitAt: Int, val blockParent: IRBlock?, val subParent: IRSubroutine?, val chunkIndex: Int)
+
+        val tosplit = mutableListOf<SplitInfo>()
+
+        fun split(chunk: IRCodeChunk, parent: IRBlock, chunkIndex: Int) {
+            chunk.instructions.withIndex().forEach { (index, instr) ->
+                if(instr.opcode in OpcodesThatEndSSAblock) {
+                    if(instr !== chunk.instructions.last()) {
+                        // to be a proper SSA basic block, this instruction has to be the last one in the block.
+                        // split the current chunk and link both halves together using the next pointer
+                        tosplit += SplitInfo(chunk, index, parent, null, chunkIndex)
+                    }
+                }
+            }
+        }
+
+        fun split(chunk: IRCodeChunk, parent: IRSubroutine, chunkIndex: Int) {
+            chunk.instructions.withIndex().forEach { (index, instr) ->
+                if(instr.opcode in OpcodesThatEndSSAblock) {
+                    if(instr !== chunk.instructions.last()) {
+                        // to be a proper SSA basic block, this instruction has to be the last one in the block.
+                        // split the current chunk and link both halves together using the next pointer
+                        tosplit += SplitInfo(chunk, index, null, parent, chunkIndex)
+                    }
+                }
+            }
+        }
+
+        this.blocks.forEach { block ->
+            block.children.withIndex().forEach { (index, child) ->
+                when(child) {
+                    is IRCodeChunk -> split(child, block, index)
+                    is IRSubroutine -> child.chunks.withIndex().forEach { (index2, chunk) ->
+                        if(chunk is IRCodeChunk)
+                            split(chunk, child, index2)
+                    }
+                    else -> {}
+                }
+            }
+        }
+
+        for(split in tosplit.reversed()) {
+            val chunk = split.chunk
+            if(split.blockParent!=null)
+                require(chunk===split.blockParent.children[split.chunkIndex])
+            else
+                require(chunk===split.subParent!!.chunks[split.chunkIndex])
+            val totalSize = chunk.instructions.size
+            val first = chunk.instructions.dropLast(totalSize-split.splitAt-1)
+            val second = chunk.instructions.drop(split.splitAt+1)
+            chunk.instructions.clear()
+            chunk.instructions.addAll(first)
+            val secondChunk = IRCodeChunk(null, chunk.next)
+            secondChunk.instructions.addAll(second)
+            require(chunk.instructions.last().opcode in OpcodesThatEndSSAblock)
+            require(chunk.instructions.size + secondChunk.instructions.size == totalSize)
+            if(chunk.instructions.last().opcode !in OpcodesThatBranchUnconditionally) {
+                chunk.next = secondChunk
+                if(split.blockParent!=null) split.blockParent.children.add(split.chunkIndex+1, secondChunk)
+                else split.subParent!!.chunks.add(split.chunkIndex+1, secondChunk)
+                // println("split chunk ${chunk.label} at ${split.splitAt}:   ${chunk.instructions[split.splitAt]}   ${totalSize} = ${chunk.instructions.size}+${secondChunk.instructions.size}")
+            } else {
+                // shouldn't occur , unreachable code in second chunk?
+                chunk.next = null
+                // println("REMOVED UNREACHABLE CODE")
+            }
+        }
+    }
+
 
     fun verifyRegisterTypes(registerTypes: Map<Int, IRDataType>) {
         for(block in blocks) {

@@ -47,6 +47,7 @@ class IRCodeGen(
         ensureFirstChunkLabels(irProg)
         irProg.linkChunks()
         irProg.convertAsmChunks()
+        irProg.splitSSAchunks()
 
         // the optimizer also does 1 essential step regardless of optimizations: joining adjacent chunks.
         val optimizer = IRPeepholeOptimizer(irProg)

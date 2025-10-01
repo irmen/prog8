@@ -427,7 +427,7 @@ enum class Opcode {
     ALIGN
 }
 
-val OpcodesThatJump = arrayOf(
+val OpcodesThatBranchUnconditionally = arrayOf(
     Opcode.JUMP,
     Opcode.JUMPI,
     Opcode.RETURN,
@@ -435,17 +435,35 @@ val OpcodesThatJump = arrayOf(
     Opcode.RETURNI
 )
 
-val OpcodesThatBranch = arrayOf(
-    Opcode.JUMP,
-    Opcode.JUMPI,
-    Opcode.RETURN,
-    Opcode.RETURNR,
-    Opcode.RETURNI,
+val OpcodesThatBranch = OpcodesThatBranchUnconditionally + arrayOf(
     Opcode.CALLI,
     Opcode.CALL,
     Opcode.CALLFAR,
     Opcode.CALLFARVB,
     Opcode.SYSCALL,
+    Opcode.BSTCC,
+    Opcode.BSTCS,
+    Opcode.BSTEQ,
+    Opcode.BSTNE,
+    Opcode.BSTNEG,
+    Opcode.BSTPOS,
+    Opcode.BSTVC,
+    Opcode.BSTVS,
+    Opcode.BGTR,
+    Opcode.BGT,
+    Opcode.BLT,
+    Opcode.BGTSR,
+    Opcode.BGTS,
+    Opcode.BLTS,
+    Opcode.BGER,
+    Opcode.BGE,
+    Opcode.BLE,
+    Opcode.BGESR,
+    Opcode.BGES,
+    Opcode.BLES
+)
+
+val OpcodesThatEndSSAblock = OpcodesThatBranchUnconditionally + arrayOf(
     Opcode.BSTCC,
     Opcode.BSTCS,
     Opcode.BSTEQ,

@@ -1,15 +1,30 @@
-main {
+%import textio
+%zeropage basicsafe
+
+main  {
     sub start() {
-        uword @shared value
+        cx16.r0 = 200
+        cx16.r1 = 0
+        plot_particles()
+        txt.print_uw(cx16.r1)
+        txt.print(" expected 0\n")
 
-        if msb(value)>0
-            cx16.r0++
+        cx16.r0 = 500
+        cx16.r1 = 0
+        plot_particles()
+        txt.print_uw(cx16.r1)
+        txt.print(" expected 1\n")
 
-        if lsb(value)>0
-            cx16.r0++
+        cx16.r0 = 1
+        cx16.r1 = 0
+        plot_particles()
+        txt.print_uw(cx16.r1)
+        txt.print(" expected 1\n")
+    }
 
-        value = mkword(cx16.r0L, cx16.r1L)
-        if_z
-            cx16.r0++
+    sub plot_particles() {
+        if cx16.r0<10 or cx16.r0>319 {
+            cx16.r1++
+        }
     }
 }
