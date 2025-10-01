@@ -4,7 +4,6 @@ TODO
 LONG TYPE
 ---------
 - call convention for asmsubs:  asmsubs don't have syntax for passing a long value so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
-- make sure == and != work with longs against byte and words as well signed and unsigned
 - how hard is it to also implement the other comparison operators on longs?
 - implement rol() and ror() on longs  (also rol2 and ror2)
 - implement LONG testcases in testmemory

@@ -1447,14 +1447,14 @@ _jump                       jmp  (${target.asmLabel})
 
         if(notEquals) {
             if (jump != null)
-                translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
-            else
-                translateIfElseBodies("bne", stmt)
-        } else {
-            if (jump != null)
                 translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
             else
                 translateIfElseBodies("beq", stmt)
+        } else {
+            if (jump != null)
+                translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bne", stmt)
         }
     }
 
