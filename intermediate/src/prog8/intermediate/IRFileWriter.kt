@@ -151,21 +151,22 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 regs.append(" write: ${usedRegs.writeFpRegs.toSortedMap().map { (reg, amount) -> "fr$reg=${amount}" }}\n")
         }
 
-        xml.writeStartElement("CODE")
+        xml.writeStartElement("CHUNK")
         chunk.label?.let { xml.writeAttribute("LABEL", chunk.label) }
 
         // xml.writeAttribute("used-registers", chunk.usedRegisters().toString())
         xml.writeStartElement("REGS")
         xml.writeCData(regs.toString())
         xml.writeEndElement()
-
         writeSourcelines(xml, chunk)
+        xml.writeStartElement("CODE")
         xml.writeCharacters("\n")
         chunk.instructions.forEach { instr ->
             numInstr++
             xml.writeCharacters(instr.toString())
             xml.writeCharacters("\n")
         }
+        xml.writeEndElement()
         xml.writeEndElement()
         xml.writeCharacters("\n")
     }

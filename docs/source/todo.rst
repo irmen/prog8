@@ -1,7 +1,7 @@
 TODO
 ====
 
-IR: rename <CODE> to <CHUNK> , put the code lines in a new sub node <CODE> for improved xml structure.
+IR: register type error when compiling examples/textelite with expericodegen
 TestVMCodegen: add tests for SSA block split/joins/check last instruction to be a valid SSE block ender
 
 

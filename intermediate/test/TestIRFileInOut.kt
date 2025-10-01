@@ -80,18 +80,18 @@ ubyte main.thing=42
 </MEMORYSLABS>
 
 <INITGLOBALS>
-<CODE><REGS>dummy</REGS>
+<CHUNK><REGS>dummy</REGS><CODE>
 load.b r1,42
-</CODE>
+</CODE></CHUNK>
 </INITGLOBALS>
 
 <BLOCK NAME="main" ADDRESS="" LIBRARY="false" FORCEOUTPUT="false" NOPREFIXING="false" VERAFXMULS="false" ALIGN="NONE" POS="[examples/test.p8: line 2 col 2-5]">
 <SUB NAME="main.start" RETURNS="" POS="[examples/test.p8: line 4 col 6-8]">
 <PARAMS>
 </PARAMS>
-<CODE LABEL="main.start"><REGS>dummy</REGS>
+<CHUNK LABEL="main.start"><REGS>dummy</REGS><CODE>
 return
-</CODE>
+</CODE></CHUNK>
 </SUB>
 </BLOCK>
 
@@ -103,9 +103,9 @@ uword sys.wait.jiffies
 <ASM LABEL="sys.wait" IR="true" POS="[library:/prog8lib/virtual/syslib.p8: line 17 col 10-13]">
             loadm.w r0,sys.wait.jiffies
 </ASM>
-<CODE><REGS>dummy</REGS>
+<CHUNK><REGS>dummy</REGS><CODE>
 return
-</CODE>
+</CODE></CHUNK>
 </SUB>
 </BLOCK>
 </PROGRAM>
