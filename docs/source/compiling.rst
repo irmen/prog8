@@ -381,8 +381,9 @@ Fix it by adding an ``%import floats``.
 Gradle error when building the compiler yourself
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you get a gradle build error containing the line "No matching toolchains found for requested specification"
-somewhere, it means that the Gradle build tool can't locate the correct version of the JDK to use.
-You will need a JDK for Java version 11 or higher to build the compiler.
+or "Gradle requires JVM 17 or later to run", it means that the Gradle build tool can't locate the correct version of the JDK to use.
+You will need a Java JDK version 17 or higher to build the compiler.
+(the compiler itself only needs Java 11 or higher to run though.)
 
 Strange assembler errors
 ^^^^^^^^^^^^^^^^^^^^^^^^
