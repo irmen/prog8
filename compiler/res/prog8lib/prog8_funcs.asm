@@ -29,6 +29,36 @@ abs_w_into_AY	.proc
 +		rts
 		.pend
 
+abs_l_into_R0R1	.proc
+	; -- R0:R1 = abs(R0:R1)
+    lda  cx16.r1H
+    bmi  +   ; Negative if high bit of highest byte is set
+    rts
++
+    ; Invert all four bytes
+    lda  cx16.r0L
+    eor  #$FF
+    sta  cx16.r0L
+    lda  cx16.r0H
+    eor  #$FF
+    sta  cx16.r0H
+    lda  cx16.r1L
+    eor  #$FF
+    sta  cx16.r1L
+    lda  cx16.r1H
+    eor  #$FF
+    sta  cx16.r1H
+    ; Add 1 to whole 32-bit value
+    inc  cx16.r0L
+    bne  +
+    inc  cx16.r0H
+    bne  +
+    inc  cx16.r1L
+    bne  +
+    inc  cx16.r1H
++   rts
+		.pend
+
 func_sign_b_into_A	.proc
 		cmp  #0
 		beq  _zero

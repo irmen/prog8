@@ -3748,7 +3748,23 @@ $endLabel""")
                 TODO("assign 32 bits int in R0:R1 into array ${target.position}")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-            TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+            TargetStorageKind.REGISTER -> {
+                val targetreg = target.register!!
+                require(targetreg in combinedLongRegisters && pairedRegisters in combinedLongRegisters)
+                if(targetreg!=pairedRegisters) {
+                    val sourceStartReg = pairedRegisters.name.take(2).lowercase()
+                    val targetStartReg = targetreg.name.take(2).lowercase()
+                    asmgen.out("""
+                        lda  cx16.$sourceStartReg
+                        sta  cx16.$targetStartReg
+                        lda  cx16.$sourceStartReg+1
+                        sta  cx16.$targetStartReg+1
+                        lda  cx16.$sourceStartReg+2
+                        sta  cx16.$targetStartReg+2
+                        lda  cx16.$sourceStartReg+3
+                        sta  cx16.$targetStartReg+3""")
+                }
+            }
             TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }

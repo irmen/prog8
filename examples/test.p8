@@ -3,21 +3,16 @@
 
 main {
     sub start() {
-        long lv = 99887766
-        lv, cx16.r0, cx16.r2L = func(lv)
-        txt.print_l(lv)
-        txt.spc()
-        txt.print_uw(cx16.r0)
-        txt.spc()
-        txt.print_ub(cx16.r2L)
-        txt.nl()
-    }
+        long @shared lv = -44556677
 
-    sub func(long arg) -> long, uword, ubyte {
-         arg -= 1234567
-         txt.print("func: ")
-         txt.print_l(arg)
-         txt.nl()
-         return arg, 9999, 42
+        txt.print_l(abs(lv))
+
+        lv=abs(lv)
+        lv=clamp(lv, 1, 100000)
+        lv = max(lv, 100000)
+        lv = min(lv, 100000)
+
+        pokel(10000, 12345678)
+        lv = peekl(10000)
     }
 }

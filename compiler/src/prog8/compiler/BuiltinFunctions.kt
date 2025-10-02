@@ -36,10 +36,12 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "min__byte" to ::builtinMinByte,
     "min__uword" to ::builtinMinUWord,
     "min__word" to ::builtinMinWord,
+    "min__long" to ::builtinMinLong,
     "max__ubyte" to ::builtinMaxUByte,
     "max__byte" to ::builtinMaxByte,
     "max__uword" to ::builtinMaxUWord,
-    "max__word" to ::builtinMaxWord
+    "max__word" to ::builtinMaxWord,
+    "max__long" to ::builtinMaxLong
 )
 
 internal fun builtinFunctionReturnType(function: String): InferredTypes.InferredType {
@@ -271,6 +273,15 @@ private fun builtinMinUWord(args: List<Expression>, position: Position, program:
     return NumericLiteral(BaseDataType.UWORD, result.toDouble(), position)
 }
 
+private fun builtinMinLong(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("min requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(BaseDataType.LONG, result.toDouble(), position)
+}
+
 private fun builtinMaxByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {
     if (args.size != 2)
         throw SyntaxError("max requires 2 arguments", position)
@@ -305,6 +316,15 @@ private fun builtinMaxUWord(args: List<Expression>, position: Position, program:
     val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
     val result = max(val1.number.toInt(), val2.number.toInt())
     return NumericLiteral(BaseDataType.UWORD, result.toDouble(), position)
+}
+
+private fun builtinMaxLong(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if (args.size != 2)
+        throw SyntaxError("max requires 2 arguments", position)
+    val val1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val val2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val result = max(val1.number.toInt(), val2.number.toInt())
+    return NumericLiteral(BaseDataType.LONG, result.toDouble(), position)
 }
 
 private fun builtinClampUByte(args: List<Expression>, position: Position, program: Program): NumericLiteral {

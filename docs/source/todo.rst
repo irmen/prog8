@@ -3,11 +3,16 @@ TODO
 
 LONG TYPE
 ---------
+- move inline long calculations on variables + variable (or memory) to subroutines that just receive the pointer to the LONG
+- implement optimized long+byte, long+word, long-byte, long-word. (now TODOs)
+- find a faster long to string routine (conv.str_l)
+- find a string to long parse routine (conv.str2long)
+- implement cmp for longs
+- implement LONG support in If Expressions
 - call convention for asmsubs:  asmsubs don't have syntax for passing a long value so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
 - how hard is it to also implement the other comparison operators on longs?
-- implement rol() and ror() on longs  (also rol2 and ror2)
 - implement LONG testcases in testmemory
-- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_l)
+- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_l) and pokel, peekl,   and the use of R0:R1 when doing LONG calculations
 - scan through library routines if there are opportunities to use the long?  such as RDTIM
 
 

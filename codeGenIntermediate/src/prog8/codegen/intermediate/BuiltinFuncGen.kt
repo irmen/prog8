@@ -14,7 +14,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
 
     fun translate(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         return when(call.name) {
-            "abs__byte", "abs__word", "abs__float" -> funcAbs(call)
+            "abs__byte", "abs__word", "abs__long", "abs__float" -> funcAbs(call)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
             "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(call)
@@ -32,18 +32,20 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "peek" -> funcPeek(call, IRDataType.BYTE)
             "peekbool" -> funcPeek(call, IRDataType.BYTE)
             "peekw" -> funcPeek(call, IRDataType.WORD)
+            "peekl" -> funcPeek(call, IRDataType.LONG)
             "peekf" -> funcPeek(call, IRDataType.FLOAT)
             "poke" -> funcPoke(call, IRDataType.BYTE)
             "pokebool" -> funcPoke(call, IRDataType.BYTE)
             "pokebowl" -> funcPoke(call, IRDataType.BYTE)
             "pokew" -> funcPoke(call, IRDataType.WORD)
+            "pokel" -> funcPoke(call, IRDataType.LONG)
             "pokef" -> funcPoke(call, IRDataType.FLOAT)
             "pokemon" -> funcPokemon(call)
             "mkword" -> funcMkword(call)
             "mklong", "mklong2" -> funcMklong(call)
-            "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword" -> funcClamp(call)
-            "min__byte", "min__ubyte", "min__word", "min__uword" -> funcMin(call)
-            "max__byte", "max__ubyte", "max__word", "max__uword" -> funcMax(call)
+            "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword", "clamp__long" -> funcClamp(call)
+            "min__byte", "min__ubyte", "min__word", "min__uword", "min__long" -> funcMin(call)
+            "max__byte", "max__ubyte", "max__word", "max__uword", "max__long" -> funcMax(call)
             "setlsb" -> funcSetLsbMsb(call, false)
             "setmsb" -> funcSetLsbMsb(call, true)
             "rol" -> funcRolRor(call)
@@ -205,6 +207,17 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 result += IRCodeChunk(notNegativeLabel, null)
                 return ExpressionCodeResult(result, IRDataType.WORD, tr.resultReg, -1)
             }
+            BaseDataType.LONG -> {
+                val notNegativeLabel = codeGen.createLabelName()
+                val compareReg = codeGen.registers.next(IRDataType.LONG)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=compareReg, reg2=tr.resultReg)
+                    it += IRInstruction(Opcode.BSTPOS, labelSymbol = notNegativeLabel)
+                    it += IRInstruction(Opcode.NEG, IRDataType.LONG, reg1=tr.resultReg)
+                }
+                result += IRCodeChunk(notNegativeLabel, null)
+                return ExpressionCodeResult(result, IRDataType.LONG, tr.resultReg, -1)
+            }
             BaseDataType.FLOAT -> {
                 val resultFpReg = codeGen.registers.next(IRDataType.FLOAT)
                 addInstr(result, IRInstruction(Opcode.FABS, IRDataType.FLOAT, fpReg1 = resultFpReg, fpReg2 = tr.resultFpReg), null)
@@ -355,6 +368,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 BaseDataType.BYTE -> IMSyscall.CLAMP_BYTE
                 BaseDataType.UWORD -> IMSyscall.CLAMP_UWORD
                 BaseDataType.WORD -> IMSyscall.CLAMP_WORD
+                BaseDataType.LONG -> IMSyscall.CLAMP_LONG
                 else -> throw AssemblyError("invalid dt")
             }
             result += codeGen.makeSyscall(syscall, listOf(

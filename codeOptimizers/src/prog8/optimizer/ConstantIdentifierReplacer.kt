@@ -169,7 +169,12 @@ class VarConstantValueTypeAdjuster(
                 val replaceFunc = if(t1.isBytes) {
                     if(t1 issimpletype BaseDataType.BYTE) "clamp__byte" else "clamp__ubyte"
                 } else if(t1.isInteger) {
-                    if(t1 issimpletype BaseDataType.WORD) "clamp__word" else "clamp__uword"
+                    when {
+                        t1 issimpletype BaseDataType.WORD -> "clamp__word"
+                        t1 issimpletype BaseDataType.UWORD -> "clamp__uword"
+                        t1 issimpletype BaseDataType.LONG -> "clamp__long"
+                        else -> throw FatalAstException("clamp type")
+                    }
                 } else {
                     errors.err("clamp builtin not supported for floats, use floats.clamp", functionCallExpr.position)
                     return noModifications
@@ -191,10 +196,12 @@ class VarConstantValueTypeAdjuster(
                     else
                         "${funcName}__ubyte"
                 } else if(t1.isInteger && t2.isInteger) {
-                    replaceFunc = if(t1 issimpletype BaseDataType.WORD || t2 issimpletype BaseDataType.WORD)
-                        "${funcName}__word"
-                    else
-                        "${funcName}__uword"
+                    replaceFunc = when {
+                        t1 issimpletype BaseDataType.LONG || t2 issimpletype BaseDataType.LONG -> "${funcName}__long"
+                        t1 issimpletype BaseDataType.WORD || t2 issimpletype BaseDataType.WORD -> "${funcName}__word"
+                        t1 issimpletype BaseDataType.UWORD || t2 issimpletype BaseDataType.UWORD -> "${funcName}__uword"
+                        else -> throw FatalAstException("min/max type")
+                    }
                 } else if(t1.isNumeric && t2.isNumeric) {
                     errors.err("min/max not supported for floats", functionCallExpr.position)
                     return noModifications
@@ -214,6 +221,7 @@ class VarConstantValueTypeAdjuster(
                 val replaceFunc = when {
                     dt.isSignedByte -> "abs__byte"
                     dt.isSignedWord -> "abs__word"
+                    dt.isLong -> "abs__long"
                     dt.isFloat -> "abs__float"
                     dt.isUnsignedByte || dt.isUnsignedWord -> {
                         return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))

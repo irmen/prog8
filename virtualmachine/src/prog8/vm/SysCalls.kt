@@ -71,6 +71,7 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 59 = print_i32 ; print signed 32 bits integer (prog8 long)
 60 = i32 to string  ; put string representation of signed 32 bits integer (prog8 long) into memory
 61 = decimal string to prog8 long (i32 signed)
+62 = clamp long
 */
 
 enum class Syscall {
@@ -136,6 +137,7 @@ enum class Syscall {
     PRINT_I32,
     I32_TO_STRING,
     STR_TO_LONG,
+    CLAMP_LONG,
     ;
 
     companion object {
@@ -439,6 +441,14 @@ object SysCalls {
                 val value = (valueU as UShort).toInt()
                 val minimum = (minimumU as UShort).toInt()
                 val maximum = (maximumU as UShort).toInt()
+                val result = min(max(value, minimum), maximum)
+                returnValue(callspec.returns.single(), result, vm)
+            }
+            Syscall.CLAMP_LONG -> {
+                val (valueU, minimumU, maximumU) = getArgValues(callspec.arguments, vm)
+                val value = valueU as Int
+                val minimum = minimumU as Int
+                val maximum = maximumU as Int
                 val result = min(max(value, minimum), maximum)
                 returnValue(callspec.returns.single(), result, vm)
             }
