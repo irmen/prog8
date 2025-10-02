@@ -1413,20 +1413,32 @@ _jump                       jmp  (${target.asmLabel})
 +""")
         } else if(variableRight!=null) {
             require(right.type.isLong)
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
-            asmgen.out("""
-                lda  cx16.r0
-                cmp  $variableRight
-                bne  +
-                lda  cx16.r0+1
-                cmp  $variableRight+1
-                bne  +
-                lda  cx16.r0+2
-                cmp  $variableRight+2
-                bne  +
-                lda  cx16.r0+3
-                cmp  $variableRight+3
+            val variableLeft = (left as? PtIdentifier)?.name
+            if(variableLeft!=null) {
+                asmgen.out("""
+                    lda  #<$variableLeft
+                    ldy  #>$variableLeft
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$variableRight
+                    ldy  #>$variableRight
+                    jsr  prog8_lib.long_equals""")
+            } else {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+                asmgen.out("""
+                    lda  cx16.r0
+                    cmp  $variableRight
+                    bne  +
+                    lda  cx16.r0+1
+                    cmp  $variableRight+1
+                    bne  +
+                    lda  cx16.r0+2
+                    cmp  $variableRight+2
+                    bne  +
+                    lda  cx16.r0+3
+                    cmp  $variableRight+3
 +""")
+            }
         } else {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.R2R3_32, left.type.isSigned)
             asmgen.assignExpressionToRegister(right, RegisterOrPair.R0R1_32, right.type.isSigned)

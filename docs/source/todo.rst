@@ -3,10 +3,6 @@ TODO
 
 LONG TYPE
 ---------
-- move inline long calculations on variables + variable (or memory) to subroutines that just receive the pointer to the LONG
-- implement optimized long+byte, long+word, long-byte, long-word. (now TODOs)
-- find a faster long to string routine (conv.str_l)
-- find a string to long parse routine (conv.str2long)
 - implement cmp for longs
 - implement LONG support in If Expressions
 - call convention for asmsubs:  asmsubs don't have syntax for passing a long value so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?

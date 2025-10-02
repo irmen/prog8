@@ -255,6 +255,7 @@ asmsub  str_w  (word value @ AY) clobbers(X) -> str @AY  {
 sub  str_l  (long value) -> str  {
 	; ---- convert the long value into decimal string form, without left padding 0s
         ; source: https://codebase64.net/doku.php?id=base:32_bit_hexadecimal_to_decimal_conversion
+        ; NOTE: this is a pretty slow conversion, don't use for time critical displays!
         bool negative
         if value<0 {
             negative = true

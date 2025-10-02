@@ -1109,14 +1109,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(constAddress==null && memory!=null)
             return null  // TODO("optimized memory in-place -"")
 
+        val constValue = (operand as? PtNumber)?.number
         val result = mutableListOf<IRCodeChunkBase>()
         if(vmDt==IRDataType.FLOAT) {
-            if((operand as? PtNumber)?.number==1.0) {
+            if(constValue==1.0) {
                 addInstr(result, if(constAddress!=null)
                     IRInstruction(Opcode.DECM, vmDt, address = constAddress)
                 else
-                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
-                    , null)
+                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
             }
             else {
                 val tr = expressionEval.translateExpression(operand)
@@ -1124,16 +1124,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 addInstr(result, if(constAddress!=null)
                     IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, address = constAddress)
                 else
-                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, labelSymbol = symbol)
-                    , null)
+                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, labelSymbol = symbol), null)
             }
         } else {
-            if((operand as? PtNumber)?.number==1.0) {
+            if(constValue==1.0) {
                 addInstr(result, if(constAddress!=null)
                     IRInstruction(Opcode.DECM, vmDt, address = constAddress)
                 else
-                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol)
-                    , null)
+                    IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
             }
             else {
                 val tr = expressionEval.translateExpression(operand)
@@ -1141,8 +1139,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 addInstr(result, if(constAddress!=null)
                     IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, address = constAddress)
                 else
-                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
-                    , null)
+                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             }
         }
         return result
@@ -1208,9 +1205,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return null  // TODO("optimized memory in-place +"")
 
         val result = mutableListOf<IRCodeChunkBase>()
+        val constValue = (operand as? PtNumber)?.number
 
         if(vmDt==IRDataType.FLOAT) {
-            if((operand as? PtNumber)?.number==1.0) {
+            if(constValue==1.0) {
                 addInstr(result, if (constAddress != null)
                     IRInstruction(Opcode.INCM, vmDt, address = constAddress)
                 else
@@ -1225,7 +1223,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     IRInstruction(Opcode.ADDM, vmDt, fpReg1 = tr.resultFpReg, labelSymbol = symbol) , null)
             }
         } else {
-            if((operand as? PtNumber)?.number==1.0) {
+            if(constValue==1.0) {
                 addInstr(result, if (constAddress != null)
                     IRInstruction(Opcode.INCM, vmDt, address = constAddress)
                 else

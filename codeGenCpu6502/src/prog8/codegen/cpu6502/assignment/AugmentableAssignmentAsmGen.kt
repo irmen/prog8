@@ -831,9 +831,32 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         if(value in 1..255) {
-                            TODO("optimized inplace long += $value")
+                            asmgen.out("""
+                                clc
+                                lda  $variable
+                                adc  #$value
+                                sta  $variable
+                                bcc  +
+                                inc  $variable+1
+                                bne  +
+                                inc  $variable+2
+                                bne  +
+                                inc  $variable+3
++""")
                         } else if(value in 1..65535) {
-                            TODO("optimized inplace long += $value")
+                            asmgen.out("""
+                                clc
+                                lda  $variable
+                                adc  #<$value
+                                sta  $variable
+                                lda  $variable+1
+                                adc  #>$value
+                                sta  $variable+1
+                                bcc  +
+                                inc  $variable+2
+                                bne  +
+                                inc  $variable+3
++""")
                         } else {
                             val hex = value.toUInt().toString(16).padStart(8, '0')
                             asmgen.out("""
@@ -870,9 +893,32 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                     else -> {
                         if(value in 1..255) {
-                            TODO("optimized inplace long += $value")
+                            asmgen.out("""
+                                lda  $variable
+                                sec
+                                sbc  #$value
+                                sta  $variable
+                                bcs  +
+                                dec  $variable+1
+                                bne  +
+                                dec  $variable+2
+                                bne  +
+                                dec  $variable+3
++""")
                         } else if(value in 1..65535) {
-                            TODO("optimized inplace long += $value")
+                            asmgen.out("""
+                                lda  $variable
+                                sec
+                                sbc  #<$value
+                                sta  $variable
+                                lda  $variable+1
+                                sbc  #>$value
+                                sta  $variable+1
+                                bcs  +
+                                dec  $variable+2
+                                bne  +
+                                dec  $variable+3
++""")
                         } else {
                             val hex = value.toUInt().toString(16).padStart(8, '0')
                             asmgen.out("""

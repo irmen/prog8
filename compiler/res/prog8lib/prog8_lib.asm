@@ -449,3 +449,204 @@ _fullpage       lda  (P8ZP_SCRATCH_W1),y
                 bne  _fullpage
                 rts
 		.pend
+
+
+long_equals     .proc
+		; checks if the 32 bits long value pointed to by AY is equal to the one pointed to by P8ZP_SCRATCH_W1
+		; returns A=1 if equals otherwise A=0
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #3
+-		lda  (P8ZP_SCRATCH_W1),y
+		cmp  (P8ZP_SCRATCH_W2),y
+		bne  _notequal
+		dey
+		bpl  -
+		lda  #1
+		rts
+_notequal       lda  #0
+		rts
+		.pend
+
+
+long_not_equals     .proc
+		; checks if the 32 bits long value pointed to by AY is unequal to the one pointed to by P8ZP_SCRATCH_W1
+		; returns A=1 if not equal, otherwise A=0
+		jsr  long_equals
+		eor  #1
+		rts
+		.pend
+
+
+long_add_inplace        .proc
+		; long pointed to by AY += long pointed to by P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		clc
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W2),y
+		adc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		adc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		adc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		adc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+long_sub_inplace    .proc
+		; long pointed to by AY -= long pointed to by P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		sec
+		lda  (P8ZP_SCRATCH_W2),y
+		sbc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sbc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sbc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sbc  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+long_or_inplace       .proc
+		; long pointed to by AY OR= long pointed to by P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W2),y
+		ora  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		ora  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		ora  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		ora  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+long_and_inplace       .proc
+		; long pointed to by AY AND= long pointed to by P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W2),y
+		and  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		and  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		and  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		and  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+long_xor_inplace       .proc
+		; long pointed to by AY XOR= long pointed to by P8ZP_SCRATCH_W1
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W2),y
+		eor  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		eor  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		eor  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		eor  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+long_shiftleftX_inplace         .proc
+		; bit shift left X bits the long value pointed to by AY
+		cpx  #0
+		beq  _end
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+-		ldy  #0
+		lda  (P8ZP_SCRATCH_W1),y
+		asl  a
+		sta  (P8ZP_SCRATCH_W1),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		rol  a
+		sta  (P8ZP_SCRATCH_W1),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		rol  a
+		sta  (P8ZP_SCRATCH_W1),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		rol  a
+		sta  (P8ZP_SCRATCH_W1),y
+		dex
+		bne  -
+_end		rts
+		.pend
+
+long_shiftrightX_inplace        .proc
+		; bit shift right X bits the long value pointed to by AY
+		cpx  #0
+		beq  _end
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+-		ldy  #3
+		lda  (P8ZP_SCRATCH_W1),y
+		asl  a  ; save sign bit
+		lda  (P8ZP_SCRATCH_W1),y
+		ror  a
+		sta  (P8ZP_SCRATCH_W1),y
+		dey
+		lda  (P8ZP_SCRATCH_W1),y
+		ror  a
+		sta  (P8ZP_SCRATCH_W1),y
+		dey
+		lda  (P8ZP_SCRATCH_W1),y
+		ror  a
+		sta  (P8ZP_SCRATCH_W1),y
+		dey
+		lda  (P8ZP_SCRATCH_W1),y
+		ror  a
+		sta  (P8ZP_SCRATCH_W1),y
+		dex
+		bne  -
+_end		rts
+		.pend

@@ -1247,6 +1247,21 @@ internal class AssignmentAsmGen(
                 assignRegisterpairWord(target, RegisterOrPair.AY)
                 return true
             } else if(dt.isLong) {
+
+                if(target.kind==TargetStorageKind.VARIABLE) {
+                    asmgen.out("  pla")
+                    asmgen.assignExpressionTo(expr.left, target)
+                    require(expr.right.type.isByte)
+                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.X)
+                    asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname}")
+                    if (expr.operator == "<<") {
+                        asmgen.out("  jsr  prog8_lib.long_shiftleftX_inplace")
+                    } else {
+                        asmgen.out("  jsr  prog8_lib.long_shiftrightX_inplace")
+                    }
+                    return true
+                }
+
                 assignExpressionToRegister(expr.left, RegisterOrPair.R0R1_32, signed)
                 asmgen.out("  pla |  sta  P8ZP_SCRATCH_REG")
                 augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r0", expr.operator, "P8ZP_SCRATCH_REG")
@@ -1372,6 +1387,20 @@ internal class AssignmentAsmGen(
                     }
                 }
             } else if(dt.isLong) {
+
+                if(target.kind==TargetStorageKind.VARIABLE) {
+                    asmgen.assignExpressionTo(expr.left, target)
+                    require(expr.right.type.isByte)
+                    asmgen.out("  lda  #<${target.asmVarname} |  ldy  #>${target.asmVarname}")
+                    asmgen.out("  ldx  #$shifts")
+                    if (expr.operator == "<<") {
+                        asmgen.out("  jsr  prog8_lib.long_shiftleftX_inplace")
+                    } else {
+                        asmgen.out("  jsr  prog8_lib.long_shiftrightX_inplace")
+                    }
+                    return true
+                }
+
                 assignExpressionToRegister(expr.left, RegisterOrPair.R0R1_32, signed)
                 augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r0", expr.operator, shifts)
                 assignRegisterLong(target, RegisterOrPair.R0R1_32)
@@ -1711,36 +1740,17 @@ internal class AssignmentAsmGen(
                 if(target.kind == TargetStorageKind.VARIABLE) {
                     asmgen.assignExpressionTo(left, target)
                     val rightsym = asmgen.asmVariableName(right)
+                    asmgen.out("""
+                        lda  #<$rightsym
+                        ldy  #>$rightsym
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<${target.asmVarname}
+                        ldy  #>${target.asmVarname}""")
                     if (expr.operator == "+") {
-                        asmgen.out("""
-                            lda  ${target.asmVarname}
-                            clc
-                            adc  $rightsym
-                            sta  ${target.asmVarname}
-                            lda  ${target.asmVarname}+1
-                            adc  $rightsym+1
-                            sta  ${target.asmVarname}+1
-                            lda  ${target.asmVarname}+2
-                            adc  $rightsym+2
-                            sta  ${target.asmVarname}+2
-                            lda  ${target.asmVarname}+3
-                            adc  $rightsym+3
-                            sta  ${target.asmVarname}+3""")
+                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
                     } else {
-                        asmgen.out("""
-                            lda  ${target.asmVarname}
-                            sec
-                            sbc  $rightsym
-                            sta  ${target.asmVarname}
-                            lda  ${target.asmVarname}+1
-                            sbc  $rightsym+1
-                            sta  ${target.asmVarname}+1
-                            lda  ${target.asmVarname}+2
-                            sbc  $rightsym+2
-                            sta  ${target.asmVarname}+2
-                            lda  ${target.asmVarname}+3
-                            sbc  $rightsym+3
-                            sta  ${target.asmVarname}+3""")
+                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
                     }
                     return true
                 } else {
@@ -1918,7 +1928,45 @@ internal class AssignmentAsmGen(
             return true
         }
         else if (expr.left.type.isLong && expr.right.type.isLong) {
-            // TODO optimize for when the left operand is const values or variables
+
+            if(target.kind == TargetStorageKind.VARIABLE) {
+                if(expr.left is PtIdentifier) {
+                    asmgen.assignExpressionTo(expr.right, target)
+                    val varname = asmgen.asmVariableName(expr.left as PtIdentifier)
+                    asmgen.out("""
+                        lda  #<$varname
+                        ldy  #>$varname
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<${target.asmVarname}
+                        ldy  #>${target.asmVarname}""")
+                    when(expr.operator) {
+                        "|" -> asmgen.out("  jsr  prog8_lib.long_or_inplace")
+                        "&" -> asmgen.out("  jsr  prog8_lib.long_and_inplace")
+                        "^" -> asmgen.out("  jsr  prog8_lib.long_xor_inplace")
+                        else -> throw AssemblyError("wrong bitwise operator")
+                    }
+                    return true
+                } else if(expr.right is PtIdentifier) {
+                    asmgen.assignExpressionTo(expr.left, target)
+                    val varname = asmgen.asmVariableName(expr.right as PtIdentifier)
+                    asmgen.out("""
+                        lda  #<$varname
+                        ldy  #>$varname
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<${target.asmVarname}
+                        ldy  #>${target.asmVarname}""")
+                    when(expr.operator) {
+                        "|" -> asmgen.out("  jsr  prog8_lib.long_or_inplace")
+                        "&" -> asmgen.out("  jsr  prog8_lib.long_and_inplace")
+                        "^" -> asmgen.out("  jsr  prog8_lib.long_xor_inplace")
+                        else -> throw AssemblyError("wrong bitwise operator")
+                    }
+                    return true
+                }
+            }
+
             asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R2R3_32, expr.left.type.isSigned)
             val constval = expr.right.asConstInteger()
             val varname = (expr.right as? PtIdentifier)?.name
