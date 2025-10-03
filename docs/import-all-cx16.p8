@@ -1,7 +1,8 @@
 ; all library modules for the cx16 compiler target
 
-%import buffers
+%import bcd
 %import bmx
+%import buffers
 %import compression
 %import conv
 %import coroutines

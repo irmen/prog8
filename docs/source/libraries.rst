@@ -258,6 +258,24 @@ Grouped per compilation target.
 * `pet32 <_static/symboldumps/skeletons-pet32.txt>`_
 * `virtual <_static/symboldumps/skeletons-virtual.txt>`_
 
+bcd
+---
+Decimal addition and subtraction routines. Utilize the BCD mode of the CPU.
+(note: not all 6502 variants support this mode).
+This mode is useful for example for counting decimal score in a game, to avoid costly conversion to a decimal display string:
+just print the hexadecimal score representation.
+Available routines:
+
+- ``sub addb(byte a, byte b) -> byte``
+- ``sub addub(ubyte a, ubyte b) -> ubyte``
+- ``sub addw(word a, word b) -> word``
+- ``sub adduw(uword a, uword b) -> uword``
+- ``sub addl(long a, long b) -> long``
+- ``sub subb(byte a, byte b) -> byte``
+- ``sub subub(ubyte a, ubyte b) -> ubyte``
+- ``sub subuw(uword a, uword b) -> uword``
+- ``sub subl(long a, long b) -> long``
+
 
 bmx  (cx16 only)
 ----------------
