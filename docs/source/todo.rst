@@ -3,13 +3,11 @@ TODO
 
 LONG TYPE
 ---------
-- implement cmp for longs
-- implement LONG support in If Expressions
-- call convention for asmsubs:  asmsubs don't have syntax for passing a long value so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
-- how hard is it to also implement the other comparison operators on longs?
-- implement LONG testcases in testmemory
-- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_l) and pokel, peekl,   and the use of R0:R1 when doing LONG calculations
 - scan through library routines if there are opportunities to use the long?  such as RDTIM
+- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_l) and pokel, peekl,   and the use of R0:R1 when doing LONG calculations
+- call convention for asmsubs:  asmsubs don't have syntax for passing a long value so use explicit separate msw() and lsw() arguments...  Or introduce new syntax for R0+R1 combo's?
+- how hard is it to also implement the other comparison operators (<,>,<=,>=) on longs?
+- implement LONG testcases in testmemory
 
 
 
@@ -36,6 +34,7 @@ Future Things and Ideas
   Can give descriptive error message for old syntax that still includes the type name?
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - allow memory() to occur in array initializer
+- fix carry bit for cmp(long), check if it even worked for cmp(word)...
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?

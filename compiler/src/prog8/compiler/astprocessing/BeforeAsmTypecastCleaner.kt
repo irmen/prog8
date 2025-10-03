@@ -79,10 +79,16 @@ internal class BeforeAsmTypecastCleaner(val program: Program,
                 val (replaced, cast) = arg1.typecastTo(if(dt1.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt1, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg1, cast, functionCallStatement))
-            } else {
+            } else if(dt1.isWord) {
                 if(dt2.isWord)
                     return noModifications
                 val (replaced, cast) = arg2.typecastTo(if(dt2.isUnsignedByte) BaseDataType.UWORD else BaseDataType.WORD, dt2, true)
+                if(replaced)
+                    return listOf(IAstModification.ReplaceNode(arg2, cast, functionCallStatement))
+            } else if(dt1.isLong) {
+                if(dt2.isLong)
+                    return noModifications
+                val (replaced, cast) = arg2.typecastTo(BaseDataType.LONG, dt2, true)
                 if(replaced)
                     return listOf(IAstModification.ReplaceNode(arg2, cast, functionCallStatement))
             }

@@ -705,7 +705,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
                         addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
-                    BaseDataType.LONG -> TODO("cast to LONG")
+                    BaseDataType.LONG -> TODO("cast UBYTE to LONG ${cast.position}")
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
                         addInstr(result, IRInstruction(Opcode.FTOUB, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
@@ -722,7 +722,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
                         addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
-                    BaseDataType.LONG -> TODO("cast to LONG")
+                    BaseDataType.LONG -> TODO("cast BYTE to LONG ${cast.position}")
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
                         addInstr(result, IRInstruction(Opcode.FTOSB, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
@@ -745,7 +745,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     BaseDataType.WORD -> {
                         actualResultReg2 = tr.resultReg
                     }
-                    BaseDataType.LONG -> TODO("cast to LONG")
+                    BaseDataType.LONG -> TODO("cast UWORD to LONG ${cast.position}")
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
                         addInstr(result, IRInstruction(Opcode.FTOUW, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
@@ -771,7 +771,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     BaseDataType.UWORD -> {
                         actualResultReg2 = tr.resultReg
                     }
-                    BaseDataType.LONG -> TODO("cast to LONG")
+                    BaseDataType.LONG -> TODO("cast WORD to LONG  ${cast.position}}")
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
                         addInstr(result, IRInstruction(Opcode.FTOSW, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)

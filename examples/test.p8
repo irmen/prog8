@@ -2,73 +2,51 @@
 %zeropage basicsafe
 
 main {
-
-    sub xx(long lv) {
-        lv++
-    }
-
     sub start() {
-        long @shared lv = 999999
-        long @shared lv2 = -999999
-        long @shared lv3 = 9999
+        long @shared lv1 = 555555
+        long @shared lv2 = -444444
+        long @shared lv3 = 999999
+        long @shared lv4 = lv1
 
-        lv += -99
-        txt.print_l(lv)
-        txt.nl()
+        cmp(lv1, lv2)
+        if_z
+            txt.print("cmp 1a: zero\n")
+        else
+            txt.print("cmp 1a: not zero\n")
 
-        lv -= -99
-        txt.print_l(lv)
-        txt.nl()
+        cmp(lv1, lv2)
+        if_neg
+            txt.print("cmp 1b: neg\n")
+        else
+            txt.print("cmp 1b: not neg\n")
 
-        lv += -4999
-        txt.print_l(lv)
-        txt.nl()
+        cmp(lv1, lv2)
+        if_cc
+            txt.print("cmp 1c: carry clear\n")
+        else
+            txt.print("cmp 1c: carry set\n")
+        cmp(lv1, lv4)
+        if_z
+            txt.print("cmp 1d: zero\n")
+        else
+            txt.print("cmp 1d: not zero\n")
 
-        lv -= -4999
-        txt.print_l(lv)
-        txt.nl()
+        cmp(lv1, lv3)
+        if_z
+            txt.print("cmp 2a: zero\n")
+        else
+            txt.print("cmp 2a: not zero\n")
 
+        cmp(lv1, lv3)
+        if_neg
+            txt.print("cmp 2b: neg\n")
+        else
+            txt.print("cmp 2b: not neg\n")
+        cmp(lv1, lv3)
+        if_cc
+            txt.print("cmp 2c: carry clear\n")
+        else
+            txt.print("cmp 2c: carry set\n")
 
-;        lv = lv2 + cx16.r0L
-;        lv2 = lv + cx16.r0
-;        xx(lv+cx16.r0L)
-;        xx(lv+cx16.r0)
-
-;        cx16.r0bL = lv2==lv
-;        cx16.r1bL = lv2==lv
-;        cx16.r2bL = lv2==lv
-;        cx16.r0bL = lv2!=lv
-;        cx16.r1bL = lv2!=lv
-;        cx16.r2bL = lv2!=lv
-
-;        xx(lv2 + lv)
-;        xx(lv2 + lv)
-;        xx(lv2 + lv)
-;        xx(lv2 - lv)
-;        xx(lv2 - lv)
-;        xx(lv2 - lv)
-;        xx(lv2 & lv)
-;        xx(lv2 & lv)
-;        xx(lv2 & lv)
-;        xx(lv2 | lv)
-;        xx(lv2 | lv)
-;        xx(lv2 | lv)
-;        xx(lv2 ^ lv)
-;        xx(lv2 ^ lv)
-;        xx(lv2 ^ lv)
-
-;        lv3 = lv2 << 3
-;        lv3 = lv2 << 3
-;        lv3 = lv2 << 3
-;        lv3 = lv2 >> 3
-;        lv3 = lv2 >> 3
-;        lv3 = lv2 >> 3
-;
-;        xx(lv2 << 3)
-;        xx(lv2 << 3)
-;        xx(lv2 << 3)
-;        xx(lv2 >> 3)
-;        xx(lv2 >> 3)
-;        xx(lv2 >> 3)
     }
 }
