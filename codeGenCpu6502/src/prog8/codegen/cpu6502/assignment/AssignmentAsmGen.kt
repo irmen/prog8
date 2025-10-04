@@ -3779,7 +3779,7 @@ $endLabel""")
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 if(pairedRegisters in combinedLongRegisters) {
-                    val startreg = pairedRegisters.name.take(2).lowercase()
+                    val startreg = pairedRegisters.startregname()
                     asmgen.out("""
                         lda  cx16.$startreg
                         sta  ${target.asmVarname}
@@ -3800,8 +3800,8 @@ $endLabel""")
                 val targetreg = target.register!!
                 require(targetreg in combinedLongRegisters && pairedRegisters in combinedLongRegisters)
                 if(targetreg!=pairedRegisters) {
-                    val sourceStartReg = pairedRegisters.name.take(2).lowercase()
-                    val targetStartReg = targetreg.name.take(2).lowercase()
+                    val sourceStartReg = pairedRegisters.startregname()
+                    val targetStartReg = targetreg.startregname()
                     asmgen.out("""
                         lda  cx16.$sourceStartReg
                         sta  cx16.$targetStartReg
@@ -4334,7 +4334,7 @@ $endLabel""")
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {
                 require(target.register in combinedLongRegisters)
-                val regstart = target.register!!.name.take(2).lowercase()
+                val regstart = target.register!!.startregname()
                 val hex = long.toUInt().toString(16).padStart(8, '0')
                 asmgen.out("""
                     lda  #$${hex.substring(6,8)}

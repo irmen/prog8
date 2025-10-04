@@ -1978,7 +1978,7 @@ class IRCodeGen(
             }
             in combinedLongRegisters -> {
                 require(paramDt==IRDataType.LONG)
-                val startreg = registerOrFlag.registerOrPair!!.name.take(2).lowercase()
+                val startreg = registerOrFlag.registerOrPair!!.startregname()
                 chunk += IRInstruction(Opcode.STOREM, paramDt, reg1=resultReg, labelSymbol = "cx16.${startreg}")
             }
             null -> when(registerOrFlag.statusflag) {

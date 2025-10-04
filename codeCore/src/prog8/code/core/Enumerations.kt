@@ -415,6 +415,18 @@ enum class RegisterOrPair {
         }
     }
 
+    fun startregname() = when(this) {
+        R0R1_32 -> "r0"
+        R2R3_32 -> "r2"
+        R4R5_32 -> "r4"
+        R6R7_32 -> "r6"
+        R8R9_32 -> "r8"
+        R10R11_32 -> "r10"
+        R12R13_32 -> "r12"
+        R14R15_32 -> "r14"
+        else -> throw IllegalArgumentException("must be a combined virtual register $this")
+    }
+
     fun asCpuRegister(): CpuRegister = when(this) {
         A -> CpuRegister.A
         X -> CpuRegister.X

@@ -451,9 +451,9 @@ _fullpage       lda  (P8ZP_SCRATCH_W1),y
 		.pend
 
 
-long_equals     .proc
-		; checks if the 32 bits long value pointed to by AY is equal to the one pointed to by P8ZP_SCRATCH_W1
-		; returns A=1 if equals otherwise A=0
+long_not_equals     .proc
+		; checks if the 32 bits long value pointed to by AY is NOT equal to the one pointed to by P8ZP_SCRATCH_W1
+		; returns A=1 if NOT equals otherwise A=0
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		ldy  #3
@@ -462,18 +462,9 @@ long_equals     .proc
 		bne  _notequal
 		dey
 		bpl  -
-		lda  #1
+		lda  #0
 		rts
-_notequal       lda  #0
-		rts
-		.pend
-
-
-long_not_equals     .proc
-		; checks if the 32 bits long value pointed to by AY is unequal to the one pointed to by P8ZP_SCRATCH_W1
-		; returns A=1 if not equal, otherwise A=0
-		jsr  long_equals
-		eor  #1
+_notequal       lda  #1
 		rts
 		.pend
 

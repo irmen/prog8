@@ -78,7 +78,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             in Cx16VirtualRegisters -> addInstr(result, IRInstruction(Opcode.LOADM, irType(returns.type), reg1=regNum, labelSymbol = "cx16.${returns.register.registerOrPair.toString().lowercase()}"), null)
             in combinedLongRegisters -> {
                 require(returns.type.isLong)
-                val startreg = returns.register.registerOrPair!!.name.take(2).lowercase()
+                val startreg = returns.register.registerOrPair!!.startregname()
                 addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.LONG, reg1=regNum, labelSymbol = "cx16.${startreg}"), null)
             }
             RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = regNum), null)

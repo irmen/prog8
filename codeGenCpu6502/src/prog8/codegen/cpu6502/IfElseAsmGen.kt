@@ -1273,12 +1273,12 @@ _jump                       jmp  (${target.asmLabel})
             if (jump != null)
                 translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
             else
-                translateIfElseBodies("bne", stmt)
+                translateIfElseBodies("beq", stmt)
         } else {
             if (jump != null)
                 translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
             else
-                translateIfElseBodies("beq", stmt)
+                translateIfElseBodies("bne", stmt)
         }
     }
 
@@ -1422,7 +1422,7 @@ _jump                       jmp  (${target.asmLabel})
                     sty  P8ZP_SCRATCH_W1+1
                     lda  #<$variableRight
                     ldy  #>$variableRight
-                    jsr  prog8_lib.long_equals""")
+                    jsr  prog8_lib.long_not_equals""")
             } else {
                 asmgen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
                 asmgen.out("""
@@ -1459,12 +1459,12 @@ _jump                       jmp  (${target.asmLabel})
 
         if(notEquals) {
             if (jump != null)
-                translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
+                translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
             else
                 translateIfElseBodies("beq", stmt)
         } else {
             if (jump != null)
-                translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
+                translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
             else
                 translateIfElseBodies("bne", stmt)
         }
