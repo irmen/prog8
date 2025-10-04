@@ -1269,9 +1269,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsMULSR(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> plusMinusMultAnyByteSigned("*", i.reg1!!, i.reg2!!)
-            IRDataType.WORD -> plusMinusMultAnyWordSigned("*", i.reg1!!, i.reg2!!)
-            IRDataType.LONG -> plusMinusMultAnyLongSigned("*", i.reg1!!, i.reg2!!)
+            IRDataType.BYTE -> multiplyAnyByteSigned(i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> multiplyAnyWordSigned(i.reg1!!, i.reg2!!)
+            IRDataType.LONG -> multiplyAnyLongSigned(i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
                 val right = registers.getFloat(i.fpReg2!!)
@@ -1284,9 +1284,9 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsMULS(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> plusMinusMultConstByteSigned("*", i.reg1!!, i.immediate!!.toByte())
-            IRDataType.WORD -> plusMinusMultConstWordSigned("*", i.reg1!!, i.immediate!!.toShort())
-            IRDataType.LONG -> plusMinusMultConstLongSigned("*", i.reg1!!, i.immediate!!)
+            IRDataType.BYTE -> multiplyConstByteSigned(i.reg1!!, i.immediate!!.toByte())
+            IRDataType.WORD -> multiplyConstWordSigned(i.reg1!!, i.immediate!!.toShort())
+            IRDataType.LONG -> multiplyConstLongSigned(i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> {
                 val left = registers.getFloat(i.fpReg1!!)
                 val result = arithFloat(left, "*", i.immediateFp!!)
@@ -1299,9 +1299,9 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsMULSM(i: IRInstruction) {
         val address = i.address!!
         when(i.type!!) {
-            IRDataType.BYTE -> plusMinusMultAnyByteSignedInplace("*", i.reg1!!, address)
-            IRDataType.WORD -> plusMinusMultAnyWordSignedInplace("*", i.reg1!!, address)
-            IRDataType.LONG -> plusMinusMultAnyLongSignedInplace("*", i.reg1!!, address)
+            IRDataType.BYTE -> multiplyAnyByteSignedInplace(i.reg1!!, address)
+            IRDataType.WORD -> multiplyAnyWordSignedInplace(i.reg1!!, address)
+            IRDataType.LONG -> multiplyAnyLongSignedInplace(i.reg1!!, address)
             IRDataType.FLOAT -> {
                 val left = memory.getFloat(address)
                 val right = registers.getFloat(i.fpReg1!!)
@@ -1576,15 +1576,10 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUB(reg1, result.toUByte())
     }
 
-    private fun plusMinusMultAnyByteSigned(operator: String, reg1: Int, reg2: Int) {
+    private fun multiplyAnyByteSigned(reg1: Int, reg2: Int) {
         val left = registers.getSB(reg1)
         val right = registers.getSB(reg2)
-        val result = when(operator) {
-            "+" -> left + right
-            "-" -> left - right
-            "*" -> left * right
-            else -> throw IllegalArgumentException("operator byte $operator")
-        }
+        val result = left * right
         registers.setSB(reg1, result.toByte())
     }
 
@@ -1599,14 +1594,9 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUB(reg1, result.toUByte())
     }
 
-    private fun plusMinusMultConstByteSigned(operator: String, reg1: Int, value: Byte) {
+    private fun multiplyConstByteSigned(reg1: Int, value: Byte) {
         val left = registers.getSB(reg1)
-        val result = when(operator) {
-            "+" -> left + value
-            "-" -> left - value
-            "*" -> left * value
-            else -> throw IllegalArgumentException("operator byte $operator")
-        }
+        val result = left * value
         registers.setSB(reg1, result.toByte())
     }
 
@@ -1622,15 +1612,10 @@ class VirtualMachine(irProgram: IRProgram) {
         memory.setUB(address, result.toUByte())
     }
 
-    private fun plusMinusMultAnyByteSignedInplace(operator: String, reg1: Int, address: Int) {
+    private fun multiplyAnyByteSignedInplace(reg1: Int, address: Int) {
         val memvalue = memory.getSB(address)
         val operand = registers.getSB(reg1)
-        val result = when(operator) {
-            "+" -> memvalue + operand
-            "-" -> memvalue - operand
-            "*" -> memvalue * operand
-            else -> throw IllegalArgumentException("operator byte $operator")
-        }
+        val result = memvalue * operand
         memory.setSB(address, result.toByte())
     }
 
@@ -1784,19 +1769,11 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUW(reg1, result.toUShort())
     }
 
-    private fun plusMinusMultAnyWordSigned(operator: String, reg1: Int, reg2: Int) {
+    private fun multiplyAnyWordSigned(reg1: Int, reg2: Int) {
         val left = registers.getSW(reg1)
         val right = registers.getSW(reg2)
-        val result: Int
-        when(operator) {
-            "+" -> result = left + right
-            "-" -> result = left - right
-            "*" -> {
-                result = left.toInt() * right
-                mul16LastUpper = result.toUInt() shr 16
-            }
-            else -> throw IllegalArgumentException("operator word $operator")
-        }
+        val result = left.toInt() * right
+        mul16LastUpper = result.toUInt() shr 16
         registers.setSW(reg1, result.toShort())
     }
 
@@ -1815,18 +1792,10 @@ class VirtualMachine(irProgram: IRProgram) {
         registers.setUW(reg1, result.toUShort())
     }
 
-    private fun plusMinusMultConstWordSigned(operator: String, reg1: Int, value: Short) {
+    private fun multiplyConstWordSigned(reg1: Int, value: Short) {
         val left = registers.getSW(reg1)
-        val result: Int
-        when(operator) {
-            "+" -> result = left + value
-            "-" -> result = left - value
-            "*" -> {
-                result = left.toInt() * value
-                mul16LastUpper = result.toUInt() shr 16
-            }
-            else -> throw IllegalArgumentException("operator word $operator")
-        }
+        val result = left.toInt() * value
+        mul16LastUpper = result.toUInt() shr 16
         registers.setSW(reg1, result.toShort())
     }
 
@@ -1846,19 +1815,11 @@ class VirtualMachine(irProgram: IRProgram) {
         memory.setUW(address, result.toUShort())
     }
 
-    private fun plusMinusMultAnyWordSignedInplace(operator: String, reg1: Int, address: Int) {
+    private fun multiplyAnyWordSignedInplace(reg1: Int, address: Int) {
         val memvalue = memory.getSW(address)
         val operand = registers.getSW(reg1)
-        val result: Int
-        when(operator) {
-            "+" -> result = memvalue + operand
-            "-" -> result = memvalue - operand
-            "*" -> {
-                result = memvalue.toInt() * operand
-                mul16LastUpper = result.toUInt() shr 16
-            }
-            else -> throw IllegalArgumentException("operator word $operator")
-        }
+        val result = memvalue.toInt() * operand
+        mul16LastUpper = result.toUInt() shr 16
         memory.setSW(address, result.toShort())
     }
 
@@ -2971,28 +2932,28 @@ class VirtualMachine(irProgram: IRProgram) {
         memory.setSL(address, result)
     }
 
-    private fun plusMinusMultAnyLongSigned(operator: String, reg1: Int, reg2: Int) {
-        TODO("Not yet implemented")
+    private fun multiplyAnyLongSigned(reg1: Int, reg2: Int) {
+        TODO("multiplyAnyLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
     }
 
-    private fun plusMinusMultConstLongSigned(operator: String, reg1: Int, value: Int) {
-        TODO("Not yet implemented")
+    private fun multiplyConstLongSigned(reg1: Int, value: Int) {
+        TODO("multiplyConstLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
     }
 
-    private fun plusMinusMultAnyLongSignedInplace(operator: String, reg1: Int, address: Int) {
-        TODO("Not yet implemented")
+    private fun multiplyAnyLongSignedInplace(reg1: Int, address: Int) {
+        TODO("multiplyAnyLongSignedInplace - multiplication and division of long numbers not yet supported, use floats or words")
     }
 
     private fun divModLongSigned(operator: String, reg1: Int, reg2: Int) {
-        TODO("Not yet implemented")
+        TODO("divModLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
     }
 
     private fun divModConstLongSigned(operator: String, reg1: Int, immediate: Int) {
-        TODO("Not yet implemented")
+        TODO("divModConstLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
     }
 
     private fun divModLongSignedInplace(operator: String, reg1: Int, address: Int) {
-        TODO("Not yet implemented")
+        TODO("divModLongSignedInplace - multiplication and division of long numbers not yet supported, use floats or words")
     }
 
 
