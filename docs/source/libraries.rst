@@ -287,7 +287,7 @@ bcd
 Decimal addition and subtraction routines. Utilize the BCD mode of the CPU.
 (note: not all 6502 variants support this mode).
 This mode is useful for example for counting decimal score in a game, to avoid costly conversion to a decimal display string:
-just print the hexadecimal score representation.
+just print the hexadecimal score representation. (This gets especially noticable with long integers)
 Available routines:
 
 - ``sub addb(byte a, byte b) -> byte``

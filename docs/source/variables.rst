@@ -243,7 +243,7 @@ to be done on word values, and don't want to explicitly have to cast everything 
 
 .. attention::
     Not all operations on Long integers are supported at the moment, although most common
-    operations should work fine.
+    operations should work fine. Notably absent for now are multiplication and division of longs.
     There is no unsigned long type at the moment, but you can sometimes simply treat the signed
     long value as an unsigned 32 bits value just fine.
     Operations on long integers take a lot of instructions on 8 bit cpu's so code that uses them

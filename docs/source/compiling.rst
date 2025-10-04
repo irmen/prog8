@@ -55,7 +55,7 @@ The most interesting gradle commands to run are probably the ones listed below.
     ``./gradlew installShadowDist``
         Creates a 'fat-jar' that contains the compiler and all dependencies, in a single
         executable .jar file, and includes few start scripts to run it.
-        The output can be found in ``.compiler/build/install/compiler-shadow/``
+        The output can be found in ``.compiler/build/install/prog8c-shadow/``
     ``./gradlew shadowDistZip``
         Creates a zipfile with the above in it, for easy distribution.
         This file can be found in ``./compiler/build/distributions/``
