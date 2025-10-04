@@ -4,9 +4,10 @@
 
 main {
     sub start() {
-        long highscore = $50999
-
-        highscore = bcd.addl(highscore, 1)
-        txt.print_ulhex(highscore, false)       ; prints 00051000, avoiding costly decimal conversion
+        cbm.SETTIML($12fe56)
+        repeat {
+            txt.home()
+            txt.print_ulhex(cbm.RDTIML(), false)
+        }
     }
 }

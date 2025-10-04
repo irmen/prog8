@@ -127,6 +127,28 @@ asmsub RDTIM16() clobbers(X) -> uword @AY {
     }}
 }
 
+asmsub SETTIML(long jiffies @R0R1_32) {
+    ; -- just like SETTIM, but with a single 32 bit (lower 24 bits used) argument.
+    %asm {{
+        lda  cx16.r0
+        ldx  cx16.r0+1
+        ldy  cx16.r0+2
+        jmp  SETTIM
+    }}
+}
+
+asmsub RDTIML() clobbers(X) -> long @R0R1_32 {
+    ; --  like RDTIM_safe() and returning the timer value as a 32 bit (lower 24 bits used) value.
+    %asm {{
+        jsr  RDTIM_safe
+        sta  cx16.r0
+        stx  cx16.r0+1
+        sty  cx16.r0+2
+        stz  cx16.r0+3
+        rts
+    }}
+}
+
 sub CLEARST() {
     ; -- Set the ST status variable back to 0. (there's no direct kernal call for this)
     ;    Note: a drive error state (blinking led) isn't cleared! You can use diskio.status() to clear that.

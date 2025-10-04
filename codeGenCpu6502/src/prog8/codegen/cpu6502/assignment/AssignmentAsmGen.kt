@@ -4256,7 +4256,7 @@ $endLabel""")
                             }
                         }
                     }
-                    else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register")
+                    else -> throw AssemblyError("expected reg pair or cx16 virtual 16-bit register ${target.position}")
                 }
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't store word into memory byte")
