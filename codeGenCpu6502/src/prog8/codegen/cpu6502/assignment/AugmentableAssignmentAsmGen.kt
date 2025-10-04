@@ -2323,7 +2323,7 @@ $shortcutLabel:""")
                 if(value in asmgen.optimizedWordMultiplications) {
                     asmgen.out("  lda  $lsb |  ldy  $msb |  jsr  prog8_math.mul_word_$value |  sta  $lsb |  sty  $msb")
                 } else {
-                    if(block?.options?.veraFxMuls==true)
+                    if(block?.options?.veraFxMuls==true) {
                         // cx16 verafx hardware mul
                         asmgen.out("""
                             lda  $lsb
@@ -2334,9 +2334,10 @@ $shortcutLabel:""")
                             ldy  #>$value
                             sta  cx16.r1
                             sty  cx16.r1+1
-                            jsr  verafx.muls
+                            jsr  verafx.muls16
                             sta  $lsb
                             sty  $msb""")
+                    }
                     else
                         asmgen.out("""
                             lda  $lsb
@@ -2821,9 +2822,10 @@ $shortcutLabel:""")
                                 ldy  $name+1
                                 sta  cx16.r0
                                 sty  cx16.r0+1
-                                jsr  verafx.muls
+                                jsr  verafx.muls16
                                 sta  $name
                                 sty  $name+1""")
+
                         } else {
                             if(valueDt.isUnsignedByte) {
                                 asmgen.out("  lda  $otherName |  sta  prog8_math.multiply_words.multiplier")
@@ -2966,7 +2968,7 @@ $shortcutLabel:""")
                     "+" -> asmgen.out("  lda  $name |  clc |  adc  $otherName |  sta  $name |  lda  $name+1 |  adc  $otherName+1 |  sta  $name+1")
                     "-" -> asmgen.out("  lda  $name |  sec |  sbc  $otherName |  sta  $name |  lda  $name+1 |  sbc  $otherName+1 |  sta  $name+1")
                     "*" -> {
-                        if(block?.options?.veraFxMuls==true)
+                        if(block?.options?.veraFxMuls==true) {
                             // cx16 verafx hardware muls
                             asmgen.out("""
                                 lda  $name
@@ -2977,9 +2979,10 @@ $shortcutLabel:""")
                                 ldy  $otherName+1
                                 sta  cx16.r1
                                 sty  cx16.r1+1
-                                jsr  verafx.muls
+                                jsr  verafx.muls16
                                 sta  $name
                                 sty  $name+1""")
+                        }
                         else
                             asmgen.out("""
                                 lda  $otherName
@@ -3170,7 +3173,7 @@ $shortcutLabel:""")
     private fun inplacemodificationWordWithValue(name: String, dt: DataType, operator: String, value: PtExpression, block: PtBlock?) {
         require(dt.isWord)
         fun multiplyVarByWordInAX() {
-            if(block?.options?.veraFxMuls==true)
+            if(block?.options?.veraFxMuls==true) {
                 // cx16 verafx hardware muls
                 asmgen.out("""
                     sta  cx16.r1
@@ -3179,9 +3182,10 @@ $shortcutLabel:""")
                     ldx  $name+1
                     sta  cx16.r0
                     stx  cx16.r0+1
-                    jsr  verafx.muls
+                    jsr  verafx.muls16
                     sta  $name
                     sty  $name+1""")
+            }
             else
                 asmgen.out("""
                     sta  prog8_math.multiply_words.multiplier

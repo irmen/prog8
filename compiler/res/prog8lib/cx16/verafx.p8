@@ -116,26 +116,29 @@ verafx {
 
 
     asmsub mult16(uword value1 @R0, uword value2 @R1) clobbers(X) -> uword @AY {
-        ; Returns the 16 bits unsigned result of R0*R1 in AY.
+        ; Returns the lower 16 bits unsigned result of R0*R1 in AY
         ; Note: only the lower 16 bits!   (the upper 16 bits are not valid for unsigned word multiplications, only for signed)
         ; Verafx doesn't support unsigned values like this for full 32 bit result.
         ; Note: clobbers VRAM $1f9bc - $1f9bf (inclusive)
         %asm {{
-            lda  cx16.r0
-            sta  P8ZP_SCRATCH_W1
-            lda  cx16.r0+1
-            sta  P8ZP_SCRATCH_W1+1
-            jsr  verafx.muls
-            ldx  P8ZP_SCRATCH_W1
-            stx  cx16.r0
-            ldx  P8ZP_SCRATCH_W1+1
-            stx  cx16.r0+1
+            jmp  muls16
+        }}
+    }
+
+    asmsub muls16(word value1 @R0, word value2 @R1) clobbers(X) -> word @AY {
+        ; Returns just the lower 16 bits signed result of the multiplication in cx16.AY.
+        ; Note: clobbers R0, R1, and VRAM $1f9bc - $1f9bf (inclusive)
+        %asm {{
+            jsr  muls
+            lda  cx16.r0L
+            ldy  cx16.r0H
             rts
         }}
     }
 
-    asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> word @AY, word @R0 {
-        ; Returns the 32 bits signed result in AY and R0  (lower word, upper word).
+
+    asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> long @R0R1_32 {
+        ; Returns the 32 bits signed result in R0:R1  (lower word, upper word).
         ; Vera Fx multiplication support only works on signed values!
         ; Note: clobbers VRAM $1f9bc - $1f9bf (inclusive)
         %asm {{
@@ -171,12 +174,14 @@ verafx {
             stz  cx16.VERA_DATA0      ; multiply and write out result
             lda  #%00010001           ; $01 with Increment 1
             sta  cx16.VERA_ADDR_H     ; so we can read out the result
-            lda  cx16.VERA_DATA0      ; store the lower 16 bits of the result in AY
+            lda  cx16.VERA_DATA0      ; store the lower 16 bits of the result in R0
             ldy  cx16.VERA_DATA0
-            ldx  cx16.VERA_DATA0      ; store the upper 16 bits of the result in R0
-            stx  cx16.r0s
-            ldx  cx16.VERA_DATA0
-            stx  cx16.r0s+1
+            sta  cx16.r0L
+            sty  cx16.r0H
+            lda  cx16.VERA_DATA0      ; store the upper 16 bits of the result in R1
+            ldy  cx16.VERA_DATA0      ; store the upper 16 bits of the result in R1
+            sta  cx16.r1L
+            sty  cx16.r1H
             stz  cx16.VERA_FX_CTRL    ; Cache write disable
             stz  cx16.VERA_FX_MULT    ; $9F2C  reset multiply bit
             stz  cx16.VERA_CTRL       ; reset DCSEL

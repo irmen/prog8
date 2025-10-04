@@ -220,6 +220,12 @@ _sinecosR8	.char  trunc(127.0 * sin(range(180+45) * rad(360.0/180.0)))
         }}
     }
 
+    sub mul32(uword a, uword b) -> long {
+        ; return 32 bits result of a*b
+        cx16.r2 = a*b
+        return mklong2(mul16_last_upper(), cx16.r2)
+    }
+
 sub direction_sc(byte x1, byte y1, byte x2, byte y2) -> ubyte {
     ; From a pair of signed coordinates around the origin, calculate discrete direction between 0 and 23 into A.
     cx16.r0L = 3        ; quadrant

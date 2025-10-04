@@ -1239,7 +1239,10 @@ Available for the Cx16 target. Routines that use the Vera FX logic to accelerate
     But it depends on some Vera manipulation and 4 bytes in vram just below the PSG registers for storage.
     Note: there is a block level %option "verafxmuls" that automatically replaces all word multiplications in that block
     by calls to verafx, but be careful with it because it may interfere with other Vera operations or IRQs.
-    The full 32 bits result value is returned in two result values: lower word, upper word.
+    The full 32 bits result value is returned as a long.
+
+``muls16``
+    Like ``muls`` but only returns the lower word of the result, which is sometimes useful if you're just interested in word values.
 
 ``mult16``
     VeraFX hardware multiplication of two unsigned words.

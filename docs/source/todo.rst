@@ -3,9 +3,7 @@ TODO
 
 LONG TYPE
 ---------
-- scan through more library routines if there are opportunities to use a long param or returnvalue?
-- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_l) and pokel, peekl, cbm.SETTIML/RDTIML,  and the use of R0:R1 when doing LONG calculations
-- asmsub call convention: @R0R1_32 to specify a 32 bits long combined register R0:R1
+- document the new long type! and mklong(a,b,c,d) and mklong2(w1,w2) , print_l , print_ulhex (& conv.str_l) and pokel, peekl, cbm.SETTIML/RDTIML, math.mul32, verafx.muls/muls16, and the use of R0:R1 when doing LONG calculations, asmsub call convention: @R0R1_32 to specify a 32 bits long combined register R0:R1
 - how hard is it to also implement the other comparison operators (<,>,<=,>=) on longs?
 - implement LONG testcases in testmemory
 

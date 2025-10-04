@@ -1,95 +1,32 @@
 %import textio
 %import math
+%import verafx
 %zeropage basicsafe
 
 main {
+    %option verafxmuls
+
     sub start() {
-        long @shared lv1 = 12345678
-        long @shared lv2same = 12345678
-        long @shared lv2different = 999999
 
-        if lv1==0
-            txt.print("wrong1\n")
+        cx16.r5s = 22
+        cx16.r6s = -999
 
-        if lv1==0
-            txt.print("wrong2\n")
-        else
-            txt.print("ok2\n")
+        cx16.r0s = cx16.r5s * cx16.r6s
+        txt.print_w(cx16.r0s)
+        txt.nl()
 
-        if lv1!=0
-            txt.print("ok3\n")
-
-        if lv1!=0
-            txt.print("ok4\n")
-        else
-            txt.print("wrong4\n")
+        long lv = cx16.r5s * cx16.r6s
+        txt.print_l(lv)
+        txt.nl()
 
 
-        if lv1==999999
-            txt.print("wrong5\n")
-
-        if lv1==999999
-            txt.print("wrong6\n")
-        else
-            txt.print("ok6\n")
-
-        if lv1!=999999
-            txt.print("ok7\n")
-
-        if lv1!=999999
-            txt.print("ok8\n")
-        else
-            txt.print("wrong8\n")
-
-        if lv1==12345678
-            txt.print("ok9\n")
-
-        if lv1==12345678
-            txt.print("ok10\n")
-        else
-            txt.print("wrong10\n")
-
-        if lv1!=12345678
-            txt.print("wrong11\n")
-
-        if lv1!=12345678
-            txt.print("wrong12\n")
-        else
-            txt.print("ok12\n")
-
-
-
-        if lv1==lv2same
-            txt.print("ok13\n")
-
-        if lv1==lv2same
-            txt.print("ok14\n")
-        else
-            txt.print("wrong14\n")
-
-        if lv1!=lv2same
-            txt.print("wrong15\n")
-
-        if lv1!=lv2same
-            txt.print("wrong16\n")
-        else
-            txt.print("ok16\n")
-
-
-        if lv1==lv2different
-            txt.print("wrong17\n")
-
-        if lv1==lv2different
-            txt.print("wrong18\n")
-        else
-            txt.print("ok18\n")
-
-        if lv1!=lv2different
-            txt.print("ok19\n")
-
-        if lv1!=lv2different
-            txt.print("ok20\n")
-        else
-            txt.print("wrong20\n")
+        cx16.r5s = 5555
+        cx16.r6s = -9999
+        lv = cx16.r5s * cx16.r6s
+        txt.print_l(lv)
+        txt.nl()
+        lv = verafx.muls(cx16.r5s, cx16.r6s)
+        txt.print_l(lv)
+        txt.nl()
     }
 }

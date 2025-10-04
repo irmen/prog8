@@ -304,6 +304,12 @@ math {
         }}
     }
 
+    sub mul32(uword a, uword b) -> long {
+        ; return 32 bits result of a*b
+        cx16.r2 = a*b
+        return mklong2(mul16_last_upper(), cx16.r2)
+    }
+
     sub diff(ubyte b1, ubyte b2) -> ubyte {
         if b1>b2
             return b1-b2

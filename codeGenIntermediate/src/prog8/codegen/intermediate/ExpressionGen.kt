@@ -686,6 +686,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.WORD, reg1=tr.resultReg, immediate = 0), null)
                         actualResultReg2 = loadStatusAsBooleanResult(Opcode.BSTNE, result)
                     }
+                    valueDt.isLong -> TODO("typecast long ${cast.position}")
                     valueDt.isFloat -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
                         result += IRCodeChunk(null, null).also {

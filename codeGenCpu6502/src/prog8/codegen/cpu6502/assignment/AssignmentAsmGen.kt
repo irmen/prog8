@@ -1122,7 +1122,7 @@ internal class AssignmentAsmGen(
                             asmgen.out("  pla")
                             asmgen.out("  sta  cx16.r0 |  sty  cx16.r0+1")
                         }
-                        asmgen.out("  jsr  verafx.muls")
+                        asmgen.out("  jsr  verafx.muls16")
                         assignRegisterpairWord(target, RegisterOrPair.AY)
                         return true
                     } else {
@@ -1187,7 +1187,7 @@ internal class AssignmentAsmGen(
                             asmgen.out("""
                                 sta  cx16.r0
                                 sty  cx16.r0+1
-                                jsr  verafx.muls""")
+                                jsr  verafx.muls16""")
                         } else {
                             asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "prog8_math.multiply_words.multiplier")
                             asmgen.out("  jsr  prog8_math.multiply_words")
@@ -2488,6 +2488,9 @@ $endLabel""")
                     assignExpressionToRegister(value, RegisterOrPair.A, valueDt.isSigned)
                     assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.A, valueDt.base)
                 }
+                valueDt.isLong -> {
+                    TODO("assign typecasted long to $targetDt ${value.position}")
+                }
                 valueDt.isWord || valueDt.isPointer -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, valueDt.isSigned)
                     assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.AY, valueDt.base)
@@ -2983,7 +2986,15 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
-                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
+                    BaseDataType.LONG -> {
+                        when(regs) {
+                            RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
+                            RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            RegisterOrPair.XY -> asmgen.out("  stx  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            else -> throw AssemblyError("non-word regs")
+                        }
+                        asmgen.signExtendLongVariable(targetAsmVarName, BaseDataType.WORD)
+                    }
                     BaseDataType.FLOAT -> {
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")
