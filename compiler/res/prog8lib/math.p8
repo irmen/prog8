@@ -602,10 +602,9 @@ log2_tab
         return cx16.r15
     }
 
-    sub crc32(^^ubyte data, uword length) {
+    sub crc32(^^ubyte data, uword length) -> long {
         ; Calculates the CRC-32 (ISO-HDLC/PKZIP) checksum of the buffer.
-        ; because prog8 doesn't have 32 bits integers, we have to split up the calculation over 2 words.
-        ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
+        ; Clobbers R12 through R15,  returns the 32 bits result as long
         ; There are also "streaming" crc32_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
         crc32_start()
         cx16.r12 = data
@@ -614,7 +613,7 @@ log2_tab
             crc32_update(@(cx16.r12))
             cx16.r12++
         }
-        crc32_end()
+        return crc32_end()
     }
 
     sub crc32_start() {
@@ -666,13 +665,12 @@ log2_tab
 ;        }
     }
 
-    sub crc32_end() {
-        ; finalize the "streaming" crc32
-        ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
-        void crc32_end_result()
+    sub crc32_end() -> long {
+        ; finalize the "streaming" crc32 and returns the result
+        return crc32_end_result()
     }
 
-    asmsub crc32_end_result() -> uword @R15, uword @R14 {
+    asmsub crc32_end_result() -> long @R14R15_32 {
         ; finalize the "streaming" crc32
         ; returns the result value in cx16.r15 (high word) and r14 (low word)
         %asm {{

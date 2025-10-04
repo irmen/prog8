@@ -353,10 +353,9 @@ math {
         return cx16.r15
     }
 
-    sub crc32(^^ubyte data, uword length) {
+    sub crc32(^^ubyte data, uword length) -> long {
         ; Calculates the CRC-32 (ISO-HDLC/PKZIP) checksum of the buffer.
-        ; because prog8 doesn't have 32 bits integers, we have to split up the calculation over 2 words.
-        ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
+        ; Clobbers R12 through R15, returns the result in R0:R1
         ; There are also "streaming" crc32_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
         crc32_start()
         cx16.r12 = data
@@ -365,7 +364,7 @@ math {
             crc32_update(@(cx16.r12))
             cx16.r12++
         }
-        crc32_end()
+        return crc32_end()
     }
 
     sub crc32_start() {
@@ -391,11 +390,11 @@ math {
         }
     }
 
-    sub crc32_end() {
-        ; finalize the "streaming" crc32
-        ; result stored in cx16.r14 (low word) and cx16.r15 (high word)
+    sub crc32_end() -> long {
+        ; finalize the "streaming" crc32 and return the result in R0:R1
         cx16.r15 ^= $ffff
         cx16.r14 ^= $ffff
+        return mklong2(cx16.r15, cx16.r14)
     }
 
     ; there's no crc32_end_result() here because IR cannot return multiple values yet

@@ -20,6 +20,7 @@ main {
         txt.print("\nfast serial mode r+w? y/n: ")
         bool fastserial = cbm.CHRIN()=='y'
         txt.nl()
+
         if verify {
             ; fill the buffers with random data, and calculate the checksum
             for cx16.r0 in 0 to 19999 {
@@ -28,9 +29,7 @@ main {
             for cx16.r0L in 0 to 255 {
                 buffer[cx16.r0L] = math.rnd()
             }
-            math.crc32(large, 20000)
-            uword crc32_l = cx16.r14
-            uword crc32_h = cx16.r15
+            long crc32value = math.crc32(large, 20000)
         }
 
         if fastserial
@@ -79,16 +78,16 @@ main {
             print_speed(200000.0, cbm.RDTIM16())
             if verify {
                 txt.print("\nverifying...\n")
-                verify_20k("benchmark0.dat", crc32_l, crc32_h)
-                verify_20k("benchmark1.dat", crc32_l, crc32_h)
-                verify_20k("benchmark2.dat", crc32_l, crc32_h)
-                verify_20k("benchmark3.dat", crc32_l, crc32_h)
-                verify_20k("benchmark4.dat", crc32_l, crc32_h)
-                verify_20k("benchmark5.dat", crc32_l, crc32_h)
-                verify_20k("benchmark6.dat", crc32_l, crc32_h)
-                verify_20k("benchmark7.dat", crc32_l, crc32_h)
-                verify_20k("benchmark8.dat", crc32_l, crc32_h)
-                verify_20k("benchmark9.dat", crc32_l, crc32_h)
+                verify_20k("benchmark0.dat", crc32value)
+                verify_20k("benchmark1.dat", crc32value)
+                verify_20k("benchmark2.dat", crc32value)
+                verify_20k("benchmark3.dat", crc32value)
+                verify_20k("benchmark4.dat", crc32value)
+                verify_20k("benchmark5.dat", crc32value)
+                verify_20k("benchmark6.dat", crc32value)
+                verify_20k("benchmark7.dat", crc32value)
+                verify_20k("benchmark8.dat", crc32value)
+                verify_20k("benchmark9.dat", crc32value)
             }
         }
 
@@ -114,9 +113,7 @@ main {
                         math.crc32_update(buf_ptr[cx16.r9L])
                     }
                 }
-                math.crc32_end()
-                crc32_l = cx16.r14
-                crc32_h = cx16.r15
+                crc32value = math.crc32_end()
                 txt.nl()
             }
         }
@@ -147,8 +144,8 @@ main {
                         math.crc32_update(@(buf_ptr))
                     }
                 }
-                math.crc32_end()
-                compare_crc32(cx16.r14, cx16.r15, crc32_l, crc32_h)
+                long crc = math.crc32_end()
+                compare_crc32(crc, crc32value)
             }
         }
 
@@ -180,8 +177,8 @@ main {
                     }
                     diskio.f_close()
                 } else sys.exit(1)
-                math.crc32_end()
-                compare_crc32(cx16.r14, cx16.r15, crc32_l, crc32_h)
+                long crc = math.crc32_end()
+                compare_crc32(crc, crc32value)
             }
         }
 
@@ -208,9 +205,7 @@ main {
                 for buf_ptr in large to large+5536-1 {
                     math.crc32_update(@(buf_ptr))
                 }
-                math.crc32_end()
-                crc32_l = cx16.r14
-                crc32_h = cx16.r15
+                crc32value = math.crc32_end()
                 txt.nl()
             }
 
@@ -232,13 +227,13 @@ main {
                         math.crc32_update(cx16.VERA_DATA0)
                     }
                 }
-                math.crc32_end()
-                compare_crc32(cx16.r14, cx16.r15, crc32_l, crc32_h)
+                long crc = math.crc32_end()
+                compare_crc32(crc, crc32value)
             }
         }
     }
 
-    sub verify_20k(str filename, uword crc32_low, uword crc32_high) {
+    sub verify_20k(str filename, long crccheck) {
         txt.print(filename)
         txt.spc()
         sys.memset(large, 20000, 0)
@@ -247,19 +242,17 @@ main {
             txt.print("invalid read size!\n")
             sys.exit(1)
         }
-        math.crc32(large, 20000)
-        compare_crc32(cx16.r14, cx16.r15, crc32_low, crc32_high)
+        long crc = math.crc32(large, 20000)
+        compare_crc32(crc, crccheck)
     }
 
-    sub compare_crc32(uword low_check, uword high_check, uword crc32_low, uword crc32_high)
+    sub compare_crc32(long crc1, long crc2)
     {
-        if low_check!=crc32_low or high_check!=crc32_high {
+        if crc1!=crc2 {
             txt.nl()
-            txt.print_uwhex(cx16.r15, true)
-            txt.print_uwhex(cx16.r14, false)
+            txt.print_ulhex(crc1, true)
             txt.spc()
-            txt.print_uwhex(crc32_high, true)
-            txt.print_uwhex(crc32_low, false)
+            txt.print_ulhex(crc2, true)
             txt.spc()
             txt.print("crc32")
             txt.print(" mismatch!\n")
