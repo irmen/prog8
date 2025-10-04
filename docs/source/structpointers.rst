@@ -130,7 +130,7 @@ dealing with all of them separately.  You first define the struct type like so::
         bool elite
     }
 
-You can use boolean fields, numeric fields (byte, word, float), and pointer fields (including str, which is translated into ^^ubyte).
+You can use boolean fields, numeric fields (byte, word, long, float), and pointer fields (including str, which is translated into ^^ubyte).
 You cannot nest struct types nor put arrays in them as a field.
 Fields in a struct are 'packed' (meaning the values are placed back-to-back in memory), and placed in memory in order of declaration. This guarantees exact size and place of the fields.
 ``sizeof()`` knows how to calculate the combined size of a struct, and ``offsetof()`` can be used to get the byte offset of a given field in the struct.

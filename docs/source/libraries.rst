@@ -114,9 +114,27 @@ mkword (msb, lsb)
     So mkword($80, $22) results in $8022.
 
     .. note::
-        The arguments to the mkword() function are in 'natural' order that is first the msb then the lsb.
+        The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
         Don't get confused by how the system actually stores this 16-bit word value in memory (which is
         in little-endian format, so lsb first then msb)
+
+mklong (msb, b2, b1, lsb)
+    Efficiently create a long value from four bytes (the msb, second, first and finally the lsb). Avoids multiplication and shifting.
+    So mklong($12, $34, $56, $78) results in $12345678.
+
+    .. note::
+        The arguments are in 'natural' left to right reading order that is first the msb then the lsb.
+        Don't get confused by how the system actually stores this 32-bit word value in memory (which is
+        in little-endian format, so lsb first then b1, b2 and finally the msb)
+
+mklong2 (msw, lsw)
+    Efficiently create a long value from two words (the msw, and the lsw). Avoids multiplication and shifting.
+    So mklong2($1234, $abcd) results in $1234abcd.
+
+    .. note::
+        The arguments are in 'natural' left to right reading order that is first the msw then the lsw.
+        Don't get confused by how the system actually stores this 32-bit word value in memory (which is
+        in little-endian format, so lsw first then the msw)
 
 offsetof (Struct.field)
     The offset in bytes of the given field in the struct. The first field will always have offset 0.
@@ -135,6 +153,9 @@ peekw (address)
     Caution: when using peekw to get words out of an array pointer, make sure the array is *not* a split word array
     (peekw requires the LSB and MSB of the word value to be consecutive in memory).
 
+peekl (address)
+    reads the signed long value at the given address in memory. Long is read as usual little-endian lsb/msb byte order.
+
 peekf (address)
     reads the float value at the given address in memory. On CBM machines, this reads 5 bytes.
 
@@ -147,6 +168,9 @@ pokebool (address, value)
 
 pokew (address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
+
+pokel (address, value)
+    writes the signed long value at the given address in memory, in usual little-endian lsb/msb byte order.
 
 pokef (address, value)
     writes the float value at the given address in memory. On CBM machines, this writes 5 bytes.
@@ -791,6 +815,9 @@ but perhaps the provided ones can be of service too.
 ``diffw (uword w1, uword w2) -> uword``
     Returns the absolute difference, or distance, between the two word values.
     (This routine is more efficient than doing a compare and a subtract separately, or using abs)
+
+``mul32 (woord w1, word w2) -> long``
+   Returns the 32 bits signed long result of w1 * w2
 
 ``mul16_last_upper () -> uword``
     Fetches the upper 16 bits of the previous 16*16 bit multiplication.

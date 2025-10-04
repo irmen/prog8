@@ -41,7 +41,7 @@ Mac OS (and Linux, and WSL2 on Windows):
 
 **Or, use the Gradle build system to build it yourself from source:**
 
-The Gradle build system is used to build the compiler.
+The Gradle build system is used to build the compiler. You will also need at least Java version 17 or higher to build it.
 The most interesting gradle commands to run are probably the ones listed below.
 (Note: if you have a recent gradle installed on your system already, you can probably replace the ``./gradlew`` wrapper commands with just the regular ``gradle`` command.)
 
@@ -68,7 +68,7 @@ For normal use, the ``installDist`` task should suffice and after succesful comp
 
 .. hint::
     Development and testing is done on Linux using the IntelliJ IDEA IDE,
-    but the actual prog8 compiler should run on all operating systems that provide a java runtime (version 11 or newer).
+    but the actual prog8 compiler should run on all operating systems that provide a Java runtime (version 11 or newer).
     If you do have trouble building or running the compiler on your operating system, please let me know!
 
     To successfully build and debug in IDEA, you have to do two things manually first:
@@ -99,7 +99,8 @@ It's easy to compile yourself, but a recent precompiled .exe (only for Windows) 
 *You need at least version 1.58.0 of this assembler.*
 If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
 
-A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself.
+A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself. Version 17 or higher if you want to
+build the compiler from source.
 If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
 Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
 For MacOS you can also use the Homebrew system to install a recent version of OpenJDK.

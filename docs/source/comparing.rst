@@ -34,11 +34,14 @@ No linker
 
 Data types
 ----------
-- There are byte, word (16 bits) and float datatypes for numbers. There are no bigger integer types natively available.
-- There is no automatic type enlargement: calculations remain within the data type of the operands. Any overflow silently wraps or truncates.
+- There are byte, word (16 bits), long (32 bits) and float datatypes for numbers.
+- floats are available as native data type on systems that have a supported floating point library in ROM.
+- **There is no automatic type enlargement:** all calculations remain within the data type of the operands. Any overflow silently wraps or truncates.
   You'll have to add explicit casts to increase the size of the value if required.
   For example when adding two byte variables having values 100 and 200, the result won't be 300, because that doesn't fit in a byte. It will be 44.
   You'll have to cast one or both of the *operands* to a word type first if you want to accomodate the actual result value of 300.
+  Similarly, ``long v = w1 * w2`` doesn't automatically give you the full 32 bits multiplication result, instead it is still constrained in the word range.
+  If you need the full 32 bits result you'll have to call a specialized routine such as ``math.mul32`` or ``math.mul16_last_upper()``.
 - strings and arrays are allocated once, statically, and never resized.
 - strings and arrays are mutable: you can change their contents, but always keep the original storage size in mind to avoid overwriting memory outside of the buffer.
 - maximum string length is 255 characters + a trailing 0 byte.

@@ -1,32 +1,15 @@
 %import textio
-%import math
-%import verafx
 %zeropage basicsafe
 
 main {
-    %option verafxmuls
-
     sub start() {
+        &long ll = 5000
 
-        cx16.r5s = 22
-        cx16.r6s = -999
+        ll = $9988776655
 
-        cx16.r0s = cx16.r5s * cx16.r6s
-        txt.print_w(cx16.r0s)
-        txt.nl()
-
-        long lv = cx16.r5s * cx16.r6s
-        txt.print_l(lv)
-        txt.nl()
-
-
-        cx16.r5s = 5555
-        cx16.r6s = -9999
-        lv = cx16.r5s * cx16.r6s
-        txt.print_l(lv)
-        txt.nl()
-        lv = verafx.muls(cx16.r5s, cx16.r6s)
-        txt.print_l(lv)
-        txt.nl()
+        txt.print_ubhex(@(5000), false)
+        txt.print_ubhex(@(5001), false)
+        txt.print_ubhex(@(5002), false)
+        txt.print_ubhex(@(5003), false)
     }
 }

@@ -1150,6 +1150,13 @@ so pay attention to any jumps and rts instructions in the inlined code!
     You can use them directly but their name isn't very descriptive, so it may be useful to define
     an alias for them when using them regularly.
 
+.. note::
+    Dealing with **long** arguments and return values:
+    A long takes 4 bytes (or 2 words, if you will). *There is no register definition specific to long types*.
+    The way you specify the 'register' for a long argument or return value for an asmsub is by using a *virtual register pair*.
+    For example, you can use R0+R1, R2+R3, R4+R5 and so on to take a long value instead.
+    The syntax to use as a 'register' name for those pairs is ``R0R1_32``, ``R2R3_32``, ``R4R5_32`` and so on.
+
 
 External subroutines
 ^^^^^^^^^^^^^^^^^^^^

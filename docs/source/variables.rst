@@ -39,6 +39,7 @@ Various examples::
     byte        counter = len([1, 2, 3]) * 20
     byte        age     = 2018 - 1974
     float       wallet  = 55.25
+    long        large   = 998877
     ubyte       x,y,z                   ; declare three ubyte variables x y and z
     str         name    = "my name is Alice"
     uword       address = &counter
@@ -173,8 +174,8 @@ type identifier  type                     storage size       example var declara
 ``bool``         boolean                  1 byte = 8 bits    ``bool myvar = true`` or ``bool myvar == false``
 ``word``         signed word              2 bytes = 16 bits  ``word myvar = -12345``
 ``uword``        unsigned word            2 bytes = 16 bits  ``uword myvar = $8fee``
-``long``         signed 32 bits integer   n/a                ``const long LARGE = $12345678``
-                                          (only for consts)
+``long``         signed 32 bits integer   4 bytes            ``long large = $12345678``
+                                                             there is no unsigned long type at the moment.
 ``float``        floating-point           5 bytes = 40 bits  ``float myvar = 1.2345``
                                                              stored in 5-byte cbm MFLPT format
 ``byte[x]``      signed byte array        x bytes            ``byte[4] myvar``
@@ -195,10 +196,10 @@ type identifier  type                     storage size       example var declara
 ``^^type``       typed pointer            2 bytes            pointer types are explained in their own chapter :ref:`pointers`
 ===============  =======================  =================  =========================================
 
-Integers (bytes, words)
-^^^^^^^^^^^^^^^^^^^^^^^
+Integers (bytes, words, longs)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Integers are 8 or 16 bit numbers and can be written in normal decimal notation,
+Integers are 8, 16 or 32 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation. There is no octal notation. Hexadecimal has the '$' prefix,
 binary has the '%' prefix. Note that ``%`` is also the remainder operator so be careful: if you want to take the remainder
 of something with an operand starting with 1 or 0, you'll have to add a space in between, otherwise
@@ -210,7 +211,9 @@ For instance ``3_000_000`` is a valid decimal number and so is ``%1001_0001`` a 
 A single character in single quotes such as ``'a'`` is translated into a byte integer,
 which is the PETSCII value for that character. You can prefix it with the desired encoding, like with strings, see :ref:`encodings`.
 
-**bytes versus words:**
+*Endianness:* all integers are stored in *little endian* byte order, so the Least significant byte first and the Most significant byte last.
+
+**bytes versus words versus longs:**
 
 Prog8 tries to determine the data type of integer values according to the table below,
 and sometimes the context in which they are used.
@@ -222,7 +225,7 @@ value                     datatype
 0 .. 255                  ubyte
 -32768 .. 32767           word
 0 .. 65535                uword
--2147483647 .. 2147483647 long (only for const)
+-2147483647 .. 2147483647 long  (there is no unsigned long right now)
 ========================= =================
 
 If the number fits in a byte but you really require it as a word value, you'll have to explicitly cast it: ``60 as uword``
@@ -233,14 +236,20 @@ to be done on word values, and don't want to explicitly have to cast everything 
     uword  offset = column * 64       ; does (column * 64) as uword, wrong result?
     uword  offset = column * $0040    ; does (column as uword) * 64 , a word calculation
 
-Only for ``const`` numbers, you can use larger values (32 bits signed integers). The compiler can handle those
-internally in expressions. As soon as you have to actually store it into a variable,
-you have to make sure the resulting value fits into the byte or word size of the variable.
-
 .. attention::
     Doing math on signed integers can result in code that is a lot larger and slower than
     when using unsigned integers. Make sure you really need the signed numbers, otherwise
     stick to unsigned integers for efficiency.
+
+.. attention::
+    Not all operations on Long integers are supported at the moment, although most common
+    operations should work fine.
+    There is no unsigned long type at the moment, but you can sometimes simply treat the signed
+    long value as an unsigned 32 bits value just fine.
+    Operations on long integers take a lot of instructions on 8 bit cpu's so code that uses them
+    a lot will be much slower than when you restrict yourself to 8 or 16 bit values. Use long values sparingly.
+    **Several operations on long values require the use of the R0 and R1 virtual register as temporary storage**
+    so if you are working with long values, you should assume that the contents of R0 and R1 are destroyed.
 
 
 Booleans
@@ -538,7 +547,7 @@ Constants
 When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
 You'll have to specify the initial value expression. This value is then used
 by the compiler everywhere you refer to the constant (and no memory is allocated
-for the constant itself). Onlythe simple numeric types (byte, word, float) can be defined as a constant.
+for the constant itself). Onlythe simple numeric types (byte, word, long, float) can be defined as a constant.
 If something is defined as a constant, very efficient code can usually be generated from it.
 Variables on the other hand can't be optimized as much, need memory, and more code to manipulate them.
 Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
