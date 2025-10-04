@@ -372,7 +372,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                     else if(literalText.length>2)
                         datatype = BaseDataType.UWORD
                     try {
-                        integer = literalText.toInt(16)
+                        integer = literalText.lowercase().toLong(16).toInt()
                     } catch(x: NumberFormatException) {
                         throw SyntaxError("invalid hexadecimal literal ${x.message}", ctx.toPosition())
                     }

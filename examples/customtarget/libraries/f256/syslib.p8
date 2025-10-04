@@ -672,6 +672,32 @@ save_SCRATCH_ZPWORD2	.word  ?
         }}
     }
 
+    inline asmsub pushl(long value @R0R1_32) {
+        %asm {{
+            lda  cx16.r0
+            pha
+            lda  cx16.r0+1
+            pha
+            lda  cx16.r0+2
+            pha
+            lda  cx16.r0+3
+            pha
+        }}
+    }
+
+    inline asmsub popl() -> long @R0R1_32 {
+        %asm {{
+            pla
+            sta  cx16.r0+3
+            pla
+            sta  cx16.r0+2
+            pla
+            sta  cx16.r0+1
+            pla
+            sta  cx16.r0
+        }}
+    }
+
     sub cpu_is_65816() -> bool {
         ; Returns true when you have a 65816 cpu, false when it's a 6502.
         return false

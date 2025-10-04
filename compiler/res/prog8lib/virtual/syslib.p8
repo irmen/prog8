@@ -192,6 +192,14 @@ sys {
         }}
     }
 
+    sub pushl(long l) {
+        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
+        %ir {{
+            loadm.l r99200,sys.pushl.l
+            push.l r99200
+        }}
+    }
+
     sub push_returnaddress(uword w) {
         ; note: this actually doesn't do anything useful on the VM because the code execution doesn't use the simulated cpu stack
         %ir {{
@@ -219,6 +227,14 @@ sys {
         %ir {{
             pop.w r99000
             returnr.w r99000
+        }}
+    }
+
+    sub popl() -> long {
+        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
+        %ir {{
+            pop.l r99200
+            returnr.l r99200
         }}
     }
 

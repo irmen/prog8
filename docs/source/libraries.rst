@@ -1177,11 +1177,18 @@ sys (part of syslib)
     This allows other code to run that might clobber these values temporarily.
 
 ``push (value)``
-    pushes a byte value on the CPU hardware stack. Low-level function that should normally not be used.
+    pushes a byte value on the CPU hardware stack.
+    Low-level function that is seldomly used in user code.
 
 ``pushw (value)``
-    pushes a 16-bit word value on the CPU hardware stack. Low-level function that should normally not be used.
+    pushes a 16-bit word value on the CPU hardware stack.
+    Low-level function that is seldomly used in user code.
     Don't assume anything about the order in which the bytes are pushed - popw will make sense of them again.
+
+``pushl (value)``
+    pushes a 32-bit value on the CPU hardware stack.
+    Low-level function that is seldomly used in user code.
+    Don't assume anything about the order in which the bytes are pushed - popl will make sense of them again.
 
 ``push_returnaddress (address)``
     pushes a 16 bit memory address on the CPU hardware stack in the same byte order as a JSR instruction would,
@@ -1190,11 +1197,15 @@ sys (part of syslib)
 
 ``pop ()``
     pops a byte value off the CPU hardware stack and returns it.
-    Low-level function that should normally not be used.
+    Low-level function that is seldomly used in user code.
 
 ``popw ()``
     pops a 16-bit word value off the CPU hardware stack that was pushed before by pushw, and returns it.
-    Low-level function that should normally not be used.
+    Low-level function that is seldomly used in user code.
+
+``popl ()``
+    pops a 32-bit value off the CPU hardware stack that was pushed before by pushl, and returns it.
+    Low-level function that is seldomly used in user code.
 
 
 textio (txt.*)

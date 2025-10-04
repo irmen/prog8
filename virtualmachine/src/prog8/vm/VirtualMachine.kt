@@ -3141,7 +3141,7 @@ internal fun ArrayDeque<UByte>.popl(): Int {
     val b1 = removeLast().toUInt()
     val b2 = removeLast().toUInt()
     val b3 = removeLast().toUInt()
-    return (b0 shl 24 or b1 shl 16 or b2 shl 8 or b3).toInt()
+    return ((b0 shl 24) or (b1 shl 16) or (b2 shl 8) or b3).toInt()
 }
 
 internal fun ArrayDeque<UByte>.popf(): Double {

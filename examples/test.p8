@@ -1,13 +1,16 @@
 %import textio
 %zeropage basicsafe
-%import bcd
 
 main {
     sub start() {
-        cbm.SETTIML($12fe56)
-        repeat {
-            txt.home()
-            txt.print_ulhex(cbm.RDTIML(), false)
-        }
+        sys.pushl($aabb1234)
+        long lv = sys.popl()
+        txt.print_ulhex(lv, false)
+
+;        cx16.r0 = sys.popw()
+;        cx16.r1 = sys.popw()
+
+;        txt.print_uwhex(cx16.r0, false)
+;        txt.print_uwhex(cx16.r1, false)
     }
 }

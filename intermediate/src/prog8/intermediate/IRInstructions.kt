@@ -14,6 +14,7 @@ Program to execute is not stored in the system memory, it's just a separate list
 100K virtual registers, 16 bits wide, can also be used as 8 bits. r0-r99999
     reserved 99000 - 99099 : WORD registers for syscall arguments and response value(s)
     reserved 99100 - 99199 : BYTE registers for syscall arguments and response value(s)
+    reseverd 99200 - 99299 : LONG registers for syscall arguments and response value(s)
 100K virtual floating point registers (64 bits double precision)  fr0-fr99999
 65536 bytes of memory. Thus memory pointers (addresses) are limited to 16 bits.
 Value stack, max 128 entries of 1 byte each.
