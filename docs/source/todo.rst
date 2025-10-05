@@ -1,6 +1,10 @@
 TODO
 ====
 
+remove "@split" tag   SplitWish.NOSPLIT
+
+
+
 LONG TYPE
 ---------
 - implement the other comparison operators (<,>,<=,>=) on longs
@@ -94,7 +98,7 @@ IR/VM
 - idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters? Or not?  So the only variables that remain as variables are arrays and strings.
-- the @split arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
+- the split word arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...? Should array operations be encoded in a more high level form in the IR?
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change.. :(
 - sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:

@@ -73,7 +73,7 @@ So the syntax for declaring typed pointers looks like this:
 
 ``^^type[size]``: array with size size containing pointers to a type.
     So for example; ``^^word[100] values`` declares values to be an array of 100 pointers to words.
-    Note that an array of pointers (regardless of the type they point to) is always a @split word array at this time.
+    Note that an array of pointers (regardless of the type they point to) is always a split word array.
     (this is the most efficient way to access the pointers, and they need to be copied to zeropage first to
     be able to use them anyway. It also allows for arrays of up to 256 pointers instead of 128.)
 

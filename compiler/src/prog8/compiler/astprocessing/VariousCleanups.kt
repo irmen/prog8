@@ -79,20 +79,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             var changeSplit: SplitWish = decl.splitwordarray
             when(decl.splitwordarray) {
                 SplitWish.DONTCARE -> {
-                    if(options.dontSplitWordArrays) {
-                        changeDataType = if(decl.datatype.isSplitWordArray) DataType.arrayFor(decl.datatype.elementType().base, false) else null
-                        changeSplit = SplitWish.NOSPLIT
+                    changeDataType = if(decl.datatype.isSplitWordArray) null else {
+                        val eltDt = decl.datatype.elementType()
+                        if(eltDt.isPointer)
+                            TODO("convert array of pointers to split words array type")
+                        else
+                            DataType.arrayFor(eltDt.base)
                     }
-                    else {
-                        changeDataType = if(decl.datatype.isSplitWordArray) null else {
-                            val eltDt = decl.datatype.elementType()
-                            if(eltDt.isPointer)
-                                TODO("convert array of pointers to split words array type")
-                            else
-                                DataType.arrayFor(eltDt.base)
-                        }
-                        changeSplit = SplitWish.SPLIT
-                    }
+                    changeSplit = SplitWish.SPLIT
                 }
                 SplitWish.SPLIT -> {
                     changeDataType = if(decl.datatype.isSplitWordArray) null else {

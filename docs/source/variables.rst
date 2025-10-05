@@ -366,13 +366,8 @@ For normal prog8 array indexing, the compiler takes care of the distiction for y
 *But for assembly code, or code that otherwise accesses the array elements directly, you have to be aware of the distinction from 'normal' arrays.*
 In the assembly code, the array is generated as two byte arrays namely ``name_lsb`` and ``name_msb``, immediately following eachother in memory.
 
-The ``@split`` tag can be added to the variable declaration to *always* split the array even when the command line option -dontsplitarrays is set
 The ``@nosplit`` tag can be added to the variable declaration to *never* split the array. This is useful for compatibility with
 code that expects the words to be sequentially in memory (such as the cx16.FB_set_palette routine).
-
-There is a command line option ``-dontsplitarrays`` that avoids splitting word arrays by default,
-so every word array is layed out sequentially in memory (this is what older versions of Prog8 used to do).immediately
-It reduces the maximum word array length to 128. You can still override this by adding ``@split`` explicitly.
 
 .. note::
     Most but not all array operations are supported yet on "split word arrays".

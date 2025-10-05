@@ -43,7 +43,6 @@ internal fun compileFile(
         symbolDefs = emptyMap(),
         outputDir = outputDir,
         errors = errors ?: ErrorReporterForTests(),
-        dontSplitWordArrays = false,
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,

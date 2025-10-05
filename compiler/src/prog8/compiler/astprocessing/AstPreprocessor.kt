@@ -113,8 +113,6 @@ class AstPreprocessor(val program: Program,
             val replacements = mutableListOf<IAstModification>()
 
             for(decl in vars) {
-                if(shouldUnSplitArray(decl))
-                    continue  // unsplitting must be done first
                 if(decl.type != VarDeclType.VAR) {
                     movements.add(IAstModification.InsertFirst(decl, parentscope))
                     replacements.add(IAstModification.Remove(decl, scope))
@@ -198,10 +196,6 @@ class AstPreprocessor(val program: Program,
             }
         }
 
-        if(shouldUnSplitArray(decl)) {
-            return makeUnSplitArray(decl)
-        }
-
         // convert all antlr names to structs
         val antlrTypeName = decl.datatype.subTypeFromAntlr
         if(antlrTypeName!=null) {
@@ -230,18 +224,6 @@ class AstPreprocessor(val program: Program,
         }
 
         return noModifications
-    }
-
-    private fun shouldUnSplitArray(decl: VarDecl): Boolean =
-        options.dontSplitWordArrays && decl.datatype.isSplitWordArray
-
-    private fun makeUnSplitArray(decl: VarDecl): Iterable<IAstModification> {
-        val splitDt = DataType.arrayFor(decl.datatype.sub!!, false)
-        val newDecl = VarDecl(
-            decl.type, decl.origin, splitDt, decl.zeropage, decl.splitwordarray, decl.arraysize, decl.name, emptyList(),
-            decl.value?.copy(), decl.sharedWithAsm, decl.alignment, false, decl.position
-        )
-        return listOf(IAstModification.ReplaceNode(decl, newDecl, decl.parent))
     }
 
     override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {

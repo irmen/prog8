@@ -162,10 +162,6 @@ One or more .p8 module files
     Add this user-defined symbol directly to the beginning of the generated assembly file.
     Can be repeated to define multiple symbols.
 
-``-dontsplitarrays``
-    Treat all word arrays as tagged with @nosplit so they are all stored linearly in memory,
-    instead of splitting them in separate lsb and msb arrays.
-
 ``-dumpsymbols``
     print a dump of the variable declarations and subroutine signatures
 
