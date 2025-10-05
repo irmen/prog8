@@ -505,25 +505,11 @@ gfx_lores {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
-        ubyte last_y3 = ycenter+radius
-        ubyte last_y4 = ycenter-radius
-        ubyte new_y3, new_y4
-
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, color)
             horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, color)
-
-            new_y3 = ycenter+radius
-            if new_y3 != last_y3 {
-                horizontal_line(xcenter-yy, last_y3, yy*$0002+1, color)
-                last_y3 = new_y3
-            }
-            new_y4 = ycenter-radius
-            if new_y4 != last_y4 {
-                horizontal_line(xcenter-yy, last_y4, yy*$0002+1, color)
-                last_y4 = new_y4
-            }
-
+            horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, color)
+            horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, color)
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -532,11 +518,6 @@ gfx_lores {
             decisionOver2 += yy*$0002
             decisionOver2++
         }
-
-        ; draw the final two spans
-        yy--
-        horizontal_line(xcenter-yy, last_y3, yy*$0002+1, color)
-        horizontal_line(xcenter-yy, last_y4, yy*$0002+1, color)
     }
 
     sub safe_disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, ubyte color) {
@@ -546,29 +527,22 @@ gfx_lores {
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
-        uword last_y3 = ycenter+radius
-        uword last_y4 = ycenter-radius
-        uword new_y3, new_y4
 
         while radius>=yy {
             uword liney = ycenter+yy
             if msb(liney)==0
-                safe_horizontal_line(xcenter-radius, lsb(ycenter+yy), radius*$0002+1, color)
+                safe_horizontal_line(xcenter-radius, lsb(liney), radius*$0002+1, color)
             liney = ycenter-yy
             if msb(liney)==0
-                safe_horizontal_line(xcenter-radius, lsb(ycenter-yy), radius*$0002+1, color)
-            new_y3 = ycenter+radius
-            if new_y3 != last_y3 {
-                if msb(last_y3)==0
-                    safe_horizontal_line(xcenter-yy, lsb(last_y3), yy*$0002+1, color)
-                last_y3 = new_y3
-            }
-            new_y4 = ycenter-radius
-            if new_y4 != last_y4 {
-                if msb(last_y4)==0
-                    safe_horizontal_line(xcenter-yy, lsb(last_y4), yy*$0002+1, color)
-                last_y4 = new_y4
-            }
+                safe_horizontal_line(xcenter-radius, lsb(liney), radius*$0002+1, color)
+
+            liney = ycenter+radius
+            if msb(liney)==0
+                safe_horizontal_line(xcenter-yy, lsb(liney), yy*$0002+1, color)
+            liney = ycenter-radius
+            if msb(liney)==0
+                safe_horizontal_line(xcenter-yy, lsb(liney), yy*$0002+1, color)
+
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -577,12 +551,6 @@ gfx_lores {
             decisionOver2 += yy*$0002
             decisionOver2++
         }
-        ; draw the final two spans
-        yy--
-        if msb(last_y3)==0
-            safe_horizontal_line(xcenter-yy, lsb(last_y3), yy*$0002+1, color)
-        if msb(last_y4)==0
-            safe_horizontal_line(xcenter-yy, lsb(last_y4), yy*$0002+1, color)
     }
 
     asmsub plot(uword x @AX, ubyte y @Y, ubyte color @R0) {

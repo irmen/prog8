@@ -35,7 +35,7 @@ main {
         txt.color2(1, 6)
         txt.clear_screen()
 
-        txt.print("\n\n\n  prog8 compiler benchmark tests.\n")
+        txt.print("\n\n\n  prog8 compiler benchmark tests.\n\n  benchmark version v12\n\n")
         sys.wait(60)
 
         benchmark_number = 0
@@ -65,7 +65,7 @@ main {
         benchmark_number++
 
         announce_benchmark("circles with gfx_lores")
-        benchmark_score[benchmark_number]  = circles.draw(false, 300)
+        benchmark_score[benchmark_number]  = circles.draw(false, 400)
         benchmark_number++
 
         announce_benchmark("text-elite")
@@ -88,7 +88,7 @@ main {
         txt.color2(1, 6)
         uword total_score
         benchmark_number = 0
-        txt.print("\nscore benchmark\n\n")
+        txt.print("\nscore benchmark (v12)\n\n")
         do {
             txt.spc()
             txt.print_uw(benchmark_score[benchmark_number])
