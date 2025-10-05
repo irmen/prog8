@@ -2,6 +2,7 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
+import prog8.buildversion.VERSION
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
@@ -12,13 +13,10 @@ import prog8.compiler.CompilerArguments
 import prog8.compiler.ErrorReporter
 import prog8.compiler.compileProgram
 import java.io.File
-import java.nio.file.FileSystems
-import java.nio.file.Path
-import java.nio.file.StandardWatchEventKinds
-import java.nio.file.WatchKey
+import java.net.URI
+import java.nio.file.*
 import java.time.LocalDateTime
-import kotlin.io.path.Path
-import kotlin.io.path.isReadable
+import kotlin.io.path.*
 import kotlin.system.exitProcess
 
 
@@ -46,6 +44,8 @@ private fun compileMain(args: Array<String>): Boolean {
     val symbolDefs by cli.option(ArgType.String, fullName = "D", description = "define assembly symbol(s) with -D SYMBOL=VALUE").multiple()
     val dumpSymbols by cli.option(ArgType.Boolean, fullName = "dumpsymbols", description = "print a dump of the variable declarations and subroutine signatures")
     val dumpVariables by cli.option(ArgType.Boolean, fullName = "dumpvars", description = "print a dump of the variables in the program")
+    val libSearch by cli.option(ArgType.String, fullName = "libsearch", description = "search for a regex pattern in the embedded library files")
+    val libDump by cli.option(ArgType.String, fullName = "libdump", description = "dump all the embedded library files into the specified output directory")
     val startEmulator1 by cli.option(ArgType.Boolean, fullName = "emu", description = "auto-start emulator after successful compilation")
     val startEmulator2 by cli.option(ArgType.Boolean, fullName = "emu2", description = "auto-start alternative emulator after successful compilation")
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
@@ -88,6 +88,16 @@ private fun compileMain(args: Array<String>): Boolean {
 
     if(quietAll!=true)
         banner()
+
+    if(libDump!=null) {
+        scanLibraryFiles(libDump, null)
+        return true
+    }
+
+    if(libSearch!=null) {
+        scanLibraryFiles(null, libSearch)
+        return true
+    }
 
     val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
@@ -359,4 +369,65 @@ fun runVm(irFilename: String, quiet: Boolean) {
     val irFile = Path(irFilename)
     val vmdef = VMTarget()
     vmdef.launchEmulator(0, irFile, quiet)
+}
+
+
+
+private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
+    val library_prefix = "/prog8lib"
+
+    val dumpPath = if(dump!=null) pathFrom(dump) else null
+    val pattern = searchPattern?.toRegex(RegexOption.IGNORE_CASE)
+    if(pattern!=null) {
+        println("You can also have a look in the documentation for the libraries at https://prog8.readthedocs.io/en/latest/libraries.html")
+        println("The library source files are available in the Github repository at https://github.com/irmen/prog8/tree/master/compiler/res/prog8lib")
+        println("Searching for pattern '$pattern' in embedded library files.\n")
+    }
+    if(dumpPath!=null) {
+        println("Dumping embedded library files into $dumpPath\n")
+        dumpPath.createDirectories()
+        val license = dumpPath / "${library_prefix.drop(1)}-$VERSION/LICENSE.txt"
+        license.parent.createDirectories()
+        license.writeText("These library files belong to the Prog8 compiler project, see https://github.com/irmen/prog8/\n" +
+        "They are licensed under the GNU GPL 3.0 software license, see https://www.gnu.org/licenses/gpl.html\n")
+    }
+
+    fun search(path: Path) {
+        val hits = mutableListOf<String>()
+        path.useLines { lines ->
+            lines.forEachIndexed { index, line ->
+                if (pattern!!.containsMatchIn(line)) {
+                    hits.add("${(index + 1).toString().padStart(6)}:  ${line.trimStart()}")
+                }
+            }
+        }
+        if(hits.isNotEmpty()) {
+            println("Found in Library file '${path.absolutePathString().drop(library_prefix.length+1)}':")
+            hits.forEach(::println)
+            println()
+        }
+    }
+
+    fun dump(path: Path) {
+        val targetfolder = dumpPath!! / (path.first().pathString + "-$VERSION")
+        val target = targetfolder / path.pathString.drop(library_prefix.length+1)
+        target.parent.createDirectories()
+        if (!target.exists())
+            target.createFile()
+        target.writeBytes(path.readBytes())
+    }
+
+    // Get the location of the current JAR
+    val jarUrl = object {}.javaClass.protectionDomain.codeSource.location
+    FileSystems.newFileSystem(URI.create("jar:$jarUrl"), emptyMap<String, String>()).use { fs ->
+        val dir = fs.getPath(library_prefix)
+        Files.walk(dir).use { paths ->
+            paths.filter { Files.isRegularFile(it) }.forEach { path ->
+                if(pattern!=null)
+                    search(path)
+                else
+                    dump(path)
+            }
+        }
+    }
 }

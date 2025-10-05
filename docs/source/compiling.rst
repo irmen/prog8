@@ -187,6 +187,13 @@ One or more .p8 module files
     for instance uncareful use of dirty variables, or reusing the R0-R15 registers for subroutine parameters.
     With this option you're basically saying: "Yes, I know I am treading on mighty thin ice here, but I don't want to be reminded about that".
 
+``-libsearch pattern``
+    Search in the embedded library files for occurences of the given regex pattern.
+
+``-libdump path``
+    Extract all embedded library files into the given output directory.
+    Note: the library source code belongs to the Prog8 project and is licensed under the GPL 3.0 software license.
+
 ``-noasm``
     Do not create assembly code and output program.
     Useful for debugging or doing quick syntax checks.
