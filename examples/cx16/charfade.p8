@@ -25,7 +25,7 @@ main {
         cx16.set_screen_mode(128)
         cx16.GRAPH_set_colors(0,0,0)
         cx16.GRAPH_clear()
-        cx16.VERA_L1_CONFIG |= %1000    ; T256C on!
+        txt.t256c(true)
         ubyte x,y
         for y in 0 to HEIGHT-1 {
             for x in 0 to WIDTH-1 {

@@ -4,7 +4,6 @@ TODO
 LONG TYPE
 ---------
 - implement the other comparison operators (<,>,<=,>=) on longs
-- implement LONG testcases in testmemory
 
 
 STRUCTS and TYPED POINTERS

@@ -412,8 +412,6 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
         val targetfolder = dumpPath!! / (path.first().pathString + "-$VERSION")
         val target = targetfolder / path.pathString.drop(library_prefix.length+1)
         target.parent.createDirectories()
-        if (!target.exists())
-            target.createFile()
         target.writeBytes(path.readBytes())
     }
 
