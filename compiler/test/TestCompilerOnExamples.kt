@@ -177,6 +177,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             "test_gfx_lores",
             "test_gfx_hires",
             "testmonogfx",
+            "textspotlight",
         ),
         listOf(false, true)
     )

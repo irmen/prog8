@@ -1,6 +1,9 @@
 TODO
 ====
 
+check the accuracy of the various disc routines (filled circles), they seem less accurate than the circle routine  (virt monogfx)
+
+
 LONG TYPE
 ---------
 - implement the other comparison operators (<,>,<=,>=) on longs
