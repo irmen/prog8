@@ -19,7 +19,7 @@ package prog8.parser;
 EOL :  ('\r'? '\n' | '\r' | '\n')+ ;
 LINECOMMENT : EOL [ \t]* COMMENT -> channel(HIDDEN);
 COMMENT :  ';' ~[\r\n]* -> channel(HIDDEN) ;
-BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | . )*? '*/'  -> skip ;
+BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | ~'*' | '*' ~'/' )*? '*/' -> skip ;
 
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
@@ -51,7 +51,7 @@ FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
 FDOTNUMBER : '.' (DEC_DIGIT | '_')+ ;
 FNUMDOTNUMBER : DEC_DIGIT (DEC_DIGIT | '_')* FDOTNUMBER? ;
 
-STRING_ESCAPE_SEQ :  '\\' . | '\\x' . . | '\\u' . . . .;
+STRING_ESCAPE_SEQ :  '\\' [\u0021-\u007E] | '\\x' HEX_DIGIT HEX_DIGIT | '\\u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
 STRING :
     '"' ( STRING_ESCAPE_SEQ | ~[\\\r\n\f"] )* '"'
     ;
@@ -243,7 +243,7 @@ typecast : 'as' datatype;
 
 directmemory : '@' '(' expression ')';
 
-addressof : <assoc=right> (ADDRESS_OF | TYPED_ADDRESS_OF | | ADDRESS_OF_LSB | ADDRESS_OF_MSB) scoped_identifier arrayindex? ;
+addressof : <assoc=right> (ADDRESS_OF | TYPED_ADDRESS_OF | ADDRESS_OF_LSB | ADDRESS_OF_MSB) scoped_identifier arrayindex? ;
 
 functioncall : scoped_identifier '(' EOL? expression_list? EOL? ')'  ;
 

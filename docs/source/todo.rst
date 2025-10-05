@@ -4,6 +4,7 @@ TODO
 LONG TYPE
 ---------
 - implement the other comparison operators (<,>,<=,>=) on longs
+- fix carry bit for cmp(long), check if it even worked for cmp(word)...
 
 
 STRUCTS and TYPED POINTERS
@@ -29,7 +30,6 @@ Future Things and Ideas
   Can give descriptive error message for old syntax that still includes the type name?
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - allow memory() to occur in array initializer
-- fix carry bit for cmp(long), check if it even worked for cmp(word)...
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
