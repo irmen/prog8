@@ -595,23 +595,12 @@ drawmode:               ora  cx16.r15L
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
-        uword last_y3 = ycenter+radius
-        uword last_y4 = ycenter-radius
-        uword new_y3, new_y4
 
         while radius>=yy {
             horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, draw)
             horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, draw)
-            new_y3 = ycenter+radius
-            if new_y3 != last_y3 {
-                horizontal_line(xcenter-yy, last_y3, yy*$0002+1, draw)
-                last_y3 = new_y3
-            }
-            new_y4 = ycenter-radius
-            if new_y4 != last_y4 {
-                horizontal_line(xcenter-yy, last_y4, yy*$0002+1, draw)
-                last_y4 = new_y4
-            }
+            horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, draw)
+            horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, draw)
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -620,10 +609,6 @@ drawmode:               ora  cx16.r15L
             decisionOver2 += yy*$0002
             decisionOver2++
         }
-        ; draw the final two spans
-        yy--
-        horizontal_line(xcenter-yy, last_y3, yy*$0002+1, draw)
-        horizontal_line(xcenter-yy, last_y4, yy*$0002+1, draw)
     }
 
     sub safe_disc(uword @zp xcenter, uword @zp ycenter, ubyte @zp radius, bool draw) {
@@ -634,23 +619,12 @@ drawmode:               ora  cx16.r15L
             return
         ubyte @zp yy = 0
         word @zp decisionOver2 = (1 as word)-radius
-        uword last_y3 = ycenter+radius
-        uword last_y4 = ycenter-radius
-        uword new_y3, new_y4
 
         while radius>=yy {
             safe_horizontal_line(xcenter-radius, ycenter+yy, radius*$0002+1, draw)
             safe_horizontal_line(xcenter-radius, ycenter-yy, radius*$0002+1, draw)
-            new_y3 = ycenter+radius
-            if new_y3 != last_y3 {
-                safe_horizontal_line(xcenter-yy, last_y3, yy*$0002+1, draw)
-                last_y3 = new_y3
-            }
-            new_y4 = ycenter-radius
-            if new_y4 != last_y4 {
-                safe_horizontal_line(xcenter-yy, last_y4, yy*$0002+1, draw)
-                last_y4 = new_y4
-            }
+            safe_horizontal_line(xcenter-yy, ycenter+radius, yy*$0002+1, draw)
+            safe_horizontal_line(xcenter-yy, ycenter-radius, yy*$0002+1, draw)
             yy++
             if decisionOver2>=0 {
                 radius--
@@ -659,10 +633,6 @@ drawmode:               ora  cx16.r15L
             decisionOver2 += yy*$0002
             decisionOver2++
         }
-        ; draw the final two spans
-        yy--
-        safe_horizontal_line(xcenter-yy, last_y3, yy*$0002+1, draw)
-        safe_horizontal_line(xcenter-yy, last_y4, yy*$0002+1, draw)
     }
 
     sub plot(uword @zp xx, uword @zp yy, bool @zp draw) {
