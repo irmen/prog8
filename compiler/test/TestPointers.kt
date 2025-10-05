@@ -1951,7 +1951,7 @@ main {
         val src="""
 main {
     sub start() {
-        uword[10] @split @shared splitarray
+        uword[10] @shared splitarray
         uword[10] @nosplit @shared nosplitarray
 
         ^^uword ptr1 = &&splitarray
@@ -1992,9 +1992,9 @@ main {
         errors.errors.size shouldBe 3
         errors.warnings.size shouldBe 0
         errors.infos.size shouldBe 0
-        errors.errors[0] shouldContain "pointer arrays can only be @split"
-        errors.errors[1] shouldContain "was: ^^ubyte (because arg is a @split word array) expected: ^^main.Node"
-        errors.errors[2] shouldContain "was: ^^ubyte (because arg is a @split word array) expected: ^^main.Node"
+        errors.errors[0] shouldContain "pointer arrays can only be split"
+        errors.errors[1] shouldContain "was: ^^ubyte (because arg is a split word array) expected: ^^main.Node"
+        errors.errors[2] shouldContain "was: ^^ubyte (because arg is a split word array) expected: ^^main.Node"
     }
 
     test("passing split array of structpointers to a subroutine in various forms should be param type ptr to ubyte (the lsb part of the split array)") {
@@ -2005,7 +2005,7 @@ main {
     }
 
     sub start() {
-        ^^Node[10] @split nodearray
+        ^^Node[10] nodearray
         func(&&nodearray)
         func(&nodearray)
         func(nodearray)

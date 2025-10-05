@@ -80,8 +80,8 @@ def make_test_array(datatype, comparison: C):
     numbers = testnumbers[datatype]
     print("    sub test_cmp_array() {")
     print(f"""    {datatype} @shared x
-        {datatype}[] @split values = [0, 0]
-        {datatype}[] @split sources = [0, 0]
+        {datatype}[] values = [0, 0]
+        {datatype}[] sources = [0, 0]
         success = 0""")
     expected = 0
     test_index = 0

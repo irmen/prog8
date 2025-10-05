@@ -1090,8 +1090,8 @@ internal class AstChecker(private val program: Program,
         }
 
         if(decl.datatype.isPointerArray) {
-            if(decl.splitwordarray!= SplitWish.SPLIT)
-                errors.err("pointer arrays can only be @split", decl.position)
+            if(decl.splitwordarray==SplitWish.NOSPLIT)
+                errors.err("pointer arrays can only be split", decl.position)
         }
 
         if(decl.datatype.isStructInstance && decl.origin!=VarDeclOrigin.SUBROUTINEPARAM) {

@@ -71,24 +71,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         // check splitting of word arrays
         if(decl.splitwordarray != SplitWish.DONTCARE && !decl.datatype.isWordArray && !decl.datatype.isPointerArray) {
             if(decl.origin != VarDeclOrigin.ARRAYLITERAL)
-                errors.err("@split and @nosplit are for word or pointer arrays only", decl.position)
+                errors.err("@nosplit is for word or pointer arrays only", decl.position)
         }
 
         if(decl.datatype.isWordArray) {
             var changeDataType: DataType?
-            var changeSplit: SplitWish = decl.splitwordarray
             when(decl.splitwordarray) {
                 SplitWish.DONTCARE -> {
-                    changeDataType = if(decl.datatype.isSplitWordArray) null else {
-                        val eltDt = decl.datatype.elementType()
-                        if(eltDt.isPointer)
-                            TODO("convert array of pointers to split words array type")
-                        else
-                            DataType.arrayFor(eltDt.base)
-                    }
-                    changeSplit = SplitWish.SPLIT
-                }
-                SplitWish.SPLIT -> {
                     changeDataType = if(decl.datatype.isSplitWordArray) null else {
                         val eltDt = decl.datatype.elementType()
                         if(eltDt.isPointer)
@@ -109,7 +98,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     value = ArrayLiteral(InferredTypes.knownFor(changeDataType), value.value, value.position)
                 }
                 val newDecl = VarDecl(decl.type, decl.origin, changeDataType, decl.zeropage,
-                    changeSplit, decl.arraysize, decl.name, decl.names,
+                    decl.splitwordarray, decl.arraysize, decl.name, decl.names,
                     value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
                 return listOf(IAstModification.ReplaceNode(decl, newDecl, parent))
             }

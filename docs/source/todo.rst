@@ -1,10 +1,6 @@
 TODO
 ====
 
-remove "@split" tag   SplitWish.NOSPLIT
-
-
-
 LONG TYPE
 ---------
 - implement the other comparison operators (<,>,<=,>=) on longs

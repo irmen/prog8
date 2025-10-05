@@ -145,7 +145,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
                             if(addrOf!=null) {
                                 val identType = addrOf.identifier?.inferType(program)?.getOrUndef()
                                 if(identType?.isSplitWordArray==true) {
-                                    return Pair("argument ${mismatch + 1} type mismatch, was: $actual (because arg is a @split word array) expected: $expected", call.args[mismatch].position)
+                                    return Pair("argument ${mismatch + 1} type mismatch, was: $actual (because arg is a split word array) expected: $expected", call.args[mismatch].position)
                                 }
                             }
                         }

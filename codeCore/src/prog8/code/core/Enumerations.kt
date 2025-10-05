@@ -530,6 +530,5 @@ enum class ZeropageWish {
 
 enum class SplitWish {
     DONTCARE,
-    SPLIT,
     NOSPLIT
 }

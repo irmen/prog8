@@ -137,7 +137,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitVardecl(ctx: VardeclContext): VarDecl {
         val tags = ctx.TAG().map { it.text }
-        val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@split", "@nosplit", "@shared", "@alignword", "@alignpage", "@align64", "@dirty")
+        val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@nosplit", "@shared", "@alignword", "@alignpage", "@align64", "@dirty")
         for(tag in tags) {
             if(tag !in validTags)
                 throw SyntaxError("invalid variable tag '$tag'", ctx.toPosition())
@@ -167,17 +167,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                 DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
         }
 
-        val splitWords = if(split==SplitWish.DONTCARE) {
-            if(dt.isPointerArray) SplitWish.SPLIT       // pointer arrays are always @split by default
-            else split
-        } else split
-
         return VarDecl(
             VarDeclType.VAR,        // can be changed to MEMORY or CONST as required
             VarDeclOrigin.USERCODE,
             dt,
             zp,
-            splitWords,
+            split,
             arrayIndex,
             name,
             if(identifiers.size==1) emptyList() else identifiers,
@@ -486,7 +481,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitSub_param(pctx: Sub_paramContext): SubroutineParameter {
         val decl = pctx.vardecl()
         val tags = decl.TAG().map { t -> t.text }
-        val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@split", "@nosplit", "@shared")
+        val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@nosplit", "@shared")
         for(tag in tags) {
             if(tag !in validTags)
                 throw SyntaxError("invalid parameter tag '$tag'", pctx.toPosition())
@@ -724,7 +719,6 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     private fun getSplitOption(tags: List<String>): SplitWish {
         return when {
             "@nosplit" in tags -> SplitWish.NOSPLIT
-            "@split" in tags -> SplitWish.SPLIT
             else -> SplitWish.DONTCARE
         }
     }

@@ -305,7 +305,7 @@ class VarDecl(
         fun createAutoOptionalSplit(array: ArrayLiteral): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
-            val split = if(arrayDt.isSplitWordArray) SplitWish.SPLIT else if(arrayDt.isWordArray) SplitWish.NOSPLIT else SplitWish.DONTCARE
+            val split = if(arrayDt.isSplitWordArray) SplitWish.DONTCARE else if(arrayDt.isWordArray) SplitWish.NOSPLIT else SplitWish.DONTCARE
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
                 split, arraysize, autoVarName, emptyList(), array,

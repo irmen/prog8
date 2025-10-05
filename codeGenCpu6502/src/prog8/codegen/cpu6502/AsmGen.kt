@@ -1261,12 +1261,12 @@ $repeatLabel""")
                             // print a message when more optimal code is possible for 65C02 cpu
                             val variable = symbolTable.lookup(arrayVariable.name)!!
                             if(variable is StStaticVariable && variable.length!!<=128u)
-                                errors.info("the jump address array is @split, but @nosplit would create more efficient code here", jump.position)
+                                errors.info("the jump address array is split, but @nosplit would create more efficient code here", jump.position)
                         }
                     } else {
                         // print a message when more optimal code is possible for 6502 cpu
                         if(!arrayIdx.splitWords)
-                            errors.info("the jump address array is @nosplit, but @split would create more efficient code here", jump.position)
+                            errors.info("the jump address array is @nosplit, but split would create more efficient code here", jump.position)
                     }
                 }
                 // we can do the address evaluation right now and just use a temporary pointer variable

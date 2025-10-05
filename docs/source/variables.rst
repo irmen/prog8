@@ -358,7 +358,7 @@ See also :ref:`pointervars` and the chapter about it :ref:`pointers`.
 
 **LSB/MSB split word and str arrays:**
 
-As an optimization, (u)word arrays and str arrays are split by the compiler in memory as two separate arrays,
+As an optimization, (u)word arrays, pointer arrays, and str arrays are split by the compiler in memory as two separate arrays,
 one with the LSBs and one with the MSBs of the word values. This is more efficient to access by the 6502 cpu.
 It also allows a maximum length of 256 for word arrays, where normally it would have been 128.
 
@@ -366,13 +366,14 @@ For normal prog8 array indexing, the compiler takes care of the distiction for y
 *But for assembly code, or code that otherwise accesses the array elements directly, you have to be aware of the distinction from 'normal' arrays.*
 In the assembly code, the array is generated as two byte arrays namely ``name_lsb`` and ``name_msb``, immediately following eachother in memory.
 
-The ``@nosplit`` tag can be added to the variable declaration to *never* split the array. This is useful for compatibility with
+The ``@nosplit`` tag can be added to the variable declaration to *not* split the array. This is useful for compatibility with
 code that expects the words to be sequentially in memory (such as the cx16.FB_set_palette routine).
 
 .. note::
-    Most but not all array operations are supported yet on "split word arrays".
-    If you get a compiler error message, simply revert to a regular sequential word array using ``@nosplit``,
-    and please report the issue.
+    Some obscure array operations may not yet be supported on "split word arrays".
+    If you get a compiler error message hinting that this is the case,
+    simply revert to a regular sequential word array using ``@nosplit``, and please report the issue so that
+    the missing function can be added.
 
 .. note::
     Array literals are stored as split arrays if they're initializing a split word array, otherwise,

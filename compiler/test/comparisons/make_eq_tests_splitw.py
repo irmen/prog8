@@ -36,9 +36,9 @@ main {{
         test_is_var()
         txt.print("\\n!=var: ")
         test_not_var()
-        txt.print("\\n==array[] @split: ")
+        txt.print("\\n==array[] split: ")
         test_is_array_splitw()
-        txt.print("\\n!=array[] @split: ")
+        txt.print("\\n!=array[] split: ")
         test_not_array_splitw()
         txt.print("\\n==expr: ")
         test_is_expr()
@@ -97,7 +97,7 @@ nonzero_values = {
 def make_test_is_zero(datatype):
     print(f"""
     sub test_is_zero() {{
-        {datatype}[] @split sources = [9999, 9999]
+        {datatype}[] sources = [9999, 9999]
         success = 0
 
         sources[1]={zero_values[datatype]}
@@ -155,7 +155,7 @@ skip4:
 def make_test_not_zero(datatype):
     print(f"""
     sub test_not_zero() {{
-        {datatype}[] @split sources = [9999, 9999]
+        {datatype}[] sources = [9999, 9999]
         success = 0
 
         sources[1]={nonzero_values[datatype]}
@@ -229,7 +229,7 @@ testnumbers = {
 def make_test_is_number(datatype, equals):
     numbers = testnumbers[datatype]
     print("    sub test_is_number() {" if equals else "    sub test_not_number() {")
-    print(f"""    {datatype}[] @split sources = [9999, 9999]
+    print(f"""    {datatype}[] sources = [9999, 9999]
         success = 0""")
     expected = 0
     test_index = 0
@@ -286,8 +286,8 @@ skip{test_index}b:
 def make_test_is_var(datatype, equals):
     numbers = testnumbers[datatype]
     print("    sub test_is_var() {" if equals else "    sub test_not_var() {")
-    print(f"""    {datatype}[] @split sources = [9999, 9999]
-        {datatype}[] @split values = [8888,8888]
+    print(f"""    {datatype}[] sources = [9999, 9999]
+        {datatype}[] values = [8888,8888]
         success = 0""")
     expected = 0
     test_index = 0
@@ -346,8 +346,8 @@ def make_test_is_array(datatype, equals):
     numbers = testnumbers[datatype]
     print("    sub test_is_array_splitw() {" if equals else "    sub test_not_array_splitw() {")
     print(f"""    
-        {datatype}[] @split values = [9999, 8888]
-        {datatype}[] @split sources = [9999, 8888]
+        {datatype}[] values = [9999, 8888]
+        {datatype}[] sources = [9999, 8888]
         success = 0""")
     expected = 0
     test_index = 0
@@ -441,7 +441,7 @@ skip{test_index}d:
 def make_test_is_expr(datatype, equals):
     numbers = testnumbers[datatype]
     print("    sub test_is_expr() {" if equals else "    sub test_not_expr() {")
-    print(f"""    {datatype}[] @split sources = [9999, 9999]
+    print(f"""    {datatype}[] sources = [9999, 9999]
         cx16.r4 = 1
         cx16.r5 = 1
         success = 0""")
