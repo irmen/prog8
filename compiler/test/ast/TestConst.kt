@@ -407,7 +407,6 @@ main {
 
     test("const evaluation of signed bitwise operations") {
         val src="""
-%import textio
 main {
     sub start() {
         byte @shared a = -1
@@ -417,26 +416,16 @@ main {
         const byte cb = -15
         const ubyte cub = 2
 
-        txt.print_ub( a & b )
-        txt.spc()
-        txt.print_ub( a | b )
-        txt.spc()
-        txt.print_ub( a ^ b )
-        txt.spc()
-        txt.print_b( a << ub )
-        txt.spc()
-        txt.print_b( a >> ub )
-        txt.nl()
-        txt.print_ub( ca & cb )
-        txt.spc()
-        txt.print_ub( ca | cb )
-        txt.spc()
-        txt.print_ub( ca ^ cb )
-        txt.spc()
-        txt.print_b( ca << cub )
-        txt.spc()
-        txt.print_b( ca >> cub )
-        txt.nl()
+        print_ub( a & b )
+        print_ub( a | b )
+        print_ub( a ^ b )
+        print_b( a << ub )
+        print_b( a >> ub )
+        print_ub( ca & cb )
+        print_ub( ca | cb )
+        print_ub( ca ^ cb )
+        print_b( ca << cub )
+        print_b( ca >> cub )
 
         word @shared aw = -1
         word @shared bw = -15
@@ -445,23 +434,21 @@ main {
         const word cbw = -15
         const uword cuw = 2
 
-        txt.print_uw( aw & bw )
-        txt.spc()
-        txt.print_uw( aw | bw )
-        txt.spc()
-        txt.print_uw( aw ^ bw )
-        txt.nl()
-        txt.print_uw( caw & cbw )
-        txt.spc()
-        txt.print_uw( caw | cbw )
-        txt.spc()
-        txt.print_uw( caw ^ cbw )
-        txt.nl()
-        txt.print_w( cbw << cuw )
-        txt.spc()
-        txt.print_w( cbw >> cuw )
-        txt.nl()
+        print_uw( aw & bw )
+        print_uw( aw | bw )
+        print_uw( aw ^ bw )
+        print_uw( caw & cbw )
+        print_uw( caw | cbw )
+        print_uw( caw ^ cbw )
+        print_w( cbw << cuw )
+        print_w( cbw >> cuw )
     }
+    
+    sub print_ub(ubyte v) {}
+    sub print_b(byte v) {}
+    sub print_uw(uword v) {}
+    sub print_w(word v) {}
+    
 }"""
         compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
 

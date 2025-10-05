@@ -193,17 +193,20 @@ main {
 
     test("word to byte casts") {
         val text = """
-            %import textio
             main {
                 sub func(ubyte arg) -> word {
                     return arg-99
                 }
             
                 sub start() {
-                    txt.print_ub(func(0) as ubyte)
-                    txt.print_uw(func(0) as ubyte)
-                    txt.print_w(func(0) as ubyte)
+                    funcub(func(0) as ubyte)
+                    funcuw(func(0) as ubyte)
+                    funcw(func(0) as ubyte)
                 }
+                
+                sub funcub(ubyte arg) { }
+                sub funcuw(uword arg) { }
+                sub funcw(word arg) { }
             }"""
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = false)!!
         val stmts = result.compilerAst.entrypoint.statements

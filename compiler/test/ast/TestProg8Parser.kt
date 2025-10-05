@@ -970,9 +970,6 @@ class TestProg8Parser: FunSpec( {
 
     test("line comment in array literal is ok") {
         val src="""
-%import textio
-%zeropage basicsafe
-
 main {
     sub start() {
         byte[] foo = [ 1, 2, ; this comment is ok
@@ -991,8 +988,6 @@ main {
 
     test("various alternative curly brace styles are ok") {
         val src="""
-%zeropage dontuse
-
 main {
     ; curly braces without newline
     sub start () { foo() derp() other() }

@@ -1564,23 +1564,24 @@ main {
 
     test("hoist variable decl and initializer correctly in case of pointer type variable as well") {
         val src="""
-%import textio
-
 main {
 
     sub start() {
-        txt.print("one\n")
+        stuff()
         if true {
-            txt.print("two\n")
+            stuff()
             ^^bool @shared successor = find_successor()     ; testcase here
         }
-        txt.print("four\n")
+        stuff()
 
         sub find_successor() -> uword {
-            txt.print("three\n")
+            stuff()
             cx16.r0++
             return 0
         }
+    }
+    
+    sub stuff() {
     }
 }"""
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
@@ -1588,9 +1589,9 @@ main {
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 6
         st[0] shouldBe instanceOf<VarDecl>()
-        (st[1] as FunctionCallStatement).target.nameInSource shouldBe listOf("txt", "print")
+        (st[1] as FunctionCallStatement).target.nameInSource shouldBe listOf("stuff")
         st[2] shouldBe instanceOf<IfElse>()
-        (st[3] as FunctionCallStatement).target.nameInSource shouldBe listOf("txt", "print")
+        (st[3] as FunctionCallStatement).target.nameInSource shouldBe listOf("stuff")
         st[4] shouldBe instanceOf<Return>()
         st[5] shouldBe instanceOf<Subroutine>()
     }

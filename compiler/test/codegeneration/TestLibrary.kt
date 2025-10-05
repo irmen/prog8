@@ -19,13 +19,10 @@ class TestLibrary: FunSpec({
     val outputDir = tempdir().toPath()
 
     test("library compilation (x16)") {
-        val src="""
-%address  ${'$'}A050
-%memtop   ${'$'}C000
+        val src= $$"""
+%address  $A050
+%memtop   $C000
 %output   library
-
-%import textio
-
 
 main {
     ; Create a jump table as first thing in the library.
@@ -105,13 +102,10 @@ library {
     }
 
     test("library compilation (c64)") {
-        val src="""
-%address  ${'$'}8050
-%memtop   ${'$'}a000
+        val src= $$"""
+%address  $8050
+%memtop   $a000
 %output   library
-
-%import textio
-
 
 main {
     ; Create a jump table as first thing in the library.
@@ -119,9 +113,9 @@ main {
         ; NOTE: the compiler has inserted a single JMP instruction at the start of the 'main' block, that jumps to the start() routine.
         ;       This is convenient because the rest of the jump table simply follows it,
         ;       making the first jump neatly be the required initialization routine for the library (initializing variables and BSS region).
-        ;       btw, ${'$'}4c = opcode for JMP.
-        ${'$'}4c00, &library.func1,
-        ${'$'}4c00, &library.func2,
+        ;       btw, $4c = opcode for JMP.
+        $4c00, &library.func1,
+        $4c00, &library.func2,
     ]
 
     sub start() {

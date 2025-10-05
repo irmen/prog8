@@ -413,8 +413,6 @@ main {
     test("various array indexed assignment scenarios") {
         val src="""
 %import floats
-%import textio
-%zeropage basicsafe
 
 main {
     bool[10] barray
@@ -456,14 +454,10 @@ main {
         dump()
 
         sub dump() {
-            txt.print_bool(barray[2])
-            txt.spc()
-            txt.print_uw(warrayns[2])
-            txt.spc()
-            txt.print_uw(warray[2])
-            txt.spc()
-            txt.print_f(farray[2])
-            txt.nl()
+            bool @shared bb =  barray[2]
+            uword @shared ww = warrayns[2]
+            uword @shared ww2 = warray[2]
+            float @shared ff = farray[2]
         }
     }
 }"""

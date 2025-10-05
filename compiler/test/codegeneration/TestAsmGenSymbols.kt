@@ -197,8 +197,6 @@ main {
 
     "identifiers can have the names of cpu instructions" {
         val text="""
-%import textio
-
 nop {
     sub lda(ubyte sec) -> ubyte {
 asl:
@@ -223,13 +221,15 @@ main {
     sub start() {
         ubyte col = 10
         ubyte row = 20
-        txt.print_ub(nop.lda(42))
-        txt.nl()
-        txt.print_uw(nop.lda.asl)
+        print_ub(nop.lda(42))
+        print_uw(nop.lda.asl)
 
         void ffalse(99)
         void ftrue(99)
     }
+    
+    sub print_ub(ubyte v) {}
+    sub print_uw(uword v) {}
 }
 """
         val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)

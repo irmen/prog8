@@ -118,10 +118,10 @@ class TestProgram: FunSpec({
     }
 
     test("block sort order") {
-        val src="""
+        val src= """
 %import textio
 
-main ${'$'}0a00 {
+main $0a00 {
     sub start() {
         otherblock1.foo()
         otherblock2.foo()
@@ -132,16 +132,12 @@ otherblock1 {
     sub foo() {
         txt.print("main.start:       ")
         txt.print_uwhex(&main.start, true)
-        txt.nl()
         txt.print("datablock1 array: ")
         txt.print_uwhex(&datablock1.array1, true)
-        txt.nl()
         txt.print("datablock2 array: ")
         txt.print_uwhex(&datablock2.array2, true)
-        txt.nl()
         txt.print("otherblock1.foo:  ")
         txt.print_uwhex(&foo, true)
-        txt.nl()
     }
 }
 
@@ -149,15 +145,14 @@ otherblock2 {
     sub foo() {
         txt.print("otherblock2.foo:  ")
         txt.print_uwhex(&otherblock2.foo, true)
-        txt.nl()
     }
 }
 
-datablock1 ${'$'}9000 {
+datablock1 $9000 {
     ubyte[5] @shared array1 = [1,2,3,4,5]
 }
 
-datablock2 ${'$'}8000 {
+datablock2 $8000 {
     ubyte[5] @shared array2 = [1,2,3,4,5]
 }
 """

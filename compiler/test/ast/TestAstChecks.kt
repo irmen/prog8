@@ -63,17 +63,19 @@ class TestAstChecks: FunSpec({
 
     test("can't do str or array expression without using address-of") {
         val text = """
-            %import textio
             main {
                 sub start() {
                     ubyte[] array = [1,2,3,4]
                     str s1 = "test"
                     ubyte ff = 1
-                    txt.print(s1+ff)
-                    txt.print(array+ff)
-                    txt.print_uwhex(s1+ff, true)
-                    txt.print_uwhex(array+ff, true)
+                    print(s1+ff)
+                    print(array+ff)
+                    print_uwhex(s1+ff, true)
+                    print_uwhex(array+ff, true)
                 }
+                
+                sub print(str s) { cx16.r0++ }
+                sub print_uwhex(uword w, bool prefix) { cx16.r0++ }
             }
             """
         val errors = ErrorReporterForTests()
@@ -83,21 +85,23 @@ class TestAstChecks: FunSpec({
 
     test("str or array expression with address-of") {
         val text = """
-            %import textio
             main {
                 sub start() {
                     ubyte[] array = [1,2,3,4]
                     str s1 = "test"
                     bool bb1, bb2
                     ubyte ff = 1
-                    txt.print(&s1+ff)
-                    txt.print(&array+ff)
-                    txt.print_uwhex(&s1+ff, true)
-                    txt.print_uwhex(&array+ff, true)
+                    print(&s1+ff)
+                    print(&array+ff)
+                    print_uwhex(&s1+ff, true)
+                    print_uwhex(&array+ff, true)
                     ; also good:
                     bb1 = (s1 == "derp")
                     bb2 = (s1 != "derp")
                 }
+
+                sub print(str s) { cx16.r0++ }
+                sub print_uwhex(uword w, bool prefix) { cx16.r0++ }
             }
             """
         compileText(C64Target(), false, text, outputDir, writeAssembly = false) shouldNotBe null
