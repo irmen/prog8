@@ -35,6 +35,7 @@ import kotlin.time.measureTimedValue
 
 class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAst instead
                         val codegenAst: PtProgram?,
+                        val codegenSymboltable: SymbolTable?,
                         val compilationOptions: CompilationOptions,
                         val importedFiles: List<Path>)
 
@@ -87,6 +88,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     }
 
     try {
+        var symbolTable: SymbolTable? = null
+
         val totalTime = measureTime {
             val libraryDirs =  if(compTarget.libraryPath!=null) listOf(compTarget.libraryPath.toString()) else emptyList()
             val (parseresult, parseDuration) = measureTimedValue {
@@ -176,19 +179,17 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     println("*********** COMPILER AST END *************\n")
                 }
 
-                var symbolTable: SymbolTable
-
                 val (intermediateAst, simplifiedAstDuration2) = measureTimedValue {
                     val intermediateAst = SimplifiedAstMaker(program, args.errors).transform()
                     val stMaker = SymbolTableMaker(intermediateAst, compilationOptions)
                     symbolTable = stMaker.make()
 
-                    postprocessSimplifiedAst(intermediateAst, symbolTable, compilationOptions, args.errors)
+                    postprocessSimplifiedAst(intermediateAst, symbolTable!!, compilationOptions, args.errors)
                     args.errors.report()
                     symbolTable = stMaker.make()        // need an updated ST because the postprocessing changes stuff
 
                     if (compilationOptions.optimize) {
-                        optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable, args.errors)
+                        optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable!!, args.errors)
                         args.errors.report()
                         symbolTable = stMaker.make()        // need an updated ST because the optimization changes stuff
                     }
@@ -208,7 +209,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 createAssemblyDuration = measureTime {
                     if (!createAssemblyAndAssemble(
                             intermediateAst,
-                            symbolTable,
+                            symbolTable!!,
                             args.errors,
                             compilationOptions,
                             program.generatedLabelSequenceNumber
@@ -249,7 +250,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         if(!args.quietAll) {
             println("\nTotal compilation+assemble time: ${totalTime.toString(DurationUnit.SECONDS, 3)}.")
         }
-        return CompilationResult(resultingProgram!!, ast, compilationOptions, importedFiles)
+        return CompilationResult(resultingProgram!!, ast, symbolTable, compilationOptions, importedFiles)
     } catch (px: ParseError) {
         args.errors.printSingleError("${px.position.toClickableStr()} parse error: ${px.message}".trim())
     } catch (ac: ErrorsReportedException) {

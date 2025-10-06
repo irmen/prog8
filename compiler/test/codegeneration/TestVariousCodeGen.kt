@@ -8,6 +8,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
+import prog8.code.StNodeType
 import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
@@ -81,6 +82,12 @@ main {
         val assign = start.children[2] as PtAssignment
         assign.target.identifier!!.name shouldBe "cx16.r0"
         assign.value shouldBe instanceOf<PtBinaryExpression>()
+
+        val st = result.codegenSymboltable!!
+        st.flat.size shouldBeGreaterThan 100
+        st.flat["cbm.CHROUT"]?.type shouldBe StNodeType.EXTSUB
+        st.lookup("cbm.CHROUT")?.type shouldBe StNodeType.EXTSUB
+        st.lookupUnscoped("sizeof")?.type shouldBe StNodeType.BUILTINFUNC
     }
 
     test("peek and poke argument types") {
