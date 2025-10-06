@@ -351,31 +351,61 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 throw AssemblyError("args for cmp() should have same dt")
         } else if(arg1.type.isWord) {
             if(arg2.type.isWord) {
-                when (arg2) {
-                    is PtIdentifier -> {
-                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
-                        asmgen.out("""
-                            cpy  ${asmgen.asmVariableName(arg2)}+1
-                            bne  +
-                            cmp  ${asmgen.asmVariableName(arg2)}
-+""")
+                if(arg1.type.isSigned) {
+                    when (arg2) {
+                        is PtIdentifier -> {
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            asmgen.out("""
+                                sec
+                                sbc  ${asmgen.asmVariableName(arg2)}
+                                tya
+                                sbc  ${asmgen.asmVariableName(arg2)}+1""")
+                        }
+                        is PtBool -> TODO("word compare against bool  ${arg2.position}")
+                        is PtNumber -> {
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            asmgen.out("""
+                                sec
+                                sbc  #<${arg2.number.toInt()}
+                                tya
+                                sbc  #>${arg2.number.toInt()}""")
+                        }
+                        else -> {
+                            asmgen.assignWordOperandsToAYAndVar(arg1, arg2, "P8ZP_SCRATCH_W1")
+                            asmgen.out("""
+                                sec
+                                sbc  P8ZP_SCRATCH_W1
+                                tya
+                                sbc  P8ZP_SCRATCH_W1+1""")
+                        }
                     }
-                    is PtBool -> TODO("word compare against bool  ${arg2.position}")
-                    is PtNumber -> {
-                        asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
-                        asmgen.out("""
-                            cpy  #>${arg2.number.toInt()}
-                            bne  +
-                            cmp  #<${arg2.number.toInt()}
+                } else {
+                    when (arg2) {
+                        is PtIdentifier -> {
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            asmgen.out("""
+                                cpy  ${asmgen.asmVariableName(arg2)}+1
+                                bne  +
+                                cmp  ${asmgen.asmVariableName(arg2)}
 +""")
-                    }
-                    else -> {
-                        asmgen.assignWordOperandsToAYAndVar(arg1, arg2, "P8ZP_SCRATCH_W1")
-                        asmgen.out("""
-                            cpy  P8ZP_SCRATCH_W1+1
-                            bne  +
-                            cmp  P8ZP_SCRATCH_W1
+                        }
+                        is PtBool -> TODO("word compare against bool  ${arg2.position}")
+                        is PtNumber -> {
+                            asmgen.assignExpressionToRegister(arg1, RegisterOrPair.AY)
+                            asmgen.out("""
+                                cpy  #>${arg2.number.toInt()}
+                                bne  +
+                                cmp  #<${arg2.number.toInt()}
 +""")
+                        }
+                        else -> {
+                            asmgen.assignWordOperandsToAYAndVar(arg1, arg2, "P8ZP_SCRATCH_W1")
+                            asmgen.out("""
+                                cpy  P8ZP_SCRATCH_W1+1
+                                bne  +
+                                cmp  P8ZP_SCRATCH_W1
++""")
+                        }
                     }
                 }
             } else
@@ -386,52 +416,42 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val var1 = asmgen.asmVariableName(arg1)
                     val hex = arg2.number.toUInt().toString(16).padStart(8, '0')
                     asmgen.out("""
+                        sec
                         lda  $var1
-                        cmp  #${hex.substring(6, 8)}
-                        bne  +
+                        sbc  #${hex.substring(6, 8)}
                         lda  $var1+1
-                        cmp  #${hex.substring(4, 6)}
-                        bne  +
+                        sbc  #${hex.substring(4, 6)}
                         lda  $var1+2
-                        cmp  #${hex.substring(2, 4)}
-                        bne  +
+                        sbc  #${hex.substring(2, 4)}
                         lda  $var1+3
-                        cmp  #${hex.take(2)}
-+""")
+                        sbc  #${hex.take(2)}""")
                 } else if(arg1 is PtIdentifier && arg2 is PtIdentifier) {
                     val var1 = asmgen.asmVariableName(arg1)
                     val var2 = asmgen.asmVariableName(arg2)
                     asmgen.out("""
+                        sec
                         lda  $var1
-                        cmp  $var2
-                        bne  +
+                        sbc  $var2
                         lda  $var1+1
-                        cmp  $var2+1
-                        bne  +
+                        sbc  $var2+1
                         lda  $var1+2
-                        cmp  $var2+2
-                        bne  +
+                        sbc  $var2+2
                         lda  $var1+3
-                        cmp  $var2+3
-+""")
+                        sbc  $var2+3""")
                 } else {
                     assignAsmGen.assignExpressionToRegister(arg2, RegisterOrPair.R2R3_32, true)
                     assignAsmGen.assignExpressionToRegister(arg1, RegisterOrPair.R0R1_32, true)
                     asmgen.out("""
+                        sec
                         lda  cx16.r0
-                        cmp  cx16.r2
-                        bne  +
+                        sbc  cx16.r2
                         lda  cx16.r0+1
-                        cmp  cx16.r2+1
-                        bne  +
+                        sbc  cx16.r2+1
                         lda  cx16.r0+2
-                        cmp  cx16.r2+2
-                        bne  +
+                        sbc  cx16.r2+2
                         lda  cx16.r0+3
-                        cmp  cx16.r2+3
-+""")
+                        sbc  cx16.r2+3""")
                 }
-                // TODO: carry flag is not correct......
             } else
                 throw AssemblyError("args for cmp() should have same dt")
         }

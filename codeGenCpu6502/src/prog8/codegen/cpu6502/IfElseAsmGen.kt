@@ -594,10 +594,10 @@ internal class IfElseAsmGen(private val program: PtProgram,
         return when (condition.operator) {
             "==" -> longEqualsValue(condition.left, condition.right, false, jumpAfterIf, stmt)
             "!=" -> longEqualsValue(condition.left, condition.right, true, jumpAfterIf, stmt)
-            "<" -> TODO("long < 0")
-            "<=" -> TODO("long <= 0")
-            ">" -> TODO("long > 0")
-            ">=" -> TODO("long >= 0")
+            "<" -> TODO("long < value")
+            "<=" -> TODO("long <= value")
+            ">" -> TODO("long > value")
+            ">=" -> TODO("long >= value")
             else -> throw AssemblyError("expected comparison operator")
         }
     }

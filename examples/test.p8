@@ -1,16 +1,76 @@
-%import gfx_lores
+%import textio
+%zeropage basicsafe
 
 main {
     sub start() {
-        gfx_lores.graphics_mode()
+        long lv1
+        long lv2
 
-        uword radius
-        for radius in 1 to 10 {
-            gfx_lores.circle(30*radius, 100, lsb(radius), 1)
-            gfx_lores.disc(30*radius, 130, lsb(radius), 1)
-            gfx_lores.safe_disc(30*radius, 160, lsb(radius), 1)
+        lv1 = $77777777
+        lv2 = $55555555
+        cmp(lv1, lv2)
+
+        ubyte flags = sys.read_flags()
+        if(flags & %10000000 != 0) {
+            txt.print("neg ")
+        } else {
+            txt.print("pos ")
         }
+        if(flags & %10 !=0) {
+            txt.print("zero ")
+        } else {
+            txt.print("nonzero ")
+        }
+        if(flags & 1 !=0) {
+            txt.print("cs ")
+        } else {
+            txt.print("cc ")
+        }
+        txt.nl()
 
-        repeat {}
+        lv1 = $11111111
+        lv2 = $55555555
+        cmp(lv1, lv2)
+
+        flags = sys.read_flags()
+        if(flags & %10000000 != 0) {
+            txt.print("neg ")
+        } else {
+            txt.print("pos ")
+        }
+        if(flags & %10 !=0) {
+            txt.print("zero ")
+        } else {
+            txt.print("nonzero ")
+        }
+        if(flags & 1 !=0) {
+            txt.print("cs ")
+        } else {
+            txt.print("cc ")
+        }
+        txt.nl()
+
+
+        lv1 = -1
+        lv2 = -1
+        cmp(lv1, lv2)
+
+        flags = sys.read_flags()
+        if(flags & %10000000 != 0) {
+            txt.print("neg ")
+        } else {
+            txt.print("pos ")
+        }
+        if(flags & %10 !=0) {
+            txt.print("zero ")
+        } else {
+            txt.print("nonzero ")
+        }
+        if(flags & 1 !=0) {
+            txt.print("cs ")
+        } else {
+            txt.print("cc ")
+        }
+        txt.nl()
     }
 }

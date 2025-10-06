@@ -102,7 +102,7 @@ If you are on Linux, there's probably a "64tass" package in the repositories, bu
 A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself. Version 17 or higher if you want to
 build the compiler from source.
 If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
-Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases/?version=11>`_ .
+Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases>`_ .
 For MacOS you can also use the Homebrew system to install a recent version of OpenJDK.
 
 

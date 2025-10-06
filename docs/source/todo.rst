@@ -4,7 +4,6 @@ TODO
 LONG TYPE
 ---------
 - implement the other comparison operators (<,>,<=,>=) on longs
-- fix carry bit for cmp(long), check if it even worked for cmp(word)...
 
 
 STRUCTS and TYPED POINTERS
