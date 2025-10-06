@@ -1027,9 +1027,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcPokeL(fcall: PtBuiltinFunctionCall) {
-        val addrExpr = fcall.args[0]
-        val value = fcall.args[1]
-        TODO("pokel $addrExpr, $value")
+        // TODO optimize for the simple cases
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R0R1_32, true)
+        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.func_pokel")
     }
 
     private fun funcPeekF(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
@@ -1129,9 +1130,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcPeekL(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        val addrExpr = fcall.args[0]
-        val value = fcall.args[1]
-        TODO("peekl $addrExpr, $value")
+        // TODO optimize for the simple cases
+        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        asmgen.out("  jsr  prog8_lib.func_peekl")
+        val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R0R1_32, true, fcall.position, fcall.definingISub(), asmgen)
+        assignAsmGen.assignRegisterLong(targetReg, RegisterOrPair.R0R1_32)
     }
 
 
@@ -1419,6 +1422,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     else
                         asmgen.out("  lda  $sourceName+1 |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
                 }
+                in combinedLongRegisters -> {
+                    TODO("msb into long register ${fcall.position}")
+                }
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
@@ -1495,6 +1501,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  sty  ${reg}L |  lda  #0 |  sta  ${reg}H |  lda  ${reg}L")
                 }
+                in combinedLongRegisters -> {
+                    TODO("msb into long register ${fcall.position}")
+                }
                 else -> throw AssemblyError("invalid reg")
             }
         }
@@ -1522,6 +1531,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  stz  cx16.$regname+1")
                     else
                         asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                }
+                in combinedLongRegisters -> {
+                    TODO("lsb into long register ${fcall.position}")
                 }
                 else -> throw AssemblyError("invalid reg")
             }
@@ -1580,6 +1592,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val reg = "cx16.${resultRegister.toString().lowercase()}"
                     asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                     asmgen.out("  sta  ${reg}L |  ldy  #0 |  sty  ${reg}H |  cmp  #0")
+                }
+                in combinedLongRegisters -> {
+                    TODO("lsb into long register ${fcall.position}")
                 }
                 else -> throw AssemblyError("invalid reg")
             }

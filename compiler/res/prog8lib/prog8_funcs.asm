@@ -454,6 +454,25 @@ func_peekw   .proc
 	rts
 	.pend
 
+func_peekl   .proc
+	; -- read the ;pmg value on the address in AY, into R0:R1
+	sta  P8ZP_SCRATCH_W1
+	sty  P8ZP_SCRATCH_W1+1
+	ldy  #0
+	lda  (P8ZP_SCRATCH_W1),y
+	sta  cx16.r0
+	iny
+	lda  (P8ZP_SCRATCH_W1),y
+	sta  cx16.r0+1
+	iny
+	lda  (P8ZP_SCRATCH_W1),y
+	sta  cx16.r0+2
+	iny
+	lda  (P8ZP_SCRATCH_W1),y
+	sta  cx16.r0+3
+	rts
+	.pend
+
 
 func_pokew   .proc
 	; -- store the word value in AY in the address in P8ZP_SCRATCH_W1
@@ -466,6 +485,22 @@ func_pokew   .proc
 	rts
 	.pend
 
+func_pokel   .proc
+	; -- store the long value in R0:R1 in the address in AY
+	ldy  #0
+	lda  cx16.r0
+	sta  (P8ZP_SCRATCH_W1),y
+	iny
+	lda  cx16.r0+1
+	sta  (P8ZP_SCRATCH_W1),y
+	iny
+	lda  cx16.r0+2
+	sta  (P8ZP_SCRATCH_W1),y
+	iny
+	lda  cx16.r0+3
+	sta  (P8ZP_SCRATCH_W1),y
+	rts
+	.pend
 
 func_clamp_byte .proc
 	; signed value in A, result in A
