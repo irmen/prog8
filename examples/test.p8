@@ -6,71 +6,137 @@ main {
         long lv1
         long lv2
 
+        txt.print("<\n")
         lv1 = $77777777
         lv2 = $55555555
-        cmp(lv1, lv2)
-
-        ubyte flags = sys.read_flags()
-        if(flags & %10000000 != 0) {
-            txt.print("neg ")
-        } else {
-            txt.print("pos ")
-        }
-        if(flags & %10 !=0) {
-            txt.print("zero ")
-        } else {
-            txt.print("nonzero ")
-        }
-        if(flags & 1 !=0) {
-            txt.print("cs ")
-        } else {
-            txt.print("cc ")
-        }
+        txt.print_bool(lv1 < lv2)
+        txt.spc()
+        if lv1 < lv2
+            txt.print("error1 ")
+        else
+            txt.print("ok1 ")
         txt.nl()
 
-        lv1 = $11111111
+        lv1 = $55555555
         lv2 = $55555555
-        cmp(lv1, lv2)
+        txt.print_bool(lv1 < lv2)
+        txt.spc()
+        if lv1 < lv2
+            txt.print("error2 ")
+        else
+            txt.print("ok2 ")
+        txt.nl()
 
-        flags = sys.read_flags()
-        if(flags & %10000000 != 0) {
-            txt.print("neg ")
-        } else {
-            txt.print("pos ")
-        }
-        if(flags & %10 !=0) {
-            txt.print("zero ")
-        } else {
-            txt.print("nonzero ")
-        }
-        if(flags & 1 !=0) {
-            txt.print("cs ")
-        } else {
-            txt.print("cc ")
-        }
+        lv1 = $44444444
+        lv2 = $55555555
+        txt.print_bool(lv1 < lv2)
+        txt.spc()
+        if lv1 < lv2
+            txt.print("ok3 ")
+        else
+            txt.print("error3 ")
         txt.nl()
 
 
-        lv1 = -1
-        lv2 = -1
-        cmp(lv1, lv2)
 
-        flags = sys.read_flags()
-        if(flags & %10000000 != 0) {
-            txt.print("neg ")
-        } else {
-            txt.print("pos ")
-        }
-        if(flags & %10 !=0) {
-            txt.print("zero ")
-        } else {
-            txt.print("nonzero ")
-        }
-        if(flags & 1 !=0) {
-            txt.print("cs ")
-        } else {
-            txt.print("cc ")
-        }
+
+/*
+        txt.print("<=\n")
+        lv1 = $77777777
+        lv2 = $55555555
+        txt.print_bool(lv1 <= lv2)
+        txt.spc()
+        if lv1 <= lv2
+            txt.print("error1 ")
+        else
+            txt.print("ok1 ")
+        txt.nl()
+
+        lv1 = $55555555
+        lv2 = $55555555
+        txt.print_bool(lv1 <= lv2)
+        txt.spc()
+        if lv1 <= lv2
+            txt.print("ok2 ")
+        else
+            txt.print("error2 ")
+        txt.nl()
+
+        lv1 = $44444444
+        lv2 = $55555555
+        txt.print_bool(lv1 <= lv2)
+        txt.spc()
+        if lv1 <= lv2
+            txt.print("ok3 ")
+        else
+            txt.print("error3 ")
+        txt.nl()
+*/
+
+
+/*
+        txt.print(">\n")
+        lv1 = $77777777
+        lv2 = $55555555
+        txt.print_bool(lv1 > lv2)
+        txt.spc()
+        if lv1 > lv2
+            txt.print("ok1 ")
+        else
+            txt.print("error1 ")
+        txt.nl()
+
+        lv1 = $55555555
+        lv2 = $55555555
+        txt.print_bool(lv1 > lv2)
+        txt.spc()
+        if lv1 > lv2
+            txt.print("error2 ")
+        else
+            txt.print("ok2 ")
+        txt.nl()
+
+        lv1 = $44444444
+        lv2 = $55555555
+        txt.print_bool(lv1 > lv2)
+        txt.spc()
+        if lv1 > lv2
+            txt.print("error3 ")
+        else
+            txt.print("ok3 ")
+        txt.nl()
+*/
+
+
+        txt.print(">=\n")
+        lv1 = $77777777
+        lv2 = $55555555
+        txt.print_bool(lv1 >= lv2)
+        txt.spc()
+        if lv1 >= lv2
+            txt.print("ok1 ")
+        else
+            txt.print("error1 ")
+        txt.nl()
+
+        lv1 = $55555555
+        lv2 = $55555555
+        txt.print_bool(lv1 >= lv2)
+        txt.spc()
+        if lv1 >= lv2
+            txt.print("ok2 ")
+        else
+            txt.print("error2 ")
+        txt.nl()
+
+        lv1 = $44444444
+        lv2 = $55555555
+        txt.print_bool(lv1 >= lv2)
+        txt.spc()
+        if lv1 >= lv2
+            txt.print("error3 ")
+        else
+            txt.print("ok3 ")
         txt.nl()
     }
 }

@@ -594,10 +594,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         return when (condition.operator) {
             "==" -> longEqualsValue(condition.left, condition.right, false, jumpAfterIf, stmt)
             "!=" -> longEqualsValue(condition.left, condition.right, true, jumpAfterIf, stmt)
-            "<" -> TODO("long < value")
-            "<=" -> TODO("long <= value")
-            ">" -> TODO("long > value")
-            ">=" -> TODO("long >= value")
+            "<", "<=", ">", ">=" -> compareLongValues(condition.left, condition.operator, condition.right, jumpAfterIf, stmt)
             else -> throw AssemblyError("expected comparison operator")
         }
     }
@@ -1467,6 +1464,48 @@ _jump                       jmp  (${target.asmLabel})
                 translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
             else
                 translateIfElseBodies("bne", stmt)
+        }
+    }
+
+    private fun compareLongValues(
+        left: PtExpression,
+        operator: String,
+        right: PtExpression,
+        jump: PtJump?,
+        stmt: PtIfElse
+    ) {
+        assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R2R3_32, left.type.isSigned)
+        assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+        asmgen.out("""
+            sec
+            lda  cx16.r0
+            sbc  cx16.r2
+            lda  cx16.r0+1
+            sbc  cx16.r2+1
+            lda  cx16.r0+2
+            sbc  cx16.r2+2
+            lda  cx16.r0+3
+            sbc  cx16.r2+3""")
+        when(operator) {
+            "<" -> {
+                if (jump != null)
+                    translateJumpElseBodies("bmi", "bpl", jump, stmt.elseScope)
+                else
+                    translateIfElseBodies("bpl", stmt)
+            }
+            ">" -> {
+                TODO("long > value  ${left.position}")
+            }
+            "<=" -> {
+                TODO("long <= value  ${left.position}")
+            }
+            ">=" -> {
+                if (jump != null)
+                    translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
+                else
+                    translateIfElseBodies("bmi", stmt)
+            }
+            else -> throw RuntimeException("invalid operator $operator")
         }
     }
 

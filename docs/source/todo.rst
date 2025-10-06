@@ -3,7 +3,7 @@ TODO
 
 LONG TYPE
 ---------
-- implement the other comparison operators (<,>,<=,>=) on longs
+- implement long > and <= in compareLongValues()
 
 
 STRUCTS and TYPED POINTERS
