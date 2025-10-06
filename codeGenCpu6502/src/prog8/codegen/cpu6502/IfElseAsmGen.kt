@@ -1474,8 +1474,14 @@ _jump                       jmp  (${target.asmLabel})
         jump: PtJump?,
         stmt: PtIfElse
     ) {
-        assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R2R3_32, left.type.isSigned)
-        assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+        if(operator=="<" || operator ==">=") {
+            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R2R3_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+        } else {
+            // flip operands
+            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R2R3_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R0R1_32, left.type.isSigned)
+        }
         asmgen.out("""
             sec
             lda  cx16.r0
@@ -1487,19 +1493,13 @@ _jump                       jmp  (${target.asmLabel})
             lda  cx16.r0+3
             sbc  cx16.r2+3""")
         when(operator) {
-            "<" -> {
+            "<", ">" -> {
                 if (jump != null)
                     translateJumpElseBodies("bmi", "bpl", jump, stmt.elseScope)
                 else
                     translateIfElseBodies("bpl", stmt)
             }
-            ">" -> {
-                TODO("long > value  ${left.position}")
-            }
-            "<=" -> {
-                TODO("long <= value  ${left.position}")
-            }
-            ">=" -> {
+            ">=", "<=" -> {
                 if (jump != null)
                     translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
                 else

@@ -1,11 +1,6 @@
 TODO
 ====
 
-LONG TYPE
----------
-- implement long > and <= in compareLongValues()
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 

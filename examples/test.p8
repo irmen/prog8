@@ -40,7 +40,6 @@ main {
 
 
 
-/*
         txt.print("<=\n")
         lv1 = $77777777
         lv2 = $55555555
@@ -71,10 +70,8 @@ main {
         else
             txt.print("error3 ")
         txt.nl()
-*/
 
 
-/*
         txt.print(">\n")
         lv1 = $77777777
         lv2 = $55555555
@@ -105,7 +102,6 @@ main {
         else
             txt.print("ok3 ")
         txt.nl()
-*/
 
 
         txt.print(">=\n")
