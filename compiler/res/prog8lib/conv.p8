@@ -6,8 +6,6 @@ conv {
 
 ; ----- number conversions to decimal strings ----
 
-    ubyte[16]  @shared string_out       ; result buffer for the string conversion routines (note: uses uninitialized ARRAY instead of STR, to force it to be allocated in BSS area so it's ROM-compatible)
-
     asmsub str_ub0(ubyte value @A) clobbers(X) -> str @AY {
         ; ---- convert the ubyte in A in decimal string form, with left padding 0s (3 positions total)
         %asm {{
@@ -257,53 +255,52 @@ sub  str_l  (long value) -> str  {
         ; source: https://codebase64.net/doku.php?id=base:32_bit_hexadecimal_to_decimal_conversion
         ; NOTE: this is a pretty slow conversion, don't use for time critical displays!
         bool negative
+        string_out[0] = '0'
         if value<0 {
             negative = true
             value = -value
         }
+
         %asm {{
-        jsr hex2dec
+            jsr  hex2dec
+            ldx  #0
+-           lda  string_out+1,x
+            cmp  #'0'
+            bne  +
+            inx
+            bne  -
++           ; x points at the rightmost leading 0
+            lda  negative
+            beq  +
+            lda  #'-'       ; sign in front
+            sta  string_out,x
+            dex
+            bmi  _done
++           ; x still points at rightmost leading 0
+            ; remove leading 0's (there is at least one if we're here)
+            ldy  #0
+-           lda  string_out+1,x
+            sta  string_out,y
+            iny
+            inx
+            cpx  #10
+            bne  -
+            lda  #0
+            sta  string_out,y
+_done
 
-        ldx  #0
--       lda  result,x
-        bne  +
-        inx             ; skip leading zeros
-        cpx  #9
-        bne  -
+            lda  #<string_out
+            ldy  #>string_out
+            rts
 
-        ; convert to petscii numbers and return ptr to first nonzero
-+       stx  P8ZP_SCRATCH_B1
-        inc  P8ZP_SCRATCH_B1
--       lda  result,x
-        ora  #$30
-        sta  result,x
-        inx
-        cpx  #10
-        bne  -
-        lda  #0
-        sta  result,x
-        ; sign needed?
-        lda  negative
-        beq  +
-        dec  P8ZP_SCRATCH_B1
-        ldx  P8ZP_SCRATCH_B1
-        lda  #'-'
-        sta  result_sign,x
-+       lda  #<result_sign
-        ldy  #>result_sign
-        clc
-        adc  P8ZP_SCRATCH_B1
-        bcc  +
-        iny
-+       rts
-
+hex2dec:
         ; converts 10 digits (32 bit values have max. 10 decimal digits)
-hex2dec
-        ldx  #9
+        ldx  #9+1
 l3      jsr  div10
-        sta  result,x
+        ora  #$30
+        sta  string_out,x
         dex
-        bpl  l3
+        bne  l3
         rts
 
         ; divides a 32 bit value by 10
@@ -323,13 +320,6 @@ skip    rol  value
         dey
         bpl  l4
         rts
-
-    .section BSS
-result_sign  .byte  ?   ; room for the '-' sign
-result  .fill  10
-        .byte  ?        ; string 0 terminator
-    .send
-
         }}
     }
 
@@ -864,5 +854,7 @@ output		.fill 5      ; 0-terminated output buffer (to make printing easier)
 		; !notreached!
 	}}
 }
+
+    ubyte[16]  @shared string_out       ; internal result buffer for the string conversion routines (note: uses uninitialized ARRAY instead of STR, to force it to be allocated in BSS area so it's ROM-compatible)
 
 }

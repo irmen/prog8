@@ -1,6 +1,5 @@
 
-Prog8 compiler v12.0-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit c04908a9 in branch structs6502
+Prog8 compiler v12.0 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -74,7 +73,7 @@ LIBRARY MODULE NAME: conv
 conv  {
     str  hex_digits 
     str  string_out 
-    any2uword  (str string) -> uword 
+    any2uword  (str string) -> uword, ubyte 
     bin2uword  (str string) -> uword 
     hex2uword  (str string) -> uword 
     internal_str_ub  (ubyte value, str out_ptr) 
@@ -84,10 +83,12 @@ conv  {
     str2uword  (str string) -> uword 
     str2word  (str string) -> word 
     str_b  (byte value) -> str 
+    str_l  (long value) -> str 
     str_ub  (ubyte value) -> str 
     str_ub0  (ubyte value) -> str 
     str_ubbin  (ubyte value) -> str 
     str_ubhex  (ubyte value) -> str 
+    str_ulhex  (long value) -> str 
     str_uw  (uword value) -> str 
     str_uw0  (uword value) -> str 
     str_uwbin  (uword value) -> str 
@@ -203,8 +204,8 @@ math  {
     crc16_end  () -> uword 
     crc16_start  () 
     crc16_update  (ubyte value) 
-    crc32  (^^ubyte data, uword length) 
-    crc32_end  () 
+    crc32  (^^ubyte data, uword length) -> long 
+    crc32_end  () -> long 
     crc32_start  () 
     crc32_update  (ubyte value) 
     diff  (ubyte b1, ubyte b2) -> ubyte 
@@ -220,6 +221,7 @@ math  {
     log2  (ubyte value) -> ubyte 
     log2w  (uword value) -> ubyte 
     mul16_last_upper  () -> uword 
+    mul32  (uword a, uword b) -> long 
     randrange  (ubyte n) -> ubyte 
     randrange_rom   alias for: math.randrange
     randrangew  (uword n) -> uword 
@@ -348,6 +350,7 @@ sys  {
     const ubyte  target 
     clear_carry  () 
     clear_irqd  () 
+    cpu_is_65816  () -> bool 
     disable_caseswitch  () 
     enable_caseswitch  () 
     exit  (ubyte returnvalue) 
@@ -362,9 +365,11 @@ sys  {
     memset  (uword mem, uword numbytes, ubyte value) 
     memsetw  (uword mem, uword numwords, uword value) 
     pop  () -> ubyte 
+    popl  () -> long 
     popw  () -> uword 
     push  (ubyte b) 
     push_returnaddress  (uword w) 
+    pushl  (long l) 
     pushw  (uword w) 
     read_flags  () -> ubyte 
     reset_system  () 
@@ -540,10 +545,12 @@ txt  {
     print_b  (byte value) 
     print_bool  (bool value) 
     print_f   alias for: floats.print
+    print_l  (long value) 
     print_ub  (ubyte value) 
     print_ub0  (ubyte value) 
     print_ubbin  (ubyte value, bool prefix) 
     print_ubhex  (ubyte value, bool prefix) 
+    print_ulhex  (long value, bool prefix) 
     print_uw  (uword value) 
     print_uw0  (uword value) 
     print_uwbin  (uword value, bool prefix) 
