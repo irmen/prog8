@@ -28,6 +28,7 @@ Future Things and Ideas
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - enums?
+- fix the c64 multiplexer example
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
 - Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
@@ -41,10 +42,10 @@ Future Things and Ideas
   Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
 - Does it make codegen easier if everything is an expression?  Start with the PtProgram ast classes, change statements to expressions that have (new) VOID data type
 - Can we support signed % (remainder) somehow?
-- Multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays. Probaby only useful once we have typed pointers. (addressed in 'struct' branch)
+- Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
-- [much work:] more support for (64tass) SEGMENTS in the prog8 syntax itself?
+- more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
 - ability to use a sub instead of only a var for @bank ? what for though? dynamic bank/overlay loading?
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
@@ -77,6 +78,7 @@ IR/VM
 - getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
+- register reuse to reduce the number of required variables in memory eventually. But can only re-use a register if a) it's the same type and b) if the second occurrence is not called from the first occurrence (otherwise the value gets overwritten!)
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
@@ -161,6 +163,7 @@ Libraries
 Optimizations
 -------------
 
+- optimize inplaceLongShiftRight() for byte aligned cases
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.
 - optimize optimizedBitwiseExpr()  for const and variable operands to not assign needlessly to R0-R3.

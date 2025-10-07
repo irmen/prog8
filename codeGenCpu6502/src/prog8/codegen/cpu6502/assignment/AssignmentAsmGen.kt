@@ -2455,7 +2455,7 @@ $endLabel""")
             is PtArrayIndexer -> {
                 if(targetDt.isByte && valueDt.isWord) {
                     // just assign the lsb from the array value
-                    return assignCastViaLsbFunc(value, target)
+                    return assignCastWordViaLsbFunc(value, target)
                 } else if(targetDt.isBool && valueDt.isWord) {
                     return assignWordToBool(value, target)
                 }
@@ -2513,7 +2513,7 @@ $endLabel""")
             if(parentTc!=null && parentTc.type.isUnsignedWord) {
                 // typecast a word value to ubyte and directly back to uword
                 // generate code for lsb(value) here instead of the ubyte typecast
-                return assignCastViaLsbFunc(value, target)
+                return assignCastWordViaLsbFunc(value, target)
             }
         }
 
@@ -2545,7 +2545,7 @@ $endLabel""")
                     else
                         // cast an uword to a byte register, do this via lsb(value)
                         // generate code for lsb(value) here instead of the ubyte typecast
-                        assignCastViaLsbFunc(value, target)
+                        assignCastWordViaLsbFunc(value, target)
                 }
                 RegisterOrPair.AX,
                 RegisterOrPair.AY,
@@ -2569,7 +2569,7 @@ $endLabel""")
                 if(!(valueDt isAssignableTo targetDt)) {
                     return if(valueDt.isWord && targetDt.isByte) {
                         // word to byte, just take the lsb
-                        assignCastViaLsbFunc(value, target)
+                        assignCastWordViaLsbFunc(value, target)
                     } else if(valueDt.isWord && targetDt.isBool) {
                         // word to bool
                         assignWordToBool(value, target)
@@ -2582,6 +2582,12 @@ $endLabel""")
                     } else if(valueDt.isByteOrBool && targetDt.isWord) {
                         // byte to word, just assign
                         assignExpressionToRegister(value, target.register!!, valueDt.isSigned)
+                    } else if(valueDt.isLong && targetDt.isByte) {
+                        // long to byte, just take the lsb
+                        assignCastLongToByte(value, target)
+                    } else if(valueDt.isLong && targetDt.isWord) {
+                        // long to word, just take the lsw
+                        assignCastViaLswFunc(value, target)
                     } else
                         throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker")
                 }
@@ -2664,11 +2670,37 @@ $endLabel""")
         asmgen.assignExpressionTo(origTypeCastExpression, target)
     }
 
-    private fun assignCastViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
+    private fun assignCastLongToByte(value: PtExpression, target: AsmAssignTarget) {
+        // long to byte, can't use lsb() because that only works on words
+        when(value) {
+            is PtIdentifier -> {
+                val longvar = asmgen.asmVariableName(value)
+                asmgen.out("  lda  $longvar")
+                assignRegisterByte(target, CpuRegister.A, true, false)
+            }
+            is PtNumber -> throw AssemblyError("casting a long number to byte should have been const-folded away ${value.position}")
+            else -> {
+                assignExpressionToRegister(value, RegisterOrPair.R0R1_32, true)
+                asmgen.out("  lda  cx16.r0")
+                assignRegisterByte(target, CpuRegister.A, true, false)
+            }
+        }
+    }
+
+    private fun assignCastWordViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
         val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.UBYTE, value.position)
         lsb.parent = value.parent
         lsb.add(value)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
+        val assign = AsmAssignment(src, listOf(target), program.memsizer, value.position)
+        translateNormalAssignment(assign, value.definingISub())
+    }
+
+    private fun assignCastViaLswFunc(value: PtExpression, target: AsmAssignTarget) {
+        val lsb = PtBuiltinFunctionCall("lsw", false, true, DataType.UWORD, value.position)
+        lsb.parent = value.parent
+        lsb.add(value)
+        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = lsb)
         val assign = AsmAssignment(src, listOf(target), program.memsizer, value.position)
         translateNormalAssignment(assign, value.definingISub())
     }

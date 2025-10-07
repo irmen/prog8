@@ -1620,7 +1620,17 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            TODO("msw(expression) ${fcall.position} - use a temporary variable for now")
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, true)
+            when(resultRegister) {
+                RegisterOrPair.AX -> asmgen.out("  lda  cx16.r1 |  ldx  cx16.r1+1")
+                null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r1 |  ldy  cx16.r1+1")
+                RegisterOrPair.XY -> asmgen.out("  ldx  cx16.r1 |  ldy  cx16.r1+1")
+                in Cx16VirtualRegisters -> {
+                    val regname = resultRegister.name.lowercase()
+                    asmgen.out("  lda  cx16.r1 |  sta  cx16.$regname |  lda  cx16.r1+1 |  sta  cx16.$regname+1")
+                }
+                else -> throw AssemblyError("invalid reg")
+            }
         }
     }
 
@@ -1643,7 +1653,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            TODO("lsw(expression) ${fcall.position} - use a temporary variable for now")
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, true)
+            when(resultRegister) {
+                RegisterOrPair.AX -> asmgen.out("  lda  cx16.r0 |  ldx  cx16.r0+1")
+                null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r0 |  ldy  cx16.r0+1")
+                RegisterOrPair.XY -> asmgen.out("  ldx  cx16.r0 |  ldy  cx16.r0+1")
+                in Cx16VirtualRegisters -> {
+                    if(resultRegister!=RegisterOrPair.R0) {
+                        val regname = resultRegister.name.lowercase()
+                        asmgen.out("  lda  cx16.r0 |  sta  cx16.$regname |  lda  cx16.r0+1 |  sta  cx16.$regname+1")
+                    }
+                }
+                else -> throw AssemblyError("invalid reg")
+            }
         }
 
     }

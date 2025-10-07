@@ -81,7 +81,7 @@ main {
             ; TODO keep working with the previously sorted result instead of rewriting the list every time, makes sorting faster if not much changes in the Y positions
         }
 
-        ; TODO remove this simplistic anim but it's here to test the algorithms
+        ; TODO remove this simplistic animation but it's here to test the algorithms
         sprite = sprites[0]
         sprite.y++
         sort_ypositions[0] = sprites[0].y
