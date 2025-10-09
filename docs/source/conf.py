@@ -19,6 +19,7 @@
 # -- Project information -----------------------------------------------------
 
 import subprocess
+
 project = "Prog8"
 copyright = "Irmen de Jong"
 author = "Irmen de Jong"
@@ -38,9 +39,11 @@ version = read_properties("gradle.properties")["version"].strip()
 release = version
 
 if release.endswith("SNAPSHOT"):
-   commit_id = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+    commit_id = subprocess.run(
+        ["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True
+    ).stdout.strip()
 else:
-   commit_id = f'v{release}'
+    commit_id = f"v{release}"
 
 
 # -- extensions
@@ -195,8 +198,7 @@ default_dark_mode = False
 
 suppress_warnings = ["epub.unknown_project_files", "html.unknown_project_files"]
 
-print(f"Adding :source pointing to {commit_id}")
-extlinks = { 'source': ( f'https://github.com/irmen/prog8/tree/{commit_id}/%s', None ) }
+extlinks = {"source": (f"https://github.com/irmen/prog8/tree/{commit_id}/%s", None)}
 rst_prolog = f"""
 .. |commit_id| replace:: {commit_id}
 """
