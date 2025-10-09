@@ -1,7 +1,7 @@
 %import textio
 %import floats
 
-; note: Prog8 has an optimized CRC16 routine in its library: math.crc16
+; note: Prog8 has a complete CRC16 routine in its library: math.crc16
 
 
 main {

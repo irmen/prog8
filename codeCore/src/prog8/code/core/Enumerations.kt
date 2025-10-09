@@ -440,7 +440,7 @@ enum class RegisterOrPair {
             BaseDataType.UBYTE, BaseDataType.BOOL -> "L"
             BaseDataType.BYTE -> "sL"
             BaseDataType.WORD -> "s"
-            BaseDataType.UWORD, null -> ""
+            BaseDataType.UWORD, BaseDataType.POINTER, null -> ""
             else -> throw IllegalArgumentException("invalid register param type for cx16 virtual reg")
         }
         return listOf("cx16", name.lowercase()+suffix)

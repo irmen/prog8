@@ -251,7 +251,7 @@ class AstPreprocessor(val program: Program,
                         .filter { it.name !in namesInSub && it.name !in existingAliases }
                         .forEach {
                             if (it.registerOrPair in Cx16VirtualRegisters) {
-                                if(it.type.isWordOrByteOrBool) {
+                                if(it.type.isWordOrByteOrBool || it.type.isPointer) {
                                     val mappedParamVar = VarDecl.fromParameter(it)
                                     mods += IAstModification.InsertFirst(mappedParamVar, subroutine)
                                 } else {

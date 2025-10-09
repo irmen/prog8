@@ -1,7 +1,7 @@
 %import textio
 %import floats
 
-; note: Prog8 has an optimized CRC32 routine in its library: math.crc32
+; note: Prog8 has a complete CRC32 routine in its library: math.crc32
 
 
 main {

@@ -553,15 +553,13 @@ log2_tab
         }}
     }
 
-    sub crc16(^^ubyte data, uword length) -> uword {
-        ; calculates the CRC16 (XMODEM) checksum of the buffer.
+    sub crc16(^^ubyte data @R14, uword length) -> uword {
+        ; calculates the CRC16 (XMODEM) checksum of the buffer. Clobbers R14 and R15.
         ; There are also "streaming" crc16_start/update/end routines below, that allow you to calculate crc16 for data that doesn't fit in a single memory block.
         crc16_start()
-        cx16.r13 = data
-        cx16.r14 = data+length
-        while cx16.r13!=cx16.r14 {
-            crc16_update(@(cx16.r13))
-            cx16.r13++
+        repeat length {
+            crc16_update(@(cx16.r14))
+            cx16.r14++
         }
         return crc16_end()
     }
@@ -608,16 +606,14 @@ log2_tab
         return cx16.r15
     }
 
-    sub crc32(^^ubyte data, uword length) -> long {
+    sub crc32(^^ubyte data @R13, uword length) -> long {
         ; Calculates the CRC-32 (ISO-HDLC/PKZIP) checksum of the buffer.
-        ; Clobbers R12 through R15,  returns the 32 bits result as long
+        ; Clobbers R13 through R15,  returns the 32 bits result as long
         ; There are also "streaming" crc32_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
         crc32_start()
-        cx16.r12 = data
-        cx16.r13 = data+length
-        while cx16.r12!=cx16.r13 {
-            crc32_update(@(cx16.r12))
-            cx16.r12++
+        repeat length {
+            crc32_update(@(cx16.r13))
+            cx16.r13++
         }
         return crc32_end()
     }

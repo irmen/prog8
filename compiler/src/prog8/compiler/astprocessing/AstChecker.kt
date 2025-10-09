@@ -588,8 +588,8 @@ internal class AstChecker(private val program: Program,
                 else {
                     if(!compilerOptions.ignoreFootguns)
                         errors.warn("\uD83D\uDCA3 footgun: reusing R0-R15 as parameters risks overwriting due to clobbering or no callstack", subroutine.position)
-                    if(!p.type.isWord && !p.type.isByteOrBool) {
-                        errors.err("can only use register param when type is boolean, byte or word", p.position)
+                    if(!p.type.isWordOrByteOrBool && !p.type.isPointer) {
+                        errors.err("can only use register param when type is boolean, byte, word or pointer", p.position)
                     }
                 }
             }
