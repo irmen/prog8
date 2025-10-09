@@ -197,5 +197,5 @@ There is also `Box16 <https://github.com/indigodarkwolf/box16>`_ which has power
 If multiple options are listed above, you can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.
 
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
-Look in the `syntax-files <https://github.com/irmen/prog8/tree/master/syntax-files>`_ directory in the github repository to find them.
+Look in the :source:`syntax-files <syntax-files>` directory in the github repository to find them.
 

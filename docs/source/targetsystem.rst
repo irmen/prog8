@@ -43,7 +43,7 @@ programs for new machines or existing ones it doesn't yet know about.
 
 The configuration file should be a "properties" file (Java's ubiquitous configuration file format), which is basically a text file containing "key=value" lines.
 The contents of the file is pretty extensive and it's easier to just look at some examples that are already included:
-`target configuration examples <https://github.com/irmen/prog8/tree/master/examples/customtarget/>`_ .
+:source:`target configuration examples <examples/customtarget/>` .
 The filename base part (the part before any suffix) of the target configuration file will be taken as the name of the compilation target.
 If it matches one of the existing built-in compilation targets, the internal library files for that target will also be searched,
 if the user supplied library location doesn't contain a replacement library file for anything that might get imported.
