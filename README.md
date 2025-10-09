@@ -193,3 +193,12 @@ For instance here's a well known space ship animated in 3D with hidden line remo
 in the CommanderX16 emulator:
 
 ![cobra3d](docs/source/_static/cobra3d.png)
+
+
+Performance comparison with various C compilers
+-----------------------------------------------
+
+Here is a performance comparison with various C compilers for the 6502/C64 so you can get
+an idea of how Prog8 stacks up.
+
+[comparison](benchmark-c/benchmark.md)

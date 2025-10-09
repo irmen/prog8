@@ -2533,7 +2533,11 @@ $endLabel""")
                     assignRegisterByte(target, CpuRegister.A, valueDt.isSigned, true)
                     return
                 }
-                in combinedLongRegisters -> TODO("assign byte to long reg ${value.position}")
+                in combinedLongRegisters -> {
+                    assignExpressionToRegister(value, RegisterOrPair.A, false)
+                    assignRegisterByte(target, CpuRegister.A, valueDt.isSigned, true)
+                    return
+                }
                 else -> {}
             }
         } else if(valueDt.isUnsignedWord) {
@@ -2759,7 +2763,15 @@ $endLabel""")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
+                    BaseDataType.LONG -> {
+                        asmgen.out("""
+                            lda  $sourceAsmVarName
+                            sta  $targetAsmVarName
+                            lda  #0
+                            sta  $targetAsmVarName+1
+                            sta  $targetAsmVarName+2
+                            sta  $targetAsmVarName+3""")
+                    }
                     BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
@@ -3866,13 +3878,13 @@ $endLabel""")
         }
     }
 
-    internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister, signed: Boolean, extendWord: Boolean) {
+    internal fun assignRegisterByte(target: AsmAssignTarget, register: CpuRegister, signed: Boolean, extendSignedBits: Boolean) {
         val assignAsWord = target.datatype.isWord
 
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 asmgen.out("  st${register.name.lowercase()}  ${target.asmVarname}")
-                if(assignAsWord && extendWord) {
+                if(assignAsWord && extendSignedBits) {
                     if(target.datatype.isSigned) {
                         if(register!=CpuRegister.A)
                             asmgen.out("  t${register.name.lowercase()}a")
@@ -3901,7 +3913,7 @@ $endLabel""")
                         CpuRegister.X -> asmgen.out("  txa")
                         CpuRegister.Y -> asmgen.out("  tya")
                     }
-                    if(extendWord) {
+                    if(extendSignedBits) {
                         asmgen.signExtendAYlsb(if(target.datatype.isSigned) BaseDataType.BYTE else BaseDataType.UBYTE)
                     } else {
                         asmgen.out("  ldy  #0")
@@ -3918,7 +3930,7 @@ $endLabel""")
                         RegisterOrPair.X -> { asmgen.out("  tax") }
                         RegisterOrPair.Y -> { asmgen.out("  tay") }
                         RegisterOrPair.AY -> {
-                            require(extendWord) {
+                            require(extendSignedBits) {
                                 "no extend but byte target is registerpair"
                             }
                             if(signed)
@@ -3932,7 +3944,7 @@ $endLabel""")
                                 asmgen.out("  ldy  #0")
                         }
                         RegisterOrPair.AX -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 ldx  #0
@@ -3944,7 +3956,7 @@ $endLabel""")
                                 asmgen.out("  ldx  #0")
                         }
                         RegisterOrPair.XY -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 tax
@@ -3960,10 +3972,16 @@ $endLabel""")
                         in Cx16VirtualRegisters -> {
                             val reg = "cx16.${target.register.toString().lowercase()}"
                             asmgen.out("  sta  $reg")
-                            if(extendWord)
+                            if(extendSignedBits)
                                 extendToMSBofVirtualReg(CpuRegister.A, reg, signed)
                         }
-                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
+                        in combinedLongRegisters -> {
+                            val reg = target.register.startregname()
+                            asmgen.out("  sta  cx16.$reg")
+                            if(extendSignedBits) {
+                                asmgen.signExtendLongVariable("cx16.$reg", if(signed) BaseDataType.BYTE else BaseDataType.UBYTE)
+                            }
+                        }
                         else -> throw AssemblyError("weird register")
                     }
                     CpuRegister.X -> when(target.register!!) {
@@ -3971,7 +3989,7 @@ $endLabel""")
                         RegisterOrPair.X -> {  }
                         RegisterOrPair.Y -> { asmgen.out("  stx  P8ZP_SCRATCH_REG |  ldy  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.AY -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 txa
@@ -3984,7 +4002,7 @@ $endLabel""")
                                 asmgen.out("  txa |  ldy  #0")
                         }
                         RegisterOrPair.AX -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 txa
@@ -3997,7 +4015,7 @@ $endLabel""")
                                 asmgen.out("  txa |  ldx  #0")
                         }
                         RegisterOrPair.XY -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 ldy  #0
@@ -4012,7 +4030,7 @@ $endLabel""")
                         in Cx16VirtualRegisters -> {
                             val reg = "cx16.${target.register.toString().lowercase()}"
                             asmgen.out("  stx  $reg")
-                            if(extendWord)
+                            if(extendSignedBits)
                                 extendToMSBofVirtualReg(CpuRegister.X, reg, signed)
                         }
                         in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
@@ -4023,7 +4041,7 @@ $endLabel""")
                         RegisterOrPair.X -> { asmgen.out("  sty  P8ZP_SCRATCH_REG |  ldx  P8ZP_SCRATCH_REG") }
                         RegisterOrPair.Y -> { }
                         RegisterOrPair.AY -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 tya
@@ -4036,7 +4054,7 @@ $endLabel""")
                                 asmgen.out("  tya |  ldy  #0")
                         }
                         RegisterOrPair.AX -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 tya
@@ -4049,7 +4067,7 @@ $endLabel""")
                                 asmgen.out("  tya |  ldx  #0")
                         }
                         RegisterOrPair.XY -> {
-                            require(extendWord)
+                            require(extendSignedBits)
                             if(signed)
                                 asmgen.out("""
                 tya
@@ -4066,7 +4084,7 @@ $endLabel""")
                         in Cx16VirtualRegisters -> {
                             val reg = "cx16.${target.register.toString().lowercase()}"
                             asmgen.out("  sty  $reg")
-                            if(extendWord)
+                            if(extendSignedBits)
                                 extendToMSBofVirtualReg(CpuRegister.Y, reg, signed)
                         }
                         in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
@@ -4074,7 +4092,7 @@ $endLabel""")
                     }
                 }
             }
-            TargetStorageKind.POINTER -> pointergen.assignByteReg(PtrTarget(target), register, signed, extendWord)
+            TargetStorageKind.POINTER -> pointergen.assignByteReg(PtrTarget(target), register, signed, extendSignedBits)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
