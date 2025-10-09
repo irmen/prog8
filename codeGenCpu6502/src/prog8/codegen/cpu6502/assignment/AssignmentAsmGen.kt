@@ -2533,6 +2533,7 @@ $endLabel""")
                     assignRegisterByte(target, CpuRegister.A, valueDt.isSigned, true)
                     return
                 }
+                in combinedLongRegisters -> TODO("assign byte to long reg ${value.position}")
                 else -> {}
             }
         } else if(valueDt.isUnsignedWord) {
@@ -2554,6 +2555,7 @@ $endLabel""")
                     // 'cast' uword into a 16 bits register, just assign it
                     return assignExpressionToRegister(value, target.register!!, targetDt.isSigned)
                 }
+                in combinedLongRegisters -> TODO("assign wprd to long reg ${value.position}")
                 else -> {}
             }
         }
@@ -3197,7 +3199,7 @@ $endLabel""")
                             sta  cx16.${target.register.toString().lowercase()}
                             sty  cx16.${target.register.toString().lowercase()}+1""")
                     }
-                    else -> throw AssemblyError("can't load address in a single 8-bit register")
+                    else -> throw AssemblyError("can only load address into 16 bit register")
                 }
             }
             TargetStorageKind.POINTER -> pointergen.assignAddressOf(PtrTarget(target), sourceName)
@@ -3436,6 +3438,7 @@ $endLabel""")
                             else
                                 asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().lowercase()}+1")
                         }
+                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("can't load word in a single 8-bit register")
                     }
                 } else {
@@ -3450,6 +3453,7 @@ $endLabel""")
                                 lda  $varName+1
                                 sta  cx16.${target.register.toString().lowercase()}+1""")
                         }
+                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("can't load word in a single 8-bit register")
                     }
                 }
@@ -3627,6 +3631,7 @@ $endLabel""")
                             lda  #0
                             sta  cx16.${target.register.toString().lowercase()}+1""")
                     }
+                    in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                     else -> throw AssemblyError("weird register")
                 }
             }
@@ -3958,6 +3963,7 @@ $endLabel""")
                             if(extendWord)
                                 extendToMSBofVirtualReg(CpuRegister.A, reg, signed)
                         }
+                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("weird register")
                     }
                     CpuRegister.X -> when(target.register!!) {
@@ -4009,6 +4015,7 @@ $endLabel""")
                             if(extendWord)
                                 extendToMSBofVirtualReg(CpuRegister.X, reg, signed)
                         }
+                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("weird register")
                     }
                     CpuRegister.Y -> when(target.register!!) {
@@ -4062,6 +4069,7 @@ $endLabel""")
                             if(extendWord)
                                 extendToMSBofVirtualReg(CpuRegister.Y, reg, signed)
                         }
+                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("weird register")
                     }
                 }
@@ -4726,6 +4734,7 @@ $endLabel""")
                             lda  #0
                             sta  cx16.${target.register.toString().lowercase()}+1""")
                     }
+                    in combinedLongRegisters -> TODO("assign memory byte into long ${target.position}")
                     else -> throw AssemblyError("weird register")
                 }
                 TargetStorageKind.POINTER -> pointergen.assignByteMemory(PtrTarget(target), address)
@@ -4760,6 +4769,15 @@ $endLabel""")
                                 sta  cx16.${target.register.toString().lowercase()}
                                 lda  #0
                                 sta  cx16.${target.register.toString().lowercase()}+1""")
+                        }
+                        in combinedLongRegisters -> {
+                            val startreg = target.register.startregname()
+                            asmgen.out("""
+                                sta  cx16.$startreg
+                                lda  #0
+                                sta  cx16.$startreg+1
+                                sta  cx16.$startreg+2
+                                sta  cx16.$startreg+3""")
                         }
                         else -> throw AssemblyError("weird register")
                     }
@@ -4975,6 +4993,7 @@ $endLabel""")
                             RegisterOrPair.AY -> asmgen.out("  pha |  tya |  eor  #255 |  tay |  pla |  eor  #255")
                             RegisterOrPair.XY -> asmgen.out("  txa |  eor  #255 |  tax |  tya |  eor  #255 |  tay")
                             in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
+                            in combinedLongRegisters -> TODO("in place negate long invert ${target.position}")
                             else -> throw AssemblyError("invalid reg dt for word invert")
                         }
                     }
@@ -5103,6 +5122,7 @@ $endLabel""")
                                     tay""")
                             }
                             in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
+                            in combinedLongRegisters -> TODO("in place negate long reg ${target.position}")
                             else -> throw AssemblyError("invalid reg dt for word neg")
                         }
                     }

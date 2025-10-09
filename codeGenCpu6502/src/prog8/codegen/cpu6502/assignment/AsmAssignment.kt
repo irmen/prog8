@@ -121,7 +121,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                     in combinedLongRegisters -> {
                         val dt = if(signed) DataType.LONG
                             else
-                                TODO("unsigned long")
+                                TODO("unsigned long $pos")
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
                     else -> throw AssemblyError("weird register $registers")
