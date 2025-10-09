@@ -2,7 +2,7 @@
 Software written in Prog8
 *************************
 
-Apart from the many `examples <https://github.com/irmen/prog8/tree/master/examples>`_ available in the source code repository,
+Apart from the many :source:`examples <examples>` available in the source code repository,
 there are also larger pieces of software written using Prog8. Here's a list.
 
 

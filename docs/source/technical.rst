@@ -69,7 +69,7 @@ On the Commodore 64 some custom code is also emitted that toggle the banks, reta
 Other compilation targets don't have banking or prog8 doesn't yet support automatic bank selection on them.
 
 There's a "banking" example for the Commander X16 that shows a possible application
-of the extsub with bank support, check out the `bank example code <https://github.com/irmen/prog8/tree/master/examples/cx16/banking>`_ .
+of the extsub with bank support, check out the :source:`bank example code <examples/cx16/banking>` .
 
 
 Notice that the symbol for this routine in the assembly source code will still be defined as usual.
@@ -273,7 +273,7 @@ See it as a simple way of *profiling* your program to find the hotspots that may
 The X16 emulator has a ``-memorystats`` option that enables it to keep track of memory access count statistics,
 and write the accumulated counts to a file on exit.
 Prog8 then provides a Python script ``profiler.py`` (find it in the "scripts" subdirectory of the source code distribution,
-or `online here <https://github.com/irmen/prog8/blob/master/scripts/profiler.py>`_).
+or :source:`online here <scripts/profiler.py>`).
 This script cross-references the memory stats file with an assembly listing of the program, produced by the Prog8 compiler with the ``-asmlist`` option.
 It then prints the top N lines in your (assembly) program source that perform the most reads and writes,
 which you can use to identify possible hot spots/bottlenecks/variables that should be better placed in zeropage etc.
