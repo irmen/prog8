@@ -3,66 +3,6 @@ TODO
 
 STRUCTS and TYPED POINTERS
 --------------------------
-not all source lines are correctly reported in the IR file,
-for example the below subroutine only shows the sub() line::
-
-    sub two() {
-        cx16.r0 = peekw(ww + cx16.r0L * 2)
-    }
-
-and for example the below code omits line 5::
-
-[examples/test.p8: line 4 col 6-8]  sub start() {
-[examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
-[examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
-[examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
-[examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
-
-
-.. code-block:: 
-
-	%option enable_floats
-	
-	main {
-	    sub start() {
-	        cx16.r1 = select1()
-	        cx16.r2 = select2()
-	        cx16.r3 = select3()
-	        cx16.r4 = select4()
-	        cx16.r5 = select5()
-	    }
-	
-	    sub select1() -> uword {
-	        cx16.r0L++
-	        return 2000
-	    }
-	
-	    sub select2() -> str {
-	        cx16.r0L++
-	        return 2000
-	    }
-	
-	    sub select3() -> ^^ubyte {
-	        cx16.r0L++
-	        return 2000
-	    }
-	
-	    sub select4() -> ^^bool {
-	        cx16.r0L++
-	        return 2000
-	    }
-	
-	    sub select5() -> ^^float {
-	        cx16.r0L++
-	        return 2000
-	    }
-	}
-
-
-STRUCTS and TYPED POINTERS (6502 codegen specific)
---------------------------------------------------
-
-- BUG: example fountain-x16.p8 has problems with the X values (likely related to new deref() with invalid offset value handling afterwards?)
 
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
@@ -142,12 +82,6 @@ IR/VM
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
-- sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in::
-
-     sub start() {
-     cx16.r0L = cx16.r1 as ubyte
-     cx16.r0sL = cx16.r1s as byte }
-
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
 - reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
@@ -158,13 +92,13 @@ IR/VM
 - the split word arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...? Should array operations be encoded in a more high level form in the IR?
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change.. :(
-- sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in:
+- sometimes source lines end up missing in the output p8ir, for example the first assignment is gone in::
+
      sub start() {
      cx16.r0L = cx16.r1 as ubyte
      cx16.r0sL = cx16.r1s as byte }
-     more detailed example:
 
-not all source lines are correctly reported in the IR file,
+More detailed example: not all source lines are correctly reported in the IR file,
 for example the below subroutine only shows the sub() line::
 
     sub two() {
@@ -173,12 +107,14 @@ for example the below subroutine only shows the sub() line::
 
 and for example the below code omits line 5::
 
-    [examples/test.p8: line 4 col 6-8]  sub start() {
-    [examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
-    [examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
-    [examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
-    [examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
+[examples/test.p8: line 4 col 6-8]  sub start() {
+[examples/test.p8: line 6 col 10-13]  cx16.r2 = select2()
+[examples/test.p8: line 7 col 10-13]  cx16.r3 = select3()
+[examples/test.p8: line 8 col 10-13]  cx16.r4 = select4()
+[examples/test.p8: line 9 col 10-13]  cx16.r5 = select5()
 
+
+.. code-block::
 
     %option enable_floats
 
