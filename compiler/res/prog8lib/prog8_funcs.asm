@@ -435,6 +435,7 @@ func_peek   .proc
 	; -- read the byte value on the address in AY, into A
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
+from_scratchW1
 	ldy  #0
 	lda  (P8ZP_SCRATCH_W1),y
 	rts
@@ -444,6 +445,7 @@ func_peekw   .proc
 	; -- read the word value on the address in AY, into AY
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
+from_scratchW1
 	ldy  #0
 	lda  (P8ZP_SCRATCH_W1),y
 	pha
@@ -458,6 +460,7 @@ func_peekl   .proc
 	; -- read the ;pmg value on the address in AY, into R0:R1
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
+from_scratchW1
 	ldy  #0
 	lda  (P8ZP_SCRATCH_W1),y
 	sta  cx16.r0

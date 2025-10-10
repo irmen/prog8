@@ -1,12 +1,15 @@
 TODO
 ====
 
+- optimized translation for pokeX and peekX if address =  pointer + uwordoffset.
+
+
 STRUCTS and TYPED POINTERS
 --------------------------
 
 - implement the remaining TODO's in PointerAssignmentsGen.
 - optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
-- optimize the float copying in assignIndexedPointer() (also word?)
+- optimize the float copying in assignIndexedPointer() (also word and long?)
 - optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - support @nosplit pointer arrays?
@@ -24,6 +27,8 @@ Future Things and Ideas
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
+- add documentation for more library modules instead of just linking to the source code
+- add an Index to the documentation
 - allow memory() to occur in array initializer
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1

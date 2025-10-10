@@ -297,6 +297,17 @@ _after:
                     val peek = FunctionCallExpression(IdentifierReference(listOf("peekbool"), arrayIndexedExpression.position), mutableListOf(address), arrayIndexedExpression.position)
                     return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, peek, parent))
                 }
+            } else if(arrayVar.datatype.sub==BaseDataType.LONG) {
+                // use peekl/pokel
+                if(parent is AssignTarget) {
+                    val assignment = parent.parent as Assignment
+                    val args = mutableListOf(address, assignment.value)
+                    val poke = FunctionCallStatement(IdentifierReference(listOf("pokel"), arrayIndexedExpression.position), args, false, arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(assignment, poke, assignment.parent))
+                } else {
+                    val peek = FunctionCallExpression(IdentifierReference(listOf("peekl"), arrayIndexedExpression.position), mutableListOf(address), arrayIndexedExpression.position)
+                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, peek, parent))
+                }
             } else if(arrayVar.datatype.sub==BaseDataType.FLOAT) {
                 // use peekf/pokef
                 if(parent is AssignTarget) {

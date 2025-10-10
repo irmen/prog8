@@ -1067,6 +1067,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val varname = asmgen.asmVariableName(pointer)
                     asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
                     asmgen.out("  lda  ($varname),y")
+                } else if(addrExpr.operator in arrayOf("+", "-") && addrExpr.left is PtIdentifier) {
+                    readValueFromPointerPlusOrMinOffset(addrExpr.left as PtIdentifier, addrExpr.operator, addrExpr.right, BaseDataType.BOOL)
                 } else fallback()
             }
             else -> fallback()
@@ -1112,6 +1114,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         lda  ($varname),y
                         tay
                         txa""")
+                } else if(addrExpr.operator in arrayOf("+", "-") && addrExpr.left is PtIdentifier) {
+                    readValueFromPointerPlusOrMinOffset(addrExpr.left as PtIdentifier, addrExpr.operator, addrExpr.right, BaseDataType.UWORD)
                 } else fallback()
             }
             else -> fallback()
@@ -1127,6 +1131,37 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 } |  sty  cx16.${resultRegister.toString().lowercase()}+1")
             else -> throw AssemblyError("invalid reg")
         }
+    }
+
+    private fun readValueFromPointerPlusOrMinOffset(ptr: PtIdentifier, operator: String, offset: PtExpression, dt: BaseDataType) {
+        val varname = asmgen.asmVariableName(ptr)
+        asmgen.assignExpressionToRegister(offset, RegisterOrPair.AY)
+        if(operator=="+")
+            asmgen.out("""
+                clc
+                adc  $varname
+                sta  P8ZP_SCRATCH_W1
+                tya
+                adc  $varname+1
+                sta  P8ZP_SCRATCH_W1+1""")
+        else
+            asmgen.out("""
+                sec
+                sbc  $varname
+                sta  P8ZP_SCRATCH_W1
+                tya
+                sbc  $varname+1
+                sta  P8ZP_SCRATCH_W1+1""")
+
+        if (dt.isByteOrBool) {
+            if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
+                asmgen.out("  lda  (P8ZP_SCRATCH_W1)")
+            } else {
+                asmgen.out("  ldy  #0 |  lda  (P8ZP_SCRATCH_W1),y")
+            }
+        } else if(dt.isWord) {
+            asmgen.out("  jsr  prog8_lib.func_peekw.from_scratchW1")
+        } else throw AssemblyError("unsupported type for peek $dt")
     }
 
     private fun funcPeekL(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {

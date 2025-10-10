@@ -36,7 +36,7 @@ irq {
     ; Here is the actual multiplexing routine.
     ; it's a raster irq just after the start of the sprite,
     ; that updates the Y position of all the sprits,
-    ; and registers a new rater irq for that next row of sprites.
+    ; and registers a new raster irq for that next row of sprites.
     ; If the bottom of the screen is reached, it resets the X position of the sprites as well,
     ; and moves the sprites back to the top of the screen.
     sub multiplexer() -> bool {
@@ -48,15 +48,18 @@ irq {
             sprites_Y = sprites.sprites_Y_start
             first_sprite_X++
             if first_sprite_X >= 340
-                first_sprite_X =0
+                first_sprite_X = 0
             sprites.set_sprites_Y(sprites_Y)
             while c64.RASTER != cx16.r2 {
-                ; wait until raster line after sprite has been fully drawn (at least 24 lines down)
+                ; wait until raster line after sprites have been fully drawn (at least 24 lines down)
             }
             sprites.set_sprites_X(first_sprite_X)        ; we can now update the X positions without risk of sprite tearing
             system_irq = true
         } else {
+            ; only set the new Y positions. But it's possible to change other attributes as well ofcourse (colors, x-position, data)
+            ; but raster timing is critical for that if you want to avoid tearing and glitches. Can probably not be done here at this raster position...
             sprites.set_sprites_Y(sprites_Y)
+            c64.SPXY[0]++
         }
 
         sys.set_rasterline(sprites_Y+1)
