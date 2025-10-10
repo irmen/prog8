@@ -30,6 +30,7 @@ CALL: 'call';
 INLINE: 'inline';
 STEP: 'step';
 ELSE: 'else';
+THEN: 'then';
 
 UNICODEDNAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
 UNDERSCORENAME :  '_' UNICODEDNAME ;           // match unicode properties
@@ -333,7 +334,7 @@ if_stmt :  'if' expression EOL? (statement | statement_block) EOL? else_part?  ;
 
 else_part :  ELSE EOL? (statement | statement_block) ;   // statement is constrained later
 
-if_expression :  'if' expression EOL? expression EOL? ELSE EOL? expression ;
+if_expression :  'if' expression EOL? THEN? EOL? expression EOL? ELSE EOL? expression ;
 
 branchcondition_expression:  branchcondition expression EOL? ELSE EOL? expression ;
 

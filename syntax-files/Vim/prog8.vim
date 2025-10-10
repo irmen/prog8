@@ -25,10 +25,9 @@ syn match prog8Function "\(extsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
 
 syn keyword prog8Statement break continue goto return asmsub sub inline
 syn match prog8Statement "\<\(asm\|rom\)\?sub\>"
-syn keyword prog8Conditional if else when
+syn keyword prog8Conditional if else when then
 syn keyword prog8Conditional if_cs if_cc if_vs if_vc if_eq if_z if_ne if_nz
 syn keyword prog8Conditional if_pl if_pos if_mi if_neg
-syn keyword prog8Conditional when
 syn keyword prog8Repeat for while in do until repeat unroll
 syn match prog8Label "\<\w\+\>:"
 syn keyword prog8Operator and or to downto as void

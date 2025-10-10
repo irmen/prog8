@@ -757,6 +757,14 @@ The expression form is also available for the conditionals ``if_cc``, ``if_cs``,
 
     ubyte carryvalue = if_cs 1 else 0
 
+**Optional ``then``:**
+For readability reasons it is allowed to put a ``then`` keyword between the condition expression and the first value expression.
+In the example above the separation between the two is still kinda obvious, but readability may be less clear with cases
+like the following where the value and the last part of the condition are both numeric::
+
+    if value<999 888 else 777               ; slightly hard to read
+    if value<999 then 888 else 777          ; separation is clearer
+
 
 
 on .. goto / on .. call statement (jump table)
