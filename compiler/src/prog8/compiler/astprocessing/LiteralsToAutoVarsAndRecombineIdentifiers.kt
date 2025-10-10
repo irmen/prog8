@@ -129,6 +129,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
         val target = alias.target.targetStatement()
         if(target is Alias) {
+            // shortcut the alias that refers to another alias
             val newAlias = Alias(alias.alias, target.target, alias.position)
             return listOf(IAstModification.ReplaceNode(alias, newAlias, parent))
         }
@@ -212,8 +213,8 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         val tgt2 = deref.definingScope.lookup(deref.chain.take(1)) as? Alias
         if(tgt2!=null && parent !is Alias) {
             if(tgt2.target.targetStatement() !is Alias) {
-                val actual = IdentifierReference(tgt2.target.nameInSource + deref.chain.drop(1), deref.position)
-                return listOf(IAstModification.ReplaceNode(deref, actual, parent))
+                val unaliased = PtrDereference(tgt2.target.nameInSource + deref.chain.drop(1), deref.derefLast, deref.position)
+                return listOf(IAstModification.ReplaceNode(deref, unaliased, parent))
             }
         }
         return noModifications

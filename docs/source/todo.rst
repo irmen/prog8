@@ -19,6 +19,7 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
 - After long variable type is completed: make all constants long by default (remove type name altogether), reduce to target type implictly if the actual value fits.
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
@@ -166,6 +167,7 @@ Optimizations
 -------------
 
 - optimize inplaceLongShiftRight() for byte aligned cases
+- investigate why the c bench Sieve test is slower in prog8 than all of the rest
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.
 - optimize optimizedBitwiseExpr()  for const and variable operands to not assign needlessly to R0-R3.

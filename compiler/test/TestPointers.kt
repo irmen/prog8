@@ -2438,6 +2438,48 @@ structdefs {
         a6t.pointerDereference!!.chain shouldBe listOf("structdefs", "element", "value2")
     }
 
+    test("pointer dereference aliasing") {
+        val src="""
+main {
+    sub start() {
+        player.test()
+    }
+}
+
+
+cx16 {
+      %option merge
+      &^^word pword4 = &cx16.r4
+}
+
+player {
+      alias sxPtr = cx16.pword4
+      &^^word zxPtr      = &cx16.r6
+
+  sub test() {
+    sxPtr^^ = -99           ; aliased assignment 
+    if (zxPtr^^ - sxPtr^^) in -13 to 13 {       ; aliased expression
+        cx16.r0++
+    }
+  }
+}"""
+
+        val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.single{it.name == "player"}.statements
+        st.size shouldBe 2
+        val test = (st[1] as Subroutine).statements
+        test.size shouldBe 3
+        val assignTgt = (test[0] as Assignment).target
+        val targetDeref = assignTgt.pointerDereference!!
+        targetDeref.chain shouldBe listOf("cx16", "pword4")
+
+        val ifCond = (test[1] as IfElse).condition as ContainmentCheck
+        val cond = ifCond.element as BinaryExpression
+        cond.left shouldBe instanceOf<PtrDereference>()
+        cond.right shouldBe instanceOf<PtrDereference>()
+        (cond.right as PtrDereference).chain shouldBe listOf("cx16", "pword4")
+    }
+
     test("assigning field with same name should not confuse compiler") {
         val src="""
 main {
