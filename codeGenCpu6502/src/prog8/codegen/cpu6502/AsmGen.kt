@@ -870,13 +870,13 @@ class AsmGen6502Internal (
                     when(target.kind) {
                         TargetStorageKind.VARIABLE -> {
                             out("""
-                                lda  #${hex.substring(6,8)}
+                                lda  #$${hex.substring(6,8)}
                                 sta  ${target.asmVarname}
-                                lda  #${hex.substring(4, 6)}
+                                lda  #$${hex.substring(4, 6)}
                                 sta  ${target.asmVarname}+1
-                                lda  #${hex.substring(2, 4)}
+                                lda  #$${hex.substring(2, 4)}
                                 sta  ${target.asmVarname}+2
-                                lda  #${hex.take(2)}
+                                lda  #$${hex.take(2)}
                                 sta  ${target.asmVarname}+3""")
                         }
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")

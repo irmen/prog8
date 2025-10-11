@@ -269,6 +269,10 @@ sub  str_l  (long value) -> str  {
             bne  +
             inx
             bne  -
++           cpx  #10   ; just all 0? keep one
+            bne  +
+            dex
+
 +           ; x points at the rightmost leading 0
             lda  negative
             beq  +

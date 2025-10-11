@@ -1,6 +1,8 @@
 TODO
 ====
 
+fix crash for  txt.print_l(conv.str_l(0))
+
 
 STRUCTS and TYPED POINTERS
 --------------------------
