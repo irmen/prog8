@@ -1,9 +1,6 @@
 TODO
 ====
 
-- optimized translation for pokeX and peekX if address =  pointer + uwordoffset.
-
-
 STRUCTS and TYPED POINTERS
 --------------------------
 
@@ -22,6 +19,7 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
+- can the compiler give a warning if you use R0/R1 in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
 - After long variable type is completed: make all constants long by default (remove type name altogether), reduce to target type implictly if the actual value fits.
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
@@ -172,7 +170,6 @@ Optimizations
 -------------
 
 - optimize inplaceLongShiftRight() for byte aligned cases
-- investigate why the c bench Sieve test is slower in prog8 than all of the rest
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.
 - optimize optimizedBitwiseExpr()  for const and variable operands to not assign needlessly to R0-R3.

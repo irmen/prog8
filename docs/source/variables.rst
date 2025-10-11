@@ -248,8 +248,13 @@ to be done on word values, and don't want to explicitly have to cast everything 
     long value as an unsigned 32 bits value just fine.
     Operations on long integers take a lot of instructions on 8 bit cpu's so code that uses them
     a lot will be much slower than when you restrict yourself to 8 or 16 bit values. Use long values sparingly.
-    **Several operations on long values require the use of the R0 and R1 virtual register as temporary storage**
+
+.. danger::
+    **longs and R0/R1**:
+    **Many operations on long values require the use of the R0 and R1 virtual register as temporary storage**
     so if you are working with long values, you should assume that the contents of R0 and R1 are destroyed.
+    **Using R0 or R1 in expressions that work with longs, will probably give a corrupted result, without
+    a warning of the compiler!** It is strongly advised to *not* use R0/R1 at all when dealing with longs.
 
 
 Booleans
