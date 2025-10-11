@@ -488,8 +488,21 @@ func_pokew   .proc
 	rts
 	.pend
 
+func_pokew_scratchW2   .proc
+	; -- store the word value in AY in the address in P8ZP_SCRATCH_W2
+	sty  P8ZP_SCRATCH_REG
+	ldy  #0
+	sta  (P8ZP_SCRATCH_W2),y
+	iny
+	lda  P8ZP_SCRATCH_REG
+	sta  (P8ZP_SCRATCH_W2),y
+	rts
+	.pend
+
 func_pokel   .proc
 	; -- store the long value in R0:R1 in the address in AY
+	sta  P8ZP_SCRATCH_W1
+	sty  P8ZP_SCRATCH_W1+1
 	ldy  #0
 	lda  cx16.r0
 	sta  (P8ZP_SCRATCH_W1),y

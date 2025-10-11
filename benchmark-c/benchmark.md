@@ -8,9 +8,9 @@ Maybe one day I'll try to integrate the prog8 data properly but their benchmark 
 However conclusions so far (note: these are micro benchmarks so interpret the results as you will!)
 
 * Prog8 program size is consistently the smallest by a fair bit.
-* Prog8 execution speed places it more or less in the middle of the stack, with a regression in the Sieve benchmarks.
+* Prog8 execution speed places it more or less in the middle of the stack.
 
-Measured with Prog8 V12.0 pre release.
+Measured with Prog8 V12.0 .
 
 
 ![crc8](result-crc8.png)

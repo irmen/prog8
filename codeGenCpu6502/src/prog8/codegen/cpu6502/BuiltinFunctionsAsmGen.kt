@@ -966,6 +966,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.restoreRegisterStack(CpuRegister.Y, true)
                     asmgen.out("  sta  ($varname),y")
                     return
+                } else if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier) {
+                    asmgen.assignExpressionToRegister(addrExpr.right, RegisterOrPair.AY, false)
+                    val ptrName = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
+                    asmgen.out("""
+                        clc
+                        adc  $ptrName
+                        sta  P8ZP_SCRATCH_W2
+                        tya
+                        adc  $ptrName+1
+                        sta  P8ZP_SCRATCH_W2+1""")
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // TODO *could* overwerite SCRATCH_W2 if it's a compliated expression...
+                    asmgen.storeIndirectByteReg(CpuRegister.A, "P8ZP_SCRATCH_W2", 0u, false, false)
+                    return
                 }
             }
             else -> { /* fall through */ }
@@ -1016,6 +1029,20 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             iny
                             sta  ($varname),y""")
                     return
+                } else if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier) {
+                    asmgen.assignExpressionToRegister(addrExpr.right, RegisterOrPair.AY, false)
+                    val ptrName = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
+                    asmgen.out("""
+                        clc
+                        adc  $ptrName
+                        sta  P8ZP_SCRATCH_W2
+                        tya
+                        adc  $ptrName+1
+                        sta  P8ZP_SCRATCH_W2+1""")
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)      // TODO *could* overwerite SCRATCH_W2 if it's a compliated expression...
+                    asmgen.out("  jsr  prog8_lib.func_pokew_scratchW2")
+                    //asmgen.storeIndirectWordReg(RegisterOrPair.AY, "P8ZP_SCRATCH_W2", 0u)
+                    return
                 }
             }
             else -> { /* fall through */ }
@@ -1028,8 +1055,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     private fun funcPokeL(fcall: PtBuiltinFunctionCall) {
         // TODO optimize for the simple cases
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R0R1_32, true)
         asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        asmgen.saveRegisterStack(CpuRegister.A, false)
+        asmgen.saveRegisterStack(CpuRegister.Y, false)
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R0R1_32, true)
+        asmgen.restoreRegisterStack(CpuRegister.Y, false)
+        asmgen.restoreRegisterStack(CpuRegister.A, false)
         asmgen.out("  jsr  prog8_lib.func_pokel")
     }
 
@@ -1067,8 +1098,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val varname = asmgen.asmVariableName(pointer)
                     asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
                     asmgen.out("  lda  ($varname),y")
-                } else if(addrExpr.operator in arrayOf("+", "-") && addrExpr.left is PtIdentifier) {
-                    readValueFromPointerPlusOrMinOffset(addrExpr.left as PtIdentifier, addrExpr.operator, addrExpr.right, BaseDataType.BOOL)
+                } else if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier) {
+                    readValueFromPointerPlusOffset(addrExpr.left as PtIdentifier, addrExpr.right, BaseDataType.BOOL)
                 } else fallback()
             }
             else -> fallback()
@@ -1114,8 +1145,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         lda  ($varname),y
                         tay
                         txa""")
-                } else if(addrExpr.operator in arrayOf("+", "-") && addrExpr.left is PtIdentifier) {
-                    readValueFromPointerPlusOrMinOffset(addrExpr.left as PtIdentifier, addrExpr.operator, addrExpr.right, BaseDataType.UWORD)
+                } else if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier) {
+                    readValueFromPointerPlusOffset(addrExpr.left as PtIdentifier, addrExpr.right, BaseDataType.UWORD)
                 } else fallback()
             }
             else -> fallback()
@@ -1133,26 +1164,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun readValueFromPointerPlusOrMinOffset(ptr: PtIdentifier, operator: String, offset: PtExpression, dt: BaseDataType) {
+    private fun readValueFromPointerPlusOffset(ptr: PtIdentifier, offset: PtExpression, dt: BaseDataType) {
         val varname = asmgen.asmVariableName(ptr)
         asmgen.assignExpressionToRegister(offset, RegisterOrPair.AY)
-        if(operator=="+")
-            asmgen.out("""
-                clc
-                adc  $varname
-                sta  P8ZP_SCRATCH_W1
-                tya
-                adc  $varname+1
-                sta  P8ZP_SCRATCH_W1+1""")
-        else
-            asmgen.out("""
-                sec
-                sbc  $varname
-                sta  P8ZP_SCRATCH_W1
-                tya
-                sbc  $varname+1
-                sta  P8ZP_SCRATCH_W1+1""")
-
+        asmgen.out("""
+            clc
+            adc  $varname
+            sta  P8ZP_SCRATCH_W1
+            tya
+            adc  $varname+1
+            sta  P8ZP_SCRATCH_W1+1""")
         if (dt.isByteOrBool) {
             if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                 asmgen.out("  lda  (P8ZP_SCRATCH_W1)")
