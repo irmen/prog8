@@ -3,32 +3,20 @@
 
 main {
     sub start() {
-        @(4000)=100
-        txt.print_ubhex(@(4000), false)
-        txt.spc()
-        @(4000) = -100
-        txt.print_ubhex(@(4000), false)
-        txt.nl()
+        long lv1, lv2
+        ubyte bb
 
-        poke(4000, 100)
-        txt.print_ubhex(@(4000), false)
-        txt.spc()
-        poke(4000, -100)
-        txt.print_ubhex(@(4000), false)
-        txt.nl()
+        lv1 = func1()
+        bb, lv1, lv2 = func2()
+    }
 
-        pokew(4000, 9999)
-        txt.print_uwhex(peekw(4000), false)
-        txt.spc()
-        pokew(4000, -9999)
-        txt.print_uwhex(peekw(4000), false)
-        txt.nl()
+    sub func1() -> long {
+        cx16.r0++
+        return 9999999
+    }
 
-        pokel(4000, 999999)
-        txt.print_ulhex(peekl(4000), false)
-        txt.spc()
-        pokel(4000, -999999)
-        txt.print_ulhex(peekl(4000), false)
-        txt.nl()
+    sub func2() -> ubyte, long, long {
+        cx16.r0++
+        return 1, 222222,333333
     }
 }

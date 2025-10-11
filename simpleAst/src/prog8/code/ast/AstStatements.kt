@@ -18,7 +18,7 @@ sealed interface IPtSubroutine {
                 fun cpuRegisterFor(returntype: DataType): RegisterOrStatusflag = when {
                     returntype.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
                     returntype.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-                    returntype.isLong -> RegisterOrStatusflag(RegisterOrPair.R0R1_32, null)
+                    returntype.isLong -> RegisterOrStatusflag(RegisterOrPair.R14R15_32, null)
                     returntype.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
                     else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
                 }

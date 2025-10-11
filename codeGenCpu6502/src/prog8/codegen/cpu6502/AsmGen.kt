@@ -881,7 +881,7 @@ class AsmGen6502Internal (
                         }
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-                        TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                        TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
                         TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
@@ -904,7 +904,7 @@ class AsmGen6502Internal (
 
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-                        TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                        TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
                         TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
@@ -919,7 +919,7 @@ class AsmGen6502Internal (
                                 }
                                 TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-                                TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                                TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
                                 TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }

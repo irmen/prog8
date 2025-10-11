@@ -4360,7 +4360,14 @@ $endLabel""")
                         sta  ${target.asmVarname}+3,y""")
                 }
                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-                TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                TargetStorageKind.REGISTER -> {
+                    val startreg = target.register!!.startregname()
+                    asmgen.out("""
+                        stz  $startreg
+                        stz  $startreg+1
+                        stz  $startreg+2
+                        stz  $startreg+3""")
+                }
                 TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
@@ -5170,7 +5177,7 @@ $endLabel""")
                     }
                     TargetStorageKind.ARRAY -> TODO(" - long array ${target.position}")
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-                    TargetStorageKind.REGISTER -> TODO("32 bits register assign? (we have no 32 bits registers right now) ${target.position}")
+                    TargetStorageKind.REGISTER -> TODO("32 bits register negate ${target.position}")
                     TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
