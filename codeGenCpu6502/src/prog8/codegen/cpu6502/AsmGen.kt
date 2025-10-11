@@ -937,7 +937,7 @@ class AsmGen6502Internal (
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> {
                                     require(target.register in combinedLongRegisters)
-                                    val startreg = target.register.toString().take(2).lowercase()
+                                    val startreg = target.register!!.startregname()
                                     out("""
                                         lda  $valuesym
                                         sta  cx16.$startreg

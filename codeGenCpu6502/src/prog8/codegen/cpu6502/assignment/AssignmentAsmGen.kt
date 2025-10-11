@@ -3301,7 +3301,7 @@ $endLabel""")
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {
                 require(target.register in combinedLongRegisters)
-                val regstart = target.register.toString().take(2).lowercase()
+                val regstart = target.register!!.startregname()
                 when(sourceDt) {
                     DataType.BYTE -> {
                         asmgen.out("  lda  $varName |  sta  cx16.$regstart")
