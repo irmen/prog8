@@ -23,6 +23,7 @@ Future Things and Ideas
 - use R12-R15 as temp registers with longs instead of R0-R3  (much less chance on clobbering)
   update the warning in the docs about this
   maybe reduce problem even further by storing/retrieveing the previous value of those registers? (is that even possible?)
+  see: optimizedPlusMinLongExpr()
 - can the compiler give a warning if you use R0/R1 (or whatever the temp storage is) in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1, should both always be 1-based (is this the reason some source lines end up missing in the IR file?)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions

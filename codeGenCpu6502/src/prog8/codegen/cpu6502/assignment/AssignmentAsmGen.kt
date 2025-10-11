@@ -1798,10 +1798,11 @@ internal class AssignmentAsmGen(
                 }
             }
             else -> {
-                assignExpressionToRegister(expr.left, RegisterOrPair.R2R3_32, expr.left.type.isSigned)
-                assignExpressionToRegister(expr.right, RegisterOrPair.R0R1_32, expr.right.type.isSigned)
-                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r2", expr.operator, "cx16.r0")
-                assignRegisterLong(target, RegisterOrPair.R2R3_32)
+                // TODO store R12-R15 on the stack and restore afterwards?
+                assignExpressionToRegister(expr.left, RegisterOrPair.R14R15_32, expr.left.type.isSigned)
+                assignExpressionToRegister(expr.right, RegisterOrPair.R12R13_32, expr.right.type.isSigned)
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r14", expr.operator, "cx16.r12")
+                assignRegisterLong(target, RegisterOrPair.R14R15_32)
                 return true
             }
         }
