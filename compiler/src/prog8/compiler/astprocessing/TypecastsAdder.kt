@@ -268,7 +268,18 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                     }
                     val cvalue = assignment.value.constValue(program)
                     if(cvalue!=null) {
-                        return castLiteral(cvalue)
+                        val castResult = castLiteral(cvalue)
+                        if(castResult.isNotEmpty())
+                            return castResult
+
+                        // exception for @(...) = -byte  (direct memory write) it's just convenient to be able to write negative numbers too (like pokew also allows)
+                        if(assignment.target.memoryAddress!=null) {
+                            if(valuetype.isByteOrBool && targettype.isUnsignedByte) {
+                                require(cvalue.number.toInt() in -128..127)
+                                val asUByte = NumericLiteral(BaseDataType.UBYTE, cvalue.number.toInt().toUByte().toDouble(), assignment.value.position)
+                                return listOf(IAstModification.ReplaceNode(assignment.value, asUByte, assignment))
+                            }
+                        }
                     }
                 }
             }

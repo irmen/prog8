@@ -58,7 +58,7 @@ class TestBuiltinFunctions: FunSpec({
         func.parameters[0].name shouldBe "address"
         func.parameters[0].possibleDatatypes shouldBe arrayOf(BaseDataType.UWORD)
         func.parameters[1].name shouldBe "value"
-        func.parameters[1].possibleDatatypes shouldBe arrayOf(BaseDataType.UBYTE)
+        func.parameters[1].possibleDatatypes shouldBe arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
         func.pure shouldBe false
         func.returnType shouldBe null
     }

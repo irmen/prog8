@@ -980,4 +980,21 @@ main {
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("negative numbers okay for pokes") {
+        val src = """
+main {
+    sub start() {
+        @(4000) = 100
+        @(4000) = -100
+        poke(4000, 100)
+        poke(4000, -100)
+        pokew(4000, 9999)
+        pokew(4000, -9999)
+        pokel(4000, 999999)
+        pokel(4000, -999999)
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
 })

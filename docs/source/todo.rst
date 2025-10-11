@@ -1,9 +1,6 @@
 TODO
 ====
 
-fix cast error in words[cx16.r9] = -1234
-
-
 
 STRUCTS and TYPED POINTERS
 --------------------------
