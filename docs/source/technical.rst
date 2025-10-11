@@ -191,7 +191,7 @@ Other: ``sub foo(ubyte bar, ubyte baz, ubyte zoo) { ... }``
 - A byte return value will be put in ``A`` .
 - A boolean return value will be put in ``A`` too, as 0 or 1.
 - A word return or pointer value will be put in ``A`` + ``Y`` register pair (lsb in A, msb in Y).
-- A long return value will be put into ``cx16.r0 : cx16.r1`` (2 combined word registers to make up a single 32 bits long)
+- A long return value will be put into ``cx16.r0 : cx16.r1`` (2 combined word registers to make up a single 32 bits long) *Note: this may change in the future to maybe R14+R15 instead, to reduce the chance of overwriting registers that are already used*
 - A float return value will be put in the ``FAC1`` float 'register'.
 
 In case of *multiple* return values:

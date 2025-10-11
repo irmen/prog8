@@ -20,7 +20,11 @@ STRUCTS and TYPED POINTERS
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-- can the compiler give a warning if you use R0/R1 in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
+- use R12-R15 as temp registers with longs instead of R0-R3  (much less chance on clobbering)
+  update the warning in the docs about this
+  maybe reduce problem even further by storing/retrieveing the previous value of those registers? (is that even possible?)
+- can the compiler give a warning if you use R0/R1 (or whatever the temp storage is) in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
+- fix the line, cols in Position, sometimes they count from 0 sometimes from 1, should both always be 1-based (is this the reason some source lines end up missing in the IR file?)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
 - After long variable type is completed: make all constants long by default (remove type name altogether), reduce to target type implictly if the actual value fits.
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
@@ -28,9 +32,9 @@ Future Things and Ideas
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - add documentation for more library modules instead of just linking to the source code
 - add an Index to the documentation
-- allow memory() to occur in array initializer
+- allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?)
+- Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
-- fix the line, cols in Position, sometimes they count from 0 sometimes from 1
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
 - enums?
 - fix the c64 multiplexer example
@@ -45,9 +49,8 @@ Future Things and Ideas
   in certain situations (need examples!), the "wrong" order of evaluation of function call arguments is done which results
   in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)
   Maybe this routine can be made more intelligent.  See usesOtherRegistersWhileEvaluating() and argumentsViaRegisters().
-- Does it make codegen easier if everything is an expression?  Start with the PtProgram ast classes, change statements to expressions that have (new) VOID data type
+- Does it make codegen easier if everything is an expression?  Start with the PtProgram ast classes, change statements to expressions that have (new) VOID data type. BUT probably not worth it if a new codegen is going to be based on the IR
 - Can we support signed % (remainder) somehow?
-- Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - make a form of "manual generics" possible like: varsub routine(T arg)->T  where T is expanded to a specific type
   (this is already done hardcoded for several of the builtin functions)
 - more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
@@ -57,6 +60,9 @@ Future Things and Ideas
 
 IR/VM
 -----
+- getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
+- fix call() return value handling (... what's wrong with it again?)
+- proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - is it possible to use LOADFIELD/STOREFIELD instructions even more?
 - make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
@@ -76,22 +82,19 @@ IR/VM
    - Warm Registers: Moderately accessed
    - Cold Registers: Rarely accessed (can be spilled to memory if needed)
   We already have type-based pools
-    - byte, word, float registers
+    - byte, word, long, float registers
 
 - pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit 88b074c208450c58aa32469745afa03e4c5f564a
 - change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer
-- getting it in shape for code generation...: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- fix call() return value handling (... what's wrong with it again?)
-- proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - register reuse to reduce the number of required variables in memory eventually. But can only re-use a register if a) it's the same type and b) if the second occurrence is not called from the first occurrence (otherwise the value gets overwritten!)
+- reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
+  don't forget to take into account the data type of the register when it's going to be reused!
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
-- reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
-  don't forget to take into account the data type of the register when it's going to be reused!
-- idea: (but LLVM IR simply keeps the variables, so not a good idea then?...): replace all scalar variables by an allocated register. Keep a table of the variable to register mapping (including the datatype)
+- idea: replace all scalar variables that are not @shared by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters? Or not?  So the only variables that remain as variables are arrays and strings.
 - the split word arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
