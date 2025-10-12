@@ -8,8 +8,6 @@ TODO
 
 - (not needed anymore if everything is saved on the stack?:) can the compiler give a warning if you use R0/R1 (or whatever the temp storage is) in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
 
-- fix crash for  txt.print_l(conv.str_l(0))
-
 
 STRUCTS and TYPED POINTERS
 --------------------------

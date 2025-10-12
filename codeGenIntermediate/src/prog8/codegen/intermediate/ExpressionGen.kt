@@ -815,7 +815,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.BYTE, reg1 = wordreg, reg2=tr.resultReg), null)
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=wordreg), null)
                     }
-                    BaseDataType.UWORD -> {
+                    BaseDataType.UWORD, BaseDataType.POINTER -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
                         addInstr(result, IRInstruction(Opcode.EXT, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
@@ -823,7 +823,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
-                    else -> throw AssemblyError("weird cast value type ${cast.position}")
+                    else -> throw AssemblyError("weird cast $valueDt to long ${cast.position}")
                 }
             }
             BaseDataType.FLOAT -> {

@@ -3127,6 +3127,14 @@ $endLabel""")
                         RegisterOrPair.XY -> asmgen.out("  stx  $targetAsmVarName |  sty  $targetAsmVarName+1")
                         else -> throw AssemblyError("non-word regs")
                     }
+                } else if(targetDt.isLong) {
+                    when(regs) {
+                        RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
+                        RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                        RegisterOrPair.XY -> asmgen.out("  stx  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                        else -> throw AssemblyError("non-word regs")
+                    }
+                    asmgen.out("  lda  #0 |  sta  $targetAsmVarName+2 |  sta  $targetAsmVarName+3")
                 } else {
                     throw AssemblyError("cannot assign pointer to $targetDt")
                 }

@@ -1639,6 +1639,10 @@ internal class AstChecker(private val program: Program,
                 errors.err("invalid type cast", typecast.position)
         }
 
+        if(typecast.implicit && typecast.type.isLong && typecast.expression.inferType(program).isPointer) {
+            errors.err("cannot use a pointer as a long, a pointer is an unsigned word", typecast.position)
+        }
+
         super.visit(typecast)
     }
 

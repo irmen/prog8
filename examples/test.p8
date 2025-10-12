@@ -35,14 +35,8 @@ main {
         txt.nl()
 
 
-;        txt.print_l(conv.str_l(0))      ; TODO fix crash
-;        txt.print_l(conv.str_l(987654))      ; TODO fix crash
-;        txt.print_l(conv.str_l(-12345))      ; TODO fix crash
-
-        lv1 = 999999
         lv2 = 555555
         lv3 = 222222
-
         txt.print_bool(lv1 >= lv2+4*lv3)
 
         txt.nl()
