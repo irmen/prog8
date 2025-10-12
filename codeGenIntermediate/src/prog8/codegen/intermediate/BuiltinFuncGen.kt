@@ -230,7 +230,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcSgn(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(call.args.single())
-        val resultReg = codeGen.registers.next(tr.dt)
+        val resultReg = codeGen.registers.next(IRDataType.BYTE)
 
         if(tr.dt==IRDataType.FLOAT) {
             addToResult(result, tr, -1, tr.resultFpReg)
@@ -267,7 +267,14 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 }
                 return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
             }
-            BaseDataType.LONG -> TODO("SQRT LONG")
+            BaseDataType.LONG -> {
+                addToResult(result, tr, tr.resultReg, -1)
+                val resultReg = codeGen.registers.next(IRDataType.WORD)     // sqrt of a long still produces just a word result
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.SQRT, IRDataType.LONG, reg1=resultReg, reg2=tr.resultReg)
+                }
+                return ExpressionCodeResult(result, IRDataType.WORD, resultReg, -1)
+            }
             BaseDataType.FLOAT -> {
                 addToResult(result, tr, -1, tr.resultFpReg)
                 val resultFpReg = codeGen.registers.next(IRDataType.FLOAT)

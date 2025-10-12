@@ -2867,7 +2867,16 @@ $endLabel""")
                     BaseDataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
+                    BaseDataType.LONG -> {
+                        asmgen.out("""
+                            lda  $sourceAsmVarName
+                            sta  $targetAsmVarName
+                            lda  $sourceAsmVarName+1
+                            sta  $targetAsmVarName+1
+                            lda  #0
+                            sta  $targetAsmVarName+2
+                            sta  $targetAsmVarName+3""")
+                    }
                     BaseDataType.FLOAT -> {
                         asmgen.out("""
                             lda  #<$targetAsmVarName
@@ -2965,7 +2974,14 @@ $endLabel""")
                         else
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
+                    BaseDataType.LONG -> {
+                        asmgen.out("""
+                            st${regs.toString().lowercase()}  $targetAsmVarName
+                            lda  #0
+                            sta  $targetAsmVarName+1
+                            sta  $targetAsmVarName+2
+                            sta  $targetAsmVarName+3""")
+                    }
                     BaseDataType.FLOAT -> {
                         when(regs) {
                             RegisterOrPair.A -> asmgen.out("  tay")
@@ -3005,7 +3021,10 @@ $endLabel""")
                         asmgen.signExtendAYlsb(sourceDt)
                         asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
                     }
-                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
+                    BaseDataType.LONG -> {
+                        asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
+                        asmgen.signExtendLongVariable(targetAsmVarName, sourceDt)
+                    }
                     BaseDataType.FLOAT -> {
                         when(regs) {
                             RegisterOrPair.A -> {}
@@ -3037,7 +3056,15 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
-                    BaseDataType.LONG -> TODO("assign typecasted to LONG")
+                    BaseDataType.LONG -> {
+                        when(regs) {
+                            RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
+                            RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            RegisterOrPair.XY -> asmgen.out("  stx  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                            else -> throw AssemblyError("non-word regs")
+                        }
+                        asmgen.out("  lda  #0 |  sta  $targetAsmVarName+2 |  sta  $targetAsmVarName+3")
+                    }
                     BaseDataType.FLOAT -> {
                         if(regs!=RegisterOrPair.AY)
                             throw AssemblyError("only supports AY here")

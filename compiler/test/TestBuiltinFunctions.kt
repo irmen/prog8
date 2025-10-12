@@ -184,5 +184,23 @@ main {
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("sgn") {
+        val src="""
+main {
+    sub start() {
+        byte @shared b1 = -100
+        word @shared w1 = -1000
+        long @shared l1 = -1000000
+        
+        cx16.r0sL = sgn(b1)
+        cx16.r1sL = sgn(w1)
+        cx16.r2sL = sgn(l1)
+    }
+}"""
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
 })
 

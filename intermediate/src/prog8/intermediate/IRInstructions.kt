@@ -1086,10 +1086,16 @@ data class IRInstruction(
         if(type==IRDataType.WORD) {
             // some word instructions have byte reg1
             return when (opcode) {
-                Opcode.STOREZX, Opcode.SQRT -> IRDataType.BYTE
+                Opcode.SGN, Opcode.STOREZX, Opcode.SQRT -> IRDataType.BYTE
                 Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> IRDataType.LONG
-                else -> IRDataType.WORD
+                else -> type
             }
+        }
+        if(type==IRDataType.LONG) {
+            return if(opcode==Opcode.SGN)
+                IRDataType.BYTE
+            else
+                type
         }
         if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI)
             return IRDataType.WORD

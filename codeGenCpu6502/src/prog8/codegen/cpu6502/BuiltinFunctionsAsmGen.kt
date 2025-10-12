@@ -501,7 +501,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
-            BaseDataType.LONG -> TODO("sqrt LONG")
+            BaseDataType.LONG -> TODO("sqrt LONG ${fcall.position}")
             BaseDataType.FLOAT -> {
                 asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
                 assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
@@ -867,7 +867,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             BaseDataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
             BaseDataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
             BaseDataType.WORD -> asmgen.out("  jsr  prog8_lib.func_sign_w_into_A")
-            BaseDataType.LONG -> TODO("sgn LONG")
+            BaseDataType.LONG -> asmgen.out("  jsr  prog8_lib.func_sign_l_r14r15_into_A")          // note: long arg is stored in R14:R15
             BaseDataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
             else -> throw AssemblyError("weird type $dt")
         }
@@ -1769,7 +1769,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val varname = "prog8_lib.func_${call.name}._arg_${paramName}"
                     val src = when  {
                         conv.dt==BaseDataType.FLOAT -> getSourceForFloat(value)
-                        conv.dt==BaseDataType.LONG -> TODO("LONG argument for builtin func")
+                        conv.dt==BaseDataType.LONG -> TODO("LONG argument for builtin func ${call.position}")
                         conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
                             val addr = PtAddressOf(DataType.forDt(conv.dt).typeForAddressOf(false), false, value.position)

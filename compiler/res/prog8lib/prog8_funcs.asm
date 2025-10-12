@@ -89,16 +89,38 @@ _possibly_zero	cmp  #0
 
 func_sign_w_into_A	.proc
 		cpy  #0
-		beq  _possibly_zero
-		bmi  _neg
-_pos		lda  #1
-		rts
-_neg		lda  #-1
-		rts
-_possibly_zero	cmp  #0
-		bne  _pos
+		bmi  _negative
+		bne  _positive
+		cmp  #0
+		beq  _zero
+_positive	lda  #1
+_zero		rts
+_negative	lda  #-1
 		rts
 		.pend
+
+func_sign_l_r14r15_into_A      .proc
+    lda  cx16.r14+3              ; msb
+    bmi  _negative
+    bne  _positive
+    lda  cx16.r14+2
+    bne  _positive
+    lda  cx16.r14+1
+    bne  _positive
+    lda  cx16.r14
+    beq  _zero
+    lda  #1
+_zero
+    rts
+_negative
+    lda  #-1
+    rts
+_positive
+    lda  #1
+    rts
+
+.pend
+
 
 
 func_sqrt16_into_A	.proc
