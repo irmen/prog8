@@ -1678,14 +1678,16 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, true)
+            // TODO can't efficiently preserve R14:R15 on the stack because the result of the routine is likely to be in CPU registers,
+            //      which in turn would be clobbered by popping stuff from the stack...
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15_32, true)
             when(resultRegister) {
-                RegisterOrPair.AX -> asmgen.out("  lda  cx16.r1 |  ldx  cx16.r1+1")
-                null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r1 |  ldy  cx16.r1+1")
-                RegisterOrPair.XY -> asmgen.out("  ldx  cx16.r1 |  ldy  cx16.r1+1")
+                RegisterOrPair.AX -> asmgen.out("  lda  cx16.r15 |  ldx  cx16.r15+1")
+                null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r15 |  ldy  cx16.r15+1")
+                RegisterOrPair.XY -> asmgen.out("  ldx  cx16.r15 |  ldy  cx16.r15+1")
                 in Cx16VirtualRegisters -> {
                     val regname = resultRegister.name.lowercase()
-                    asmgen.out("  lda  cx16.r1 |  sta  cx16.$regname |  lda  cx16.r1+1 |  sta  cx16.$regname+1")
+                    asmgen.out("  lda  cx16.r15 |  sta  cx16.$regname |  lda  cx16.r15+1 |  sta  cx16.$regname+1")
                 }
                 else -> throw AssemblyError("invalid reg")
             }
@@ -1711,15 +1713,17 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, true)
+            // TODO can't efficiently preserve R14:R15 on the stack because the result of the routine is likely to be in CPU registers,
+            //      which in turn would be clobbered by popping stuff from the stack...
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15_32, true)
             when(resultRegister) {
-                RegisterOrPair.AX -> asmgen.out("  lda  cx16.r0 |  ldx  cx16.r0+1")
-                null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r0 |  ldy  cx16.r0+1")
-                RegisterOrPair.XY -> asmgen.out("  ldx  cx16.r0 |  ldy  cx16.r0+1")
+                RegisterOrPair.AX -> asmgen.out("  lda  cx16.r14 |  ldx  cx16.r14+1")
+                null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r14 |  ldy  cx16.r14+1")
+                RegisterOrPair.XY -> asmgen.out("  ldx  cx16.r14 |  ldy  cx16.r14+1")
                 in Cx16VirtualRegisters -> {
-                    if(resultRegister!=RegisterOrPair.R0) {
+                    if(resultRegister!=RegisterOrPair.R14) {
                         val regname = resultRegister.name.lowercase()
-                        asmgen.out("  lda  cx16.r0 |  sta  cx16.$regname |  lda  cx16.r0+1 |  sta  cx16.$regname+1")
+                        asmgen.out("  lda  cx16.r14 |  sta  cx16.$regname |  lda  cx16.r14+1 |  sta  cx16.$regname+1")
                     }
                 }
                 else -> throw AssemblyError("invalid reg")

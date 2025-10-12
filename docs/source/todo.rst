@@ -1,6 +1,10 @@
 TODO
 ====
 
+- add bcd.addto()/subto() routines for in-place addition and subtraction
+
+- optimizedBitwiseExpr(): use R14:R15 instead to save copying/stack manipulation?
+
 - use R12-R15 as temp registers with longs instead of R0-R3  (much less chance on clobbering)
   check usages of R0R1_32, because all usages of R2R3_32 have already been corrected
   update/remove the warning in the docs about this

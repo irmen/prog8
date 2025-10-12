@@ -1262,10 +1262,11 @@ internal class AssignmentAsmGen(
                     return true
                 }
 
-                assignExpressionToRegister(expr.left, RegisterOrPair.R0R1_32, signed)
+                // TODO: cannot preserve R14:R15 on the stack here because the stack already contains a value that we need to pop
+                assignExpressionToRegister(expr.left, RegisterOrPair.R14R15_32, signed)
                 asmgen.out("  pla |  sta  P8ZP_SCRATCH_REG")
-                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r0", expr.operator, "P8ZP_SCRATCH_REG")
-                assignRegisterLong(target, RegisterOrPair.R0R1_32)
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r14", expr.operator, "P8ZP_SCRATCH_REG")
+                assignRegisterLong(target, RegisterOrPair.R14R15_32)
                 return true
             }
         }
@@ -1401,9 +1402,13 @@ internal class AssignmentAsmGen(
                     return true
                 }
 
-                assignExpressionToRegister(expr.left, RegisterOrPair.R0R1_32, signed)
-                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r0", expr.operator, shifts)
-                assignRegisterLong(target, RegisterOrPair.R0R1_32)
+                if(target.register!=RegisterOrPair.R14R15_32)
+                    asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
+                assignExpressionToRegister(expr.left, RegisterOrPair.R14R15_32, signed)
+                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r14", expr.operator, shifts)
+                assignRegisterLong(target, RegisterOrPair.R14R15_32)
+                if(target.register!=RegisterOrPair.R14R15_32)
+                    asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
                 return true
             }
         }
@@ -1995,6 +2000,7 @@ internal class AssignmentAsmGen(
                 }
             }
 
+            // TODO use R14:R15 instead
             val targetreg = target.register
             if(targetreg!=RegisterOrPair.R12R13_32) {
                 asmgen.pushLongRegisters(RegisterOrPair.R12R13_32, 1)
@@ -2006,8 +2012,10 @@ internal class AssignmentAsmGen(
                 augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r12", expr.operator, constval)
             else if(varname!=null)
                 augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r12", expr.operator, varname)
-            else
+            else {
+                // TODO: preserve R14:R15 on stack here?  (the function does't do it for us)
                 augmentableAsmGen.inplacemodificationLongWithExpression("cx16.r12", expr.operator, expr.right)
+            }
             assignRegisterLong(target, RegisterOrPair.R12R13_32)
             if(targetreg!=RegisterOrPair.R12R13_32) {
                 asmgen.popLongRegisters(RegisterOrPair.R12R13_32, 1)
@@ -2721,9 +2729,11 @@ $endLabel""")
             }
             is PtNumber -> throw AssemblyError("casting a long number to byte should have been const-folded away ${value.position}")
             else -> {
-                assignExpressionToRegister(value, RegisterOrPair.R0R1_32, true)
-                asmgen.out("  lda  cx16.r0")
+                asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
+                assignExpressionToRegister(value, RegisterOrPair.R14R15_32, true)
+                asmgen.out("  lda  cx16.r14")
                 assignRegisterByte(target, CpuRegister.A, true, false)
+                asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
             }
         }
     }

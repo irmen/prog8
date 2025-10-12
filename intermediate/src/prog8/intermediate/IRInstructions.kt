@@ -1085,17 +1085,15 @@ data class IRInstruction(
         }
         if(type==IRDataType.WORD) {
             // some word instructions have byte reg1
-            return when (opcode) {
-                Opcode.SGN, Opcode.STOREZX, Opcode.SQRT -> IRDataType.BYTE
-                Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> IRDataType.LONG
-                else -> type
+            when (opcode) {
+                Opcode.SGN, Opcode.STOREZX, Opcode.SQRT -> return IRDataType.BYTE
+                Opcode.EXT, Opcode.EXTS, Opcode.CONCAT -> return IRDataType.LONG
+                else -> {}
             }
         }
         if(type==IRDataType.LONG) {
-            return if(opcode==Opcode.SGN)
-                IRDataType.BYTE
-            else
-                type
+            if(opcode==Opcode.SGN)
+                return IRDataType.BYTE
         }
         if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI)
             return IRDataType.WORD

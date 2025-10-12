@@ -554,8 +554,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
     }
 
     internal fun inplacemodificationLongWithExpression(targetVar: String, operator: String, value: PtExpression) {
-        assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R0R1_32, value.type.isSigned)
-        inplacemodificationLongWithVariable(targetVar, operator, "cx16.r0")
+        // it's not an expression so no need to preserve R14:R15
+        assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
+        inplacemodificationLongWithVariable(targetVar, operator, "cx16.r14")
     }
 
     internal fun inplacemodificationLongWithVariable(targetVar: String, operator: String, sourceVar: String) {
