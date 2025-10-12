@@ -264,6 +264,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     if (target.dt.isByte) inplaceByteAdd(target, value)
                     else if (target.dt.isWord) inplaceWordAdd(target, value)
                     else if (target.dt.isFloat) inplaceFloatAddOrMul(target, "FADD", value)
+                    else if (target.dt.isLong) inplaceLongAdd(target, value)
                     else throw AssemblyError("weird dt ${target.dt} ${target.position}")
                 }
             }
@@ -275,6 +276,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     if (target.dt.isByte) inplaceByteSub(target, value)
                     else if (target.dt.isWord) inplaceWordSub(target, value)
                     else if (target.dt.isFloat) inplaceFloatSubOrDiv(target, "FSUB", value)
+                    else if (target.dt.isLong) inplaceLongSub(target, value)
                     else throw AssemblyError("weird dt ${target.position}")
                 }
             }
@@ -282,12 +284,14 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 if(target.dt.isByte) TODO("inplaceByteMul(target, value)  ${target.position}")
                 else if(target.dt.isWord) inplaceWordMul(target, value)
                 else if(target.dt.isFloat)  inplaceFloatAddOrMul(target, "FMULT", value)
+                else if(target.dt.isLong) TODO("inplace long mul ${target.position}")
                 else throw AssemblyError("weird dt ${target.position}")
             }
             "/" -> {
                 if(target.dt.isByte) TODO("inplaceByteDiv(target, value)  ${target.position}")
                 else if(target.dt.isWord) inplaceWordDiv(target, value)
                 else if(target.dt.isFloat)  inplaceFloatSubOrDiv(target, "FDIV", value)
+                else if(target.dt.isLong) TODO("inplace long div ${target.position}")
                 else throw AssemblyError("weird dt ${target.position}")
             }
             "%" -> TODO("inplace ptr %")
@@ -940,6 +944,24 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  ($zpPtrVar),y""")
             }
             else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    private fun inplaceLongAdd(target: PtrTarget, value: AsmAssignSource) {
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> TODO("inplace long add with ${value.number} ${target.position}")
+            SourceStorageKind.VARIABLE -> TODO("inplace long add with ${value.asmVarname} ${target.position}")
+            SourceStorageKind.EXPRESSION -> TODO("inplace long add with ${value.expression} ${target.position}")
+            else -> TODO("inplace long add with ${value.kind} ${target.position}")
+        }
+    }
+
+    private fun inplaceLongSub(target: PtrTarget, value: AsmAssignSource) {
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> TODO("inplace long sub with ${value.number} ${target.position}")
+            SourceStorageKind.VARIABLE -> TODO("inplace long sub with ${value.asmVarname} ${target.position}")
+            SourceStorageKind.EXPRESSION -> TODO("inplace long sub with ${value.expression} ${target.position}")
+            else -> TODO("inplace long sub with ${value.kind} ${target.position}")
         }
     }
 

@@ -2092,6 +2092,12 @@ internal class AstChecker(private val program: Program,
         super.visit(memread)
     }
 
+    override fun visit(numLiteral: NumericLiteral) {
+        super.visit(numLiteral)
+        if(numLiteral.type== BaseDataType.LONG)  // other smaller types have already been validated
+            checkValueTypeAndRange(DataType.forDt(numLiteral.type), numLiteral)
+    }
+
     private fun allowedMemoryAccessAddressExpression(addressExpression: Expression, program: Program): Boolean {
         val dt = addressExpression.inferType(program)
         if(dt.isUnsignedWord || (dt.isPointer && dt.getOrUndef().sub?.isByteOrBool==true))
@@ -2351,7 +2357,7 @@ internal class AstChecker(private val program: Program,
                 if(value.type==BaseDataType.FLOAT)
                     err("integer value expected instead of float; possible loss of precision")
                 val number=value.number
-                if (number < -2147483647 || number > 2147483647)
+                if (number < -2147483647.0 || number > 2147483647.0)
                     return err("value '$number' out of range for long")
             }
             targetDt.isArray -> {
@@ -2463,7 +2469,7 @@ internal class AstChecker(private val program: Program,
         val sourceIsBitwiseOperatorExpression = (sourceValue as? BinaryExpression)?.operator in BitwiseOperators
         if(sourceDatatype.isWord && targetDatatype.isByte)
             errors.err("cannot assign word to byte, maybe use msb() or lsb()", position)
-        else if(sourceDatatype.isFloat&& targetDatatype.isInteger)
+        else if(sourceDatatype.isFloat && targetDatatype.isInteger)
             errors.err("cannot assign float to ${targetDatatype}; possible loss of precision. Suggestion: round the value or revert to integer arithmetic", position)
         else if(targetDatatype.isUnsignedWord && (sourceDatatype.isPassByRef || sourceDatatype.isPointer)) {
             // this is allowed: a pass-by-reference or pointer datatype into an uword (untyped pointer value).

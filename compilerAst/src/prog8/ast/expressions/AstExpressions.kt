@@ -650,7 +650,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
             BaseDataType.BYTE -> require(number in -128.0..127.0)
             BaseDataType.UWORD -> require(number in 0.0..65535.0)
             BaseDataType.WORD -> require(number in -32768.0..32767.0)
-            BaseDataType.LONG -> require(number in -2147483647.0..2147483647.0)
+            BaseDataType.LONG -> { /*no hard requirement, the range will be checked later to give a proper error message instead of a crash */ }
             BaseDataType.BOOL -> require(number==0.0 || number==1.0)
             BaseDataType.POINTER -> throw FatalAstException("pointer literals should not be created, should have been UWORD $position")
             else ->  require(type.isNumericOrBool) {
@@ -699,8 +699,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                 in -128..127 -> NumericLiteral(BaseDataType.BYTE, dvalue, position)
                 in 0..65535 -> NumericLiteral(BaseDataType.UWORD, dvalue, position)
                 in -32768..32767 -> NumericLiteral(BaseDataType.WORD, dvalue, position)
-                in -2147483647..2147483647 -> NumericLiteral(BaseDataType.LONG, dvalue, position)
-                else -> throw FatalAstException("integer overflow: $dvalue")
+                else -> NumericLiteral(BaseDataType.LONG, dvalue, position)
             }
         }
 

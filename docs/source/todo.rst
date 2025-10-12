@@ -1,7 +1,7 @@
 TODO
 ====
 
-- add bcd.addto()/subto() routines for in-place addition and subtraction
+- fix lv1 |= -1   being  lv1 = 65535  (wrong optimization value)
 
 - optimizedBitwiseExpr(): use R14:R15 instead to save copying/stack manipulation?
 
@@ -11,6 +11,8 @@ TODO
   maybe reduce problem even further by storing/retrieveing the previous value of those registers? we NEED this anyway because expressions can be nested...
 
 - (not needed anymore if everything is saved on the stack?:) can the compiler give a warning if you use R0/R1 (or whatever the temp storage is) in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
+
+- implement inplaceLongAdd/Sub in PointerAssignmentGen
 
 
 STRUCTS and TYPED POINTERS
@@ -30,6 +32,7 @@ STRUCTS and TYPED POINTERS
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- make $8000000 a valid long integer (-2147483648) this is more involved than you think
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1, should both always be 1-based (is this the reason some source lines end up missing in the IR file?)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
 - After long variable type is completed: make all constants long by default (remove type name altogether), reduce to target type implictly if the actual value fits.

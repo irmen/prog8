@@ -332,12 +332,12 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
         fun makeLiteral(literalTextWithGrouping: String, radix: Int): Pair<Double, BaseDataType> {
             val literalText = literalTextWithGrouping.replace("_", "")
-            val integer: Int
+            val integer: Long
             var datatype = BaseDataType.UBYTE
             when (radix) {
                 10 -> {
                     integer = try {
-                        literalText.toInt()
+                        literalText.toLong()
                     } catch(x: NumberFormatException) {
                         throw SyntaxError("invalid decimal literal ${x.message}", ctx.toPosition())
                     }
@@ -356,7 +356,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                     else if(literalText.length>8)
                         datatype = BaseDataType.UWORD
                     try {
-                        integer = literalText.toInt(2)
+                        integer = literalText.toLong(2)
                     } catch(x: NumberFormatException) {
                         throw SyntaxError("invalid binary literal ${x.message}", ctx.toPosition())
                     }
@@ -367,7 +367,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                     else if(literalText.length>2)
                         datatype = BaseDataType.UWORD
                     try {
-                        integer = literalText.lowercase().toLong(16).toInt()
+                        integer = literalText.lowercase().toLong(16)
                     } catch(x: NumberFormatException) {
                         throw SyntaxError("invalid hexadecimal literal ${x.message}", ctx.toPosition())
                     }

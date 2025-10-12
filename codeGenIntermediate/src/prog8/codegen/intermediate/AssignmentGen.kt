@@ -1312,11 +1312,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         } else {
             val shiftTr = expressionEval.translateExpression(operand)
             addToResult(result, shiftTr, shiftTr.resultReg, -1)
-            var shiftReg = shiftTr.resultReg
-            if(vmDt==IRDataType.WORD && shiftTr.dt==IRDataType.BYTE) {
-                shiftReg = codeGen.registers.next(IRDataType.WORD)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=shiftReg, reg2=shiftTr.resultReg), null)
-            }
+            val shiftReg = shiftTr.resultReg
             val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
             val ins = if(constAddress!=null)
                 IRInstruction(opc, vmDt, reg1 = shiftReg, address = constAddress)
@@ -1374,11 +1370,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         } else {
             val shiftTr = expressionEval.translateExpression(operand)
             addToResult(result, shiftTr, shiftTr.resultReg, -1)
-            var shiftReg = shiftTr.resultReg
-            if(vmDt==IRDataType.WORD && shiftTr.dt==IRDataType.BYTE) {
-                shiftReg = codeGen.registers.next(IRDataType.WORD)
-                addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=shiftReg, reg2=shiftTr.resultReg), null)
-            }
+            val shiftReg = shiftTr.resultReg
             addInstr(result, if(constAddress!=null)
                 IRInstruction(Opcode.LSLNM, vmDt, reg1=shiftReg, address = constAddress)
             else

@@ -38,6 +38,36 @@ bcd {
         return a
     }
 
+    sub addtol(^^long a, long b) {
+        ; -- inplace long BCD addition (avoids copying long values by value)
+        setbcd()
+        ;; NOT YET IMPLEMENTED IN PROG8: a^^ += b, so inline asm
+        %asm {{
+            lda  p8v_a
+            ldy  p8v_a+1
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+            clc
+            lda  (P8ZP_SCRATCH_W1),y
+            adc  p8v_b
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            adc  p8v_b+1
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            adc  p8v_b+2
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            adc  p8v_b+3
+            sta  (P8ZP_SCRATCH_W1),y
+        }}
+        clearbcd()
+    }
+
     sub subb(byte a, byte b) -> byte {
         setbcd()
         a -= b
@@ -66,7 +96,39 @@ bcd {
         return a
     }
 
+    sub subfroml(^^long a, long b) {
+        ; -- inplace long BCD subtraction (avoids copying long values by value)
+        setbcd()
+        ;; NOT YET IMPLEMENTED IN PROG8: a^^ -= b, so inline asm
+        %asm {{
+            lda  p8v_a
+            ldy  p8v_a+1
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+            sec
+            lda  (P8ZP_SCRATCH_W1),y
+            sbc  p8v_b
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            sbc  p8v_b+1
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            sbc  p8v_b+2
+            sta  (P8ZP_SCRATCH_W1),y
+            iny
+            lda  (P8ZP_SCRATCH_W1),y
+            sbc  p8v_b+3
+            sta  (P8ZP_SCRATCH_W1),y
+        }}
+        clearbcd()
+    }
+
+
     inline asmsub setbcd() {
+        ; be safe and 6502 compatible and prohibit interrupts during BCD mode
         %asm {{
             php
             sei
