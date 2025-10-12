@@ -13,7 +13,7 @@ fun Number.toHex(): String {
     //  256..65536 -> "$0100".."$ffff"
     //  larger -> "$12345678"
     // negative values are prefixed with '-'.
-    val integer = this.toInt()
+    val integer = this.toLong()
     if(integer<0)
         return '-' + abs(integer).toHex()
     return when (integer) {

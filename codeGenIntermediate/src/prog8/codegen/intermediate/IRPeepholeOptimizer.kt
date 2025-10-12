@@ -415,13 +415,19 @@ jump p8_label_gen_2
                             chunk.instructions.removeAt(idx)
                             changed = true
                         }
+                        -1 if ins.type == IRDataType.LONG -> {
+                            chunk.instructions.removeAt(idx)
+                            changed = true
+                        }
                     }
                 }
                 Opcode.OR -> {
                     if (ins.immediate == 0) {
                         chunk.instructions.removeAt(idx)
                         changed = true
-                    } else if ((ins.immediate == 255 && ins.type == IRDataType.BYTE) || (ins.immediate == 65535 && ins.type == IRDataType.WORD)) {
+                    } else if ((ins.immediate == 255 && ins.type == IRDataType.BYTE) ||
+                               (ins.immediate == 65535 && ins.type == IRDataType.WORD) ||
+                               (ins.immediate == -1 && ins.type == IRDataType.LONG)) {
                         chunk.instructions[idx] = IRInstruction(Opcode.LOAD, ins.type, reg1 = ins.reg1, immediate = ins.immediate)
                         changed = true
                     }

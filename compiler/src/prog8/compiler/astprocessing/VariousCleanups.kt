@@ -208,17 +208,17 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
 
         if(expr.operator=="<<") {
-            // << X --> X   (X is word or byte)
+            // << X --> X   (X is long or word or byte)
             val valueDt = expr.expression.inferType(program)
-            if(valueDt.isBytes || valueDt.isWords) {
+            if(valueDt.isInteger) {
                 return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
             }
         }
 
         if(expr.operator=="^") {
-            // ^ X --> 0  (X is word or byte)
+            // ^ X --> 0  (X is long word or byte)
             val valueDt = expr.expression.inferType(program)
-            if(valueDt.isBytes || valueDt.isWords) {
+            if(valueDt.isInteger) {
                 val zero = NumericLiteral(BaseDataType.UBYTE, 0.0, expr.expression.position)
                 return listOf(IAstModification.ReplaceNode(expr, zero, parent))
             }

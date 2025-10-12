@@ -205,21 +205,27 @@ class TestIRPeepholeOpt: FunSpec({
         val irProg = makeIRProgram(listOf(
             IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=42, immediate = 0),
             IRInstruction(Opcode.AND, IRDataType.WORD, reg1=42, immediate = 0),
+            IRInstruction(Opcode.AND, IRDataType.LONG, reg1=42, immediate = 0),
             IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, immediate = 255),
-            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=42, immediate = 65535)
+            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=42, immediate = 65535),
+            IRInstruction(Opcode.OR, IRDataType.LONG, reg1=42, immediate = -1)
         ))
-        irProg.chunks().single().instructions.size shouldBe 4
+        irProg.chunks().single().instructions.size shouldBe 6
         val opt = IRPeepholeOptimizer(irProg)
         opt.optimize(true, ErrorReporterForTests())
         val instr = irProg.chunks().single().instructions
-        instr.size shouldBe 4
+        instr.size shouldBe 6
         instr[0].opcode shouldBe Opcode.LOAD
         instr[1].opcode shouldBe Opcode.LOAD
         instr[2].opcode shouldBe Opcode.LOAD
         instr[3].opcode shouldBe Opcode.LOAD
+        instr[4].opcode shouldBe Opcode.LOAD
+        instr[5].opcode shouldBe Opcode.LOAD
         instr[0].immediate shouldBe 0
         instr[1].immediate shouldBe 0
-        instr[2].immediate shouldBe 255
-        instr[3].immediate shouldBe 65535
+        instr[2].immediate shouldBe 0
+        instr[3].immediate shouldBe 255
+        instr[4].immediate shouldBe 65535
+        instr[5].immediate shouldBe -1
     }
 })

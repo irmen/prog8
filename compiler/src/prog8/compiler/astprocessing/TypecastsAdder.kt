@@ -90,7 +90,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
         if(leftDt.isKnown && rightDt.isKnown) {
 
             if(expr.operator=="<<" && leftDt.isBytes) {
-                // uword ww = 1 << shift    -->  make the '1' a word constant
+                // uword/ulong ww = 1 << shift    -->  make the '1' a word (or long) constant
                 val leftConst = expr.left.constValue(program)
                 if(leftConst!=null) {
                     val leftConstAsWord =
@@ -98,19 +98,22 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             NumericLiteral(BaseDataType.UWORD, leftConst.number, leftConst.position)
                         else
                             NumericLiteral(BaseDataType.WORD, leftConst.number, leftConst.position)
+                    val leftConstAsLong = NumericLiteral(BaseDataType.LONG, leftConst.number, leftConst.position)
                     val modifications = mutableListOf<IAstModification>()
                     if (parent is Assignment) {
                         if (parent.target.inferType(program).isWords) {
                             modifications += IAstModification.ReplaceNode(expr.left, leftConstAsWord, expr)
-//                            if(rightDt.isBytes)
-//                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
+                        }
+                        else if (parent.target.inferType(program).isLong) {
+                            modifications += IAstModification.ReplaceNode(expr.left, leftConstAsLong, expr)
                         }
                     } else if (parent is TypecastExpression && parent.type.isUnsignedWord && parent.parent is Assignment) {
                         val assign = parent.parent as Assignment
                         if (assign.target.inferType(program).isWords) {
                             modifications += IAstModification.ReplaceNode(expr.left, leftConstAsWord, expr)
-//                            if(rightDt.isBytes)
-//                                modifications += IAstModification.ReplaceNode(expr.right, TypecastExpression(expr.right, leftConstAsWord.type, true, expr.right.position), expr)
+                        }
+                        else if (assign.target.inferType(program).isLong) {
+                            modifications += IAstModification.ReplaceNode(expr.left, leftConstAsLong, expr)
                         }
                     }
                     if(modifications.isNotEmpty())
@@ -129,7 +132,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             expr))
                     }
                     if(rightCv!=null && rightCv.number<0) {
-                        val value = if(leftDt.isBytes) 256+rightCv.number else 65536+rightCv.number
+                        val value = if(leftDt.isBytes) 256+rightCv.number else if(leftDt.isWords) 65536+rightCv.number else 0xffffffffL+rightCv.number
                         return listOf(IAstModification.ReplaceNode(
                             expr.right,
                             NumericLiteral(leftDt.getOrUndef().base, value, expr.right.position),

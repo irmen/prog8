@@ -375,7 +375,8 @@ _after:
 
         if(expr.operator=="*" && expr.inferType(program).isInteger && expr.left isSameAs expr.right) {
             // replace squaring with call to builtin function to do this in a more optimized way
-            val function = if(expr.left.inferType(program).isBytes) "prog8_lib_square_byte" else "prog8_lib_square_word"
+            val leftDt = expr.left.inferType(program)
+            val function = if(leftDt.isBytes) "prog8_lib_square_byte" else if(leftDt.isWords) "prog8_lib_square_word" else "prog8_lib_square_long"
             val squareCall = FunctionCallExpression(
                 IdentifierReference(listOf(function), expr.position),
                 mutableListOf(expr.left.copy()), expr.position)

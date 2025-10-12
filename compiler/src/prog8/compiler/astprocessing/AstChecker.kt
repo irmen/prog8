@@ -2065,6 +2065,8 @@ internal class AstChecker(private val program: Program,
                     !iterableEltDt.isByte
                 } else if (elementDt.isWords) {
                     !iterableEltDt.isWord
+                } else if (elementDt.isLong) {
+                    !iterableEltDt.isLong
                 } else {
                     false
                 }
