@@ -1302,6 +1302,11 @@ asmsub  init_system()  {
         lda  #0
         sta  c64.BGCOL0
         jsr  disable_runstop_and_charsetswitch
+        ; basic is not banked in, adjust MEMTOP
+        ldx  #<$c000
+        ldy  #>$c000
+        clc
+        jsr  cbm.MEMTOP
         cli
         rts
     }}
@@ -1323,6 +1328,10 @@ asmsub  cleanup_at_exit() {
         sta  $ff00          ; default bank 15
         jsr  cbm.CLRCHN		; reset i/o channels
         jsr  enable_runstop_and_charsetswitch
+        ldx  #<$ff00
+        ldy  #>$ff00
+        clc
+        jsr  cbm.MEMTOP     ; adjust MEMTOP to original value again
         lda  _exitcarry
         lsr  a
         lda  _exitcode

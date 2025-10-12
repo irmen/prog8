@@ -1,24 +1,52 @@
 %import textio
 %zeropage basicsafe
+;;%option no_sysinit
 
 main {
     sub start() {
-        long @shared lv1 = -123456
-
-        txt.print_l(abs(lv1))
-        txt.spc()
-
-        lv1 = -99999
-        lv1 = abs(lv1)
-        txt.print_l(abs(lv1))
+        txt.print("memtop=")
+        cx16.r0 = cbm.MEMTOP(0, true)
+        txt.print_uwhex(cx16.r0, true)
         txt.nl()
 
-        cx16.r4 = $1122
-        cx16.r5 = $abcd
-        txt.print_ulhex(mklong(cx16.r5H,cx16.r5L,cx16.r4H,cx16.r4L), true)
+        txt.print("bfff: ")
+        @($bfff) = 123
+        cx16.r9++
+        txt.print_ub(@($bfff))
         txt.spc()
-        txt.print_ulhex(mklong2(cx16.r5,cx16.r4), true)
+        @($bfff) = 0
+        cx16.r9++
+        txt.print_ub(@($bfff))
         txt.nl()
 
+        txt.print("c000: ")
+        @($c000) = 123
+        cx16.r9++
+        txt.print_ub(@($c000))
+        txt.spc()
+        @($c000) = 0
+        cx16.r9++
+        txt.print_ub(@($c000))
+        txt.nl()
+
+        txt.print("d000: ")
+        @($d000) = 123
+        cx16.r9++
+        txt.print_ub(@($d000))
+        txt.spc()
+        @($d000) = 0
+        cx16.r9++
+        txt.print_ub(@($d000))
+        txt.nl()
+
+        txt.print("e000: ")
+        @($e000) = 123
+        cx16.r9++
+        txt.print_ub(@($e000))
+        txt.spc()
+        @($e000) = 0
+        cx16.r9++
+        txt.print_ub(@($e000))
+        txt.nl()
     }
 }
