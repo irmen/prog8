@@ -386,31 +386,31 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             val varname = asmgen.asmVariableName(expr)
             asmgen.out("""
                 lda  $varname
-                cmp  #${hex.substring(6, 8)}
+                cmp  #$${hex.substring(6, 8)}
                 bne  $falseLabel
                 lda  $varname+1
-                cmp  #${hex.substring(4, 6)}
+                cmp  #$${hex.substring(4, 6)}
                 bne  $falseLabel
                 lda  $varname+2
-                cmp  #${hex.substring(2, 4)}
+                cmp  #$${hex.substring(2, 4)}
                 bne  $falseLabel
                 lda  $varname+3
-                cmp  #${hex.take(2)}
+                cmp  #$${hex.take(2)}
                 bne  $falseLabel""")
         } else {
             asmgen.assignExpressionToRegister(expr, RegisterOrPair.R0R1_32)
             asmgen.out("""
                 lda  cx16.r0
-                cmp  #${hex.substring(6, 8)}
+                cmp  #$${hex.substring(6, 8)}
                 bne  $falseLabel
                 lda  cx16.r0+1
-                cmp  #${hex.substring(4, 6)}
+                cmp  #$${hex.substring(4, 6)}
                 bne  $falseLabel
                 lda  cx16.r0+2
-                cmp  #${hex.substring(2, 4)}
+                cmp  #$${hex.substring(2, 4)}
                 bne  $falseLabel
                 lda  cx16.r0+3
-                cmp  #${hex.take(2)}
+                cmp  #$${hex.take(2)}
                 bne  $falseLabel""")
         }
     }

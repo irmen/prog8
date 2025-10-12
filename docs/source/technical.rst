@@ -129,8 +129,8 @@ All elements in scoped names such as ``main.routine.var1`` are prefixed so this 
         }}
 
 
-Subroutine Calling Convention
------------------------------
+Subroutine Calling Conventions
+------------------------------
 
 Calling a subroutine requires three steps:
 

@@ -1437,22 +1437,7 @@ _jump                       jmp  (${target.asmLabel})
 +""")
             }
         } else {
-
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.R2R3_32, left.type.isSigned)
-            asmgen.assignExpressionToRegister(right, RegisterOrPair.R0R1_32, right.type.isSigned)
-            asmgen.out("""
-                lda  cx16.r0
-                cmp  cx16.r2
-                bne  +
-                lda  cx16.r0+1
-                cmp  cx16.r2+1
-                bne  +
-                lda  cx16.r0+2
-                cmp  cx16.r2+2
-                bne  +
-                lda  cx16.r0+3
-                cmp  cx16.r2+3
-+""")
+            TODO("long == value expression ${right.position}")
         }
 
         if(notEquals) {
@@ -1475,24 +1460,25 @@ _jump                       jmp  (${target.asmLabel})
         jump: PtJump?,
         stmt: PtIfElse
     ) {
+        // this comparison is not part of an expression but part of an if statement, there's no need to save the previous values of the temp registers
         if(operator=="<" || operator ==">=") {
-            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R2R3_32, left.type.isSigned)
-            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R14R15_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R12R13_32, left.type.isSigned)
         } else {
             // flip operands
-            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R2R3_32, left.type.isSigned)
-            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R0R1_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R14R15_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R12R13_32, left.type.isSigned)
         }
         asmgen.out("""
             sec
-            lda  cx16.r0
-            sbc  cx16.r2
-            lda  cx16.r0+1
-            sbc  cx16.r2+1
-            lda  cx16.r0+2
-            sbc  cx16.r2+2
-            lda  cx16.r0+3
-            sbc  cx16.r2+3""")
+            lda  cx16.r12
+            sbc  cx16.r14
+            lda  cx16.r12+1
+            sbc  cx16.r14+1
+            lda  cx16.r12+2
+            sbc  cx16.r14+2
+            lda  cx16.r12+3
+            sbc  cx16.r14+3""")
         when(operator) {
             "<", ">" -> {
                 if (jump != null)

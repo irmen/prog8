@@ -2,12 +2,13 @@ TODO
 ====
 
 - use R12-R15 as temp registers with longs instead of R0-R3  (much less chance on clobbering)
-  update the warning in the docs about this
+  check usages of R0R1_32, because all usages of R2R3_32 have already been corrected
+  update/remove the warning in the docs about this
   maybe reduce problem even further by storing/retrieveing the previous value of those registers? we NEED this anyway because expressions can be nested...
 
-- (not needed anymore if everything is saved on the stack:) can the compiler give a warning if you use R0/R1 (or whatever the temp storage is) in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
+- (not needed anymore if everything is saved on the stack?:) can the compiler give a warning if you use R0/R1 (or whatever the temp storage is) in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
 
-- fix crash for  txt.print_l(conv.str_l(0))
+- fix crash for  txt.print_l(conv.str_l(0))   and:    txt.print_l(cx16.r0)
 
 
 STRUCTS and TYPED POINTERS

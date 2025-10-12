@@ -418,13 +418,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.out("""
                         sec
                         lda  $var1
-                        sbc  #${hex.substring(6, 8)}
+                        sbc  #$${hex.substring(6, 8)}
                         lda  $var1+1
-                        sbc  #${hex.substring(4, 6)}
+                        sbc  #$${hex.substring(4, 6)}
                         lda  $var1+2
-                        sbc  #${hex.substring(2, 4)}
+                        sbc  #$${hex.substring(2, 4)}
                         lda  $var1+3
-                        sbc  #${hex.take(2)}""")
+                        sbc  #$${hex.take(2)}""")
                 } else if(arg1 is PtIdentifier && arg2 is PtIdentifier) {
                     val var1 = asmgen.asmVariableName(arg1)
                     val var2 = asmgen.asmVariableName(arg2)
@@ -439,18 +439,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         lda  $var1+3
                         sbc  $var2+3""")
                 } else {
-                    assignAsmGen.assignExpressionToRegister(arg2, RegisterOrPair.R2R3_32, true)
-                    assignAsmGen.assignExpressionToRegister(arg1, RegisterOrPair.R0R1_32, true)
+                    // cmp() doesn't return a value and as such can't be used in an expression, so no need to save the temp registers' original values
+                    assignAsmGen.assignExpressionToRegister(arg2, RegisterOrPair.R14R15_32, true)
+                    assignAsmGen.assignExpressionToRegister(arg1, RegisterOrPair.R12R13_32, true)
                     asmgen.out("""
                         sec
-                        lda  cx16.r0
-                        sbc  cx16.r2
-                        lda  cx16.r0+1
-                        sbc  cx16.r2+1
-                        lda  cx16.r0+2
-                        sbc  cx16.r2+2
-                        lda  cx16.r0+3
-                        sbc  cx16.r2+3""")
+                        lda  cx16.r12
+                        sbc  cx16.r14
+                        lda  cx16.r12+1
+                        sbc  cx16.r14+1
+                        lda  cx16.r12+2
+                        sbc  cx16.r14+2
+                        lda  cx16.r12+3
+                        sbc  cx16.r14+3""")
                 }
             } else
                 throw AssemblyError("args for cmp() should have same dt")

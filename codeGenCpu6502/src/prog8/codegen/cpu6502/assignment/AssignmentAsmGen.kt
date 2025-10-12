@@ -1753,8 +1753,27 @@ internal class AssignmentAsmGen(
                         asmgen.out("  jsr  prog8_lib.long_sub_inplace")
                     }
                     return true
+                } else if(target.kind == TargetStorageKind.REGISTER) {
+                    val startreg = target.register!!.startregname()
+                    asmgen.assignExpressionTo(left, target)
+                    val rightsym = asmgen.asmVariableName(right)
+                    asmgen.out(
+                        """
+                        lda  #<$rightsym
+                        ldy  #>$rightsym
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<cx16.$startreg
+                        ldy  #>cx16.$startreg"""
+                    )
+                    if (expr.operator == "+") {
+                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
+                    } else {
+                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
+                    }
+                    return true
                 } else {
-                    TODO("add/subtract long ${target.position} - use simple expressions and temporary variables for now")
+                    TODO("add/subtract long into ${target.kind} at ${target.position} - use simple expressions and temporary variables for now")
                 }
             }
             is PtNumber -> {
@@ -1794,7 +1813,7 @@ internal class AssignmentAsmGen(
                     }
                     return true
                 } else {
-                    TODO("add/subtract long ${target.position} - use simple expressions and temporary variables for now")
+                    TODO("add/subtract long into ${target.kind} ${target.position} - use simple expressions and temporary variables for now")
                 }
             }
             else -> {

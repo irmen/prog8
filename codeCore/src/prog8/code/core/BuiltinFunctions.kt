@@ -37,7 +37,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
         val returns: ReturnConvention = when (returnType) {
             BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(returnType, RegisterOrPair.A)
             BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(returnType, RegisterOrPair.AY)
-            BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R0R1_32)
+            BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R14R15_32)
             BaseDataType.FLOAT -> ReturnConvention(returnType, RegisterOrPair.FAC1)
             in IterableDatatypes -> ReturnConvention(returnType!!, RegisterOrPair.AY)
             null -> ReturnConvention(null, null)
@@ -46,7 +46,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                 when (val paramType = actualParamTypes.first()) {
                     BaseDataType.UBYTE, BaseDataType.BYTE -> ReturnConvention(paramType, RegisterOrPair.A)
                     BaseDataType.UWORD, BaseDataType.WORD -> ReturnConvention(paramType, RegisterOrPair.AY)
-                    BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R0R1_32)
+                    BaseDataType.LONG -> ReturnConvention(returnType, RegisterOrPair.R14R15_32)
                     BaseDataType.FLOAT -> ReturnConvention(paramType, RegisterOrPair.FAC1)
                     in IterableDatatypes -> ReturnConvention(paramType, RegisterOrPair.AY)
                     else -> ReturnConvention(paramType, null)
@@ -63,7 +63,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                 val paramConv = when(val paramType = actualParamTypes[0]) {
                     BaseDataType.UBYTE, BaseDataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
                     BaseDataType.UWORD, BaseDataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    BaseDataType.LONG -> ParamConvention(paramType, RegisterOrPair.R0R1_32, false)
+                    BaseDataType.LONG -> ParamConvention(paramType, RegisterOrPair.R14R15_32, false)
                     BaseDataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // NOTE: for builtin functions, floating point arguments are passed by reference (so you get a pointer in AY)
                     in IterableDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
                     else -> ParamConvention(paramType, null, false)
@@ -95,7 +95,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "ror"     to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.LONG)),
     "rol2"    to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.LONG)),
     "ror2"    to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.LONG)),
-    "cmp"     to FSignature(false, null, FParam("value1", *IntegerDatatypes), FParam("value2", *NumericDatatypes)),  // cmp returns a status in the carry flag, but not a proper return value
+    "cmp"     to FSignature(false, null, FParam("value1", *IntegerDatatypes), FParam("value2", *NumericDatatypes)),  // cmp returns result in the cpu status flags, but not asa proper return value
     "prog8_lib_stringcompare"     to FSignature(true, BaseDataType.BYTE, FParam("str1", BaseDataType.STR), FParam("str2", BaseDataType.STR)),
     "prog8_lib_square_byte"       to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
     "prog8_lib_square_word"       to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.WORD, BaseDataType.UWORD)),

@@ -950,10 +950,12 @@ class AsmGen6502Internal (
                             }
                         } else throw AssemblyError("weird casted type")
                     } else {
-                        TODO("assign typecasted expression $value to a long target  ${target.position}  - use simple expressions and temporary variables for now")
+                        TODO("assign typecasted expression $value to a long target ${target.kind} at  ${target.position}  - use simple expressions and temporary variables for now")
                     }
+                } else if(target.kind == TargetStorageKind.REGISTER) {
+                    assignExpressionToRegister(value, target.register!!, true)
                 } else {
-                    TODO("assign long expression $value to a target  ${target.position} - use simple expressions and temporary variables for now")
+                    TODO("assign long expression $value to a target ${target.kind} at  ${target.position} - use simple expressions and temporary variables for now")
                 }
             }
             target.datatype.isFloat -> {
