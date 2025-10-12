@@ -655,8 +655,8 @@ internal class AssignmentAsmGen(
                     }
                 }
                 returnDt== BaseDataType.LONG -> {
-                    // longs are in R0:R1 (r0=lsw, r1=msw)
-                    assignRegisterLong(target, RegisterOrPair.R0R1_32)
+                    // longs are in R14:R15 (r14=lsw, r15=msw)
+                    assignRegisterLong(target, RegisterOrPair.R14R15_32)
                 }
                 returnDt==BaseDataType.FLOAT -> {
                     // float result from function sits in FAC1
@@ -3923,7 +3923,7 @@ $endLabel""")
                 else throw AssemblyError("only combined vreg allowed as long target ${target.position}")
             }
             TargetStorageKind.ARRAY -> {
-                TODO("assign 32 bits int in R0:R1 into array ${target.position}")
+                TODO("assign 32 bits int into array ${target.position}")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {

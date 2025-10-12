@@ -887,8 +887,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, scope, asmgen), RegisterOrPair.AY)
             }
             BaseDataType.LONG -> {
-                asmgen.out("  jsr  prog8_lib.abs_l_into_R0R1")
-                assignAsmGen.assignRegisterLong(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R0R1_32, true, fcall.position, scope, asmgen), RegisterOrPair.R0R1_32)
+                asmgen.out("  jsr  prog8_lib.abs_l_into_R14R15")
+                assignAsmGen.assignRegisterLong(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R14R15_32, true, fcall.position, scope, asmgen), RegisterOrPair.R14R15_32)
             }
             BaseDataType.FLOAT -> {
                 asmgen.out("  jsr  floats.func_abs_f_into_FAC1")
@@ -1059,7 +1059,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
         asmgen.saveRegisterStack(CpuRegister.A, false)
         asmgen.saveRegisterStack(CpuRegister.Y, false)
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R0R1_32, true)
+        // it's a statement so no need to preserve R14:R15
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15_32, true)
         asmgen.restoreRegisterStack(CpuRegister.Y, false)
         asmgen.restoreRegisterStack(CpuRegister.A, false)
         asmgen.out("  jsr  prog8_lib.func_pokel")
@@ -1190,8 +1191,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         // TODO optimize for the simple cases
         asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.func_peekl")
-        val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R0R1_32, true, fcall.position, fcall.definingISub(), asmgen)
-        assignAsmGen.assignRegisterLong(targetReg, RegisterOrPair.R0R1_32)
+        val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R14R15_32, true, fcall.position, fcall.definingISub(), asmgen)
+        assignAsmGen.assignRegisterLong(targetReg, RegisterOrPair.R14R15_32)
     }
 
 
@@ -1357,7 +1358,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcMklong(fcall: PtBuiltinFunctionCall) {
-        // result long in R0:R1   (r0=lsw, r1=msw)
+        // result long in R14:R15   (r14=lsw, r15=msw)
 
         fun isArgRegister(expression: PtExpression, reg: RegisterOrPair): Boolean {
             if(expression !is PtIdentifier)
@@ -1367,25 +1368,25 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
         if(fcall.args.size==2) {
             // mklong2(msw, lsw)
-            if(isArgRegister(fcall.args[0], RegisterOrPair.R0) || isArgRegister(fcall.args[0], RegisterOrPair.R1) ||
-                isArgRegister(fcall.args[1], RegisterOrPair.R0) || isArgRegister(fcall.args[1], RegisterOrPair.R1)) {
-                error("cannot use R0 and/or R1 as arguments for mklong2 because the result should go into R0:R1 ${fcall.position}")
+            if(isArgRegister(fcall.args[0], RegisterOrPair.R14) || isArgRegister(fcall.args[0], RegisterOrPair.R15) ||
+                isArgRegister(fcall.args[1], RegisterOrPair.R14) || isArgRegister(fcall.args[1], RegisterOrPair.R15)) {
+                error("cannot use R14 and/or R15 as arguments for mklong2 because the result should go into R0:R1 ${fcall.position}")
             } else {
-                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r1", DataType.UWORD)
-                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r0", DataType.UWORD)
+                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r15", DataType.UWORD)
+                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r14", DataType.UWORD)
             }
         } else {
             // mklong(msb, b2, b1, lsb)
-            if(isArgRegister(fcall.args[0], RegisterOrPair.R0) || isArgRegister(fcall.args[0], RegisterOrPair.R1) ||
-                isArgRegister(fcall.args[1], RegisterOrPair.R0) || isArgRegister(fcall.args[1], RegisterOrPair.R1) ||
-                isArgRegister(fcall.args[2], RegisterOrPair.R0) || isArgRegister(fcall.args[2], RegisterOrPair.R1) ||
-                isArgRegister(fcall.args[3], RegisterOrPair.R0) || isArgRegister(fcall.args[3], RegisterOrPair.R1)) {
-                error("cannot use R0 and/or R1 as arguments for mklong because the result should go into R0:R1 ${fcall.position}")
+            if(isArgRegister(fcall.args[0], RegisterOrPair.R14) || isArgRegister(fcall.args[0], RegisterOrPair.R15) ||
+                isArgRegister(fcall.args[1], RegisterOrPair.R14) || isArgRegister(fcall.args[1], RegisterOrPair.R15) ||
+                isArgRegister(fcall.args[2], RegisterOrPair.R14) || isArgRegister(fcall.args[2], RegisterOrPair.R15) ||
+                isArgRegister(fcall.args[3], RegisterOrPair.R14) || isArgRegister(fcall.args[3], RegisterOrPair.R15)) {
+                error("cannot use R14 and/or R15 as arguments for mklong because the result should go into R14:R15 ${fcall.position}")
             } else {
-                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r1H", DataType.UBYTE)
-                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r1L", DataType.UBYTE)
-                assignAsmGen.assignExpressionToVariable(fcall.args[2], "cx16.r0H", DataType.UBYTE)
-                assignAsmGen.assignExpressionToVariable(fcall.args[3], "cx16.r0L", DataType.UBYTE)
+                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r15H", DataType.UBYTE)
+                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r15L", DataType.UBYTE)
+                assignAsmGen.assignExpressionToVariable(fcall.args[2], "cx16.r14H", DataType.UBYTE)
+                assignAsmGen.assignExpressionToVariable(fcall.args[3], "cx16.r14L", DataType.UBYTE)
             }
         }
     }

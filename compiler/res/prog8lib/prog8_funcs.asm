@@ -29,33 +29,33 @@ abs_w_into_AY	.proc
 +		rts
 		.pend
 
-abs_l_into_R0R1	.proc
-	; -- R0:R1 = abs(R0:R1)
-    lda  cx16.r1H
+abs_l_into_R14R15	.proc
+	; -- R14:R15 = abs(R14:R15)
+    lda  cx16.r15H
     bmi  +   ; Negative if high bit of highest byte is set
     rts
 +
     ; Invert all four bytes
-    lda  cx16.r0L
+    lda  cx16.r14L
     eor  #$FF
-    sta  cx16.r0L
-    lda  cx16.r0H
+    sta  cx16.r14L
+    lda  cx16.r14H
     eor  #$FF
-    sta  cx16.r0H
-    lda  cx16.r1L
+    sta  cx16.r14H
+    lda  cx16.r15L
     eor  #$FF
-    sta  cx16.r1L
-    lda  cx16.r1H
+    sta  cx16.r15L
+    lda  cx16.r15H
     eor  #$FF
-    sta  cx16.r1H
+    sta  cx16.r15H
     ; Add 1 to whole 32-bit value
-    inc  cx16.r0L
+    inc  cx16.r14L
     bne  +
-    inc  cx16.r0H
+    inc  cx16.r14H
     bne  +
-    inc  cx16.r1L
+    inc  cx16.r15L
     bne  +
-    inc  cx16.r1H
+    inc  cx16.r15H
 +   rts
 		.pend
 
@@ -479,22 +479,22 @@ from_scratchW1
 	.pend
 
 func_peekl   .proc
-	; -- read the ;pmg value on the address in AY, into R0:R1
+	; -- read the ;pmg value on the address in AY, into R14:R15
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
 from_scratchW1
 	ldy  #0
 	lda  (P8ZP_SCRATCH_W1),y
-	sta  cx16.r0
+	sta  cx16.r14
 	iny
 	lda  (P8ZP_SCRATCH_W1),y
-	sta  cx16.r0+1
+	sta  cx16.r14+1
 	iny
 	lda  (P8ZP_SCRATCH_W1),y
-	sta  cx16.r0+2
+	sta  cx16.r14+2
 	iny
 	lda  (P8ZP_SCRATCH_W1),y
-	sta  cx16.r0+3
+	sta  cx16.r14+3
 	rts
 	.pend
 
@@ -522,20 +522,20 @@ func_pokew_scratchW2   .proc
 	.pend
 
 func_pokel   .proc
-	; -- store the long value in R0:R1 in the address in AY
+	; -- store the long value in R14:R15 in the address in AY
 	sta  P8ZP_SCRATCH_W1
 	sty  P8ZP_SCRATCH_W1+1
 	ldy  #0
-	lda  cx16.r0
+	lda  cx16.r14
 	sta  (P8ZP_SCRATCH_W1),y
 	iny
-	lda  cx16.r0+1
+	lda  cx16.r14+1
 	sta  (P8ZP_SCRATCH_W1),y
 	iny
-	lda  cx16.r0+2
+	lda  cx16.r14+2
 	sta  (P8ZP_SCRATCH_W1),y
 	iny
-	lda  cx16.r0+3
+	lda  cx16.r14+3
 	sta  (P8ZP_SCRATCH_W1),y
 	rts
 	.pend
