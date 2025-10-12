@@ -2417,6 +2417,29 @@ $repeatLabel""")
             }
         }
     }
+
+    internal fun pushLongRegisters(startreg: RegisterOrPair, numberOfLongs: Int) {
+        val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
+        val startregName = startreg.startregname()
+        out("""
+            ldy  #0
+-           lda  cx16.$startregName,y
+            pha
+            iny
+            cpy  #$numbytes
+            bne  -""")
+    }
+
+    internal fun popLongRegisters(startreg: RegisterOrPair, numberOfLongs: Int) {
+        val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
+        val startregName = startreg.startregname()
+        out("""
+            ldy  #$numbytes-1
+-           pla
+            sta  cx16.$startregName,y
+            dey
+            bpl  -""")
+    }
 }
 
 /**

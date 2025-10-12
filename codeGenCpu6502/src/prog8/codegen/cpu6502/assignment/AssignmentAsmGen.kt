@@ -1798,11 +1798,19 @@ internal class AssignmentAsmGen(
                 }
             }
             else -> {
-                // TODO store R12-R15 on the stack and restore afterwards?
+                val targetreg = target.register
+                if(targetreg==RegisterOrPair.R14R15_32)
+                    asmgen.pushLongRegisters(RegisterOrPair.R12R13_32, 1)
+                else
+                    asmgen.pushLongRegisters(RegisterOrPair.R12R13_32, 2)
                 assignExpressionToRegister(expr.left, RegisterOrPair.R14R15_32, expr.left.type.isSigned)
                 assignExpressionToRegister(expr.right, RegisterOrPair.R12R13_32, expr.right.type.isSigned)
                 augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r14", expr.operator, "cx16.r12")
                 assignRegisterLong(target, RegisterOrPair.R14R15_32)
+                if(targetreg==RegisterOrPair.R14R15_32)
+                    asmgen.popLongRegisters(RegisterOrPair.R12R13_32, 1)
+                else
+                    asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 2)
                 return true
             }
         }
@@ -1968,16 +1976,23 @@ internal class AssignmentAsmGen(
                 }
             }
 
-            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R2R3_32, expr.left.type.isSigned)
+            val targetreg = target.register
+            if(targetreg!=RegisterOrPair.R12R13_32) {
+                asmgen.pushLongRegisters(RegisterOrPair.R12R13_32, 1)
+            }
+            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13_32, expr.left.type.isSigned)
             val constval = expr.right.asConstInteger()
             val varname = (expr.right as? PtIdentifier)?.name
             if(constval!=null)
-                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r2", expr.operator, constval)
+                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r12", expr.operator, constval)
             else if(varname!=null)
-                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r2", expr.operator, varname)
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r12", expr.operator, varname)
             else
-                augmentableAsmGen.inplacemodificationLongWithExpression("cx16.r2", expr.operator, expr.right)
-            assignRegisterLong(target, RegisterOrPair.R2R3_32)
+                augmentableAsmGen.inplacemodificationLongWithExpression("cx16.r12", expr.operator, expr.right)
+            assignRegisterLong(target, RegisterOrPair.R12R13_32)
+            if(targetreg!=RegisterOrPair.R12R13_32) {
+                asmgen.popLongRegisters(RegisterOrPair.R12R13_32, 1)
+            }
             return true
         }
         return false

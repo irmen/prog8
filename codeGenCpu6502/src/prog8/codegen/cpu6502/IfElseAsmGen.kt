@@ -1437,6 +1437,7 @@ _jump                       jmp  (${target.asmLabel})
 +""")
             }
         } else {
+
             asmgen.assignExpressionToRegister(left, RegisterOrPair.R2R3_32, left.type.isSigned)
             asmgen.assignExpressionToRegister(right, RegisterOrPair.R0R1_32, right.type.isSigned)
             asmgen.out("""
