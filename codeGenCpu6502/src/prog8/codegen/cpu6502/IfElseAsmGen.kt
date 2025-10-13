@@ -1260,12 +1260,25 @@ _jump                       jmp  (${target.asmLabel})
     }
 
     private fun longEqualsZero(value: PtExpression, notEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        asmgen.assignExpressionToRegister(value, RegisterOrPair.R0R1_32, value.type.isSigned)
-        asmgen.out("""
-            lda  cx16.r0
-            ora  cx16.r0+1
-            ora  cx16.r0+2
-            ora  cx16.r0+3""")
+        if(value is PtIdentifier) {
+            val varname = asmgen.asmVariableName(value)
+            asmgen.out("""
+                lda  $varname
+                ora  $varname+1
+                ora  $varname+2
+                ora  $varname+3""")
+        } else {
+            asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
+            asmgen.out("""
+                lda  cx16.r14
+                ora  cx16.r14+1
+                ora  cx16.r14+2
+                ora  cx16.r14+3
+                sta  P8ZP_SCRATCH_REG""")
+            asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.out("  lda  P8ZP_SCRATCH_REG  ; restore flags")
+        }
         if(notEquals) {
             if (jump != null)
                 translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
@@ -1387,57 +1400,75 @@ _jump                       jmp  (${target.asmLabel})
         jump: PtJump?,
         stmt: PtIfElse
     ) {
-        // TODO this can be optimized somewhat more when the left operand is a variable as well
-        // we only optimize for a const right value for now
-
         val constRight = right.asConstInteger()
         val variableRight = (right as? PtIdentifier)?.name
-        if(constRight!=null) {
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
-            val hex = constRight.toUInt().toString(16).padStart(8, '0')
-            asmgen.out("""
-                lda  cx16.r0
-                cmp  #$${hex.substring(6,8)}
-                bne  +
-                lda  cx16.r0+1
-                cmp  #$${hex.substring(4, 6)}
-                bne  +
-                lda  cx16.r0+2
-                cmp  #$${hex.substring(2, 4)}
-                bne  +
-                lda  cx16.r0+3
-                cmp  #$${hex.take(2)}
-+""")
-        } else if(variableRight!=null) {
-            require(right.type.isLong)
-            val variableLeft = (left as? PtIdentifier)?.name
-            if(variableLeft!=null) {
+
+        if(left is PtIdentifier) {
+            val leftvar = asmgen.asmVariableName(left)
+            if(constRight!=null) {
+                val hex = constRight.toUInt().toString(16).padStart(8, '0')
                 asmgen.out("""
-                    lda  #<$variableLeft
-                    ldy  #>$variableLeft
+                    lda  $leftvar
+                    cmp  #$${hex.substring(6,8)}
+                    bne  +
+                    lda  $leftvar+1
+                    cmp  #$${hex.substring(4, 6)}
+                    bne  +
+                    lda  $leftvar+2
+                    cmp  #$${hex.substring(2, 4)}
+                    bne  +
+                    lda  $leftvar+3
+                    cmp  #$${hex.take(2)}
++""")
+            } else if(variableRight!=null) {
+                require(right.type.isLong)
+                asmgen.out("""
+                    lda  #<$leftvar
+                    ldy  #>$leftvar
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
                     lda  #<$variableRight
                     ldy  #>$variableRight
                     jsr  prog8_lib.long_not_equals""")
-            } else {
-                asmgen.assignExpressionToRegister(left, RegisterOrPair.R0R1_32, left.type.isSigned)
+            }
+        }
+        else
+        {
+            // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15_32, left.type.isSigned)
+            if(constRight!=null) {
+                val hex = constRight.toUInt().toString(16).padStart(8, '0')
                 asmgen.out("""
-                    lda  cx16.r0
+                    lda  cx16.r14
+                    cmp  #$${hex.substring(6,8)}
+                    bne  +
+                    lda  cx16.r14+1
+                    cmp  #$${hex.substring(4, 6)}
+                    bne  +
+                    lda  cx16.r14+2
+                    cmp  #$${hex.substring(2, 4)}
+                    bne  +
+                    lda  cx16.r14+3
+                    cmp  #$${hex.take(2)}
++""")
+            } else if(variableRight!=null) {
+                require(right.type.isLong)
+                asmgen.out("""
+                    lda  cx16.r14
                     cmp  $variableRight
                     bne  +
-                    lda  cx16.r0+1
+                    lda  cx16.r14+1
                     cmp  $variableRight+1
                     bne  +
-                    lda  cx16.r0+2
+                    lda  cx16.r14+2
                     cmp  $variableRight+2
                     bne  +
-                    lda  cx16.r0+3
+                    lda  cx16.r14+3
                     cmp  $variableRight+3
 +""")
+            } else {
+                TODO("long == value expression ${right.position}")
             }
-        } else {
-            TODO("long == value expression ${right.position}")
         }
 
         if(notEquals) {

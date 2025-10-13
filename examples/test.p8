@@ -1,21 +1,30 @@
 %import textio
+%import math
 %zeropage basicsafe
-;;%option no_sysinit
+%option no_sysinit
 
 main {
     sub start() {
-        long @shared lv1 = $12345678
+        long @shared lv, lv2
 
-        txt.print_ubhex(msb(lv1), true)
-        txt.spc()
-        txt.print_ubhex(lsb(lv1), true)
-        txt.spc()
-        txt.print_ubhex(lv1 as ubyte, true)
-        txt.nl()
-        txt.print_uwhex(msw(lv1), true)
-        txt.spc()
-        txt.print_uwhex(lsw(lv1), true)
-        txt.nl()
+        if lv==lv2+2
+            cx16.r0++
+
+        if lv!=lv2+2
+            cx16.r0++
+
+;        long @shared lv1 = $12345678
+;
+;        txt.print_ubhex(msb(lv1), true)
+;        txt.spc()
+;        txt.print_ubhex(lsb(lv1), true)
+;        txt.spc()
+;        txt.print_ubhex(lv1 as ubyte, true)
+;        txt.nl()
+;        txt.print_uwhex(msw(lv1), true)
+;        txt.spc()
+;        txt.print_uwhex(lsw(lv1), true)
+;        txt.nl()
 
 ;        ; TODO support long+1 / -1 expressions....
 ;        cx16.r4 = msw(lv1-1)
