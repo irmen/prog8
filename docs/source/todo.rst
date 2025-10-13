@@ -30,7 +30,7 @@ STRUCTS and TYPED POINTERS
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- make $8000000 a valid long integer (-2147483648) this is more involved than you think.  To make this work: long |= $80000000
+- make $8000000 a valid long integer (-2147483648) this is more involved than you think.  To make this work: long \|= $80000000
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1, should both always be 1-based (is this the reason some source lines end up missing in the IR file?)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions

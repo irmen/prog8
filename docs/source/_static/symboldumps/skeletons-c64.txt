@@ -12,12 +12,14 @@ LIBRARY MODULE NAME: bcd
 bcd  {
     addb  (byte a, byte b) -> byte 
     addl  (long a, long b) -> long 
+    addtol  (^^long a, long b) 
     addub  (ubyte a, ubyte b) -> ubyte 
     adduw  (uword a, uword b) -> uword 
     addw  (word a, word b) -> word 
     clearbcd  () 
     setbcd  () 
     subb  (byte a, byte b) -> byte 
+    subfroml  (^^long a, long b) 
     subl  (long a, long b) -> long 
     subub  (ubyte a, ubyte b) -> ubyte 
     subuw  (uword a, uword b) -> uword 
