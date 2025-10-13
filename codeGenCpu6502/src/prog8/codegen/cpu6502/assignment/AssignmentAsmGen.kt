@@ -1782,9 +1782,9 @@ internal class AssignmentAsmGen(
                 }
             }
             is PtNumber -> {
+                asmgen.assignExpressionTo(left, target)
                 val hex = right.number.toInt().toString(16).padStart(8, '0')
                 if (target.kind == TargetStorageKind.VARIABLE) {
-                    asmgen.assignExpressionTo(left, target)
                     if (expr.operator == "+") {
                         asmgen.out("""
                             lda  ${target.asmVarname}
@@ -1817,8 +1817,42 @@ internal class AssignmentAsmGen(
                             sta  ${target.asmVarname}+3""")
                     }
                     return true
+                } else if(target.kind == TargetStorageKind.REGISTER) {
+                    val startreg = target.register!!.startregname()
+                    if(expr.operator=="+") {
+                        asmgen.out("""
+                            lda  cx16.$startreg
+                            clc
+                            adc  #$${hex.substring(6,8)}
+                            sta  cx16.$startreg
+                            lda  cx16.$startreg+1
+                            adc  #$${hex.substring(4, 6)}
+                            sta  cx16.$startreg+1
+                            lda  cx16.$startreg+2
+                            adc  #$${hex.substring(2, 4)}
+                            sta  cx16.$startreg+2
+                            lda  cx16.$startreg+3
+                            adc  #$${hex.take(2)}
+                            sta  cx16.$startreg+3""")
+                    } else {
+                        asmgen.out("""
+                            lda  cx16.$startreg
+                            sec
+                            sbc  #$${hex.substring(6,8)}
+                            sta  cx16.$startreg
+                            lda  cx16.$startreg+1
+                            sbc  #$${hex.substring(4, 6)}
+                            sta  cx16.$startreg+1
+                            lda  cx16.$startreg+2
+                            sbc  #$${hex.substring(2, 4)}
+                            sta  cx16.$startreg+2
+                            lda  cx16.$startreg+3
+                            sbc  #$${hex.take(2)}
+                            sta  cx16.$startreg+3""")
+                    }
+                    return true
                 } else {
-                    TODO("add/subtract long into ${target.kind} ${target.position} - use simple expressions and temporary variables for now")
+                    TODO("add/subtract long const into ${target.kind} ${target.position} - use simple expressions and temporary variables for now")
                 }
             }
             else -> {
