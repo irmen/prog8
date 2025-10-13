@@ -2532,7 +2532,8 @@ $endLabel""")
                     assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.A, valueDt.base)
                 }
                 valueDt.isLong -> {
-                    TODO("assign typecasted long to $targetDt ${value.position}")
+                    assignExpressionToRegister(value, RegisterOrPair.R14R15_32, valueDt.isSigned)
+                    assignTypeCastedRegisters(target.asmVarname, targetDt.base, RegisterOrPair.R14R15_32, valueDt.base)
                 }
                 valueDt.isWord || valueDt.isPointer -> {
                     assignExpressionToRegister(value, RegisterOrPair.AY, valueDt.isSigned)
@@ -2949,6 +2950,14 @@ $endLabel""")
                 }
             }
             sourceDt.isString -> throw AssemblyError("cannot typecast a string value")
+            sourceDt.isLong -> {
+                if(targetDt.isByteOrBool) {
+                    asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
+                } else if(targetDt.isWord || targetDt.isPointer) {
+                    asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
+                } else
+                    throw AssemblyError("weird type")
+            }
             else -> throw AssemblyError("weird type")
         }
     }
@@ -3148,6 +3157,15 @@ $endLabel""")
                 } else {
                     throw AssemblyError("cannot assign pointer to $targetDt")
                 }
+            }
+            BaseDataType.LONG -> {
+                val startreg = regs.startregname()
+                if(targetDt.isByteOrBool) {
+                    asmgen.out("  lda  cx16.$startreg |  sta  $targetAsmVarName")
+                } else if(targetDt.isWord || targetDt.isPointer) {
+                    asmgen.out("  lda  cx16.$startreg |  sta  $targetAsmVarName |  lda  cx16.$startreg+1 |  sta  $targetAsmVarName+1")
+                } else
+                    throw AssemblyError("weird type")
             }
             else -> throw AssemblyError("weird type")
         }

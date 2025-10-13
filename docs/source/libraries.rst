@@ -295,10 +295,12 @@ Available routines:
 - ``sub addw(word a, word b) -> word``
 - ``sub adduw(uword a, uword b) -> uword``
 - ``sub addl(long a, long b) -> long``
+- ``sub addtol(^^long a, long b)``    (adds b in-place to a, saves copying values)
 - ``sub subb(byte a, byte b) -> byte``
 - ``sub subub(ubyte a, ubyte b) -> ubyte``
 - ``sub subuw(uword a, uword b) -> uword``
 - ``sub subl(long a, long b) -> long``
+- ``sub subfroml(^^long a, long b)``   (subtracts b in-place from a, saves copying values)
 
 
 bmx  (cx16 only)

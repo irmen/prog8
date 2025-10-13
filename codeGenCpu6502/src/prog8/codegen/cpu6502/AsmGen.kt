@@ -2421,26 +2421,66 @@ $repeatLabel""")
     }
 
     internal fun pushLongRegisters(startreg: RegisterOrPair, numberOfLongs: Int) {
-        val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
+        if(numberOfLongs==0) return
+
         val startregName = startreg.startregname()
+        if(numberOfLongs==1) {
+            out("""
+                sta  P8ZP_SCRATCH_REG
+                lda  cx16.$startregName
+                pha
+                lda  cx16.$startregName+1
+                pha
+                lda  cx16.$startregName+2
+                pha
+                lda  cx16.$startregName+3
+                pha
+                lda  P8ZP_SCRATCH_REG""")
+            return
+        }
+        val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
         out("""
+            sta  P8ZP_SCRATCH_REG
+            sty  P8ZP_SCRATCH_B1
             ldy  #0
 -           lda  cx16.$startregName,y
             pha
             iny
             cpy  #$numbytes
-            bne  -""")
+            bne  -
+            ldy  P8ZP_SCRATCH_B1
+            lda  P8ZP_SCRATCH_REG""")
     }
 
     internal fun popLongRegisters(startreg: RegisterOrPair, numberOfLongs: Int) {
-        val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
+        if(numberOfLongs==0) return
+
         val startregName = startreg.startregname()
+        if(numberOfLongs==1) {
+            out("""
+                sta  P8ZP_SCRATCH_REG
+                pla
+                sta  cx16.$startregName+3
+                pla
+                sta  cx16.$startregName+2
+                pla
+                sta  cx16.$startregName+1
+                pla
+                sta  cx16.$startregName
+                lda  P8ZP_SCRATCH_REG""")
+            return
+        }
+        val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
         out("""
+            sta  P8ZP_SCRATCH_REG
+            sty  P8ZP_SCRATCH_B1
             ldy  #$numbytes-1
 -           pla
             sta  cx16.$startregName,y
             dey
-            bpl  -""")
+            bpl  -
+            ldy  P8ZP_SCRATCH_B1
+            lda  P8ZP_SCRATCH_REG""")
     }
 }
 
