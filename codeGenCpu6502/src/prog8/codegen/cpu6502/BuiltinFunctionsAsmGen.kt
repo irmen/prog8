@@ -30,9 +30,11 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "msw" -> funcMsw(fcall, resultRegister)
             "lsw" -> funcLsw(fcall, resultRegister)
             "msb" -> funcMsb(fcall, resultRegister)
-            "lsb" -> funcLsb(fcall, resultRegister)
+            "msb__long" -> funcMsbLong(fcall, resultRegister)
+            "lsb" -> funcLsb(fcall, resultRegister, false)
+            "lsb__long" -> funcLsb(fcall, resultRegister, true)
             "mkword" -> funcMkword(fcall, resultRegister)
-            "mklong", "mklong2" -> funcMklong(fcall)  // result is in R0:R1
+            "mklong", "mklong2" -> funcMklong(fcall)  // result is in R14:R15
             "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword", "clamp__long" -> funcClamp(fcall, resultRegister)
             "min__byte", "min__ubyte", "min__word", "min__uword", "min__long" -> funcMin(fcall, resultRegister)
             "max__byte", "max__ubyte", "max__word", "max__uword", "max__long" -> funcMax(fcall, resultRegister)
@@ -1458,6 +1460,39 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun funcMsbLong(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        val arg = fcall.args.single()
+        if (!arg.type.isLong)
+            throw AssemblyError("msb__long requires long argument")
+        if (arg is PtNumber)
+            throw AssemblyError("msb(const) should have been const-folded away")
+
+        if (arg is PtIdentifier) {
+            val sourceName = asmgen.asmVariableName(arg)
+            when(resultRegister) {
+                null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName+3")
+                RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+3")
+                RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+3")
+                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+3 |  ldx  #0")
+                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+3 |  ldy  #0")
+                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+3 |  ldy  #0")
+                in Cx16VirtualRegisters -> {
+                    val regname = resultRegister.name.lowercase()
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                        asmgen.out("  lda  $sourceName+3 |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                    else
+                        asmgen.out("  lda  $sourceName+3 |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                }
+                in combinedLongRegisters -> {
+                    TODO("msb__long into long register ${fcall.position}")
+                }
+                else -> throw AssemblyError("invalid reg")
+            }
+        } else {
+            TODO("msb__long from $arg  ${fcall.position}")
+        }
+    }
+
     private fun funcMsb(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
         val arg = fcall.args.single()
         if (!arg.type.isWord)
@@ -1567,10 +1602,13 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun funcLsb(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+    private fun funcLsb(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, fromLong: Boolean) {
         val arg = fcall.args.single()
-        if (!arg.type.isWord)
-            throw AssemblyError("lsb required word argument")
+        if(fromLong) {
+            if (!arg.type.isLong) throw AssemblyError("lsb__long requires long")
+        } else {
+            if (!arg.type.isWord) throw AssemblyError("lsb requires word")
+        }
         if (arg is PtNumber)
             throw AssemblyError("lsb(const) should have been const-folded away")
 

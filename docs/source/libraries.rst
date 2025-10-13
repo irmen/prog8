@@ -91,16 +91,13 @@ cmp (x,y)
     Normally you should just use a comparison expression (``x < y``)
 
 lsb (x)
-    Get the least significant (lower) byte of the value x. Equivalent to ``x & 255``.
+    Get the least significant (lower) byte of the value x. Equivalent to ``x & 255`` or even ``x as ubyte``.
 
 lsw (x)
-    Get the least significant (lower) word of the value x. Equivalent to ``x & 65535``.
+    Get the least significant (lower) word of the value x. Equivalent to ``x & 65535`` or even ``x as uword``.
 
 msb (x)
-    Get the most significant (higher) byte of the word value x.
-    If x is a value greater than a word, it will not actually return the *highest* byte of this value,
-    but it will only look a the lower word part of this value and return the higher byte from that.
-    So you're always getting bits 8-16 of the value x: ``msb($1234)`` is $12, whereas ``msb($123456)`` is $34.
+    Get the most significant (highest) byte of the word or long value x.
 
 msw (x)
     Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.

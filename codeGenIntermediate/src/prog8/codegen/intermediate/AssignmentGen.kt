@@ -702,9 +702,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     val chunk = IRCodeChunk(null, null).also {
                         if(targetArray.splitWords) {
                             val lsbmsbReg = codeGen.registers.next(IRDataType.BYTE)
-                            it += IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = lsbmsbReg, reg2 = valueRegister)
                             it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = lsbmsbReg, immediate = arrayLength, labelSymbol = "${variable}_lsb", symbolOffset = fixedIndex)
-                            it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = lsbmsbReg, reg2 = valueRegister)
                             it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = lsbmsbReg, immediate = arrayLength, labelSymbol = "${variable}_msb", symbolOffset = fixedIndex)
                         }
                         else
@@ -717,9 +717,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     result += IRCodeChunk(null, null).also {
                         if(targetArray.splitWords) {
                             val lsbmsbReg = codeGen.registers.next(IRDataType.BYTE)
-                            it += IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = lsbmsbReg, reg2 = valueRegister)
                             it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = lsbmsbReg, reg2=indexReg, immediate = arrayLength, labelSymbol = "${variable}_lsb")
-                            it += IRInstruction(Opcode.MSIG, IRDataType.BYTE, reg1 = lsbmsbReg, reg2 = valueRegister)
+                            it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = lsbmsbReg, reg2 = valueRegister)
                             it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1 = lsbmsbReg, reg2=indexReg, immediate = arrayLength, labelSymbol = "${variable}_msb")
                         }
                         else

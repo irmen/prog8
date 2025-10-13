@@ -8,7 +8,7 @@ txt {
 sub width() -> ubyte {
     %ir {{
         syscall 46 (): r99000.w
-        lsig.b r99100,r99000
+        lsigb.w r99100,r99000
         returnr.b r99100
     }}
 }
@@ -16,7 +16,7 @@ sub width() -> ubyte {
 sub height() -> ubyte {
     %ir {{
         syscall 46 (): r99000.w
-        msig.b r99100,r99000
+        msigb.w r99100,r99000
         returnr.b r99100
     }}
 }

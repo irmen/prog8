@@ -707,13 +707,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     BaseDataType.UWORD, BaseDataType.WORD -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
+                        addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.LONG -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
-                        val wordReg = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.WORD, reg1=wordReg, reg2=tr.resultReg, immediate = 0), null)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=wordReg, immediate = 0), null)
+                        addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
@@ -729,13 +727,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     BaseDataType.UWORD, BaseDataType.WORD -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
+                        addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.LONG -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
-                        val wordReg = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.WORD, reg1=wordReg, reg2=tr.resultReg, immediate = 0), null)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.BYTE, reg1=actualResultReg2, reg2=wordReg, immediate = 0), null)
+                        addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.BYTE)
@@ -761,7 +757,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     BaseDataType.LONG -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.WORD, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
+                        addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
@@ -790,7 +786,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     BaseDataType.LONG -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)
-                        addInstr(result, IRInstruction(Opcode.LSIG, IRDataType.WORD, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
+                        addInstr(result, IRInstruction(Opcode.LSIGW, IRDataType.LONG, reg1=actualResultReg2, reg2=tr.resultReg, immediate = 0), null)
                     }
                     BaseDataType.FLOAT -> {
                         actualResultReg2 = codeGen.registers.next(IRDataType.WORD)

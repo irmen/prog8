@@ -254,6 +254,15 @@ class VarConstantValueTypeAdjuster(
                     functionCallExpr))
             }
         }
+        else if(func==listOf("lsb") || func==listOf("msb")) {
+            val t1 = functionCallExpr.args[0].inferType(program)
+            if(t1.isLong) {
+                val replaceFunc = func[0]+"__long"
+                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                    IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
+                    functionCallExpr))
+            }
+        }
         return noModifications
     }
 

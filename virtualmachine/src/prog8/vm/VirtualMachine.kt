@@ -311,8 +311,10 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.ROLM -> InsROLM(ins, false)
             Opcode.ROXL -> InsROL(ins, true)
             Opcode.ROXLM -> InsROLM(ins, true)
-            Opcode.LSIG -> InsLSIG(ins)
-            Opcode.MSIG -> InsMSIG(ins)
+            Opcode.LSIGB -> InsLSIGB(ins)
+            Opcode.LSIGW -> InsLSIGW(ins)
+            Opcode.MSIGB -> InsMSIGB(ins)
+            Opcode.MSIGW -> InsMSIGW(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
@@ -2579,39 +2581,63 @@ class VirtualMachine(irProgram: IRProgram) {
         statusCarry = newStatusCarry
     }
 
-    private fun InsLSIG(i: IRInstruction) {
+    private fun InsLSIGB(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> {
-                val value = registers.getUW(i.reg2!!)
-                registers.setUB(i.reg1!!, value.toUByte())
-                statusbitsNZ(value.toInt(), i.type!!)
-            }
             IRDataType.WORD -> {
-                val value = registers.getSL(i.reg2!!)
-                registers.setUW(i.reg1!!, value.toUShort())
+                val value = registers.getUW(i.reg2!!)
+                val byte = value.toUByte()
+                registers.setUB(i.reg1!!, byte)
+                statusbitsNZ(byte.toInt(), i.type!!)
             }
-            IRDataType.LONG -> throw IllegalArgumentException("lsig.l makes no sense, 32 bits is already the widest")
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+            IRDataType.LONG -> {
+                val value = registers.getSL(i.reg2!!)
+                val byte = value.toUByte()
+                registers.setUB(i.reg1!!, byte)
+                statusbitsNZ(byte.toInt(), i.type!!)
+            }
+            else -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
     }
 
-    private fun InsMSIG(i: IRInstruction) {
+    private fun InsLSIGW(i: IRInstruction) {
+        if (i.type!! == IRDataType.LONG) {
+            val value = registers.getSL(i.reg2!!)
+            val word = value.toUShort()
+            registers.setUW(i.reg1!!, word)
+            statusbitsNZ(word.toInt(), i.type!!)
+        }
+        else throw IllegalArgumentException("invalid float type for this instruction $i")
+        nextPc()
+    }
+
+    private fun InsMSIGB(i: IRInstruction) {
         when(i.type!!) {
-            IRDataType.BYTE -> {
+            IRDataType.WORD -> {
                 val value = registers.getUW(i.reg2!!)
                 val newValue = value.toInt() ushr 8
                 statusbitsNZ(newValue, i.type!!)
                 registers.setUB(i.reg1!!, newValue.toUByte())
             }
-            IRDataType.WORD -> {
+            IRDataType.LONG -> {
                 val value = registers.getSL(i.reg2!!)
-                val newValue = value ushr 16
-                registers.setUW(i.reg1!!, newValue.toUShort())
+                val newValue = value ushr 24
+                statusbitsNZ(newValue, i.type!!)
+                registers.setUB(i.reg1!!, newValue.toUByte())
             }
-            IRDataType.LONG -> throw IllegalArgumentException("lsig.l makes no sense, 32 bits is already the widest")
-            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+            else -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        nextPc()
+    }
+
+    private fun InsMSIGW(i: IRInstruction) {
+        if (i.type!! == IRDataType.LONG) {
+            val value = registers.getSL(i.reg2!!)
+            val newValue = value ushr 16
+            statusbitsNZ(newValue, i.type!!)
+            registers.setUW(i.reg1!!, newValue.toUShort())
+        }
+        else throw IllegalArgumentException("invalid float type for this instruction $i")
         nextPc()
     }
 

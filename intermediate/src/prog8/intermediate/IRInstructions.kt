@@ -248,8 +248,10 @@ sei                                       - set interrupt disable flag
 nop                                       - do nothing
 breakpoint                                - trigger a breakpoint
 align        alignmentvalue               - represents a memory alignment directive
-lsig [b, w]   reg1, reg2                  - reg1 becomes the least significant byte (or word) of the word (or int) in reg2
-msig [b, w]   reg1, reg2                  - reg1 becomes the most significant byte (or word) of the word (or int) in reg2
+lsigb [w, l]  reg1, reg2                  - reg1 becomes the least significant byte of the word (or long) in reg2
+lsigw [l]     reg1, reg2                  - reg1 becomes the least significant word of the long in reg2
+msigb [w, l]  reg1, reg2                  - reg1 becomes the most significant byte of the word (or long) in reg2
+msigw [l]     reg1, reg2                  - reg1 becomes the most significant word of the long in reg2
 concat [b, w] reg1, reg2, reg3            - reg1.w/l = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
@@ -421,8 +423,10 @@ enum class Opcode {
     POP,
     PUSHST,
     POPST,
-    LSIG,
-    MSIG,
+    LSIGB,
+    LSIGW,
+    MSIGB,
+    MSIGW,
     CONCAT,
     BREAKPOINT,
     ALIGN
@@ -521,8 +525,10 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.XORM,
     Opcode.XORR,
     Opcode.XOR,
-    Opcode.LSIG,
-    Opcode.MSIG,
+    Opcode.LSIGB,
+    Opcode.LSIGW,
+    Opcode.MSIGB,
+    Opcode.MSIGW,
     Opcode.CONCAT
 )
 
@@ -798,8 +804,10 @@ val instructionFormats = mutableMapOf(
     Opcode.FFLOOR     to InstructionFormat.from("F,>fr1,<fr2"),
     Opcode.FCEIL      to InstructionFormat.from("F,>fr1,<fr2"),
 
-    Opcode.LSIG       to InstructionFormat.from("BW,>r1,<r2"),
-    Opcode.MSIG       to InstructionFormat.from("BW,>r1,<r2"),
+    Opcode.LSIGB      to InstructionFormat.from("WL,>r1,<r2"),
+    Opcode.LSIGW      to InstructionFormat.from("L,>r1,<r2"),
+    Opcode.MSIGB      to InstructionFormat.from("WL,>r1,<r2"),
+    Opcode.MSIGW      to InstructionFormat.from("L,>r1,<r2"),
     Opcode.PUSH       to InstructionFormat.from("BWL,<r1       | F,<fr1"),
     Opcode.POP        to InstructionFormat.from("BWL,>r1       | F,>fr1"),
     Opcode.PUSHST     to InstructionFormat.from("N"),
@@ -1095,13 +1103,13 @@ data class IRInstruction(
             if(opcode==Opcode.SGN)
                 return IRDataType.BYTE
         }
-        if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI)
+        if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI || opcode==Opcode.LSIGW || opcode==Opcode.MSIGW)
             return IRDataType.WORD
         if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
         if(opcode==Opcode.CONCAT)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
-        if(opcode==Opcode.ASRNM || opcode==Opcode.LSRNM || opcode==Opcode.LSLNM || opcode==Opcode.SQRT)
+        if(opcode==Opcode.ASRNM || opcode==Opcode.LSRNM || opcode==Opcode.LSLNM || opcode==Opcode.SQRT || opcode==Opcode.LSIGB || opcode==Opcode.MSIGB)
             return IRDataType.BYTE
         return this.type
     }
@@ -1111,12 +1119,6 @@ data class IRInstruction(
             return IRDataType.BYTE
         if(opcode==Opcode.LOADI || opcode==Opcode.STOREI || opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD)
             return IRDataType.WORD
-        if(opcode==Opcode.MSIG || opcode==Opcode.LSIG)
-            return when(type) {
-                IRDataType.BYTE -> IRDataType.WORD
-                IRDataType.WORD -> IRDataType.LONG
-                else -> null
-            }
         if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
             return IRDataType.BYTE
         return this.type
