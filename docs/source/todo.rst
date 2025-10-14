@@ -1,7 +1,6 @@
 TODO
 ====
 
-- optimizedBitwiseExpr(): use R14:R15 instead to save copying/stack manipulation?
 - implement inplaceLongAdd/Sub in PointerAssignmentGen
 
 

@@ -2034,25 +2034,24 @@ internal class AssignmentAsmGen(
                 }
             }
 
-            // TODO use R14:R15 instead
             val targetreg = target.register
-            if(targetreg!=RegisterOrPair.R12R13_32) {
-                asmgen.pushLongRegisters(RegisterOrPair.R12R13_32, 1)
+            if(targetreg!=RegisterOrPair.R14R15_32) {
+                asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
             }
-            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13_32, expr.left.type.isSigned)
+            asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R14R15_32, expr.left.type.isSigned)
             val constval = expr.right.asConstInteger()
             val varname = (expr.right as? PtIdentifier)?.name
             if(constval!=null)
-                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r12", expr.operator, constval)
+                augmentableAsmGen.inplacemodificationLongWithLiteralval("cx16.r14", expr.operator, constval)
             else if(varname!=null)
-                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r12", expr.operator, varname)
+                augmentableAsmGen.inplacemodificationLongWithVariable("cx16.r14", expr.operator, varname)
             else {
                 // TODO: preserve R14:R15 on stack here?  (the function does't do it for us)
-                augmentableAsmGen.inplacemodificationLongWithExpression("cx16.r12", expr.operator, expr.right)
+                augmentableAsmGen.inplacemodificationLongWithExpression("cx16.r14", expr.operator, expr.right)
             }
-            assignRegisterLong(target, RegisterOrPair.R12R13_32)
-            if(targetreg!=RegisterOrPair.R12R13_32) {
-                asmgen.popLongRegisters(RegisterOrPair.R12R13_32, 1)
+            assignRegisterLong(target, RegisterOrPair.R14R15_32)
+            if(targetreg!=RegisterOrPair.R14R15_32) {
+                asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
             }
             return true
         }

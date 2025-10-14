@@ -7,17 +7,12 @@ main {
     sub start() {
         long @shared lv, lv2
 
-        cx16.r0L = if lv==9999  then 99 else 42
-        txt.print_ub(cx16.r0L)
-        txt.nl()
+        lv = $11111111
+        lv2 = $55555555
 
-        lv2 = if lv==9999  then 999999 else 424242
-        txt.print_l(lv2)
-        txt.nl()
-        lv=9999
-        lv2 = if lv==9999  then 999999 else 424242
-        txt.print_l(lv2)
-        txt.nl()
+        lv = lv | lv2 ^ 999999
+
+        txt.print_ulhex(lv, true)           ; $555b177b
 
 
 ;        long @shared lv1 = $12345678
