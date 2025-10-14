@@ -15,40 +15,27 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         val falseLabel = asmgen.makeLabel("ifexpr_false")
         val endLabel = asmgen.makeLabel("ifexpr_end")
         evalIfExpressionConditonAndBranchWhenFalse(expr.condition, falseLabel)
-        when {
-            expr.type.isByteOrBool -> {
-                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.A)
-                asmgen.jmp(endLabel)
-                asmgen.out(falseLabel)
-                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A)
-                asmgen.out(endLabel)
-                assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
-            }
-            expr.type.isWord || expr.type.isString -> {
-                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.AY)
-                asmgen.jmp(endLabel)
-                asmgen.out(falseLabel)
-                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.AY)
-                asmgen.out(endLabel)
-                assignmentAsmGen.assignRegisterpairWord(target, RegisterOrPair.AY)
-            }
-            expr.type.isLong -> {
-                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.R0R1_32, true)
-                asmgen.jmp(endLabel)
-                asmgen.out(falseLabel)
-                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.R0R1_32, true)
-                asmgen.out(endLabel)
-                assignmentAsmGen.assignRegisterLong(target, RegisterOrPair.R0R1_32)
-            }
-            expr.type.isFloat -> {
-                asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.FAC1, true)
-                asmgen.jmp(endLabel)
-                asmgen.out(falseLabel)
-                asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.FAC1, true)
-                asmgen.out(endLabel)
-                asmgen.assignRegister(RegisterOrPair.FAC1, target)
-            }
-            else -> throw AssemblyError("weird dt")
+
+        if(expr.type.isByteOrBool) {
+            asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.A)
+            asmgen.jmp(endLabel)
+            asmgen.out(falseLabel)
+            asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.A)
+            asmgen.out(endLabel)
+            assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, false, false)
+        } else if(expr.type.isFloat) {
+            asmgen.assignExpressionToRegister(expr.truevalue, RegisterOrPair.FAC1, true)
+            asmgen.jmp(endLabel)
+            asmgen.out(falseLabel)
+            asmgen.assignExpressionToRegister(expr.falsevalue, RegisterOrPair.FAC1, true)
+            asmgen.out(endLabel)
+            asmgen.assignRegister(RegisterOrPair.FAC1, target)
+        } else {
+            asmgen.assignExpressionTo(expr.truevalue, target)
+            asmgen.jmp(endLabel)
+            asmgen.out(falseLabel)
+            asmgen.assignExpressionTo(expr.falsevalue, target)
+            asmgen.out(endLabel)
         }
     }
 
@@ -398,18 +385,19 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 cmp  #$${hex.take(2)}
                 bne  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R0R1_32)
+            // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
             asmgen.out("""
-                lda  cx16.r0
+                lda  cx16.r14
                 cmp  #$${hex.substring(6, 8)}
                 bne  $falseLabel
-                lda  cx16.r0+1
+                lda  cx16.r14+1
                 cmp  #$${hex.substring(4, 6)}
                 bne  $falseLabel
-                lda  cx16.r0+2
+                lda  cx16.r14+2
                 cmp  #$${hex.substring(2, 4)}
                 bne  $falseLabel
-                lda  cx16.r0+3
+                lda  cx16.r14+3
                 cmp  #$${hex.take(2)}
                 bne  $falseLabel""")
         }
@@ -435,18 +423,19 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 cmp  $varname2+3
                 bne  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R0R1_32)
+            // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
             asmgen.out("""
-                lda  cx16.r0
+                lda  cx16.r14
                 cmp  $varname2
                 bne  $falseLabel
-                lda  cx16.r0+1
+                lda  cx16.r14+1
                 cmp  $varname2+1
                 bne  $falseLabel
-                lda  cx16.r0+2
+                lda  cx16.r14+2
                 cmp  $varname2+2
                 bne  $falseLabel
-                lda  cx16.r0+3
+                lda  cx16.r14+3
                 cmp  $varname2+3
                 bne  $falseLabel""")
         }
@@ -503,13 +492,16 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 ora  $varname+3
                 bne  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R0R1_32)
+            asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
             asmgen.out("""
-                lda  cx16.r0
-                ora  cx16.r0+1
-                ora  cx16.r0+2
-                ora  cx16.r0+3
-                bne  $falseLabel""")
+                lda  cx16.r14
+                ora  cx16.r14+1
+                ora  cx16.r14+2
+                ora  cx16.r14+3
+                sta  P8ZP_SCRATCH_REG""")
+            asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.out("  lda  P8ZP_SCRATCH_REG |  bne  $falseLabel")
         }
     }
 
@@ -525,13 +517,16 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 ora  $varname+3
                 beq  $falseLabel""")
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R0R1_32)
+            asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
             asmgen.out("""
-                lda  cx16.r0
-                ora  cx16.r0+1
-                ora  cx16.r0+2
-                ora  cx16.r0+3
-                beq  $falseLabel""")
+                lda  cx16.r14
+                ora  cx16.r14+1
+                ora  cx16.r14+2
+                ora  cx16.r14+3
+                sta  P8ZP_SCRATCH_REG""")
+            asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.out("  lda  P8ZP_SCRATCH_REG |  beq  $falseLabel")
         }
     }
 

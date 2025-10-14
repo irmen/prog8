@@ -7,11 +7,18 @@ main {
     sub start() {
         long @shared lv, lv2
 
-        if lv==lv2+2
-            cx16.r0++
+        cx16.r0L = if lv==9999  then 99 else 42
+        txt.print_ub(cx16.r0L)
+        txt.nl()
 
-        if lv!=lv2+2
-            cx16.r0++
+        lv2 = if lv==9999  then 999999 else 424242
+        txt.print_l(lv2)
+        txt.nl()
+        lv=9999
+        lv2 = if lv==9999  then 999999 else 424242
+        txt.print_l(lv2)
+        txt.nl()
+
 
 ;        long @shared lv1 = $12345678
 ;

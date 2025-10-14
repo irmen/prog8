@@ -250,13 +250,12 @@ to be done on word values, and don't want to explicitly have to cast everything 
     a lot will be much slower than when you restrict yourself to 8 or 16 bit values. Use long values sparingly.
 
 .. danger::
-    **longs and cx16.R0,R1,R2,R3**:
-    **Many operations on long values require the use of the R0 and R1 virtual register as temporary storage**
-    and several even R2 and R3 as well. So if you are working with long values, you should assume that the contents of R0 and R1
-    (and probably R2 and R3 as well) are destroyed.
-    **Using R0,R1,R2,R3 in expressions that work with longs, will probably give a corrupted result, without
-    a warning of the compiler!** It is strongly advised to *not* use R0,R1,R2,R3 at all when dealing with longs.
-    *Note: this may change in the future to maybe R12-R15 instead, to reduce the chance of overwriting registers that are already used*
+    **longs and cx16.R12,R13,R14,R15**:
+    **Some operations on long values require the use of the R12-R15 virtual register as temporary storage**
+    So if you are working with long values, you should assume that the contents of R12-R15 could be destroyed.
+    ()Many operations preserve the values, but not all because of reasons)
+    **Using R12,R13,R14,R15 in expressions that work with longs, will sometimes give a corrupted result, without
+    a warning of the compiler!** It is strongly advised to *not* use R12-R15 at all when dealing with longs.
 
 
 Booleans

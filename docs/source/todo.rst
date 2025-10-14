@@ -2,14 +2,6 @@ TODO
 ====
 
 - optimizedBitwiseExpr(): use R14:R15 instead to save copying/stack manipulation?
-
-- use R12-R15 as temp registers with longs instead of R0-R3  (much less chance on clobbering)
-  check usages of R0R1_32, because all usages of R2R3_32 have already been corrected
-  update/remove the warning in the docs about this
-  maybe reduce problem even further by storing/retrieveing the previous value of those registers? we NEED this anyway because expressions can be nested...
-
-- (not needed anymore if everything is saved on the stack?:) can the compiler give a warning if you use R0/R1 (or whatever the temp storage is) in expressions and/or statements together with long integers? (because R0/R1 are likely to be clobbered as temporary storage)
-
 - implement inplaceLongAdd/Sub in PointerAssignmentGen
 
 
