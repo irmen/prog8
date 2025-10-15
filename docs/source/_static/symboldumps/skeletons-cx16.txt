@@ -1422,6 +1422,7 @@ txt  {
     setcc2  (ubyte col, ubyte row, ubyte character, ubyte colors) 
     setchr  (ubyte col @X, ubyte row @Y, ubyte character @A)  clobbers (A) 
     setclr  (ubyte col @X, ubyte row @Y, ubyte color @A)  clobbers (A) 
+    size  ()  clobbers (A) -> ubyte @X, ubyte @Y 
     spc  () 
     t256c  (bool enable) 
     uppercase  () 

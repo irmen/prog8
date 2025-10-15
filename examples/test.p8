@@ -1,18 +1,32 @@
 %import textio
-%import math
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        long @shared lv, lv2
+        ubyte w,h
 
-        lv = $11111111
-        lv2 = $55555555
+        w,h = txt.size()
+        txt.print("Screen size: ")
+        txt.print_ub(w)
+        txt.spc()
+        txt.print_ub(h)
+        txt.nl()
+        txt.print("width/height=")
+        txt.print_ub(txt.width())
+        txt.spc()
+        txt.print_ub(txt.height())
+        txt.nl()
 
-        lv = lv | lv2 ^ 999999
 
-        txt.print_ulhex(lv, true)           ; $555b177b
+;        long @shared lv, lv2
+;
+;        lv = $11111111
+;        lv2 = $55555555
+;
+;        lv = lv | lv2 ^ 999999
+;
+;        txt.print_ulhex(lv, true)           ; $555b177b
 
 
 ;        long @shared lv1 = $12345678

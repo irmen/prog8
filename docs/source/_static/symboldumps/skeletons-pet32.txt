@@ -540,6 +540,7 @@ txt  {
     setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor_ignored) 
     setchr  (ubyte col @X, ubyte row @Y, ubyte character @A)  clobbers (A,Y) 
     setclr  (ubyte col, ubyte row, ubyte color) 
+    size  ()  clobbers (A) -> ubyte @X, ubyte @Y 
     spc  () 
     uppercase  () 
     waitkey  () -> ubyte @A 

@@ -938,6 +938,7 @@ txt  {
     setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) 
     setchr  (ubyte col @X, ubyte row @Y, ubyte character @A)  clobbers (A,Y) 
     setclr  (ubyte col @X, ubyte row @Y, ubyte color @A)  clobbers (A,Y) 
+    size  ()  clobbers (A) -> ubyte @X, ubyte @Y 
     spc  () 
     uppercase  () 
     waitkey  () -> ubyte @A 

@@ -412,20 +412,28 @@ asmsub waitkey() -> ubyte @A {
 
 asmsub width() clobbers(X,Y) -> ubyte @A {
     ; -- returns the text screen width (number of columns)
-    ; TODO
     %asm {{
-        lda  #0
+        lda  #DEFAULT_WIDTH
         rts
     }}
 }
 
 asmsub height() clobbers(X, Y) -> ubyte @A {
     ; -- returns the text screen height (number of rows)
-    ; TODO
     %asm {{
-        lda  #0
+        lda  #DEFAULT_HEIGHT
         rts
     }}
 }
+
+asmsub size() clobbers(A) -> ubyte @X, ubyte @Y {
+    ; -- returns the text screen width in X and height in Y (number of columns and rows)
+    %asm {{
+        ldx  #DEFAULT_WIDTH
+        ldy  #DEFAULT_HEIGHT
+        rts
+    }}
+}
+
 
 }

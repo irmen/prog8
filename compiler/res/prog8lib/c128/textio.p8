@@ -406,6 +406,7 @@ asmsub width() clobbers(X,Y) -> ubyte @A {
     ; -- returns the text screen width (number of columns)
     %asm {{
         jsr  cbm.SCREEN
+        inx
         txa
         rts
     }}
@@ -415,7 +416,18 @@ asmsub height() clobbers(X, Y) -> ubyte @A {
     ; -- returns the text screen height (number of rows)
     %asm {{
         jsr  cbm.SCREEN
+        iny
         tya
+        rts
+    }}
+}
+
+asmsub size() clobbers(A) -> ubyte @X, ubyte @Y {
+    ; -- returns the text screen width in X and height in Y (number of columns and rows)
+    %asm {{
+        jsr  cbm.SCREEN
+        inx
+        iny
         rts
     }}
 }

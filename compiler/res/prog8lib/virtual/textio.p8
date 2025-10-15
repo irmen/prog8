@@ -21,6 +21,11 @@ sub height() -> ubyte {
     }}
 }
 
+sub size() -> ubyte, ubyte {
+    ; -- returns the text screen width and height (number of columns and rows)
+    return width(), height()
+}
+
 sub  clear_screen() {
     str @shared sequence = "\x1b[2J\x1B[H"
     %ir {{

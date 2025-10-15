@@ -417,7 +417,7 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 asmsub width() clobbers(X,Y) -> ubyte @A {
     ; -- returns the text screen width (number of columns)
     %asm {{
-        lda  DEFAULT_WIDTH
+        lda  #DEFAULT_WIDTH
         rts
     }}
 }
@@ -425,10 +425,20 @@ asmsub width() clobbers(X,Y) -> ubyte @A {
 asmsub height() clobbers(X, Y) -> ubyte @A {
     ; -- returns the text screen height (number of rows)
     %asm {{
-        lda  DEFAULT_HEIGHT
+        lda  #DEFAULT_HEIGHT
         rts
     }}
 }
+
+asmsub size() clobbers(A) -> ubyte @X, ubyte @Y {
+    ; -- returns the text screen width in X and height in Y (number of columns and rows)
+    %asm {{
+        ldx  #DEFAULT_HEIGHT
+        ldy  #DEFAULT_HEIGHT
+        rts
+    }}
+}
+
 
 ; TODO: jmp to cbm.CHRIN?
 asmsub waitkey() -> ubyte @A {
