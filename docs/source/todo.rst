@@ -1,7 +1,14 @@
 TODO
 ====
 
-- implement inplaceLongAdd/Sub in PointerAssignmentGen
+- implement the TODO in assignPointerDerefExpression()
+- implement inplaceLongAdd/Sub in PointerAssignmentGen to make this compile::
+
+    struct Node {
+        long x
+    }
+    ^^Node np = 20000
+    np.x += cx16.r0
 
 
 STRUCTS and TYPED POINTERS

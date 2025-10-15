@@ -1294,7 +1294,7 @@ _jump                       jmp  (${target.asmLabel})
 
     private fun longLessZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
         if(lessEquals) {
-            TODO("long <= 0")
+            TODO("long <= 0 ${value.position}")
         } else {
             loadAndCmp0MSB(value, true)
             if (jump != null)
@@ -1306,7 +1306,7 @@ _jump                       jmp  (${target.asmLabel})
 
     private fun longGreaterZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
         if(lessEquals) {
-            TODO("long >= 0")
+            TODO("long >= 0 ${value.position}")
         } else {
             loadAndCmp0MSB(value, true)
             if (jump != null)

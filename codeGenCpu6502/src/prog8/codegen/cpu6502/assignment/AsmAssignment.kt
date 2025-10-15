@@ -43,7 +43,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
             variableAsmName!!
         else {
             if(array.variable==null)
-                TODO("asmVarname for array with pointer")
+                TODO("asmVarname for array with pointer $position")
             asmgen.asmVariableName(array.variable!!)
         }
     }

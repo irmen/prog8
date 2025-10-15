@@ -791,7 +791,7 @@ internal class ProgramAndVarsGen(
             }
             dt.isPointer -> asmgen.out("${variable.name}\t.word  ?")        // a pointer is just an uword address
             dt.isPointerArray -> {
-                TODO("pointers are not supported yet")
+                TODO("pointers are not supported yet for uninitialized array ${variable.astNode?.position}")
             }
             else -> {
                 throw AssemblyError("weird dt")

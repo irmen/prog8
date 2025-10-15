@@ -1452,7 +1452,7 @@ internal class AstChecker(private val program: Program,
             } else if(rightIndexer!=null) {
                 val leftDt = expr.left.inferType(program)
                 if(leftDt.isStructInstance) {
-                    TODO("pointer[x].field[y] ??")
+                    TODO("pointer[x].field[y] ??  ${expr.left.position}")
 //                    //  pointer[x].field[y] --> type is the dt of 'field'
 //                    var struct = leftDt.getOrUndef().subType
 //                    if (struct==null) {

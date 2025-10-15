@@ -24,7 +24,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             if(extsub!=null) {
                 require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
                 if (funcCall.multipleResultFpRegs.isNotEmpty())
-                    TODO("deal with (multiple?) FP return registers")
+                    TODO("deal with (multiple?) FP return registers ${assignment.position}")
                 if (extsub.returns.size == assignmentTargets.size) {
                     // Targets and values match. Assign all the things. Skip 'void' targets.
                     extsub.returns.zip(assignmentTargets).zip(funcCall.multipleResultRegs).forEach {
@@ -969,7 +969,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorDivideInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
-            TODO("/ in array")
+            TODO("/ in array ${array.position}")
         }
         if(constAddress==null && memory!=null)
             return null  // TODO("optimized memory in-place /"")
@@ -1425,7 +1425,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
 
     private fun operatorModuloInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            TODO("% in array")
+            TODO("% in array  ${array.position}")
         }
         if(constAddress==null && memory!=null)
             return null  // TODO("optimized memory in-place %"")

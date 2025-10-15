@@ -324,7 +324,7 @@ _after:
             return noModifications
         } else if(arrayVar!=null) {
             // it could be a pointer dereference instead of a simple array variable
-            TODO("deref[word] rewrite ????  $arrayIndexedExpression")
+            TODO("deref[word] rewrite ????  ${arrayIndexedExpression.position}")
 //            val dt = arrayIndexedExpression.plainarrayvar!!.traverseDerefChainForDt(null)
 //            if(dt.isUnsignedWord) {
 //                // ptr.field[index] -->  @(ptr.field + index)
@@ -663,7 +663,7 @@ _after:
                     val indexer = ArrayIndexedExpression(null, ptrDeref, idx.indexer, idx.position)
                     return listOf(IAstModification.ReplaceNode(expr, indexer, expr.parent))
                 } else {
-                    TODO("convert ptr.p[idx]")
+                    TODO("convert ptr.p[idx]  ${idx.position}")
                 }
             }
         }

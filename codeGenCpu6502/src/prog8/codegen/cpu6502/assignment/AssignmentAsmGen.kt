@@ -516,7 +516,7 @@ internal class AssignmentAsmGen(
                             asmgen.assignRegister(RegisterOrPair.FAC1, assign.target)
                         }
                         dt.isLong -> {
-                            TODO("read long")
+                            TODO("read long ${value.position}")
                         }
                         else -> throw AssemblyError("unsupported dereference type ${dt} ${value.position}")
                     }
@@ -1564,7 +1564,7 @@ internal class AssignmentAsmGen(
                     if(right.isFromArrayElement) {
                         TODO("address-of array element at ${right.position}")
                     } else if(right.dereference!=null) {
-                        TODO("read &dereference")
+                        TODO("read &dereference ${right.position}")
                     } else {
                         var symbol = asmgen.asmVariableName(right.identifier!!)
                         if(right.identifier!!.type.isSplitWordArray) {
@@ -2557,7 +2557,7 @@ $endLabel""")
                         )
                         assignExpression(assignDirect, target.scope)
                     } else {
-                        TODO("assign bool to non-integer type $targetDt")
+                        TODO("assign bool to non-integer type $targetDt ${value.position}")
                     }
                 }
                 valueDt.isByte -> {
@@ -3386,16 +3386,16 @@ $endLabel""")
             TargetStorageKind.VARIABLE -> {
                 when(sourceDt) {
                     DataType.BYTE -> {
-                        TODO("signed byte to long var")
+                        TODO("signed byte to long var ${target.position}")
                     }
                     DataType.UBYTE -> {
-                        TODO("ubyte to long var")
+                        TODO("ubyte to long var ${target.position}")
                     }
                     DataType.WORD -> {
-                        TODO("signed word to long var")
+                        TODO("signed word to long var ${target.position}")
                     }
                     DataType.UWORD -> {
-                        TODO("ubyte to long var")
+                        TODO("ubyte to long var ${target.position}")
                     }
                     DataType.LONG -> {
                         asmgen.out("""

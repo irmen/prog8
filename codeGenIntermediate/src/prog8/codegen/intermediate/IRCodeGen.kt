@@ -272,7 +272,7 @@ class IRCodeGen(
             is PtSub -> throw AssemblyError("nested subroutines should have been flattened $node")
             is PtStructDecl -> emptyList()
             is PtSubSignature -> emptyList()
-            else -> TODO("missing codegen for $node")
+            else -> TODO("missing codegen for $node  ${node.position}")
         }
 
         val nonEmptyChunks = chunks.filter { it.isNotEmpty() || it.label != null }
@@ -1142,7 +1142,7 @@ class IRCodeGen(
             if(identifier!=null && !isIndirectJump(goto))
                 IRInstruction(branchOpcode, labelSymbol = identifier.name)
             else
-                TODO("JUMP to expression address ${goto.target}")
+                TODO("JUMP to expression address ${goto.target}  ${goto.position}")
         }
     }
 
@@ -1860,7 +1860,7 @@ class IRCodeGen(
                 is PtNop -> { /* nothing */ }
                 is PtAssignment, is PtAugmentedAssign -> { /* global variable initialization is done elsewhere */ }
                 is PtVariable, is PtConstant, is PtMemMapped -> { /* vars should be looked up via symbol table */ }
-                is PtAlign -> TODO("ir support for inline %align")
+                is PtAlign -> TODO("ir support for inline %align  ${child.position}")
                 is PtSub -> {
                     val sub = IRSubroutine(child.name, translateParameters(child.signature.children), child.signature.returns, child.position)
                     for (subchild in child.children) {
@@ -1912,7 +1912,7 @@ class IRCodeGen(
                     }
                 }
                 is PtStructDecl -> { /* do nothing, should be found in the symbol table */ }
-                else -> TODO("weird block child node $child")
+                else -> TODO("weird block child node $child  ${child.position}")
             }
         }
         return irBlock

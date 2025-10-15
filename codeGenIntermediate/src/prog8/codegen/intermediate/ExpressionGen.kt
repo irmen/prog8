@@ -99,7 +99,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         var pointerReg: Int
 
         if(deref.startpointer.type.isStructInstance) {
-            TODO("translate structinstance deref???")
+            TODO("translate structinstance deref??? ${deref.position}")
 /*
             val arrayIndexer = deref.startpointer as? PtArrayIndexer
             if(arrayIndexer==null)
@@ -846,7 +846,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 // no further conversion required, pointers are all just uwords
             }
             BaseDataType.ARRAY_POINTER -> {
-                TODO("typecast to array of pointers $valueDt -> ${cast.type}")
+                TODO("typecast to array of pointers $valueDt -> ${cast.type}  ${cast.position}")
             }
             else -> throw AssemblyError("weird cast value type ${cast.position}")
         }
@@ -1184,7 +1184,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
                     )
                 }
-                else TODO("extsub with banked address got called ${callTarget.name}")
+                else TODO("extsub with banked address got called ${callTarget.name}  ${fcall.position}")
             }
         addInstr(result, call, null)
         val resultRegs = returnRegisters.filter{it.dt!=IRDataType.FLOAT}.map{it.registerNum}
@@ -1762,9 +1762,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 result += pointerTr.chunks
                 pointerReg = pointerTr.resultReg
             } else if(left.pointerderef!=null) {
-                TODO("get pointer from deref $left")
+                TODO("get pointer from deref $left  ${left.position}")
             } else {
-                throw AssemblyError("weird arrayindexer $left")
+                throw AssemblyError("weird arrayindexer $left  ${left.position}")
             }
             val struct = left.type.subType!! as StStruct
             val constindex = left.index as? PtNumber

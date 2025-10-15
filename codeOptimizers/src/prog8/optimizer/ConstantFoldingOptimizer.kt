@@ -349,7 +349,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                         }
                     }
                 } else if(arrayIndexedExpression.pointerderef!=null) {
-                    TODO("constant fold pointer[i]")
+                    TODO("constant fold pointer[i]  ${arrayIndexedExpression.position}")
                 }
             }
         }

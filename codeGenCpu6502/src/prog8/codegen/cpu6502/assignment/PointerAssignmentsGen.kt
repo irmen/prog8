@@ -249,7 +249,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             asmgen.assignRegister(RegisterOrPair.FAC1, target)
         }
         else if(value.type.isLong)
-            TODO("load long")
+            TODO("load long  ${value.position}")
         else
             throw AssemblyError("weird dt ${value.type} in pointer deref assignment ${target.position}")
     }
@@ -294,7 +294,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 else if(target.dt.isLong) TODO("inplace long div ${target.position}")
                 else throw AssemblyError("weird dt ${target.position}")
             }
-            "%" -> TODO("inplace ptr %")
+            "%" -> TODO("inplace ptr % ${target.position}")
             "<<" -> {
                 if(target.dt.isByte) inplaceByteShiftLeft(target, value)
                 else if(target.dt.isWord) inplaceWordShiftLeft(target, value)
@@ -471,7 +471,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             if(left.variable!=null) {
                 asmgen.assignExpressionToRegister(left.variable!!, RegisterOrPair.AY)
             } else if(left.pointerderef!=null) {
-                TODO("get pointer from deref $left")
+                TODO("get pointer from deref $left  ${left.position}")
             } else {
                 throw AssemblyError("weird arrayindexer $left")
             }
@@ -1046,9 +1046,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     ldy  $zpPtrVar+1
                     jsr  floats.MOVMF""")
             }
-            SourceStorageKind.VARIABLE -> TODO("variable + * float")
-            SourceStorageKind.EXPRESSION -> TODO("expression + * float")
-            SourceStorageKind.REGISTER -> TODO("register + * float")
+            SourceStorageKind.VARIABLE -> TODO("variable + * float  ${target.position}")
+            SourceStorageKind.EXPRESSION -> TODO("expression + * float  ${target.position}")
+            SourceStorageKind.REGISTER -> TODO("register + * float  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1097,7 +1097,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sbc  P8ZP_SCRATCH_W1+1
                     sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.REGISTER -> TODO("register - word")
+            SourceStorageKind.REGISTER -> TODO("register - word  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1149,7 +1149,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 asmgen.assignRegister(register, multiplyArg)
                 multiply()
             }
-            SourceStorageKind.EXPRESSION -> TODO("ptr * expr (word)")
+            SourceStorageKind.EXPRESSION -> TODO("ptr * expr (word)  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1187,14 +1187,14 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.VARIABLE -> {
                 require(value.datatype.isWord)
                 val varname = value.asmVarname
-                TODO("inplace variable word divide")
+                TODO("inplace variable word divide  ${target.position}")
             }
             SourceStorageKind.REGISTER -> {
                 val register = value.register!!
                 require(register.isWord())
-                TODO("inplace register word divide")
+                TODO("inplace register word divide  ${target.position}")
             }
-            SourceStorageKind.EXPRESSION -> TODO("ptr / expr (word)")
+            SourceStorageKind.EXPRESSION -> TODO("ptr / expr (word)  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1216,9 +1216,9 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     ldy  $zpPtrVar+1
                     jsr  floats.MOVMF""")
             }
-            SourceStorageKind.VARIABLE -> TODO("variable - / float")
-            SourceStorageKind.EXPRESSION -> TODO("expression - / float")
-            SourceStorageKind.REGISTER -> TODO("register - / float")
+            SourceStorageKind.VARIABLE -> TODO("variable - / float  ${target.position}")
+            SourceStorageKind.EXPRESSION -> TODO("expression - / float  ${target.position}")
+            SourceStorageKind.REGISTER -> TODO("register - / float  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1398,7 +1398,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     eor  ($zpPtrVar),y
                     sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.REGISTER -> TODO("register ^ byte")
+            SourceStorageKind.REGISTER -> TODO("register ^ byte  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1442,7 +1442,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     eor  ($zpPtrVar),y
                     sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.REGISTER -> TODO("register ^ word")
+            SourceStorageKind.REGISTER -> TODO("register ^ word  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1485,7 +1485,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     ora  ($zpPtrVar),y
                     sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.REGISTER -> TODO("register | byte")
+            SourceStorageKind.REGISTER -> TODO("register | byte  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1529,7 +1529,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     ora  ($zpPtrVar),y
                     sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.REGISTER -> TODO("register | word")
+            SourceStorageKind.REGISTER -> TODO("register | word  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1572,7 +1572,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     and  ($zpPtrVar),y
                     sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.REGISTER -> TODO("register & byte")
+            SourceStorageKind.REGISTER -> TODO("register & byte  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }
@@ -1616,7 +1616,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     and  ($zpPtrVar),y
                     sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.REGISTER -> TODO("register & word")
+            SourceStorageKind.REGISTER -> TODO("register & word  ${target.position}")
             else -> throw AssemblyError("weird source value $value")
         }
     }

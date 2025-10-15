@@ -882,7 +882,7 @@ class AsmGen6502Internal (
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                        TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                        TargetStorageKind.POINTER -> throw AssemblyError("assign long into pointer  ${target.position}")
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
                 } else if(value is PtIdentifier && value.type.isLong) {
@@ -905,7 +905,7 @@ class AsmGen6502Internal (
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                        TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                        TargetStorageKind.POINTER -> throw AssemblyError("assign long into pointer  ${target.position}")
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
                 } else if(value is PtTypeCast && value.type.isLong) {
@@ -917,10 +917,10 @@ class AsmGen6502Internal (
                                     out("  lda  $valuesym |  sta  ${target.asmVarname}")
                                     signExtendLongVariable(target.asmVarname, value.value.type.base)
                                 }
-                                TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                                TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                                TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                                TargetStorageKind.POINTER -> throw AssemblyError("assign long into pointer  ${target.position}")
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
                         } else if(value.value.type.isWord) {
@@ -933,7 +933,7 @@ class AsmGen6502Internal (
                                         sta  ${target.asmVarname}+1""")
                                     signExtendLongVariable(target.asmVarname, value.value.type.base)
                                 }
-                                TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
+                                TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> {
                                     require(target.register in combinedLongRegisters)
@@ -945,7 +945,9 @@ class AsmGen6502Internal (
                                         sta  cx16.$startreg+1""")
                                     signExtendLongVariable("cx16.$startreg", value.value.type.base)
                                 }
-                                TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                                TargetStorageKind.POINTER -> {
+                                    throw AssemblyError("assign typecasted long into pointer  ${target.position}")
+                                }
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
                         } else throw AssemblyError("weird casted type")
@@ -1514,7 +1516,7 @@ $repeatLabel""")
                 val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
-                        TODO("address-of array element $addrOf")
+                        TODO("address-of array element ${addrOf.position}")
                     } else if(addrOf.dereference!=null) {
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
@@ -1556,9 +1558,9 @@ $repeatLabel""")
             val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
             if(addrOf!=null && constOffset!=null) {
                 if(addrOf.isFromArrayElement) {
-                    TODO("address-of array element $addrOf")
+                    TODO("address-of array element ${addrOf.position}")
                 } else if(addrOf.dereference!=null) {
-                    TODO("read &dereference")
+                    TODO("read &dereference ${addrOf.position}")
                 } else {
                     out("  lda  ${asmSymbolName(addrOf.identifier!!)}+${constOffset}")
                     return true
@@ -1606,7 +1608,7 @@ $repeatLabel""")
                 val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
-                        TODO("address-of array element $addrOf")
+                        TODO("address-of array element ${addrOf.position}")
                     } else if(addrOf.dereference!=null) {
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
@@ -1639,9 +1641,9 @@ $repeatLabel""")
                 val constOffset = (ptrAndIndex.second as? PtNumber)?.number?.toInt()
                 if(addrOf!=null && constOffset!=null) {
                     if(addrOf.isFromArrayElement) {
-                        TODO("address-of array element $addrOf")
+                        TODO("address-of array element ${addrOf.position}")
                     } else if(addrOf.dereference!=null) {
-                        TODO("read &dereference")
+                        TODO("read &dereference ${addrOf.position}")
                     } else {
                         out("  lda  ${asmSymbolName(addrOf.identifier!!)}-${constOffset}")
                         return true

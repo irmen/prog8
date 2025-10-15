@@ -123,7 +123,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.number!!.number)
                             SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(target.asmVarname, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(target.asmVarname, operator, regName(value))
-                            SourceStorageKind.MEMORY -> TODO("memread into float")
+                            SourceStorageKind.MEMORY -> TODO("memread into float ${target.position}")
                             SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(target.asmVarname, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
@@ -167,7 +167,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationBytePointerWithLiteralval(pointer, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationBytePointerWithVariable(pointer, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationBytePointerWithVariable(pointer, operator, regName(value))
-                            SourceStorageKind.MEMORY -> TODO("memread into pointer")
+                            SourceStorageKind.MEMORY -> TODO("memread into pointer ${target.position}")
                             SourceStorageKind.ARRAY -> inplacemodificationBytePointerWithValue(pointer, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
@@ -327,7 +327,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.number!!.number)
                                 SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(targetVarName, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(targetVarName, operator, regName(value))
-                                SourceStorageKind.MEMORY -> TODO("memread into float array")
+                                SourceStorageKind.MEMORY -> TODO("memread into float array ${target.position}")
                                 SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(targetVarName, operator, value.array!!)
                                 SourceStorageKind.EXPRESSION -> {
                                     if(value.expression is PtTypeCast) {
@@ -518,7 +518,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.number!!.number)
                                 SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(tempvar, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(tempvar, operator, regName(value))
-                                SourceStorageKind.MEMORY -> TODO("memread into float")
+                                SourceStorageKind.MEMORY -> TODO("memread into float ${target.position}")
                                 SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(tempvar, operator, value.array!!)
                                 SourceStorageKind.EXPRESSION -> {
                                     if(value.expression is PtTypeCast) {
@@ -1439,7 +1439,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
 +""")
             }
             // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?
-            "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons")
+            "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons ${pointervar.position}")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
         asmgen.storeAIntoZpPointerVar(sourceName, false)
@@ -1562,7 +1562,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 asmgen.storeAIntoZpPointerVar(sourceName, false)
             }
             // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?:
-            "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons")
+            "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons ${pointervar.position}")
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
     }

@@ -81,7 +81,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     changeDataType = if(decl.datatype.isSplitWordArray) null else {
                         val eltDt = decl.datatype.elementType()
                         if(eltDt.isPointer)
-                            TODO("convert array of pointers to split words array type")
+                            TODO("convert array of pointers to split words array type  ${decl.position}")
                         else
                             DataType.arrayFor(eltDt.base)
                     }
@@ -433,7 +433,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     newIndex.linkParents(arrayIndexedExpression.indexer)
                 }
             } else if(arrayIndexedExpression.pointerderef!=null) {
-                TODO("cleanup pointer indexing")
+                TODO("cleanup pointer indexing ${arrayIndexedExpression.position}")
             }
         }
         return noModifications
