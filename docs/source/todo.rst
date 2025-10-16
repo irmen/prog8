@@ -1,6 +1,7 @@
 TODO
 ====
 
+- fix github issues. Probably those include the folloing already:
 - implement the TODO in assignPointerDerefExpression()
 - implement inplaceLongAdd/Sub in PointerAssignmentGen to make this compile::
 
@@ -10,24 +11,22 @@ TODO
     ^^Node np = 20000
     np.x += cx16.r0
 
+- redo the benchmark-c tests with final 12.0 release version.
 
-STRUCTS and TYPED POINTERS
---------------------------
-
-- implement the remaining TODO's in PointerAssignmentsGen.
-- optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
-- optimize the float copying in assignIndexedPointer() (also word and long?)
-- optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
-- implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
-- support @nosplit pointer arrays?
-- support pointer to pointer?
-- support for typed function pointers?  (&routine could be typed by default as well then)
-- really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
-- (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- struct/ptr: implement the remaining TODO's in PointerAssignmentsGen.
+- struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
+- struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)
+- struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
+- struct/ptr: implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
+- struct/ptr: support @nosplit pointer arrays?
+- struct/ptr: support pointer to pointer?
+- struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)
+- struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
+- struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - make $8000000 a valid long integer (-2147483648) this is more involved than you think.  To make this work: long \|= $80000000
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
 - fix the line, cols in Position, sometimes they count from 0 sometimes from 1, should both always be 1-based (is this the reason some source lines end up missing in the IR file?)

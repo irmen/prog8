@@ -298,29 +298,34 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             "<<" -> {
                 if(target.dt.isByte) inplaceByteShiftLeft(target, value)
                 else if(target.dt.isWord) inplaceWordShiftLeft(target, value)
+                else if(target.dt.isLong) TODO("inplace long << ${target.position}")
                 else throw AssemblyError("weird dt ${target.position}")
             }
             ">>" -> {
                 if(target.dt.isByte) inplaceByteShiftRight(target, value)
                 else if(target.dt.isWord) inplaceWordShiftRight(target, value)
+                else if(target.dt.isLong) TODO("inplace long >> ${target.position}")
                 else throw AssemblyError("weird dt ${target.position}")
             }
             "&", "and" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
                 if(target.dt.isByteOrBool) inplaceByteAnd(target, value)
                 else if(target.dt.isWord) inplaceWordAnd(target, value)
+                else if(target.dt.isLong) TODO("inplace long and ${target.position}")
                 else throw AssemblyError("weird dt ${target.dt} ${target.position}")
             }
             "|", "or" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
                 if(target.dt.isByteOrBool) inplaceByteOr(target, value)
                 else if(target.dt.isWord) inplaceWordOr(target, value)
+                else if(target.dt.isLong) TODO("inplace long or ${target.position}")
                 else throw AssemblyError("weird dt ${target.dt} ${target.position}")
             }
             "^", "xor" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
                 if(target.dt.isByteOrBool) inplaceByteXor(target, value)
                 else if(target.dt.isWord) inplaceWordXor(target, value)
+                else if(target.dt.isLong) TODO("inplace long xor ${target.position}")
                 else throw AssemblyError("weird dt ${target.dt} ${target.position}")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")

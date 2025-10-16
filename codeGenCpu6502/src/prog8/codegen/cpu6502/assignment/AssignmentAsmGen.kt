@@ -3479,7 +3479,7 @@ $endLabel""")
                     else -> throw AssemblyError("wrong dt ${target.position}")
                 }
             }
-            TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+            TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -4004,7 +4004,7 @@ $endLabel""")
                         sta  cx16.$targetStartReg+3""")
                 }
             }
-            TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+            TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -4499,7 +4499,7 @@ $endLabel""")
                         stz  $startreg+2
                         stz  $startreg+3""")
                 }
-                TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
             return
@@ -4553,7 +4553,7 @@ $endLabel""")
                     lda  #$${hex.take(2)}
                     sta  cx16.$regstart+3""")
             }
-            TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+            TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -5309,7 +5309,7 @@ $endLabel""")
                     TargetStorageKind.ARRAY -> TODO(" - long array ${target.position}")
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                     TargetStorageKind.REGISTER -> TODO("32 bits register negate ${target.position}")
-                    TargetStorageKind.POINTER -> throw AssemblyError("can't assign long to pointer, pointers are 16 bits ${target.position}")
+                    TargetStorageKind.POINTER -> TODO("long negate via pointer ${target.position}")
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
