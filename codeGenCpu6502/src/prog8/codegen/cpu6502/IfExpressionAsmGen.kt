@@ -368,7 +368,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     private fun translateLongExprEqualsNumber(expr: PtExpression, number: Int, falseLabel: String) {
         // if L==number
         // TODO reuse code from ifElse?
-        val hex = number.toUInt().toString(16).padStart(8, '0')
+        val hex = number.toLongHex()
         if(expr is PtIdentifier) {
             val varname = asmgen.asmVariableName(expr)
             asmgen.out("""

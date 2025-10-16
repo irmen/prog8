@@ -416,7 +416,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             if(arg2.type.isLong) {
                 if(arg1 is PtIdentifier && arg2 is PtNumber) {
                     val var1 = asmgen.asmVariableName(arg1)
-                    val hex = arg2.number.toUInt().toString(16).padStart(8, '0')
+                    val hex = arg2.number.toLongHex()
                     asmgen.out("""
                         sec
                         lda  $var1

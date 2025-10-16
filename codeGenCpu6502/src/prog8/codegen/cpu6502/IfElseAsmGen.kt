@@ -1406,7 +1406,7 @@ _jump                       jmp  (${target.asmLabel})
         if(left is PtIdentifier) {
             val leftvar = asmgen.asmVariableName(left)
             if(constRight!=null) {
-                val hex = constRight.toUInt().toString(16).padStart(8, '0')
+                val hex = constRight.toLongHex()
                 asmgen.out("""
                     lda  $leftvar
                     cmp  #$${hex.substring(6,8)}
@@ -1437,7 +1437,7 @@ _jump                       jmp  (${target.asmLabel})
             // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
             asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15_32, left.type.isSigned)
             if(constRight!=null) {
-                val hex = constRight.toUInt().toString(16).padStart(8, '0')
+                val hex = constRight.toLongHex()
                 asmgen.out("""
                     lda  cx16.r14
                     cmp  #$${hex.substring(6,8)}
@@ -2114,3 +2114,4 @@ _jump                       jmp  (${target.asmLabel})
         }
     }
 }
+

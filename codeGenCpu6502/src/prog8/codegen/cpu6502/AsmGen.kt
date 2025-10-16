@@ -866,7 +866,7 @@ class AsmGen6502Internal (
             }
             target.datatype.isLong -> {
                 if(value is PtNumber) {
-                    val hex = value.asConstInteger()!!.toString(16).padStart(8, '0')
+                    val hex = value.asConstInteger()!!.toLongHex()
                     when(target.kind) {
                         TargetStorageKind.VARIABLE -> {
                             out("""
@@ -2109,6 +2109,22 @@ $repeatLabel""")
         }
     }
 
+    internal fun loadIndirectLongIntoR14R15(zpPtrVar: String, offset: UByte) {
+        out("""
+            ldy  #$offset
+            lda  ($zpPtrVar),y
+            sta  cx16.r14
+            iny
+            lda  ($zpPtrVar),y
+            sta  cx16.r14+1
+            iny
+            lda  ($zpPtrVar),y
+            sta  cx16.r14+2
+            iny
+            lda  ($zpPtrVar),y
+            sta  cx16.r14+3""")
+    }
+
     internal fun storeIndirectByte(byte: Int, zpPtrVar: String, offset: UByte) {
         if (offset > 0u) {
             out("  lda  #$byte |  ldy  #$offset |  sta  ($zpPtrVar),y")
@@ -2498,3 +2514,7 @@ internal class SubroutineExtraAsmInfo {
 
     val extraVars = mutableListOf<Triple<BaseDataType, String, UInt?>>()
 }
+
+
+internal fun Double.toLongHex(): String = this.toUInt().toString(16).padStart(8, '0')
+internal fun Int.toLongHex(): String = this.toUInt().toString(16).padStart(8, '0')

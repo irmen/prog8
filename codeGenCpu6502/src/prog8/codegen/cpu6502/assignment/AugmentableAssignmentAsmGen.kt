@@ -4,6 +4,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
+import prog8.codegen.cpu6502.toLongHex
 
 
 internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
@@ -859,7 +860,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 inc  $variable+3
 +""")
                         } else {
-                            val hex = value.toUInt().toString(16).padStart(8, '0')
+                            val hex = value.toLongHex()
                             asmgen.out("""
                                 clc
                                 lda  $variable
@@ -921,7 +922,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 dec  $variable+3
 +""")
                         } else {
-                            val hex = value.toUInt().toString(16).padStart(8, '0')
+                            val hex = value.toLongHex()
                             asmgen.out("""
                                 sec
                                 lda  $variable
@@ -943,7 +944,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "<<" -> if (value > 0) inplaceLongShiftLeft()
             ">>" -> if (value > 0) inplaceLongShiftRight()
             "|" -> {
-                val hex = value.toUInt().toString(16).padStart(8, '0')
+                val hex = value.toLongHex()
                 asmgen.out("""
                     lda  $variable
                     ora  #$${hex.substring(6,8)}
@@ -959,7 +960,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sta  $variable+3""")
             }
             "&" -> {
-                val hex = value.toUInt().toString(16).padStart(8, '0')
+                val hex = value.toLongHex()
                 asmgen.out("""
                     lda  $variable
                     and  #$${hex.substring(6,8)}
@@ -975,7 +976,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sta  $variable+3""")
             }
             "^" -> {
-                val hex = value.toUInt().toString(16).padStart(8, '0')
+                val hex = value.toLongHex()
                 asmgen.out("""
                     lda  $variable
                     eor  #$${hex.substring(6,8)}

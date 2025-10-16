@@ -1044,7 +1044,7 @@ internal class ProgramAndVarsGen(
             }
             dt.isLongArray -> array.map {
                 val number = it.number!!.toInt()
-                val hexnum = number.absoluteValue.toString(16).padStart(8, '0')
+                val hexnum = number.absoluteValue.toLongHex()
                 if(number>=0)
                     "$$hexnum"
                 else

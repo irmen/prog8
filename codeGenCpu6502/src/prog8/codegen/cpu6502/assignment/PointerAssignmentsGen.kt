@@ -5,6 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
+import prog8.codegen.cpu6502.toLongHex
 import kotlin.math.log2
 
 
@@ -248,8 +249,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             asmgen.loadIndirectFloat(zpPtrVar, offset)
             asmgen.assignRegister(RegisterOrPair.FAC1, target)
         }
-        else if(value.type.isLong)
-            TODO("load long  ${value.position}")
+        else if(value.type.isLong) {
+            asmgen.loadIndirectLongIntoR14R15(zpPtrVar, offset)
+            asmgen.assignRegister(RegisterOrPair.R14R15_32, target)
+        }
         else
             throw AssemblyError("weird dt ${value.type} in pointer deref assignment ${target.position}")
     }
@@ -458,6 +461,25 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     internal fun assignLongVar(target: IndexedPtrTarget, varName: String) {
         TODO("array ptr assign long var ${target.position}")
     }
+
+    fun assignLong(pointer: PtPointerDeref, long: Int) {
+        val (ptrVar, offset) = deref(pointer)
+        val hex = long.toLongHex()
+        asmgen.out("""
+            ldy  #$offset
+            lda  #$${hex.substring(6,8)}
+            sta  ($ptrVar),y
+            iny
+            lda  #$${hex.substring(4, 6)}
+            sta  ($ptrVar),y
+            iny
+            lda  #$${hex.substring(2, 4)}
+            sta  ($ptrVar),y
+            iny
+            lda  #$${hex.take(2)}
+            sta  ($ptrVar),y""")
+    }
+
 
     internal fun operatorDereference(binExpr: PtBinaryExpression): Triple<String, UByte, DataType> {
         // the only case we support here is:   a.b.c[i] . value
@@ -953,18 +975,64 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     private fun inplaceLongAdd(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer)
         when(value.kind) {
-            SourceStorageKind.LITERALNUMBER -> TODO("inplace long add with ${value.number} ${target.position}")
-            SourceStorageKind.VARIABLE -> TODO("inplace long add with ${value.asmVarname} ${target.position}")
+            SourceStorageKind.LITERALNUMBER -> {
+                val hex = value.number!!.number.toLongHex()
+                asmgen.out("""
+                    ldy  #$offset
+                    clc
+                    lda  ($zpPtrVar),y
+                    adc  #$${hex.substring(6, 8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  #$${hex.substring(4, 6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  #$${hex.substring(2, 4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  #$${hex.take(2)}
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                TODO("inplace long add with ${value.asmVarname} ${target.position}")
+            }
             SourceStorageKind.EXPRESSION -> TODO("inplace long add with ${value.expression} ${target.position}")
             else -> TODO("inplace long add with ${value.kind} ${target.position}")
         }
     }
 
     private fun inplaceLongSub(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer)
         when(value.kind) {
-            SourceStorageKind.LITERALNUMBER -> TODO("inplace long sub with ${value.number} ${target.position}")
-            SourceStorageKind.VARIABLE -> TODO("inplace long sub with ${value.asmVarname} ${target.position}")
+            SourceStorageKind.LITERALNUMBER -> {
+                val hex = value.number!!.number.toLongHex()
+                asmgen.out("""
+                    ldy  #$offset
+                    sec
+                    lda  ($zpPtrVar),y
+                    sbc  #$${hex.substring(6, 8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  #$${hex.substring(4, 6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  #$${hex.substring(2, 4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  #$${hex.take(2)}
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                TODO("inplace long sub with ${value.asmVarname} ${target.position}")
+            }
             SourceStorageKind.EXPRESSION -> TODO("inplace long sub with ${value.expression} ${target.position}")
             else -> TODO("inplace long sub with ${value.kind} ${target.position}")
         }

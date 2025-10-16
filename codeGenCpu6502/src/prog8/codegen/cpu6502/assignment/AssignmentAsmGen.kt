@@ -5,6 +5,7 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.AsmGen6502Internal
 import prog8.codegen.cpu6502.VariableAllocator
+import prog8.codegen.cpu6502.toLongHex
 import kotlin.math.log2
 
 
@@ -1783,7 +1784,7 @@ internal class AssignmentAsmGen(
             }
             is PtNumber -> {
                 asmgen.assignExpressionTo(left, target)
-                val hex = right.number.toInt().toString(16).padStart(8, '0')
+                val hex = right.number.toLongHex()
                 if (target.kind == TargetStorageKind.VARIABLE) {
                     if (expr.operator == "+") {
                         asmgen.out("""
@@ -4514,7 +4515,7 @@ $endLabel""")
                         asmgen.out("  lda  #$$hexbyte |  sta  ${target.asmVarname}+$offset")
                     }
                 }
-                val hex = long.toUInt().toString(16).padStart(8, '0')
+                val hex = long.toLongHex()
                 store(hex.substring(6,8), 0)
                 store(hex.substring(4,6), 1)
                 store(hex.substring(2,4), 2)
@@ -4527,7 +4528,7 @@ $endLabel""")
                     return
                 }
                 asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.Y)
-                val hex = long.toUInt().toString(16).padStart(8, '0')
+                val hex = long.toLongHex()
                 asmgen.out("""
                     lda  #$${hex.substring(6,8)}
                     sta  ${target.asmVarname},y
@@ -4542,7 +4543,7 @@ $endLabel""")
             TargetStorageKind.REGISTER -> {
                 require(target.register in combinedLongRegisters)
                 val regstart = target.register!!.startregname()
-                val hex = long.toUInt().toString(16).padStart(8, '0')
+                val hex = long.toLongHex()
                 asmgen.out("""
                     lda  #$${hex.substring(6,8)}
                     sta  cx16.$regstart
@@ -4553,7 +4554,7 @@ $endLabel""")
                     lda  #$${hex.take(2)}
                     sta  cx16.$regstart+3""")
             }
-            TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignLong(target.pointer!!, long)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
