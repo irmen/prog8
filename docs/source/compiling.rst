@@ -16,11 +16,12 @@ Then you can choose a few ways to get a compiler:
 #. download a recent "fat-jar" (called something like "prog8c-all.jar") from `the releases on Github <https://github.com/irmen/prog8/releases>`_
 #. run the compiler with "java -jar prog8c.jar" to see how you can use it (use the correct name and version of the jar file you've downloaded).
 
-**Or, install via a Package Manager:**
+**Or, install via a Package Manager (takes care of dependencies for you):**
 
 Arch Linux:
-    Currently, it's available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and compatible systems.
-    The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_.
+    Currently, it's available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and derivative systems.
+    The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_. There should be no need to install aything else as
+    it can automatically pull in the required dependencies.
 
     This package, alongside the compiler itself, also globally installs syntax highlighting for ``vim`` and ``nano``.
     In order to run compiler, you can type ``prog8c``. The usage of those commands is exactly the same as with the ``java -jar`` method.

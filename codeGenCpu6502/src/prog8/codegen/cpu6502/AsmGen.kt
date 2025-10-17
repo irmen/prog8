@@ -1426,7 +1426,10 @@ $repeatLabel""")
                     sta  $asmvar+3""")
             }
             BaseDataType.UWORD -> {
-                out("  lda  #0 |  sta  $asmvar+2 |  sta  $asmvar+3")
+                if(isTargetCpu(CpuType.CPU65C02))
+                    out("  stz  $asmvar+2 |  stz  $asmvar+3")
+                else
+                    out("  lda  #0 |  sta  $asmvar+2 |  sta  $asmvar+3")
             }
             BaseDataType.WORD -> {
                 out("""

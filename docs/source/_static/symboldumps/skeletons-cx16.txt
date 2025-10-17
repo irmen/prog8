@@ -240,7 +240,7 @@ diskio  {
     list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     load  (str filenameptr, uword address_override) -> uword 
     load_raw  (str filenameptr, uword startaddress) -> uword 
-    load_size  (ubyte startbank, uword startaddress, uword endaddress) -> uword 
+    load_size  (ubyte startbank, uword startaddress, uword endaddress) -> long 
     loadlib  (str libnameptr, uword libaddress) -> uword 
     mkdir  (str name) 
     read4hex  () -> uword 

@@ -788,8 +788,12 @@ internal class AssignmentAsmGen(
 
         return if(translatedOk)
             true
-        else
+        else {
+            if(expr.type.isLong && expr.operator in "*/%")
+                TODO("long multiplication or division ${expr.position}")
+
             anyExprGen.assignAnyExpressionUsingStack(expr, assign)
+        }
     }
 
     private fun optimizedComparison(expr: PtBinaryExpression, assign: AsmAssignment): Boolean {
@@ -2618,7 +2622,7 @@ $endLabel""")
                 }
                 else -> {}
             }
-        } else if(valueDt.isUnsignedWord) {
+        } else if(valueDt.isWord) {
             when(target.register) {
                 RegisterOrPair.A,
                 RegisterOrPair.X,
@@ -2637,7 +2641,38 @@ $endLabel""")
                     // 'cast' uword into a 16 bits register, just assign it
                     return assignExpressionToRegister(value, target.register!!, targetDt.isSigned)
                 }
-                in combinedLongRegisters -> TODO("assign wprd to long reg ${value.position}")
+                RegisterOrPair.R0R1_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R0, false)
+                    asmgen.signExtendLongVariable("cx16.r0", valueDt.base)
+                }
+                RegisterOrPair.R2R3_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R2, false)
+                    asmgen.signExtendLongVariable("cx16.r2", valueDt.base)
+                }
+                RegisterOrPair.R4R5_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R4, false)
+                    asmgen.signExtendLongVariable("cx16.r4", valueDt.base)
+                }
+                RegisterOrPair.R6R7_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R6, false)
+                    asmgen.signExtendLongVariable("cx16.r6", valueDt.base)
+                }
+                RegisterOrPair.R8R9_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R8, false)
+                    asmgen.signExtendLongVariable("cx16.r8", valueDt.base)
+                }
+                RegisterOrPair.R10R11_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R10, false)
+                    asmgen.signExtendLongVariable("cx16.r10", valueDt.base)
+                }
+                RegisterOrPair.R12R13_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R12, false)
+                    asmgen.signExtendLongVariable("cx16.r12", valueDt.base)
+                }
+                RegisterOrPair.R14R15_32 -> {
+                    assignExpressionToRegister(value, RegisterOrPair.R14, false)
+                    asmgen.signExtendLongVariable("cx16.r14", valueDt.base)
+                }
                 else -> {}
             }
         }
@@ -2813,7 +2848,8 @@ $endLabel""")
             BaseDataType.BYTE -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName")
             BaseDataType.UWORD -> asmgen.out("  jsr  floats.cast_FAC1_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
             BaseDataType.WORD -> asmgen.out("  jsr  floats.cast_FAC1_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
-            else -> throw AssemblyError("weird type")
+            BaseDataType.LONG -> TODO("cast float to long")
+            else -> throw AssemblyError("weird type $targetDt")
         }
     }
 
@@ -2843,6 +2879,7 @@ $endLabel""")
                         else
                             asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
@@ -2879,6 +2916,7 @@ $endLabel""")
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                         asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                         asmgen.signExtendVariableLsb(targetAsmVarName, BaseDataType.BYTE)
@@ -2912,6 +2950,7 @@ $endLabel""")
                     BaseDataType.WORD -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
@@ -2951,6 +2990,7 @@ $endLabel""")
                     BaseDataType.UWORD, BaseDataType.POINTER -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName
@@ -2980,6 +3020,7 @@ $endLabel""")
                     BaseDataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
                     BaseDataType.UWORD -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
                     BaseDataType.WORD -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
+                    BaseDataType.LONG -> TODO("cast float to long")
                     else -> throw AssemblyError("weird type")
                 }
             }
@@ -3027,6 +3068,7 @@ $endLabel""")
                         else
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             st${regs.toString().lowercase()}  $targetAsmVarName
@@ -3074,6 +3116,7 @@ $endLabel""")
                         asmgen.signExtendAYlsb(sourceDt)
                         asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                         asmgen.signExtendLongVariable(targetAsmVarName, sourceDt)
@@ -3109,6 +3152,7 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
@@ -3147,6 +3191,7 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
+                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")

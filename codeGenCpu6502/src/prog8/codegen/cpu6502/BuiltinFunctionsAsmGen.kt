@@ -538,7 +538,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #$80 |+  |  sta  $variable")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.UWORD -> {
@@ -557,7 +557,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #$80 |  sta  $variable+1 |+  ")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.LONG -> {
@@ -577,7 +577,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             sta  $variable+3
 +""")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             else -> throw AssemblyError("weird type")
@@ -620,7 +620,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.UWORD -> {
@@ -641,7 +641,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable+1 |  ror  $variable")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.LONG -> {
@@ -652,7 +652,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable+3 |  ror  $variable+2 |  ror  $variable+1 |  ror  $variable")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             else -> throw AssemblyError("weird type")
@@ -684,7 +684,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lda  $variable |  cmp  #$80 |  rol  a |  sta  $variable")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.UWORD -> {
@@ -703,7 +703,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  asl  $variable |  rol  $variable+1 |  bcc  + |  inc  $variable |+  ")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.LONG -> {
@@ -721,7 +721,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             inc  $variable
 +""")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             else -> throw AssemblyError("weird type")
@@ -763,7 +763,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.UWORD -> {
@@ -784,7 +784,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable |  rol  $variable+1")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             BaseDataType.LONG -> {
@@ -795,7 +795,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable |  rol  $variable+1 |  rol  $variable+2 |  rol  $variable+3")
                     }
-                    else -> throw AssemblyError("weird type")
+                    else -> throw AssemblyError("weird node")
                 }
             }
             else -> throw AssemblyError("weird type")

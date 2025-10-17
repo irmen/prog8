@@ -818,8 +818,13 @@ io_error:
 
     ; For use directly after a load or load_raw call (don't mess with the ram bank yet):
     ; Calculates the number of bytes loaded (files > 64Kb are truncated to 16 bits)
-    sub load_size(ubyte startbank, uword startaddress, uword endaddress) -> uword {
-        return $2000 * (cx16.getrambank() - startbank) + endaddress - startaddress
+    sub load_size(ubyte startbank, uword startaddress, uword endaddress) -> long {
+        &long banksize = &cx16.r12
+        banksize = cx16.getrambank() - startbank
+        banksize <<= 13     ; * 8192
+        banksize += endaddress
+        banksize -= startaddress
+        return banksize
     }
 
     asmsub vload(str name @R0, ubyte bank @A, uword startaddress @R1) clobbers(X, Y) -> bool @A {

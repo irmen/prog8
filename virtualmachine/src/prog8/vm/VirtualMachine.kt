@@ -583,7 +583,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
                 val value = memory.getSL(pointer.toInt())
                 registers.setSL(i.reg1!!, value)
-                statusbitsNZ(value.toInt(), i.type!!)
+                statusbitsNZ(value, i.type!!)
             }
             IRDataType.FLOAT -> {
                 val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg1!!)
@@ -2526,7 +2526,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 newStatusCarry = (orig and 0x80000000u) != 0u
                 val rotated: UInt = (if (useCarry) {
                     val carry = if (statusCarry) 1u else 0u
-                    (orig.toUInt().rotateLeft(1) or carry)
+                    (orig.rotateLeft(1) or carry)
                 } else
                     orig.rotateLeft(1))
                 registers.setSL(i.reg1!!, rotated.toInt())
@@ -2648,7 +2648,7 @@ class VirtualMachine(irProgram: IRProgram) {
                 val lsb = registers.getUB(i.reg3!!)
                 val value = ((msb.toInt() shl 8) or lsb.toInt())
                 registers.setUW(i.reg1!!, value.toUShort())
-                statusbitsNZ(value.toInt(), i.type!!)
+                statusbitsNZ(value, i.type!!)
             }
             IRDataType.WORD -> {
                 val msw = registers.getUW(i.reg2!!)
@@ -2959,15 +2959,18 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun multiplyAnyLongSigned(reg1: Int, reg2: Int) {
-        TODO("multiplyAnyLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
+        val result = registers.getSL(reg1) * registers.getSL(reg2)
+        registers.setSL(reg1, result)
     }
 
     private fun multiplyConstLongSigned(reg1: Int, value: Int) {
-        TODO("multiplyConstLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
+        val result = registers.getSL(reg1) * value
+        registers.setSL(reg1, result)
     }
 
     private fun multiplyAnyLongSignedInplace(reg1: Int, address: Int) {
-        TODO("multiplyAnyLongSignedInplace - multiplication and division of long numbers not yet supported, use floats or words")
+        val result = memory.getSL(address) * registers.getSL(reg1)
+        memory.setSL(address, result)
     }
 
     private fun divModLongSigned(operator: String, reg1: Int, reg2: Int) {
