@@ -1,16 +1,7 @@
 TODO
 ====
 
-- fix github issues. Probably those include the folloing already:
-- implement the TODO in assignPointerDerefExpression()
-- implement inplaceLongAdd/Sub in PointerAssignmentGen to make this compile::
-
-    struct Node {
-        long x
-    }
-    ^^Node np = 20000
-    np.x += cx16.r0
-
+- fix/check github issues.
 - redo the benchmark-c tests with final 12.0 release version.
 
 

@@ -1,5 +1,4 @@
 %import textio
-%import diskio
 %zeropage basicsafe
 
 main {
@@ -16,19 +15,16 @@ main {
 ;        txt.print_l(($2000 as long) * cx16.r5L)     ; TODO fix long result? or wait till the long consts have landed?
 ;        txt.nl()
 
-        cx16.rambank(15)
-        txt.print_l(diskio.load_size(10, $1000, $6000))
-        txt.nl()
-        cx16.rambank(25)
-        txt.print_l(diskio.load_size(10, $1000, $f000))
 
+        ^^element myElement = $6000
+        myElement.y = $12345678
+        long @shared lv = $10101010
+        cx16.r0 = $ffff
 
-;        ^^element myElement = $6000
-;        myElement.y = $44444444
-;        long @shared lv
-;
-;        myElement.y -= lv
-;
-;        txt.print_ulhex(myElement.y, true)
+        myElement.y += lv+cx16.r0
+        txt.print_ulhex(myElement.y, true)
+        txt.spc()
+        myElement.y -= lv+cx16.r0
+        txt.print_ulhex(myElement.y, true)
     }
 }

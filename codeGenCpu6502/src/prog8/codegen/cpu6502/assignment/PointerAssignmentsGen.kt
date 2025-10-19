@@ -999,9 +999,47 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  ($zpPtrVar),y""")
             }
             SourceStorageKind.VARIABLE -> {
-                TODO("inplace long add with ${value.asmVarname} ${target.position}")
+                asmgen.out("""
+                    ldy  #$offset
+                    clc
+                    lda  ($zpPtrVar),y
+                    adc  ${value.asmVarname}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  ${value.asmVarname}+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  ${value.asmVarname}+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  ${value.asmVarname}+3
+                    sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.EXPRESSION -> TODO("inplace long add with ${value.expression} ${target.position}")
+            SourceStorageKind.EXPRESSION -> {
+                // it's not an expression so no need to preserve R14:R15
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, true)
+                asmgen.out("""
+                    ldy  #$offset
+                    clc
+                    lda  ($zpPtrVar),y
+                    adc  cx16.r14
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  cx16.r14+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  cx16.r14+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    adc  cx16.r14+3
+                    sta  ($zpPtrVar),y""")
+            }
             else -> TODO("inplace long add with ${value.kind} ${target.position}")
         }
     }
@@ -1031,9 +1069,47 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  ($zpPtrVar),y""")
             }
             SourceStorageKind.VARIABLE -> {
-                TODO("inplace long sub with ${value.asmVarname} ${target.position}")
+                asmgen.out("""
+                    ldy  #$offset
+                    sec
+                    lda  ($zpPtrVar),y
+                    sbc  ${value.asmVarname}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  ${value.asmVarname}+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  ${value.asmVarname}+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  ${value.asmVarname}+3
+                    sta  ($zpPtrVar),y""")
             }
-            SourceStorageKind.EXPRESSION -> TODO("inplace long sub with ${value.expression} ${target.position}")
+            SourceStorageKind.EXPRESSION -> {
+                // it's not an expression so no need to preserve R14:R15
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, true)
+                asmgen.out("""
+                    ldy  #$offset
+                    sec
+                    lda  ($zpPtrVar),y
+                    sbc  cx16.r14
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  cx16.r14+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  cx16.r14+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    sbc  cx16.r14+3
+                    sta  ($zpPtrVar),y""")
+            }
             else -> TODO("inplace long sub with ${value.kind} ${target.position}")
         }
     }
