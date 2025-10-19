@@ -69,7 +69,7 @@ Language Features
 
 - it is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
 - the compiled programs run very fast, because compilation to highly efficient native machine code.
-- code often is smaller and faster than equivalent C code compiled with CC65 or even LLVM-MOS
+- compiled code is very compact; it is much smaller and usually also runs faster than equivalent C code compiled with CC65
 - provides a convenient and fast edit/compile/run cycle by being able to directly launch
   the compiled program in an emulator and provide debugging information to this emulator.
 - the language looks like a mix of Python and C so should be quite easy to learn
@@ -78,7 +78,7 @@ Language Features
   still able to directly use memory addresses and ROM subroutines,
   and inline assembly to have full control when every register, cycle or byte matters
 - Variables are all allocated statically, no memory allocation overhead
-- Variable data types include signed and unsigned bytes and words, arrays, strings.
+- Variable data types include signed and unsigned bytes and words, long integers, floats, arrays, and strings.
 - Structs and typed pointers
 - Tight control over Zeropage usage
 - Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.

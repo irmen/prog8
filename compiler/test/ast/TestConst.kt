@@ -17,13 +17,14 @@ import prog8.code.core.BaseDataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
 class TestConst: FunSpec({
 
     val outputDir = tempdir().toPath()
-    
+
     test("const folding multiple scenarios +/-") {
         val source = """
             main {
@@ -224,7 +225,7 @@ class TestConst: FunSpec({
     }
 
     test("const pointer variable indexing works") {
-        val src="""
+        val src = """
 main {
     sub start() {
         const uword pointer=$1000
@@ -233,11 +234,11 @@ main {
     }
 }
 """
-        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+        compileText(C64Target(), optimize = false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
     test("advanced const folding of known library functions") {
-        val src="""
+        val src = """
 %import floats
 %import math
 %import strings
@@ -260,7 +261,7 @@ main {
     }
 
     test("const address-of memory mapped arrays") {
-        val src= """
+        val src = """
 main {
     sub start() {
         &uword[30] @nosplit wb = $2000
@@ -277,10 +278,10 @@ main {
         st.size shouldBe 7
         ((st[0] as VarDecl).value as NumericLiteral).number shouldBe 0x2000
         ((st[1] as VarDecl).value as NumericLiteral).number shouldBe 0x9e00
-        ((st[2] as VarDecl).value as NumericLiteral).number shouldBe 0x9e00+2*30
+        ((st[2] as VarDecl).value as NumericLiteral).number shouldBe 0x9e00 + 2 * 30
         ((st[3] as Assignment).value as NumericLiteral).number shouldBe 0x9e00
-        ((st[4] as Assignment).value as NumericLiteral).number shouldBe 0x9e00+2*30
-        ((st[5] as Assignment).value as NumericLiteral).number shouldBe 0x9e00+2*30
+        ((st[4] as Assignment).value as NumericLiteral).number shouldBe 0x9e00 + 2 * 30
+        ((st[5] as Assignment).value as NumericLiteral).number shouldBe 0x9e00 + 2 * 30
     }
 
     test("address of a memory mapped variable") {
@@ -296,7 +297,7 @@ main {
         &uword[20] @shared @nosplit wa = HIGH_MEMORY_START
     }
 }"""
-        val result = compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=true)!!
+        val result = compileText(Cx16Target(), optimize = false, src, outputDir, writeAssembly = true)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 7
         val arrayDeclV = (st[2] as VarDecl).value
@@ -306,7 +307,7 @@ main {
     }
 
     test("address of a const uword pointer array expression") {
-        val src= """
+        val src = """
 main {
     sub start() {
         const uword buffer = 2000
@@ -328,7 +329,7 @@ main {
     }
 
     test("out of range const byte and word give correct error") {
-        var src="""
+        var src = """
 main {
     sub start() {
         const byte MIN_BYTE = -129
@@ -339,7 +340,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
         errors.errors[0] shouldContain "out of range"
         errors.errors[1] shouldContain "out of range"
@@ -348,7 +349,7 @@ main {
     }
 
     test("out of range var byte and word give correct error") {
-        var src="""
+        var src = """
 main {
     sub start() {
         byte @shared v_MIN_BYTE = -129
@@ -359,7 +360,7 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 8
         errors.errors[0] shouldContain "out of range"
         errors.errors[2] shouldContain "out of range"
@@ -368,7 +369,7 @@ main {
     }
 
     test("out of range const byte and word no errors with explicit cast if possible") {
-        var src="""
+        var src = """
 main {
     sub start() {
         const byte MIN_BYTE = -129 as byte      ; still error
@@ -379,16 +380,16 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain(":4:31: const declaration needs a compile-time constant")
-        errors.errors[1] shouldContain(":4:32: no cast available")
-        errors.errors[2] shouldContain(":5:31: const declaration needs a compile-time constant")
-        errors.errors[3] shouldContain(":5:32: no cast available")
+        errors.errors[0] shouldContain (":4:31: const declaration needs a compile-time constant")
+        errors.errors[1] shouldContain (":4:32: no cast available")
+        errors.errors[2] shouldContain (":5:31: const declaration needs a compile-time constant")
+        errors.errors[3] shouldContain (":5:32: no cast available")
     }
 
     test("out of range var byte and word no errors with explicit cast if possible") {
-        var src="""
+        var src = """
 main {
     sub start() {
         byte @shared v_min_byte2 = -129 as byte     ; still error
@@ -399,14 +400,14 @@ main {
 }"""
 
         val errors = ErrorReporterForTests()
-        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain(":4:37: no cast available")
-        errors.errors[1] shouldContain(":5:37: no cast available")
+        errors.errors[0] shouldContain (":4:37: no cast available")
+        errors.errors[1] shouldContain (":5:37: no cast available")
     }
 
     test("const evaluation of signed bitwise operations") {
-        val src="""
+        val src = """
 main {
     sub start() {
         byte @shared a = -1
@@ -455,7 +456,7 @@ main {
     }
 
     test("const long with small values") {
-        val src="""
+        val src = """
 main {
     sub start() {
         const long notkaputt = 42
@@ -464,4 +465,34 @@ main {
 }"""
         compileText(Cx16Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
+
+    test("const long with large unsigned long values should be converted to signed longs") {
+        val src = $$"""
+main {
+    sub start() {
+        long @shared l1 = $e1fa84c6
+        long @shared l2 = -1
+        long @shared l3 = $ffffffff
+        long @shared l4 = $7fffffff
+
+        l1 ^= -1
+        l2 ^= $ffffffff
+        l3 ^= $7fffffff
+    }
+}"""
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 12
+        val a = st.filterIsInstance<Assignment>()
+        (a[0].value as NumericLiteral).number shouldBe -503675706.0
+        (a[1].value as NumericLiteral).number shouldBe -1.0
+        (a[2].value as NumericLiteral).number shouldBe -1.0
+        (a[3].value as NumericLiteral).number shouldBe 0x7fffffffL.toDouble()
+        ((a[4].value as BinaryExpression).right as NumericLiteral).number shouldBe -1.0
+        ((a[5].value as BinaryExpression).right as NumericLiteral).number shouldBe -1.0
+        ((a[6].value as BinaryExpression).right as NumericLiteral).number shouldBe 0x7fffffffL.toDouble()
+    }
+
 })
+

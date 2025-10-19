@@ -385,6 +385,13 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             BIN_INTEGER -> makeLiteral(integerPart.substring(1), 2)
             else -> throw FatalAstException(terminal.text)
         }
+
+        // TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
+        if(integer.second.isLong && integer.first > Integer.MAX_VALUE) {
+            val signedLong = integer.first.toLong().toInt()
+            return NumericLiteral(integer.second, signedLong.toDouble(), ctx.toPosition())
+        }
+
         return NumericLiteral(integer.second, integer.first, ctx.toPosition())
     }
 

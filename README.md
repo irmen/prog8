@@ -58,9 +58,9 @@ What does Prog8 provide?
 
 - all advantages of a higher level language over having to write assembly code manually
 - programs run very fast because it's compiled to native machine code
-- code often is smaller and faster than equivalent C code compiled with CC65 or even LLVM-MOS
+- compiled code is very small; much smaller than equivalent C code compiled with CC65, and usually runs faster as well
 - modularity, symbol scoping, subroutines. No need for forward declarations.
-- various data types other than just bytes (16-bit words, floats, strings)
+- various data types other than just bytes (16-bit words, long integers, floats, strings)
 - Structs and typed pointers
 - floating point math is supported on certain targets
 - access to most Kernal ROM routines as external subroutine definitions you can call normally
@@ -82,7 +82,7 @@ What does Prog8 provide?
 - supports the sixteen 'virtual' 16-bit registers R0 - R15 from the Commander X16 (also available on other targets)
 - encode strings and characters into petscii or screencodes or even other encodings
 - Automatic ROM/RAM bank switching on certain compiler targets when calling routines in other banks
-- 50 Kb of available program RAM size on the C64 by default; because Basic ROM is banked out altogether 
+- 50 Kb of available program RAM size on the C64 by default (41 Kb on the C128) because Basic ROM is banked out by default 
 
 *Rapid edit-compile-run-debug cycle:*
 

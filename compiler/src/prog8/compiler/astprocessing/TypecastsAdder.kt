@@ -132,7 +132,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                             expr))
                     }
                     if(rightCv!=null && rightCv.number<0) {
-                        val value = if(leftDt.isBytes) 256+rightCv.number else if(leftDt.isWords) 65536+rightCv.number else 0xffffffffL+rightCv.number
+                        val value = if(leftDt.isBytes) 256+rightCv.number else if(leftDt.isWords) 65536+rightCv.number else (0x100000000L+rightCv.number).toLong().toInt().toDouble()
                         return listOf(IAstModification.ReplaceNode(
                             expr.right,
                             NumericLiteral(leftDt.getOrUndef().base, value, expr.right.position),
