@@ -20,7 +20,19 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "sgn" to ::builtinSgn,
     "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
     "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
-    "sqrt__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) { sqrt(it) } },
+    "sqrt__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) {
+        val value=it.toDouble()
+        if(value<0)
+            throw CannotEvaluateException("sqrt", "argument cannot be negative")
+        else
+            sqrt(value)
+    } },
+    "sqrt__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) {
+        if(it<0)
+            throw CannotEvaluateException("sqrt", "argument cannot be negative")
+        else
+            sqrt(it)
+    } },
     "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() } },
     "lsb__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() } },
     "lsw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 65535).toDouble() } },
@@ -71,11 +83,14 @@ private fun oneIntArgOutputInt(args: List<Expression>, position: Position, progr
         if(!constval.type.isInteger)
             throw SyntaxError("built-in function requires one integer argument", position)
     } else {
-        if(constval.type!=BaseDataType.UBYTE && constval.type!=BaseDataType.UWORD)
+        if(!constval.type.isInteger)
             throw SyntaxError("built-in function requires one integer argument", position)
     }
     val integer = constval.number.toInt()
-    return NumericLiteral.optimalInteger(function(integer).toInt(), args[0].position)
+    val result = function(integer)
+    if(result.isNaN())
+        throw CannotEvaluateException("built-in function", "result is NaN $position")
+    return NumericLiteral.optimalInteger(result.toInt(), args[0].position)
 }
 
 private fun oneFloatArgOutputFloat(args: List<Expression>, position: Position, program: Program, function: (arg: Double)->Double): NumericLiteral {
@@ -84,8 +99,10 @@ private fun oneFloatArgOutputFloat(args: List<Expression>, position: Position, p
     val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
     if(constval.type != BaseDataType.FLOAT)
         throw SyntaxError("built-in function requires one float argument", position)
-
-    return NumericLiteral(BaseDataType.FLOAT, function(constval.number), args[0].position)
+    val result = function(constval.number)
+    if(result.isNaN())
+        throw CannotEvaluateException("built-in function", "result is NaN $position")
+    return NumericLiteral(BaseDataType.FLOAT, result, args[0].position)
 }
 
 private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {

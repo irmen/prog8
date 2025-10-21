@@ -40,7 +40,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "max__byte", "max__ubyte", "max__word", "max__uword", "max__long" -> funcMax(fcall, resultRegister)
             "abs__byte", "abs__word", "abs__long", "abs__float" -> funcAbs(fcall, resultRegister, sscope)
             "sgn" -> funcSgn(fcall, resultRegister, sscope)
-            "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(fcall, resultRegister, sscope)
+            "sqrt__ubyte", "sqrt__uword", "sqrt__long", "sqrt__float" -> funcSqrt(fcall, resultRegister, sscope)
             "divmod__ubyte" -> funcDivmod(fcall)
             "divmod__uword" -> funcDivmodW(fcall)
             "rol" -> funcRol(fcall)

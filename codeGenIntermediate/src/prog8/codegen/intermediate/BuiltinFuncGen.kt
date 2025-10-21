@@ -17,7 +17,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "abs__byte", "abs__word", "abs__long", "abs__float" -> funcAbs(call)
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
-            "sqrt__ubyte", "sqrt__uword", "sqrt__float" -> funcSqrt(call)
+            "sqrt__ubyte", "sqrt__uword", "sqrt__long", "sqrt__float" -> funcSqrt(call)
             "divmod__ubyte" -> funcDivmod(call, IRDataType.BYTE)
             "divmod__uword" -> funcDivmod(call, IRDataType.WORD)
             "rsave", "rrestore" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore

@@ -386,7 +386,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 bne  $falseLabel""")
         } else {
             // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 cmp  #$${hex.substring(6, 8)}
@@ -424,7 +424,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 bne  $falseLabel""")
         } else {
             // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 cmp  $varname2
@@ -493,7 +493,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 bne  $falseLabel""")
         } else {
             asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 ora  cx16.r14+1
@@ -518,7 +518,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 beq  $falseLabel""")
         } else {
             asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 ora  cx16.r14+1

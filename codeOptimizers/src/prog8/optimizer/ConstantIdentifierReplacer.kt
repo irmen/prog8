@@ -244,8 +244,16 @@ class VarConstantValueTypeAdjuster(
                     dt.isUnsignedByte -> "sqrt__ubyte"
                     dt.isUnsignedWord -> "sqrt__uword"
                     dt.isFloat -> "sqrt__float"
+                    dt.isLong -> {
+                        val value = functionCallExpr.args[0].constValue(program)?.number
+                        if(value!=null && value<0) {
+                            errors.err("expected unsigned or float numeric argument", functionCallExpr.args[0].position)
+                            return noModifications
+                        }
+                        "sqrt__long"
+                    }
                     else -> {
-                        errors.err("expected unsigned or float numeric argument", functionCallExpr.args[0].position)
+                        errors.err("expected numeric argument", functionCallExpr.args[0].position)
                         return noModifications
                     }
                 }

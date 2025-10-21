@@ -1444,7 +1444,12 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> registers.setUB(i.reg1!!, sqrt(registers.getUB(i.reg2!!).toDouble()).toInt().toUByte())
             IRDataType.WORD -> registers.setUB(i.reg1!!, sqrt(registers.getUW(i.reg2!!).toDouble()).toInt().toUByte())
-            IRDataType.LONG -> TODO("long sqrt")
+            IRDataType.LONG -> {
+                val value = registers.getSL(i.reg2!!)
+                if(value<0)
+                    throw IllegalArgumentException("sqrt of negative long $value reg=${i.reg2}")
+                registers.setSL(i.reg1!!, sqrt(value.toDouble()).toInt())
+            }
             IRDataType.FLOAT -> registers.setFloat(i.fpReg1!!, sqrt(registers.getFloat(i.fpReg2!!)))
         }
         nextPc()

@@ -13,10 +13,20 @@ main {
         long @shared l2 = -1
         long @shared l3 = $ffffffff
         long @shared l4 = $7fffffff
+        ^^long lptr = 50000
 
         l1 ^= -1
         l2 ^= $ffffffff
         l3 ^= $7fffffff
+        l3 ^= l4
+
+        lptr^^ = 82348234
+        l2 = lptr^^
+
+        lptr^^ = 0                ; TODO fix crash
+        lptr^^ = l2               ; TODO fix crash
+        lptr^^ = 82348234+l2      ; TODO fix crash
+        l3 = lptr^^+1             ; TODO fix crash
 
 
 ;        cx16.r5L = 10

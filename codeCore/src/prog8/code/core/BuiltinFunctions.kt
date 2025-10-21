@@ -112,6 +112,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "sqrt"          to FSignature(true, null, FParam("value", *NumericDatatypes)),
     "sqrt__ubyte"   to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UBYTE)),
     "sqrt__uword"   to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UWORD)),
+    "sqrt__long"    to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.LONG)),
     "sqrt__float"   to FSignature(true, BaseDataType.FLOAT, FParam("value", BaseDataType.FLOAT)),
     "divmod"        to FSignature(false, null, FParam("dividend", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("divisor", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("quotient", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("remainder", BaseDataType.UBYTE, BaseDataType.UWORD)),
     "divmod__ubyte" to FSignature(false, null, FParam("dividend", BaseDataType.UBYTE), FParam("divisor", BaseDataType.UBYTE), FParam("quotient", BaseDataType.UBYTE), FParam("remainder", BaseDataType.UBYTE)),

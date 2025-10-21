@@ -175,6 +175,7 @@ Optimizations
 - optimize optimizedBitwiseExpr()  for const and variable operands to not assign needlessly to R0-R3.
 - optimize inplacemodificationLongWithLiteralval() for more shift values such as 8, 16, 24 etc but take sign bit into account!
 - optimize simple cases in funcPeekL and funcPokeL
+- longvar = lptr^^  now goes via temporary registers, optimize this to avoid using temps. Also check lptr^^ = lvar.
 - Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?

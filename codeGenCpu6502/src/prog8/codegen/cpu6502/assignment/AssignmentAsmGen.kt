@@ -4545,7 +4545,7 @@ $endLabel""")
                         stz  $startreg+2
                         stz  $startreg+3""")
                 }
-                TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
+                TargetStorageKind.POINTER -> TODO("assign long 0 to pointer ${target.position}")
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
             return

@@ -1841,7 +1841,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     pha""")
             }
             in combinedLongRegisters -> {
-                TODO("save on stack long register pair")
+                TODO("save on stack long register pair - do we really want to do this?")
             }
             else -> asmgen.saveRegisterStack(regs.asCpuRegister(), false)
         }
@@ -1876,7 +1876,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  $regname""")
             }
             in combinedLongRegisters -> {
-                TODO("restore from stack long register")
+                TODO("restore from stack long register - do we really want to do this?")
             }
             else -> asmgen.restoreRegisterStack(regs.asCpuRegister(), false)
         }
