@@ -882,7 +882,7 @@ class AsmGen6502Internal (
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                        TargetStorageKind.POINTER -> throw AssemblyError("assign long into pointer  ${target.position}")
+                        TargetStorageKind.POINTER -> TODO("assign long into pointer  ${target.position}")
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
                 } else if(value is PtIdentifier && value.type.isLong) {
@@ -905,7 +905,7 @@ class AsmGen6502Internal (
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                        TargetStorageKind.POINTER -> throw AssemblyError("assign long expression to pointer  ${target.position}")
+                        TargetStorageKind.POINTER -> TODO("assign long expression to pointer  ${target.position}")
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
                 } else if(value is PtTypeCast && value.type.isLong) {
@@ -920,7 +920,7 @@ class AsmGen6502Internal (
                                 TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                                TargetStorageKind.POINTER -> throw AssemblyError("assign long into pointer  ${target.position}")
+                                TargetStorageKind.POINTER -> TODO("assign long into pointer  ${target.position}")
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
                         } else if(value.value.type.isWord) {

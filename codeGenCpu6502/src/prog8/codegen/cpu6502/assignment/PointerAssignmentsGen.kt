@@ -462,7 +462,24 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("array ptr assign long var ${target.position}")
     }
 
-    fun assignLong(pointer: PtPointerDeref, long: Int) {
+    internal fun assignLongVar(pointer: PtPointerDeref, varName: String) {
+        val (ptrVar, offset) = deref(pointer)
+        asmgen.out("""
+            ldy  #$offset
+            lda  $varName
+            sta  ($ptrVar),y
+            iny
+            lda  $varName+1
+            sta  ($ptrVar),y
+            iny
+            lda  $varName+2
+            sta  ($ptrVar),y
+            iny
+            lda  $varName+3
+            sta  ($ptrVar),y""")
+    }
+
+    internal fun assignLong(pointer: PtPointerDeref, long: Int) {
         val (ptrVar, offset) = deref(pointer)
         val hex = long.toLongHex()
         asmgen.out("""

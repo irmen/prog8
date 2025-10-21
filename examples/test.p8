@@ -13,7 +13,7 @@ main {
         long @shared l2 = -1
         long @shared l3 = $ffffffff
         long @shared l4 = $7fffffff
-        ^^long lptr = 50000
+        ^^long lptr = 20000
 
         l1 ^= -1
         l2 ^= $ffffffff
@@ -22,9 +22,17 @@ main {
 
         lptr^^ = 82348234
         l2 = lptr^^
+        l2 = 12345678
 
-        lptr^^ = 0                ; TODO fix crash
-        lptr^^ = l2               ; TODO fix crash
+        txt.print_l(lptr^^)
+        txt.spc()
+        lptr^^ = 0                ; crash was fixed
+        txt.print_l(lptr^^)
+        txt.spc()
+        lptr^^ = l2               ; crash was fixed
+        txt.print_l(lptr^^)
+        txt.spc()
+
         lptr^^ = 82348234+l2      ; TODO fix crash
         l3 = lptr^^+1             ; TODO fix crash
 

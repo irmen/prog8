@@ -3525,7 +3525,7 @@ $endLabel""")
                     else -> throw AssemblyError("wrong dt ${target.position}")
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
+            TargetStorageKind.POINTER -> pointergen.assignLongVar(target.pointer!!, varName)
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
@@ -4545,7 +4545,7 @@ $endLabel""")
                         stz  $startreg+2
                         stz  $startreg+3""")
                 }
-                TargetStorageKind.POINTER -> TODO("assign long 0 to pointer ${target.position}")
+                TargetStorageKind.POINTER -> pointergen.assignLong(target.pointer!!, 0)
                 TargetStorageKind.VOID -> { /* do nothing */ }
             }
             return
