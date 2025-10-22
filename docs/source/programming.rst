@@ -918,6 +918,7 @@ You can also reference identifiers defined elsewhere in your code.
     of precision though and gives an error if you may be losing a floating point result.
 
 
+.. _arithmetic:
 
 Arithmetic and Logical expressions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -955,6 +956,7 @@ and ``(true or false) and false`` is false instead of true.
         byte @shared b = 44
         w = (b as word)*55
         w = b*(55 as word)
+        w = b * $0037
 
 
 Operators

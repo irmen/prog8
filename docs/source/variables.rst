@@ -228,9 +228,10 @@ value                     datatype
 -2147483647 .. 2147483647 long  (there is no unsigned long right now)
 ========================= =================
 
+Numeric expressions usually 'stay within their type' unless a cast is used, see :ref:`arithmetic`.
 If the number fits in a byte but you really require it as a word value, you'll have to explicitly cast it: ``60 as uword``
-or you can use the full word hexadecimal notation ``$003c``.  This is useful in expressions where you want a calcuation
-to be done on word values, and don't want to explicitly have to cast everything all the time. For instance::
+or you can use the full word hexadecimal notation ``$003c``.  This is useful in expressions where you want a calculation
+to be done on word values, and don't want to explicitly have to cast everything all the time.  For instance::
 
     ubyte  column
     uword  offset = column * 64       ; does (column * 64) as uword, wrong result?
@@ -246,7 +247,7 @@ to be done on word values, and don't want to explicitly have to cast everything 
     operations should work fine. Notably absent for now are multiplication and division of longs.
     There is no unsigned long type at the moment, but you can sometimes simply treat the signed
     long value as an unsigned 32 bits value just fine.
-    Operations on long integers take a lot of instructions on 8 bit cpu's so code that uses them
+    Operations on long integers take a lot of instructions on 8 bit CPUs so code that uses them
     a lot will be much slower than when you restrict yourself to 8 or 16 bit values. Use long values sparingly.
 
 .. danger::

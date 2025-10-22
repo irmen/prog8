@@ -34,8 +34,14 @@ internal fun Program.reorderStatements(options: CompilationOptions, errors: IErr
 internal fun Program.changeNotExpressionAndIfComparisonExpr(errors: IErrorReporter, target: ICompilationTarget) {
     val changer = NotExpressionAndIfComparisonExprChanger(this, errors, target)
     changer.visit(this)
-    while(errors.noErrors() && changer.applyModifications()>0) {
-        changer.visit(this)
+    for(numCycles in 0..2000) {
+        if (errors.noErrors() && changer.applyModifications() > 0)
+            changer.visit(this)
+        else
+            break
+
+        if(numCycles==2000)
+            throw InternalCompilerException("changeNotExpressionAndIfComparisonExpr() is looping endlessly")
     }
 }
 
@@ -93,8 +99,15 @@ internal fun Program.addTypecasts(errors: IErrorReporter, options: CompilationOp
 fun Program.desugaring(errors: IErrorReporter, options: CompilationOptions) {
     val desugar = CodeDesugarer(this, options.compTarget, errors)
     desugar.visit(this)
-    while(errors.noErrors() && desugar.applyModifications()>0)
-        desugar.visit(this)
+    for(numCycles in 0..2000) {
+        if (errors.noErrors() && desugar.applyModifications() > 0)
+            desugar.visit(this)
+        else
+            break
+
+        if(numCycles==2000)
+            throw InternalCompilerException("desugaring() is looping endlessly")
+    }
 }
 
 internal fun Program.verifyFunctionArgTypes(errors: IErrorReporter, options: CompilationOptions) {
@@ -121,16 +134,30 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
     if(errors.noErrors()) {
         val lit2decl = LiteralsToAutoVarsAndRecombineIdentifiers(this, errors)
         lit2decl.visit(this)
-        while(errors.noErrors() && lit2decl.applyModifications()>0)
-            lit2decl.visit(this)
+        for(numCycles in 0..1000) {
+            if(errors.noErrors() && lit2decl.applyModifications() > 0)
+                lit2decl.visit(this)
+            else
+                break
+
+            if(numCycles==1000) {
+                throw InternalCompilerException("checkIdentifiers() is looping endlessly")
+            }
+        }
     }
 }
 
 internal fun Program.variousCleanups(errors: IErrorReporter, options: CompilationOptions) {
     val process = VariousCleanups(this, errors, options)
     process.visit(this)
-    while(errors.noErrors() && process.applyModifications()>0) {
-        process.visit(this)
+    for(numCycles in 0..2000) {
+        if (errors.noErrors() && process.applyModifications() > 0)
+            process.visit(this)
+        else
+            break
+
+        if(numCycles==2000)
+            throw InternalCompilerException("variousCleanups() is looping endlessly")
     }
 }
 
