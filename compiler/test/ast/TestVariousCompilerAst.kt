@@ -126,6 +126,24 @@ txt {
             compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
         }
 
+        test("infinite alias loop detected") {
+            val src="""
+main {
+    sub start() {
+        alias vv = vv
+        alias xx = xx.yy
+        alias zz = mm
+        alias mm = zz
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
+            errors.errors.size shouldBe 3
+            errors.errors[0] shouldContain "references itself"
+            errors.errors[1] shouldContain "undefined symbol: xx.yy"
+            errors.errors[2] shouldContain "references itself"
+        }
+
         test("wrong alias gives correct error") {
             val src="""
 main {

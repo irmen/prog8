@@ -141,7 +141,7 @@ internal fun Program.checkIdentifiers(errors: IErrorReporter, options: Compilati
                 break
 
             if(numCycles==1000) {
-                throw InternalCompilerException("checkIdentifiers() is looping endlessly")
+                throw InternalCompilerException("checkIdentifiers() is looping endlessly - check for circular aliases")
             }
         }
     }

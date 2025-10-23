@@ -44,6 +44,9 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     override fun visit(alias: Alias) {
         if(alias.target.targetStatement(program.builtinFunctions)==null)
             errors.err("undefined symbol: ${alias.target.nameInSource.joinToString(".") }", alias.target.position)
+
+        if(alias.alias == alias.target.nameInSource.first())
+            errors.err("alias references itself", alias.position)
     }
 
     override fun visit(block: Block) {
