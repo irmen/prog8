@@ -1238,10 +1238,8 @@ Otherwise the compiler will warn you about discarding the result of the call.
 Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
 Subroutines can return more than one value.
-For example, ``asmsub`` routines (implemented in assembly code) or ``extsub`` routines
-(referencing an external routine in ROM or elsewhere in RAM) can return multiple values spread
-across different registers, and even the CPU's status register flags for boolean values.
-Normal subroutines can also return multiple values.
+``asmsub`` and ``extsub`` routines return their multiple values spread across different registers,
+and can also efficiently use the CPU's status register flags for boolean returnvalues.
 You have to "multi assign" all return values of the subroutine call to something:
 write the assignment targets as a comma separated list, where the element's order corresponds
 to the order of the return values declared in the subroutine's signature.

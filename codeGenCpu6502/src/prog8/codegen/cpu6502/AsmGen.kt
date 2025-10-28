@@ -844,7 +844,7 @@ class AsmGen6502Internal (
                             return
                         }
                         TargetStorageKind.POINTER -> {
-                            TODO("assign to pointer ${target.position}")
+                            pointerGen.assignByte(PtrTarget(target), 0)
                             return
                         }
                         else -> { }
@@ -854,7 +854,10 @@ class AsmGen6502Internal (
                 assignExpressionToRegister(value, RegisterOrPair.A)
                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, target.datatype.isSigned, false)
             }
-            target.datatype.isPointer -> TODO("assign expression to pointer ${target.position}")
+            target.datatype.isPointer -> {
+                assignExpressionToRegister(value, RegisterOrPair.AX)
+                pointerGen.assignWordReg(PtrTarget(target), RegisterOrPair.AX)
+            }
             target.datatype.isWord || target.datatype.isPassByRef -> {
                 assignExpressionToRegister(value, RegisterOrPair.AY)
                 translateNormalAssignment(
@@ -882,7 +885,7 @@ class AsmGen6502Internal (
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                        TargetStorageKind.POINTER -> TODO("assign long into pointer  ${target.position}")
+                        TargetStorageKind.POINTER -> pointerGen.assignLong(target.pointer!!, value.number.toInt())
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
                 } else if(value is PtIdentifier && value.type.isLong) {
@@ -905,7 +908,7 @@ class AsmGen6502Internal (
                         TargetStorageKind.ARRAY -> TODO("assign long to array  ${target.position}")
                         TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                         TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                        TargetStorageKind.POINTER -> TODO("assign long expression to pointer  ${target.position}")
+                        TargetStorageKind.POINTER -> pointerGen.assignLongVar(target.pointer!!, asmSymbolName(value))
                         TargetStorageKind.VOID -> { /* do nothing */ }
                     }
                 } else if(value is PtTypeCast && value.type.isLong) {
@@ -920,7 +923,7 @@ class AsmGen6502Internal (
                                 TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> assignExpressionToRegister(value, target.register!!, true)
-                                TargetStorageKind.POINTER -> TODO("assign long into pointer  ${target.position}")
+                                TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
                         } else if(value.value.type.isWord) {
@@ -945,9 +948,7 @@ class AsmGen6502Internal (
                                         sta  cx16.$startreg+1""")
                                     signExtendLongVariable("cx16.$startreg", value.value.type.base)
                                 }
-                                TargetStorageKind.POINTER -> {
-                                    throw AssemblyError("assign typecasted long into pointer  ${target.position}")
-                                }
+                                TargetStorageKind.POINTER -> TODO("assign typecasted long into pointer  ${target.position}")
                                 TargetStorageKind.VOID -> { /* do nothing */ }
                             }
                         } else throw AssemblyError("weird casted type")
@@ -956,6 +957,8 @@ class AsmGen6502Internal (
                     }
                 } else if(target.kind == TargetStorageKind.REGISTER) {
                     assignExpressionToRegister(value, target.register!!, true)
+                } else if(target.kind == TargetStorageKind.VARIABLE) {
+                    assignExpressionToVariable(value, target.asmVarname, target.datatype)
                 } else {
                     TODO("assign long expression $value to a target ${target.kind} at  ${target.position} - use simple expressions and temporary variables for now")
                 }
@@ -2264,7 +2267,7 @@ $repeatLabel""")
                 }
 
                 in Cx16VirtualRegisters -> {
-                    val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
+                    val regname = regs.asScopedNameVirtualReg(DataType.UWORD).joinToString(".")
                     out("""
                         lda  $regname
                         ldy  #$offset
@@ -2331,7 +2334,7 @@ $repeatLabel""")
                 }
 
                 in Cx16VirtualRegisters -> {
-                    val regname = regs.asScopedNameVirtualReg(DataType.UWORD)
+                    val regname = regs.asScopedNameVirtualReg(DataType.UWORD).joinToString(".")
                     out("""
                         lda  $regname
                         ldy  #0

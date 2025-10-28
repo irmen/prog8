@@ -1258,7 +1258,7 @@ main {
         errors.errors[3] shouldContain "assigning this value to struct instance not supported"
     }
 
-    xtest("assigning struct instances") {
+    test("assigning struct instances") {
         val src="""
 main {
     sub start() {
@@ -1273,16 +1273,26 @@ main {
 
         lp2^^ = lp1^^           ; memcopy(lp1, lp2, 11)
         lp2[2] = lp1^^          ; memcopy(lp1, lp2 + 22, 11)
-        lp2[2]^^ = lp1^^        ; memcopy(lp1, lp2 + 22, 11)  (same as above)  TODO fix astchecker to allow this case
+        lp2[2]^^ = lp1^^        ; memcopy(lp1, lp2 + 22, 11)  (same as above)
         lp2^^ = lp1[2]         ; memcopy(lp1 + 22, lp2, 11)
-        lp2^^ = lp1[2]^^       ; memcopy(lp1 + 22, lp2, 11)  (same as above)   TODO fix astchecker to allow this case
-        lp2[3] = lp1[2]        ; memcopy(lp1 + 22, lp2 + 33, 11)  TODO fix astchecker to allow this case
+        lp2^^ = lp1[2]^^       ; memcopy(lp1 + 22, lp2, 11)  (same as above)
+        ;;; lp2[3] = lp1[2]        ; memcopy(lp1 + 22, lp2 + 33, 11)  TODO fix astchecker to allow this case
     }
 }"""
         val errors = ErrorReporterForTests()
         val result = compileText(VMTarget(), false, src, outputDir, errors=errors)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 99
+        st.size shouldBe 11
+        val memcopy1 = st[5] as FunctionCallStatement
+        val memcopy2 = st[6] as FunctionCallStatement
+        val memcopy3 = st[7] as FunctionCallStatement
+        val memcopy4 = st[8] as FunctionCallStatement
+        val memcopy5 = st[9] as FunctionCallStatement
+        memcopy1.target.nameInSource shouldBe listOf("sys", "memcopy")
+        memcopy2.target.nameInSource shouldBe listOf("sys", "memcopy")
+        memcopy3.target.nameInSource shouldBe listOf("sys", "memcopy")
+        memcopy4.target.nameInSource shouldBe listOf("sys", "memcopy")
+        memcopy5.target.nameInSource shouldBe listOf("sys", "memcopy")
     }
 
     test("a.b.c[i]^^.value as expression where pointer is struct") {
@@ -2547,5 +2557,25 @@ main {
         be6.left shouldBe instanceOf<ArrayIndexedExpression>()
         be6.right shouldBe instanceOf<IdentifierReference>()
         (a7.value as? ArrayIndexedExpression)?.indexer?.constIndex() shouldBe 0
+    }
+
+    test("long pointer assignments") {
+        val src="""
+main {
+    sub start() {
+        long lvar       = 999999
+        ^^long lptr     = 5000
+        pokel(5000, 11223344)
+
+        lptr^^ = 0
+        lptr^^ = lvar
+        lptr^^ = 82348234+lvar
+        lvar = lptr^^+1111111
+    }
+}"""
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 })

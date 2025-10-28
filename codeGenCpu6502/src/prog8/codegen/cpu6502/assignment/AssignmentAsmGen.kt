@@ -1746,46 +1746,6 @@ internal class AssignmentAsmGen(
         val left = expr.left
         val right = expr.right
         when(right) {
-            is PtIdentifier -> {
-                if(target.kind == TargetStorageKind.VARIABLE) {
-                    asmgen.assignExpressionTo(left, target)
-                    val rightsym = asmgen.asmVariableName(right)
-                    asmgen.out("""
-                        lda  #<$rightsym
-                        ldy  #>$rightsym
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #<${target.asmVarname}
-                        ldy  #>${target.asmVarname}""")
-                    if (expr.operator == "+") {
-                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
-                    } else {
-                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
-                    }
-                    return true
-                } else if(target.kind == TargetStorageKind.REGISTER) {
-                    val startreg = target.register!!.startregname()
-                    asmgen.assignExpressionTo(left, target)
-                    val rightsym = asmgen.asmVariableName(right)
-                    asmgen.out(
-                        """
-                        lda  #<$rightsym
-                        ldy  #>$rightsym
-                        sta  P8ZP_SCRATCH_W1
-                        sty  P8ZP_SCRATCH_W1+1
-                        lda  #<cx16.$startreg
-                        ldy  #>cx16.$startreg"""
-                    )
-                    if (expr.operator == "+") {
-                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
-                    } else {
-                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
-                    }
-                    return true
-                } else {
-                    TODO("add/subtract long into ${target.kind} at ${target.position} - use simple expressions and temporary variables for now")
-                }
-            }
             is PtNumber -> {
                 asmgen.assignExpressionTo(left, target)
                 val hex = right.number.toLongHex()
@@ -1856,8 +1816,88 @@ internal class AssignmentAsmGen(
                             sta  cx16.$startreg+3""")
                     }
                     return true
+                } else if(target.kind==TargetStorageKind.POINTER) {
+                    // not an expression, no need to save R14/R15
+                    assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, target.datatype.isSigned)
+                    pointergen.assignLongVar(target.pointer!!, "cx16.r14")
+                    return true
                 } else {
                     TODO("add/subtract long const into ${target.kind} ${target.position} - use simple expressions and temporary variables for now")
+                }
+            }
+            is PtIdentifier -> {
+                if(target.kind == TargetStorageKind.VARIABLE) {
+                    asmgen.assignExpressionTo(left, target)
+                    val rightsym = asmgen.asmVariableName(right)
+                    asmgen.out("""
+                        lda  #<$rightsym
+                        ldy  #>$rightsym
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<${target.asmVarname}
+                        ldy  #>${target.asmVarname}""")
+                    if (expr.operator == "+") {
+                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
+                    } else {
+                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
+                    }
+                    return true
+                } else if(target.kind == TargetStorageKind.REGISTER) {
+                    val startreg = target.register!!.startregname()
+                    asmgen.assignExpressionTo(left, target)
+                    val rightsym = asmgen.asmVariableName(right)
+                    asmgen.out(
+                        """
+                        lda  #<$rightsym
+                        ldy  #>$rightsym
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<cx16.$startreg
+                        ldy  #>cx16.$startreg"""
+                    )
+                    if (expr.operator == "+") {
+                        asmgen.out("  jsr  prog8_lib.long_add_inplace")
+                    } else {
+                        asmgen.out("  jsr  prog8_lib.long_sub_inplace")
+                    }
+                    return true
+                } else {
+                    // isn't an expression, so no need to preserve R12-R15
+                    asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13_32, left.type.isSigned)
+                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R14R15_32, left.type.isSigned)
+                    if(expr.operator=="+") {
+                        asmgen.out("""
+                            clc
+                            lda  cx16.r12
+                            adc  cx16.r14
+                            sta  cx16.r12
+                            lda  cx16.r12+1
+                            adc  cx16.r14+1
+                            sta  cx16.r12+1
+                            lda  cx16.r12+2
+                            adc  cx16.r14+2
+                            sta  cx16.r12+2
+                            lda  cx16.r12+3
+                            adc  cx16.r14+3
+                            sta  cx16.r12+3""")
+                    } else {
+                        asmgen.out("""
+                            sec
+                            lda  cx16.r12
+                            sbc  cx16.r14
+                            sta  cx16.r12
+                            lda  cx16.r12+1
+                            sbc  cx16.r14+1
+                            sta  cx16.r12+1
+                            lda  cx16.r12+2
+                            sbc  cx16.r14+2
+                            sta  cx16.r12+2
+                            lda  cx16.r12+3
+                            sbc  cx16.r14+3
+                            sta  cx16.r12+3""")
+                    }
+                    asmgen.assignRegister(RegisterOrPair.R12R13_32, target)
+                    return true
                 }
             }
             else -> {
@@ -4050,7 +4090,10 @@ $endLabel""")
                         sta  cx16.$targetStartReg+3""")
                 }
             }
-            TargetStorageKind.POINTER -> TODO("assign long to pointer ${target.position}")
+            TargetStorageKind.POINTER -> {
+                val startreg = pairedRegisters.startregname()
+                pointergen.assignLongVar(target.pointer!!, "cx16.$startreg")
+            }
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
