@@ -314,21 +314,21 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
                 if(target.dt.isByteOrBool) inplaceByteAnd(target, value)
                 else if(target.dt.isWord) inplaceWordAnd(target, value)
-                else if(target.dt.isLong) TODO("inplace long and ${target.position}")
+                else if(target.dt.isLong) inplaceLongAnd(target, value)
                 else throw AssemblyError("weird dt ${target.dt} ${target.position}")
             }
             "|", "or" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
                 if(target.dt.isByteOrBool) inplaceByteOr(target, value)
                 else if(target.dt.isWord) inplaceWordOr(target, value)
-                else if(target.dt.isLong) TODO("inplace long or ${target.position}")
+                else if(target.dt.isLong) inplaceLongOr(target, value)
                 else throw AssemblyError("weird dt ${target.dt} ${target.position}")
             }
             "^", "xor" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
                 if(target.dt.isByteOrBool) inplaceByteXor(target, value)
                 else if(target.dt.isWord) inplaceWordXor(target, value)
-                else if(target.dt.isLong) TODO("inplace long xor ${target.position}")
+                else if(target.dt.isLong) inplaceLongXor(target, value)
                 else throw AssemblyError("weird dt ${target.dt} ${target.position}")
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
@@ -1787,7 +1787,220 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
-    fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, index: PtExpression, arrayDt: DataType) {
+    private fun inplaceLongAnd(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer)
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toLongHex()
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    and  #$${number.substring(6,8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  #$${number.substring(4, 6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  #$${number.substring(2, 4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  #$${number.take(2)}
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isLong)
+                val varname = value.asmVarname
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    and  $varname
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  $varname+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  $varname+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  $varname+3
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                require(value.datatype.isLong)
+                // not an expression so no need to preserve R14/R15
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, target.dt.isSigned)
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    and  cx16.r14
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  cx16.r14+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  cx16.r14+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    and  cx16.r14+3
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.REGISTER -> TODO("inplace long &= register  ${target.position}")
+            else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    private fun inplaceLongOr(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer)
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toLongHex()
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    ora  #$${number.substring(6,8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  #$${number.substring(4, 6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  #$${number.substring(2, 4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  #$${number.take(2)}
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isLong)
+                val varname = value.asmVarname
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    ora  $varname
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  $varname+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  $varname+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  $varname+3
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                require(value.datatype.isLong)
+                // not an expression so no need to preserve R14/R15
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, target.dt.isSigned)
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    ora  cx16.r14
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  cx16.r14+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  cx16.r14+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    ora  cx16.r14+3
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.REGISTER -> TODO("inplace long |= register  ${target.position}")
+            else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    private fun inplaceLongXor(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer)
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toLongHex()
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    eor  #$${number.substring(6,8)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  #$${number.substring(4, 6)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  #$${number.substring(2, 4)}
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  #$${number.take(2)}
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isLong)
+                val varname = value.asmVarname
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    eor  $varname
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  $varname+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  $varname+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  $varname+3
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                require(value.datatype.isLong)
+                // not an expression so no need to preserve R14/R15
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, target.dt.isSigned)
+                asmgen.out("""
+                    ldy  #$offset
+                    lda  ($zpPtrVar),y
+                    eor  cx16.r14
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  cx16.r14+1
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  cx16.r14+2
+                    sta  ($zpPtrVar),y
+                    iny
+                    lda  ($zpPtrVar),y
+                    eor  cx16.r14+3
+                    sta  ($zpPtrVar),y""")
+            }
+            SourceStorageKind.REGISTER -> TODO("inplace long ^= register  ${target.position}")
+            else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    internal fun assignIndexedPointer(target: AsmAssignTarget, arrayVarName: String, index: PtExpression, arrayDt: DataType) {
         TODO("assign indexed pointer from array $arrayVarName  at ${target.position}")
 //        val ptrZp = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, target.scope, target.position, variableAsmName="P8ZP_SCRATCH_PTR")
 //        assignAddressOfIndexedPointer(ptrZp, arrayVarName, arrayDt, index)
