@@ -758,6 +758,15 @@ class AsmGen6502Internal (
                     CpuRegister.Y -> out(" tay")
                 }
             }
+            expr.type.isLong -> {
+                assignExpressionToRegister(expr.index, RegisterOrPair.A)
+                out("  asl  a |  asl  a")
+                when (register) {
+                    CpuRegister.A -> {}
+                    CpuRegister.X -> out(" tax")
+                    CpuRegister.Y -> out(" tay")
+                }
+            }
             expr.type.isFloat -> {
                 if(options.compTarget.FLOAT_MEM_SIZE != 5)
                     TODO("support float size other than 5 ${expr.position}")

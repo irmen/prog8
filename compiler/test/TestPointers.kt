@@ -662,6 +662,50 @@ main {
         err[0] shouldContain("15:16: incompatible value type, can only assign uword or correct pointer")
     }
 
+    xtest("pointer uword assignments with cast") {
+        val src="""
+main {
+    struct Node1 {
+        ubyte type
+        word ww
+    }
+    struct Node2 {
+        ubyte type
+        ^^ubyte text
+    }
+
+    sub start() {
+        ^^Node1 @shared next
+        ^^Node2 @shared this
+        ^^ubyte ubptr
+
+        ubptr = next as ^^ubyte
+        ubptr = 12345
+        ubptr = cx16.r0
+        ubptr = next as uword       ; TODO fix type error; the cast should succeed
+
+        this.text = next as ^^ubyte
+        this.text = 12345
+        this.text = cx16.r0
+        this.text = next as uword       ; TODO fix type error; the cast should succeed
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
+    xtest("const pointer") {
+        val src="""
+main {
+    sub start() {
+        ^^uword @shared ptr = 7000
+        const ^^uword cptr = 8000            ; TODO fix type error; loses pointer
+        ptr^^ = 12345
+        cptr^^ = 12345
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
     test("unknown field") {
         val src="""
 main {

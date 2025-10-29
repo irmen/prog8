@@ -202,7 +202,7 @@ internal class AssignmentAsmGen(
         assignRegisterByte(tgt, CpuRegister.A, false, false)
     }
 
-    fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) {
+    internal fun translateNormalAssignment(assign: AsmAssignment, scope: IPtSubroutine?) {
         when(assign.source.kind) {
             SourceStorageKind.LITERALBOOLEAN -> {
                 // simple case: assign a constant boolean (0 or 1)
@@ -295,6 +295,19 @@ internal class AssignmentAsmGen(
                             asmgen.out("  lda  $arrayVarName+$indexValue |  ldy  $arrayVarName+$indexValue+1")
                             assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         }
+                        elementDt.isLong -> {
+                            // it's not an expression so no need to preserve R14-R15
+                            asmgen.out("""
+                                lda  $arrayVarName+$indexValue
+                                sta  cx16.r14
+                                lda  $arrayVarName+$indexValue+1
+                                sta  cx16.r14+1
+                                lda  $arrayVarName+$indexValue+2
+                                sta  cx16.r14+2
+                                lda  $arrayVarName+$indexValue+3
+                                sta  cx16.r14+3""")
+                            assignRegisterLong(assign.target, RegisterOrPair.R14R15_32)
+                        }
                         elementDt.isFloat -> {
                             asmgen.out("  lda  #<($arrayVarName+$indexValue) |  ldy  #>($arrayVarName+$indexValue)")
                             assignFloatFromAY(assign.target)
@@ -313,6 +326,20 @@ internal class AssignmentAsmGen(
                             asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
                             asmgen.out("  lda  $arrayVarName,y |  ldx  $arrayVarName+1,y")
                             assignRegisterpairWord(assign.target, RegisterOrPair.AX)
+                        }
+                        elementDt.isLong -> {
+                            // it's not an expression so no need to preserve R14-R15
+                            asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
+                            asmgen.out("""
+                                lda  $arrayVarName,y
+                                sta  cx16.r14
+                                lda  $arrayVarName+1,y
+                                sta  cx16.r14+1
+                                lda  $arrayVarName+2,y
+                                sta  cx16.r14+2
+                                lda  $arrayVarName+3,y
+                                sta  cx16.r14+3""")
+                            assignRegisterLong(assign.target, RegisterOrPair.R14R15_32)
                         }
                         elementDt.isFloat -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.A)
@@ -2748,7 +2775,7 @@ $endLabel""")
                         // long to word, just take the lsw
                         assignCastViaLswFunc(value, target)
                     } else
-                        throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker")
+                        throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker  ${value.position}")
                 }
             }
         }
@@ -4070,7 +4097,18 @@ $endLabel""")
                 else throw AssemblyError("only combined vreg allowed as long target ${target.position}")
             }
             TargetStorageKind.ARRAY -> {
-                TODO("assign 32 bits int into array ${target.position}")
+                asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
+                val arrayVarName = asmgen.asmSymbolName(target.array.variable!!)
+                val startreg = pairedRegisters.startregname()
+                asmgen.out("""
+                    lda  cx16.$startreg
+                    sta  $arrayVarName,y
+                    lda  cx16.$startreg+1
+                    sta  $arrayVarName+1,y
+                    lda  cx16.$startreg+2
+                    sta  $arrayVarName+2,y
+                    lda  cx16.$startreg+3
+                    sta  $arrayVarName+3,y""")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {
