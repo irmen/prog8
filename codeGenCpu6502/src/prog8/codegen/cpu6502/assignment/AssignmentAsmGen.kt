@@ -2774,6 +2774,9 @@ $endLabel""")
                     } else if(valueDt.isLong && targetDt.isWord) {
                         // long to word, just take the lsw
                         assignCastViaLswFunc(value, target)
+                    } else if(valueDt.isPointer && targetDt.isPointer) {
+                        // pointer type A to pointer type B, just assign
+                        assignExpressionToRegister(value, target.register!!, valueDt.isSigned)
                     } else
                         throw AssemblyError("can't cast $valueDt to $targetDt, this should have been checked in the astchecker  ${value.position}")
                 }
