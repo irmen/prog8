@@ -874,9 +874,9 @@ internal class AstChecker(private val program: Program,
             err("recursive var declaration")
 
         // CONST can only occur on simple types (byte, word, float)
-        if(decl.type== VarDeclType.CONST) {
+        if(decl.type==VarDeclType.CONST) {
             if (!decl.datatype.isNumericOrBool)
-                err("const can only be used on numeric types or booleans")
+                err("const can only be used on numbers and booleans")
         }
 
         // FLOATS enabled?

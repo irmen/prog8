@@ -690,20 +690,28 @@ main {
         this.text = next as uword       ; TODO fix type error; the cast should succeed
     }
 }"""
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("const pointer") {
+    test("const pointer gives proper error") {
         val src="""
 main {
     sub start() {
         ^^uword @shared ptr = 7000
-        const ^^uword cptr = 8000            ; TODO fix type error; loses pointer
-        ptr^^ = 12345
-        cptr^^ = 12345
+        const ^^uword cptr = 8000
+
+        ;ptr^^ = 12345
+        ;cptr^^ = 12345
+        
+        cx16.r0 = cptr
+        cx16.r1 = ptr
     }
 }"""
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = true) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain("const can only be used on numbers and booleans")
     }
 
     test("unknown field") {

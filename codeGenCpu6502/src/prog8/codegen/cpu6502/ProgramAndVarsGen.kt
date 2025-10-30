@@ -938,7 +938,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("  ${it.name} = ${it.address.toHex()}")
         }
         consts.sortedBy { it.name }.forEach {
-            if(it.dt==BaseDataType.FLOAT)
+            if(it.dt.isFloat)
                 asmgen.out("  ${it.name} = ${it.value}")
             else
                 asmgen.out("  ${it.name} = ${it.value.toHex()}")

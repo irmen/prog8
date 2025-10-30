@@ -48,7 +48,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             }
             is PtConstant -> {
                 require(node.type.isNumericOrBool)
-                StConstant(node.name, node.type.base, node.value, node)
+                StConstant(node.name, node.type, node.value, node)
             }
             is PtLabel -> {
                 StNode(node.name, StNodeType.LABEL, node)

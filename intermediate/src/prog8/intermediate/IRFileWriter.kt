@@ -270,6 +270,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             val value: String = when {
                 dt.isBool -> constant.value.toInt().toString()
                 dt.isFloat -> constant.value.toString()
+                dt.isPointer -> TODO("constant pointer $constant")
                 dt.isInteger -> constant.value.toInt().toHex()
                 else -> throw InternalCompilerException("weird dt")
             }

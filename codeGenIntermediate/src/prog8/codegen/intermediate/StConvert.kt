@@ -122,7 +122,6 @@ private fun convert(variable: StMemVar): IRStMemVar {
 
 
 private fun convert(constant: StConstant): IRStConstant {
-    val dt = DataType.forDt(constant.dt)
     val scopedName = if('.' in constant.name) {
         constant.name
     } else {
@@ -132,7 +131,7 @@ private fun convert(constant: StConstant): IRStConstant {
             constant.name
         }
     }
-    return IRStConstant(scopedName, dt, constant.value)
+    return IRStConstant(scopedName, constant.dt, constant.value)
 }
 
 

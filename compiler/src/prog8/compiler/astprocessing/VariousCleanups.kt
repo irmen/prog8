@@ -27,45 +27,46 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(valueType.isUnknown)
                 return noModifications
             val valueDt = valueType.getOrUndef()
-            when(decl.type) {
-                VarDeclType.VAR -> {
-                    if(decl.isArray) {
-                        // using a array of words as initializer to a pointer array is fine
-                        if (!valueDt.isSplitWordArray || !decl.datatype.isPointerArray)
-                            errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
-                    } else if(!decl.datatype.isString) {
-                        if (valueDt.largerSizeThan(decl.datatype)) {
-                            val constValue = decl.value?.constValue(program)
-                            if (constValue != null)
-                                errors.err("value '$constValue' out of range for ${decl.datatype}", constValue.position)
-                            else
-                                errors.err("value out of range for ${decl.datatype}", decl.value!!.position)
+            if(!(valueDt.isWord && decl.datatype.isPointer)) {
+                when(decl.type) {
+                    VarDeclType.VAR -> {
+                        if(decl.isArray) {
+                            // using a array of words as initializer to a pointer array is fine
+                            if (!valueDt.isSplitWordArray || !decl.datatype.isPointerArray)
+                                errors.err("value has incompatible type ($valueType) for the variable (${decl.datatype})", decl.value!!.position)
+                        } else if(!decl.datatype.isString) {
+                            if (valueDt.largerSizeThan(decl.datatype)) {
+                                val constValue = decl.value?.constValue(program)
+                                if (constValue != null)
+                                    errors.err("value '$constValue' out of range for ${decl.datatype}", constValue.position)
+                                else
+                                    errors.err("value out of range for ${decl.datatype}", decl.value!!.position)
+                            }
                         }
                     }
-                }
-                VarDeclType.CONST -> {
-                    // change the vardecl type itself as well, but only if new type is smaller
-                    if(valueDt.largerSizeThan(decl.datatype)) {
-                        val constValue = decl.value!!.constValue(program)!!
-                        errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
-                    } else {
-                        // don't make it signed if it was unsigned and vice versa, except when it is a long const declaration
-                        if(!decl.datatype.isLong &&
-                            (valueDt.isSigned && decl.datatype.isUnsigned ||
-                            valueDt.isUnsigned && decl.datatype.isSigned))
-                        {
+                    VarDeclType.CONST -> {
+                        // change the vardecl type itself as well, but only if new type is smaller
+                        if(valueDt.largerSizeThan(decl.datatype)) {
                             val constValue = decl.value!!.constValue(program)!!
                             errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                         } else {
-                            val changed = decl.copy(valueDt)
-                            return listOf(IAstModification.ReplaceNode(decl, changed, parent))
+                            // don't make it signed if it was unsigned and vice versa, except when it is a long const declaration
+                            if(!decl.datatype.isLong &&
+                                (valueDt.isSigned && decl.datatype.isUnsigned ||
+                                valueDt.isUnsigned && decl.datatype.isSigned))
+                            {
+                                val constValue = decl.value!!.constValue(program)!!
+                                errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
+                            } else {
+                                val changed = decl.copy(valueDt)
+                                return listOf(IAstModification.ReplaceNode(decl, changed, parent))
+                            }
                         }
                     }
+                    VarDeclType.MEMORY -> if(!valueType.isWords && !valueType.isBytes)
+                        throw FatalAstException("value type for a memory var should be word or byte (address)")
                 }
-                VarDeclType.MEMORY -> if(!valueType.isWords && !valueType.isBytes)
-                    throw FatalAstException("value type for a memory var should be word or byte (address)")
             }
-
         }
 
         // check splitting of word arrays
