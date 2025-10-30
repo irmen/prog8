@@ -3775,11 +3775,11 @@ $endLabel""")
                     pointergen.assignFloatAY(IndexedPtrTarget(target))
                     return
                 }
-                asmgen.out("  pha")
+                asmgen.saveRegisterStack(CpuRegister.A, false)
                 asmgen.saveRegisterStack(CpuRegister.Y, false)
-                asmgen.assignExpressionToRegister(target.array.index, RegisterOrPair.A)
+                asmgen.assignExpressionToVariable(target.array.index, "P8ZP_SCRATCH_REG", DataType.UBYTE)
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                asmgen.out("  pla")
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -3787,6 +3787,7 @@ $endLabel""")
                     ldy  #>${target.asmVarname}
                     sta  P8ZP_SCRATCH_W2
                     sty  P8ZP_SCRATCH_W2+1
+                    lda  P8ZP_SCRATCH_REG
                     jsr  floats.set_array_float""")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("can't assign float to mem byte")
