@@ -1,26 +1,25 @@
+%import textio
+%import strings
+%zeropage basicsafe
+
+
 main {
-    struct Node1 {
-        ubyte type
-        word ww
-    }
-    struct Node2 {
-        ubyte type
-        ^^ubyte text
-    }
 
     sub start() {
-        ^^Node1 @shared next
-        ^^Node2 @shared this
-        ^^ubyte ubptr
+        str n1 = "irmen"
+        str n2 = "de jong 12345678"
 
-        ubptr = next as ^^ubyte
-        ubptr = 12345
-        ubptr = cx16.r0
-        ubptr = next as uword       ; TODO fix type error; the cast should succeed
+        ;;strings.copy(n2,n1)
+        strings.ncopy(n2,n1,len(n1))
+        txt.print(n1)
+        txt.nl()
 
-        this.text = next as ^^ubyte
-        this.text = 12345
-        this.text = cx16.r0
-        this.text = next as uword       ; TODO fix type error; the cast should succeed
+        n2[9]=0
+        txt.print(n2)
+        txt.nl()
+        strings.nappend(n2, "the quick brown fox jumps over", 16)
+        txt.print(n2)
+        txt.nl()
+        txt.print("12345678901234567890\n")
     }
 }

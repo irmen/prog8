@@ -266,6 +266,25 @@ strcpy		.proc
 		rts
 		.pend
 
+strncpy		.proc
+		; copy a string (must be 0-terminated) from A/Y to (P8ZP_SCRATCH_W1)
+		; with maximum length to copy in X.
+		; returns the length of the string that was copied in Y.
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #$ff
+-		iny
+		lda  (P8ZP_SCRATCH_W2),y
+		sta  (P8ZP_SCRATCH_W1),y
+		beq  +
+		dex
+		bne  -
+		iny
+		lda  #0
+		sta  (P8ZP_SCRATCH_W1),y
++		rts
+		.pend
+
 strcmp_expression	.proc
 		; -- compare strings, result in A
 		lda  _arg_s2

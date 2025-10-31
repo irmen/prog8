@@ -222,6 +222,18 @@ _found      tya
         }}
     }
 
+    asmsub ncopy(str source @R0, str target @AY, ubyte maxlength @X) clobbers(A, X) -> ubyte @Y {
+        ; Copy a string to another, overwriting that one.
+        ; Returns the length of the string that was copied.
+        %asm {{
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		lda  cx16.r0
+		ldy  cx16.r0+1
+		jmp  prog8_lib.strncpy
+        }}
+    }
+
     asmsub append(str target @R0, str suffix @R1) clobbers(Y) -> ubyte @A {
         ; Append the suffix string to the target. (make sure the buffer is large enough!)
         ; Returns the length of the resulting string.
@@ -243,6 +255,41 @@ _found      tya
             tya
             clc
             adc  P8ZP_SCRATCH_B1
+            rts
+        }}
+    }
+
+    asmsub nappend(str target @R0, str suffix @R1, ubyte maxlength @X) clobbers(Y) -> ubyte @A {
+        ; Append the suffix string to the target. (make sure the buffer is large enough!)
+        ; Returns the length of the resulting string.
+        %asm {{
+            lda  cx16.r0
+            ldy  cx16.r0+1
+            jsr  length
+            sty  P8ZP_SCRATCH_B1
+            cpx  P8ZP_SCRATCH_B1
+            beq  _max_too_small
+            bmi  _max_too_small
+            txa
+            sec
+            sbc  P8ZP_SCRATCH_B1
+            sta  P8ZP_SCRATCH_B1
+            tya
+            clc
+            adc  cx16.r0
+            sta  P8ZP_SCRATCH_W1
+            lda  cx16.r0+1
+            adc  #0
+            sta  P8ZP_SCRATCH_W1+1
+            lda  cx16.r1
+            ldy  cx16.r1+1
+            ldx  P8ZP_SCRATCH_B1
+            jsr  prog8_lib.strncpy
+            tya
+            clc
+            adc  P8ZP_SCRATCH_B1
+            rts
+_max_too_small
             rts
         }}
     }

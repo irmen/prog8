@@ -109,7 +109,20 @@ strings {
         %ir {{
             loadm.w r99000,strings.copy.source
             loadm.w r99001,strings.copy.target
-            syscall 39 (r99000.w, r99001.w): r99100.b
+            load.b r99100,255
+            syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
+            returnr.b r99100
+        }}
+    }
+
+    sub ncopy(str source, str target, ubyte maxlength) -> ubyte {
+        ; Copy a string to another, overwriting that one, but limited to the given length.
+        ; Returns the length of the string that was copied.
+        %ir {{
+            loadm.w r99000,strings.ncopy.source
+            loadm.w r99001,strings.ncopy.target
+            loadm.b r99100,strings.ncopy.maxlength
+            syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
             returnr.b r99100
         }}
     }
@@ -119,6 +132,16 @@ strings {
         ; Returns the length of the resulting string.
         cx16.r0L = length(target)
         return copy(suffix, target+cx16.r0L) + cx16.r0L
+    }
+
+    sub nappend(str target, str suffix, ubyte maxlength) -> ubyte {
+        ; Append the suffix string to the target, up to the given maximum length of the combined string.
+        ; Returns the length of the resulting string.
+        cx16.r0L = length(target)
+        if maxlength<cx16.r0L
+            return cx16.r0L
+        maxlength -= cx16.r0L
+        return ncopy(suffix, target+cx16.r0L, maxlength) + cx16.r0L
     }
 
     sub compare(str st1, str st2) -> byte {

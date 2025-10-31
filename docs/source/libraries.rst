@@ -996,10 +996,19 @@ Provides string manipulation routines.
     A length larger than either string will function identically to compare.
 
 ``copy (from, to) -> ubyte length``
-    Copy a string to another, overwriting that one. Returns the length of the string that was copied.
+    Copy a string to another, overwriting that one. Make sure it was large enough to contain the new string.
+    Returns the length of the string that was copied.
+
+``ncopy (from, to, maxlength) -> ubyte length``
+    Copy a string to another, overwriting that one, but limited to the given length.
+    Returns the length of the string that was copied.
 
 ``append (string, suffix) -> ubyte length``
-    Appends the suffix string to the other string (make sure the memory buffer is large enough!)
+    Appends the suffix string to the other string. Make sure the memory buffer is large enough to contain the combined strings.
+    Returns the length of the combined string.
+
+``nappend (string, suffix, maxlength) -> ubyte length``
+    Appends the suffix string to the other string, up to the given maximum length of the combined string.
     Returns the length of the combined string.
 
 ``lower (string)``

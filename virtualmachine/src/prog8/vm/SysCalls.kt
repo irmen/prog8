@@ -510,10 +510,10 @@ object SysCalls {
                 }
             }
             Syscall.STRINGCOPY -> {
-                val (sourceA, targetA) = getArgValues(callspec.arguments, vm)
+                val (sourceA, targetA, maxlength) = getArgValues(callspec.arguments, vm)
                 val source = (sourceA as UShort).toInt()
                 val target = (targetA as UShort).toInt()
-                val string = vm.memory.getString(source)
+                val string = vm.memory.getString(source).take((maxlength as UByte).toInt())
                 vm.memory.setString(target, string, true)
                 returnValue(callspec.returns.single(), string.length, vm)
             }
