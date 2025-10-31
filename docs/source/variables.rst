@@ -430,10 +430,21 @@ It can be correctly displayed on the screen only if a iso-8859-15 charset has be
 
     iso:"Käse, Straße"
 
+
+.. sidebar:: str parameters in subroutines
+
+    A subroutine parameter declared as type ``str`` will be changed into a ``^^ubyte`` type (pointer to ubyte) instead
+    because Prog8 doesn't pass strings by value. This means you *can* assign new values to this parameter variable: you can
+    set it to a new memory address. You're not actually assigning something to a string variable, because that's not what its type actually is.
+
 You can concatenate two string literals using '+', which can be useful to
 split long strings over separate lines. But remember that the length
 of the total string still cannot exceed 255 characters.
 A string literal can also be repeated a given number of times using '*', where the repeat number must be a constant value.
+
+You cannot assign a new value to a ``str`` variable. If you really want to set a new string value into the variable,
+you have to explicitly copy it over the old value with ``strings.copy()`` or ``strings.ncopy()`` for instance.
+
 
 There are several escape sequences available to put special characters into your string value:
 
