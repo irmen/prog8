@@ -997,8 +997,6 @@ Provides string manipulation routines.
 
 ``copy (from, to) -> ubyte length``
     Copy a string to another, overwriting that one. Returns the length of the string that was copied.
-    Often you don't have to call this explicitly and can just write ``string1 = string2``
-    but this function is useful if you're dealing with addresses for instance.
 
 ``append (string, suffix) -> ubyte length``
     Appends the suffix string to the other string (make sure the memory buffer is large enough!)

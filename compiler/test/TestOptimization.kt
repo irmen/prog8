@@ -1001,7 +1001,6 @@ main {
 
     test("no operand swap on logical expressions with shortcircuit evaluation") {
         val src="""
-%import diskio
 %zeropage basicsafe
 %option no_sysinit
 
@@ -1009,14 +1008,22 @@ main {
     str scanline_buf = "?"* 20
 
     sub start() {
-        if diskio.f_open("test.prg") and diskio.f_read(scanline_buf, 2)==2
+        if f_open("test.prg") and f_read(scanline_buf, 2)==2
             cx16.r0++
 
-        if diskio.f_open("test.prg") or diskio.f_read(scanline_buf, 2)==2
+        if f_open("test.prg") or f_read(scanline_buf, 2)==2
             cx16.r0++
 
-        if diskio.f_open("test.prg") xor diskio.f_read(scanline_buf, 2)==2
+        if f_open("test.prg") xor f_read(scanline_buf, 2)==2
             cx16.r0++
+    }
+
+    sub f_open(str name) -> bool {
+        return cx16.r0==99
+    }
+
+    sub f_read(str buf, uword lengthy) -> uword {
+        return cx16.r0
     }
 }"""
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false)!!
@@ -1025,15 +1032,15 @@ main {
         val ifCond1 = (st[0] as IfElse).condition as BinaryExpression
         val ifCond2 = (st[1] as IfElse).condition as BinaryExpression
         val ifCond3 = (st[2] as IfElse).condition as BinaryExpression
-        (ifCond1.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_open")
-        (ifCond2.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_open")
-        (ifCond3.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_open")
+        (ifCond1.left as FunctionCallExpression).target.nameInSource shouldBe listOf("f_open")
+        (ifCond2.left as FunctionCallExpression).target.nameInSource shouldBe listOf("f_open")
+        (ifCond3.left as FunctionCallExpression).target.nameInSource shouldBe listOf("f_open")
         val right1 = ifCond1.right as BinaryExpression
         val right2 = ifCond2.right as BinaryExpression
         val right3 = ifCond3.right as BinaryExpression
-        (right1.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_read")
-        (right2.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_read")
-        (right3.left as FunctionCallExpression).target.nameInSource shouldBe listOf("diskio", "f_read")
+        (right1.left as FunctionCallExpression).target.nameInSource shouldBe listOf("f_read")
+        (right2.left as FunctionCallExpression).target.nameInSource shouldBe listOf("f_read")
+        (right3.left as FunctionCallExpression).target.nameInSource shouldBe listOf("f_read")
     }
 
     test("eliminate same target register assignments") {

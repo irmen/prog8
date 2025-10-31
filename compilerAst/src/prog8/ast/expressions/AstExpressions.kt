@@ -1765,6 +1765,8 @@ class PtrDereference(
             return resultType(target.datatype)
         if(target is StructFieldRef)
             return resultType(target.type)
+        if(target is Alias)
+            return target.target.inferType(program)
 
         TODO("infertype $chain -> $target")
     }
@@ -1845,7 +1847,9 @@ class ArrayIndexedPtrDereference(
                             InferredTypes.knownFor(fieldDt)
                     }
                 } else {
-                    require(indexPosition==this.chain.size-1) {"when indexing primitive pointer type there cannot be a field after it"}
+                    require(indexPosition==this.chain.size-1) {
+                        "when indexing primitive pointer type there cannot be a field after it $position"
+                    }
                     return if(derefLast)
                         InferredTypes.knownFor(target.datatype.dereference())
                     else

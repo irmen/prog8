@@ -489,4 +489,37 @@ main {
         errors.errors[1] shouldContain "string var must be initialized with a string literal"
         errors.errors[2] shouldContain "string var must be initialized with a string literal"
     }
+
+    test("cannot assign strings by-value") {
+        val src="""
+main {
+
+    sub start() {
+        str n1 = "irmen"
+        str n2 = "de jong 12345"
+
+        n1 = n2
+        n1 = "zsdfzsdf"
+        n1 = 0
+        n2 = 9999
+
+        void foo(n1)
+    }
+
+    sub foo(str arg) -> str {
+        arg = "bar"
+        arg = 0
+        arg = 9999
+        return arg
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain ":8:9: cannot assign to string"
+        errors.errors[1] shouldContain ":9:9: cannot assign to string"
+        errors.errors[2] shouldContain ":10:9: cannot assign to string"
+        errors.errors[3] shouldContain ":11:9: cannot assign to string"
+    }
 })

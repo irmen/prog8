@@ -213,8 +213,6 @@ _found      tya
     asmsub copy(str source @R0, str target @AY) clobbers(A) -> ubyte @Y {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
-        ; Often you don’t have to call this explicitly and can just write string1 = string2
-        ; but this function is useful if you’re dealing with addresses for instance.
         %asm {{
 		sta  P8ZP_SCRATCH_W1
 		sty  P8ZP_SCRATCH_W1+1

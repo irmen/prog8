@@ -421,7 +421,7 @@ galaxy {
         repeat system {
             generate_next_planet()
         }
-        planet.name = make_current_planet_name()
+        void strings.copy(make_current_planet_name(), planet.name)
         init_market_for_planet()
     }
 
@@ -441,7 +441,7 @@ galaxy {
         ubyte pi
         for pi in 0 to 255 {
             generate_next_planet()
-            planet.name = make_current_planet_name()
+            void strings.copy(make_current_planet_name(), planet.name)
             if util.prefix_matches(nameptr, planet.name) {
                 ubyte distance = planet.distance(x, y)
                 if distance < current_distance {
@@ -479,7 +479,7 @@ galaxy {
                 else
                     txt.chrout('-')
                 txt.spc()
-                planet.name = make_current_planet_name()
+                void strings.copy(make_current_planet_name(), planet.name)
                 planet.display(true, distance)
             }
             pn++
@@ -495,7 +495,7 @@ galaxy {
         str current_name = "        "       ; 8 max
         ubyte pn = 0
 
-        current_name = planet.name
+        void strings.copy(planet.name, current_name)
         init(number)
         txt.clear_screen()
         txt.print("Galaxy #")
@@ -516,7 +516,7 @@ galaxy {
             generate_next_planet()
             ubyte distance = planet.distance(px, py)
             if distance <= max_distance {
-                planet.name = make_current_planet_name()
+                void strings.copy(make_current_planet_name(), planet.name)
                 planet.name[0] = strings.upperchar(planet.name[0])
                 uword tx = planet.x
                 uword ty = planet.y

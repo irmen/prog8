@@ -123,6 +123,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     internal fun translate(augAssign: PtAugmentedAssign): IRCodeChunks {
+        if(augAssign.target.type.isString)
+            throw AssemblyError("cannot assign to str type ${augAssign.position}")
+
         // augmented assignment always has just a single target
         if (augAssign.target.children.single() is PtIrRegister)
             throw AssemblyError("assigning to a register should be done by just evaluating the expression into resultregister")
@@ -467,7 +470,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
     }
 
     private fun translateRegularAssign(assignment: PtAssignment): IRCodeChunks {
-        // note: assigning array and string values is done via an explicit memcopy/stringcopy function call.
+        if(assignment.target.type.isString) {
+            // assigning array and string values is done via an explicit memcopy/stringcopy function calls.
+            throw AssemblyError("cannot assign to str type ${assignment.position}")
+        }
+
         val valueDt = irType(assignment.value.type)
         val targetDt = irType(assignment.target.type)
         val result = mutableListOf<IRCodeChunkBase>()

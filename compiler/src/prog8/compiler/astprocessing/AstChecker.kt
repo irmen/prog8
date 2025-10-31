@@ -651,6 +651,14 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(assignment: Assignment) {
+        if(assignment.target.inferType(program).isString) {
+            if(assignment.isAugmentable)
+                errors.err("cannot assign to string by value (use strings.copy or strings.append)", assignment.position)
+            else
+                errors.err("cannot assign to string by value (use strings.copy)", assignment.position)
+            return
+        }
+
         if(assignment.target.multi==null) {
             val targetDt = assignment.target.inferType(program)
             val valueDt = assignment.value.inferType(program)
@@ -1500,8 +1508,12 @@ internal class AstChecker(private val program: Program,
         }
 
         if(expr.operator=="+" || expr.operator=="-") {
-            if(leftDt.isString || rightDt.isString || leftDt.isArray || rightDt.isArray) {
-                errors.err("missing & (address-of) on the operand", expr.position)
+            if(leftDt.isString || leftDt.isArray) {
+                errors.err("missing & (address-of) on the operand", expr.left.position)
+                return
+            }
+            if(rightDt.isString || rightDt.isArray) {
+                errors.err("missing & (address-of) on the operand", expr.right.position)
                 return
             }
         }

@@ -550,7 +550,7 @@ done:
         return list_filename
 
 io_error:
-        list_filename = "io error"
+        void strings.copy("io error", list_filename)
         goto done
     }
 

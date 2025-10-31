@@ -298,15 +298,6 @@ internal class StatementReorderer(
             checkCopyArrayValue(assignment)
         }
 
-        if(!assignment.isAugmentable) {
-            if (targetType issimpletype BaseDataType.STR) {
-                if (valueType issimpletype BaseDataType.STR || valueType.getOrUndef() == DataType.pointer(BaseDataType.UBYTE)) {
-                    // replace string assignment by a call to stringcopy
-                    return copyStringValue(assignment)
-                }
-            }
-        }
-
         return noModifications
     }
 
@@ -370,19 +361,6 @@ internal class StatementReorderer(
                 errors.err("element size mismatch", assign.position)
             }
         }
-    }
-
-    private fun copyStringValue(assign: Assignment): List<IAstModification> {
-        val identifier = assign.target.identifier!!
-        val strcopy = FunctionCallStatement(IdentifierReference(listOf("sys", "internal_stringcopy"), assign.position),
-            mutableListOf(
-                assign.value as? IdentifierReference ?: assign.value,
-                identifier
-            ),
-            false,
-            assign.position
-        )
-        return listOf(IAstModification.ReplaceNode(assign, strcopy, assign.parent))
     }
 
     override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {

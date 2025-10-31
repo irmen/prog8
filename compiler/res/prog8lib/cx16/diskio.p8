@@ -566,7 +566,7 @@ return_status:
 
     sub internal_f_open_w(str filename, bool open_for_seeks) -> bool {
         f_close_w()
-        list_filename = filename
+        void strings.copy(filename, list_filename)
         str modifier = ",s,?"
         modifier[3] = 'w'
         if open_for_seeks
@@ -624,7 +624,7 @@ done:
         return list_filename
 
 io_error:
-        list_filename = "io error"
+        void strings.copy("io error", list_filename)
         goto done
     }
 

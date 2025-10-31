@@ -1,19 +1,21 @@
 TODO
 ====
 
+- add strings.ncopy and nappend (length limited)
 - fix/check github issues.
+- docs: sort the routines in the library chapter alphabetically
 - redo the benchmark-c tests with final 12.0 release version.
 
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- struct/ptr: implement the remaining TODO's in PointerAssignmentsGen.
+- struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)
 - struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - struct/ptr: implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
-- struct/ptr: support const pointers (simple and struct types)
+- struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: support @nosplit pointer arrays?
 - struct/ptr: support pointer to pointer?
 - struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)

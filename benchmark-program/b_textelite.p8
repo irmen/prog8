@@ -472,7 +472,7 @@ elite_galaxy {
             generate_next_planet()
             textelite.num_commands++
         }
-        elite_planet.name = make_current_planet_name()
+        void strings.copy(make_current_planet_name(), elite_planet.name)
         init_market_for_planet()
     }
 
@@ -494,7 +494,7 @@ elite_galaxy {
         ubyte pi
         for pi in 0 to 255 {
             generate_next_planet()
-            elite_planet.name = make_current_planet_name()
+            void strings.copy(make_current_planet_name(), elite_planet.name)
             if elite_util.prefix_matches(nameptr, elite_planet.name) {
                 ubyte distance = elite_planet.distance(x, y)
                 if distance < current_distance {
@@ -532,7 +532,7 @@ elite_galaxy {
 ;                else
 ;                    txt.chrout('-')
 ;                txt.spc()
-                elite_planet.name = make_current_planet_name()
+                void strings.copy(make_current_planet_name(), elite_planet.name)
                 elite_planet.display(true, distance)
             }
             pn++
@@ -548,7 +548,7 @@ elite_galaxy {
         str current_name = "        "       ; 8 max
         ubyte pn = 0
 
-        current_name = elite_planet.name
+        void strings.copy(elite_planet.name, current_name)
         init(number)
 ;        txt.clear_screen()
 ;        txt.print("Galaxy #")
@@ -569,7 +569,7 @@ elite_galaxy {
             generate_next_planet()
             ubyte distance = elite_planet.distance(px, py)
             if distance <= max_distance {
-                elite_planet.name = make_current_planet_name()
+                void strings.copy(make_current_planet_name(), elite_planet.name)
                 elite_planet.name[0] = strings.upperchar(elite_planet.name[0])
                 uword tx = elite_planet.x
                 uword ty = elite_planet.y

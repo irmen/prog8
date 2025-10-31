@@ -666,21 +666,8 @@ internal class AssignmentAsmGen(
                 returnDt?.isByteOrBool==true -> assignRegisterByte(target, CpuRegister.A, returnDt.isSigned, false)            // function's byte result is in A
                 returnDt?.isWord==true -> assignRegisterpairWord(target, RegisterOrPair.AY)    // function's word result is in AY
                 returnDt==BaseDataType.STR -> {
-                    val targetDt = target.datatype
-                    when {
-                        targetDt.isString -> {
-                            asmgen.out("""
-                                        tax
-                                        lda  #<${target.asmVarname}
-                                        sta  P8ZP_SCRATCH_W1
-                                        lda  #>${target.asmVarname}
-                                        sta  P8ZP_SCRATCH_W1+1
-                                        txa
-                                        jsr  prog8_lib.strcpy""")
-                        }
-                        targetDt.isUnsignedWord -> assignRegisterpairWord(target, RegisterOrPair.AY)
-                        else -> throw AssemblyError("str return value type mismatch with target")
-                    }
+                    if (target.datatype.isUnsignedWord) assignRegisterpairWord(target, RegisterOrPair.AY)
+                    else throw AssemblyError("str return value type mismatch with target")
                 }
                 returnDt== BaseDataType.LONG -> {
                     // longs are in R14:R15 (r14=lsw, r15=msw)
@@ -3467,31 +3454,16 @@ $endLabel""")
     }
 
     private fun assignVariableString(target: AsmAssignTarget, varName: String) {
-        when(target.kind) {
-            TargetStorageKind.VARIABLE -> {
-                when {
-                    target.datatype.isUnsignedWord -> {
-                        asmgen.out("""
-                            lda  #<$varName
-                            ldy  #>$varName
-                            sta  ${target.asmVarname}
-                            sty  ${target.asmVarname}+1""")
-                    }
-                    target.datatype.isString || target.datatype.isUnsignedByteArray || target.datatype.isByteArray -> {
-                        asmgen.out("""
-                            lda  #<${target.asmVarname}
-                            ldy  #>${target.asmVarname}
-                            sta  P8ZP_SCRATCH_W1
-                            sty  P8ZP_SCRATCH_W1+1
-                            lda  #<$varName
-                            ldy  #>$varName
-                            jsr  prog8_lib.strcpy""")
-                    }
-                    else -> throw AssemblyError("assign string to incompatible variable type")
-                }
-            }
-            else -> throw AssemblyError("string-assign to weird target")
+        if (target.kind == TargetStorageKind.VARIABLE) {
+            if (target.datatype.isUnsignedWord) {
+                asmgen.out("""
+                    lda  #<$varName
+                    ldy  #>$varName
+                    sta  ${target.asmVarname}
+                    sty  ${target.asmVarname}+1""")
+            } else throw AssemblyError("assign string to incompatible variable type ${target.position}")
         }
+        else throw AssemblyError("string-assign to weird target ${target.position}")
     }
 
     private fun assignVariableLong(target: AsmAssignTarget, varName: String, sourceDt: DataType) {

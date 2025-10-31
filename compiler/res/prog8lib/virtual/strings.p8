@@ -106,8 +106,6 @@ strings {
     sub copy(str source, str target) -> ubyte {
         ; Copy a string to another, overwriting that one.
         ; Returns the length of the string that was copied.
-        ; Often you don’t have to call this explicitly and can just write string1 = string2
-        ; but this function is useful if you’re dealing with addresses for instance.
         %ir {{
             loadm.w r99000,strings.copy.source
             loadm.w r99001,strings.copy.target

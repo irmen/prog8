@@ -434,14 +434,6 @@ You can concatenate two string literals using '+', which can be useful to
 split long strings over separate lines. But remember that the length
 of the total string still cannot exceed 255 characters.
 A string literal can also be repeated a given number of times using '*', where the repeat number must be a constant value.
-And a new string value can be assigned to another string, but no bounds check is done!
-So be sure the destination string is large enough to contain the new value (it is overwritten in memory)::
-
-    str string1 = "first part" + "second part"
-    str string2 = "hello!" * 10
-
-    string1 = string2
-    string1 = "new value"
 
 There are several escape sequences available to put special characters into your string value:
 

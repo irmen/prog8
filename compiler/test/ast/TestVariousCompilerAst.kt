@@ -225,20 +225,21 @@ main {
             sub start() {
                 str @shared name = "part1" + "part2"
                 str @shared rept = "rep"*4
-                const ubyte times = 3
-                name = "xx1" + "xx2"
-                rept = "xyz" * (times+1)
+                test("xx1" + "xx2")
+                test("xyz" * 4)
+            }
+            sub test(str message) {
             }
         }"""
             val result = compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=true)!!
             val stmts = result.compilerAst.entrypoint.statements
-            stmts.size shouldBe 6
+            stmts.size shouldBe 5
             val name1 = stmts[0] as VarDecl
             val rept1 = stmts[1] as VarDecl
             (name1.value as StringLiteral).value shouldBe "part1part2"
             (rept1.value as StringLiteral).value shouldBe "reprepreprep"
-            val name2strcopy = stmts[3] as IFunctionCall
-            val rept2strcopy = stmts[4] as IFunctionCall
+            val name2strcopy = stmts[2] as IFunctionCall
+            val rept2strcopy = stmts[3] as IFunctionCall
             val name2 = (name2strcopy.args.first() as AddressOf).identifier!!
             val rept2 = (rept2strcopy.args.first() as AddressOf).identifier!!
             (name2.targetVarDecl()!!.value as StringLiteral).value shouldBe "xx1xx2"
