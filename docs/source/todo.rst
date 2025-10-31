@@ -9,6 +9,7 @@ TODO
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers...
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)

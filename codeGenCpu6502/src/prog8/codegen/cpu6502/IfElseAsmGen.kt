@@ -1492,6 +1492,11 @@ _jump                       jmp  (${target.asmLabel})
         stmt: PtIfElse
     ) {
         // this comparison is not part of an expression but part of an if statement, there's no need to save the previous values of the temp registers
+
+        if(left !is PtNumber && left !is PtIdentifier || right !is PtNumber && right !is PtIdentifier) {
+            TODO("long comparison $operator with expressions - use temporary long variable instead to simplify for now   ${left.position}")
+        }
+
         if(operator=="<" || operator ==">=") {
             assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R14R15_32, left.type.isSigned)
             assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R12R13_32, left.type.isSigned)
