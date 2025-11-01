@@ -53,7 +53,7 @@ sys {
         %ir {{
             loadm.w r99000,sys.internal_stringcopy.source
             loadm.w r99001,sys.internal_stringcopy.tgt
-            load.b r99100,255
+            load.b r99100,#255
             syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
         }}
     }

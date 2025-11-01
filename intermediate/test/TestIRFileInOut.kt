@@ -81,7 +81,7 @@ ubyte main.thing=42
 
 <INITGLOBALS>
 <CHUNK><REGS>dummy</REGS><CODE>
-load.b r1,42
+load.b r1,#42
 </CODE></CHUNK>
 </INITGLOBALS>
 

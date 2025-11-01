@@ -109,7 +109,7 @@ strings {
         %ir {{
             loadm.w r99000,strings.copy.source
             loadm.w r99001,strings.copy.target
-            load.b r99100,255
+            load.b r99100,#255
             syscall 39 (r99000.w, r99001.w, r99100.b): r99100.b
             returnr.b r99100
         }}

@@ -653,9 +653,9 @@ internal class AstChecker(private val program: Program,
     override fun visit(assignment: Assignment) {
         if(assignment.target.inferType(program).isString) {
             if(assignment.isAugmentable)
-                errors.err("cannot assign to string by value (use strings.copy or strings.append)", assignment.position)
+                errors.err("cannot assign to string by value (use strings.(n)copy or strings.(n)append)", assignment.position)
             else
-                errors.err("cannot assign to string by value (use strings.copy)", assignment.position)
+                errors.err("cannot assign to string by value (use strings.(n)copy)", assignment.position)
             return
         }
 
