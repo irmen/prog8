@@ -34,8 +34,11 @@ How to get it/build it
   - you can also compile it yourself from source. [Instructions here](https://prog8.readthedocs.io/en/latest/compiling.html).
     Note that if you are not using *gradle* to build it, you might have to perform some manual
     tasks once to make it compile fully. These are explained in the linked instructions. 
-- Alternatively, you can also install the compiler as a package on some linux distros:
+- Alternatively, you can also install the compiler as a package on some linux distros (which will take care of dependencies automatically):
   - Arch (via AUR): [`prog8`](https://aur.archlinux.org/packages/prog8)
+- Finally there's a Homebrew recipe for Mac OS (but also for Linux, and WSL2 on Windows, this also takes care of dependencies automatically):
+  ``brew install prog8``
+
 
 Community
 ---------

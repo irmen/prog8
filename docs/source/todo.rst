@@ -2,9 +2,6 @@ TODO
 ====
 
 - fix/check github issues.
-- docs: sort the routines in the library chapter alphabetically
-- redo the benchmark-c tests with final 12.0 release version.
-
 
 
 Future Things and Ideas
