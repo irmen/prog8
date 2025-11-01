@@ -216,7 +216,8 @@ sizeof (name)  ;  sizeof (number)  ;  sizeof(datatype)
     The constant number of bytes that the object 'name', the number 'number' or the type 'datatype' occupies in memory.
     For instance, for a variable of type uword, the sizeof is 2.
     For an 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
-    Note: usually you will be interested in the number of elements in an array, use len() for that.
+    For a string, it returns the size of the string in memory (which includes the 0-byte terminator at the end)
+    Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use len() for that.
 
 memory (name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,

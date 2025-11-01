@@ -155,7 +155,14 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
                 val elementDt = dt.getOrUndef().elementType()
                 NumericLiteral.optimalInteger(program.memsizer.memorySize(elementDt, length), position)
             }
-            dt.isString -> throw SyntaxError("sizeof(str) is undefined, did you mean len, or perhaps strings.length?", position)
+            dt.isString -> {
+                if(target is VarDecl) {
+                    val length = (target.value as StringLiteral).value.length + 1       // add the closing 0-byte
+                    NumericLiteral(BaseDataType.UBYTE, length.toDouble(), position)
+                }
+                else
+                    throw SyntaxError("sizeof(str) is undefined here. Perhaps use len, or strings.length?", position)
+            }
             else -> NumericLiteral.optimalInteger( program.memsizer.memorySize(dt.getOrUndef(), null), position)
         }
     } else {
