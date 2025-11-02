@@ -38,6 +38,17 @@ There's a set of predefined functions in the language. These are fixed and can't
 You can use them in expressions and the compiler will evaluate them at compile-time if possible.
 
 
+Array operations
+^^^^^^^^^^^^^^^^
+
+len (x)
+    Number of values in the array value x, or the number of characters in a string (excluding the 0-byte).
+    Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
+    Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
+    length of the string during execution, the value of len(s) may no longer be correct!
+    (use the ``strings.length`` routine if you want to dynamically determine the length by counting to the
+    first 0-byte)
+
 Math
 ^^^^
 
@@ -68,18 +79,6 @@ sqrt (x)
     Returns the square root of the number.
     Accepts unsigned integer (result is ubyte), long (result is uword, but this may not be implemented on all targets), and floating point numbers.
     To do the reverse - squaring a number - just write ``x*x``.
-
-
-Array operations
-^^^^^^^^^^^^^^^^
-
-len (x)
-    Number of values in the array value x, or the number of characters in a string (excluding the 0-byte).
-    Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
-    Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
-    length of the string during execution, the value of len(s) may no longer be correct!
-    (use the ``strings.length`` routine if you want to dynamically determine the length by counting to the
-    first 0-byte)
 
 
 Miscellaneous

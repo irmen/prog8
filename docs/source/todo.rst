@@ -28,7 +28,7 @@ Future Things and Ideas
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - add documentation for more library modules instead of just linking to the source code
 - add an Index to the documentation
-- allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?)
+- allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
