@@ -24,6 +24,7 @@ BLOCK_COMMENT : '/*' ( BLOCK_COMMENT | ~'*' | '*' ~'/' )*? '*/' -> skip ;
 WS :  [ \t] -> skip ;
 // WS2 : '\\' EOL -> skip;
 VOID: 'void';
+STRUCT: 'struct';
 ON: 'on';
 GOTO: 'goto';
 CALL: 'call';
@@ -96,6 +97,7 @@ block_statement:
 
 statement :
     directive
+    | ongoto
     | variabledeclaration
     | structdeclaration
     | assignment
@@ -117,7 +119,6 @@ statement :
     | breakstmt
     | continuestmt
     | labeldef
-    | ongoto
     | defer
     | alias
     ;
@@ -132,7 +133,7 @@ variabledeclaration :
 
 
 structdeclaration:
-    'struct' identifier '{' EOL? (structfielddecl | EOL)+ '}'
+    STRUCT identifier '{' EOL? (structfielddecl | EOL)+ '}'
     ;
 
 structfielddecl: datatype identifierlist;

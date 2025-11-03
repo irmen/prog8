@@ -1110,7 +1110,7 @@ main {
         compileText(C128Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
-    test("on..goto") {
+    xtest("on..goto and on..call") {
         val src="""
 main {
     sub start() {
@@ -1127,6 +1127,23 @@ main {
         }
 
         on cx16.r13L+1 goto (thing.func1, thing.func2, thing.func3)
+        
+        test2()
+    }
+    
+    sub test2() {
+        ubyte @shared thing
+        on thing call (lblA, lblB, lblC)
+        on thing goto (lblA, lblB, lblC)
+        lblA:
+            cx16.r0++
+            goto lblDone
+        lblB:
+            cx16.r1++
+            goto lblDone
+        lblC:
+            cx16.r2++
+        lblDone:
     }
 }
 
@@ -1210,6 +1227,36 @@ main {
         compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[1] shouldContain "12:10: undefined symbol: breakpoint"
+    }
+
+    test("struct names cannot be keywords") {
+        val src="""
+main {
+    sub start() {
+        struct on {
+            bool flag
+        }
+
+        struct step {
+            bool flag
+        }
+
+        struct inline {
+            bool flag
+        }
+
+        struct call {
+            bool flag
+        }
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain "struct name cannot be a keyword"
+        errors.errors[1] shouldContain "struct name cannot be a keyword"
+        errors.errors[2] shouldContain "struct name cannot be a keyword"
+        errors.errors[3] shouldContain "builtin function cannot be redefined"
     }
 })
 

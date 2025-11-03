@@ -99,6 +99,50 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
         super.visit(decl)
     }
 
+    private val keywords = setOf(
+        "void",
+        "on",
+        "in",
+        "to",
+        "if",
+        "downto",
+        "else",
+        "step",
+        "call",
+        "goto",
+        "inline",
+        "struct",
+        "then",
+        "alias",
+        "defer",
+        "const",
+        "sizeof",
+        "as",
+        "return",
+        "break",
+        "continue",
+        "true",
+        "false",
+        "sub",
+        "asmsub",
+        "extsub",
+        "clobbers",
+        "while",
+        "do",
+        "until",
+        "repeat",
+        "unroll",
+        "when"
+    )
+
+    override fun visit(struct: StructDecl) {
+        if(struct.name in BuiltinFunctions)
+            errors.err("builtin function cannot be redefined", struct.position)
+        else if(struct.name in keywords)
+            errors.err("struct name cannot be a keyword", struct.position)
+        super.visit(struct)
+    }
+
     override fun visit(subroutine: Subroutine) {
         if(subroutine.name in BuiltinFunctions) {
             // the builtin functions can't be redefined
