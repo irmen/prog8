@@ -621,10 +621,9 @@ _after:
             else
                 mutableListOf(conditionVar, assignIndex!!, ifSt)
             , ongoto.position)
-        val declscope = parent.definingScope
         return listOf(
             IAstModification.ReplaceNode(ongoto, replacementScope, parent),
-            IAstModification.InsertFirst(jumplistArray, declscope)
+            IAstModification.InsertFirst(jumplistArray, ongoto.definingScope)
         )
     }
 

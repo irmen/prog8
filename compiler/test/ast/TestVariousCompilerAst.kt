@@ -1110,7 +1110,7 @@ main {
         compileText(C128Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
-    xtest("on..goto and on..call") {
+    test("on..goto and on..call") {
         val src="""
 main {
     sub start() {

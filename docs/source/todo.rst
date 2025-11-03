@@ -1,7 +1,6 @@
 TODO
 ====
 
-- fix on..goto label problem.
 - fix/check github issues.
 
 
@@ -30,6 +29,7 @@ Future Things and Ideas
 - add documentation for more library modules instead of just linking to the source code
 - add an Index to the documentation
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
+- sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example.
 - Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
@@ -179,7 +179,7 @@ Optimizations
 - optimize simple cases in funcPeekL and funcPokeL
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - longvar = lptr^^  now goes via temporary registers, optimize this to avoid using temps. Also check lptr^^ = lvar.
-- Port benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up.
+- Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
