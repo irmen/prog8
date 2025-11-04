@@ -1,23 +1,26 @@
-%import textio
-%import strings
-%zeropage basicsafe
-
+                %import math
+                %import textio
 
 main {
 
     sub start() {
-        str n1 = "the quick brown fox"
 
-        txt.print(n1)
-        txt.nl()
-        txt.print_ub(len(n1))
-        txt.nl()
-        n1[7]=0
-        txt.print_ub(strings.length(n1))
-        txt.nl()
-        txt.print_ub(sizeof(n1))
-        txt.nl()
-        txt.print_ub(sizeof("zzzz"))
-        txt.nl()
+            ubyte @shared st = 2
+
+            on st goto (lblA, lblB, lblC, lblD)
+            lblA:
+                txt.print("path a\n")
+                goto lblDone
+            lblB:
+                txt.print("path b\n")
+                goto 2 goto
+            lblC:
+                txt.print("path c\n")
+                goto lblDone
+            lblD:
+                txt.print("path d\n")
+
+            lblDone:
+                txt.print("done\n")
     }
 }

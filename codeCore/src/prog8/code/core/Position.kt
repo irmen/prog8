@@ -6,7 +6,15 @@ import java.nio.file.InvalidPathException
 import kotlin.io.path.Path
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
-    override fun toString(): String = "[$file: line $line col ${startCol+1}-${endCol+1}]"
+    override fun toString(): String = "[$file: line $line col ${startCol}-${endCol}]"
+
+    init {
+        if(!file.startsWith('~') ||!file.endsWith('~'))
+            require(line>0 && startCol>=0 && endCol>=startCol) {
+                "Invalid position: $this"
+            }
+    }
+
     fun toClickableStr(): String {
         if(this===DUMMY)
             return ""

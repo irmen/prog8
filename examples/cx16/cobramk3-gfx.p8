@@ -3,11 +3,10 @@
 %import math
 %import monogfx
 %import verafx
+%import floats
 
 ; TODO add FPS counter
-; TODO fix the camera normal calculation for the hidden surface removal
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
-; TODO embed pre calculated surface normals???
 
 main {
     sub start()  {
@@ -83,7 +82,7 @@ main {
         ubyte @zp pointIdx = 0
         ubyte faceNumber
         for faceNumber in shipdata.totalNumberOfFaces -1 downto 0 {
-            if matrix_math.facing_away(pointIdx) {
+            if matrix_math.facing_away_fast_but_imprecise(pointIdx) {           ;;  can also use matrix_math.facing_away_slow_but_precise(pointIdx)
                 ; don't draw this face, fast-forward over the edges and points
                 edgeIdx += 3    ; every face hast at least 3 edges
                 while shipdata.facesEdges[edgeIdx]!=255 {
@@ -180,14 +179,15 @@ matrix_math {
         }
     }
 
-    sub facing_away(ubyte edgePointsIdx) -> bool {
+    sub facing_away_fast_but_imprecise(ubyte edgePointsIdx) -> bool {
         ; simplistic visibility determination by checking the Z component of the surface normal
-        ; TODO: actually take the line of sight vector into account
+        ; this only compares the surface normal to the screen space vector which doesn't yield the proper perspective correct result, but is fast
         ubyte p1 = shipdata.facesPoints[edgePointsIdx]
         edgePointsIdx++
         ubyte p2 = shipdata.facesPoints[edgePointsIdx]
         edgePointsIdx++
         ubyte p3 = shipdata.facesPoints[edgePointsIdx]
+
         word p1x = rotatedx[p1] / 128
         word p1y = rotatedy[p1] / 128
         word p2x = rotatedx[p2] / 128
@@ -195,6 +195,39 @@ matrix_math {
         word p3x = rotatedx[p3] / 128
         word p3y = rotatedy[p3] / 128
         return (p2x-p3x)*(p1y-p3y) - (p2y-p3y)*(p1x-p3x) > 0
+    }
+
+    sub facing_away_slow_but_precise(ubyte edgePointsIdx) -> bool {
+        ; determine visibility by calculating the dot product of surface normal and view vector
+        ubyte p1 = shipdata.facesPoints[edgePointsIdx]
+        edgePointsIdx++
+        ubyte p2 = shipdata.facesPoints[edgePointsIdx]
+        edgePointsIdx++
+        ubyte p3 = shipdata.facesPoints[edgePointsIdx]
+
+        ; Calculate two edge vectors of the triangle  (scaled by 2)
+        word v1x = (rotatedx[p2] - rotatedx[p1])/128
+        word v1y = (rotatedy[p2] - rotatedy[p1])/128
+        word v1z = (rotatedz[p2] - rotatedz[p1])/128
+        word v2x = (rotatedx[p3] - rotatedx[p1])/128
+        word v2y = (rotatedy[p3] - rotatedy[p1])/128
+        word v2z = (rotatedz[p3] - rotatedz[p1])/128
+
+        ; Calculate surface normal using cross product: N = V1 x V2     (scaled by 4)
+        ; Note: because of lack of precision in the 16 bit word math, we need to use floating point math here.... :-(
+        ; Elite had a more optimized version of this algorithm that still used fixed point integer math only...
+        float normalx = (v1y * v2z - v1z * v2y) as float
+        float normaly = (v1z * v2x - v1x * v2z) as float
+        float normalz = (v1x * v2y - v1y * v2x) as float
+
+        ; Calculate view vector from camera (0,0,-170) to point p1   (scaled by 4)
+        float viewx = rotatedx[p1]/(256/4) - 0          as float        ; from camera x to point x
+        float viewy = rotatedy[p1]/(256/4) - 0          as float        ; from camera y to point y
+        float viewz = rotatedz[p1]/(256/4) - (-170*4)   as float        ; from camera z to point z
+
+        ; Calculate dot product of normal and view vector
+        ; If dot product is negative, the face is pointing away from the camera
+        return normalx * viewx + normaly * viewy + normalz * viewz < 0
     }
 }
 

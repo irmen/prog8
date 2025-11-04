@@ -59,10 +59,10 @@ object Prog8Parser {
     private class AntlrErrorListener(val src: SourceCode): BaseErrorListener() {
         override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
             if (e == null) {
-                throw ParseError(msg, Position(src.origin, line, charPositionInLine, charPositionInLine), RuntimeException("parse error"))
+                throw ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), RuntimeException("parse error"))
             } else {
                 if(e.offendingToken==null) {
-                    throw ParseError(msg, Position(src.origin, line, charPositionInLine, charPositionInLine), e)
+                    throw ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), e)
                 } else {
                     throw ParseError(msg, e.getPosition(src.origin), e)
                 }
@@ -74,8 +74,8 @@ object Prog8Parser {
         val offending = this.offendingToken
         val line = offending.line
         val beginCol = offending.charPositionInLine
-        val endCol = beginCol + offending.stopIndex - offending.startIndex
-        return Position(file, line, beginCol, endCol)
+        val endOffset = if(offending.startIndex<0 || offending.stopIndex<0 || offending.stopIndex<=offending.startIndex) 0 else offending.stopIndex - offending.startIndex
+        return Position(file, line, beginCol+1, beginCol+1+endOffset)
     }
 
 }

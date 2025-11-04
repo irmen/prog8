@@ -451,7 +451,7 @@ class AsmGen6502Internal (
             if(line.length>=4 && invalid.matchesAt(line, 0)) {
                 errors.err(
                     "invalid assembly instruction used (not compatible with the 65816 CPU): ${line.trim()}",
-                    Position("<output-assemblycode>", index, 1, 1)
+                    Position("~output-assemblycode~", index+1, 1, 1)
                 )
             }
         }

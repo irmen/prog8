@@ -271,14 +271,14 @@ class TestProg8Parser: FunSpec( {
             val srcText = "bad * { }\n"
 
             val e = shouldThrow<ParseError> { parseModule(SourceCode.Text(srcText)) }
-            assertPosition(e.position, Regex("^string:[0-9a-f\\-]+$"), 1, 4, 4)
+            assertPosition(e.position, Regex("^string:[0-9a-f\\-]+$"), 1, 5, 5)
         }
 
         test("in ParseError from bad file source code") {
             val path = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
             val e = shouldThrow<ParseError> { parseModule(ImportFileSystem.getFile(path)) }
-            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 4)
+            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 5)
         }
 
         test("of Module parsed from a string") {
@@ -327,7 +327,7 @@ class TestProg8Parser: FunSpec( {
             val mpf = module.position.file
 
             val targetDirective = module.statements.filterIsInstance<Directive>()[0]
-            assertPositionOf(targetDirective, mpf, 1, 1, 8)
+            assertPositionOf(targetDirective, mpf, 1, 1, 9)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
             assertPositionOf(mainBlock, mpf, 2, 1, 4)
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]

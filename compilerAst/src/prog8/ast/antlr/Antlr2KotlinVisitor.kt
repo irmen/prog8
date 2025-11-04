@@ -113,7 +113,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitDirective(ctx: DirectiveContext): Directive {
         val pos = ctx.toPosition()
-        val position = Position(pos.file, pos.line, pos.startCol,  ctx.directivename().UNICODEDNAME().symbol.stopIndex)
+        val end = ctx.directivename().UNICODEDNAME().symbol.stopIndex - ctx.directivename().UNICODEDNAME().symbol.startIndex
+        val position = Position(pos.file, pos.line, pos.startCol, pos.startCol+end+1)
         if(ctx.directivenamelist() != null) {
             val namelist = ctx.directivenamelist().scoped_identifier().map { it.accept(this) as IdentifierReference }
             val identifiers = namelist.map { DirectiveArg(it.nameInSource.joinToString("."), null, it.position) }
@@ -505,7 +506,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
         val (registerorpair, statusregister) = parseParamRegister(pctx.register, pctx.toPosition())
         if(statusregister!=null) {
-            throw SyntaxError("can't use status register as param for normal subroutines", Position(pctx.toPosition().file, pctx.register.line, pctx.register.charPositionInLine, pctx.register.charPositionInLine+1))
+            throw SyntaxError("can't use status register as param for normal subroutines", Position(pctx.toPosition().file, pctx.register.line, pctx.register.charPositionInLine+1, pctx.register.charPositionInLine+1))
         }
         return SubroutineParameter(identifiername, datatype, zp, registerorpair, pctx.toPosition())
     }
@@ -713,7 +714,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             pathString
         }
         // note: beware of TAB characters in the source text, they count as 1 column...
-        return Position(filename, start.line, start.charPositionInLine+1, start.charPositionInLine + 1 + start.stopIndex - start.startIndex)
+        val endOffset = if(start.startIndex<0 || start.stopIndex<0) 0 else start.stopIndex - start.startIndex
+        return Position(filename, start.line, start.charPositionInLine+1, start.charPositionInLine + 1 + endOffset)
     }
 
     private fun getZpOption(tags: List<String>): ZeropageWish = when {
@@ -754,7 +756,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                 in RegisterOrPair.names -> registerorpair = RegisterOrPair.valueOf(register)
                 in Statusflag.names -> statusregister = Statusflag.valueOf(register)
                 else -> {
-                    throw SyntaxError("invalid register or status flag", Position(pos.file, registerTok.line, registerTok.charPositionInLine, registerTok.charPositionInLine+1))
+                    throw SyntaxError("invalid register or status flag", Position(pos.file, registerTok.line, registerTok.charPositionInLine+1, registerTok.charPositionInLine+1))
                 }
             }
         }

@@ -14,7 +14,7 @@ import prog8.code.source.SourceCode
 
 
 object ParentSentinel : Node {
-    override val position = Position("<<sentinel>>", 0, 0, 0)
+    override val position = Position("~sentinel~", 0, 0, 0)
     override var parent: Node = this
     override fun linkParents(parent: Node) {}
     override fun replaceChildNode(node: Node, replacement: Node) {
@@ -394,7 +394,7 @@ open class Module(final override val statements: MutableList<Statement>,
 
 class GlobalNamespace(val modules: MutableList<Module>): Node, INameScope {
     override val name = "<<<global>>>"
-    override val position = Position("<<<global>>>", 0, 0, 0)
+    override val position = Position("~global~", 0, 0, 0)
     override val statements = mutableListOf<Statement>()        // not used
     override var parent: Node = ParentSentinel
 
