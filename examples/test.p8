@@ -1,26 +1,7 @@
-                %import math
-                %import textio
-
 main {
+     sub start() {
+        cx16.r0L = cx16.r1 as ubyte
+        cx16.r1sL = cx16.r2s as byte
+     }
 
-    sub start() {
-
-            ubyte @shared st = 2
-
-            on st goto (lblA, lblB, lblC, lblD)
-            lblA:
-                txt.print("path a\n")
-                goto lblDone
-            lblB:
-                txt.print("path b\n")
-                goto 2 goto
-            lblC:
-                txt.print("path c\n")
-                goto lblDone
-            lblD:
-                txt.print("path d\n")
-
-            lblDone:
-                txt.print("done\n")
-    }
 }

@@ -56,7 +56,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 if(subroutine.returntypes.isNotEmpty())
                     errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                 else {
-                    val returnStmt = Return(arrayOf(), subroutine.position)
+                    val returnStmt = Return(arrayOf(), Position.DUMMY)
                     mods += IAstModification.InsertLast(returnStmt, subroutine)
                 }
             } else {
@@ -68,7 +68,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                             // .... we cannot return this as an error, because that also breaks legitimate cases where the return is done from within a nested scope somewhere
                             // errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                         } else {
-                            val returnStmt = Return(arrayOf(), subroutine.position)
+                            val returnStmt = Return(arrayOf(), Position.DUMMY)
                             mods += IAstModification.InsertLast(returnStmt, subroutine)
                         }
                     }

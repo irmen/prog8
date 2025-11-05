@@ -157,6 +157,7 @@ class IRCodeGen(
                             is IRCodeChunk -> {
                                 val replacement = IRCodeChunk(sub.label, first.next)
                                 replacement.instructions += first.instructions
+                                replacement.appendSrcPositions(first.sourceLinesPositions)
                                 replacement
                             }
                             is IRInlineAsmChunk -> IRInlineAsmChunk(sub.label, first.assembly, first.isIR, first.next)
@@ -410,6 +411,7 @@ class IRCodeGen(
             is IRCodeChunk -> {
                 val newChunk = IRCodeChunk(label, first.next)
                 newChunk.instructions += first.instructions
+                newChunk.appendSrcPositions(first.sourceLinesPositions)
                 newChunk
             }
             is IRInlineAsmChunk -> {

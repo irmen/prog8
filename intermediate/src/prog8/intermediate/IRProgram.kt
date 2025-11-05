@@ -572,12 +572,12 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
     }
 
     fun appendSrcPosition(position: Position) {
-        if(sourceLinesPositions.lastOrNull()!=position)
+        if(!sourceLinesPositions.contains(position))
             sourceLinesPositions.add(position)
     }
 
     fun appendSrcPositions(positions: Collection<Position>) {
-        positions.forEach { appendSrcPosition(it) }
+        positions.asSequence().filter { it!==Position.DUMMY }.forEach { appendSrcPosition(it) }
     }
 
     val sourceLinesPositions = mutableListOf<Position>()

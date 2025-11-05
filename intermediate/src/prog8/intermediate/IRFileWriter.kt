@@ -177,7 +177,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 xml.writeStartElement("P8SRC")
                 val sourceTxt = StringBuilder("\n")
                 code.sourceLinesPositions
-                    .filter{ pos -> pos.line > 0 }
+                    .asSequence()
+                    .filter { it !== Position.DUMMY }
                     .sortedBy { it.line }
                     .forEach { pos ->
                         val line = ImportFileSystem.retrieveSourceLine(pos)
