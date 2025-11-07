@@ -946,7 +946,8 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                 throw FatalAstException("type cast of weird type $type")
             }
         }
-        return ValueAfterCast(false, "no cast available from $type to $targettype number=$number", null)
+        val implicit = if(implicit) "implicit " else ""
+        return ValueAfterCast(false, "no ${implicit}cast available from $type to $targettype for value $number", null)
     }
 
     fun convertTypeKeepValue(targetDt: BaseDataType): ValueAfterCast {

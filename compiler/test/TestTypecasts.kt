@@ -598,7 +598,7 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
         errors.errors.size shouldBe 3
         errors.errors[0] shouldContain ":9:"
-        errors.errors[0] shouldContain "no cast"
+        errors.errors[0] shouldContain "no implicit cast"
         errors.errors[1] shouldContain ":10:"
         errors.errors[1] shouldContain "out of range"
         errors.errors[2] shouldContain ":10:"
