@@ -311,7 +311,9 @@ strings  {
     lstripped  (str s) -> str 
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
+    nappend  (str target, str suffix, ubyte maxlength) -> ubyte 
     ncompare  (str st1, str st2, ubyte length) -> byte 
+    ncopy  (str source, str target, ubyte maxlength) -> ubyte 
     rfind  (str stringptr, ubyte character) -> ubyte, bool 
     right  (str source, ubyte slen, str target) 
     rstrip  (str s) 
