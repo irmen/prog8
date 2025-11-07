@@ -1962,7 +1962,7 @@ internal class AstChecker(private val program: Program,
             } else if (target.datatype.isString) {
                 if (target.value is StringLiteral) {
                     // check string lengths for non-memory mapped strings
-                    val stringLen = (target.value as StringLiteral).value.length
+                    val stringLen = (target.value as StringLiteral).value.length + 1    // include the 0-byte terminator
                     if (index != null && index !in 0..<stringLen)
                         errors.err("index out of bounds", arrayIndexedExpression.indexer.position)
                 }

@@ -251,32 +251,26 @@ main {
         val src="""
 main {
     sub start() {
-        ubyte[10] array
-        array[-11] = 0
-    }
-}"""
-        val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain "out of bounds"
-    }
+        ubyte[] array = ['h', 'e', 'l', 'l', 'o', 0]
+        str name = "hello"
 
-    test("bounds checking on strings invalid cases") {
-        val src="""
-main {
-    sub start() {
-        str name = "1234567890"
-        name[10] = 0
-        name[-1] = 0
-        name[-11] = 0
+        name[-5] = 99       ; ok
+        name[-6] = 99       ; out of bounds
+        cx16.r1L = name[-5]  ; ok
+        cx16.r1L = name[-6]  ; out of bounds
+        array[-6] = 99       ; ok
+        array[-7] = 99       ; out of bounds
+        cx16.r1L = array[-6] ; ok
+        cx16.r1L = array[-7] ; out of bounds
     }
 }"""
         val errors = ErrorReporterForTests()
         compileText(VMTarget(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 3
-        errors.errors[0] shouldContain "out of bounds"
-        errors.errors[1] shouldContain "out of bounds"
-        errors.errors[2] shouldContain "out of bounds"
+        errors.errors.size shouldBe 4
+        errors.errors[0] shouldContain ":8:9: index out of bounds"
+        errors.errors[1] shouldContain ":10:20: index out of bounds"
+        errors.errors[2] shouldContain ":12:9: index out of bounds"
+        errors.errors[3] shouldContain ":14:20: index out of bounds"
     }
 
     test("array and string initializer with multiplication") {

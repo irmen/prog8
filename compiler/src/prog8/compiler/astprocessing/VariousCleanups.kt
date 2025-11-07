@@ -432,6 +432,16 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val newIndex = NumericLiteral.optimalNumeric(arraysize+index, arrayIndexedExpression.indexer.position)
                     arrayIndexedExpression.indexer.indexExpr = newIndex
                     newIndex.linkParents(arrayIndexedExpression.indexer)
+                } else if(target?.datatype?.isString==true) {
+                    val stringsize = (target.value as StringLiteral).value.length
+                    if(stringsize+index < 0) {
+                        errors.err("index out of bounds", arrayIndexedExpression.position)
+                        return noModifications
+                    }
+                    // replace the negative index by the normal index
+                    val newIndex = NumericLiteral.optimalNumeric(stringsize+index, arrayIndexedExpression.indexer.position)
+                    arrayIndexedExpression.indexer.indexExpr = newIndex
+                    newIndex.linkParents(arrayIndexedExpression.indexer)
                 }
             } else if(arrayIndexedExpression.pointerderef!=null) {
                 TODO("cleanup pointer indexing ${arrayIndexedExpression.position}")

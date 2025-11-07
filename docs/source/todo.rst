@@ -1,8 +1,6 @@
 TODO
 ====
 
-- fix/check github issues.
-
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
