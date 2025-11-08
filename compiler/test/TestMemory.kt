@@ -16,10 +16,7 @@ import prog8.ast.expressions.PrefixExpression
 import prog8.ast.statements.*
 import prog8.code.core.*
 import prog8.code.source.SourceCode
-import prog8.code.target.C128Target
-import prog8.code.target.C64Target
-import prog8.code.target.PETTarget
-import prog8.code.target.VMTarget
+import prog8.code.target.*
 import prog8tests.helpers.*
 
 
@@ -437,5 +434,25 @@ main {
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "8:9: cannot assign to an array or string that is located in ROM"
         errors.errors[1] shouldContain "9:9: cannot assign to an array or string that is located in ROM"
+    }
+
+    test("long addresses not yet supported in memread and memwrite") {
+        val src = """
+main {
+    sub start() {
+        const long bufferll = 888888
+        long @shared addrlv = 777777
+
+        cx16.r0L = bufferll[2]
+        cx16.r1L = @(999999)
+        cx16.r2L = @(addrlv)
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), true, src, outputDir, errors = errors, writeAssembly = false) shouldBe null
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "long address not yet supported"
+        errors.errors[1] shouldContain "long address not yet supported"
+        errors.errors[2] shouldContain "long address not yet supported"
     }
 })
