@@ -480,18 +480,31 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
 
     override fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
         if(addressOf.arrayIndex!=null) {
-            val tgt = addressOf.identifier?.constValue(program)
-            if (tgt != null && tgt.type.isInteger) {
-                // &constant[idx]  -->  constant + idx
-                val indexExpr = addressOf.arrayIndex!!.indexExpr
-                val right = if(indexExpr.inferType(program) issimpletype tgt.type)
-                    indexExpr
-                else
-                    TypecastExpression(indexExpr, DataType.forDt(tgt.type), true, indexExpr.position)
-                val add = BinaryExpression(tgt, "+", right, addressOf.position)
-                return listOf(
-                    IAstModification.ReplaceNode(addressOf, add, parent)
-                )
+            val tgt = addressOf.identifier
+            if(tgt!=null) {
+                val constAddress = tgt.constValue(program)
+                if (constAddress != null && constAddress.type.isInteger) {
+                    // &constant[idx]  -->  constant + idx
+                    val indexExpr = addressOf.arrayIndex!!.indexExpr
+                    val right = if (indexExpr.inferType(program) issimpletype constAddress.type)
+                        indexExpr
+                    else
+                        TypecastExpression(indexExpr, DataType.forDt(constAddress.type), true, indexExpr.position)
+                    val add = BinaryExpression(constAddress, "+", right, addressOf.position)
+                    return listOf(IAstModification.ReplaceNode(addressOf, add, parent))
+                } else {
+                    val decl = tgt.targetVarDecl()!!
+                    if(decl.datatype.isInteger) {
+                        // &addressvar[idx]  -->  addressvar + idx
+                        val indexExpr = addressOf.arrayIndex!!.indexExpr
+                        val right = if (indexExpr.inferType(program) istype decl.datatype)
+                            indexExpr
+                        else
+                            TypecastExpression(indexExpr, decl.datatype, true, indexExpr.position)
+                        val add = BinaryExpression(tgt, "+", right, addressOf.position)
+                        return listOf(IAstModification.ReplaceNode(addressOf, add, parent))
+                    }
+                }
             }
         }
         return noModifications

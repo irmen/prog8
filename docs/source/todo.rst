@@ -88,7 +88,7 @@ IR/VM
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
 - do something with the 'split' tag on split word arrays
-- add more optimizations in IRPeepholeOptimizer
+- add more optimizations in IRPeepholeOptimizer, implement the TODOs in there at least
 - idea: replace all scalar variables that are not @shared by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters? Or not?  So the only variables that remain as variables are arrays and strings.
