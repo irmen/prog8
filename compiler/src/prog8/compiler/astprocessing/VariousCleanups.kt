@@ -481,7 +481,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
         if(addressOf.arrayIndex!=null) {
             val tgt = addressOf.identifier?.constValue(program)
-            if (tgt != null && tgt.type.isWord) {
+            if (tgt != null && tgt.type.isInteger) {
                 // &constant[idx]  -->  constant + idx
                 val indexExpr = addressOf.arrayIndex!!.indexExpr
                 val right = if(indexExpr.inferType(program) issimpletype tgt.type)
