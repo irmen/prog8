@@ -1416,14 +1416,14 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
 
         // the value of a variable can (temporarily) be a different type as the vardecl itself.
-        // don't return the value if the types don't match yet!
         val value = vardecl.value?.constValue(program)
         if(value==null || value.type==vardecl.datatype.base)
             return value
-        val optimal = NumericLiteral.optimalNumeric(value.number, value.position)
-        if(optimal.type==vardecl.datatype.base)
-            return optimal
-        return null
+        val casted = value.cast(vardecl.datatype.base, true)
+        return if(casted.isValid)
+            casted.valueOrZero()
+        else
+            null
     }
 
     override fun toString(): String {
