@@ -306,26 +306,34 @@ main {
         (waDeclV as NumericLiteral).number shouldBe 40960.0
     }
 
-    test("address of a const uword pointer array expression") {
+    test("address of a const integer pointer array expression") {
         val src = """
 main {
     sub start() {
         const uword buffer = 2000
+        const long bufferl = 999999
         uword @shared addr = &buffer[2]
-        
-        const ubyte width = 100
-        ubyte @shared i
-        ubyte @shared j
-        uword @shared addr2 = &buffer[i * width + j]
+        long @shared addr2 = &bufferl[2]
+        const uword width = 100
+        uword @shared addr3 = &buffer[width]
+        long @shared addr4 = &bufferl[width]
     }
 }"""
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = true)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 11
-        val assignAddr = (st[2] as Assignment).value
-        (assignAddr as NumericLiteral).number shouldBe 2002.0
-        val assignAddr2 = (st[9] as Assignment).value as BinaryExpression
-        assignAddr2.operator shouldBe "+"
+        st.size shouldBe 12
+        val assignAddr = (st[3] as Assignment).value as NumericLiteral
+        assignAddr.number shouldBe 2002.0
+        assignAddr.type shouldBe BaseDataType.UWORD
+        val assignAddr2 = (st[5] as Assignment).value as NumericLiteral
+        assignAddr2.number shouldBe 1000001.0
+        assignAddr2.type shouldBe BaseDataType.LONG
+        val assignAddr3 = (st[8] as Assignment).value as NumericLiteral
+        assignAddr3.number shouldBe 2100
+        assignAddr3.type shouldBe BaseDataType.UWORD
+        val assignAddr4 = (st[10] as Assignment).value as NumericLiteral
+        assignAddr4.number shouldBe 1000099.0
+        assignAddr4.type shouldBe BaseDataType.LONG
     }
 
     test("out of range const byte and word give correct error") {
