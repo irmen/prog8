@@ -493,8 +493,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val add = BinaryExpression(constAddress, "+", right, addressOf.position)
                     return listOf(IAstModification.ReplaceNode(addressOf, add, parent))
                 } else {
-                    val decl = tgt.targetVarDecl()!!
-                    if(decl.datatype.isInteger) {
+                    val decl = tgt.targetVarDecl()
+                    if(decl!=null && decl.datatype.isInteger) {
                         // &addressvar[idx]  -->  addressvar + idx
                         val indexExpr = addressOf.arrayIndex!!.indexExpr
                         val right = if (indexExpr.inferType(program) istype decl.datatype)
