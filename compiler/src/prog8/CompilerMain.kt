@@ -60,13 +60,13 @@ private fun compileMain(args: Array<String>): Boolean {
     val quietAll by cli.option(ArgType.Boolean, fullName = "quiet", description = "don't print compiler and assembler messages, except warnings and errors")
     val quietAssembler by cli.option(ArgType.Boolean, fullName = "quietasm", description = "don't print assembler messages")
     val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
-    val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.")
+    val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
     val dontIncludeSourcelines by cli.option(ArgType.Boolean, fullName = "nosourcelines", description = "do not include original Prog8 source lines in generated asm code")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of ${CompilationTargets.joinToString(",")} or a custom target properties file) (required)")
     val showTimings by cli.option(ArgType.Boolean, fullName = "timings", description = "show internal compiler timings (for performance analysis)")
     val varsGolden by cli.option(ArgType.Boolean, fullName = "varsgolden", description = "put uninitialized variables in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
-    val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.")
+    val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "run a .p8ir IR source file in the embedded VM")
     val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
@@ -145,7 +145,7 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     if(varsHighBank==0 && compilationTarget==Cx16Target.NAME) {
-        System.err.println("On the Commander X16, HiRAM bank 0 is used by the kernal and can't be used.")
+        System.err.println("On the Commander X16, HIRAM bank 0 is used by the kernal and can't be used.")
         return false
     }
 

@@ -70,7 +70,65 @@ smallringbuffer {
     }
 }
 
-; note: for a "small stack"  (256 bytes size) just use the CPU stack via sys.push[w] / sys.pop[w].
+
+smallstack {
+    ; -- A small stack (LIFO) that uses just 256 bytes and is independent of the CPU stack. Stack is growing downward from the top of the buffer.
+    ;    You can store and retrieve bytes and words. There are no guards against stack over/underflow.
+    ; note: for a "small stack"  (256 bytes size) you might also perhaps just use the CPU stack via sys.push[w] / sys.pop[w].
+
+    ubyte[256] buffer
+    ubyte sp = 255
+
+    sub init() {
+        sp = 255
+    }
+
+    sub size() -> ubyte {
+        return 255-sp
+    }
+
+    sub free() -> ubyte {
+        return sp
+    }
+
+    sub isfull() -> bool {
+        return sp==0
+    }
+
+    sub isempty() -> bool {
+        return sp==255
+    }
+
+    sub push(ubyte value) {
+        ; -- put a byte on the stack
+        buffer[sp] = value
+        sp--
+    }
+
+    sub pushw(uword value) {
+        ; -- put a word on the stack (lsb first then msb)
+        buffer[sp] = lsb(value)
+        sp--
+        buffer[sp] = msb(value)
+        sp--
+    }
+
+    sub pop() -> ubyte {
+        ; -- pops a byte off the stack
+        sp++
+        return buffer[sp]
+    }
+
+    sub popw() -> uword {
+        ; -- pops a word off the stack.
+        sp++
+        cx16.r0H = buffer[sp]
+        sp++
+        cx16.r0L = buffer[sp]
+        return cx16.r0
+    }
+}
+
 
 stack {
     ; -- A stack (LIFO) that uses a block of 8 KB of memory. Growing downward from the top of the buffer.

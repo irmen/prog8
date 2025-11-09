@@ -320,17 +320,21 @@ the :source:`bmx source code <compiler/res/prog8lib/cx16/bmx.p8>` .
 There's also the "showbmx" example to look at.
 
 
-buffers (experimental)
-^^^^^^^^^^^^^^^^^^^^^^
+buffers
+^^^^^^^
 
-A small library providing a 8 KB stack, an 8 KB ringbuffer, and a fast 256 bytes ringbuffer.
-API is experimental and may change or disappear in a future version.
-Stack is a LIFO container, ringbuffers are FIFO containers.
-On the Commander X16 the stack and ringbuffer will use a HiRAM bank instead of system ram,
-you have to initialize that via the init(bank) routine.
+Provides few data buffer routines. These are available:
+
+- ``smallstack``        a fast 256 byte stack (LIFO) that is independent of the CPU stack.
+- ``smallringbuffer``   a fast 256 byte ringbuffer (FIFO).
+- ``stack``             a stack (LIFO) with up to 8Kb of data.
+- ``ringbuffer``        a ringbuffer (FIFO) with up to 8Kb of data.
+
+On the Commander X16 the 8Kb stack and ringbuffer implementations use a HIRAM bank instead of regular system memory.
+You tell it which bank to use by calling ``init(bank)`` with the bank number as argument.
 
 Read the :source:`buffers source code <compiler/res/prog8lib/diskio.p8>`
-to see what's in there. Note that the init() routines have that extra bank parameter on the X16.
+to see what's in there. Note that on the X16, the init() routines have that extra bank parameter.
 
 
 compression (slightly experimental)

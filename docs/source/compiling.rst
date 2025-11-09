@@ -228,7 +228,7 @@ One or more .p8 module files
 
 ``-slabshigh``
     put memory() slabs in high memory area instead of at the end of the program.
-    On the cx16 target the value specifies the HiRAM bank to use, on other systems this value is ignored.
+    On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.
 
 ``-nosourcelines``
     Do not include the original prog8 source code lines as comments in the generated assembly code file,
@@ -263,7 +263,7 @@ One or more .p8 module files
 
     c64: $C000 - $CFFF   ; 4 kB, and the specified rambank number is ignored
 
-    cx16: $A000 - $BFFF  ; 8 kB in the specified HiRAM bank (note: no auto bank switching is done, you must make sure yourself that this HiRAM bank is active when accessing these variables!)
+    cx16: $A000 - $BFFF  ; 8 kB in the specified HIRAM bank (note: no auto bank switching is done, you must make sure yourself that this HIRAM bank is active when accessing these variables!)
 
     If you use this option, you can no longer use the part of the above memory area that is
     alotted to the variables, for your own purposes. The output of the 64tass assembler step at the

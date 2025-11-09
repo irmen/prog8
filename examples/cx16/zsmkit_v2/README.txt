@@ -13,7 +13,7 @@ The ZSMKIT-A000.BIN included here is release version 2.6 of zsmkit.
 
 DEMO PROGRAM
 ------------
-The demo program loads the zsmkit player program in HiRAM bank 1.
+The demo program loads the zsmkit player program in HIRAM bank 1.
 The ZSM music file is read into memory too starting from bank 2.
 The zmskit library routines are defined in zsmkit.p8 as extsubs,
 using prog8's automatic ram banking mechanism.
