@@ -1,4 +1,4 @@
-; **experimental** data compression/decompression routines, API subject to change!!
+; data compression/decompression routines
 
 %import shared_compression
 

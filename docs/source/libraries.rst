@@ -312,7 +312,7 @@ Routines to load and save "BMX" files, the CommanderX16 bitmap file format:
 `BMX file format specification <https://cx16forum.com/forum/viewtopic.php?t=6945>`_
 Only the *uncompressed* bitmaps variant is supported in this library for now.
 
-The routines are designed to be fast and bulk load/save the data directly into or from vram,
+The routines are designed to be fast and they bulk load/save the data directly into or from vram,
 without the need to buffer something in main memory.
 
 For details about what routines are available, have a look at
@@ -333,16 +333,31 @@ Provides few data buffer routines. These are available:
 On the Commander X16 the 8Kb stack and ringbuffer implementations use a HIRAM bank instead of regular system memory.
 You tell it which bank to use by calling ``init(bank)`` with the bank number as argument.
 
-Read the :source:`buffers source code <compiler/res/prog8lib/diskio.p8>`
+Read the :source:`buffers source code <compiler/res/prog8lib/buffers.p8>`
 to see what's in there. Note that on the X16, the init() routines have that extra bank parameter.
 
 
-compression (slightly experimental)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+cbm
+^^^
+Commodore (CBM) common variables, vectors and kernal routines. This 'library' is part of syslib and as such is always available.
+There's too much in this library to list in the docs here, but you can find things like:
 
-Routines for data compression and decompression. Currently only the 'ByteRun1' aka 'PackBits' RLE encoding
-is available. This is the compression that was also used in Amiga IFF images and in old MacPaint images.
-API is slightly experimental and may change in a future version.
+- memory mapped variables such as ``TIME_HI``, ``TIME_MID`` and ``TIME_LO``  (the 3 bytes making up the jiffy clock)
+- cbm kernal routine extsubs such as ``CHROUT`` and ``PLOT``
+- helper routines such as ``GETIN2`` and ``RDTIML`` (convenience wrappers around existing kernal routines)
+
+It has way too much to include here, you have to study the
+:source:`syslib source code <compiler/res/prog8lib/c64/syslib.p8>`   to see what is there.
+The version linked here is the C64 version itself - on other targets in the CBM family (PET, C128 etc)
+it will contain different things based on what is available there. But the stuff common to the CBM family of compiler targets is there.
+
+
+compression
+^^^^^^^^^^^
+
+Routines for data compression and decompression.
+For compression the 'ByteRun1' aka 'PackBits' RLE encoding is available, this is the compression that was used in old MacPaint and Amiga IFF images.
+Decompressors are available for RLE, TSCrunch and ZX0 (Salvador).
 
 ``encode_rle (uword data, uword size, uword target, bool is_last_block) -> uword``
     Compress the given data block using ByteRun1 aka PackBits RLE encoding.
@@ -387,10 +402,10 @@ API is slightly experimental and may change in a future version.
     Decompress a block of data compressed in the TSCrunch format *inplace*.
     This can save an extra memory buffer if you are reading crunched data from a file into a buffer.
     It has extremely fast decompression (approaching RLE speeds),
-    better compression as RLE, but slightly worse compression ration than LZSA.
+    better compression than RLE, but slightly worse compression ratio than LZSA.
     See https://github.com/tonysavon/TSCrunch for the compression format and compressor tool.
     **NOTE:** for speed reasons this decompressor is *not* bank-aware and *not* I/O register aware;
-    it only outputs to a memory buffer somewhere in the active 64 Kb address range.
+    it only outputs to a memory buffer somewhere in the 64 Kb main memory address range.
 
     .. note::
         The TSCrunch in-place format is a bit different than regular memory decompression.
@@ -414,7 +429,7 @@ API is slightly experimental and may change in a future version.
     See https://github.com/emmanuel-marty/salvador for the compressor tool.
     **NOTE:** You have to use it with the "-classic" option to produce a data format that this decoder can handle!
     **NOTE:** for speed reasons this decompressor is *not* bank-aware and *not* I/O register aware;
-    it only outputs to a memory buffer somewhere in the active 64 Kb address range.
+    it only outputs to a memory buffer somewhere in the 64 Kb main memory address range.
 
 
 conv
@@ -426,7 +441,6 @@ Routines to convert strings to numbers or vice versa.
 - strings in decimal, hex and binary format into numbers (bytes, words)
 
 Read the :source:`conv source code <compiler/res/prog8lib/conv.p8>`
-
 to see what's in there.
 
 
@@ -434,13 +448,15 @@ coroutines
 ^^^^^^^^^^
 
 Provides a system to make cooperative multitasking programs via coroutines.
-A 'coroutine' is a subroutine whose execution you can pause and resume.
-This library handles the voodoo for you to switch between such coroutines transparently,
-so it can seem that your program is executing many subroutines at the same time.
+A 'coroutine' is a subroutine whose execution can be paused and resumed. This is done
+in a cooperative way where the coroutine calls ``coroutines.yield`` to pause and yield control back to the
+system (which then selects the next coroutine to run).
+This way it can seem that your program is executing many subroutines at the same time (without the use of an interrupt routine).
+This library handles the voodoo required to switch between such coroutines.
 
 Read the :source:`coroutines source code <compiler/res/prog8lib/coroutines.p8>`
 to see what's in there. And look at the ``multitasking`` example to see how it can be used.
-Here is a minimal example (if the library gets more stable, better docs will be written here)::
+Better docs will be written here in the manual, at some point, but until then: here is a minimal example::
 
     %import coroutine
 
@@ -464,12 +480,8 @@ Here is a minimal example (if the library gets more stable, better docs will be 
 cx16
 ^^^^
 
-This is available on *all targets*, it is always imported as part of syslib.
-On the Commander X16 this module contains a *whole bunch* of things specific to that machine.
-It's way too much to include here, you have to study the
-:source:`syslib source code <compiler/res/prog8lib/cx16/syslib.p8>`
-to see what is there.
-
+Despite its name, this 'module' is available on *all targets*; it also is always available because it is a part of syslib.
+On the Commander X16 this module contains a *whole bunch* of things specific to that machine
 On the other targets, it only contains the definition of the 16 memory-mapped virtual registers
 (cx16.r0 - cx16.r15) and the following utility routines:
 
@@ -479,15 +491,9 @@ On the other targets, it only contains the definition of the 16 memory-mapped vi
 ``restore_virtual_registers()``
     restore the values of all 16 virtual registers r0 - r15 from the buffer. Might be useful in an IRQ handler to avoid clobbering them.
 
-``reset_system ()``
-    Soft-reset the system back to initial power-on BASIC prompt. (same as the routine in sys)
 
-``poweroff_system ()``
-    Powers down the computer.
-
-``set_led_brightness (ubyte brightness)``
-    Sets the brightness of the activity led on the computer.
-
+For the Commander X16 version it has way too much to include here, you have to study the
+:source:`syslib source code <compiler/res/prog8lib/cx16/syslib.p8>`   to see what is there.
 
 cx16logo
 ^^^^^^^^
@@ -569,8 +575,7 @@ You have to explicitly output a character 10 on the console to see a newline the
     emudbg.console_write(iso:"hello\x0a")
 
 
-Read the :source:`emudbg source code <compiler/res/prog8lib/cx16/emudbg.p8>`
-to see what's in there.
+Read the :source:`emudbg source code <compiler/res/prog8lib/cx16/emudbg.p8>` to see what's in there.
 Information about the exposed debug registers is in the `emulator's documentation <https://github.com/X16Community/x16-emulator#debug-io-registers>`_.
 
 
@@ -719,8 +724,7 @@ math
 Low-level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
 Pseudo-Random number generators (byte and word).
 Various 8-bit integer trig functions that use lookup tables to quickly calculate sine and cosines.
-Usually a custom lookup table is the way to go if your application needs these,
-but perhaps the provided ones can be of service too.
+
 
 checksumming
 ''''''''''''
@@ -1322,16 +1326,16 @@ textio (txt.*)
 This will probably be the most used library module. It contains a whole lot of routines
 dealing with text-based input and output (to the screen). Such as
 
-- printing strings, numbers and booleans
-- reading text input from the user via the keyboard
+- printing strings, numbers and booleans:  ``print``, ``chrout``, ``nl``, ``print_ub`` etc.
+- reading text input from the user via the keyboard:  ``input_chars``
 - filling or clearing the screen and colors
 - scrolling the text on the screen
 - placing individual characters on the screen
 - convert petscii to screencode characters
 
-All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
-these work with PETSCII encoding instead.
+All routines work with Screencode character encoding, except ``print``, ``chrout`` and ``input_chars``, these work with PETSCII encoding instead.
 
+There are *a lot of routines* in this module, many more than mentioned above.
 Read the :source:`textio source code <compiler/res/prog8lib/cx16/textio.p8>`
 to see what's in there. (Note: slight variations for different compiler targets)
 

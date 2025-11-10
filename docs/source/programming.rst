@@ -735,8 +735,8 @@ if expression
 ^^^^^^^^^^^^^
 
 Similar to the if statement, but this time selects one of two possible values as the outcome of the expression,
-depending on the condition. You write it as ``if <condition>  <value1> else <value2>`` and it can be
-used anywhere an expression is used to assign or pass a value.
+depending on the condition. You write it as ``if <condition> [then] <value1> else <value2>`` (the then keyword is optional)
+and it can be used anywhere an expression is used to assign or pass a value.
 The first value will be used if the condition is true, otherwise the second value is used.
 Sometimes it may be more legible if you surround the condition expression with parentheses so it is better
 separated visually from the first value following it.

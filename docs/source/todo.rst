@@ -35,7 +35,7 @@ Future Things and Ideas
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
 - Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
-- add float support to the configurable compiler targets
+- add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
@@ -89,6 +89,7 @@ IR/VM
 - implement more TODOs in AssignmentGen
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer
+- extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, LOADFIELD, STOREFIELD etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
 - idea: replace all scalar variables that are not @shared by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters? Or not?  So the only variables that remain as variables are arrays and strings.

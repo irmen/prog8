@@ -84,6 +84,20 @@ smallringbuffer  {
     size  () -> ubyte 
 }
 
+smallstack  {
+    ubyte[]  buffer 
+    ubyte  sp 
+    free  () -> ubyte 
+    init  () 
+    isempty  () -> bool 
+    isfull  () -> bool 
+    pop  () -> ubyte 
+    popw  () -> uword 
+    push  (ubyte value) 
+    pushw  (uword value) 
+    size  () -> ubyte 
+}
+
 stack  {
     ubyte  bank 
     uword  sp 
