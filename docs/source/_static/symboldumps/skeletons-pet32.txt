@@ -553,7 +553,7 @@ txt  {
     scroll_left  ()  clobbers (A,X,Y) 
     scroll_right  ()  clobbers (A,X) 
     scroll_up  ()  clobbers (A,X) 
-    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor_ignored) 
+    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)
     setchr  (ubyte col @X, ubyte row @Y, ubyte character @A)  clobbers (A,Y) 
     setclr  (ubyte col, ubyte row, ubyte color) 
     size  ()  clobbers (A) -> ubyte @X, ubyte @Y 

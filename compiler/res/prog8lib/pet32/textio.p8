@@ -182,8 +182,8 @@ sub  setclr  (ubyte col, ubyte row, ubyte color)  {
 }
 
 
-sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor_ignored)  {
-	; ---- set char at the given position on the screen. charcolor is ignored on PET
+sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)  {
+	; ---- set char at the given position on the screen. NOTE: charcolor is ignored on PET
 	%asm {{
   		lda  row
 		asl  a
