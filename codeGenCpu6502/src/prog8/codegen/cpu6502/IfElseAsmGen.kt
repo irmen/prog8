@@ -1938,7 +1938,7 @@ _jump                       jmp  (${target.asmLabel})
                     if(notEquals)
                         translateAYNotEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
                     else
-                        translateAYNotEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+                        translateAYEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
                 }
             }
         }
