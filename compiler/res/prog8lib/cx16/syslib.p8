@@ -463,7 +463,7 @@ extsub $ff62 = screen_set_charset(ubyte charset @A, uword charsetptr @XY)  clobb
 extsub $ff6e = JSRFAR()  ; following word = address to call, byte after that=rom/ram bank it is in
 extsub $ff74 = fetch(ubyte zp_startaddr @A, ubyte bank @X, ubyte index @Y)  clobbers(X) -> ubyte @A
 extsub $ff77 = stash(ubyte data @A, ubyte bank @X, ubyte index @Y)  clobbers(X)     ;  note: The the zero page address containing the base address is passed in stavec ($03B2)
-extsub $ff7d = PRIMM()
+extsub $ff7d = PRIMM()  ; print immediate string  (the 0-terminated string immediately following the JSR PRIMM instruction)
 
 ; high level graphics & fonts
 extsub $ff20 = GRAPH_init(uword vectors @R0)  clobbers(A,X,Y)
