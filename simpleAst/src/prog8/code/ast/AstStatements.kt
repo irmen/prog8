@@ -41,6 +41,8 @@ sealed interface IPtSubroutine {
                         val availableFloatRegisters = mutableListOf(RegisterOrPair.FAC1)        // just one value is possible
                         val availableLongRegisters = combinedLongRegisters.toMutableList()
 
+                        availableLongRegisters.remove(firstRegister.first.registerOrPair)
+
                         fun getLongRegister(): RegisterOrPair {
                             val reg = availableLongRegisters.removeLastOrNull()
                             if(reg==null)
@@ -86,7 +88,7 @@ sealed interface IPtSubroutine {
                             }
                         }
 
-                        fun getIntergerRegister(): RegisterOrPair {
+                        fun getIntegerRegister(): RegisterOrPair {
                             val reg = availableIntegerRegisters.removeLastOrNull()
                             if(reg==null)
                                 throw AssemblyError("out of registers for byte/word return type ${this.position}")
@@ -111,7 +113,7 @@ sealed interface IPtSubroutine {
                             when {
                                 type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLastOrNull()!!, null) to type
                                 type.isLong -> RegisterOrStatusflag(getLongRegister(), null) to type
-                                type.isWordOrByteOrBool -> RegisterOrStatusflag(getIntergerRegister(), null) to type
+                                type.isWordOrByteOrBool -> RegisterOrStatusflag(getIntegerRegister(), null) to type
                                 else -> throw AssemblyError("unsupported return type $type")
                             }
                         }

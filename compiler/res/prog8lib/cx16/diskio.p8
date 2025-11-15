@@ -999,15 +999,12 @@ io_error:
         return false
     }
 
-    sub f_seek(uword pos_hiword, uword pos_loword) {
+    sub f_seek(long position) {
         ; -- seek in the reading file opened with f_open, to the given 32-bits position
         ;    Note: this will not work if you have already read the last byte of the file! Then you must close and reopen the file first.
         ubyte[6] command = ['p',0,0,0,0,0]
         command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
-        command[2] = lsb(pos_loword)
-        command[3] = msb(pos_loword)
-        command[4] = lsb(pos_hiword)
-        command[5] = msb(pos_hiword)
+        pokel(&command+2, position)
         cbm.SETNAM(sizeof(command), &command)
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()
@@ -1016,13 +1013,10 @@ io_error:
     }
 
 
-    sub f_seek_w(uword pos_hiword, uword pos_loword) {
+    sub f_seek_w(long position) {
         ; -- seek in the output file opened with f_open_w_seek, to the given 32-bits position
         diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses this secondary address
-        diskio.f_seek.command[2] = lsb(pos_loword)
-        diskio.f_seek.command[3] = msb(pos_loword)
-        diskio.f_seek.command[4] = lsb(pos_hiword)
-        diskio.f_seek.command[5] = msb(pos_hiword)
+        pokel(&diskio.f_seek.command+2, position)
         cbm.SETNAM(sizeof(diskio.f_seek.command), &diskio.f_seek.command)
         cbm.SETLFS(15, drivenumber, 15)
         void cbm.OPEN()
@@ -1030,17 +1024,9 @@ io_error:
         reset_write_channel()    ; back to the write io channel
     }
 
-    asmsub f_tell() -> uword @R0, uword @R1, uword @R2, uword @R3 {
-        ; -- Returns the current read position of the opened read file,
-        ;    in R0 and R1 (low + high words) and the file size in R2 and R3 (low + high words).
-        ;    Returns 0 as size if the command is not supported by the DOS implementation/version.
-        %asm {{
-            jmp  internal_f_tell
-        }}
-    }
-
-    sub internal_f_tell() {
-        ; gets the (32 bits) position + file size of the opened read file channel
+    sub f_tell() -> long, long {
+        ; -- Returns the current read position of the opened read file, and the file size.
+        ;    Returns 0,0 if the command is not supported by the DOS implementation/version.
         ubyte[2] command = ['t',0]
         command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
         cbm.SETNAM(sizeof(command), &command)
@@ -1066,18 +1052,20 @@ io_error:
 
         cbm.CLOSE(15)
         reset_read_channel()       ; back to the read io channel
-        if success
-            return
+        if not success
+            cx16.r0 = cx16.r1 = cx16.r2 = cx16.r3 = 0
 
-        cx16.r0 = cx16.r1 = cx16.r2 = cx16.r3 = 0
-    }
+        &long posl = &cx16.r0
+        &long sizel = &cx16.r2
+        return posl, sizel
 
-    sub read4hex() -> uword {
-        str hex = "0000"
-        hex[0] = cbm.CHRIN()
-        hex[1] = cbm.CHRIN()
-        hex[2] = cbm.CHRIN()
-        hex[3] = cbm.CHRIN()
-        return conv.hex2uword(hex)
+        sub read4hex() -> uword {
+            str hex = "0000"
+            hex[0] = cbm.CHRIN()
+            hex[1] = cbm.CHRIN()
+            hex[2] = cbm.CHRIN()
+            hex[3] = cbm.CHRIN()
+            return conv.hex2uword(hex)
+        }
     }
 }

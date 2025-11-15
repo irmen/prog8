@@ -33,7 +33,7 @@ main {
 
         txt.print("\nseeking to 1292 and writing a few bytes...\n")
         if diskio.f_open_w_seek("seektestfile.bin") {
-            diskio.f_seek_w(0, 1292)
+            diskio.f_seek_w(1292)
             void diskio.f_write("123", 3)
             diskio.f_close_w()
         } else {
@@ -66,7 +66,7 @@ main {
         ; now the actual seek and read of the last few bytes
         txt.print("\nseeking to 1290 and reading...\n")
         if diskio.f_open("seektestfile.bin") {
-            diskio.f_seek(0, 1290)
+            diskio.f_seek(1290)
             uword ptr = megabuffer
             do {
                 size = diskio.f_read(ptr, 255)
