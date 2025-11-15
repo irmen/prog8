@@ -620,6 +620,10 @@ const ubyte  EXTAPI_scnsiz = $0D
 const ubyte  EXTAPI_kbd_leds = $0E
 const ubyte  EXTAPI_memory_decompress_from_func = $0F
 const ubyte  EXTAPI_default_palette = $10
+const ubyte  EXTAPI_has_machine_property = $11
+const ubyte  EXTAPI_kbdbuf_get = $12
+const ubyte  EXTAPI_kbdbuf_clear = $13
+const ubyte  EXTAPI_blink_enable = $14
 
 ; extapi16 call numbers
 const ubyte  EXTAPI16_test = $00
@@ -674,6 +678,30 @@ sub mouse_present() -> bool {
     if_cs
         return false
     return cx16.r0L != $fc       ; $fc = BAT_FAIL
+}
+
+asmsub get_charset() -> ubyte @A {
+    ;Get charset mode.  result: 0=unknown, 1=ISO, 2=PETSCII upper case/gfx, 3=PETSCII lowercase.
+    %asm {{
+
+KERNAL_MODE = $0372         ; internal kernal variable, risky to read it, but it's ben stable for many releases.
+        lda  KERNAL_MODE
+        beq  _end
+
+        bit  #$40                ;ISO mode flag
+        beq  +                   ;usually KERNAL_MODE 1 or 6 (| $40)
+        lda  #1
+        bra  _end
+
++       bit  #1                  ;PETSCII upper case/graphics
+        bne  +                   ;usually KERNAL_MODE 2 or 4
+        lda  #2
+        bra  _end
+
++       lda  #3                   ;PETSCII upper/lower case
+_end:
+        rts
+    }}
 }
 
 ; shims for the kernal routines called via the extapi call:
@@ -758,31 +786,41 @@ asmsub set_default_palette() {
     }}
 }
 
-asmsub get_charset() -> ubyte @A {
-    ;Get charset mode.  result: 0=unknown, 1=ISO, 2=PETSCII upper case/gfx, 3=PETSCII lowercase.
+asmsub has_machine_property(ubyte property @X) clobbers(A,X) -> bool @Pc {
+    ; requires rom v49+
     %asm {{
-
-KERNAL_MODE = $0372         ; internal kernal variable, risky to read it, but it's ben stable for many releases.
-        lda  KERNAL_MODE
-        beq  _end
-
-        bit  #$40                ;ISO mode flag
-        beq  +                   ;usually KERNAL_MODE 1 or 6 (| $40)
-        lda  #1
-        bra  _end
-
-+       bit  #1                  ;PETSCII upper case/graphics
-        bne  +                   ;usually KERNAL_MODE 2 or 4
-        lda  #2
-        bra  _end
-
-+       lda  #3                   ;PETSCII upper/lower case
-_end:
-        rts
+        lda  #EXTAPI_has_machine_property
+        jmp  cx16.extapi
     }}
 }
 
-; TODO : implement shims for the remaining extapi calls.
+asmsub kbdbuf_get() clobbers(X,Y) -> ubyte @A {
+    ; requires rom v49+
+    %asm {{
+        lda  #EXTAPI_kbdbuf_get
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub kbdbuf_clear() clobbers(A) {
+    ; requires rom v49+
+    %asm {{
+        lda  #EXTAPI_kbdbuf_clear
+        jmp  cx16.extapi
+    }}
+}
+
+asmsub blink_enable(bool enable @X) clobbers(A,X) {
+    ; requires rom v49+
+    %asm {{
+        txa
+        eor  #1
+        tax
+        lda  #EXTAPI_blink_enable
+        jmp  cx16.extapi
+    }}
+}
+
 
 
 ; ---- end of kernal routines ----

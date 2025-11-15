@@ -572,6 +572,85 @@ _try_iso
 	}}
 }
 
+asmsub hex2long(str string @AY) -> long @R0R1_32 {
+	; -- hexadecimal string (with or without '$') to long.
+	;    string may be in petscii or c64-screencode encoding.
+	;    stops parsing at the first character that's not a hex digit (except leading $)
+	;    result in R0:R1,  number of characters processed also remains in cx16.r15L if you want to use it!! (0 = error)
+    %asm {{
+	sta  P8ZP_SCRATCH_W2
+	sty  P8ZP_SCRATCH_W2+1
+	ldy  #0
+	sty  cx16.r0
+	sty  cx16.r0+1
+	sty  cx16.r0+2
+	sty  cx16.r0+3
+	sty  cx16.r15H
+	lda  (P8ZP_SCRATCH_W2),y
+	beq  _stop
+	cmp  #'$'
+	bne  _loop
+	iny
+_loop
+	lda  #0
+	sta  P8ZP_SCRATCH_B1
+	lda  (P8ZP_SCRATCH_W2),y
+	beq  _stop
+	cmp  #7                 ; screencode letters A-F are 1-6
+	bcc  _add_letter
+	and  #127
+	cmp  #97
+	bcs  _try_iso            ; maybe letter is iso:'a'-iso:'f' (97-102)
+	cmp  #'g'
+	bcs  _stop
+	cmp  #'a'
+	bcs  _add_letter
+	cmp  #'0'
+	bcc  _stop
+	cmp  #'9'+1
+	bcs  _stop
+_calc
+	asl  cx16.r0
+	rol  cx16.r0+1
+	rol  cx16.r0+2
+	rol  cx16.r0+3
+	asl  cx16.r0
+	rol  cx16.r0+1
+	rol  cx16.r0+2
+	rol  cx16.r0+3
+	asl  cx16.r0
+	rol  cx16.r0+1
+	rol  cx16.r0+2
+	rol  cx16.r0+3
+	asl  cx16.r0
+	rol  cx16.r0+1
+	rol  cx16.r0+2
+	rol  cx16.r0+3
+	and  #$0f
+	clc
+	adc  P8ZP_SCRATCH_B1
+	ora  cx16.r0
+	sta  cx16.r0
+	iny
+	bne  _loop
+_stop
+	sty  cx16.r15L
+	rts
+_add_letter
+	pha
+	lda  #9
+	sta  P8ZP_SCRATCH_B1
+	pla
+	jmp  _calc
+_try_iso
+        cmp  #103
+        bcs  _stop
+        and  #63
+        bne  _add_letter
+		; !notreached!
+    }}
+}
+
 asmsub  bin2uword(str string @AY) -> uword @AY {
 	; -- binary string (with or without '%') to uword.
 	;    stops parsing at the first character that's not a 0 or 1. (except leading %)

@@ -279,6 +279,26 @@ sub  hex2uword(str string) -> uword {
     }
 }
 
+sub  hex2long(str string) -> long {
+    ; -- hexadecimal string (with or without '$') to long.
+    ;    stops parsing at the first character that's not a hex digit (except leading $)
+    long result
+    ubyte char
+    if @(string)=='$'
+        string++
+    repeat {
+        char = @(string)
+        if char==0
+            return result
+        result <<= 4
+        if char>='0' and char<='9'
+            result |= char-'0'
+        else
+            result |= char-'a'+10
+        string++
+    }
+}
+
 sub  bin2uword(str string) -> uword {
     ; -- binary string (with or without '%') to uword.
     ;    stops parsing at the first character that's not a 0 or 1. (except leading %)
