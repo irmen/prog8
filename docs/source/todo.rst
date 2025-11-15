@@ -91,7 +91,7 @@ IR/VM
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
 - do something with the 'split' tag on split word arrays
-- add more optimizations in IRPeepholeOptimizer
+- add more optimizations in IRPeepholeOptimizer, implement the TODOs in there at least
 - extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, LOADFIELD, STOREFIELD etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
 - idea: replace all scalar variables that are not @shared by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.

@@ -2093,7 +2093,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(memread: DirectMemoryRead) {
-        if(!allowedMemoryAccessAddressExpression(memread.addressExpression, program))
+        if(memread.addressExpression.inferType(program).isLong)
+            errors.err("long address not yet supported", memread.addressExpression.position)
+        else if(!allowedMemoryAccessAddressExpression(memread.addressExpression, program))
             errors.err("invalid address type for memory access, expected ^^ubyte or just uword", memread.position)
 
         val pointervar = memread.addressExpression as? IdentifierReference
@@ -2126,7 +2128,9 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(memwrite: DirectMemoryWrite) {
-        if(!allowedMemoryAccessAddressExpression(memwrite.addressExpression, program))
+        if(memwrite.addressExpression.inferType(program).isLong)
+            errors.err("long address not yet supported", memwrite.addressExpression.position)
+        else if(!allowedMemoryAccessAddressExpression(memwrite.addressExpression, program))
             errors.err("invalid address type for memory access, expected ^^ubyte or just uword", memwrite.position)
 
         val pointervar = memwrite.addressExpression as? IdentifierReference

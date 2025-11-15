@@ -1,16 +1,11 @@
-%zeropage basicsafe
-
 main {
-
     sub start() {
-        printf([1111,2,3,4444])
-        printf([1111,2,3,"bar"])
-        printf([1,2,3])
-        printf([1111,2,3,-4444])
-
-    }
-
-    sub printf(uword argspointer) {
-        cx16.r0++
+        const long buffer = 2000
+        const long bufferl = 999999
+        uword @shared addr = &buffer[2]
+        long @shared addr2 = &bufferl[2]
+        const long width = 100
+        uword @shared addr3 = &buffer[width]
+        long @shared addr4 = &bufferl[width]
     }
 }

@@ -339,8 +339,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     override fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> {
-        // make sure the memory address is an uword or a pointer (to whatever type), otherwise cast
+        // make sure the memory address is an uword or long or a pointer (to whatever type), otherwise cast
         val dt = memread.addressExpression.inferType(program).getOr(DataType.UWORD)
+        if(dt.isLong) {
+            val constAddr = memread.addressExpression.constValue(program)?.number
+            if(constAddr==null || constAddr>=65536)
+                return noModifications
+        }
         if(dt.isUndefined || dt.isUnsignedWord || dt.isPointer)
             return noModifications
 
@@ -354,8 +359,13 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     override fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> {
-        // make sure the memory address is an uword or a pointer (to whatever type), otherwise cast
+        // make sure the memory address is an uword or long or a pointer (to whatever type), otherwise cast
         val dt = memwrite.addressExpression.inferType(program).getOr(DataType.UWORD)
+        if(dt.isLong) {
+            val constAddr = memwrite.addressExpression.constValue(program)?.number
+            if(constAddr==null || constAddr>=65536)
+                return noModifications
+        }
         if(dt.isUndefined || dt.isUnsignedWord || dt.isPointer)
             return noModifications
 

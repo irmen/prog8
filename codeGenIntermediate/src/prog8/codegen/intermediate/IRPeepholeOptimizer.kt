@@ -440,6 +440,52 @@ jump p8_label_gen_2
                 }
                 else -> {}
             }
+
+            fun optimizeImmediateLoadAssociative(replacementOpcode: Opcode) {
+
+                fun getImmediateLoad(reg: Int): Pair<Int, Int>? {
+                    // look if the given register gets an immediate value 1 or 2 istructions back
+                    // returns (index of load instruction, immediate value) or null.
+                    if(idx>=1) {
+                        val previous = indexedInstructions[idx-1].value
+                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg)
+                            return idx-1 to previous.immediate!!
+                    }
+                    if(idx>=2) {
+                        val previous = indexedInstructions[idx-2].value
+                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg)
+                            return idx-2 to previous.immediate!!
+                    }
+                    return null
+                }
+
+                val immediate1 = getImmediateLoad(ins.reg1!!)
+                if(immediate1!=null) {
+                    chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg2, immediate = immediate1.second)
+                    chunk.instructions.removeAt(immediate1.first)
+                    changed=true
+                } else {
+                    val immediate2 = getImmediateLoad(ins.reg2!!)
+                    if (immediate2 != null) {
+                        chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg1, immediate = immediate2.second)
+                        chunk.instructions.removeAt(immediate2.first)
+                        changed=true
+                    }
+                }
+            }
+
+            // try to use immediate arithmetic instruction if possible
+            when(ins.opcode) {
+                Opcode.ADDR -> optimizeImmediateLoadAssociative(Opcode.ADD)
+                Opcode.MULR -> optimizeImmediateLoadAssociative(Opcode.MUL)
+                Opcode.MULSR -> optimizeImmediateLoadAssociative(Opcode.MULS)
+//                Opcode.SUBR -> TODO("ir peephole Subr")
+//                Opcode.DIVR -> TODO("ir peephole Divr")
+//                Opcode.DIVSR -> TODO("ir peephole Divsr")
+//                Opcode.MODR -> TODO("ir peephole Modr")
+//                Opcode.DIVMODR -> TODO("ir peephole DivModr")
+                else -> {}
+            }
         }
         return changed
     }

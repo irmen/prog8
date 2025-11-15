@@ -572,14 +572,15 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                         val index = arrayIndex?.constIndex()
                         if (index != null) {
                             address += when {
-                                target.datatype.isUnsignedWord -> index
+                                target.datatype.isInteger -> index
                                 target.datatype.isArray -> program.memsizer.memorySize(targetVar.datatype, index)
-                                else -> throw FatalAstException("need array or uword ptr")
+                                else -> throw FatalAstException("need array or ptr")
                             }
                         } else
                             return null
                     }
-                    return NumericLiteral(BaseDataType.UWORD, address, position)
+                    val addressType = if(targetVar.datatype.isLong) BaseDataType.LONG else BaseDataType.UWORD
+                    return NumericLiteral(addressType, address, position)
                 }
             }
         }
@@ -1416,14 +1417,14 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         }
 
         // the value of a variable can (temporarily) be a different type as the vardecl itself.
-        // don't return the value if the types don't match yet!
         val value = vardecl.value?.constValue(program)
         if(value==null || value.type==vardecl.datatype.base)
             return value
-        val optimal = NumericLiteral.optimalNumeric(value.number, value.position)
-        if(optimal.type==vardecl.datatype.base)
-            return optimal
-        return null
+        val casted = value.cast(vardecl.datatype.base, true)
+        return if(casted.isValid)
+            casted.valueOrZero()
+        else
+            null
     }
 
     override fun toString(): String {
