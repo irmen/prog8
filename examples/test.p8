@@ -1,11 +1,39 @@
+%import diskio
+%import textio
+%zeropage basicsafe
+
 main {
+
     sub start() {
-        const long buffer = 2000
-        const long bufferl = 999999
-        uword @shared addr = &buffer[2]
-        long @shared addr2 = &bufferl[2]
-        const long width = 100
-        uword @shared addr3 = &buffer[width]
-        long @shared addr4 = &bufferl[width]
+        void diskio.f_open("t8s.wav")
+        long size, pos
+
+        pos, size = diskio.f_tell()
+        txt.print_l(pos)
+        txt.spc()
+        txt.print_l(size)
+        txt.nl()
+
+        diskio.f_seek(999999)
+        pos, size = diskio.f_tell()
+        txt.print_l(pos)
+        txt.spc()
+        txt.print_l(size)
+        txt.nl()
+
+        long lba, cluster
+        lba, cluster = diskio.f_fatlba()
+        txt.print_l(lba)
+        txt.spc()
+        txt.print_l(cluster)
+        txt.nl()
+        diskio.f_seek(0)
+        lba, cluster = diskio.f_fatlba()
+        txt.print_l(lba)
+        txt.spc()
+        txt.print_l(cluster)
+        txt.nl()
+
+        diskio.f_close()
     }
 }

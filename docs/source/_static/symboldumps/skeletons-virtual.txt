@@ -89,6 +89,7 @@ conv  {
     str  string_out 
     any2uword  (str string) -> uword, ubyte 
     bin2uword  (str string) -> uword 
+    hex2long  (str string) -> long 
     hex2uword  (str string) -> uword 
     internal_str_ub  (ubyte value, str out_ptr) 
     internal_str_uw  (uword value, str out_ptr) 

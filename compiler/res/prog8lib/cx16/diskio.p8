@@ -1027,45 +1027,60 @@ io_error:
     sub f_tell() -> long, long {
         ; -- Returns the current read position of the opened read file, and the file size.
         ;    Returns 0,0 if the command is not supported by the DOS implementation/version.
-        ubyte[2] command = ['t',0]
-        command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
-        cbm.SETNAM(sizeof(command), &command)
-        cbm.SETLFS(15, drivenumber, 15)
-        void cbm.OPEN()
-        void cbm.CHKIN(15)        ; use #15 as input channel
+        ubyte[3] command = ['?','?',0]
         bool success=false
-        ; valid response starts with "07," followed by hex notations of the position and filesize
-        if cbm.CHRIN()=='0' and cbm.CHRIN()=='7' and cbm.CHRIN()==',' {
-            cx16.r1 = read4hex()
-            cx16.r0 = read4hex()        ; position in R1:R0
-            void cbm.CHRIN()            ; separator space
-            cx16.r3 = read4hex()
-            cx16.r2 = read4hex()        ; filesize in R3:R2
-            success = true
+        long filesize, filepos
+        ubyte commandoffset
+
+        command[1] = 't'
+        commandoffset = 1
+        f_tell_internal()
+        return filepos, filesize
+
+        sub f_tell_internal() {
+            ; this code is used for both the T (tell) and FL (fatlba) commands
+            command[2] = READ_IO_CHANNEL       ; f_open uses this secondary address
+            cbm.SETNAM(sizeof(command)-commandoffset, &command+commandoffset)
+            cbm.SETLFS(15, drivenumber, 15)
+            void cbm.OPEN()
+            void cbm.CHKIN(15)        ; use #15 as input channel
+
+            ; valid response starts with "07," followed by hex notations of the position and filesize
+            if cbm.CHRIN()=='0' and cbm.CHRIN()=='7' and cbm.CHRIN()==',' {
+                filepos = read8hex()
+                void cbm.CHRIN()            ; separator space
+                filesize = read8hex()
+                success = true
+            } else {
+                filesize = filepos = 0
+            }
+
+            while cbm.READST()==0 {
+                cx16.r5L = cbm.CHRIN()
+                if cx16.r5L=='\r' or cx16.r5L=='\n'
+                    break
+            }
+
+            cbm.CLOSE(15)
+            reset_read_channel()       ; back to the read io channel
         }
+    }
 
-        while cbm.READST()==0 {
-            cx16.r5L = cbm.CHRIN()
-            if cx16.r5L=='\r' or cx16.r5L=='\n'
-                break
+    sub f_fatlba() -> long, long {
+        ; -- Return the current LBA, cluster number  (sector index and shift value are ignored for now)
+        diskio.f_tell.command[0] = 'f'
+        diskio.f_tell.command[1] = 'l'
+        diskio.f_tell.commandoffset = 0
+        diskio.f_tell.f_tell_internal()
+        return diskio.f_tell.filepos, diskio.f_tell.filesize
+    }
+
+
+    sub read8hex() -> long {
+        str hex = "00000000"
+        for cx16.r0L in 0 to 7 {
+            hex[cx16.r0L] = cbm.CHRIN()
         }
-
-        cbm.CLOSE(15)
-        reset_read_channel()       ; back to the read io channel
-        if not success
-            cx16.r0 = cx16.r1 = cx16.r2 = cx16.r3 = 0
-
-        &long posl = &cx16.r0
-        &long sizel = &cx16.r2
-        return posl, sizel
-
-        sub read4hex() -> uword {
-            str hex = "0000"
-            hex[0] = cbm.CHRIN()
-            hex[1] = cbm.CHRIN()
-            hex[2] = cbm.CHRIN()
-            hex[3] = cbm.CHRIN()
-            return conv.hex2uword(hex)
-        }
+        return conv.hex2long(hex)
     }
 }

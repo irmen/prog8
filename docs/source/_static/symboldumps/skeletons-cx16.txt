@@ -151,6 +151,7 @@ conv  {
     ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> uword @AY, ubyte @X 
     bin2uword  (str string @AY) -> uword @AY 
+    hex2long  (str string @AY) -> long @R0R1_32 
     hex2uword  (str string @AY) -> uword @AY 
     internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
     internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 
@@ -230,20 +231,20 @@ diskio  {
     exists  (str filename) -> bool 
     f_close  () 
     f_close_w  () 
+    f_fatlba  () -> long, long 
     f_open  (str filenameptr) -> bool 
     f_open_w  (str filename) -> bool 
     f_open_w_seek  (str filename) -> bool 
     f_read  (uword bufferpointer, uword num_bytes) -> uword 
     f_read_all  (uword bufferpointer) -> uword 
     f_readline  (^^ubyte bufptr @AY)  clobbers (X) -> ubyte @Y, ubyte @A 
-    f_seek  (uword pos_hiword, uword pos_loword) 
-    f_seek_w  (uword pos_hiword, uword pos_loword) 
-    f_tell  () -> uword @R0, uword @R1, uword @R2, uword @R3 
+    f_seek  (long position) 
+    f_seek_w  (long position) 
+    f_tell  () -> long, long 
     f_write  (uword bufferpointer, uword num_bytes) -> bool 
     fastmode  (ubyte mode) -> bool 
     get_loadaddress  (str filename) -> uword 
     internal_f_open_w  (str filename, bool open_for_seeks) -> bool 
-    internal_f_tell  () 
     internal_load_routine  (str filenameptr, uword address_override, bool headerless) -> uword 
     internal_save_routine  (str filenameptr, uword startaddress, uword savesize, bool headerless) -> bool 
     lf_end_list  () 
@@ -257,7 +258,7 @@ diskio  {
     load_size  (ubyte startbank, uword startaddress, uword endaddress) -> long 
     loadlib  (str libnameptr, uword libaddress) -> uword 
     mkdir  (str name) 
-    read4hex  () -> uword 
+    read8hex  () -> long 
     relabel  (str name) 
     rename  (str oldfileptr, str newfileptr) 
     reset_read_channel  () 
@@ -851,13 +852,17 @@ cx16  {
     const ubyte  EXTAPI16_stack_pop 
     const ubyte  EXTAPI16_stack_push 
     const ubyte  EXTAPI16_test 
+    const ubyte  EXTAPI_blink_enable 
     const ubyte  EXTAPI_clear_status 
     const ubyte  EXTAPI_cursor_blink 
     const ubyte  EXTAPI_default_palette 
     const ubyte  EXTAPI_getlfs 
+    const ubyte  EXTAPI_has_machine_property 
     const ubyte  EXTAPI_iso_cursor_char 
     const ubyte  EXTAPI_joystick_ps2_keycodes 
     const ubyte  EXTAPI_kbd_leds 
+    const ubyte  EXTAPI_kbdbuf_clear 
+    const ubyte  EXTAPI_kbdbuf_get 
     const ubyte  EXTAPI_led_update 
     const ubyte  EXTAPI_memory_decompress_from_func 
     const ubyte  EXTAPI_mouse_set_position 
@@ -1157,6 +1162,7 @@ cx16  {
     bas_psgnote  (ubyte voice @A, ubyte note @X, ubyte fracsemitone @Y)  clobbers (A,X,Y) -> bool @Pc @bank 10 = $c012
     bas_psgplaystring  (ubyte length @A, str string @XY)  clobbers (A,X,Y) @bank 10 = $c018
     bas_psgwav  (ubyte voice @A, ubyte waveform @X)  clobbers (A,X,Y) -> bool @Pc @bank 10 = $c015
+    blink_enable  (bool enable @X)  clobbers (A,X) 
     clock_get_date_time  ()  clobbers (A,X,Y) -> uword @R0, uword @R1, uword @R2, uword @R3  = $ff50
     clock_set_date_time  (uword yearmonth @R0, uword dayhours @R1, uword minsecs @R2, uword jiffiesweekday @R3)  clobbers (A,X,Y)  = $ff4d
     console_get_char  ()  clobbers (X,Y) -> ubyte @A  = $fee1
@@ -1179,6 +1185,7 @@ cx16  {
     getlfs  () -> ubyte @X, ubyte @A, ubyte @Y 
     getrambank  () -> ubyte @A 
     getrombank  () -> ubyte @A 
+    has_machine_property  (ubyte property @X)  clobbers (A,X) -> bool @Pc 
     i2c_batch_read  (ubyte device @X, uword buffer @R0, uword length @R1, bool advance @Pc)  clobbers (A,Y) -> bool @Pc  = $feb4
     i2c_batch_write  (ubyte device @X, uword buffer @R0, uword length @R1, bool advance @Pc)  clobbers (A,Y) -> bool @Pc  = $feb7
     i2c_read_byte  (ubyte device @X, ubyte offset @Y)  clobbers (X,Y) -> ubyte @A, bool @Pc  = $fec6
@@ -1188,6 +1195,8 @@ cx16  {
     joystick_scan  ()  clobbers (A,X,Y)  = $ff53
     joysticks_detect  () -> ubyte 
     joysticks_getall  (bool also_keyboard_js) -> uword 
+    kbdbuf_clear  ()  clobbers (A) 
+    kbdbuf_get  ()  clobbers (X,Y) -> ubyte @A 
     kbdbuf_get_modifiers  () -> ubyte @A  = $fec0
     kbdbuf_peek  () -> ubyte @A, ubyte @X  = $febd
     kbdbuf_put  (ubyte key @A)  clobbers (X)  = $fec3

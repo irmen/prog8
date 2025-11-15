@@ -113,6 +113,7 @@ conv  {
     ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> uword @AY, ubyte @X 
     bin2uword  (str string @AY) -> uword @AY 
+    hex2long  (str string @AY) -> long @R0R1_32 
     hex2uword  (str string @AY) -> uword @AY 
     internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
     internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 

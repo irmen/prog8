@@ -113,6 +113,7 @@ conv  {
     ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> uword @AY, ubyte @X 
     bin2uword  (str string @AY) -> uword @AY 
+    hex2long  (str string @AY) -> long @R0R1_32 
     hex2uword  (str string @AY) -> uword @AY 
     internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
     internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 
@@ -553,7 +554,7 @@ txt  {
     scroll_left  ()  clobbers (A,X,Y) 
     scroll_right  ()  clobbers (A,X) 
     scroll_up  ()  clobbers (A,X) 
-    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)
+    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) 
     setchr  (ubyte col @X, ubyte row @Y, ubyte character @A)  clobbers (A,Y) 
     setclr  (ubyte col, ubyte row, ubyte color) 
     size  ()  clobbers (A) -> ubyte @X, ubyte @Y 
