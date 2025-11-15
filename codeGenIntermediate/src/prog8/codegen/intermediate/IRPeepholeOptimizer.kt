@@ -459,17 +459,19 @@ jump p8_label_gen_2
                     return null
                 }
 
-                val immediate1 = getImmediateLoad(ins.reg1!!)
-                if(immediate1!=null) {
-                    chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg2, immediate = immediate1.second)
-                    chunk.instructions.removeAt(immediate1.first)
-                    changed=true
-                } else {
-                    val immediate2 = getImmediateLoad(ins.reg2!!)
-                    if (immediate2 != null) {
-                        chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg1, immediate = immediate2.second)
-                        chunk.instructions.removeAt(immediate2.first)
+                if(ins.reg1!=null) {
+                    val immediate1 = getImmediateLoad(ins.reg1!!)
+                    if(immediate1!=null) {
+                        chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg2, immediate = immediate1.second)
+                        chunk.instructions.removeAt(immediate1.first)
                         changed=true
+                    } else {
+                        val immediate2 = getImmediateLoad(ins.reg2!!)
+                        if (immediate2 != null) {
+                            chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg1, immediate = immediate2.second)
+                            chunk.instructions.removeAt(immediate2.first)
+                            changed=true
+                        }
                     }
                 }
             }

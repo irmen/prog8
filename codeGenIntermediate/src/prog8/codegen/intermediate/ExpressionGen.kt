@@ -819,6 +819,10 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
                         addInstr(result, IRInstruction(Opcode.EXTS, type = IRDataType.WORD, reg1 = actualResultReg2, reg2=tr.resultReg), null)
                     }
+                    BaseDataType.FLOAT -> {
+                        actualResultReg2 = codeGen.registers.next(IRDataType.LONG)
+                        addInstr(result, IRInstruction(Opcode.FTOSL, IRDataType.FLOAT, reg1=actualResultReg2, fpReg1 = tr.resultFpReg), null)
+                    }
                     else -> throw AssemblyError("weird cast $valueDt to long ${cast.position}")
                 }
             }
@@ -836,6 +840,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     }
                     BaseDataType.WORD -> {
                         addInstr(result, IRInstruction(Opcode.FFROMSW, IRDataType.FLOAT, reg1=tr.resultReg, fpReg1 = actualResultFpReg2), null)
+                    }
+                    BaseDataType.LONG ->  {
+                        addInstr(result, IRInstruction(Opcode.FFROMSL, IRDataType.FLOAT, reg1=tr.resultReg, fpReg1 = actualResultFpReg2), null)
                     }
                     else -> throw AssemblyError("weird cast value type ${cast.position}")
                 }

@@ -814,6 +814,7 @@ asmsub blink_enable(bool enable @X) clobbers(A,X) {
     ; requires rom v49+
     %asm {{
         txa
+        and  #1
         eor  #1
         tax
         lda  #EXTAPI_blink_enable

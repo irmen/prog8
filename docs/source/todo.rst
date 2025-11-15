@@ -1,11 +1,13 @@
 TODO
 ====
 
+- IR BUG: bool negative = sgn(f)<0   register type error
 - before final release: test all examples and programs again with final version of the compiler!
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- implement float to long casting and vice versa (6502)
 - make $8000000 a valid long integer (-2147483648) this is more involved than you think.  To make this work: long \|= $80000000
 - implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers...
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
@@ -58,6 +60,7 @@ Future Things and Ideas
 
 IR/VM
 -----
+- make SGN set the N,Z flags and then optimize float<0 float==0 float>0 to use SGN instruction.  Check what code is generated for other data types.
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
@@ -112,6 +115,7 @@ Libraries
 Optimizations
 -------------
 
+- change float<0, float==0, float>0 to use sgn(float) instead? (also see IR)
 - optimize inplaceLongShiftRight() for byte aligned cases
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.

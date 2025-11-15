@@ -330,10 +330,12 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.FFROMSB -> InsFFROMSB(ins)
             Opcode.FFROMUW -> InsFFROMUW(ins)
             Opcode.FFROMSW -> InsFFROMSW(ins)
+            Opcode.FFROMSL -> InsFFROMSL(ins)
             Opcode.FTOUB -> InsFTOUB(ins)
             Opcode.FTOSB -> InsFTOSB(ins)
             Opcode.FTOUW -> InsFTOUW(ins)
             Opcode.FTOSW -> InsFTOSW(ins)
+            Opcode.FTOSL -> InsFTOSL(ins)
             Opcode.FPOW -> InsFPOW(ins)
             Opcode.FABS -> InsFABS(ins)
             Opcode.FSIN -> InsFSIN(ins)
@@ -2686,6 +2688,11 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
+    private fun InsFFROMSL(i: IRInstruction) {
+        registers.setFloat(i.fpReg1!!, registers.getSL(i.reg1!!).toDouble())
+        nextPc()
+    }
+
     private fun InsFTOUB(i: IRInstruction) {
         registers.setUB(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toUByte())
         nextPc()
@@ -2703,6 +2710,11 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsFTOSW(i: IRInstruction) {
         registers.setSW(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt().toShort())
+        nextPc()
+    }
+
+    private fun InsFTOSL(i: IRInstruction) {
+        registers.setSL(i.reg1!!, registers.getFloat(i.fpReg1!!).toInt())
         nextPc()
     }
 

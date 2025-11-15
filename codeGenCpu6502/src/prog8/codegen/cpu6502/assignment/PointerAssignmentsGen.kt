@@ -1325,8 +1325,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
         fun divide(signed: Boolean) {
             // on entry here: number placed in P8ZP_SCRATCH_PTR, divisor placed in AY
-            if(signed) asmgen.out("jsr  prog8_math.divmod_w_asm")
-            else asmgen.out("jsr  prog8_math.divmod_uw_asm")
+            if(signed) asmgen.out("  jsr  prog8_math.divmod_w_asm")
+            else asmgen.out("  jsr  prog8_math.divmod_uw_asm")
             asmgen.out("""
                 tax
                 tya

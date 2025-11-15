@@ -220,10 +220,12 @@ ffromub      fpreg1, reg1               - fpreg1 = reg1 from usigned byte
 ffromsb      fpreg1, reg1               - fpreg1 = reg1 from signed byte
 ffromuw      fpreg1, reg1               - fpreg1 = reg1 from unsigned word
 ffromsw      fpreg1, reg1               - fpreg1 = reg1 from signed word
+ffromsl      fpreg1, reg1               - fpreg1 = reg1 from signed long
 ftoub        reg1, fpreg1               - reg1 = fpreg1 as unsigned byte
 ftosb        reg1, fpreg1               - reg1 = fpreg1 as signed byte
 ftouw        reg1, fpreg1               - reg1 = fpreg1 as unsigned word
 ftosw        reg1, fpreg1               - reg1 = fpreg1 as signed word
+ftosl        reg1, fpreg1               - reg1 = fpreg1 as signed long
 fpow         fpreg1, fpreg2             - fpreg1 = fpreg1 to the power of fpreg2
 fabs         fpreg1, fpreg2             - fpreg1 = abs(fpreg2)
 fcomp        reg1, fpreg1, fpreg2       - reg1 = result of comparison of fpreg1 and fpreg2: 0.b=equal, 1.b=fpreg1 is greater, -1.b=fpreg1 is smaller
@@ -398,10 +400,12 @@ enum class Opcode {
     FFROMSB,
     FFROMUW,
     FFROMSW,
+    FFROMSL,
     FTOUB,
     FTOSB,
     FTOUW,
     FTOSW,
+    FTOSL,
     FPOW,
     FABS,
     FSIN,
@@ -787,10 +791,12 @@ val instructionFormats = mutableMapOf(
     Opcode.FFROMSB    to InstructionFormat.from("F,>fr1,<r1"),
     Opcode.FFROMUW    to InstructionFormat.from("F,>fr1,<r1"),
     Opcode.FFROMSW    to InstructionFormat.from("F,>fr1,<r1"),
+    Opcode.FFROMSL    to InstructionFormat.from("F,>fr1,<r1"),
     Opcode.FTOUB      to InstructionFormat.from("F,>r1,<fr1"),
     Opcode.FTOSB      to InstructionFormat.from("F,>r1,<fr1"),
     Opcode.FTOUW      to InstructionFormat.from("F,>r1,<fr1"),
     Opcode.FTOSW      to InstructionFormat.from("F,>r1,<fr1"),
+    Opcode.FTOSL      to InstructionFormat.from("F,>r1,<fr1"),
     Opcode.FPOW       to InstructionFormat.from("F,<>fr1,<fr2"),
     Opcode.FABS       to InstructionFormat.from("F,>fr1,<fr2"),
     Opcode.FCOMP      to InstructionFormat.from("F,>r1,<fr1,<fr2"),
@@ -1086,10 +1092,20 @@ data class IRInstruction(
     private fun determineReg1Type(): IRDataType? {
         if(type==IRDataType.FLOAT) {
             // some float instructions have an integer (byte or word) register as well in reg1
-            return if(opcode in arrayOf(Opcode.FFROMUB, Opcode.FFROMSB, Opcode.FTOUB, Opcode.FTOSB, Opcode.FCOMP, Opcode.LOADIX, Opcode.LOADX, Opcode.STOREX, Opcode.STOREIX, Opcode.STOREZX))
-                IRDataType.BYTE
-            else
-                IRDataType.WORD
+            return when (opcode) {
+                Opcode.FFROMUB,
+                Opcode.FFROMSB,
+                Opcode.FTOUB,
+                Opcode.FTOSB,
+                Opcode.FCOMP,
+                Opcode.LOADIX,
+                Opcode.LOADX,
+                Opcode.STOREX,
+                Opcode.STOREIX,
+                Opcode.STOREZX -> IRDataType.BYTE
+                Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
+                else -> IRDataType.WORD
+            }
         }
         if(type==IRDataType.WORD) {
             // some word instructions have byte reg1

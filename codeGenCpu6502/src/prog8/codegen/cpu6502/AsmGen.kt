@@ -2003,9 +2003,9 @@ $repeatLabel""")
                 lda  #<$leftName
                 ldy  #>$leftName""")
             if(lessOrEquals)
-                out("jsr  floats.vars_lesseq_f")
+                out("  jsr  floats.vars_lesseq_f")
             else
-                out("jsr  floats.vars_less_f")
+                out("  jsr  floats.vars_less_f")
         }
         fun lessf(expr: PtExpression, rightName: String) {
             assignExpressionToRegister(expr, RegisterOrPair.FAC1, true)
