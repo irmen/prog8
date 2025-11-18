@@ -200,3 +200,7 @@ If multiple options are listed above, you can select which one you want to launc
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
 Look in the :source:`syntax-files <syntax-files>` directory in the github repository to find them.
 
+**CTags:** for editors that support them, such as Vim, there is an effort by a member of the cummunity to provide "ctags" files for Prog8.
+The basic purpose of ctags is to index the definitions from your source code and let you find them easily.
+It is not really to find each use of print for example, but to find where print is defined.
+Visit `the Github repository <https://github.com/gillham/prog8ctags>`_ for the files and detailed usage information.

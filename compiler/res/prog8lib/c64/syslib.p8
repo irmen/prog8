@@ -1313,6 +1313,8 @@ asmsub  init_system()  {
         lda  #0
         sta  c64.BGCOL0
         jsr  disable_runstop_and_charsetswitch
+        lda  #$80
+        sta  650    ; enable key repeat for normal keys too
         lda  #PROG8_C64_BANK_CONFIG     ; apply bank config
         sta  $01
         and  #1
@@ -1349,6 +1351,8 @@ asmsub  cleanup_at_exit() {
         jsr  cbm.MEMTOP     ; adjust MEMTOP down again
         jsr  cbm.CLRCHN		; reset i/o channels
         jsr  enable_runstop_and_charsetswitch
+        lda  #0
+        sta  650            ; disable keyrepeats
         lda  _exitcarry
         lsr  a
         lda  _exitcode
