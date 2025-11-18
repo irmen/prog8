@@ -1,14 +1,16 @@
 TODO
 ====
 
+- implement float to long casting and vice versa (6502)
 - IR BUG: bool negative = sgn(f)<0   register type error
+- 6502 codegen: lptr_target^^ = -lptr_target^^   then put that into internal_cast_as_long()
 - before final release: test all examples and programs again with final version of the compiler!
 
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- implement float to long casting and vice versa (6502)
 - make $8000000 a valid long integer (-2147483648) this is more involved than you think.  To make this work: long \|= $80000000
+- add cx16.r0r1sL, r2r3sL, ... etc to map signed longs on the virtual registers?
 - implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers...
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
@@ -117,6 +119,7 @@ Optimizations
 
 - change float<0, float==0, float>0 to use sgn(float) instead? (also see IR)
 - optimize inplaceLongShiftRight() for byte aligned cases
+- optimize floats.internal_cast_from_long and floats.internal_cast_as_long
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.
 - optimize optimizedBitwiseExpr()  for const and variable operands to not assign needlessly to R0-R3.

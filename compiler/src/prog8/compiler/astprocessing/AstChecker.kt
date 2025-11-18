@@ -497,8 +497,8 @@ internal class AstChecker(private val program: Program,
                         errors.err("parameter '${param.first.name}' should be (u)byte or bool", param.first.position)
                 }
                 else if(param.second.registerOrPair in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
-                    if (!param.first.type.isWord && !param.first.type.isString && !param.first.type.isArray && param.first.type!=DataType.pointer(BaseDataType.UBYTE)) {
-                        err("parameter '${param.first.name}' should be (u)word, str or ^^ubyte")
+                    if (!param.first.type.isWord && !param.first.type.isString && !param.first.type.isArray && !param.first.type.isPointer) {
+                        err("parameter '${param.first.name}' should be (u)word, str or a pointer")
                     }
                 }
                 else if(param.second.statusflag!=null) {

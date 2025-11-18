@@ -3077,7 +3077,14 @@ $endLabel""")
                     BaseDataType.BYTE -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName")
                     BaseDataType.UWORD -> asmgen.out("  jsr  floats.cast_as_uw_into_ya |  sty  $targetAsmVarName |  sta  $targetAsmVarName+1")
                     BaseDataType.WORD -> asmgen.out("  jsr  floats.cast_as_w_into_ay |  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
-                    BaseDataType.LONG -> TODO("cast float to long")
+                    BaseDataType.LONG -> {
+                        asmgen.out("""
+                            sta  cx16.r0L
+                            sty  cx16.r0H
+                            lda  #<$targetAsmVarName
+                            ldy  #>$targetAsmVarName
+                            jsr  floats.internal_cast_as_long""")
+                    }
                     else -> throw AssemblyError("weird type")
                 }
             }
@@ -3087,6 +3094,15 @@ $endLabel""")
                     asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName")
                 } else if(targetDt.isWord || targetDt.isPointer) {
                     asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
+                } else if(targetDt.isFloat) {
+                    asmgen.out("""
+                        lda  #<$targetAsmVarName
+                        ldy  #>$targetAsmVarName
+                        sta  cx16.r0L
+                        sty  cx16.r0H
+                        lda  #<$sourceAsmVarName
+                        ldy  #>$sourceAsmVarName
+                        jsr  floats.internal_cast_from_long""")
                 } else
                     throw AssemblyError("weird type")
             }

@@ -302,4 +302,58 @@ sub interpolate(float v, float inputMin, float inputMax, float outputMin, float 
     return v * (outputMax - outputMin) + outputMin
 }
 
+
+asmsub internal_cast_from_long(^^long lptr_src @AY, ^^float fptr_target @R0) {
+    %asm {{
+        ; convert long pointed to by AY into a float pointed to by R0
+        ; algorithm:  (msw(l) as word) as float * 65536.0 + (lsw(l) as float)
+        ; TODO optimize this by manipuliating the float memory bits directly
+        sta  P8ZP_SCRATCH_W1
+        sty  P8ZP_SCRATCH_W1+1
+        ldy  #3
+        lda  (P8ZP_SCRATCH_W1),y
+        sta  P8ZP_SCRATCH_REG
+        dey
+        lda  (P8ZP_SCRATCH_W1),y
+        ldy  P8ZP_SCRATCH_REG
+        jsr  GIVAYFAY
+        lda  #<FL_65536_const
+        ldy  #>FL_65536_const
+        jsr  CONUPK
+        jsr  FMULTT
+        jsr  pushFAC1
+        ldy  #1
+        lda  (P8ZP_SCRATCH_W1),y
+        sta  P8ZP_SCRATCH_REG
+        dey
+        lda  (P8ZP_SCRATCH_W1),y
+        ldy  P8ZP_SCRATCH_REG
+        jsr  GIVUAYFAY
+        jsr  MOVEF
+        clc
+        jsr  popFAC
+        jsr  FADDT
+        ldx  cx16.r0L
+        ldy  cx16.r0H
+        jmp  MOVMF
+
+FL_65536_const  .byte  $91, $00, $00, $00, $00  ; 65536.0
+        ; !notreached!
+    }}
+}
+
+asmsub internal_cast_as_long(^^float fptr_src @R0, ^^long lptr_target @AY) {
+    %asm {{
+        ; TODO actually implement this
+        sta  P8ZP_SCRATCH_W1
+        sty  P8ZP_SCRATCH_W1+1
+        lda  #0
+        ldy  #3
+-       sta  (P8ZP_SCRATCH_W1),y
+        dey
+        bpl  -
+        rts
+    }}
+}
+
 }
