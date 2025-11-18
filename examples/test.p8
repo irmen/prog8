@@ -18,7 +18,7 @@ main {
         floats.internal_cast_from_long(&lv, &f)
         txt.print_f(f)
         txt.spc()
-        internal_cast_as_long(&f, &lv)
+        floats.internal_cast_as_long(&f, &lv)
         txt.print_l(lv)
         txt.nl()
         lv = -987654321
@@ -27,7 +27,7 @@ main {
         floats.internal_cast_from_long(&lv, &f)
         txt.print_f(f)
         txt.spc()
-        internal_cast_as_long(&f, &lv)
+        floats.internal_cast_as_long(&f, &lv)
         txt.print_l(lv)
         txt.nl()
         lv = -$111101
@@ -38,7 +38,7 @@ main {
         floats.internal_cast_from_long(&lv, &f)
         txt.print_f(f)
         txt.spc()
-        internal_cast_as_long(&f, &lv)
+        floats.internal_cast_as_long(&f, &lv)
         txt.print_l(lv)
         txt.nl()
     }
@@ -75,21 +75,6 @@ main {
         txt.nl()
     }
 
-
-    sub internal_cast_as_long(^^float fptr_src, ^^long lptr_target) {
-        ; clobbers R0-R3
-        float @nozp f = fptr_src^^
-        alias sign = cx16.r3sL
-        sign = sgn(f)
-        if sign<0
-            f = abs(f)
-        cx16.r2 = (f / 65536.0) as uword
-        &long result = &cx16.r0
-        result = mklong2(cx16.r2, (f - 65536.0 * (cx16.r2 as float)) as uword)
-        if sign<0
-            result = -result
-        lptr_target^^ = result
-    }
 
 /*
     sub start2() {

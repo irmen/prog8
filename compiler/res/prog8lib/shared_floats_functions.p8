@@ -306,8 +306,8 @@ sub interpolate(float v, float inputMin, float inputMax, float outputMin, float 
 asmsub internal_cast_from_long(^^long lptr_src @AY, ^^float fptr_target @R0) {
     %asm {{
         ; convert long pointed to by AY into a float pointed to by R0
-        ; algorithm:  (msw(l) as word) as float * 65536.0 + (lsw(l) as float)
         ; TODO optimize this by manipuliating the float memory bits directly
+        ; slow algorithm implemented below:  (msw(l) as word) as float * 65536.0 + (lsw(l) as float)
         sta  P8ZP_SCRATCH_W1
         sty  P8ZP_SCRATCH_W1+1
         ldy  #3
@@ -336,24 +336,145 @@ asmsub internal_cast_from_long(^^long lptr_src @AY, ^^float fptr_target @R0) {
         ldx  cx16.r0L
         ldy  cx16.r0H
         jmp  MOVMF
-
-FL_65536_const  .byte  $91, $00, $00, $00, $00  ; 65536.0
-        ; !notreached!
     }}
 }
 
 asmsub internal_cast_as_long(^^float fptr_src @R0, ^^long lptr_target @AY) {
     %asm {{
-        ; TODO actually implement this
-        sta  P8ZP_SCRATCH_W1
-        sty  P8ZP_SCRATCH_W1+1
-        lda  #0
-        ldy  #3
--       sta  (P8ZP_SCRATCH_W1),y
-        dey
-        bpl  -
-        rts
+        ; convert float pointed to by R0 into a long pointed to by AY
+        ; TODO optimize this by manipuliating the float memory bits directly
+        ; clobbers R0-R3
+        ; slow algorithm implemented below:
+        ;        float @nozp f = fptr_src^^
+        ;        alias sign = cx16.r3sL
+        ;        sign = sgn(f)
+        ;        if sign<0
+        ;            f = abs(f)
+        ;        cx16.r2 = (f / 65536.0) as uword
+        ;        &long result = &cx16.r0
+        ;        result = mklong2(cx16.r2, (f - 65536.0 * (cx16.r2 as float)) as uword)
+        ;        if sign<0
+        ;            result = -result
+        ;        lptr_target^^ = result
+
+	result = cx16.r0        ; R0+R1
+	sign = cx16.r3sL
+
+	    ; save the target variable pointer on the stack
+	    pha
+	    tya
+	    pha
+
+	lda  cx16.r0
+	ldy  cx16.r0+1
+	sta  P8ZP_SCRATCH_PTR
+	sty  P8ZP_SCRATCH_PTR+1
+	jsr  floats.MOVFM
+	ldx  #<thefloat
+	ldy  #>thefloat
+	jsr  floats.MOVMF
+	ldy  #>thefloat
+	lda  #<thefloat
+	jsr  floats.func_sign_f_into_A
+	sta  sign
+	bpl  +
+	ldy  #>thefloat
+	lda  #<thefloat
+	jsr  floats.func_abs_f_into_FAC1
+	ldx  #<thefloat
+	ldy  #>thefloat
+	jsr  floats.MOVMF
++
+	lda  #<thefloat
+	ldy  #>thefloat
+	jsr  floats.MOVFM
+	jsr  floats.pushFAC1
+	lda  #<floats.FL_65536_const
+	ldy  #>floats.FL_65536_const
+	jsr  floats.MOVFM
+	sec
+	jsr  floats.popFAC
+	jsr  floats.FDIVT
+	jsr  floats.cast_FAC1_as_uw_into_ya
+	sty  cx16.r2
+	sta  cx16.r2+1
+
+	lda  cx16.r2
+	sta  cx16.r15
+	lda  cx16.r2+1
+	sta  cx16.r15+1
+	lda  #<thefloat
+	ldy  #>thefloat
+	jsr  floats.MOVFM
+	jsr  floats.pushFAC1
+	lda  #<floats.FL_65536_const
+	ldy  #>floats.FL_65536_const
+	jsr  floats.MOVFM
+	jsr  floats.pushFAC1
+	lda  cx16.r2
+	ldy  cx16.r2+1
+	jsr  floats.GIVUAYFAY
+	sec
+	jsr  floats.popFAC
+	jsr  floats.FMULTT
+	sec
+	jsr  floats.popFAC
+	jsr  floats.FSUBT
+	jsr  floats.cast_FAC1_as_uw_into_ya
+	sty  cx16.r14
+	sta  cx16.r14+1
+	lda  cx16.r14
+	sta  result
+	lda  cx16.r14+1
+	sta  result+1
+	lda  cx16.r14+2
+	sta  result+2
+	lda  cx16.r14+3
+	sta  result+3
+
+	lda  sign
+	bpl  +
+	lda  #0
+	sec
+	sbc  result
+	sta  result
+	lda  #0
+	sbc  result+1
+	sta  result+1
+	lda  #0
+	sbc  result+2
+	sta  result+2
+	lda  #0
+	sbc  result+3
+	sta  result+3
++
+
+    ; restore the target variable pointer from the stack, and put the result in it
+    pla
+	sta  P8ZP_SCRATCH_PTR+1
+    pla
+	sta  P8ZP_SCRATCH_PTR
+	ldy  #0
+	lda  result
+	sta  (P8ZP_SCRATCH_PTR),y
+	iny
+	lda  result+1
+	sta  (P8ZP_SCRATCH_PTR),y
+	iny
+	lda  result+2
+	sta  (P8ZP_SCRATCH_PTR),y
+	iny
+	lda  result+3
+	sta  (P8ZP_SCRATCH_PTR),y
+	rts
+
+	.section BSS
+thefloat	.fill  5
+	.send BSS
+
+	; !notreached!
     }}
 }
+
 
 }

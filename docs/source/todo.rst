@@ -1,7 +1,6 @@
 TODO
 ====
 
-- implement float to long casting and vice versa (6502)
 - IR BUG: bool negative = sgn(f)<0   register type error
 - 6502 codegen: lptr_target^^ = -lptr_target^^   then put that into internal_cast_as_long()
 - before final release: test all examples and programs again with final version of the compiler!

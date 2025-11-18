@@ -3,6 +3,8 @@
 FL_ONE_const	.byte  129     			; 1.0
 FL_ZERO_const	.byte  0,0,0,0,0		; 0.0
 FL_LOG2_const	.byte  $80, $31, $72, $17, $f8	; log(2)
+FL_65536_const  .byte  $91, $00, $00, $00, $00  ; 65536.0
+
 
 		.section BSS
 floats_temp_var         .byte  ?,?,?,?,?        ; temporary storage for a float
