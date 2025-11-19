@@ -14,6 +14,8 @@ floats {
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
 
+const uword FAC_ADDR = $c3
+
 extsub $fe00 = AYINT() clobbers(A,X,Y)          ; fac1-> signed word in 'facmo' and 'faclo', MSB FIRST. DON'T USE THIS, USE WRAPPER 'AYINT2' INSTEAD.  (might throw ILLEGAL QUANTITY)
 
 ; GIVAYF: signed word in Y/A (note different lsb/msb order) -> float in fac1

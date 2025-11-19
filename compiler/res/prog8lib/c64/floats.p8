@@ -11,6 +11,7 @@ floats {
 		; note: the fac1 and fac2 are working registers and take 6 bytes each,
 		; floats in memory  (and rom) are stored in 5-byte MFLPT packed format.
 
+const uword FAC_ADDR = $61
 
 ; note: fac1/2 might get clobbered even if not mentioned in the function's name.
 ; note: for subtraction and division, the left operand is in fac2, the right operand in fac1.
