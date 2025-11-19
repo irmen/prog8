@@ -4,47 +4,6 @@
 
 main {
     sub start() {
-        manual()
-        casts()
-    }
-
-    sub manual() {
-        txt.print("\nwith conversion function:\n")
-        long lv
-        float f
-        lv = 123456789
-        txt.print_l(lv)
-        txt.spc()
-        floats.internal_cast_from_long(&lv, &f)
-        txt.print_f(f)
-        txt.spc()
-        floats.internal_cast_as_long(&f, &lv)
-        txt.print_l(lv)
-        txt.nl()
-        lv = -987654321
-        txt.print_l(lv)
-        txt.spc()
-        floats.internal_cast_from_long(&lv, &f)
-        txt.print_f(f)
-        txt.spc()
-        floats.internal_cast_as_long(&f, &lv)
-        txt.print_l(lv)
-        txt.nl()
-        lv = -$111101
-        txt.print_l(lv)
-        txt.spc()
-        txt.print_ulhex(lv, true)
-        txt.spc()
-        floats.internal_cast_from_long(&lv, &f)
-        txt.print_f(f)
-        txt.spc()
-        floats.internal_cast_as_long(&f, &lv)
-        txt.print_l(lv)
-        txt.nl()
-    }
-
-    sub casts() {
-        txt.print("\nwith casting:\n")
         long lv
         float f
         lv = 123456789

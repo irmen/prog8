@@ -3083,7 +3083,7 @@ $endLabel""")
                             sty  cx16.r0H
                             lda  #<$targetAsmVarName
                             ldy  #>$targetAsmVarName
-                            jsr  floats.internal_cast_as_long""")
+                            jsr  floats.cast_as_long""")
                     }
                     else -> throw AssemblyError("weird type")
                 }
@@ -3102,7 +3102,7 @@ $endLabel""")
                         sty  cx16.r0H
                         lda  #<$sourceAsmVarName
                         ldy  #>$sourceAsmVarName
-                        jsr  floats.internal_cast_from_long""")
+                        jsr  floats.cast_from_long""")
                 } else
                     throw AssemblyError("weird type")
             }

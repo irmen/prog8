@@ -223,6 +223,7 @@ LIBRARY MODULE NAME: floats
 floats  {
     const float  E 
     const float  EPSILON 
+    const uword  FAC_ADDR 
     const float  PI 
     const float  TWOPI 
     const float  π 

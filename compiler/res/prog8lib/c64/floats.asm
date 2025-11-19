@@ -128,6 +128,72 @@ cast_FAC1_as_w_into_ay	.proc               ; also used for float 2 b
 		.pend
 
 
+cast_from_long          .proc
+        ; convert long pointed to by AY into a float pointed to by R0
+        ; a bit slow algorithm implemented below:  (msw(l) as word) as float * 65536.0 + (lsw(l) as float)
+        sta  P8ZP_SCRATCH_W1
+        sty  P8ZP_SCRATCH_W1+1
+        ldy  #3
+        lda  (P8ZP_SCRATCH_W1),y
+        sta  P8ZP_SCRATCH_REG
+        dey
+        lda  (P8ZP_SCRATCH_W1),y
+        ldy  P8ZP_SCRATCH_REG
+        jsr  GIVAYFAY
+        lda  #<FL_65536_const
+        ldy  #>FL_65536_const
+        jsr  CONUPK
+        jsr  FMULTT
+        jsr  pushFAC1
+        ldy  #1
+        lda  (P8ZP_SCRATCH_W1),y
+        sta  P8ZP_SCRATCH_REG
+        dey
+        lda  (P8ZP_SCRATCH_W1),y
+        ldy  P8ZP_SCRATCH_REG
+        jsr  GIVUAYFAY
+        jsr  MOVEF
+        clc
+        jsr  popFAC
+        jsr  FADDT
+        ldx  cx16.r0L
+        ldy  cx16.r0H
+        jmp  MOVMF
+        .pend
+
+cast_as_long            .proc
+        ; convert float pointed to by R0 into a long pointed to by AY
+
+        FACHO = FAC_ADDR + 1
+
+        ; save the target variable pointer on the stack
+        pha
+        tya
+        pha
+
+        lda  cx16.r0L
+        ldy  cx16.r0H
+        jsr  MOVFM
+        jsr  QINT
+
+        ; restore the target variable pointer from the stack, and put the result in it
+        pla
+        sta  P8ZP_SCRATCH_PTR+1
+        pla
+        sta  P8ZP_SCRATCH_PTR
+
+        ldx  #3
+        ldy  #0
+-       lda  FACHO,x
+        sta  (P8ZP_SCRATCH_PTR),y
+        iny
+        dex
+        bpl -
+        rts
+        .pend
+
+
+
 copy_float	.proc
 		; -- copies the 5 bytes of the mflt value pointed to by P8ZP_SCRATCH_W1,
 		;    into the 5 bytes pointed to by A/Y.  Clobbers A,Y.
