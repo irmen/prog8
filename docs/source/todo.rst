@@ -59,7 +59,8 @@ Future Things and Ideas
 
 IR/VM
 -----
-- make SGN set the N,Z flags and then optimize float<0 float==0 float>0 to use SGN instruction.  Check what code is generated for other data types.
+- optimize bool b = sgn(value)<0: still does a compare with 0 even though SGN sets all status bits. What is the code when a BIT instruction is used?
+- optimize float<0 float==0 float>0 to use SGN instruction?  Check what code is generated for other data types.
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg

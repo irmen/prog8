@@ -31,10 +31,14 @@ main {
         txt.print_bool(b4)
         txt.nl()
 
-        b1 = sgn(bv)>0
-        b2 = sgn(wv)>0
-        b3 = sgn(lv)>0
-        b4 = sgn(fv)>0
+        bv = 1
+        wv = 1
+        lv = 1
+        fv = 1.1
+        b1 = sgn(bv)<0
+        b2 = sgn(wv)<0
+        b3 = sgn(lv)<0
+        b4 = sgn(fv)<0
         txt.print_bool(b1)
         txt.print_bool(b2)
         txt.print_bool(b3)

@@ -1433,12 +1433,26 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSGN(i: IRInstruction) {
+        var sign: Int
         when(i.type!!) {
-            IRDataType.BYTE -> registers.setSB(i.reg1!!, registers.getSB(i.reg2!!).toInt().sign.toByte())
-            IRDataType.WORD -> registers.setSB(i.reg1!!, registers.getSW(i.reg2!!).toInt().sign.toByte())
-            IRDataType.LONG -> registers.setSB(i.reg1!!, registers.getSL(i.reg2!!).sign.toByte())
-            IRDataType.FLOAT -> registers.setSB(i.reg1!!, registers.getFloat(i.fpReg1!!).sign.toInt().toByte())
+            IRDataType.BYTE -> {
+                sign = registers.getSB(i.reg2!!).toInt().sign
+                registers.setSB(i.reg1!!, sign.toByte())
+            }
+            IRDataType.WORD -> {
+                sign = registers.getSW(i.reg2!!).toInt().sign
+                registers.setSB(i.reg1!!, sign.toByte())
+            }
+            IRDataType.LONG -> {
+                sign = registers.getSL(i.reg2!!).sign
+                registers.setSB(i.reg1!!, sign.toByte())
+            }
+            IRDataType.FLOAT -> {
+                sign = registers.getFloat(i.fpReg1!!).sign.toInt()
+                registers.setSB(i.reg1!!, sign.toByte())
+            }
         }
+        statusbitsComparison(sign, i.type!!)
         nextPc()
     }
 

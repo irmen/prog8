@@ -498,7 +498,8 @@ val OpcodesThatEndSSAblock = OpcodesThatBranchUnconditionally + arrayOf(
 val OpcodesThatSetStatusbitsIncludingCarry = arrayOf(
     Opcode.BIT,
     Opcode.CMP,
-    Opcode.CMPI
+    Opcode.CMPI,
+    Opcode.SGN
 )
 val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOAD,
