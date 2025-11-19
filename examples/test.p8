@@ -4,33 +4,41 @@
 
 main {
     sub start() {
-        long lv
-        float f
-        lv = 123456789
-        txt.print_l(lv)
-        txt.spc()
-        f = lv as float
-        txt.print_f(f)
-        txt.spc()
-        txt.print_l(f as long)
+        long @shared lv = -1
+        word @shared wv = -1
+        byte @shared bv = -1
+        float @shared fv = -1.1
+        bool b1, b2, b3, b4 = false
+
+        b1 = bv<0
+        b2 = wv<0
+        b3 = lv<0
+        b4 = fv<0
+        txt.print_bool(b1)
+        txt.print_bool(b2)
+        txt.print_bool(b3)
+        txt.print_bool(b4)
         txt.nl()
-        lv = -987654321
-        txt.print_l(lv)
-        txt.spc()
-        f = lv as float
-        txt.print_f(f)
-        txt.spc()
-        txt.print_l(f as long)
+
+        b1=b2=b3=b4=false
+        b1 = sgn(bv)<0
+        b2 = sgn(wv)<0
+        b3 = sgn(lv)<0
+        b4 = sgn(fv)<0
+        txt.print_bool(b1)
+        txt.print_bool(b2)
+        txt.print_bool(b3)
+        txt.print_bool(b4)
         txt.nl()
-        lv = -$111101
-        txt.print_l(lv)
-        txt.spc()
-        txt.print_ulhex(lv, true)
-        txt.spc()
-        f = lv as float
-        txt.print_f(f)
-        txt.spc()
-        txt.print_l(f as long)
+
+        b1 = sgn(bv)>0
+        b2 = sgn(wv)>0
+        b3 = sgn(lv)>0
+        b4 = sgn(fv)>0
+        txt.print_bool(b1)
+        txt.print_bool(b2)
+        txt.print_bool(b3)
+        txt.print_bool(b4)
         txt.nl()
     }
 

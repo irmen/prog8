@@ -358,3 +358,11 @@ There are a few things to note:
 .. note::
     The ROMable code generation is still quite experimental. Problems may still surface, and perhaps
     stuff will change a bit in a future compiler version.
+
+
+
+Formal ANTLR4 syntax and grammar definition
+-------------------------------------------
+
+.. literalinclude :: ../../parser/src/main/antlr/Prog8ANTLR.g4
+   :language: antlr

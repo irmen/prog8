@@ -1102,7 +1102,8 @@ data class IRInstruction(
                 Opcode.LOADX,
                 Opcode.STOREX,
                 Opcode.STOREIX,
-                Opcode.STOREZX -> IRDataType.BYTE
+                Opcode.STOREZX,
+                Opcode.SGN -> IRDataType.BYTE
                 Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
                 else -> IRDataType.WORD
             }

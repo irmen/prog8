@@ -1,8 +1,6 @@
 TODO
 ====
 
-- IR BUG: bool negative = sgn(f)<0   register type error
-- 6502 codegen: lptr_target^^ = -lptr_target^^   then put that into internal_cast_as_long()
 - before final release: test all examples and programs again with final version of the compiler!
 
 
@@ -118,7 +116,6 @@ Optimizations
 
 - change float<0, float==0, float>0 to use sgn(float) instead? (also see IR)
 - optimize inplaceLongShiftRight() for byte aligned cases
-- optimize floats.internal_cast_from_long and floats.internal_cast_as_long
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.
 - optimize optimizedBitwiseExpr()  for const and variable operands to not assign needlessly to R0-R3.
@@ -131,6 +128,7 @@ Optimizations
 - in Identifier: use typedarray of strings instead of listOf? Other places?
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
+- optimize floats.cast_from_long and floats.cast_as_long by directly accessing FAC bits?
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
   This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on

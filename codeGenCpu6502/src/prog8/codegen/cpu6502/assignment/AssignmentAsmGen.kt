@@ -5342,7 +5342,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    TargetStorageKind.POINTER -> pointergen.inplaceByteNegate(PtrTarget(target), ignoreDatatype, scope)
+                    TargetStorageKind.POINTER -> pointergen.inplaceByteNegate(PtrTarget(target), scope)
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -5403,7 +5403,7 @@ $endLabel""")
                     }
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is ubyte, can't negate that")
                     TargetStorageKind.ARRAY -> assignPrefixedExpressionToArrayElt(makePrefixedExprFromArrayExprAssign("-", assign), scope)
-                    TargetStorageKind.POINTER -> pointergen.inplaceWordNegate(PtrTarget(target), ignoreDatatype, scope)
+                    TargetStorageKind.POINTER -> pointergen.inplaceWordNegate(PtrTarget(target), scope)
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }
@@ -5428,7 +5428,7 @@ $endLabel""")
                     TargetStorageKind.ARRAY -> TODO(" - long array ${target.position}")
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                     TargetStorageKind.REGISTER -> TODO("32 bits register negate ${target.position}")
-                    TargetStorageKind.POINTER -> TODO("long negate via pointer ${target.position}")
+                    TargetStorageKind.POINTER -> pointergen.inplaceLongNegate(PtrTarget(target), scope)
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }
             }

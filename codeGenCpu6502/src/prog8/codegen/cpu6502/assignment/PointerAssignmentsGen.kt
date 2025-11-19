@@ -117,12 +117,16 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         TODO("inplace word invert pointer deref ${target.position}")
     }
 
-    internal fun inplaceByteNegate(target: PtrTarget, ignoreDatatype: Boolean, scope: IPtSubroutine?) {
+    internal fun inplaceByteNegate(target: PtrTarget, scope: IPtSubroutine?) {
         TODO("inplace byte negate to pointer deref ${target.position}")
     }
 
-    internal fun inplaceWordNegate(target: PtrTarget, ignoreDatatype: Boolean, scope: IPtSubroutine?) {
+    internal fun inplaceWordNegate(target: PtrTarget, scope: IPtSubroutine?) {
         TODO("inplace word negate pointer deref ${target.position}")
+    }
+
+    internal fun inplaceLongNegate(target: PtrTarget, scope: IPtSubroutine?) {
+        TODO("inplace long negate pointer deref ${target.position}")
     }
 
     internal fun inplaceFloatNegate(target: PtrTarget, scope: IPtSubroutine?) {
