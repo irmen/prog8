@@ -4,46 +4,50 @@
 
 main {
     sub start() {
-        long @shared lv = -1
-        word @shared wv = -1
-        byte @shared bv = -1
-        float @shared fv = -1.1
-        bool b1, b2, b3, b4 = false
+        float @shared fv
 
-        b1 = bv<0
-        b2 = wv<0
-        b3 = lv<0
-        b4 = fv<0
-        txt.print_bool(b1)
-        txt.print_bool(b2)
-        txt.print_bool(b3)
-        txt.print_bool(b4)
+        fv = -22
+        compares()
+        fv=0
+        compares()
+        fv=33
+        compares()
         txt.nl()
 
-        b1=b2=b3=b4=false
-        b1 = sgn(bv)<0
-        b2 = sgn(wv)<0
-        b3 = sgn(lv)<0
-        b4 = sgn(fv)<0
-        txt.print_bool(b1)
-        txt.print_bool(b2)
-        txt.print_bool(b3)
-        txt.print_bool(b4)
-        txt.nl()
+        fv = -22
+        signs()
+        fv=0
+        signs()
+        fv=33
+        signs()
 
-        bv = 1
-        wv = 1
-        lv = 1
-        fv = 1.1
-        b1 = sgn(bv)<0
-        b2 = sgn(wv)<0
-        b3 = sgn(lv)<0
-        b4 = sgn(fv)<0
-        txt.print_bool(b1)
-        txt.print_bool(b2)
-        txt.print_bool(b3)
-        txt.print_bool(b4)
-        txt.nl()
+        sub compares() {
+            txt.print("compares\n")
+            if fv==0
+                txt.print(" ==0\n")
+            if fv<=0
+                txt.print(" <=0\n")
+            if fv<0
+                txt.print(" <0\n")
+            if fv>=0
+                txt.print(" >=0\n")
+            if fv>0
+                txt.print(" >0\n")
+        }
+
+        sub signs() {
+            txt.print("signs\n")
+            if sgn(fv)==0
+                txt.print(" ==0\n")
+            if sgn(fv)<=0
+                txt.print(" <=0\n")
+            if sgn(fv)<0
+                txt.print(" <0\n")
+            if sgn(fv)>=0
+                txt.print(" >=0\n")
+            if sgn(fv)>0
+                txt.print(" >0\n")
+        }
     }
 
 

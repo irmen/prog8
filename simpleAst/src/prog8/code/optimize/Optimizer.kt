@@ -13,6 +13,7 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
         return
     while (errors.noErrors() &&
         optimizeAssignTargets(program, st)
+        + optimizeFloatComparesToZero(program)
         + optimizeBinaryExpressions(program, options) > 0) {
         // keep rolling
     }
@@ -146,6 +147,30 @@ private fun optimizeBinaryExpressions(program: PtProgram, options: CompilationOp
                 }
             } else if(node.operator=="*" && !node.right.type.isFloat && constvalue in negativePowersOfTwoFloat) {
                 TODO("x * negative power-of-two -> bitshift  ${node.position}")
+            }
+        }
+        true
+    }
+    return changes
+}
+
+
+private fun optimizeFloatComparesToZero(program: PtProgram): Int {
+    var changes = 0
+    walkAst(program) { node: PtNode, depth: Int ->
+        if (node is PtBinaryExpression) {
+            val constvalue = node.right.asConstValue()
+            if(node.type.isBool && constvalue==0.0 && node.left.type.isFloat && node.operator in ComparisonOperators) {
+                // float == 0 --> sgn(float) == 0
+                val sign = PtBuiltinFunctionCall("sgn", false, true, DataType.BYTE, node.position)
+                sign.add(node.left)
+                val replacement = PtBinaryExpression(node.operator, DataType.BOOL, node.position)
+                replacement.add(sign)
+                replacement.add(PtNumber(BaseDataType.BYTE, 0.0, node.position))
+                replacement.parent = node.parent
+                val index = node.parent.children.indexOf(node)
+                node.parent.children[index] = replacement
+                changes++
             }
         }
         true

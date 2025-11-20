@@ -59,7 +59,6 @@ Future Things and Ideas
 
 IR/VM
 -----
-- optimize bool b = sgn(value)<0: still does a compare with 0 even though SGN sets all status bits. What is the code when a BIT instruction is used?
 - optimize float<0 float==0 float>0 to use SGN instruction?  Check what code is generated for other data types.
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
@@ -115,7 +114,8 @@ Libraries
 Optimizations
 -------------
 
-- change float<0, float==0, float>0 to use sgn(float) instead? (also see IR)
+- (6502) optimize if sgn(value)<0: still does a compare with 0 even though SGN sets all status bits. What is the code when a BIT instruction is used?
+- compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes twice as long as with prog8 10.5
 - optimize inplaceLongShiftRight() for byte aligned cases
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.

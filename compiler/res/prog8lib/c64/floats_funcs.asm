@@ -2,8 +2,11 @@
 
 
 func_sign_f_into_A	.proc
+		; sign in A, also sets status flags
 		jsr  MOVFM
-		jmp  SIGN
+		jsr  SIGN
+		cmp  #0
+		rts
 		.pend
 
 
