@@ -2,8 +2,7 @@
 
 FL_ONE_const	.byte  129     			; 1.0
 FL_ZERO_const	.byte  0,0,0,0,0		; 0.0
-FL_LOG2_const	.byte  $80, $31, $72, $17, $f8	; log(2)
-FL_65536_const  .byte  $91, $00, $00, $00, $00  ; 65536.0
+; note: don't add too many constants here because they all end up in the resulting program
 
 
 		.section BSS
@@ -159,6 +158,9 @@ cast_from_long          .proc
         ldx  cx16.r0L
         ldy  cx16.r0H
         jmp  MOVMF
+
+FL_65536_const  .byte  $91, $00, $00, $00, $00  ; 65536.0
+        ; !notreached!
         .pend
 
 cast_as_long            .proc

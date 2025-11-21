@@ -160,6 +160,9 @@ sub log2(float value) -> float {
         ldy  #>FL_LOG2_const
         jsr  MOVFM
         jmp  FDIVT
+
+FL_LOG2_const	.byte  $80, $31, $72, $17, $f8	; log(2)
+        ; !notreached!
     }}
 }
 

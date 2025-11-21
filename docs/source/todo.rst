@@ -1,7 +1,7 @@
 TODO
 ====
 
-- before final release: test all examples and programs again with final version of the compiler!
+- before final release: test all examples again with final version of the compiler!
 
 
 Future Things and Ideas
@@ -114,21 +114,21 @@ Libraries
 Optimizations
 -------------
 
-- (6502) optimize if sgn(value)<0: still does a compare with 0 even though SGN sets all status bits. What is the code when a BIT instruction is used?
-- compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes twice as long as with prog8 10.5
+- (6502) optimize if sgn(value)<0: still does a compare with 0 even though SGN sets all status bits.
+- longvar = lptr^^ ,  lptr2^^=lptr^^  now go via temporary registers, optimize this to avoid using temps.  (seems like it is dereferencing the pointer first and then assigning the intermediate value)
 - optimize inplaceLongShiftRight() for byte aligned cases
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
-- optimize longEqualsValue() for const and variable operands to not assign needlessly to R0-R3.
-- optimize optimizedBitwiseExpr()  for const and variable operands to not assign needlessly to R0-R3.
+- optimize longEqualsValue() for long const and variable operands to not assign needlessly to R0-R3.
+- optimize optimizedBitwiseExpr()  for long const and variable operands to not assign needlessly to R0-R3.
 - optimize inplacemodificationLongWithLiteralval() for more shift values such as 8, 16, 24 etc but take sign bit into account!
 - optimize simple cases in funcPeekL and funcPokeL
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
-- longvar = lptr^^  now goes via temporary registers, optimize this to avoid using temps. Also check lptr^^ = lvar.
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
 - in Identifier: use typedarray of strings instead of listOf? Other places?
+- Compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes twice as long as with prog8 10.5
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
-- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression"
+- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression" ... but maybe postpone until codegen from IR, where it seems solved?
 - optimize floats.cast_from_long and floats.cast_as_long by directly accessing FAC bits?
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
