@@ -1030,9 +1030,9 @@ class Subroutine(override val name: String,
                 replacement.parent = this
             }
             is NumericLiteral -> {
-                if(node===asmAddress?.address) {
+                if(node===asmAddress?.address || node==asmAddress?.address) {
                     asmAddress.address = replacement
-                } else if(node===asmAddress?.varbank) {
+                } else if(node==asmAddress?.varbank) {
                     asmAddress.constbank = replacement.number.toInt().toUByte()
                     asmAddress.varbank = null
                 } else throw FatalAstException("can't replace")

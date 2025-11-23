@@ -29,7 +29,7 @@ main {
     ubyte vera_rate
 
     sub start() {
-        ;; diskio.fastmode(1)
+        diskio.fastmode(1)
         txt.print("name of .wav file to play on drive 8: ")
         while 0==txt.input_chars(MUSIC_FILENAME) {
             ; until user types a name...

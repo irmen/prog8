@@ -38,9 +38,9 @@ class TestCompilerOnCharLit: FunSpec({
 
     test("testCharLitAsExtsubArg") {
         val platform = Cx16Target()
-        val result = compileText(platform, false, """
+        val result = compileText(platform, false, $$"""
             main {
-                extsub ${"$"}FFD2 = chrout(ubyte ch @ A)
+                extsub $FFD2 = chrout(ubyte ch @ A)
                 sub start() {
                     chrout('\n')
                 }
@@ -61,9 +61,9 @@ class TestCompilerOnCharLit: FunSpec({
 
     test("testCharVarAsExtsubArg") {
         val platform = Cx16Target()
-        val result = compileText(platform, false, """
+        val result = compileText(platform, false, $$"""
             main {
-                extsub ${"$"}FFD2 = chrout(ubyte ch @ A)
+                extsub $FFD2 = chrout(ubyte ch @ A)
                 sub start() {
                     ubyte ch = '\n'
                     chrout(ch)
@@ -96,9 +96,9 @@ class TestCompilerOnCharLit: FunSpec({
 
     test("testCharConstAsExtsubArg") {
         val platform = Cx16Target()
-        val result = compileText(platform, false, """
+        val result = compileText(platform, false, $$"""
             main {
-                extsub ${"$"}FFD2 = chrout(ubyte ch @ A)
+                extsub $FFD2 = chrout(ubyte ch @ A)
                 sub start() {
                     const ubyte ch = '\n'
                     chrout(ch)

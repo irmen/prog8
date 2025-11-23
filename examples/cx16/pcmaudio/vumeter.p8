@@ -2,17 +2,17 @@
 %import sprites
 %option no_sysinit
 
-; play a raw pcm stereo 16 bit audio file at 16021 hz,
+; play a raw pcm stereo 16 bit audio file at 14877 hz,
 ; with real-time VU meters and sample waveform displays.
 
 ; you can make an appropriate pcm file with one of the following commands:
-;   ffmpeg -i input_audio_file -ac 2 -ar 16021 -f s16le -acodec pcm_s16le music.pcm
-;   sox input_audio_file -e signed-integer -L -b 16 -c 2 -r 16021 -t raw music.pcm
+;   ffmpeg -i input_audio_file -ac 2 -ar 14877 -f s16le -acodec pcm_s16le music.pcm
+;   sox input_audio_file -e signed-integer -L -b 16 -c 2 -r 14877 -t raw music.pcm
 
 
 main {
 
-    const ubyte vera_rate = 42       ;  16021 hz
+    const ubyte vera_rate = 39       ;  14877 hz
     str pcmfile = "music.pcm"        ;  see format specs mentioned above
 
     sub start() {
@@ -34,7 +34,7 @@ main {
             cx16.GRAPH_put_next_char(cx16.r9L)
         cx16.r0 = 250
         cx16.r1 = 20
-        for cx16.r9L in iso:"16kHz stereo"
+        for cx16.r9L in iso:"15kHz stereo"
             cx16.GRAPH_put_next_char(cx16.r9L)
 
         cx16.rombank(0)                     ; activate kernal bank for faster calls

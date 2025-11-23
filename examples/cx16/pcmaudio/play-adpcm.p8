@@ -14,6 +14,8 @@
 ; $ ffmpeg -i source.mp3 -ss 00:01:27.50 -to 00:01:36.50  -ar 8000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav
 ; Or use a tool such as https://github.com/dbry/adpcm-xq   (make sure to set correct block size)
 ;
+; NOTE: sox may generate IMA-ADPCM files with a block size different than 256 bytes, which is not supported by this decoder. Use ffmpeg instead.
+;
 
 main {
 
