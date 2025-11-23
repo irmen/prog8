@@ -8,6 +8,7 @@
 ;       PRG size by a lot because they embed a large multiplication lookup table.
 
 
+%import textio
 %import math
 %import syslib
 
@@ -38,6 +39,8 @@ main  {
         repeat {
             clear_particles()
             update_particles()
+            txt.home()
+            txt.print_uw(active_particles)
             sys.waitvsync()
             sys.waitvsync()
         }

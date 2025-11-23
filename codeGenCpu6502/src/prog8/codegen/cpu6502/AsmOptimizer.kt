@@ -544,7 +544,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
         val third = lines[2].value
 
         if(!haslabel(second)) {
-            if ((" jmp" in first || "\tjmp" in first ) && (" rts" in second || "\trts" in second)) {
+            if ((" jmp" in first || "\tjmp" in first || " bra" in first || "\tbra" in first ) && (" rts" in second || "\trts" in second)) {
                 mods += Modification(lines[1].index, true, null)
             }
             else if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {

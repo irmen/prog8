@@ -8,4 +8,4 @@ Look in the Makefile to see how to build or run the various programs.
 and example program, you can find those efforts here on GitHub: https://github.com/adiee5/prog8-nes-target
 
 *gillham* has been working on a few other compilation targets, such as VIC-20 (various editions), Foenix, and CX16OS.
-you can find them here on GitHub: https://github.com/gillham/prog8targets
+These will be much more complete than the examples here. You can find them on GitHub: https://github.com/gillham/prog8targets

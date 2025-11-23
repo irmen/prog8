@@ -1,7 +1,12 @@
 TODO
 ====
 
-- before final release: test all examples again with final version of the compiler!
+
+
+Weird Heisenbug
+^^^^^^^^^^^^^^^
+- examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
+  caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?)
 
 
 Future Things and Ideas
