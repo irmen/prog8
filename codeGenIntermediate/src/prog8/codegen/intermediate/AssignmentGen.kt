@@ -191,7 +191,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "<<=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSLN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                        ">>=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.LSRN, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        ">>=" -> {
+                            val opc = if (signed) Opcode.ASRN else Opcode.LSRN
+                            addInstr(inplaceInstrs, IRInstruction(opc, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        }
                         "or=" -> {
                             val shortcutLabel = codeGen.createLabelName()
                             addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
