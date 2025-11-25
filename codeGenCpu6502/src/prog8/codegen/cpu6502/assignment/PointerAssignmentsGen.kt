@@ -305,13 +305,13 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             "<<" -> {
                 if(target.dt.isByte) inplaceByteShiftLeft(target, value)
                 else if(target.dt.isWord) inplaceWordShiftLeft(target, value)
-                else if(target.dt.isLong) TODO("inplace long << ${target.position}")
+                else if(target.dt.isLong) inplaceLongShiftLeft(target, value)
                 else throw AssemblyError("weird dt ${target.position}")
             }
             ">>" -> {
                 if(target.dt.isByte) inplaceByteShiftRight(target, value)
                 else if(target.dt.isWord) inplaceWordShiftRight(target, value)
-                else if(target.dt.isLong) TODO("inplace long >> ${target.position}")
+                else if(target.dt.isLong) inplaceLongShiftRight(target, value)
                 else throw AssemblyError("weird dt ${target.position}")
             }
             "&", "and" -> {
@@ -756,17 +756,24 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         asmgen.assignRegister(RegisterOrPair.AY, target)
     }
 
-    private fun inplaceWordShiftRight(target: PtrTarget, value: AsmAssignSource) {
+    private fun inplaceLongShiftRight(target: PtrTarget, value: AsmAssignSource) {
         val (zpPtrVar, offset) = deref(target.pointer)
 
-        if(target.dt.isSigned)
-            TODO("signed word shift right ${target.position} $value")
-
-        fun shift1unsigned() {
+        fun shift1signed() {
             asmgen.out("""
-                ldy  #${offset+1u}
+                ldy  #${offset}+3
                 lda  ($zpPtrVar),y
-                lsr  a
+                asl  a      ; save sign bit
+                lda  ($zpPtrVar),y
+                ror  a
+                sta  ($zpPtrVar),y
+                dey
+                lda  ($zpPtrVar),y
+                ror  a
+                sta  ($zpPtrVar),y
+                dey
+                lda  ($zpPtrVar),y
+                ror  a
                 sta  ($zpPtrVar),y
                 dey
                 lda  ($zpPtrVar),y
@@ -778,11 +785,11 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.LITERALNUMBER -> {
                 val number = value.number!!.number.toInt()
                 if(number==1) {
-                    shift1unsigned()
+                    shift1signed()
                 } else if(number>1) {
                     asmgen.out("  ldx  #$number")
                     asmgen.out("-")
-                    shift1unsigned()
+                    shift1signed()
                     asmgen.out("  dex |  bne  -")
                 }
             }
@@ -791,14 +798,14 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 val varname = value.asmVarname
                 asmgen.out("  ldx  $varname")
                 asmgen.out("-")
-                shift1unsigned()
+                shift1signed()
                 asmgen.out("  dex |  bne  -")
             }
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isByte)
                 asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.X)
                 asmgen.out("-")
-                shift1unsigned()
+                shift1signed()
                 asmgen.out("  dex |  bne  -")
             }
             SourceStorageKind.REGISTER -> {
@@ -806,10 +813,122 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 val register = value.register!!
                 asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE, null, target.position, register = RegisterOrPair.X))
                 asmgen.out("-")
-                shift1unsigned()
+                shift1signed()
                 asmgen.out("  dex |  bne  -")
             }
             else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    private fun inplaceWordShiftRight(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer)
+
+        if(target.dt.isSigned) {
+            // signed word shift right
+            fun shift1signed() {
+                asmgen.out("""
+                ldy  #${offset+1u}
+                lda  ($zpPtrVar),y
+                asl  a      ; save sign bit
+                lda  ($zpPtrVar),y
+                ror  a
+                sta  ($zpPtrVar),y
+                dey
+                lda  ($zpPtrVar),y
+                ror  a
+                sta  ($zpPtrVar),y""")
+            }
+
+            when(value.kind) {
+                SourceStorageKind.LITERALNUMBER -> {
+                    val number = value.number!!.number.toInt()
+                    if(number==1) {
+                        shift1signed()
+                    } else if(number>1) {
+                        asmgen.out("  ldx  #$number")
+                        asmgen.out("-")
+                        shift1signed()
+                        asmgen.out("  dex |  bne  -")
+                    }
+                }
+                SourceStorageKind.VARIABLE -> {
+                    require(value.datatype.isByte)
+                    val varname = value.asmVarname
+                    asmgen.out("  ldx  $varname")
+                    asmgen.out("-")
+                    shift1signed()
+                    asmgen.out("  dex |  bne  -")
+                }
+                SourceStorageKind.EXPRESSION -> {
+                    require(value.datatype.isByte)
+                    asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.X)
+                    asmgen.out("-")
+                    shift1signed()
+                    asmgen.out("  dex |  bne  -")
+                }
+                SourceStorageKind.REGISTER -> {
+                    require(value.datatype.isByte)
+                    val register = value.register!!
+                    asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE, null, target.position, register = RegisterOrPair.X))
+                    asmgen.out("-")
+                    shift1signed()
+                    asmgen.out("  dex |  bne  -")
+                }
+                else -> throw AssemblyError("weird source value $value")
+            }
+
+        } else {
+            // unsigned word shift right
+
+            fun shift1unsigned() {
+                asmgen.out("""
+                ldy  #${offset+1u}
+                lda  ($zpPtrVar),y
+                lsr  a
+                sta  ($zpPtrVar),y
+                dey
+                lda  ($zpPtrVar),y
+                ror  a
+                sta  ($zpPtrVar),y""")
+            }
+
+            when(value.kind) {
+                SourceStorageKind.LITERALNUMBER -> {
+                    val number = value.number!!.number.toInt()
+                    if(number==1) {
+                        shift1unsigned()
+                    } else if(number>1) {
+                        asmgen.out("  ldx  #$number")
+                        asmgen.out("-")
+                        shift1unsigned()
+                        asmgen.out("  dex |  bne  -")
+                    }
+                }
+                SourceStorageKind.VARIABLE -> {
+                    require(value.datatype.isByte)
+                    val varname = value.asmVarname
+                    asmgen.out("  ldx  $varname")
+                    asmgen.out("-")
+                    shift1unsigned()
+                    asmgen.out("  dex |  bne  -")
+                }
+                SourceStorageKind.EXPRESSION -> {
+                    require(value.datatype.isByte)
+                    asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.X)
+                    asmgen.out("-")
+                    shift1unsigned()
+                    asmgen.out("  dex |  bne  -")
+                }
+                SourceStorageKind.REGISTER -> {
+                    require(value.datatype.isByte)
+                    val register = value.register!!
+                    asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE, null, target.position, register = RegisterOrPair.X))
+                    asmgen.out("-")
+                    shift1unsigned()
+                    asmgen.out("  dex |  bne  -")
+                }
+                else -> throw AssemblyError("weird source value $value")
+            }
         }
     }
 
@@ -873,6 +992,68 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     dex
                     bne -
                     sta  ($zpPtrVar),y""")
+            }
+            else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    private fun inplaceLongShiftLeft(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer)
+
+        fun shift1() {
+            asmgen.out("""
+                ldy  #$offset
+                lda  ($zpPtrVar),y
+                asl  a
+                sta  ($zpPtrVar),y
+                iny
+                lda  ($zpPtrVar),y
+                rol  a
+                sta  ($zpPtrVar),y
+                iny
+                lda  ($zpPtrVar),y
+                rol  a
+                sta  ($zpPtrVar),y
+                iny
+                lda  ($zpPtrVar),y
+                rol  a
+                sta  ($zpPtrVar),y""")
+        }
+
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toInt()
+                if(number==1) {
+                    shift1()
+                } else if(number>1) {
+                    asmgen.out("  ldx  #$number")
+                    asmgen.out("-")
+                    shift1()
+                    asmgen.out("  dex |  bne  -")
+                }
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isByte)
+                val varname = value.asmVarname
+                asmgen.out("  ldx  $varname")
+                asmgen.out("-")
+                shift1()
+                asmgen.out("  dex |  bne  -")
+            }
+            SourceStorageKind.EXPRESSION -> {
+                require(value.datatype.isByte)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.X)
+                asmgen.out("-")
+                shift1()
+                asmgen.out("  dex |  bne  -")
+            }
+            SourceStorageKind.REGISTER -> {
+                require(value.datatype.isByte)
+                val register = value.register!!
+                asmgen.assignRegister(register, AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE, null, target.position, register = RegisterOrPair.X))
+                asmgen.out("-")
+                shift1()
+                asmgen.out("  dex |  bne  -")
             }
             else -> throw AssemblyError("weird source value $value")
         }

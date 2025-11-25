@@ -1,18 +1,54 @@
+%option no_sysinit ; leave the CX16 defaults in place
+%zeropage basicsafe ; don't step on BASIC zero page locations
 %import textio
-%zeropage basicsafe
 
 main {
+    struct element {
+        ubyte type
+        long  x
+        word  w
+    }
+
+
     sub start() {
-        long @shared lv1, lv2
+        word w = -1111
+        long l = -11111111
+        ^^element myElement = [1, -11111111, -1111]
 
-        lv1 = 1111
-        lv2 = 8888
+        txt.print_w(w)
+        txt.spc()
+        w >>= 4
+        txt.print_w(w)
+        txt.spc()
+        w <<= 4
+        txt.print_w(w)
+        txt.nl()
 
-        cx16.r0r1sl = lv1
-        cx16.r14r15sl = lv2 + cx16.r0r1sl
+        txt.print_w(myElement.w)
+        txt.spc()
+        myElement.w >>= 4
+        txt.print_w(myElement.w)
+        txt.spc()
+        myElement.w <<= 4
+        txt.print_w(myElement.w)
+        txt.nl()
 
-        txt.print_l(cx16.r14r15sl)
-
-
+        txt.nl()
+        txt.print_l(l)
+        txt.spc()
+        l >>= 4
+        txt.print_l(l)
+        txt.spc()
+        l <<= 4
+        txt.print_l(l)
+        txt.nl()
+        txt.print_l(myElement.x)
+        txt.spc()
+        myElement.x >>= 4
+        txt.print_l(myElement.x)
+        txt.spc()
+        myElement.x <<= 4
+        txt.print_l(myElement.x)
+        txt.nl()
     }
 }

@@ -1,8 +1,6 @@
 TODO
 ====
 
-Implement struct field long bitshifts.  See github issue 194
-
 
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
