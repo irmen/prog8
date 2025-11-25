@@ -203,6 +203,16 @@ cx16 {
     &word r14s = $001e
     &word r15s = $0020
 
+    ; signed long versions
+    &long r0r1sl  = $0002
+    &long r2r3sl  = $0006
+    &long r4r5sl  = $000a
+    &long r6r7sl  = $000e
+    &long r8r0sl  = $0012
+    &long r10r11sl = $0016
+    &long r12r13sl = $001a
+    &long r14r15sl = $001e
+
     ; ubyte versions (low and high bytes)
     &ubyte r0L  = $0002
     &ubyte r1L  = $0004

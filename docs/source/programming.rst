@@ -1155,6 +1155,7 @@ so pay attention to any jumps and rts instructions in the inlined code!
 
     - ``cx16.r0`` - ``cx16.r15``    (memory-mapped **uword** values, most often these are used)
     - ``cx16.r0s`` - ``cx16.r15s``  (memory-mapped **word** values, used when you need a signed word)
+    - ``cx16.r0r1sl`` - ``cx16.r14r15sl``  (memory-mapped **long** values in 2 consecutive virtual registers, used when you need a signed long)
     - ``cx16.r0H``, ``cx16.r0L``     (for each r0..r15; memory-mapped **ubyte** values, both bytes of the register)
     - ``cx16.r0sH``, ``cx16.r0sL``   (for each r0..r15; memory-mapped **byte** values, both bytes of the register)
     - ``cx16.r0bH``, ``cx16.r0bL``   (for each r0..r15; memory-mapped **bool** values, both bytes of the register)

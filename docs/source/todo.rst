@@ -1,6 +1,7 @@
 TODO
 ====
 
+Implement struct field long bitshifts.  See github issue 194
 
 
 Weird Heisenbug
@@ -12,8 +13,7 @@ Weird Heisenbug
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - make $8000000 a valid long integer (-2147483648) this is more involved than you think.  To make this work: long \|= $80000000
-- add cx16.r0r1sL, r2r3sL, ... etc to map signed longs on the virtual registers?
-- implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers...
+- implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers... (github issue 196?)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)
