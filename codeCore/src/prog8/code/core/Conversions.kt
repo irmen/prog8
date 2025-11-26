@@ -14,8 +14,11 @@ fun Number.toHex(): String {
     //  larger -> "$12345678"
     // negative values are prefixed with '-'.
     val integer = this.toLong()
-    if(integer<0)
+    if(integer<0) {
+        if(integer==-2147483648L)
+            return "$80000000"      // the exception to the rule, because -$80000000 is not a valid hex number
         return '-' + abs(integer).toHex()
+    }
     return when (integer) {
         in 0 until 16 -> integer.toString()
         in 0 until 0x100 -> "$"+integer.toString(16).padStart(2,'0')

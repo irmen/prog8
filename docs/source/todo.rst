@@ -10,7 +10,7 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- make $8000000 a valid long integer (-2147483648) this is more involved than you think.  To make this work: long \|= $80000000
+- when implementing unsigned longs: remove the (mulitple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers... (github issue 196?)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0

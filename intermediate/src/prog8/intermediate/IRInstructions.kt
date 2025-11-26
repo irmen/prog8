@@ -921,7 +921,7 @@ data class IRInstruction(
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
                     IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }
-                    IRDataType.LONG -> require(immediate in -2147483647..2147483647) { "immediate value out of range for long: $immediate" }
+                    IRDataType.LONG -> require(immediate in -2147483648..2147483647) { "immediate value out of range for long: $immediate" }
                     IRDataType.FLOAT, null -> {}
                 }
             }

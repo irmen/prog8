@@ -2375,7 +2375,7 @@ internal class AstChecker(private val program: Program,
                 if(value.type==BaseDataType.FLOAT)
                     err("integer value expected instead of float; possible loss of precision")
                 val number=value.number
-                if (number < -2147483647.0 || number > 2147483647.0)
+                if (number < -2147483648.0 || number > 2147483647.0)
                     return err("value '$number' out of range for long")
             }
             targetDt.isArray -> {

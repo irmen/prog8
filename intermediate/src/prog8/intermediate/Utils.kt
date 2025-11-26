@@ -64,11 +64,11 @@ fun parseIRValue(value: String): Double {
     return if(value.startsWith("-"))
         -parseIRValue(value.substring(1))
     else if(value.startsWith('$'))
-        value.substring(1).toInt(16).toDouble()
+        value.substring(1).toLong(16).toDouble()
     else if(value.startsWith('%'))
-        value.substring(1).toInt(2).toDouble()
+        value.substring(1).toLong(2).toDouble()
     else if(value.startsWith("0x"))
-        value.substring(2).toInt(16).toDouble()
+        value.substring(2).toLong(16).toDouble()
     else if(value.startsWith('_'))
         throw IRParseException("attempt to parse a label as numeric value")
     else if(value.startsWith('&'))
@@ -154,7 +154,13 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                     if (immediateInt == null && immediateFp == null) {
                         if (type == IRDataType.FLOAT && opcode != Opcode.LOADFIELD && opcode != Opcode.STOREFIELD)
                             immediateFp = value
-                        else
+                        else if(type == IRDataType.LONG) {
+                            val immediateLong = value.toLong()
+                            if(immediateLong == 0x80000000L) {
+                                immediateInt = -2147483648
+                            } else
+                                immediateInt = immediateLong.toInt()
+                        } else
                             immediateInt = value.toInt()
                     } else {
                         address = value.toInt()
@@ -210,7 +216,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                     throw IRParseException("immediate value out of range for word: $immediateInt")
             }
             IRDataType.LONG -> {
-                if (immediateInt!=null && immediateInt < -2147483647)
+                if (immediateInt!=null && (immediateInt.toLong() < -2147483648L || immediateInt.toLong() > 0x7fffffffL))
                     throw IRParseException("immediate value out of range for long: $immediateInt")
             }
             IRDataType.FLOAT -> {}

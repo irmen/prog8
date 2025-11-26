@@ -225,7 +225,7 @@ value                     datatype
 0 .. 255                  ubyte
 -32768 .. 32767           word
 0 .. 65535                uword
--2147483647 .. 2147483647 long  (there is no unsigned long right now)
+-2147483648 .. 2147483647 long  (there is no unsigned long right now)
 ========================= =================
 
 Numeric expressions usually 'stay within their type' unless a cast is used, see :ref:`arithmetic`.

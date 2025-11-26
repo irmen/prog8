@@ -687,8 +687,12 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
                     in -128..127 -> NumericLiteral(BaseDataType.BYTE, dvalue, position)
                     in 0..65535 -> NumericLiteral(BaseDataType.UWORD, dvalue, position)
                     in -32768..32767 -> NumericLiteral(BaseDataType.WORD, dvalue, position)
-                    in -2147483647..2147483647 -> NumericLiteral(BaseDataType.LONG, dvalue, position)
-                    else -> NumericLiteral(BaseDataType.FLOAT, dvalue, position)
+                    else -> {
+                        if(dvalue in -2147483648.0 .. 2147483647.0)
+                            NumericLiteral(BaseDataType.LONG, dvalue, position)
+                        else
+                            NumericLiteral(BaseDataType.FLOAT, dvalue, position)
+                    }
                 }
             }
         }

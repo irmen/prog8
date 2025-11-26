@@ -7,10 +7,13 @@ import io.kotest.matchers.doubles.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtNumber
 import prog8.code.core.InternalCompilerException
 import prog8.code.core.toHex
 import prog8.code.target.C64Target
 import prog8.code.target.Mflpt5
+import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 
@@ -224,5 +227,36 @@ class TestNumbers: FunSpec({
         errors.errors[3] shouldContain "byte doesn't match"
         errors.errors[4] shouldContain "out of range"
         errors.errors[5] shouldContain "byte doesn't match"
+    }
+
+
+    test("biggest long numbers") {
+        val src= $$"""
+main {
+    sub start() {
+        long @shared l1, l2
+
+        l1 = $7fffffff
+        l2 = $80000000
+        l1 = -2147483648
+        l2 = -2147483649     ; will be truncated
+        l1 = $abcd1234
+        l2 = -$7fffffff
+        l1 = $80000001
+        l2 = -$80
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        val result = compileText(VMTarget(), false, src, outputDir)!!
+        val st = result.codegenAst!!.entrypoint()!!
+        st.children.size shouldBe 13
+        ((st.children[4] as PtAssignment).value as PtNumber).number shouldBe 2147483647
+        ((st.children[5] as PtAssignment).value as PtNumber).number shouldBe -2147483648
+        ((st.children[6] as PtAssignment).value as PtNumber).number shouldBe -2147483648
+        ((st.children[7] as PtAssignment).value as PtNumber).number shouldBe 2147483647
+        ((st.children[8] as PtAssignment).value as PtNumber).number shouldBe -1412623820
+        ((st.children[9] as PtAssignment).value as PtNumber).number shouldBe -2147483647
+        ((st.children[10] as PtAssignment).value as PtNumber).number shouldBe -2147483647
+        ((st.children[11] as PtAssignment).value as PtNumber).number shouldBe -128
     }
 })

@@ -347,7 +347,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                         in -128..127 -> BaseDataType.BYTE
                         in 0..65535 -> BaseDataType.UWORD
                         in -32768..32767 -> BaseDataType.WORD
-                        in -2147483647..2147483647 -> BaseDataType.LONG
+                        in -2147483648L..0xffffffffL -> BaseDataType.LONG   // TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast (max value)
                         else -> BaseDataType.FLOAT
                     }
                 }
@@ -388,7 +388,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         }
 
         // TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
-        if(integer.second.isLong && integer.first > Integer.MAX_VALUE) {
+        if(integer.second.isLong && integer.first > Integer.MAX_VALUE && integer.first <= 0xffffffff) {
             val signedLong = integer.first.toLong().toInt()
             return NumericLiteral(integer.second, signedLong.toDouble(), ctx.toPosition())
         }
