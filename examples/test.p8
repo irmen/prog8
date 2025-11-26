@@ -3,52 +3,56 @@
 %import textio
 
 main {
-    struct element {
-        ubyte type
-        long  x
-        word  w
+    sub start() {
+        long @shared l
+
+        ;l = 2147483648
+
+        l = $21111111
+        testdec(l)
+        l = $20000000
+        testdec(l)
+        l = 4026531840
+        testdec(l)
+        txt.nl()
+
+        l = $21111111
+        testinc(l)
+        l = $2fffffff
+        testinc(l)
     }
 
-
-    sub start() {
-        word w = -1111
-        long l = -11111111
-        ^^element myElement = [1, -11111111, -1111]
-
-        txt.print_w(w)
+    sub testdec(long l) {
+        txt.print_ulhex(l, true)
         txt.spc()
-        w >>= 4
-        txt.print_w(w)
-        txt.spc()
-        w <<= 4
-        txt.print_w(w)
-        txt.nl()
-
-        txt.print_w(myElement.w)
-        txt.spc()
-        myElement.w >>= 4
-        txt.print_w(myElement.w)
-        txt.spc()
-        myElement.w <<= 4
-        txt.print_w(myElement.w)
-        txt.nl()
-
-        txt.nl()
-        txt.print_l(l)
-        txt.spc()
-        l >>= 4
-        txt.print_l(l)
-        txt.spc()
-        l <<= 4
         txt.print_l(l)
         txt.nl()
-        txt.print_l(myElement.x)
+
+        l++
+        txt.print_ulhex(l, true)
         txt.spc()
-        myElement.x >>= 4
-        txt.print_l(myElement.x)
+        txt.print_l(l)
+        txt.nl()
+
+        l--
+        l--
+        txt.print_ulhex(l, true)
         txt.spc()
-        myElement.x <<= 4
-        txt.print_l(myElement.x)
+        txt.print_l(l)
+        txt.nl()
+        txt.nl()
+    }
+
+    sub testinc(long l) {
+        txt.print_ulhex(l, true)
+        txt.spc()
+        txt.print_l(l)
+        txt.nl()
+
+        l++
+        txt.print_ulhex(l, true)
+        txt.spc()
+        txt.print_l(l)
         txt.nl()
     }
 }
