@@ -660,3 +660,31 @@ long_shiftrightX_inplace        .proc
 		bne  -
 _end		rts
 		.pend
+
+
+compare_long_0_and_sign	        .proc
+		; pointer to 32 bits signed long in P8ZP_SCRATCH_W1, carry Set=check NEGATIVE (<=0), carry Clear=check POSITIVE (>=0)
+		; returns carry Set if comparison succeeded otherwise carry Clear
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W1),y
+		iny
+		ora  (P8ZP_SCRATCH_W1),y
+		iny
+		ora  (P8ZP_SCRATCH_W1),y
+		iny
+		ora  (P8ZP_SCRATCH_W1),y
+		beq  _success
+
+		lda  (P8ZP_SCRATCH_W1),y
+		bcc  _checkpositive
+		bmi  _success
+		bpl  _fail
+
+_checkpositive	bpl  _success
+
+_fail		clc
+		rts
+
+_success	sec
+		rts
+		.pend

@@ -6,70 +6,73 @@ main {
     sub start() {
         long @shared l1, l2
 
-        l1 = $7fffffff
-        txt.print_ulhex(l1, true)
-        txt.spc()
-        txt.print_l(l1)
-        txt.nl()
+;        if l1==0
+;            cx16.r0++
+;
+;        if l1!=0
+;            cx16.r0++
+;
+;        if l1<0
+;            cx16.r0++
+;
+;        if l1>0
+;            cx16.r0++
 
-        l2 = $80000000
-        txt.print_ulhex(l2, true)
-        txt.spc()
-        txt.print_l(l2)
-        txt.nl()
+        l2 = 0
+        ; expect:  <=0, <=0, >0
+        l1 = 0
+        if l1+l2<=0
+            txt.print("l1 <= 0\n")
+        else
+            txt.print("l1 > 0\n")
 
-        l1 = -2147483648
-        txt.print_ulhex(l1, true)
-        txt.spc()
-        txt.print_l(l1)
-        txt.nl()
+        l1 = -1234567
+        if l1+l2<=0
+            txt.print("l1 <= 0\n")
+        else
+            txt.print("l1 > 0\n")
 
-        l2 = -2147483649     ; will be truncated
-        txt.print_ulhex(l2, true)
-        txt.spc()
-        txt.print_l(l2)
-        txt.nl()
 
-        l1 = $abcd1234
-        txt.print_ulhex(l1, true)
-        txt.spc()
-        txt.print_l(l1)
-        txt.nl()
+        l1 = 1234
+        if l1+l2<=0
+            txt.print("l1 <= 0\n")
+        else
+            txt.print("l1 > 0\n")
 
-        l2 = -$7fffffff
-        txt.print_ulhex(l2, true)
-        txt.spc()
-        txt.print_l(l2)
+        ; expect:  >=0, >=0, <0
         txt.nl()
+        l1 = 0
+        if l1+l2>=0
+            txt.print("l1 >= 0\n")
+        else
+            txt.print("l1 < 0\n")
 
-        l1 = $80000001
-        txt.print_ulhex(l1, true)
-        txt.spc()
-        txt.print_l(l1)
-        txt.nl()
+        l1 = 1234
+        if l1+l2>=0
+            txt.print("l1 >= 0\n")
+        else
+            txt.print("l1 < 0\n")
 
-        l2 = -$80
-        txt.print_ulhex(l2, true)
-        txt.spc()
-        txt.print_l(l2)
-        txt.nl()
+        l1 = -123456
+        if l1+l2>=0
+            txt.print("l1 >= 0\n")
+        else
+            txt.print("l1 < 0\n")
 
-        l2 ^= $80000000
-        txt.print_ulhex(l2, true)
-        txt.spc()
-        txt.print_l(l2)
-        txt.nl()
 
-        l2 = $80
-        txt.print_ulhex(l2, true)
-        txt.spc()
-        txt.print_l(l2)
-        txt.nl()
+        while l1+l2>0 {
+            break
+        }
+        while l1+l2<0 {
+            break
+        }
 
-        l2 |= $80000000
-        txt.print_ulhex(l2, true)
-        txt.spc()
-        txt.print_l(l2)
-        txt.nl()
+        ; TODO fix error for this:
+;        while l1+l2>=0 {
+;            break
+;        }
+;        while l1+l2<=0 {
+;            break
+;        }
     }
 }

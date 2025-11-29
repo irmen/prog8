@@ -1836,7 +1836,7 @@ internal class AssignmentAsmGen(
                     pointergen.assignLongVar(target.pointer!!, "cx16.r14")
                     return true
                 } else {
-                    TODO("add/subtract long const into ${target.kind} ${target.position} - use simple expressions and temporary variables for now")
+                    TODO("add/subtract long const into ${target.kind} ${target.position} - please report this issue. Use simple expressions and temporary variables for now")
                 }
             }
             is PtIdentifier -> {

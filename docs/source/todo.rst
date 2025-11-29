@@ -27,7 +27,7 @@ Future Things and Ideas
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
-- After long variable type is completed: make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.
+- After long variable type is completed: make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
@@ -63,6 +63,7 @@ Future Things and Ideas
 IR/VM
 -----
 - optimize float<0 float==0 float>0 to use SGN instruction?  Check what code is generated for other data types.
+- add and sub instructions should modify the status flags so an explicit compare to zero can be avoided for example: if cx16.r0sL + cx16.r1sL <= 0  now compiles into:  addr.b r10,r11 /  bgts.b r10,#0,label
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg

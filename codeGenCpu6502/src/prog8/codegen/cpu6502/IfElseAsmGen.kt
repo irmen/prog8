@@ -1294,7 +1294,11 @@ _jump                       jmp  (${target.asmLabel})
 
     private fun longLessZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
         if(lessEquals) {
-            TODO("long <= 0 ${value.position}")
+            loadAndCheck0OrSignIntoCarry(value, true)
+            if (jump != null)
+                translateJumpElseBodies("bcs", "bcc", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bcc", stmt)
         } else {
             loadAndCmp0MSB(value, true)
             if (jump != null)
@@ -1306,13 +1310,39 @@ _jump                       jmp  (${target.asmLabel})
 
     private fun longGreaterZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
         if(lessEquals) {
-            TODO("long >= 0 ${value.position}")
+            loadAndCheck0OrSignIntoCarry(value, false)
+            if (jump != null)
+                translateJumpElseBodies("bcs", "bcc", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bcc", stmt)
         } else {
             loadAndCmp0MSB(value, true)
             if (jump != null)
                 translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
             else
                 translateIfElseBodies("bmi", stmt)
+        }
+    }
+
+    private fun loadAndCheck0OrSignIntoCarry(value: PtExpression, negative: Boolean) {
+        if(value is PtIdentifier) {
+            val varname = asmgen.asmVariableName(value)
+            asmgen.out("""
+                lda  #<$varname
+                ldy  #>$varname
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1""")
+            asmgen.out(if(negative) "  sec" else "  clc")
+            asmgen.out("  jsr  prog8_lib.compare_long_0_and_sign")
+        } else {
+            assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
+            asmgen.out("""
+                lda  #<cx16.r14
+                ldy  #>cx16.r14
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1""")
+            asmgen.out(if(negative) "  sec" else "  clc")
+            asmgen.out("  jsr  prog8_lib.compare_long_0_and_sign")
         }
     }
 
@@ -1494,7 +1524,7 @@ _jump                       jmp  (${target.asmLabel})
         // this comparison is not part of an expression but part of an if statement, there's no need to save the previous values of the temp registers
 
         if(left !is PtNumber && left !is PtIdentifier || right !is PtNumber && right !is PtIdentifier) {
-            TODO("long comparison $operator with expressions - use temporary long variable instead to simplify for now   ${left.position}")
+            TODO("long comparison $operator with expressions - please report this issue. Use temporary long variable instead to simplify for now   ${left.position}")
         }
 
         if(operator=="<" || operator ==">=") {

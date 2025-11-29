@@ -7,7 +7,7 @@ adpcm {
 
         while cbm.RDTIM16()<max_time {
             adpcm.init(0,0)
-            uword @requirezp nibbles_ptr = $a000 ; for benchmark purposes, the exact nibbles don't really matter, so we just take the basic ROM as input
+            uword @requirezp nibbles_ptr = $0800 ; for benchmark purposes, the exact nibbles don't really matter, so we just take this benchmark program itself as input
             repeat 252/2 {
                 unroll 2 {
                     ubyte @zp nibble = @(nibbles_ptr)
