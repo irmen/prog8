@@ -344,8 +344,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 require(!expr.isMsbForSplitArray)
                 result += IRCodeChunk(null, null).also {
                     val ptr = codeGen.symbolTable.lookup(identifier.name)
-                    it += if(ptr is StConstant)
-                        IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, immediate = ptr.value.toInt())
+                    it += if(ptr is StConstant) {
+                        if(ptr.value != null)
+                            IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, immediate = ptr.value!!.toInt())
+                        else
+                            TODO("LOAD memory() address? ${ptr}")
+                    }
                     else
                         IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = identifier.name)
                     it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1=resultRegister, reg2=indexWordReg)

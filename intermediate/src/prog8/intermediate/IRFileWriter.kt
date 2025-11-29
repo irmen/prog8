@@ -272,10 +272,15 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         fun writeConstant(constant: IRStConstant) {
             val dt = constant.dt
             val value: String = when {
-                dt.isBool -> constant.value.toInt().toString()
-                dt.isFloat -> constant.value.toString()
+                dt.isBool -> constant.value!!.toInt().toString()
+                dt.isFloat -> constant.value!!.toString()
                 dt.isPointer -> TODO("constant pointer $constant")
-                dt.isInteger -> constant.value.toLong().toHex()
+                dt.isInteger -> {
+                    if(constant.value!=null)
+                        constant.value.toLong().toHex()
+                    else
+                        TODO("constant memory() alloc '${constant}'")
+                }
                 else -> throw InternalCompilerException("weird dt")
             }
             xml.writeCharacters("${constant.typeString} ${constant.name}=$value\n")

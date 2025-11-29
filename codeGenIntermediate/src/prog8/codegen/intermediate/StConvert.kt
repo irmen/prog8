@@ -131,7 +131,10 @@ private fun convert(constant: StConstant): IRStConstant {
             constant.name
         }
     }
-    return IRStConstant(scopedName, constant.dt, constant.value)
+    if(constant.value!=null)
+        return IRStConstant(scopedName, constant.dt, constant.value)
+    else
+        TODO("constant with memory()?  $constant")
 }
 
 

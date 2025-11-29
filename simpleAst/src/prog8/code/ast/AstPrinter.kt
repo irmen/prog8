@@ -112,7 +112,14 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtConstant -> {
                 val value = when {
                     node.type.isBool -> if(node.value==0.0) "false" else "true"
-                    node.type.isInteger -> node.value.toInt().toString()
+                    node.type.isInteger -> {
+                        if(node.value!=null)
+                            node.value.toInt().toString()
+                        else if(node.memorySlab!=null)
+                            "memory(\"${node.memorySlab.name}\", ${node.memorySlab.size}, ${node.memorySlab.align})"
+                        else
+                            throw IllegalArgumentException("constant without value or memory slab")
+                    }
                     else -> node.value.toString()
                 }
                 "const ${node.type} ${node.name} = $value"

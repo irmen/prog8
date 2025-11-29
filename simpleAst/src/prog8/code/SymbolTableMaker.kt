@@ -58,7 +58,13 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             }
             is PtConstant -> {
                 require(node.type.isNumericOrBool)
-                StConstant(node.name, node.type, node.value, node)
+                if(node.value!=null)
+                    StConstant(node.name, node.type, node.value, node)
+                else if(node.memorySlab!=null) {
+                    TODO("create st constant with memory slab child  $node")
+                } else {
+                    throw InternalCompilerException("constant without value or memory slab ${node.position}")
+                }
             }
             is PtLabel -> {
                 StNode(node.name, StNodeType.LABEL, node)
@@ -131,8 +137,9 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     val slabname = (node.args[0] as PtString).value
                     val size = (node.args[1] as PtNumber).number.toUInt()
                     val align = (node.args[2] as PtNumber).number.toUInt()
+                    val slab = StMemorySlab("memory_$slabname", size, align, node)
                     // don't add memory slabs in nested scope, just put them in the top level of the ST
-                    scope.first().add(StMemorySlab("memory_$slabname", size, align, node))
+                    scope.first().add(slab)
                 }
                 else if(node.name=="prog8_lib_structalloc") {
                     val instance = handleStructAllocation(node)

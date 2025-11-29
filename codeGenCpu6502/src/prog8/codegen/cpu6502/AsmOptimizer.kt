@@ -496,7 +496,12 @@ private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
             if(identMatch!=null) {
                 val identifier = identMatch.value
                 when (val symbol = symbolTable.flat[identifier]) {
-                    is StConstant -> symbol.value.toUInt()
+                    is StConstant -> {
+                        if(symbol.value!=null)
+                            symbol.value!!.toUInt()
+                        else
+                            TODO("get memory()? $symbol")
+                    }
                     is StMemVar -> symbol.address
                     else -> null
                 }

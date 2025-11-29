@@ -940,8 +940,12 @@ internal class ProgramAndVarsGen(
             val nameWithoutColons = it.name.replace("::", "_")
             if(it.dt.isFloat)
                 asmgen.out("  ${nameWithoutColons} = ${it.value}")
-            else
-                asmgen.out("  ${nameWithoutColons} = ${it.value.toHex()}")
+            else {
+                if(it.value!=null)
+                    asmgen.out("  ${nameWithoutColons} = ${it.value!!.toHex()}")
+                else
+                    TODO("asm gen for ${nameWithoutColons} = memory alloc?")
+            }
         }
     }
 

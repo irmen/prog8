@@ -997,6 +997,16 @@ internal class AstChecker(private val program: Program,
                     is NumericLiteral -> {
                         checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteral)
                     }
+                    is IFunctionCall -> {
+                        val call = decl.value as IFunctionCall
+                        if(decl.type==VarDeclType.CONST && call.target.nameInSource==listOf("memory")) {
+                            // memory() as a constant initializer is okay, it will end up being a constant address in the end
+                        } else if (decl.type == VarDeclType.CONST) {
+                            valueerr("const declaration needs a compile-time constant initializer value")
+                            super.visit(decl)
+                            return
+                        }
+                    }
                     else -> {
                         if(decl.type==VarDeclType.CONST) {
                             valueerr("const declaration needs a compile-time constant initializer value")

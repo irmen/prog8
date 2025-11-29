@@ -113,8 +113,8 @@ private fun makeSt(): SymbolTable {
     // first build the AST
     val astProgram = PtProgram("test", DummyMemsizer, DummyStringEncoder)
     val astBlock1 = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
-    val astConstant1 = PtConstant("c1", DataType.UWORD, 12345.0, Position.DUMMY)
-    val astConstant2 = PtConstant("blockc", DataType.UWORD, 999.0, Position.DUMMY)
+    val astConstant1 = PtConstant("c1", DataType.UWORD, 12345.0, null, Position.DUMMY)
+    val astConstant2 = PtConstant("blockc", DataType.UWORD, 999.0, null, Position.DUMMY)
     astBlock1.add(astConstant1)
     astBlock1.add(astConstant2)
     val astSub1 = PtSub("sub1", emptyList(), emptyList(), Position.DUMMY)

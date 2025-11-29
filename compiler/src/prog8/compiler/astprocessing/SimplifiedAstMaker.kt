@@ -5,9 +5,11 @@ import com.github.michaelbull.result.Result
 import com.github.michaelbull.result.getOrElse
 import com.github.michaelbull.result.mapError
 import prog8.ast.FatalAstException
+import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.code.StMemorySlab
 import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.code.sanitize
@@ -688,7 +690,20 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                     srcVar.position
                 )
             }
-            VarDeclType.CONST -> return PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, srcVar.position)
+            VarDeclType.CONST -> {
+                if(srcVar.value is NumericLiteral)
+                    return PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, null, srcVar.position)
+                else if((srcVar.value as? IFunctionCall)?.target?.nameInSource == listOf("memory")) {
+                    val call = srcVar.value as IFunctionCall
+                    val slabname = (call.args[0] as StringLiteral).value
+                    val size = (call.args[1] as NumericLiteral).number.toUInt()
+                    val align = (call.args[2] as NumericLiteral).number.toUInt()
+                    val slab = StMemorySlab("memory_$slabname", size, align, null)
+                    return PtConstant(srcVar.name, srcVar.datatype, null, slab, srcVar.position)
+                }
+                else
+                    throw FatalAstException("const value must be a number or contant function call")
+            }
             VarDeclType.MEMORY -> return PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
         }
     }

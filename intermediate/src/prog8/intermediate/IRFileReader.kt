@@ -227,6 +227,7 @@ class IRFileReader {
                 val dt = parseDatatype(type, false)
                 val value = parseIRValue(valueStr)
                 constants.add(IRStConstant(name, dt, value))
+                // TODO what about memory() constants?
             }
             constants
         }

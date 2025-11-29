@@ -1,5 +1,6 @@
 package prog8.code.ast
 
+import prog8.code.StMemorySlab
 import prog8.code.core.*
 
 
@@ -310,7 +311,13 @@ class PtVariable(
 }
 
 
-class PtConstant(name: String, override val type: DataType, val value: Double, position: Position) : PtNamedNode(name, position), IPtVariable
+class PtConstant(
+    name: String,
+    override val type: DataType,
+    val value: Double?,                 // either a constant number...
+    val memorySlab: StMemorySlab?,     // .. or a memory() allocation
+    position: Position
+) : PtNamedNode(name, position), IPtVariable
 // note: a constant is a value but IS NOT a PtExpression node; all constants must have been replaced by their actual value
 
 
