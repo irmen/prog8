@@ -746,7 +746,7 @@ cx16 {
     &long r2r3sl  = $0014
     &long r4r5sl  = $0018
     &long r6r7sl  = $001c
-    &long r8r0sl  = $0020
+    &long r8r9sl  = $0020
     &long r10r11sl = $0024
     &long r12r13sl = $0028
     &long r14r15sl = $002c

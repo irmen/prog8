@@ -222,7 +222,7 @@ cx16 {
     &long r2r3sl  = $0006
     &long r4r5sl  = $000a
     &long r6r7sl  = $000e
-    &long r8r0sl  = $0012
+    &long r8r9sl  = $0012
     &long r10r11sl = $0016
     &long r12r13sl = $001a
     &long r14r15sl = $001e

@@ -1145,7 +1145,7 @@ cx16 {
     &long r2r3sl  = $1be4
     &long r4r5sl  = $1be8
     &long r6r7sl  = $1bec
-    &long r8r0sl  = $1bf0
+    &long r8r9sl  = $1bf0
     &long r10r11sl = $1bf4
     &long r12r13sl = $1bf8
     &long r14r15sl = $1bfc

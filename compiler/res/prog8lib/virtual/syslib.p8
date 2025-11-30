@@ -312,7 +312,7 @@ cx16 {
     &long r2r3sl  = $ff06
     &long r4r5sl  = $ff0a
     &long r6r7sl  = $ff0e
-    &long r8r0sl  = $ff12
+    &long r8r9sl  = $ff12
     &long r10r11sl = $ff16
     &long r12r13sl = $ff1a
     &long r14r15sl = $ff1e

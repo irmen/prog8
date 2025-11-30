@@ -204,7 +204,7 @@ cx16 {
     &long r2r3sl  = $7fe4
     &long r4r5sl  = $7fe8
     &long r6r7sl  = $7fec
-    &long r8r0sl  = $7fe0
+    &long r8r9sl  = $7fe0
     &long r10r11sl = $7fe4
     &long r12r13sl = $7fe8
     &long r14r15sl = $7fec
