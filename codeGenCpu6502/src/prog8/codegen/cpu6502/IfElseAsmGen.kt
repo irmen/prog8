@@ -942,7 +942,7 @@ _jump                       jmp  (${target.asmLabel})
                     asmgen.out("  lda  $varname+1")
             }
             is PtAddressOf -> {
-                require(!long)
+                require(!long) {"addresses must still be words not longs"}
                 if(value.isFromArrayElement) {
                     asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
                     asmgen.out("  cpy  #0")
@@ -955,9 +955,14 @@ _jump                       jmp  (${target.asmLabel})
                 }
             }
             else -> {
-                require(!long)
-                asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
-                asmgen.out("  cpy  #0")
+                if(long) {
+                    // note: clobbers R14+R15
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, true)
+                    asmgen.out("  lda  cx16.r14+3")
+                } else {
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
+                    asmgen.out("  cpy  #0")
+                }
             }
         }
     }
