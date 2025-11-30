@@ -2454,12 +2454,13 @@ $repeatLabel""")
     }
 
     internal fun pushLongRegisters(startreg: RegisterOrPair, numberOfLongs: Int) {
+        // may clobber P8ZP_SCRATCH_B1, X, Y.
         if(numberOfLongs==0) return
 
         val startregName = startreg.startregname()
         if(numberOfLongs==1) {
             out("""
-                sta  P8ZP_SCRATCH_REG
+                tax
                 lda  cx16.$startregName
                 pha
                 lda  cx16.$startregName+1
@@ -2468,12 +2469,12 @@ $repeatLabel""")
                 pha
                 lda  cx16.$startregName+3
                 pha
-                lda  P8ZP_SCRATCH_REG""")
+                txa""")
             return
         }
         val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
         out("""
-            sta  P8ZP_SCRATCH_REG
+            tax
             sty  P8ZP_SCRATCH_B1
             ldy  #0
 -           lda  cx16.$startregName,y
@@ -2482,7 +2483,7 @@ $repeatLabel""")
             cpy  #$numbytes
             bne  -
             ldy  P8ZP_SCRATCH_B1
-            lda  P8ZP_SCRATCH_REG""")
+            txa""")
     }
 
     internal fun popLongRegisters(startreg: RegisterOrPair, numberOfLongs: Int) {
@@ -2491,7 +2492,7 @@ $repeatLabel""")
         val startregName = startreg.startregname()
         if(numberOfLongs==1) {
             out("""
-                sta  P8ZP_SCRATCH_REG
+                tax
                 pla
                 sta  cx16.$startregName+3
                 pla
@@ -2500,12 +2501,12 @@ $repeatLabel""")
                 sta  cx16.$startregName+1
                 pla
                 sta  cx16.$startregName
-                lda  P8ZP_SCRATCH_REG""")
+                txa""")
             return
         }
         val numbytes = numberOfLongs * options.compTarget.memorySize(BaseDataType.LONG)
         out("""
-            sta  P8ZP_SCRATCH_REG
+            tax
             sty  P8ZP_SCRATCH_B1
             ldy  #$numbytes-1
 -           pla
@@ -2513,7 +2514,7 @@ $repeatLabel""")
             dey
             bpl  -
             ldy  P8ZP_SCRATCH_B1
-            lda  P8ZP_SCRATCH_REG""")
+            txa""")
     }
 }
 
