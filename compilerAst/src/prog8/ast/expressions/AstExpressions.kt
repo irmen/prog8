@@ -1542,6 +1542,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
             return null
 
         val resultValue: NumericLiteral? = program.builtinFunctions.constValue(target.nameInSource[0], args, position)
+        resultValue?.parent=this.parent
         if(withDatatypeCheck) {
             val resultDt = this.inferType(program)
             if(resultValue==null || resultDt istype DataType.forDt(resultValue.type))

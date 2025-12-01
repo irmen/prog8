@@ -502,5 +502,17 @@ main {
         ((a[6].value as BinaryExpression).right as NumericLiteral).number shouldBe 0x7fffffffL.toDouble()
     }
 
+    test("test const sizeof type casting") {
+        val src = """
+main {
+  const uword LineSize   = sizeof(uword)
+  const uword BufferSize = LineSize         ; or 400*LineSize
+
+  sub start () {
+  }
+}"""
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
+    }
+
 })
 
