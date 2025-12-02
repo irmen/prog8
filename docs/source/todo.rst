@@ -1,6 +1,8 @@
 TODO
 ====
 
+- in benchmark-c routines, use same CIA timer as the original C code did so the program size is better comparable.
+
 
 Weird Heisenbug
 ^^^^^^^^^^^^^^^

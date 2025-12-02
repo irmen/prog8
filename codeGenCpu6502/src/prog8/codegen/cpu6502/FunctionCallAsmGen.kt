@@ -279,7 +279,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     private fun argumentViaRegister(sub: IPtSubroutine, parameter: IndexedValue<PtSubroutineParameter>, value: PtExpression, registerOverride: RegisterOrPair? = null): RegisterOrStatusflag {
         // pass argument via a register parameter
         if(!isArgumentTypeCompatible(value.type, parameter.value.type))
-            throw AssemblyError("argument type incompatible")
+            throw AssemblyError("argument type incompatible ${value.type} vs param ${parameter.value.type} at ${parameter.value.position}")
 
         val paramRegister: RegisterOrStatusflag = when(sub) {
             is PtAsmSub -> if(registerOverride==null) sub.parameters[parameter.index].first else RegisterOrStatusflag(registerOverride, null)
