@@ -637,4 +637,40 @@ main{
         compileText(C64Target(), true, src, outputDir) shouldNotBe null
         compileText(VMTarget(), true, src, outputDir) shouldNotBe null
     }
+
+    test("symbol prefixing inconsistency with struct types and merged blocks") {
+        // see https://github.com/irmen/prog8/issues/198
+        val src="""
+plane {
+   struct Point {
+       ubyte x
+       ubyte y
+   }
+}
+
+mytxt {
+    %option no_symbol_prefixing
+
+    sub print_ub(ubyte value) {
+        cx16.r0L++
+    }
+}
+
+mytxt {
+    %option merge
+    sub print_pt(^^plane.Point p) {
+        mytxt.print_ub(p.x)
+        mytxt.print_ub(p.y)
+    }
+}
+
+main {
+    sub start() {
+        ^^plane.Point origin = ^^plane.Point:[0,0]
+        mytxt.print_pt(origin)
+    }
+}"""
+
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+    }
 })

@@ -25,6 +25,7 @@ Future Things and Ideas
 - struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
+- structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - array-as-param bug: printf([1111,2,3,-4444]) gives argument type mismatch (param is of type uword), while printf([1111,2,3,4444]) just works fine (passes address of @nosplit array)
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)

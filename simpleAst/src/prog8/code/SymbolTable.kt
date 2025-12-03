@@ -309,10 +309,27 @@ class StStruct(
     override fun getFieldType(name: String): DataType? = fields.firstOrNull { it.second == name }?.first
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
-    override fun sameas(other: ISubType): Boolean = other is StStruct &&
-            scopedNameString == other.scopedNameString &&
-            fields == other.fields &&
-            size == other.size
+    override fun sameas(other: ISubType): Boolean {
+        if(other is StStruct && size == other.size && fields == other.fields) {
+            if(scopedNameString == other.scopedNameString)
+                return true
+
+            // TODO this is a HACK: work around difference in struct names caused by symbol prefixing. See https://github.com/irmen/prog8/issues/198
+            fun nameWithoutSymbolPrefixes(name: String): List<String> {
+                return name.split('.')
+                    .map { name ->
+                        if(name.length>4 && name[0]=='p' && name[1]=='8' && name[3]=='_') {
+                            // strip prefix (3 characters followed by underscore,  see Callgraph.prefixes)
+                            name.drop(4)
+                        } else name
+                    }
+            }
+
+            if(nameWithoutSymbolPrefixes(scopedNameString) == (nameWithoutSymbolPrefixes(other.scopedNameString)))
+                return true
+        }
+        return false
+    }
 }
 
 

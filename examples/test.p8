@@ -1,71 +1,29 @@
-%option no_sysinit ; leave the CX16 defaults in place
-%zeropage basicsafe ; don't step on BASIC zero page locations
-%import textio
+plane {
+   struct Point {
+       ubyte x
+       ubyte y
+   }
+}
+
+mytxt {
+    %option no_symbol_prefixing
+
+    sub print_ub(ubyte value) {
+        cx16.r0L++
+    }
+}
+
+mytxt {
+    %option merge
+    sub print_pt(^^plane.Point p) {
+        mytxt.print_ub(p.x)
+        mytxt.print_ub(p.y)
+    }
+}
 
 main {
     sub start() {
-        long @shared l1, l2
-
-;        l2 = 0
-;        ; expect:  <=0, <=0, >0
-;        l1 = 0
-;        if l1+l2<=0
-;            txt.print("l1 <= 0\n")
-;        else
-;            txt.print("l1 > 0\n")
-;
-;        l1 = -1234567
-;        if l1+l2<=0
-;            txt.print("l1 <= 0\n")
-;        else
-;            txt.print("l1 > 0\n")
-;
-;
-;        l1 = 1234
-;        if l1+l2<=0
-;            txt.print("l1 <= 0\n")
-;        else
-;            txt.print("l1 > 0\n")
-;
-;        ; expect:  >=0, >=0, <0
-;        txt.nl()
-;        l1 = 0
-;        if l1+l2>=0
-;            txt.print("l1 >= 0\n")
-;        else
-;            txt.print("l1 < 0\n")
-;
-;        l1 = 1234
-;        if l1+l2>=0
-;            txt.print("l1 >= 0\n")
-;        else
-;            txt.print("l1 < 0\n")
-;
-;        l1 = -123456
-;        if l1+l2>=0
-;            txt.print("l1 >= 0\n")
-;        else
-;            txt.print("l1 < 0\n")
-
-
-        while l1+l2==0 {
-            break
-        }
-        while l1+l2!=0 {
-            break
-        }
-        while l1+l2>0 {
-            break
-        }
-        while l1+l2<0 {
-            break
-        }
-
-        while l1+l2>=0 {
-            break
-        }
-        while l1+l2<=0 {
-            break
-        }
+        ^^plane.Point origin = ^^plane.Point:[0,0]
+        mytxt.print_pt(origin)
     }
 }

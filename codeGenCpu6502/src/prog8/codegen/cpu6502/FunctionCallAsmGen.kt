@@ -362,12 +362,17 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
     private fun isArgumentTypeCompatible(argType: DataType, paramType: DataType): Boolean {
         if(argType isAssignableTo paramType)
             return true
-        if(argType.isBool && paramType.isBool)
-            return true
+
+        // signed/unsigned args vs parameters are considered compatible
         if(argType.isByte && paramType.isByte)
             return true
         if(argType.isWord && paramType.isWord)
             return true
+// only signed longs and floats are available so these were already covered
+//        if(argType.isLong && paramType.isLong)
+//            return true
+//        if(argType.isFloat && paramType.isFloat)
+//            return true
 
         // we have a special rule for some types.
         // strings are assignable to UWORD, for example, and vice versa
