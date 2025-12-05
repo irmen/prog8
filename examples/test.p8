@@ -1,29 +1,20 @@
-plane {
-   struct Point {
-       ubyte x
-       ubyte y
-   }
-}
-
-mytxt {
-    %option no_symbol_prefixing
-
-    sub print_ub(ubyte value) {
-        cx16.r0L++
-    }
-}
-
-mytxt {
-    %option merge
-    sub print_pt(^^plane.Point p) {
-        mytxt.print_ub(p.x)
-        mytxt.print_ub(p.y)
-    }
-}
+%import textio
+%zeropage basicsafe
 
 main {
     sub start() {
-        ^^plane.Point origin = ^^plane.Point:[0,0]
-        mytxt.print_pt(origin)
+        long @shared zz = 12345
+
+        zz <<= 9
+        txt.print_l(zz)
+        txt.nl()
+        zz = 12345
+        zz <<= 17
+        txt.print_l(zz)
+        txt.nl()
+        zz = 12
+        zz <<= 25
+        txt.print_l(zz)
+        txt.nl()
     }
 }

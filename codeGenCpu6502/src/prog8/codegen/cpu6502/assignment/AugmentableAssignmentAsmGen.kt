@@ -711,13 +711,21 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         lda  $variable
                         sta  $variable+1
                         lda  #0
-                        sta  $variable
+                        sta  $variable""")
+                    if(shift==1) {
+                        asmgen.out("""
+                        asl  $variable+1
+                        rol  $variable+2
+                        rol  $variable+3""")
+                    } else {
+                        asmgen.out("""
                         ldy  #$shift
 -                       asl  $variable+1
                         rol  $variable+2
                         rol  $variable+3
                         dey
                         bne  -""")
+                    }
                 }
                 value == 16 -> {
                     asmgen.out("""
@@ -738,12 +746,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         sta  $variable+2
                         lda  #0
                         sta  $variable
-                        sta  $variable+1
+                        sta  $variable+1""")
+                    if(shift==1) {
+                        asmgen.out("  asl  $variable+2 |  rol  $variable+3")
+                    } else {
+                        asmgen.out("""
                         ldy  #$shift
 -                       asl  $variable+2
                         rol  $variable+3
                         dey
                         bne  -""")
+                    }
                 }
                 value == 24 -> {
                     asmgen.out("""
@@ -756,12 +769,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
                 value <= 31 -> {
                     val shift = value-24
-                    asmgen.out("""
+                    if(shift==1) {
+                        asmgen.out("  lda  $variable |  asl  a")
+                    } else {
+                        asmgen.out("""
                         lda  $variable
                         ldy  #$shift
 -                       asl  a
                         dey
-                        bne  -
+                        bne  -""")
+                    }
+                    asmgen.out("""
                         sta  $variable+3
                         lda  #0
                         sta  $variable
