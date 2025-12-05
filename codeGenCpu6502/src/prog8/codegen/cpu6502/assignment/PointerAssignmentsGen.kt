@@ -310,7 +310,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
                 when {
                     target.dt.isByte -> TODO("inplace byte pointer mod should have been handled via MEMORY target type  ${target.position}")
-                    target.dt.isWord -> TODO("inplace word pointer mod  ${target.position}")
+                    target.dt.isWord -> inplaceUnsignedWordMod(target, value)
                     //target.dt.isFloat -> TODO("inplace float pointer mod  ${target.position}")
                     //target.dt.isLong -> TODO("inplace long pointer mod  ${target.position}")
                     else -> throw AssemblyError("weird dt ${target.position}")
@@ -424,13 +424,15 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             if(target.index.type.isByte) {
                 asmgen.pushCpuStack(BaseDataType.UBYTE, target.index)
-                val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer = true)
+                val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+                require(offset==0.toUByte())
                 asmgen.restoreRegisterStack(CpuRegister.Y, false)
                 asmgen.out("  lda  #$byte |  sta  ($zpPtrVar),y")
             }
             else {
                 asmgen.pushCpuStack(BaseDataType.UWORD, target.index)
-                val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer = true)
+                val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+                require(offset==0.toUByte())
                 asmgen.out("""
                     pla
                     clc
@@ -1588,7 +1590,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     private fun inplaceFloatAddOrMul(target: PtrTarget, floatoperation: String, value: AsmAssignSource) {
         require(floatoperation=="FADD" || floatoperation=="FMULT")
-        val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer = true)
+        val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+        require(offset==0.toUByte())
         asmgen.out("""
             lda  $zpPtrVar
             ldy  $zpPtrVar+1
@@ -1662,7 +1665,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     private fun inplaceWordMul(target: PtrTarget, value: AsmAssignSource) {
 
-        val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer = true)
+        val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+        require(offset==0.toUByte())
 
         fun multiply() {
             // on entry here: number placed in routine argument variable
@@ -1713,10 +1717,11 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     private fun inplaceWordDiv(target: PtrTarget, value: AsmAssignSource) {
-        val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer = true)
+        val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+        require(offset==0.toUByte())
 
         fun divide(signed: Boolean) {
-            // on entry here: number placed in P8ZP_SCRATCH_PTR, divisor placed in AY
+            // on entry here: number placed in P8ZP_SCRATCH_W1, divisor placed in AY
             if(signed) asmgen.out("  jsr  prog8_math.divmod_w_asm")
             else asmgen.out("  jsr  prog8_math.divmod_uw_asm")
             asmgen.out("""
@@ -1736,8 +1741,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     throw AssemblyError("divide by power of two should have been a shift $value.position")
                 asmgen.loadIndirectWord(zpPtrVar, 0u)
                 asmgen.out("""
-                    sta  P8ZP_SCRATCH_PTR
-                    sty  P8ZP_SCRATCH_PTR+1
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
                     lda  #<$number
                     ldy  #>$number""")
                 divide(target.dt.isSigned)
@@ -1745,21 +1750,102 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.VARIABLE -> {
                 require(value.datatype.isWord)
                 val varname = value.asmVarname
-                TODO("inplace variable word divide  ${target.position}")
+                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  $varname
+                    ldy  $varname+1""")
+                divide(target.dt.isSigned)
             }
             SourceStorageKind.REGISTER -> {
                 val register = value.register!!
                 require(register.isWord())
-                TODO("inplace register word divide  ${target.position}")
+                val regname = asmgen.asmSymbolName(register)
+                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  $regname
+                    ldy  $regname+1""")
+                divide(target.dt.isSigned)
             }
-            SourceStorageKind.EXPRESSION -> TODO("ptr / expr (word)  ${target.position}")
+            SourceStorageKind.EXPRESSION -> {
+                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AY)
+                divide(target.dt.isSigned)
+            }
+            else -> throw AssemblyError("weird source value $value")
+        }
+    }
+
+    private fun inplaceUnsignedWordMod(target: PtrTarget, value: AsmAssignSource) {
+        val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+        require(offset==0.toUByte())
+
+        fun modulus() {
+            // on entry here: number placed in P8ZP_SCRATCH_W1, divisor placed in AY
+            asmgen.out("""
+                jsr  prog8_math.divmod_uw_asm
+                lda  P8ZP_SCRATCH_W2
+                ldy  #0
+                sta  ($zpPtrVar),y
+                iny
+                lda  P8ZP_SCRATCH_W2+1
+                sta  ($zpPtrVar),y""")
+        }
+
+        when(value.kind) {
+            SourceStorageKind.LITERALNUMBER -> {
+                val number = value.number!!.number.toInt()
+                if(number in powersOfTwoInt)
+                    throw AssemblyError("divide by power of two should have been a shift $value.position")
+                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$number
+                    ldy  #>$number""")
+                modulus()
+            }
+            SourceStorageKind.VARIABLE -> {
+                require(value.datatype.isWord)
+                val varname = value.asmVarname
+                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  $varname
+                    ldy  $varname+1""")
+                modulus()
+            }
+            SourceStorageKind.REGISTER -> {
+                val register = value.register!!
+                require(register.isWord())
+                val regname = asmgen.asmSymbolName(register)
+                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.out("""
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  $regname
+                    ldy  $regname+1""")
+                modulus()
+            }
+            SourceStorageKind.EXPRESSION -> {
+                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AY)
+                modulus()
+            }
             else -> throw AssemblyError("weird source value $value")
         }
     }
 
     private fun inplaceFloatSubOrDiv(target: PtrTarget, floatoperation: String, value: AsmAssignSource) {
         require(floatoperation=="FSUB" || floatoperation=="FDIV")
-        val (zpPtrVar, _) = deref(target.pointer, addOffsetToPointer = true)
+        val (zpPtrVar, offset) = deref(target.pointer, addOffsetToPointer = true)
+        require(offset==0.toUByte())
         when(value.kind) {
             SourceStorageKind.LITERALNUMBER -> {
                 val floatConst = allocator.getFloatAsmConst(value.number!!.number)
