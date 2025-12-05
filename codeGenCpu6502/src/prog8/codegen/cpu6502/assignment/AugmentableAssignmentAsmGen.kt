@@ -113,9 +113,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationLongWithLiteralval(target.asmVarname, operator, value.number!!.number.toInt())
                             SourceStorageKind.VARIABLE -> inplacemodificationLongWithVariable(target.asmVarname, operator, value.asmVarname)
                             SourceStorageKind.EXPRESSION -> inplacemodificationLongWithExpression(target.asmVarname, operator, value.expression!!)
-                            SourceStorageKind.REGISTER -> TODO("32 bits register inplace modification? ${target.position}")
-                            SourceStorageKind.ARRAY -> TODO("inplace modify long with array ${target.position}")
-                            SourceStorageKind.MEMORY -> TODO("memread into long ${target.position}")
+                            SourceStorageKind.REGISTER -> inplacemodificationLongWithVariable(target.asmVarname, operator, regName(value))
+                            SourceStorageKind.ARRAY -> TODO("inplace modify long with array value ${target.position}")
+                            SourceStorageKind.MEMORY -> TODO("inplace modify long with memread value ${target.position}")
                         }
                     }
                     target.datatype.isFloat -> {
@@ -124,7 +124,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(target.asmVarname, operator, value.number!!.number)
                             SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(target.asmVarname, operator, value.asmVarname)
                             SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(target.asmVarname, operator, regName(value))
-                            SourceStorageKind.MEMORY -> TODO("memread into float ${target.position}")
+                            SourceStorageKind.MEMORY -> inplacemodificationFloatWithValue(target.asmVarname, operator, value.memory!!)
                             SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(target.asmVarname, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
@@ -164,18 +164,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     is PtIdentifier -> {
                         val pointer = memory.address as PtIdentifier
                         when(value.kind) {
-                            SourceStorageKind.LITERALBOOLEAN -> inplacemodificationBytePointerWithLiteralval(pointer, operator, value.boolean!!.asInt())
-                            SourceStorageKind.LITERALNUMBER -> inplacemodificationBytePointerWithLiteralval(pointer, operator, value.number!!.number.toInt())
-                            SourceStorageKind.VARIABLE -> inplacemodificationBytePointerWithVariable(pointer, operator, value.asmVarname)
-                            SourceStorageKind.REGISTER -> inplacemodificationBytePointerWithVariable(pointer, operator, regName(value))
-                            SourceStorageKind.MEMORY -> TODO("memread into pointer ${target.position}")
-                            SourceStorageKind.ARRAY -> inplacemodificationBytePointerWithValue(pointer, operator, value.array!!)
+                            SourceStorageKind.LITERALBOOLEAN -> ptrgen.inplacemodificationBytePointerWithLiteralval(pointer, operator, value.boolean!!.asInt())
+                            SourceStorageKind.LITERALNUMBER -> ptrgen.inplacemodificationBytePointerWithLiteralval(pointer, operator, value.number!!.number.toInt())
+                            SourceStorageKind.VARIABLE -> ptrgen.inplacemodificationBytePointerWithVariable(pointer, operator, value.asmVarname)
+                            SourceStorageKind.REGISTER -> ptrgen.inplacemodificationBytePointerWithVariable(pointer, operator, regName(value))
+                            SourceStorageKind.MEMORY -> ptrgen. inplacemodificationBytePointerWithValue(pointer, operator, value.memory!!)
+                            SourceStorageKind.ARRAY -> ptrgen.inplacemodificationBytePointerWithValue(pointer, operator, value.array!!)
                             SourceStorageKind.EXPRESSION -> {
                                 if(value.expression is PtTypeCast) {
                                     if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                    inplacemodificationBytePointerWithValue(pointer, operator, value.expression)
+                                    ptrgen.inplacemodificationBytePointerWithValue(pointer, operator, value.expression)
                                 } else {
-                                    inplacemodificationBytePointerWithValue(pointer, operator, value.expression!!)
+                                    ptrgen.inplacemodificationBytePointerWithValue(pointer, operator, value.expression!!)
                                 }
                             }
                         }
@@ -309,8 +309,8 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationLongWithLiteralval(targetVarName, operator, value.number!!.number.toInt())
                                 SourceStorageKind.VARIABLE -> inplacemodificationLongWithVariable(targetVarName, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationLongWithVariable(targetVarName, operator, regName(value))
-                                SourceStorageKind.MEMORY -> TODO("inplace long modifiication ${target.position}")
-                                SourceStorageKind.ARRAY -> TODO("inplace long modifiication ${target.position}")
+                                SourceStorageKind.MEMORY -> TODO("inplace long modifiication with memread value ${target.position}")
+                                SourceStorageKind.ARRAY -> TODO("inplace long modifiication with array value ${target.position}")
                                 SourceStorageKind.EXPRESSION -> {
                                     if(value.expression is PtTypeCast) {
                                         if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
@@ -328,7 +328,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(targetVarName, operator, value.number!!.number)
                                 SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(targetVarName, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(targetVarName, operator, regName(value))
-                                SourceStorageKind.MEMORY -> TODO("memread into float array ${target.position}")
+                                SourceStorageKind.MEMORY -> inplacemodificationFloatWithValue(targetVarName, operator, value.memory!!)
                                 SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(targetVarName, operator, value.array!!)
                                 SourceStorageKind.EXPRESSION -> {
                                     if(value.expression is PtTypeCast) {
@@ -519,7 +519,7 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationFloatWithLiteralval(tempvar, operator, value.number!!.number)
                                 SourceStorageKind.VARIABLE -> inplacemodificationFloatWithVariable(tempvar, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationFloatWithVariable(tempvar, operator, regName(value))
-                                SourceStorageKind.MEMORY -> TODO("memread into float ${target.position}")
+                                SourceStorageKind.MEMORY -> inplacemodificationFloatWithValue(tempvar, operator, value.memory!!)
                                 SourceStorageKind.ARRAY -> inplacemodificationFloatWithValue(tempvar, operator, value.array!!)
                                 SourceStorageKind.EXPRESSION -> {
                                     if(value.expression is PtTypeCast) {
@@ -1404,188 +1404,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
         }
         return false
-    }
-
-    private fun inplacemodificationBytePointerWithValue(pointervar: PtIdentifier, operator: String, value: PtExpression) {
-        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE)
-        inplacemodificationBytePointerWithVariable(pointervar, operator, "P8ZP_SCRATCH_B1")
-    }
-
-    private fun inplacemodificationBytePointerWithVariable(pointervar: PtIdentifier, operator: String, otherName: String) {
-        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-
-        when (operator) {
-            "+" -> asmgen.out("  clc |  adc  $otherName")
-            "-" -> asmgen.out("  sec |  sbc  $otherName")
-            "*" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.multiply_bytes")
-            "/" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.divmod_ub_asm |  tya")
-            "%" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.remainder_ub_asm")
-            "<<" -> {
-                asmgen.out("""
-                        ldy  $otherName
-                        beq  + 
--                       asl  a
-                        dey
-                        bne  -
-+""")
-            }
-            ">>" -> {
-                asmgen.out("""
-                        ldy  $otherName
-                        beq  + 
--                       lsr  a
-                        dey
-                        bne  -
-+""")
-            }
-            "&" -> asmgen.out(" and  $otherName")
-            "|" -> asmgen.out(" ora  $otherName")
-            "^" -> asmgen.out(" eor  $otherName")
-            "==" -> {
-                asmgen.out("""
-                    cmp  $otherName
-                    beq  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+""")
-            }
-            "!=" -> {
-                asmgen.out("""
-                    cmp  $otherName
-                    bne  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+""")
-            }
-            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?
-            "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons ${pointervar.position}")
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
-        asmgen.storeAIntoZpPointerVar(sourceName, false)
-    }
-
-    private fun inplacemodificationBytePointerWithLiteralval(pointervar: PtIdentifier, operator: String, value: Int) {
-        // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
-        when (operator) {
-            "+" -> {
-                if(value==1) {
-                    if(asmgen.options.romable) {
-                        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
-                            asmgen.out("  inc  a")
-                        else
-                            asmgen.out("  clc |  adc  #1")
-                        asmgen.storeAIntoZpPointerVar(sourceName, false)
-                    } else {
-                        asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
-                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                        asmgen.out($$"+\tinc  $ffff\t; modified")
-                    }
-                } else {
-                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                    asmgen.out("  clc |  adc  #$value")
-                    asmgen.storeAIntoZpPointerVar(sourceName, false)
-                }
-            }
-            "-" -> {
-                if(value==1) {
-                    if(asmgen.options.romable) {
-                        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
-                            asmgen.out("  dec  a")
-                        else
-                            asmgen.out("  sec |  sbc  #1")
-                        asmgen.storeAIntoZpPointerVar(sourceName, false)
-                    } else {
-                        asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
-                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
-                        asmgen.out($$"+\tdec  $ffff\t; modified")
-                    }
-                } else {
-                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                    asmgen.out("  sec |  sbc  #$value")
-                    asmgen.storeAIntoZpPointerVar(sourceName, false)
-                }
-            }
-            "*" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                if(value in asmgen.optimizedByteMultiplications)
-                    asmgen.out("  jsr  prog8_math.mul_byte_${value}")
-                else
-                    asmgen.out("  ldy  #$value |  jsr  prog8_math.multiply_bytes")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            "/" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                if(value==0)
-                    throw AssemblyError("division by zero")
-                asmgen.out("  ldy  #$value |  jsr  prog8_math.divmod_ub_asm |  tya")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            "%" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                if(value==0)
-                    throw AssemblyError("division by zero")
-                asmgen.out("  ldy  #$value |  jsr  prog8_math.remainder_ub_asm")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            "<<" -> {
-                if (value > 0) {
-                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                    repeat(value) { asmgen.out("  asl  a") }
-                    asmgen.storeAIntoZpPointerVar(sourceName, false)
-                }
-            }
-            ">>" -> {
-                if (value > 0) {
-                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                    repeat(value) { asmgen.out("  lsr  a") }
-                    asmgen.storeAIntoZpPointerVar(sourceName, false)
-                }
-            }
-            "&" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out("  and  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            "|"-> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out("  ora  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            "^" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out("  eor  #$value")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            "==" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out("""
-                    cmp  #$value
-                    beq  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+""")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            "!=" -> {
-                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
-                asmgen.out("""
-                    cmp  #$value
-                    bne  +
-                    lda  #0
-                    beq  ++
-+                   lda  #1
-+""")
-                asmgen.storeAIntoZpPointerVar(sourceName, false)
-            }
-            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?:
-            "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons ${pointervar.position}")
-            else -> throw AssemblyError("invalid operator for in-place modification $operator")
-        }
     }
 
     private fun inplacemodificationByteWithValue(name: String, dt: DataType, operator: String, value: PtExpression) {

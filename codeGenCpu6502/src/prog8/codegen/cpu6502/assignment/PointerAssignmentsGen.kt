@@ -288,52 +288,76 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 }
             }
             "*" -> {
-                if(target.dt.isByte) TODO("inplaceByteMul(target, value)  ${target.position}")
-                else if(target.dt.isWord) inplaceWordMul(target, value)
-                else if(target.dt.isFloat)  inplaceFloatAddOrMul(target, "FMULT", value)
-                else if(target.dt.isLong) TODO("inplace long mul ${target.position}")
-                else throw AssemblyError("weird dt ${target.position}")
+                when {
+                    target.dt.isByte -> TODO("inplaceByteMul(target, value)  ${target.position}")
+                    target.dt.isWord -> inplaceWordMul(target, value)
+                    target.dt.isFloat -> inplaceFloatAddOrMul(target, "FMULT", value)
+                    target.dt.isLong -> TODO("inplace long mul ${target.position}")
+                    else -> throw AssemblyError("weird dt ${target.position}")
+                }
             }
             "/" -> {
-                if(target.dt.isByte) TODO("inplaceByteDiv(target, value)  ${target.position}")
-                else if(target.dt.isWord) inplaceWordDiv(target, value)
-                else if(target.dt.isFloat)  inplaceFloatSubOrDiv(target, "FDIV", value)
-                else if(target.dt.isLong) TODO("inplace long div ${target.position}")
-                else throw AssemblyError("weird dt ${target.position}")
+                when {
+                    target.dt.isByte -> TODO("inplaceByteDiv(target, value)  ${target.position}")
+                    target.dt.isWord -> inplaceWordDiv(target, value)
+                    target.dt.isFloat -> inplaceFloatSubOrDiv(target, "FDIV", value)
+                    target.dt.isLong -> TODO("inplace long div ${target.position}")
+                    else -> throw AssemblyError("weird dt ${target.position}")
+                }
             }
-            "%" -> TODO("inplace ptr % ${target.position}")
+            "%" -> {
+                if(target.dt.isSigned || value.datatype.isSigned)
+                    throw AssemblyError("remainder of signed integers is not properly defined/implemented, use unsigned instead")
+                when {
+                    target.dt.isByte -> TODO("inplace byte pointer mod should have been handled via MEMORY target type  ${target.position}")
+                    target.dt.isWord -> TODO("inplace word pointer mod  ${target.position}")
+                    //target.dt.isFloat -> TODO("inplace float pointer mod  ${target.position}")
+                    //target.dt.isLong -> TODO("inplace long pointer mod  ${target.position}")
+                    else -> throw AssemblyError("weird dt ${target.position}")
+                }
+            }
             "<<" -> {
-                if(target.dt.isByte) inplaceByteShiftLeft(target, value)
-                else if(target.dt.isWord) inplaceWordShiftLeft(target, value)
-                else if(target.dt.isLong) inplaceLongShiftLeft(target, value)
-                else throw AssemblyError("weird dt ${target.position}")
+                when {
+                    target.dt.isByte -> inplaceByteShiftLeft(target, value)
+                    target.dt.isWord -> inplaceWordShiftLeft(target, value)
+                    target.dt.isLong -> inplaceLongShiftLeft(target, value)
+                    else -> throw AssemblyError("weird dt ${target.position}")
+                }
             }
             ">>" -> {
-                if(target.dt.isByte) inplaceByteShiftRight(target, value)
-                else if(target.dt.isWord) inplaceWordShiftRight(target, value)
-                else if(target.dt.isLong) inplaceLongShiftRight(target, value)
-                else throw AssemblyError("weird dt ${target.position}")
+                when {
+                    target.dt.isByte -> inplaceByteShiftRight(target, value)
+                    target.dt.isWord -> inplaceWordShiftRight(target, value)
+                    target.dt.isLong -> inplaceLongShiftRight(target, value)
+                    else -> throw AssemblyError("weird dt ${target.position}")
+                }
             }
             "&", "and" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
-                if(target.dt.isByteOrBool) inplaceByteAnd(target, value)
-                else if(target.dt.isWord) inplaceWordAnd(target, value)
-                else if(target.dt.isLong) inplaceLongAnd(target, value)
-                else throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                when {
+                    target.dt.isByteOrBool -> inplaceByteAnd(target, value)
+                    target.dt.isWord -> inplaceWordAnd(target, value)
+                    target.dt.isLong -> inplaceLongAnd(target, value)
+                    else -> throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                }
             }
             "|", "or" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
-                if(target.dt.isByteOrBool) inplaceByteOr(target, value)
-                else if(target.dt.isWord) inplaceWordOr(target, value)
-                else if(target.dt.isLong) inplaceLongOr(target, value)
-                else throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                when {
+                    target.dt.isByteOrBool -> inplaceByteOr(target, value)
+                    target.dt.isWord -> inplaceWordOr(target, value)
+                    target.dt.isLong -> inplaceLongOr(target, value)
+                    else -> throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                }
             }
             "^", "xor" -> {
                 // byte targets are handled as direct memory access, not a pointer operation anymore however boolean targets are still to be handled here
-                if(target.dt.isByteOrBool) inplaceByteXor(target, value)
-                else if(target.dt.isWord) inplaceWordXor(target, value)
-                else if(target.dt.isLong) inplaceLongXor(target, value)
-                else throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                when {
+                    target.dt.isByteOrBool -> inplaceByteXor(target, value)
+                    target.dt.isWord -> inplaceWordXor(target, value)
+                    target.dt.isLong -> inplaceLongXor(target, value)
+                    else -> throw AssemblyError("weird dt ${target.dt} ${target.position}")
+                }
             }
             else -> throw AssemblyError("invalid operator for in-place modification $operator")
         }
@@ -500,6 +524,189 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             lda  #$${hex.take(2)}
             sta  ($ptrVar),y""")
     }
+
+    internal fun inplacemodificationBytePointerWithValue(pointervar: PtIdentifier, operator: String, value: PtExpression) {
+        asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_B1", DataType.UBYTE)
+        inplacemodificationBytePointerWithVariable(pointervar, operator, "P8ZP_SCRATCH_B1")
+    }
+
+    internal fun inplacemodificationBytePointerWithVariable(pointervar: PtIdentifier, operator: String, otherName: String) {
+        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+
+        when (operator) {
+            "+" -> asmgen.out("  clc |  adc  $otherName")
+            "-" -> asmgen.out("  sec |  sbc  $otherName")
+            "*" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.multiply_bytes")
+            "/" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.divmod_ub_asm |  tya")
+            "%" -> asmgen.out("  ldy  $otherName |  jsr  prog8_math.remainder_ub_asm")
+            "<<" -> {
+                asmgen.out("""
+                        ldy  $otherName
+                        beq  + 
+-                       asl  a
+                        dey
+                        bne  -
++""")
+            }
+            ">>" -> {
+                asmgen.out("""
+                        ldy  $otherName
+                        beq  + 
+-                       lsr  a
+                        dey
+                        bne  -
++""")
+            }
+            "&" -> asmgen.out(" and  $otherName")
+            "|" -> asmgen.out(" ora  $otherName")
+            "^" -> asmgen.out(" eor  $otherName")
+            "==" -> {
+                asmgen.out("""
+                    cmp  $otherName
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            "!=" -> {
+                asmgen.out("""
+                    cmp  $otherName
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+            }
+            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?
+            "<", "<=", ">", ">=" -> TODO("byte-var-to-pointer comparisons ${pointervar.position}")
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+        asmgen.storeAIntoZpPointerVar(sourceName, false)
+    }
+
+    internal fun inplacemodificationBytePointerWithLiteralval(pointervar: PtIdentifier, operator: String, value: Int) {
+        // note: this contains special optimized cases because we know the exact value. Don't replace this with another routine.
+        when (operator) {
+            "+" -> {
+                if(value==1) {
+                    if(asmgen.options.romable) {
+                        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                            asmgen.out("  inc  a")
+                        else
+                            asmgen.out("  clc |  adc  #1")
+                        asmgen.storeAIntoZpPointerVar(sourceName, false)
+                    } else {
+                        asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
+                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                        asmgen.out($$"+\tinc  $ffff\t; modified")
+                    }
+                } else {
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                    asmgen.out("  clc |  adc  #$value")
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
+                }
+            }
+            "-" -> {
+                if(value==1) {
+                    if(asmgen.options.romable) {
+                        val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                        if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                            asmgen.out("  dec  a")
+                        else
+                            asmgen.out("  sec |  sbc  #1")
+                        asmgen.storeAIntoZpPointerVar(sourceName, false)
+                    } else {
+                        asmgen.assignExpressionToRegister(pointervar, RegisterOrPair.AY)
+                        asmgen.out("  sta  (+) + 1 |  sty  (+) + 2")
+                        asmgen.out($$"+\tdec  $ffff\t; modified")
+                    }
+                } else {
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                    asmgen.out("  sec |  sbc  #$value")
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
+                }
+            }
+            "*" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                if(value in asmgen.optimizedByteMultiplications)
+                    asmgen.out("  jsr  prog8_math.mul_byte_${value}")
+                else
+                    asmgen.out("  ldy  #$value |  jsr  prog8_math.multiply_bytes")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            "/" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                if(value==0)
+                    throw AssemblyError("division by zero")
+                asmgen.out("  ldy  #$value |  jsr  prog8_math.divmod_ub_asm |  tya")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            "%" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                if(value==0)
+                    throw AssemblyError("division by zero")
+                asmgen.out("  ldy  #$value |  jsr  prog8_math.remainder_ub_asm")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            "<<" -> {
+                if (value > 0) {
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                    repeat(value) { asmgen.out("  asl  a") }
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
+                }
+            }
+            ">>" -> {
+                if (value > 0) {
+                    val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                    repeat(value) { asmgen.out("  lsr  a") }
+                    asmgen.storeAIntoZpPointerVar(sourceName, false)
+                }
+            }
+            "&" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  and  #$value")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            "|"-> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  ora  #$value")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            "^" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("  eor  #$value")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            "==" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("""
+                    cmp  #$value
+                    beq  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            "!=" -> {
+                val sourceName = asmgen.loadByteFromPointerIntoA(pointervar)
+                asmgen.out("""
+                    cmp  #$value
+                    bne  +
+                    lda  #0
+                    beq  ++
++                   lda  #1
++""")
+                asmgen.storeAIntoZpPointerVar(sourceName, false)
+            }
+            // pretty uncommon, who's going to assign a comparison boolean expression to a pointer?:
+            "<", "<=", ">", ">=" -> TODO("byte-litval-to-pointer comparisons ${pointervar.position}")
+            else -> throw AssemblyError("invalid operator for in-place modification $operator")
+        }
+    }
+
 
 
     internal fun operatorDereference(binExpr: PtBinaryExpression): Triple<String, UByte, DataType> {
