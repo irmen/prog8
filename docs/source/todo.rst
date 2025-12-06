@@ -66,7 +66,9 @@ Future Things and Ideas
 
 IR/VM
 -----
-- optimize float<0 float==0 float>0 to use SGN instruction?  Check what code is generated for other data types.
+- replace LOADIX/STOREIX with LOADFIELD/STOREFIELD
+- extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, LOADFIELD, STOREFIELD etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
+- if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
 - add and sub instructions should modify the status flags so an explicit compare to zero can be avoided for example: if cx16.r0sL + cx16.r1sL <= 0  now compiles into:  addr.b r10,r11 /  bgts.b r10,#0,label
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - fix call() return value handling (... what's wrong with it again?)
@@ -102,7 +104,6 @@ IR/VM
 - implement more TODOs in AssignmentGen
 - do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer, implement the TODOs in there at least
-- extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, LOADFIELD, STOREFIELD etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
 - idea: replace all scalar variables that are not @shared by an allocated register. Keep a table of the variable to register mapping (including the datatype)
   global initialization values are simply a list of LOAD instructions.
   Variables replaced include all subroutine parameters? Or not?  So the only variables that remain as variables are arrays and strings.
@@ -122,6 +123,7 @@ Libraries
 Optimizations
 -------------
 
+- peek(address + offset) and poke(address + offset, value) generate quite large asm segments. Optimize into subroutines for "indexed memory peek/pokes"?
 - (6502) optimize if sgn(value)<0: still does a compare with 0 even though SGN sets all status bits.
 - longvar = lptr^^ ,  lptr2^^=lptr^^  now go via temporary registers, optimize this to avoid using temps.  (seems like it is dereferencing the pointer first and then assigning the intermediate value)
 - optimize inplaceLongShiftRight() for byte aligned cases

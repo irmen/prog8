@@ -916,30 +916,18 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     else -> {
                         if(value in 1..255) {
                             asmgen.out("""
-                                lda  $variable
                                 sec
+                                lda  $variable
                                 sbc  #$value
                                 sta  $variable
-                                bcs  +
-                                dec  $variable+1
-                                bne  +
-                                dec  $variable+2
-                                bne  +
-                                dec  $variable+3
-+""")
-                        } else if(value in 1..65535) {
-                            asmgen.out("""
-                                lda  $variable
-                                sec
-                                sbc  #<$value
-                                sta  $variable
+                                bcs  +++
                                 lda  $variable+1
-                                sbc  #>$value
-                                sta  $variable+1
-                                bcs  +
-                                dec  $variable+2
+                                bne  ++
+                                lda  $variable+2
                                 bne  +
                                 dec  $variable+3
++                               dec  $variable+2
++                               dec  $variable+1
 +""")
                         } else {
                             val hex = value.toLongHex()

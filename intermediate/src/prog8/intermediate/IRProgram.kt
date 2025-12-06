@@ -642,9 +642,11 @@ class RegistersUsed(
 
     fun validate(allowed: Map<Int, IRDataType>, chunk: IRCodeChunkBase?) {
         for((reg, type) in regsTypes) {
-            if(allowed[reg]==null)
-                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: no type known.  CodeChunk=$chunk label ${chunk?.label}")
-            if(allowed[reg]!=type)
+            val allowedType = allowed[reg]
+// can't do this check because %ir {{ .. }} segments may contain registers that the compiler doesn't know about yet.
+//            if(allowedType==null)
+//                throw IllegalArgumentException("Reg type mismatch for register $reg type $type: no type known.  CodeChunk=$chunk label ${chunk?.label}")
+            if(allowedType!=null && allowedType!=type)
                 throw IllegalArgumentException("Reg type mismatch for register $reg type $type: expected ${allowed[reg]}. CodeChunk=$chunk label ${chunk?.label}")
         }
     }
