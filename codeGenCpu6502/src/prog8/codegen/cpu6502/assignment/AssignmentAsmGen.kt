@@ -1199,7 +1199,6 @@ internal class AssignmentAsmGen(
                         }
                     }
                     else {
-                        assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.type.isSigned)
                         if(expr.definingBlock()!!.options.veraFxMuls){
                             // cx16 verafx hardware mul
                             asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "cx16.r1")
