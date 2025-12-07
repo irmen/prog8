@@ -2696,35 +2696,35 @@ $endLabel""")
                 }
                 RegisterOrPair.R0R1_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R0, false)
-                    asmgen.signExtendLongVariable("cx16.r0", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r0", valueDt.base)
                 }
                 RegisterOrPair.R2R3_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R2, false)
-                    asmgen.signExtendLongVariable("cx16.r2", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r2", valueDt.base)
                 }
                 RegisterOrPair.R4R5_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R4, false)
-                    asmgen.signExtendLongVariable("cx16.r4", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r4", valueDt.base)
                 }
                 RegisterOrPair.R6R7_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R6, false)
-                    asmgen.signExtendLongVariable("cx16.r6", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r6", valueDt.base)
                 }
                 RegisterOrPair.R8R9_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R8, false)
-                    asmgen.signExtendLongVariable("cx16.r8", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r8", valueDt.base)
                 }
                 RegisterOrPair.R10R11_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R10, false)
-                    asmgen.signExtendLongVariable("cx16.r10", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r10", valueDt.base)
                 }
                 RegisterOrPair.R12R13_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R12, false)
-                    asmgen.signExtendLongVariable("cx16.r12", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r12", valueDt.base)
                 }
                 RegisterOrPair.R14R15_32 -> {
                     assignExpressionToRegister(value, RegisterOrPair.R14, false)
-                    asmgen.signExtendLongVariable("cx16.r14", valueDt.base)
+                    return asmgen.signExtendLongVariable("cx16.r14", valueDt.base)
                 }
                 else -> {}
             }
