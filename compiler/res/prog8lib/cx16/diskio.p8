@@ -244,6 +244,7 @@ io_error:
         ;    this version it only returns directory entries!
         ;    note: only a single iteration loop can be active at a time!
         cbm.SETNAM(5, "$:*=d")
+        diskio.lf_start_list.pattern_ptr = pattern_ptr
         goto diskio.lf_start_list.start_list_internal
     }
 
@@ -252,6 +253,7 @@ io_error:
         ;    this version only returns actual file entries!
         ;    note: only a single iteration loop can be active at a time!
         cbm.SETNAM(5, "$:*=p")
+        diskio.lf_start_list.pattern_ptr = pattern_ptr
         goto diskio.lf_start_list.start_list_internal
     }
 
