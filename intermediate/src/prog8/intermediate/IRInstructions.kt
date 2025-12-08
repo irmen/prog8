@@ -44,9 +44,9 @@ load        reg1,         value       - load immediate value into register. If y
 loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
-loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr indexed by value in reg2 (0-255, a byte)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
-loadfield   reg1, reg2,   value       - load reg1 with value in memory pointed to by reg2 + value 0-255 (gets a field from a pointer to a struct, like LOADI, but with additional field offset 0-255)
+loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr + value in reg2 (0-255, a byte)
+loadindexed reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + value 0-255 (gets a field from a pointer to a struct, like LOADI with additional field offset 0-255)
 loadha      reg1                      - load cpu hardware register A into reg1.b
 loadhx      reg1                      - load cpu hardware register X into reg1.b
 loadhy      reg1                      - load cpu hardware register Y into reg1.b
@@ -58,11 +58,11 @@ loadhfacone        fpreg1             - load "cpu hardware register" fac1 into f
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
-storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr indexed by value in reg2 (0-255, a byte)
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
-storefield  reg1, reg2,   value       - store reg1 in memory pointed to by reg2 + value 0-255 (set a field from a pointer to a struct, like STOREI, but with additional field offset 0-255)
+storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr + value in reg2 (0-255, a byte)
+storeindexed reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + value 0-255 (set a field from a pointer to a struct, like STOREI with additional field offset 0-255)
 storeha     reg1                      - store reg1.b into cpu hardware register A
 storehx     reg1                      - store reg1.b into cpu hardware register X
 storehy     reg1                      - store reg1.b into cpu hardware register Y
@@ -275,7 +275,7 @@ enum class Opcode {
     LOADHAX,
     LOADHAY,
     LOADHXY,
-    LOADFIELD,
+    LOADINDEXED,
     LOADHFACZERO,
     LOADHFACONE,
     STOREM,
@@ -291,7 +291,7 @@ enum class Opcode {
     STOREHAX,
     STOREHAY,
     STOREHXY,
-    STOREFIELD,
+    STOREINDEXED,
     STOREHFACZERO,
     STOREHFACONE,
 
@@ -514,7 +514,7 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOADHAX,
     Opcode.LOADHAY,
     Opcode.LOADHXY,
-    Opcode.LOADFIELD,
+    Opcode.LOADINDEXED,
     Opcode.NEG,
     Opcode.NEGM,
     Opcode.INC,
@@ -561,7 +561,7 @@ val OpcodesThatLoad = arrayOf(
     Opcode.LOADHAX,
     Opcode.LOADHAY,
     Opcode.LOADHXY,
-    Opcode.LOADFIELD,
+    Opcode.LOADINDEXED,
     Opcode.LOADHFACZERO,
     Opcode.LOADHFACONE
 )
@@ -670,7 +670,7 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADHAX    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHAY    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHXY    to InstructionFormat.from("W,>r1"),
-    Opcode.LOADFIELD  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
+    Opcode.LOADINDEXED  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
     Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
     Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
     Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
@@ -687,7 +687,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREHAX   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHAY   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHXY   to InstructionFormat.from("W,<r1"),
-    Opcode.STOREFIELD to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
+    Opcode.STOREINDEXED to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
     Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
@@ -901,13 +901,13 @@ data class IRInstruction(
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
             if(type==IRDataType.FLOAT) {
-                if(opcode!=Opcode.LOADFIELD && opcode!=Opcode.STOREFIELD)
+                if(opcode!=Opcode.LOADINDEXED && opcode!=Opcode.STOREINDEXED)
                     requireNotNull(immediateFp) { "missing immediate fp value" }
             }
             else
                 require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
-        if(opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD) {
+        if(opcode==Opcode.LOADINDEXED || opcode==Opcode.STOREINDEXED) {
             require(immediate != null) {
                 "missing immediate value for $opcode" }
         }
@@ -1137,7 +1137,7 @@ data class IRInstruction(
     private fun determineReg2Type(): IRDataType? {
         if(opcode==Opcode.LOADX || opcode==Opcode.LOADIX || opcode==Opcode.STOREX || opcode==Opcode.STOREIX)
             return IRDataType.BYTE
-        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI || opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD)
+        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI || opcode==Opcode.LOADINDEXED || opcode==Opcode.STOREINDEXED)
             return IRDataType.WORD
         if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
             return IRDataType.BYTE

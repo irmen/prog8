@@ -1994,7 +1994,7 @@ class IRCodeGen(
     }
 
     internal fun evaluatePointerAddressIntoReg(result: MutableList<IRCodeChunkBase>, deref: PtPointerDeref): Pair<Int, UByte> {
-        // calculates the pointer address and returns the register it's in + remaining offset into the struct  (so that LOADFIELD/STOREFIELD instructions can be used)
+        // calculates the pointer address and returns the register it's in + remaining offset into the struct  (so that LOADINDEXED/STOREINDEXED instructions can be used)
         val pointerTr = expressionEval.translateExpression(deref.startpointer)
         result += pointerTr.chunks
         val (instructions, offset) = expressionEval.traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerTr.resultReg)
@@ -2029,9 +2029,9 @@ class IRCodeGen(
             }
         }
         val instr = if (type.isFloat)
-            IRInstruction(Opcode.STOREFIELD, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg, immediate = offset.toInt())
+            IRInstruction(Opcode.STOREINDEXED, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg, immediate = offset.toInt())
         else
-            IRInstruction(Opcode.STOREFIELD, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
+            IRInstruction(Opcode.STOREINDEXED, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
         addInstr(result, instr, null)
     }
 

@@ -199,7 +199,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADHXY -> InsLOADHXY(ins)
             Opcode.LOADHFACZERO -> InsLOADHFACZERO(ins)
             Opcode.LOADHFACONE -> InsLOADHFACONE(ins)
-            Opcode.LOADFIELD -> InsLOADFIELD(ins)
+            Opcode.LOADINDEXED -> InsLOADINDEXED(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
             Opcode.STOREIX -> InsSTOREIX(ins)
@@ -215,7 +215,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREHXY -> InsSTOREHXY(ins)
             Opcode.STOREHFACZERO -> InsSTOREHFACZERO(ins)
             Opcode.STOREHFACONE-> InsSTOREHFACONE(ins)
-            Opcode.STOREFIELD-> InsSTOREFIELD(ins)
+            Opcode.STOREINDEXED-> InsSTOREINDEXED(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory bytes")
@@ -519,7 +519,7 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
-    private fun InsLOADFIELD(i: IRInstruction) {
+    private fun InsLOADINDEXED(i: IRInstruction) {
         val offset = i.immediate!!
         require(offset in 0..255)
         when(i.type!!) {
@@ -637,7 +637,7 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
-    private fun InsSTOREFIELD(i: IRInstruction) {
+    private fun InsSTOREINDEXED(i: IRInstruction) {
         val offset = i.immediate!!
         require(offset in 0..255)
         when (i.type!!) {
