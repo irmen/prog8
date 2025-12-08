@@ -1,5 +1,5 @@
 %import textio
-%import floats
+%import ciatimer
 
 ; note: Prog8 has a complete CRC32 routine in its library: math.crc32
 
@@ -7,12 +7,11 @@
 main {
     sub start() {
         txt.lowercase()
+        cia.calibrate()
         test.benchmark_name()
-        cbm.SETTIM(0,0,0)
         test.benchmark()
-        txt.print_f(floats.time() / 60)
-        txt.print(" seconds\n")
         void test.benchmark_check()
+        cia.print_time()
         repeat {}
     }    
 }
@@ -40,12 +39,13 @@ test {
 
         if crc_result == EXPECTED
         {
-            txt.print(" [OK]")
+            txt.print(" [OK]\n")
             return false
         }
 
         txt.print(" [FAIL] - expected ")
         txt.print_ulhex(EXPECTED, true)
+        txt.nl()
         return true
     }
     

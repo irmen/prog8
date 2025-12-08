@@ -1,16 +1,15 @@
 %import textio
-%import floats
+%import ciatimer
 
 
 main {
     sub start() {
         txt.lowercase()
+        cia.calibrate()
         test.benchmark_name()
-        cbm.SETTIM(0,0,0)
         test.benchmark()
-        txt.print_f(floats.time() / 60)
-        txt.print(" seconds\n")
         void test.benchmark_check()
+        cia.print_time()
         repeat {}
     }    
 }
@@ -36,12 +35,13 @@ test {
 
         if crc_result == EXPECTED
         {
-            txt.print(" [OK]")
+            txt.print(" [OK]\n")
             return false
         }
 
         txt.print(" [FAIL] - expected ")
         txt.print_ubhex(EXPECTED, true)
+        txt.nl()
         return true
     }
     

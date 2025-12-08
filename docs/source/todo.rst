@@ -1,9 +1,6 @@
 TODO
 ====
 
-- in benchmark-c routines, use same CIA timer as the original C code did so the program size is better comparable.
-
-
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)

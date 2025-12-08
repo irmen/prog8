@@ -1,16 +1,4 @@
 %import textio
-%zeropage basicsafe
-%option no_sysinit
-
-main {
-    sub start() {
-        cia.calibrate()
-
-        sys.wait(280)
-
-        cia.print_time()
-    }
-}
 
 cia {
     ubyte freq
@@ -49,8 +37,8 @@ cia {
         s = c64.CIA2TODSEC
         t = c64.CIA2TOD10
         time = t
-        time += (s & $0f) * 10
-        time += (s >> 4) * 100
+        time += (s & $0f) * (10 as uword)
+        time += (s >> 4) * (100 as uword)
         time += (m & $0f) * 600
         time += (m >> 4) * 6000
         return time
@@ -102,56 +90,9 @@ cia {
         ;  printf("count2 = %d %d %d %d\n",cah, cal, cbh, cbl);
         ;  printf("elapsed ~= %d0ms\n",CNT-cbl);
 
-        if (CNT - cbl) > 90
+        if CNT - cbl > 90
             return 50
         else
             return 60
     }
 }
-
-;
-;
-;main {
-;    sub start() {
-;        ubyte[256] @shared array1
-;        ubyte[256] @shared array2
-;        ubyte[256] @shared array3
-;
-;        setvalues()
-;        readvalues()
-;        printvalues()
-;
-;        sub setvalues() {
-;            poke(&array2 + 255, 99)
-;            poke(&array2 + 256, 88)
-;            poke(&array2 + $3000, 77)
-;        }
-;
-;        sub readvalues() {
-;            %ir {{
-;loadm.b r1007,main.start.array2+255
-;storem.b r1007,$ff02
-;load.w r1009,main.start.array2
-;add.w r1009,#$0100
-;loadi.b r1008,r1009
-;storem.b r1008,$ff04
-;load.w r1011,main.start.array2
-;add.w r1011,#$3000
-;loadi.b r1010,r1011
-;storem.b r1010,$ff06
-;return
-;            }}
-;;            cx16.r0L = array2[255]
-;;            cx16.r1L = @(&array2 + 256)
-;;            cx16.r2L = @(&array2 + $3000)
-;        }
-;
-;        sub printvalues() {
-;            txt.print_ub(cx16.r0L)
-;            txt.spc()
-;            txt.print_ub(cx16.r1L)
-;            txt.spc()
-;            txt.print_ub(cx16.r2L)
-;        }
-;    }
-;}
