@@ -570,18 +570,6 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                                     return result
                                 }
                             }
-                            val offsetTypecast = ptrWithOffset.right as? PtTypeCast
-                            if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier && (ptrWithOffset.right.type.isByte || offsetTypecast?.value?.type?.isByte==true)) {
-                                // STOREIX only works with byte index.
-                                val tr = if(offsetTypecast?.value?.type?.isByte==true)
-                                    expressionEval.translateExpression(offsetTypecast.value)
-                                else
-                                    expressionEval.translateExpression(ptrWithOffset.right)
-                                addToResult(result, tr, tr.resultReg, -1)
-                                val ptrName = (ptrWithOffset.left as PtIdentifier).name
-                                addInstr(result, IRInstruction(Opcode.STOREIX, IRDataType.BYTE, reg1=valueRegister, reg2=tr.resultReg, labelSymbol = ptrName), null)
-                                return result
-                            }
                         }
 
                         val tr = expressionEval.translateExpression(memory!!.address)

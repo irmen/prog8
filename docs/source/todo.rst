@@ -3,7 +3,7 @@ TODO
 
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
-- examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
+- BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
   caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?)
 
 
@@ -11,6 +11,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - when implementing unsigned longs: remove the (mulitple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers... (github issue 196?)
+- struct: add struct definitions into the assembly so you have access to the struct field offsets there (much like that const symbols are also put into the asm)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)
@@ -22,23 +23,23 @@ Future Things and Ideas
 - struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - should we have a SourceStorageKind.POINTER?   (there is one for TargetStorageKind...)
-- array-as-param bug: printf([1111,2,3,-4444]) gives argument type mismatch (param is of type uword), while printf([1111,2,3,4444]) just works fine (passes address of @nosplit array)
+- BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
+- BUG: array-as-param bug: printf([1111,2,3,-4444]) gives argument type mismatch (param is of type uword), while printf([1111,2,3,4444]) just works fine (passes address of @nosplit array)
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
-- After long variable type is completed: make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
+- Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - add documentation for more library modules instead of just linking to the source code
 - add an Index to the documentation
-- sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example.
+- sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
-- fix the c64 multiplexer example
+- BUG: fix the c64 multiplexer example
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
 - Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
@@ -63,12 +64,12 @@ Future Things and Ideas
 
 IR/VM
 -----
-- replace LOADIX/STOREIX with LOADINDEXEDR/STOREINDEXEDR  (LOADINDEXED but with 3rd register with the offset in it rather than an immediate value)
+- get rid of LOADX/STOREX, LOADINDEXED/STOREINDEXED just use add + loadi / storei?
 - extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, LOADINDEXED, STOREINDEXED etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
 - if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
 - add and sub instructions should modify the status flags so an explicit compare to zero can be avoided for example: if cx16.r0sL + cx16.r1sL <= 0  now compiles into:  addr.b r10,r11 /  bgts.b r10,#0,label
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- fix call() return value handling (... what's wrong with it again?)
+- BUG: fix call() return value handling (... what's wrong with it again?)
 - proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
@@ -91,8 +92,8 @@ IR/VM
     - byte, word, long, float registers
 
 - pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit 88b074c208450c58aa32469745afa03e4c5f564a
-- change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer
-- register reuse to reduce the number of required variables in memory eventually. But can only re-use a register if a) it's the same type and b) if the second occurrence is not called from the first occurrence (otherwise the value gets overwritten!)
+- change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer. Breaks SSA form though?
+- register reuse to reduce the number of required variables in memory eventually. But can only re-use a register if a) it's the same type and b) if the second occurrence is not called from the first occurrence (otherwise the value gets overwritten!) Breaks SSA form though?
 - reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
   don't forget to take into account the data type of the register when it's going to be reused!
 - encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)

@@ -6,9 +6,26 @@ main {
 
     sub start() {
         uword @shared string = 20000
-        ubyte length
+        ubyte[200] barray
+        uword[100] @nosplit warray
+        ubyte @shared length
+        uword @shared lengthw
 
-        while string[length]!=0 length++
+        cx16.r0L = string[length]
+        cx16.r1L = string[lengthw]
+        cx16.r0bL = string[length]!=0
+        cx16.r1bL = string[lengthw]!=0
+        while string[length]!=0
+            break
+        while string[lengthw]!=0
+            break
+
+
+        string[length] = 42
+        string[lengthw] = 42
+
+        ;cx16.r1L = barray[length]
+        ;cx16.r2 = warray[length]
     }
 }
 

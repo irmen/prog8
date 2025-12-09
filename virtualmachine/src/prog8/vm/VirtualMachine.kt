@@ -189,7 +189,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADM -> InsLOADM(ins)
             Opcode.LOADX -> InsLOADX(ins)
             Opcode.LOADI -> InsLOADI(ins)
-            Opcode.LOADIX -> InsLOADIX(ins)
             Opcode.LOADR -> InsLOADR(ins)
             Opcode.LOADHA -> InsLOADHA(ins)
             Opcode.LOADHX -> InsLOADHX(ins)
@@ -202,7 +201,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADINDEXED -> InsLOADINDEXED(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
-            Opcode.STOREIX -> InsSTOREIX(ins)
             Opcode.STOREI -> InsSTOREI(ins)
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
@@ -567,34 +565,6 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
-    private fun InsLOADIX(i: IRInstruction) {
-        when (i.type!!) {
-            IRDataType.BYTE -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
-                val value = memory.getUB(pointer.toInt())
-                registers.setUB(i.reg1!!, value)
-                statusbitsNZ(value.toInt(), i.type!!)
-            }
-            IRDataType.WORD -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
-                val value = memory.getUW(pointer.toInt())
-                registers.setUW(i.reg1!!, value)
-                statusbitsNZ(value.toInt(), i.type!!)
-            }
-            IRDataType.LONG -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
-                val value = memory.getSL(pointer.toInt())
-                registers.setSL(i.reg1!!, value)
-                statusbitsNZ(value, i.type!!)
-            }
-            IRDataType.FLOAT -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg1!!)
-                registers.setFloat(i.fpReg1!!, memory.getFloat(pointer.toInt()))
-            }
-        }
-        nextPc()
-    }
-
     private fun InsLOADR(i: IRInstruction) {
         when(i.type!!) {
             IRDataType.BYTE -> {
@@ -655,28 +625,6 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.WORD -> memory.setUW(i.address!! + registers.getUB(i.reg2!!).toInt(), registers.getUW(i.reg1!!))
             IRDataType.LONG -> memory.setSL(i.address!! + registers.getUB(i.reg2!!).toInt(), registers.getSL(i.reg1!!))
             IRDataType.FLOAT -> memory.setFloat(i.address!! + registers.getUB(i.reg1!!).toInt(), registers.getFloat(i.fpReg1!!))
-        }
-        nextPc()
-    }
-
-    private fun InsSTOREIX(i: IRInstruction) {
-        when (i.type!!) {
-            IRDataType.BYTE -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
-                memory.setUB(pointer.toInt(), registers.getUB(i.reg1!!))
-            }
-            IRDataType.WORD -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
-                memory.setUW(pointer.toInt(), registers.getUW(i.reg1!!))
-            }
-            IRDataType.LONG -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg2!!)
-                memory.setSL(pointer.toInt(), registers.getSL(i.reg1!!))
-            }
-            IRDataType.FLOAT -> {
-                val pointer = memory.getUW(i.address!!) + registers.getUB(i.reg1!!)
-                memory.setFloat(pointer.toInt(), registers.getFloat(i.fpReg1!!))
-            }
         }
         nextPc()
     }

@@ -45,7 +45,6 @@ loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
-loadix      reg1, reg2,   pointeraddr - load reg1 with value at memory indirect, pointed to by pointeraddr + value in reg2 (0-255, a byte)
 loadindexed reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + value 0-255 (gets a field from a pointer to a struct, like LOADI with additional field offset 0-255)
 loadha      reg1                      - load cpu hardware register A into reg1.b
 loadhx      reg1                      - load cpu hardware register X into reg1.b
@@ -61,7 +60,6 @@ storex      reg1, reg2,   address     - store reg1 at memory address, indexed by
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
-storeix     reg1, reg2,   pointeraddr - store reg1 at memory indirect, pointed to by pointeraddr + value in reg2 (0-255, a byte)
 storeindexed reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + value 0-255 (set a field from a pointer to a struct, like STOREI with additional field offset 0-255)
 storeha     reg1                      - store reg1.b into cpu hardware register A
 storehx     reg1                      - store reg1.b into cpu hardware register X
@@ -267,7 +265,6 @@ enum class Opcode {
     LOADM,
     LOADI,      // the only opcode that allows r1 and r2 to be the same; because this saves a lot of intermediary registers and loads to dereference a pointer chain
     LOADX,
-    LOADIX,
     LOADR,
     LOADHA,
     LOADHX,
@@ -281,7 +278,6 @@ enum class Opcode {
     STOREM,
     STOREI,
     STOREX,
-    STOREIX,
     STOREZM,
     STOREZI,
     STOREZX,
@@ -506,7 +502,6 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOADM,
     Opcode.LOADI,
     Opcode.LOADX,
-    Opcode.LOADIX,
     Opcode.LOADR,
     Opcode.LOADHA,
     Opcode.LOADHX,
@@ -553,7 +548,6 @@ val OpcodesThatLoad = arrayOf(
     Opcode.LOADM,
     Opcode.LOADI,
     Opcode.LOADX,
-    Opcode.LOADIX,
     Opcode.LOADR,
     Opcode.LOADHA,
     Opcode.LOADHX,
@@ -661,7 +655,6 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADM      to InstructionFormat.from("BWL,>r1,<a     | F,>fr1,<a"),
     Opcode.LOADI      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<r1"),
     Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
-    Opcode.LOADIX     to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
     Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
     Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
@@ -676,7 +669,6 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
     Opcode.STOREI     to InstructionFormat.from("BWL,<r1,<r2    | F,<fr1,<r1"),
     Opcode.STOREX     to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
-    Opcode.STOREIX    to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BWL,<r1        | F,<r1"),
     Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
@@ -1099,10 +1091,8 @@ data class IRInstruction(
                 Opcode.FTOUB,
                 Opcode.FTOSB,
                 Opcode.FCOMP,
-                Opcode.LOADIX,
                 Opcode.LOADX,
                 Opcode.STOREX,
-                Opcode.STOREIX,
                 Opcode.STOREZX,
                 Opcode.SGN -> IRDataType.BYTE
                 Opcode.FFROMSL, Opcode.FTOSL -> IRDataType.LONG
@@ -1135,7 +1125,7 @@ data class IRInstruction(
     }
 
     private fun determineReg2Type(): IRDataType? {
-        if(opcode==Opcode.LOADX || opcode==Opcode.LOADIX || opcode==Opcode.STOREX || opcode==Opcode.STOREIX)
+        if(opcode==Opcode.LOADX || opcode==Opcode.STOREX)
             return IRDataType.BYTE
         if(opcode==Opcode.LOADI || opcode==Opcode.STOREI || opcode==Opcode.LOADINDEXED || opcode==Opcode.STOREINDEXED)
             return IRDataType.WORD

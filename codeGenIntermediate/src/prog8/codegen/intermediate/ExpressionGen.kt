@@ -416,18 +416,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
                 }
             }
-            val offsetTypecast = ptrWithOffset.right as? PtTypeCast
-            if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier && (ptrWithOffset.right.type.isByte || offsetTypecast?.value?.type?.isByte==true)) {
-                // LOADIX only works with byte index.
-                val tr = if(offsetTypecast?.value?.type?.isByte==true)
-                    translateExpression(offsetTypecast.value)
-                else
-                    translateExpression(ptrWithOffset.right)
-                addToResult(result, tr, tr.resultReg, -1)
-                val ptrName = (ptrWithOffset.left as PtIdentifier).name
-                addInstr(result, IRInstruction(Opcode.LOADIX, IRDataType.BYTE, reg1=resultRegister, reg2=tr.resultReg, labelSymbol = ptrName), null)
-                return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
-            }
         }
 
         val tr = translateExpression(mem.address)
