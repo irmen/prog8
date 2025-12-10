@@ -261,3 +261,40 @@ Address-Of: untyped vs typed
 ``&`` still returns an untyped (uword) pointer, as it did in older Prog8 versions. This is for backward compatibility reasons so existing programs don't break.
 The new *double ampersand* operator ``&&`` returns a *typed* pointer to the value. The semantics are slightly different from the old untyped address-of operator, because adding or subtracting
 a number from a typed pointer uses *pointer arithmetic* that takes the size of the value that it points to into account.
+
+
+Accessing struct definitions in Assembly code
+---------------------------------------------
+
+Prog8 lets you query the size of a struct type, and the offsets of a field.
+You can do the same in assembly code if needed: the struct definition gets written as `.struct` into the assembly file::
+
+    ; prog8 struct declaration:
+    struct Node {
+        ubyte type
+        uword value
+        bool flag
+    }
+
+    ; generates this assembly code:
+    ; (the symbol prefixes are explained in the 'Technical details' chapter)
+    p8b_main.p8t_Node    .struct f0,f1,f2
+    p8v_type  .byte  \f0
+    p8v_value  .word  \f1
+    p8v_flag  .byte  \f2
+        .endstruct
+
+
+64tass then lets you query that information::
+
+    ; prog8 code:
+    ubyte size = sizeof(Node)
+    ubyte offset1 = offsetof(Node.type)
+    ubyte offset2 = offsetof(Node.value)
+    ubyte offset3 = offsetof(Node.flag)
+
+    ; assembly equivalents (64tass syntax):
+    lda  #size(p8t_Node)
+    lda  #p8t_Node.p8v_type
+    lda  #p8t_Node.p8v_value
+    lda  #p8t_Node.p8v_flag

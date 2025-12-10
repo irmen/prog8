@@ -4,28 +4,28 @@
 
 main {
 
+    struct Node {
+        ubyte type
+        uword value
+        bool flag
+    }
+
     sub start() {
-        uword @shared string = 20000
-        ubyte[200] barray
-        uword[100] @nosplit warray
-        ubyte @shared length
-        uword @shared lengthw
+       const ubyte size = sizeof(Node)
+       const ubyte offset1 = offsetof(Node.type)
+       const ubyte offset2 = offsetof(Node.value)
+       const ubyte offset3 = offsetof(Node.flag)
 
-        cx16.r0L = string[length]
-        cx16.r1L = string[lengthw]
-        cx16.r0bL = string[length]!=0
-        cx16.r1bL = string[lengthw]!=0
-        while string[length]!=0
-            break
-        while string[lengthw]!=0
-            break
-
-
-        string[length] = 42
-        string[lengthw] = 42
-
-        ;cx16.r1L = barray[length]
-        ;cx16.r2 = warray[length]
+        %asm {{
+            lda  p8c_size
+            lda  p8c_offset1
+            lda  p8c_offset2
+            lda  p8c_offset3
+            lda  #size(p8t_Node)
+            lda  #p8t_Node.p8v_type
+            lda  #p8t_Node.p8v_value
+            lda  #p8t_Node.p8v_flag
+        }}
     }
 }
 

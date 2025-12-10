@@ -514,5 +514,37 @@ main {
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
+
+    test("const struct sizes and offsets, also available in assembly code") {
+        val src = """
+main {
+
+    struct Node {
+        ubyte type
+        uword value
+        bool flag
+    }
+
+    sub start() {
+       const ubyte size = sizeof(Node)
+       const ubyte offset1 = offsetof(Node.type)
+       const ubyte offset2 = offsetof(Node.value)
+       const ubyte offset3 = offsetof(Node.flag)
+
+        %asm {{
+            lda  p8c_size
+            lda  p8c_offset1
+            lda  p8c_offset2
+            lda  p8c_offset3
+            lda  #size(p8t_Node)
+            lda  #p8t_Node.p8v_type
+            lda  #p8t_Node.p8v_value
+            lda  #p8t_Node.p8v_flag
+        }}
+    }
+}"""
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
 })
 

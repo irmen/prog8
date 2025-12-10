@@ -81,18 +81,32 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
         vars
     }
 
-    val allStructInstances: Collection<StStructInstance> by lazy {
+    fun allStructInstances(): Collection<StStructInstance> {
         val vars = mutableListOf<StStructInstance>()
         fun collect(node: StNode) {
             for(child in node.children) {
-                if(child.value.type== StNodeType.STRUCTINSTANCE)
+                if(child.value.type == StNodeType.STRUCTINSTANCE)
                     vars.add(child.value as StStructInstance)
                 else
                     collect(child.value)
             }
         }
         collect(this)
-        vars
+        return vars
+    }
+
+    fun allStructTypes(): Collection<StStruct> {
+        val vars = mutableListOf<StStruct>()
+        fun collect(node: StNode) {
+            for(child in node.children) {
+                if(child.value.type == StNodeType.STRUCT)
+                    vars.add(child.value as StStruct)
+                else
+                    collect(child.value)
+            }
+        }
+        collect(this)
+        return vars
     }
 
     override fun lookup(scopedName: String) = flat[scopedName]

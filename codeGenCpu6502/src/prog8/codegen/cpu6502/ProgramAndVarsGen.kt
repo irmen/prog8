@@ -412,10 +412,9 @@ internal class ProgramAndVarsGen(
 
 
         asmgen.out("; struct types")
-        symboltable.allStructInstances.distinctBy { it.structName }.forEach {
-            val structtype: StStruct = symboltable.lookup(it.structName) as StStruct
+        symboltable.allStructTypes().distinctBy { it.name }.forEach { structtype ->
             val structargs = structtype.fields.withIndex().joinToString(",") { field -> "f${field.index}" }
-            asmgen.out("${it.structName}    .struct $structargs\n")
+            asmgen.out("${structtype.scopedNameString}    .struct $structargs\n")
             structtype.fields.withIndex().forEach { (index, field) ->
                 val dt = field.first
                 val varname = "f${index}"
@@ -425,7 +424,7 @@ internal class ProgramAndVarsGen(
             asmgen.out("    .endstruct\n")
         }
 
-        val (instancesNoInit, instances) = symboltable.allStructInstances.partition { it.initialValues.isEmpty() }
+        val (instancesNoInit, instances) = symboltable.allStructInstances().partition { it.initialValues.isEmpty() }
         asmgen.out("; struct instances without initialization values, as BSS zeroed at startup\n")
         asmgen.out("    .section BSS\n")
         asmgen.out("${StStructInstanceBlockName}_bss  .block\n")
