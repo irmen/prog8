@@ -9,23 +9,22 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- when implementing unsigned longs: remove the (mulitple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
+- BUG: array-as-param bug: printf([1111,2,3,-4444]) gives argument type mismatch (param is of type uword), while printf([1111,2,3,4444]) just works fine (passes address of @nosplit array)
+- BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
+- when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers... (github issue 196?)
-- struct: add struct definitions into the assembly so you have access to the struct field offsets there (much like that const symbols are also put into the asm)
+- struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)
 - struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - struct/ptr: implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
-- struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: support @nosplit pointer arrays?
 - struct/ptr: support pointer to pointer?
 - struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - should we have a SourceStorageKind.POINTER?   (there is one for TargetStorageKind...)
-- BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
-- BUG: array-as-param bug: printf([1111,2,3,-4444]) gives argument type mismatch (param is of type uword), while printf([1111,2,3,4444]) just works fine (passes address of @nosplit array)
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
@@ -39,7 +38,6 @@ Future Things and Ideas
 - Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - is "checkAssignmentCompatible" redundant (gets called just 1 time!) when we also have "checkValueTypeAndRange" ?
-- BUG: fix the c64 multiplexer example
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
 - Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
@@ -59,6 +57,7 @@ Future Things and Ideas
 - more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
 - ability to use a sub instead of only a var for @bank ? what for though? dynamic bank/overlay loading?
 - enums?
+- BUG: fix the c64 multiplexer example
 - Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
 

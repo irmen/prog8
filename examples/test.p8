@@ -4,28 +4,27 @@
 
 main {
 
-    struct Node {
-        ubyte type
-        uword value
-        bool flag
-    }
-
     sub start() {
-       const ubyte size = sizeof(Node)
-       const ubyte offset1 = offsetof(Node.type)
-       const ubyte offset2 = offsetof(Node.value)
-       const ubyte offset3 = offsetof(Node.flag)
+        long @shared lv
+        word @shared wv
 
-        %asm {{
-            lda  p8c_size
-            lda  p8c_offset1
-            lda  p8c_offset2
-            lda  p8c_offset3
-            lda  #size(p8t_Node)
-            lda  #p8t_Node.p8v_type
-            lda  #p8t_Node.p8v_value
-            lda  #p8t_Node.p8v_flag
-        }}
+        lv = 9999999
+        wv = 10000
+        if wv<lv
+            txt.print("y1 ")
+        else
+            txt.print("n1 ")
+
+        if lv<wv
+            txt.print("y2 ")
+        else
+            txt.print("n2 ")
+
+        lv = 999
+        if lv<wv
+            txt.print("y3 ")
+        else
+            txt.print("n3 ")
     }
 }
 
