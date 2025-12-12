@@ -69,6 +69,13 @@ class AstPreprocessor(val program: Program,
         return super.before(string, parent)
     }
 
+    override fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+        if (parent is RangeExpression)
+            return noModifications
+        val constValue = expr.constValue(program) ?: return noModifications
+        return listOf(IAstModification.ReplaceNode(expr, constValue, parent))
+    }
+
     override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
         // has to be done before the constant folding, otherwise certain checks there will fail on invalid range sizes
         val modifications = mutableListOf<IAstModification>()

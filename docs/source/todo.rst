@@ -9,7 +9,6 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- BUG: array-as-param bug: printf([1111,2,3,-4444]) gives argument type mismatch (param is of type uword), while printf([1111,2,3,4444]) just works fine (passes address of @nosplit array)
 - BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)

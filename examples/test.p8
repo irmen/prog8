@@ -3,51 +3,24 @@
 %option no_sysinit
 
 main {
+
     sub start() {
-        long[] foo = [1,2,3]
-        long bar = 0
-        ubyte @shared index = 0
-        bar = 4
-        txt.print("bar: ") txt.print_l(bar) txt.nl()
-        txt.print("foo[0]: ") txt.print_l(foo[0]) txt.nl()
-        txt.print("bar < foo[0]: ") txt.print_bool(bar < foo[0]) txt.nl()
-        txt.print("bar <= foo[0]: ") txt.print_bool(bar <= foo[0]) txt.nl()
-        txt.print("bar > foo[0]: ") txt.print_bool(bar > foo[0]) txt.nl()
-        txt.nl()
+        printf([1111,2,3,4444])
+        printf([1111,2,3,-4444])
+        printf2([1111,2,3,4444])
+        printf2([1111,2,3,-4444] as uword)
 
-        txt.print("variable indexed.\nbar: ") txt.print_l(bar) txt.nl()
-        txt.print("foo[0]: ") txt.print_l(foo[index]) txt.nl()
-        txt.print("bar < foo[0]: ") txt.print_bool(bar < foo[index]) txt.nl()
-        txt.print("bar <= foo[0]: ") txt.print_bool(bar <= foo[index]) txt.nl()
-        txt.print("bar > foo[0]: ") txt.print_bool(bar > foo[index]) txt.nl()
-        txt.nl()
+        sub printf(uword ptr) {
+            txt.print_uwhex(ptr, true)
+            txt.nl()
+        }
 
-        long baz = foo[0]
-        txt.print("baz: ") txt.print_l(baz) txt.nl()
-        txt.print("bar < baz: ") txt.print_bool(bar < baz) txt.nl()
-        txt.print("bar <= baz: ") txt.print_bool(bar <= baz) txt.nl()
-        txt.print("bar > baz: ") txt.print_bool(bar > baz) txt.nl()
+        sub printf2(^^uword ptr) {
+            txt.print_uwhex(ptr, true)
+            txt.nl()
+        }
     }
 }
-
-
-;main {
-;
-;    sub start() {
-;        printf([1111,2,3,4444])
-;        printf([1111,2,3,-4444])
-;        printf2([1111,2,3,4444])
-;        printf2([1111,2,3,-4444])
-;
-;        sub printf(uword ptr) {
-;            ptr++
-;        }
-;
-;        sub printf2(^^uword ptr) {
-;            ptr++
-;        }
-;    }
-;}
 
 ;main {
 ;    sub start() {
