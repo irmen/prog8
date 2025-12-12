@@ -1430,7 +1430,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  ($zpPtrVar),y""")
             }
             SourceStorageKind.EXPRESSION -> {
-                // it's not an expression so no need to preserve R14:R15
+                // it's not an expression so no need to preserve R14-R15
                 asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, true)
                 asmgen.out("""
                     ldy  #$offset
@@ -1500,7 +1500,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  ($zpPtrVar),y""")
             }
             SourceStorageKind.EXPRESSION -> {
-                // it's not an expression so no need to preserve R14:R15
+                // it's not an expression so no need to preserve R14-R15
                 asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, true)
                 asmgen.out("""
                     ldy  #$offset

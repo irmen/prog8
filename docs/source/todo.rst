@@ -12,7 +12,6 @@ Future Things and Ideas
 - BUG: array-as-param bug: printf([1111,2,3,-4444]) gives argument type mismatch (param is of type uword), while printf([1111,2,3,4444]) just works fine (passes address of @nosplit array)
 - BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
-- implement rest of long comparisons in IfElseAsmGen compareLongValues(): expressions operands that might clobber the R14-R15 registers... (github issue 196?)
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0

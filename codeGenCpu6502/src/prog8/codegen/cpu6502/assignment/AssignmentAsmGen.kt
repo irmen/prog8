@@ -296,17 +296,7 @@ internal class AssignmentAsmGen(
                             assignRegisterpairWord(assign.target, RegisterOrPair.AY)
                         }
                         elementDt.isLong -> {
-                            // it's not an expression so no need to preserve R14-R15
-                            asmgen.out("""
-                                lda  $arrayVarName+$indexValue
-                                sta  cx16.r14
-                                lda  $arrayVarName+$indexValue+1
-                                sta  cx16.r14+1
-                                lda  $arrayVarName+$indexValue+2
-                                sta  cx16.r14+2
-                                lda  $arrayVarName+$indexValue+3
-                                sta  cx16.r14+3""")
-                            assignRegisterLong(assign.target, RegisterOrPair.R14R15_32)
+                            assignVariableLong(assign.target, "$arrayVarName+$indexValue", DataType.LONG)
                         }
                         elementDt.isFloat -> {
                             asmgen.out("  lda  #<($arrayVarName+$indexValue) |  ldy  #>($arrayVarName+$indexValue)")
@@ -328,18 +318,7 @@ internal class AssignmentAsmGen(
                             assignRegisterpairWord(assign.target, RegisterOrPair.AX)
                         }
                         elementDt.isLong -> {
-                            // it's not an expression so no need to preserve R14-R15
-                            asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
-                            asmgen.out("""
-                                lda  $arrayVarName,y
-                                sta  cx16.r14
-                                lda  $arrayVarName+1,y
-                                sta  cx16.r14+1
-                                lda  $arrayVarName+2,y
-                                sta  cx16.r14+2
-                                lda  $arrayVarName+3,y
-                                sta  cx16.r14+3""")
-                            assignRegisterLong(assign.target, RegisterOrPair.R14R15_32)
+                            assignVariableLongIndexed(assign.target, arrayVarName, value)
                         }
                         elementDt.isFloat -> {
                             asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.A)
@@ -3532,7 +3511,6 @@ $endLabel""")
                     lda  $varName+3
                     sta  ${target.asmVarname}+3,y""")
             }
-            TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {
                 require(target.register in combinedLongRegisters)
                 val regstart = target.register!!.startregname()
@@ -3583,6 +3561,59 @@ $endLabel""")
                 }
             }
             TargetStorageKind.POINTER -> pointergen.assignLongVar(target.pointer!!, varName)
+            TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
+            TargetStorageKind.VOID -> { /* do nothing */ }
+        }
+    }
+
+    private fun assignVariableLongIndexed(target: AsmAssignTarget, arrayVarName: String, index: PtArrayIndexer) {
+        asmgen.loadScaledArrayIndexIntoRegister(index, CpuRegister.Y)
+        when(target.kind) {
+            TargetStorageKind.VARIABLE -> {
+                asmgen.out("""
+                    lda  $arrayVarName,y
+                    sta  ${target.asmVarname}
+                    lda  $arrayVarName+1,y
+                    sta  ${target.asmVarname}+1
+                    lda  $arrayVarName+2,y
+                    sta  ${target.asmVarname}+2
+                    lda  $arrayVarName+3,y
+                    sta  ${target.asmVarname}+3""")
+            }
+            TargetStorageKind.REGISTER -> {
+                require(target.register in combinedLongRegisters)
+                val regstart = target.register!!.startregname()
+                asmgen.out("""
+                    lda  $arrayVarName,y
+                    sta  cx16.$regstart
+                    lda  $arrayVarName+1,y
+                    sta  cx16.$regstart+1
+                    lda  $arrayVarName+2,y
+                    sta  cx16.$regstart+2
+                    lda  $arrayVarName+3,y
+                    sta  cx16.$regstart+3""")
+            }
+            TargetStorageKind.ARRAY -> {
+                val deref = target.array!!.pointerderef
+                if(deref!=null) {
+                    pointergen.assignLongVar(IndexedPtrTarget(target), arrayVarName)
+                    return
+                }
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                asmgen.loadScaledArrayIndexIntoRegister(target.array, CpuRegister.X)
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.out("""
+                    lda  $arrayVarName,y
+                    sta  ${target.asmVarname},x
+                    lda  $arrayVarName+1,y
+                    sta  ${target.asmVarname}+1,x
+                    lda  $arrayVarName+2,y
+                    sta  ${target.asmVarname}+2,x
+                    lda  $arrayVarName+3,y
+                    sta  ${target.asmVarname}+3,x""")
+            }
+            TargetStorageKind.POINTER -> pointergen.assignIndexedPointer(target, arrayVarName, index, DataType.arrayFor(BaseDataType.LONG))
+            TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.VOID -> { /* do nothing */ }
         }
     }
