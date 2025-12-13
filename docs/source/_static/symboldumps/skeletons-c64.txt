@@ -1,5 +1,6 @@
 
-Prog8 compiler v12.0 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.0.1 by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit cfa4355a in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -759,6 +760,7 @@ cx16  {
     &ubyte  r0L 
     &bool  r0bH 
     &bool  r0bL 
+    &long  r0r1sl 
     &word  r0s 
     &byte  r0sH 
     &byte  r0sL 
@@ -768,6 +770,7 @@ cx16  {
     &ubyte  r10L 
     &bool  r10bH 
     &bool  r10bL 
+    &long  r10r11sl 
     &word  r10s 
     &byte  r10sH 
     &byte  r10sL 
@@ -784,6 +787,7 @@ cx16  {
     &ubyte  r12L 
     &bool  r12bH 
     &bool  r12bL 
+    &long  r12r13sl 
     &word  r12s 
     &byte  r12sH 
     &byte  r12sL 
@@ -800,6 +804,7 @@ cx16  {
     &ubyte  r14L 
     &bool  r14bH 
     &bool  r14bL 
+    &long  r14r15sl 
     &word  r14s 
     &byte  r14sH 
     &byte  r14sL 
@@ -823,6 +828,7 @@ cx16  {
     &ubyte  r2L 
     &bool  r2bH 
     &bool  r2bL 
+    &long  r2r3sl 
     &word  r2s 
     &byte  r2sH 
     &byte  r2sL 
@@ -839,6 +845,7 @@ cx16  {
     &ubyte  r4L 
     &bool  r4bH 
     &bool  r4bL 
+    &long  r4r5sl 
     &word  r4s 
     &byte  r4sH 
     &byte  r4sL 
@@ -855,6 +862,7 @@ cx16  {
     &ubyte  r6L 
     &bool  r6bH 
     &bool  r6bL 
+    &long  r6r7sl 
     &word  r6s 
     &byte  r6sH 
     &byte  r6sL 
@@ -871,6 +879,7 @@ cx16  {
     &ubyte  r8L 
     &bool  r8bH 
     &bool  r8bL 
+    &long  r8r9sl 
     &word  r8s 
     &byte  r8sH 
     &byte  r8sL 
