@@ -26,8 +26,6 @@ main {
             %ir {{
 loadm.b r1007,main.start.array2+255
 storem.b r1007,$ff02
-loadm.b r1007,main.start.array2+256
-storem.b r1007,$ff04
 load.w r1009,main.start.array2
 add.w r1009,#$0100
 loadi.b r1008,r1009

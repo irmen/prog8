@@ -55,6 +55,8 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
                                 || cleanupPushPop(chunk1, indexedInstructions)
                                 || simplifyConstantReturns(chunk1, indexedInstructions)
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
+                                || useArrayIndexingInsteadOfAdds(chunk1, indexedInstructions)
+                                || removeNops(chunk1, indexedInstructions)   // last time, in case one of the optimizers replaced something with a nop
                     } while (changed)
                 }
             }
@@ -551,6 +553,42 @@ jump p8_label_gen_2
                 }
             }
         }
+        return changed
+    }
+
+    private fun useArrayIndexingInsteadOfAdds(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        var changed = false
+        indexedInstructions.reversed().forEach { (idx, ins) ->
+            if (ins.opcode == Opcode.ADD && ins.immediate!=null && idx>0) {
+                val load = indexedInstructions[idx-1].value
+                if((load.opcode==Opcode.LOAD) && load.labelSymbol!=null) {
+                    val lastInstruction = indexedInstructions[idx+1].value
+                    if(lastInstruction.opcode==Opcode.LOADI) {
+                        val targetRegister = lastInstruction.reg1!!
+                        if(ins.reg1==lastInstruction.reg2!! && load.reg1==lastInstruction.reg2!!) {
+                            val loadm = IRInstruction(Opcode.LOADM, lastInstruction.type, reg1=targetRegister, labelSymbol = load.labelSymbol, symbolOffset = ins.immediate)
+                            chunk.instructions[idx-1] = loadm
+                            chunk.instructions.removeAt(idx+1)
+                            chunk.instructions.removeAt(idx)
+                            changed = true
+                        }
+                    } else if(lastInstruction.opcode==Opcode.STOREI) {
+                        val targetRegister = lastInstruction.reg1!!
+                        if(ins.reg1==lastInstruction.reg2!! && load.reg1==lastInstruction.reg2!!) {
+                            val valueLoad = indexedInstructions[idx-2].value
+                            if(valueLoad.opcode==Opcode.LOAD && valueLoad.reg1==targetRegister) {
+                                val storem = IRInstruction(Opcode.STOREM, lastInstruction.type, reg1=valueLoad.reg1, labelSymbol = load.labelSymbol, symbolOffset = ins.immediate)
+                                chunk.instructions[idx-1] = storem
+                                chunk.instructions.removeAt(idx+1)
+                                chunk.instructions.removeAt(idx)
+                                changed = true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return changed
     }
 }

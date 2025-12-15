@@ -306,7 +306,7 @@ class IRProgram(val name: String,
         fun convert(asmChunk: IRInlineAsmChunk): IRCodeChunks {
             val chunks = mutableListOf<IRCodeChunkBase>()
             var chunk = IRCodeChunk(asmChunk.label, null)
-            asmChunk.assembly.lineSequence().forEach {
+            asmChunk.assembly.lineSequence().filter{it.isNotBlank()}.forEach {
                 val parsed = parseIRCodeLine(it.trim())
                 parsed.fold(
                     ifLeft = { instruction -> chunk += instruction },
