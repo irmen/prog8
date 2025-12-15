@@ -8,7 +8,7 @@ Evolution of Zerobyte's ZSOUND, by MooingLemur.  Read the README there!
 
 INCLUDED ZSMKIT BIN
 -------------------
-The ZSMKIT-A000.BIN included here is release version 2.6 of zsmkit.
+The ZSMKIT-A000.BIN included here is release version 2.8 of zsmkit.
 
 
 DEMO PROGRAM

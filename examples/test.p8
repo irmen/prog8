@@ -3,66 +3,56 @@
 %option no_sysinit
 
 main {
-
     sub start() {
-        printf([1111,2,3,4444])
-        printf([1111,2,3,-4444])
-        printf2([1111,2,3,4444])
-        printf2([1111,2,3,-4444] as uword)
+        ubyte[256] @shared array1
+        ubyte[256] @shared array2
+        ubyte[256] @shared array3
 
-        sub printf(uword ptr) {
-            txt.print_uwhex(ptr, true)
-            txt.nl()
+        setvalues()
+        cx16.r0 = cx16.r1 = cx16.r2 = 0
+        readvalues()
+        printvalues()
+        cx16.r0 = cx16.r1 = cx16.r2 = 0
+        readvalues2()
+        printvalues()
+
+        sub setvalues() {
+            poke(&array2 + 255, 99)
+            poke(&array2 + 256, 88)
+            poke(&array2 + $3000, 77)
         }
 
-        sub printf2(^^uword ptr) {
-            txt.print_uwhex(ptr, true)
+        sub readvalues() {
+            %ir {{
+loadm.b r1007,main.start.array2+255
+storem.b r1007,$ff02
+loadm.b r1007,main.start.array2+256
+storem.b r1007,$ff04
+load.w r1009,main.start.array2
+add.w r1009,#$0100
+loadi.b r1008,r1009
+storem.b r1008,$ff04
+load.w r1011,main.start.array2
+add.w r1011,#$3000
+loadi.b r1010,r1011
+storem.b r1010,$ff06
+return
+            }}
+        }
+
+        sub readvalues2() {
+            cx16.r0L = array2[255]
+            cx16.r1L = @(&array2 + 256)
+            cx16.r2L = @(&array2 + $3000)
+        }
+
+        sub printvalues() {
+            txt.print_ub(cx16.r0L)
+            txt.spc()
+            txt.print_ub(cx16.r1L)
+            txt.spc()
+            txt.print_ub(cx16.r2L)
             txt.nl()
         }
     }
 }
-
-;main {
-;    sub start() {
-;        ubyte[256] @shared array1
-;        ubyte[256] @shared array2
-;        ubyte[256] @shared array3
-;
-;        setvalues()
-;        readvalues()
-;        printvalues()
-;
-;        sub setvalues() {
-;            poke(&array2 + 255, 99)
-;            poke(&array2 + 256, 88)
-;            poke(&array2 + $3000, 77)
-;        }
-;
-;        sub readvalues() {
-;            %ir {{
-;loadm.b r1007,main.start.array2+255
-;storem.b r1007,$ff02
-;load.w r1009,main.start.array2
-;add.w r1009,#$0100
-;loadi.b r1008,r1009
-;storem.b r1008,$ff04
-;load.w r1011,main.start.array2
-;add.w r1011,#$3000
-;loadi.b r1010,r1011
-;storem.b r1010,$ff06
-;return
-;            }}
-;;            cx16.r0L = array2[255]
-;;            cx16.r1L = @(&array2 + 256)
-;;            cx16.r2L = @(&array2 + $3000)
-;        }
-;
-;        sub printvalues() {
-;            txt.print_ub(cx16.r0L)
-;            txt.spc()
-;            txt.print_ub(cx16.r1L)
-;            txt.spc()
-;            txt.print_ub(cx16.r2L)
-;        }
-;    }
-;}

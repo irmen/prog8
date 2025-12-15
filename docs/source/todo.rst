@@ -61,8 +61,9 @@ Future Things and Ideas
 
 IR/VM
 -----
-- get rid of LOADX/STOREX, LOADINDEXED/STOREINDEXED just use add + loadi / storei?
-- extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, LOADINDEXED, STOREINDEXED etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
+- optimize away the use of ADD to offset from a label. It's possible to do that with a label-offset in the instruction itself: loadm.b r7,main.start.array2+255   (it works for 255 but after that it starts using ADD!)
+- get rid of LOADX/STOREX/STOREZX, LOADINDEXED/STOREINDEXED just use add + loadi / storei?
+- extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, STOREZX, LOADINDEXED, STOREINDEXED etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
 - if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
 - add and sub instructions should modify the status flags so an explicit compare to zero can be avoided for example: if cx16.r0sL + cx16.r1sL <= 0  now compiles into:  addr.b r10,r11 /  bgts.b r10,#0,label
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
