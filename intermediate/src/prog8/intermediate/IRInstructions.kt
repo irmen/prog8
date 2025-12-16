@@ -45,7 +45,7 @@ loadm       reg1,         address     - load reg1 with value at memory address
 loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
-loadfield   reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + value 0-255 (gets a field from a pointer to a struct, like LOADI with additional field offset 0-255)
+loadfield   reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + value 0-65535 (gets a field from a pointer to a struct, like LOADI with additional field offset 0-65535)
 loadha      reg1                      - load cpu hardware register A into reg1.b
 loadhx      reg1                      - load cpu hardware register X into reg1.b
 loadhy      reg1                      - load cpu hardware register Y into reg1.b
@@ -60,7 +60,7 @@ storex      reg1, reg2,   address     - store reg1 at memory address, indexed by
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
-storefield  reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + value 0-255 (set a field from a pointer to a struct, like STOREI with additional field offset 0-255)
+storefield  reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + value 0-65535 (set a field from a pointer to a struct, like STOREI with additional field offset 0-65535)
 storeha     reg1                      - store reg1.b into cpu hardware register A
 storehx     reg1                      - store reg1.b into cpu hardware register X
 storehy     reg1                      - store reg1.b into cpu hardware register Y
@@ -909,7 +909,9 @@ data class IRInstruction(
             require(address!=null || labelSymbol!=null) {
                 "missing an address or labelsymbol"}
         if(format.immediate && (immediate!=null || immediateFp!=null)) {
-            if(opcode!=Opcode.SYSCALL) {
+            if(opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD) {
+                require(immediate in 0..65535) { "immediate value out of range for loadfield/storefield: $immediate" }
+            } else if(opcode!=Opcode.SYSCALL) {
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
                     IRDataType.WORD -> require(immediate in -32768..65535) { "immediate value out of range for word: $immediate" }

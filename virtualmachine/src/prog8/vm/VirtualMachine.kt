@@ -519,7 +519,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsLOADFIELD(i: IRInstruction) {
         val offset = i.immediate!!
-        require(offset in 0..255)
+        require(offset in 0..65535)
         when(i.type!!) {
             IRDataType.BYTE -> {
                 val value = memory.getUB(registers.getUW(i.reg2!!).toInt() + offset)
@@ -609,7 +609,7 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun InsSTOREFIELD(i: IRInstruction) {
         val offset = i.immediate!!
-        require(offset in 0..255)
+        require(offset in 0..65535)
         when (i.type!!) {
             IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg2!!).toInt() + offset, registers.getUB(i.reg1!!))
             IRDataType.WORD -> memory.setUW(registers.getUW(i.reg2!!).toInt() + offset, registers.getUW(i.reg1!!))

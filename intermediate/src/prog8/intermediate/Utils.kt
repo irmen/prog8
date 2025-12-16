@@ -206,21 +206,26 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     if(format.immediate && opcode!=Opcode.SYSCALL) {
         if(immediateInt==null && immediateFp==null && labelSymbol==null)
             throw IRParseException("needs value or symbol for $line")
-        when (type) {
-            IRDataType.BYTE -> {
-                if (immediateInt!=null && (immediateInt < -128 || immediateInt > 255))
-                    throw IRParseException("immediate value out of range for byte: $immediateInt")
+        if(opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD) {
+            if(immediateInt !in 0..65535)
+                throw IRParseException("immediate value out of range for loadfield/storefield: $immediateInt")
+        } else {
+            when (type) {
+                IRDataType.BYTE -> {
+                    if (immediateInt!=null && (immediateInt < -128 || immediateInt > 255))
+                        throw IRParseException("immediate value out of range for byte: $immediateInt")
+                }
+                IRDataType.WORD -> {
+                    if (immediateInt!=null && (immediateInt < -32768 || immediateInt > 65535))
+                        throw IRParseException("immediate value out of range for word: $immediateInt")
+                }
+                IRDataType.LONG -> {
+                    if (immediateInt!=null && (immediateInt.toLong() < -2147483648L || immediateInt.toLong() > 0x7fffffffL))
+                        throw IRParseException("immediate value out of range for long: $immediateInt")
+                }
+                IRDataType.FLOAT -> {}
+                null -> {}
             }
-            IRDataType.WORD -> {
-                if (immediateInt!=null && (immediateInt < -32768 || immediateInt > 65535))
-                    throw IRParseException("immediate value out of range for word: $immediateInt")
-            }
-            IRDataType.LONG -> {
-                if (immediateInt!=null && (immediateInt.toLong() < -2147483648L || immediateInt.toLong() > 0x7fffffffL))
-                    throw IRParseException("immediate value out of range for long: $immediateInt")
-            }
-            IRDataType.FLOAT -> {}
-            null -> {}
         }
     }
 

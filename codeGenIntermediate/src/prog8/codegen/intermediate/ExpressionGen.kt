@@ -406,7 +406,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         if(ptrWithOffset!=null) {
             if(ptrWithOffset.operator=="+" && ptrWithOffset.left is PtIdentifier) {
                 val constOffset = (ptrWithOffset.right as? PtNumber)?.number?.toInt()
-                if(constOffset in 0..255) {
+                if(constOffset in 0..65535) {
                     val ptrName = (ptrWithOffset.left as PtIdentifier).name
                     val pointerReg = codeGen.registers.next(IRDataType.WORD)
                     result += IRCodeChunk(null, null).also {

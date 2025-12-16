@@ -4,53 +4,50 @@
 
 main {
     sub start() {
-        ubyte[256] @shared array1
-        ubyte[256] @shared array2
-        ubyte[256] @shared array3
+        ^^ubyte @shared ubptr = 2000
+        uword @shared ubptr2 = 3000
 
-        setvalues()
-        cx16.r0 = cx16.r1 = cx16.r2 = 0
-        readvalues()
-        printvalues()
-        cx16.r0 = cx16.r1 = cx16.r2 = 0
-        readvalues2()
-        printvalues()
+        init()
+        reads()
+        prints()
+        writes()
+        reads()
+        prints()
 
-        sub setvalues() {
-            poke(&array2 + 255, 99)
-            poke(&array2 + 256, 88)
-            poke(&array2 + $3000, 77)
+        sub init() {
+            @(2000) = 100
+            @(2001) = 101
+            @(2002) = 102
+            @(2500) = 109
+            @(3000) = 200
+            @(3001) = 201
+            @(3002) = 202
+            @(3500) = 209
         }
 
-        sub readvalues() {
-            %ir {{
-loadm.b r1007,main.start.array2+255
-storem.b r1007,$ff02
-load.w r1009,main.start.array2
-add.w r1009,#$0100
-loadi.b r1008,r1009
-storem.b r1008,$ff04
-load.w r1011,main.start.array2
-add.w r1011,#$3000
-loadi.b r1010,r1011
-storem.b r1010,$ff06
-return
-            }}
-        }
-
-        sub readvalues2() {
-            cx16.r0L = array2[255]
-            cx16.r1L = @(&array2 + 256)
-            cx16.r2L = @(&array2 + $3000)
-        }
-
-        sub printvalues() {
+        sub prints() {
             txt.print_ub(cx16.r0L)
             txt.spc()
             txt.print_ub(cx16.r1L)
             txt.spc()
             txt.print_ub(cx16.r2L)
+            txt.spc()
+            txt.print_ub(cx16.r3L)
             txt.nl()
+        }
+
+        sub reads() {
+            cx16.r0L = ubptr^^
+            cx16.r1L = @(ubptr2)
+            cx16.r2L = @(ubptr2+1)
+            cx16.r3L = @(ubptr2+500)
+        }
+
+        sub writes() {
+            ubptr^^ = 55
+            @(ubptr2) = 66
+            @(ubptr2+1) = 77
+            @(ubptr2+500) = 88
         }
     }
 }

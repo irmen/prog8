@@ -61,7 +61,7 @@ Future Things and Ideas
 
 IR/VM
 -----
-- extend the index range from 0-255 to 0-32767 in the LOADX, STOREX, STOREZX, LOADFIELD, STOREFIELD etc instructions (not compatible with 8 bit 6502, but the 68000 can use that)
+- extend the index register datatype in the LOADX, STOREX, STOREZX instructions from byte to word (0-255 to 0-65535) (this not compatible with 8 bit 6502, but the 68000 can use that)
 - get rid of LOADX/STOREX/STOREZX, LOADFIELD/STOREFIELD just use add + loadi / storei?
 - if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
 - add and sub instructions should modify the status flags so an explicit compare to zero can be avoided for example: if cx16.r0sL + cx16.r1sL <= 0  now compiles into:  addr.b r10,r11 /  bgts.b r10,#0,label
