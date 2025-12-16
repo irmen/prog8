@@ -3,8 +3,6 @@
 ;
 ; Exercise for the reader to store the memory containing the nodes and strings and reload it on new runs...?
 
-; TODO: remove the examples/animals.p8 once this one compiles for 6502 too
-
 %import textio
 %import strings
 

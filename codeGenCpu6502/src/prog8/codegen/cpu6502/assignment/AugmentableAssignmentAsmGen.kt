@@ -309,14 +309,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                                 SourceStorageKind.LITERALNUMBER -> inplacemodificationLongWithLiteralval(targetVarName, operator, value.number!!.number.toInt())
                                 SourceStorageKind.VARIABLE -> inplacemodificationLongWithVariable(targetVarName, operator, value.asmVarname)
                                 SourceStorageKind.REGISTER -> inplacemodificationLongWithVariable(targetVarName, operator, regName(value))
-                                SourceStorageKind.MEMORY -> TODO("inplace long modifiication with memread value ${target.position}")
-                                SourceStorageKind.ARRAY -> TODO("inplace long modifiication with array value ${target.position}")
+                                SourceStorageKind.MEMORY -> TODO("inplace long modification with memread value ${target.position}")
+                                SourceStorageKind.ARRAY -> TODO("inplace long modification with array value ${target.position}")
                                 SourceStorageKind.EXPRESSION -> {
                                     if(value.expression is PtTypeCast) {
                                         if (tryInplaceModifyWithRemovedRedundantCast(value.expression, target, operator)) return
-                                        TODO("inplace long modifiication ${target.position}")
+                                        TODO("inplace long modification ${target.position}")
                                     } else {
-                                        TODO("inplace long modifiication ${target.position}")
+                                        TODO("inplace long modification ${target.position}")
                                     }
                                 }
                             }
