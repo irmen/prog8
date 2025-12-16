@@ -178,12 +178,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         // load field with offset
         return if(deref.type.isFloat) {
             val resultReg = codeGen.registers.next(IRDataType.FLOAT)
-            addInstr(result, IRInstruction(Opcode.LOADINDEXED, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = pointerReg, immediate = offset.toInt()), null)
+            addInstr(result, IRInstruction(Opcode.LOADFIELD, IRDataType.FLOAT, fpReg1 = resultReg, reg1 = pointerReg, immediate = offset.toInt()), null)
             ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultReg)
         } else {
             val irdt = irType(deref.type)
             val resultReg = codeGen.registers.next(irdt)
-            addInstr(result, IRInstruction(Opcode.LOADINDEXED, irdt, reg1 = resultReg, reg2 = pointerReg, immediate = offset.toInt()), null)
+            addInstr(result, IRInstruction(Opcode.LOADFIELD, irdt, reg1 = resultReg, reg2 = pointerReg, immediate = offset.toInt()), null)
             ExpressionCodeResult(result, irdt, resultReg, -1)
         }
     }
@@ -411,7 +411,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                     val pointerReg = codeGen.registers.next(IRDataType.WORD)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1 = pointerReg, labelSymbol = ptrName)
-                        it += IRInstruction(Opcode.LOADINDEXED, IRDataType.BYTE, reg1=resultRegister, reg2=pointerReg,  immediate = constOffset)
+                        it += IRInstruction(Opcode.LOADFIELD, IRDataType.BYTE, reg1=resultRegister, reg2=pointerReg,  immediate = constOffset)
                     }
                     return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
                 }
@@ -1805,9 +1805,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             // actually have to add an offset
             if(fieldOffset<=255) {
                 if(fieldVmDt==IRDataType.FLOAT)
-                    addInstr(result, IRInstruction(Opcode.LOADINDEXED, fieldVmDt, fpReg1 = resultFpReg, reg1 = pointerReg, immediate = fieldOffset), null)
+                    addInstr(result, IRInstruction(Opcode.LOADFIELD, fieldVmDt, fpReg1 = resultFpReg, reg1 = pointerReg, immediate = fieldOffset), null)
                 else
-                    addInstr(result, IRInstruction(Opcode.LOADINDEXED, fieldVmDt, reg1 = resultReg, reg2 = pointerReg, immediate = fieldOffset), null)
+                    addInstr(result, IRInstruction(Opcode.LOADFIELD, fieldVmDt, reg1 = resultReg, reg2 = pointerReg, immediate = fieldOffset), null)
             } else {
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldOffset)
@@ -1823,7 +1823,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     internal fun traverseRestOfDerefChainToCalculateFinalAddress(targetPointerDeref: PtPointerDeref, pointerReg: Int): Pair<IRCodeChunks, UByte> {
         // returns instructions to calculate the pointer address, and the offset into the struct it points to
-        // so that LOADINDEXED and STOREINDEXED opcodes can be used instead of having an explicit extra ADD
+        // so that LOADFIELD and STOREFIELD opcodes can be used instead of having an explicit extra ADD
 
         val result = mutableListOf<IRCodeChunkBase>()
 
