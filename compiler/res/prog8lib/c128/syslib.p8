@@ -398,6 +398,23 @@ asmsub  disable_basic() clobbers(A) {
     }}
 }
 
+asmsub  disable_fkey_macros() {
+    %asm {{
+        lda  #183
+        sta  828
+        rts
+    }}
+}
+
+asmsub  enable_fkey_macros() {
+    %asm {{
+        lda  #173
+        sta  828
+        rts
+    }}
+}
+
+
 asmsub  x16jsrfar() {
     %asm {{
         ; setup a JSRFAR call (using X16 call convention)
@@ -1312,6 +1329,7 @@ asmsub  init_system()  {
         lda  #0
         sta  c64.BGCOL0
         jsr  disable_runstop_and_charsetswitch
+        jsr  c128.disable_fkey_macros
         ; basic is not banked in, adjust MEMTOP
         ldx  #<$c000
         ldy  #>$c000
@@ -1342,6 +1360,7 @@ asmsub  cleanup_at_exit() {
         ldy  #>$ff00
         clc
         jsr  cbm.MEMTOP     ; adjust MEMTOP to original value again
+        jsr  c128.enable_fkey_macros
         lda  _exitcarry
         lsr  a
         lda  _exitcode
