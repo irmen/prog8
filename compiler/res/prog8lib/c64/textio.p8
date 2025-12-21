@@ -325,16 +325,13 @@ asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
 		tya
 		asl  a
 		tay
+		lda  _colorrows,y
+		sta  P8ZP_SCRATCH_W1
 		lda  _colorrows+1,y
 		sta  P8ZP_SCRATCH_W1+1
 		txa
-		clc
-		adc  _colorrows,y
-		sta  P8ZP_SCRATCH_W1
-		bcc  +
-		inc  P8ZP_SCRATCH_W1+1
-+		pla
-		ldy  #0
+		tay
+		pla
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
 
@@ -350,15 +347,12 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 		tya
 		asl  a
 		tay
+		lda  setclr._colorrows,y
+		sta  P8ZP_SCRATCH_W1
 		lda  setclr._colorrows+1,y
 		sta  P8ZP_SCRATCH_W1+1
 		pla
-		clc
-		adc  setclr._colorrows,y
-		sta  P8ZP_SCRATCH_W1
-		bcc  +
-		inc  P8ZP_SCRATCH_W1+1
-+		ldy  #0
+		tay
         lda  (P8ZP_SCRATCH_W1),y
 		rts
 	}}
@@ -372,20 +366,16 @@ _colorptr = P8ZP_SCRATCH_W2
 		lda  row
 		asl  a
 		tay
-		lda  setchr._screenrows+1,y
-		sta  _charptr+1
-		adc  #$d4
-		sta  _colorptr+1
 		lda  setchr._screenrows,y
-		clc
-		adc  col
 		sta  _charptr
 		sta  _colorptr
-		bcc  +
-		inc  _charptr+1
-		inc  _colorptr+1
-+		lda  character
-		ldy  #0
+		lda  setchr._screenrows+1,y
+		sta  _charptr+1
+		clc
+		adc  #$d4
+		sta  _colorptr+1
+		lda  character
+		ldy  col
 		sta  (_charptr),y
 		lda  charcolor
 		sta  (_colorptr),y

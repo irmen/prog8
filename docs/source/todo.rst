@@ -1,7 +1,6 @@
 TODO
 ====
 
-- cbm.SETTIML(0) generates invalid asm on cx16/65c02 (stz r0)
 - cx16: add support for VIA timer IRQ in the irq routines, example code for timer irqs see https://cx16forum.com/forum/viewtopic.php?p=37808
 
 Weird Heisenbug
