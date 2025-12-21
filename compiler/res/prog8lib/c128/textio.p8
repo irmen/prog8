@@ -281,16 +281,13 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 		tya
 		asl  a
 		tay
+		lda  _screenrows,y
+		sta  P8ZP_SCRATCH_W1
 		lda  _screenrows+1,y
 		sta  P8ZP_SCRATCH_W1+1
 		txa
-		clc
-		adc  _screenrows,y
-		sta  P8ZP_SCRATCH_W1
-		bcc  +
-		inc  P8ZP_SCRATCH_W1+1
-+		pla
-        ldy  #0
+		tay
+		pla
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
 
@@ -306,15 +303,12 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 		tya
 		asl  a
 		tay
+		lda  setchr._screenrows,y
+		sta  P8ZP_SCRATCH_W1
 		lda  setchr._screenrows+1,y
 		sta  P8ZP_SCRATCH_W1+1
 		pla
-		clc
-		adc  setchr._screenrows,y
-		sta  P8ZP_SCRATCH_W1
-		bcc  +
-		inc  P8ZP_SCRATCH_W1+1
-+		ldy  #0
+		tay
 		lda  (P8ZP_SCRATCH_W1),y
 		rts
 	}}
