@@ -673,4 +673,25 @@ main {
 
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
+
+    test("long argument to asmsub") {
+        val src="""
+main {
+
+    sub start() {
+        long @shared lv = 1234567
+        test(999999)
+        test(lv)
+        test(0)
+    }
+    
+    asmsub test(long arg @R0R1_32) {
+        %asm {{
+            rts
+        }}
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!
+    }
 })

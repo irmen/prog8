@@ -4643,10 +4643,10 @@ $endLabel""")
                 TargetStorageKind.REGISTER -> {
                     val startreg = target.register!!.startregname()
                     asmgen.out("""
-                        stz  $startreg
-                        stz  $startreg+1
-                        stz  $startreg+2
-                        stz  $startreg+3""")
+                        stz  cx16.$startreg
+                        stz  cx16.$startreg+1
+                        stz  cx16.$startreg+2
+                        stz  cx16.$startreg+3""")
                 }
                 TargetStorageKind.POINTER -> pointergen.assignLong(target.pointer!!, 0)
                 TargetStorageKind.VOID -> { /* do nothing */ }

@@ -415,6 +415,10 @@ enum class RegisterOrPair {
         }
     }
 
+    /**
+     * Returns the starting virtual register name for the current 32-bit combined virtual register
+     * @return The starting register name as a string, WITHOUT THE cx16 block scope prefix!
+     */
     fun startregname() = when(this) {
         R0R1_32 -> "r0"
         R2R3_32 -> "r2"
