@@ -18,7 +18,7 @@ main {
         txt.print("number of balls (1-255)? ")
         void txt.input_chars(input)
         ballCount = conv.str2ubyte(input)
-        txt.fill_screen(81, 0)
+        txt.cls()
 
         ; Setup Starting Ball Positions
         ubyte lp
@@ -36,7 +36,7 @@ main {
             for lp in 0 to ballCount-1 {
 
                 ; Clear existing Location the ball is at
-                txt.setclr(BX[lp], BY[lp], 0)
+                txt.setchr(BX[lp], BY[lp], sc:' ')
 
                 if not DX[lp] {
                     if (BX[lp] == 0)
@@ -66,7 +66,7 @@ main {
                 }
 
                 ; Put the new ball possition
-                txt.setclr(BX[lp], BY[lp], BC[lp])
+                txt.setcc(BX[lp], BY[lp], sc:'●', BC[lp])
             }
 
             sys.waitvsync()
