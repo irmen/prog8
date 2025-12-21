@@ -138,16 +138,13 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 		tya
 		asl  a
 		tay
+		lda  _screenrows,y
+		sta  P8ZP_SCRATCH_W1
 		lda  _screenrows+1,y
 		sta  P8ZP_SCRATCH_W1+1
 		txa
-		clc
-		adc  _screenrows,y
-		sta  P8ZP_SCRATCH_W1
-		bcc  +
-		inc  P8ZP_SCRATCH_W1+1
-+		pla
-        ldy  #0
+		tay
+		pla
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
 
@@ -163,15 +160,12 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 		tya
 		asl  a
 		tay
+		lda  setchr._screenrows,y
+		sta  P8ZP_SCRATCH_W1
 		lda  setchr._screenrows+1,y
 		sta  P8ZP_SCRATCH_W1+1
 		pla
-		clc
-		adc  setchr._screenrows,y
-		sta  P8ZP_SCRATCH_W1
-		bcc  +
-		inc  P8ZP_SCRATCH_W1+1
-+		ldy  #0
+		tay
 		lda  (P8ZP_SCRATCH_W1),y
 		rts
 	}}
@@ -181,25 +175,17 @@ sub  setclr  (ubyte col, ubyte row, ubyte color)  {
     ; --- dummy function on PET
 }
 
+inline asmsub  getclr  (ubyte col @A, ubyte row @Y) -> ubyte @ A {
+	; ---- dummy function on PET
+	%asm  {{
+	    lda  #1
+	}}
+}
 
-sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)  {
-	; ---- set char at the given position on the screen. NOTE: charcolor is ignored on PET
+inline asmsub  setcc  (ubyte col @X, ubyte row @Y, ubyte character @A, ubyte charcolor @R0)  {
+	; ---- set char at the given position on the screen. NOTE: charcolor is ignored on PET so identical to setchr
 	%asm {{
-  		lda  row
-		asl  a
-		tay
-		lda  setchr._screenrows+1,y
-		sta  P8ZP_SCRATCH_W1+1
-		lda  setchr._screenrows,y
-		clc
-		adc  col
-		sta  P8ZP_SCRATCH_W1
-		bcc  +
-		inc  P8ZP_SCRATCH_W1+1
-+		lda  character
-		ldy  #0
-		sta  (P8ZP_SCRATCH_W1),y
-		rts
+	    jsr  txt.setchr
 	}}
 }
 

@@ -1,6 +1,9 @@
 TODO
 ====
 
+- cbm.SETTIML(0) generates invalid asm on cx16/65c02 (stz r0)
+- cx16: add support for VIA timer IRQ in the irq routines, example code for timer irqs see https://cx16forum.com/forum/viewtopic.php?p=37808
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
