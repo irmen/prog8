@@ -57,7 +57,24 @@ class ConfigurableZeropage(
                 allocatedVariables["cx16.r${reg}H"]  = VarAllocation(address+1u, DataType.UBYTE, 1)    // cx16.r0H .. cx16.r15H
                 allocatedVariables["cx16.r${reg}sL"] = VarAllocation(address, DataType.BYTE, 1)        // cx16.r0sL .. cx16.r15sL
                 allocatedVariables["cx16.r${reg}sH"] = VarAllocation(address+1u, DataType.BYTE, 1)     // cx16.r0sH .. cx16.r15sH
+                allocatedVariables["cx16.r${reg}bL"] = VarAllocation(address, DataType.BOOL, 1)        // cx16.r0bL .. cx16.r15bL
+                allocatedVariables["cx16.r${reg}bH"] = VarAllocation(address+1u, DataType.BOOL, 1)     // cx16.r0bH .. cx16.r15bH
+                free.remove(address)
+                free.remove(address+1u)
             }
+        }
+
+        if(virtualRegistersStart<0xffu) {
+            // 32 bits combined register pairs cx16.r0r1 .. cx16.r14r15
+            val start = virtualRegistersStart.toInt()
+            allocatedVariables["cx16.r0r1sl"] = VarAllocation((start + 0 * 4).toUInt(), DataType.LONG, 4)
+            allocatedVariables["cx16.r2r3sl"] = VarAllocation((start + 1 * 4).toUInt(), DataType.LONG, 4)
+            allocatedVariables["cx16.r4r5sl"] = VarAllocation((start + 2 * 4).toUInt(), DataType.LONG, 4)
+            allocatedVariables["cx16.r6r7sl"] = VarAllocation((start + 3 * 4).toUInt(), DataType.LONG, 4)
+            allocatedVariables["cx16.r8r9sl"] = VarAllocation((start + 4 * 4).toUInt(), DataType.LONG, 4)
+            allocatedVariables["cx16.r10r11sl"] = VarAllocation((start + 5 * 4).toUInt(), DataType.LONG, 4)
+            allocatedVariables["cx16.r12r13sl"] = VarAllocation((start + 6 * 4).toUInt(), DataType.LONG, 4)
+            allocatedVariables["cx16.r14r15sl"] = VarAllocation((start + 7 * 4).toUInt(), DataType.LONG, 4)
         }
     }
 }

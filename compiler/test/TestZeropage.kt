@@ -12,10 +12,14 @@ import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import prog8.code.core.*
+import prog8.code.target.C128Target
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.PETTarget
+import prog8.code.target.zp.C128Zeropage
 import prog8.code.target.zp.C64Zeropage
 import prog8.code.target.zp.CX16Zeropage
+import prog8.code.target.zp.PETZeropage
 import prog8tests.helpers.ErrorReporterForTests
 
 
@@ -245,8 +249,59 @@ class TestC64Zeropage: FunSpec({
             zp.SCRATCH_B1 + 1u shouldBe zp.SCRATCH_REG
         }
     }
+
+    test("virtual registers") {
+        val zpbasic = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, c64target, "99.99", 999u, 0xffffu))
+        zpbasic.allocatedVariables.any {it.key=="cx16.r0"} shouldBe false
+
+        val zpkernal = C64Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, c64target, "99.99", 999u, 0xffffu))
+        zpkernal.allocatedVariables.any {it.key=="cx16.r0"} shouldBe true
+        val r0bL = zpkernal.allocatedVariables.getValue("cx16.r0bL")
+        r0bL.size shouldBe 1
+        r0bL.dt shouldBe DataType.BOOL
+        r0bL.address shouldBe 4u
+        val r14r15sl = zpkernal.allocatedVariables.getValue("cx16.r14r15sl")
+        r14r15sl.size shouldBe 4
+        r14r15sl.dt shouldBe DataType.LONG
+        r14r15sl.address shouldBe 32u
+    }
 })
 
+class TestPetZeropage: FunSpec({
+    test("virtual registers") {
+        val zpbasic = PETZeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, PETTarget(), "99.99", 999u, 0xffffu))
+        zpbasic.allocatedVariables.any {it.key=="cx16.r0"} shouldBe false
+
+        val zpkernal = PETZeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, PETTarget(), "99.99", 999u, 0xffffu))
+        zpkernal.allocatedVariables.any {it.key=="cx16.r0"} shouldBe true
+        val r0bL = zpkernal.allocatedVariables.getValue("cx16.r0bL")
+        r0bL.size shouldBe 1
+        r0bL.dt shouldBe DataType.BOOL
+        r0bL.address shouldBe 4u
+        val r14r15sl = zpkernal.allocatedVariables.getValue("cx16.r14r15sl")
+        r14r15sl.size shouldBe 4
+        r14r15sl.dt shouldBe DataType.LONG
+        r14r15sl.address shouldBe 32u
+    }
+})
+
+class TestC128Zeropage: FunSpec({
+    test("virtual registers") {
+        val zpbasic = C128Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, C128Target(), "99.99", 999u, 0xffffu))
+        zpbasic.allocatedVariables.any {it.key=="cx16.r0"} shouldBe false
+
+        val zpkernal = C128Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, C128Target(), "99.99", 999u, 0xffffu))
+        zpkernal.allocatedVariables.any {it.key=="cx16.r0"} shouldBe true
+        val r0bL = zpkernal.allocatedVariables.getValue("cx16.r0bL")
+        r0bL.size shouldBe 1
+        r0bL.dt shouldBe DataType.BOOL
+        r0bL.address shouldBe 10u
+        val r14r15sl = zpkernal.allocatedVariables.getValue("cx16.r14r15sl")
+        r14r15sl.size shouldBe 4
+        r14r15sl.dt shouldBe DataType.LONG
+        r14r15sl.address shouldBe 38u
+    }
+})
 
 class TestCx16Zeropage: FunSpec({
     val errors = ErrorReporterForTests()
@@ -293,5 +348,21 @@ class TestCx16Zeropage: FunSpec({
         zp1.allocatedVariables["cx16.r15L"] shouldNotBe null
         zp1.allocatedVariables["cx16.r0sH"] shouldNotBe null
         zp1.allocatedVariables["cx16.r15sH"] shouldNotBe null
+    }
+
+    test("virtual registers") {
+        val zpbasic = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.BASICSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, Cx16Target(), "99.99", 999u, 0xffffu))
+        zpbasic.allocatedVariables.any {it.key=="cx16.r0"} shouldBe true
+
+        val zpkernal = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.KERNALSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, Cx16Target(), "99.99", 999u, 0xffffu))
+        zpkernal.allocatedVariables.any {it.key=="cx16.r0"} shouldBe true
+        val r0bL = zpkernal.allocatedVariables.getValue("cx16.r0bL")
+        r0bL.size shouldBe 1
+        r0bL.dt shouldBe DataType.BOOL
+        r0bL.address shouldBe 2u
+        val r14r15sl = zpkernal.allocatedVariables.getValue("cx16.r14r15sl")
+        r14r15sl.size shouldBe 4
+        r14r15sl.dt shouldBe DataType.LONG
+        r14r15sl.address shouldBe 30u
     }
 })

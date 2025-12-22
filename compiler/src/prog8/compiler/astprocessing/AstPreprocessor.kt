@@ -6,7 +6,6 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.core.*
-import prog8.code.target.C64Target
 
 
 class AstPreprocessor(val program: Program,
@@ -14,11 +13,13 @@ class AstPreprocessor(val program: Program,
                       val options: CompilationOptions) : AstWalker() {
 
     override fun before(program: Program): Iterable<IAstModification> {
-        if(options.compTarget.name==C64Target.NAME) {
-            if(options.zeropage==ZeropageType.KERNALSAFE || options.zeropage==ZeropageType.FULL) {
-                // there is enough space in the zero page to put the cx16 virtual registers there.
-                // unfortunately, can't be the same address as CommanderX16.
-                relocateCx16VirtualRegisters(program, 0x0004u)
+        if(options.zeropage==ZeropageType.KERNALSAFE || options.zeropage==ZeropageType.FULL) {
+            // there may be enough space in the zero page to put the cx16 virtual registers there.
+            // unfortunately, can't be the same address as CommanderX16.
+            val reg0 = options.compTarget.zeropage.allocatedVariables["cx16.r0"]
+            if(reg0!=null) {
+                // cx16.r0 is in zeropage, relocate
+                relocateCx16VirtualRegisters(program, reg0.address)
             }
         }
         return noModifications
@@ -37,13 +38,34 @@ class AstPreprocessor(val program: Program,
             val rXs = memVars.getValue("r${regnum}s")
             val rXsL = memVars.getValue("r${regnum}sL")
             val rXsH = memVars.getValue("r${regnum}sH")
+            val rXbL = memVars.getValue("r${regnum}bL")
+            val rXbH = memVars.getValue("r${regnum}bH")
             setAddress(rX, baseAddress + 2u * regnum)
             setAddress(rXL, baseAddress + 2u * regnum)
             setAddress(rXH, baseAddress + 2u * regnum + 1u)
             setAddress(rXs, baseAddress + 2u * regnum)
             setAddress(rXsL, baseAddress + 2u * regnum)
             setAddress(rXsH, baseAddress + 2u * regnum + 1u)
+            setAddress(rXbL, baseAddress + 2u * regnum)
+            setAddress(rXbH, baseAddress + 2u * regnum + 1u)
         }
+
+        val r0r1sl = memVars.getValue("r0r1sl")
+        val r2r3sl = memVars.getValue("r2r3sl")
+        val r4r5sl = memVars.getValue("r4r5sl")
+        val r6r7sl = memVars.getValue("r6r7sl")
+        val r8r9sl = memVars.getValue("r8r9sl")
+        val r10r11sl = memVars.getValue("r10r11sl")
+        val r12r13sl = memVars.getValue("r12r13sl")
+        val r14r15sl = memVars.getValue("r14r15sl")
+        setAddress(r0r1sl, baseAddress + 0u)
+        setAddress(r2r3sl, baseAddress + 4u)
+        setAddress(r4r5sl, baseAddress + 8u)
+        setAddress(r6r7sl, baseAddress + 12u)
+        setAddress(r8r9sl, baseAddress + 16u)
+        setAddress(r10r11sl, baseAddress + 20u)
+        setAddress(r12r13sl, baseAddress + 24u)
+        setAddress(r14r15sl, baseAddress + 28u)
     }
 
     private fun setAddress(vardecl: VarDecl, address: UInt) {

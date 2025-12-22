@@ -64,6 +64,19 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
             allocatedVariables["cx16.r${reg}H"]  = VarAllocation((3+reg*2).toUInt(), DataType.UBYTE, 1)       // cx16.r0H .. cx16.r15H
             allocatedVariables["cx16.r${reg}sL"] = VarAllocation((2+reg*2).toUInt(), DataType.BYTE, 1)        // cx16.r0sL .. cx16.r15sL
             allocatedVariables["cx16.r${reg}sH"] = VarAllocation((3+reg*2).toUInt(), DataType.BYTE, 1)        // cx16.r0sH .. cx16.r15sH
+            allocatedVariables["cx16.r${reg}bL"] = VarAllocation((2+reg*2).toUInt(), DataType.BOOL, 1)       // cx16.r0bL .. cx16.r15bL
+            allocatedVariables["cx16.r${reg}bH"] = VarAllocation((3+reg*2).toUInt(), DataType.BOOL, 1)       // cx16.r0bH .. cx16.r15bH
         }
+
+        // 32 bits combined register pairs cx16.r0r1 .. cx16.r14r15
+        allocatedVariables["cx16.r0r1sl"]   = VarAllocation((2+0*4).toUInt(), DataType.LONG, 4)
+        allocatedVariables["cx16.r2r3sl"]   = VarAllocation((2+1*4).toUInt(), DataType.LONG, 4)
+        allocatedVariables["cx16.r4r5sl"]   = VarAllocation((2+2*4).toUInt(), DataType.LONG, 4)
+        allocatedVariables["cx16.r6r7sl"]   = VarAllocation((2+3*4).toUInt(), DataType.LONG, 4)
+        allocatedVariables["cx16.r8r9sl"]   = VarAllocation((2+4*4).toUInt(), DataType.LONG, 4)
+        allocatedVariables["cx16.r10r11sl"] = VarAllocation((2+5*4).toUInt(), DataType.LONG, 4)
+        allocatedVariables["cx16.r12r13sl"] = VarAllocation((2+6*4).toUInt(), DataType.LONG, 4)
+        allocatedVariables["cx16.r14r15sl"] = VarAllocation((2+7*4).toUInt(), DataType.LONG, 4)
+
     }
 }
