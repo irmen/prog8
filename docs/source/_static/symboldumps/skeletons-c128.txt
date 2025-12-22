@@ -1,5 +1,5 @@
 
-Prog8 compiler v12.0.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.0.2 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -574,6 +574,8 @@ c128  {
     SWAPPER  ()  clobbers (A,X,Y)  = $ff5f
     banks  (ubyte banks @A) 
     disable_basic  ()  clobbers (A) 
+    disable_fkey_macros  () 
+    enable_fkey_macros  () 
     getbanks  () -> ubyte @A 
     x16jsrfar  () 
 }

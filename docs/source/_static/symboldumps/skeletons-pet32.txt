@@ -1,5 +1,5 @@
 
-Prog8 compiler v12.0.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.0.2 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -534,6 +534,7 @@ txt  {
     color  (ubyte txtcol) 
     fill_screen  (ubyte character @A, ubyte color @Y)  clobbers (A) 
     getchr  (ubyte col @A, ubyte row @Y)  clobbers (Y) -> ubyte @A 
+    getclr  (ubyte col @A, ubyte row @Y) -> ubyte @A 
     height  ()  clobbers (X,Y) -> ubyte @A 
     home  () 
     input_chars  (^^ubyte buffer @AY)  clobbers (A) -> ubyte @Y 
@@ -562,7 +563,7 @@ txt  {
     scroll_left  ()  clobbers (A,X,Y) 
     scroll_right  ()  clobbers (A,X) 
     scroll_up  ()  clobbers (A,X) 
-    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) 
+    setcc  (ubyte col @X, ubyte row @Y, ubyte character @A, ubyte charcolor @R0) 
     setchr  (ubyte col @X, ubyte row @Y, ubyte character @A)  clobbers (A,Y) 
     setclr  (ubyte col, ubyte row, ubyte color) 
     size  ()  clobbers (A) -> ubyte @X, ubyte @Y 

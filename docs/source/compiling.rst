@@ -405,6 +405,21 @@ Avoid using 'a', 'x' or 'y' as symbols in your inlined assembly code.
 Also avoid using 64tass' built-in function or type names as symbols in your inlined assembly code.
 The 64tass manual contains `a list of those <https://tass64.sourceforge.net/#functions>`_.
 
+Program loads but crashes immediately on startup
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Assuming there are no programming errors in the code and the compiler has no code generation bugs, there can be various factors that cause this:
+
+#. you are using ``%option no_sysinit`` but the program might depend on proper initialization of the system before it can run.
+   Try removing this directive to see if it helps.
+#. the ``main`` block is too large for default system RAM, causing the vital program startup routines that Prog8 requires
+   to move outside of the default RAM area, making them inaccessible. For example on the C128 this can occur quite quickly
+   because in the default memory configuration, the BASIC ROM already appears at $4000, leaving *very* little space for your
+   program code by default. Prog8 attempts to reconfigure the memory but it can't because the routine doing that is not
+   accessible anymore and the program will jump to random code, crashing the system.
+   Make sure the startup logic appears "soon enough" in your program - if in doubt, check the generated assembly file listing
+   to see how large the ``main`` block is and where the startup routines are placed. If this is in fact the problem,
+   you need to modularize the code and move stuff out of the ``main`` block and into their own block(s).
+
 
 Examples
 --------

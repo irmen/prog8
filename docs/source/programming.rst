@@ -217,10 +217,13 @@ As any subroutine, it has to end with a ``return`` statement (or a ``goto`` call
     }
 
 
-The ``main`` module is always relocated to the start of your programs
+The ``main`` block is always relocated to the start of your programs
 address space, and the ``start`` subroutine (the entrypoint) will be on the
 first address. This will also be the address that the BASIC loader program (if generated)
-calls with the SYS statement.
+calls with the SYS statement. **It is advised to not put too much code and data into the main block**,
+because that may cause Prog8's vital program initialization routines to be placed outside of normal accessible program RAM,
+causing an immediate program crash on startup. If this happens you need to modularize the code and move
+stuff into their own block(s).
 
 
 .. _directives:
