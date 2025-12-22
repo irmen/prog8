@@ -424,10 +424,13 @@ cx16 {
     &ubyte  via1pra    = VIA1_BASE + 1
     &ubyte  via1ddrb   = VIA1_BASE + 2
     &ubyte  via1ddra   = VIA1_BASE + 3
+    &uword  via1t1     = VIA1_BASE + 4
     &ubyte  via1t1l    = VIA1_BASE + 4
     &ubyte  via1t1h    = VIA1_BASE + 5
+    &uword  via1t1lw   = VIA1_BASE + 6
     &ubyte  via1t1ll   = VIA1_BASE + 6
     &ubyte  via1t1lh   = VIA1_BASE + 7
+    &uword  via1t2     = VIA1_BASE + 8
     &ubyte  via1t2l    = VIA1_BASE + 8
     &ubyte  via1t2h    = VIA1_BASE + 9
     &ubyte  via1sr     = VIA1_BASE + 10
@@ -437,15 +440,18 @@ cx16 {
     &ubyte  via1ier    = VIA1_BASE + 14
     &ubyte  via1ora    = VIA1_BASE + 15
 
-    const uword  VIA2_BASE   = $9f10                  ;VIA 6522 #2
+    const uword  VIA2_BASE   = $9f10                  ;VIA 6522 #2, not always present
     &ubyte  via2prb    = VIA2_BASE + 0
     &ubyte  via2pra    = VIA2_BASE + 1
     &ubyte  via2ddrb   = VIA2_BASE + 2
     &ubyte  via2ddra   = VIA2_BASE + 3
+    &uword  via2t1     = VIA2_BASE + 4
     &ubyte  via2t1l    = VIA2_BASE + 4
     &ubyte  via2t1h    = VIA2_BASE + 5
+    &uword  via2t1lw   = VIA2_BASE + 6
     &ubyte  via2t1ll   = VIA2_BASE + 6
     &ubyte  via2t1lh   = VIA2_BASE + 7
+    &uword  via2t2     = VIA2_BASE + 8
     &ubyte  via2t2l    = VIA2_BASE + 8
     &ubyte  via2t2h    = VIA2_BASE + 9
     &ubyte  via2sr     = VIA2_BASE + 10
@@ -1322,7 +1328,7 @@ inline asmsub  disable_irqs() clobbers(A) {
 
 asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
     ; Install the "master IRQ handler" that will dispatch IRQs
-    ; to the registered handler for each type.  (Only Vera IRQs supported for now).
+    ; to the registered handler for each type.
     ; The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     ; where 1 means: continue with the system IRQ handler, 0 means: don't call that.
 	%asm {{
@@ -1330,7 +1336,11 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
         sei
         bcc  +
         lda  #%00001111
-        trb  cx16.VERA_IEN      ; disable all IRQ sources
+        ; disable all IRQ sources on VERA and VIA1
+        trb  cx16.VERA_IEN
+        lda  #%01111111
+        sta  cx16.via1ier
+
 +       lda  #<_irq_dispatcher
         ldy  #>_irq_dispatcher
         sta  cbm.CINV
@@ -1348,6 +1358,8 @@ asmsub  enable_irq_handlers(bool disable_all_irq_sources @Pc) clobbers(A,Y)  {
 		sty  _aflow_vec+1
 		sta  _sprcol_vec
 		sty  _sprcol_vec+1
+		sta  _timer1_vec
+		sty  _timer1_vec+1
 
         plp
         rts
@@ -1357,11 +1369,12 @@ _vsync_vec   .word  ?
 _line_vec    .word  ?
 _aflow_vec   .word  ?
 _sprcol_vec  .word  ?
+_timer1_vec  .word  ?
 _continue_with_system_handler   .byte  ?
         .send BSS
 
 _irq_dispatcher
-        ; order of handling: LINE, SPRCOL, AFLOW, VSYNC.
+        ; order of handling: LINE, TIMER1(VIA1), VSYNC, SPRCOL, AFLOW
         jsr  sys.save_prog8_internals
         cld
         lda  cx16.VERA_ISR
@@ -1377,7 +1390,17 @@ _irq_dispatcher
         tsb  _continue_with_system_handler
         pla
 
-+       lsr  a
+        ; timer1 (VIA1) irq?
++       pha
+        lda  #%01000000
+        and  cx16.via1ifr
+        beq  +   ; not timer1 irq
+        sta  cx16.via1ifr
+        jsr  _timer1_handler
+        tsb  _continue_with_system_handler
++       pla
+
+        lsr  a
         bcc  +
         pha
         jsr  _vsync_handler
@@ -1422,6 +1445,8 @@ _sprcol_handler
         jmp  (_sprcol_vec)
 _aflow_handler
         jmp  (_aflow_vec)
+_timer1_handler
+        jmp  (_timer1_vec)
     }}
 }
 
@@ -1484,6 +1509,28 @@ asmsub set_aflow_irq_handler(uword address @AY) clobbers(A) {
         plp
         rts
     }}
+}
+
+asmsub set_timer1_irq_handler(uword address @AY) {
+    ; Sets the VIA1 TIMER1 irq handler to use with enable_irq_handlers(). Does not enable or disable VIA1 timer irqs setting.
+    %asm {{
+        php
+        sei
+        sta  enable_irq_handlers._timer1_vec
+        sty  enable_irq_handlers._timer1_vec+1
+        plp
+        rts
+    }}
+}
+
+
+sub set_timer1(uword delay, bool keeprunning) {
+    ; -- set VIA1 timer1 to trigger after the given delay (cycles). Enables VIA timer1 irqs if delay>0, otherwise disables it.
+    cx16.via1acr &= %00111111
+    if keeprunning
+        cx16.via1acr |= %01000000    ; continuous (free-run) mode
+    cx16.via1ier = if delay==0 then %01000000 else %11000000
+    cx16.via1t1lw = delay
 }
 
 
@@ -1681,6 +1728,16 @@ asmsub  restore_irq() clobbers(A) {
 	    and  #%11110000     ; disable all Vera IRQs but the vsync
 	    ora  #%00000001
 	    sta  cx16.VERA_IEN
+        lda  #%01111111
+        sta  cx16.via1ier
+        ; set timer1 back to free running mode
+        lda  cx16.via1acr
+        and  %00111111
+        ora  %01000000
+        sta  cx16.via1acr
+        lda  #$ff
+        sta  cx16.via1t1ll
+        sta  cx16.via1t1lh
 	    plp
 	    rts
         .section BSS_NOCLEAR

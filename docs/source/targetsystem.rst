@@ -276,7 +276,7 @@ Here they are, all available in ``cx16``:
     by setting the various handlers), or pass false to not touch this.
     The handlers don't need to clear its ISR bit, but have to return 0 or 1 in A,
     where 1 means: continue with the system IRQ handler, 0 means: don't call that.
-    The order in which the handlers are invoked if multiple interrupts occur simultaneously is: LINE, SPRCOL, AFLOW, VSYNC.
+    The order in which the handlers are invoked if multiple interrupts occur simultaneously is: LINE, TIMER1(VIA1), VSYNC, SPRCOL, AFLOW.
 
 ``set_vsync_irq_handler (uword address)``
     Sets the verical sync interrupt handler routine.  Also enables VSYNC interrupts.
@@ -294,5 +294,16 @@ Here they are, all available in ``cx16``:
     Note: the handler must fill the Vera's audio fifo buffer by itself with at least 25% worth of data (1 kb)
     otherwise the aflow irq keeps triggering.
 
+``set_timer1_irq_handler (uword address)``
+    Sets the VIA1 TIMER1 irq handler to use with enable_irq_handlers().  Does not enable or disable VIA1 timer irqs setting.
+
 ``disable_irq_handlers ()``
     Hand control back to the system default IRQ handler.
+
+And a utility method to set the VIA1 timer1 to trigger IRQs at regular intervals:
+
+``sub set_timer1 (uword delay, bool keeprunning)``
+    Set VIA1 timer1 to trigger after the given delay (cycles).
+    Enables VIA timer1 irqs if delay>0, otherwise disables it.
+    If keeprunning then the timer keeps triggering, otherwise it stops after a single trigger.
+    Note that the speed of the timer depends on the clock speed of the X16 (controlled by a jumper on the motherboard, usually 8 MHz).
