@@ -83,12 +83,13 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcCall(call: PtBuiltinFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val addressTr = exprGen.translateExpression(call.args[0])
+        val resultvalueReg = codeGen.registers.next(IRDataType.WORD)
         addToResult(result, addressTr, addressTr.resultReg, -1)
-        addInstr(result, IRInstruction(Opcode.CALLI, reg1 = addressTr.resultReg), null)
+        addInstr(result, IRInstruction(Opcode.CALLI, IRDataType.WORD, reg1 = resultvalueReg, reg2 = addressTr.resultReg), null)
         return if(call.void)
             ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
         else
-            ExpressionCodeResult(result, IRDataType.WORD, codeGen.registers.next(IRDataType.WORD), -1)      // TODO actually the result is returned in CPU registers AY...
+            ExpressionCodeResult(result, IRDataType.WORD, resultvalueReg, -1)
     }
 
     private fun funcCallfar(call: PtBuiltinFunctionCall): ExpressionCodeResult {

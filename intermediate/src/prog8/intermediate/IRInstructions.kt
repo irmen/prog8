@@ -75,7 +75,7 @@ CONTROL FLOW
 ------------
 jump                    location      - continue running at instruction at 'location' (label/memory address)
 jumpi       reg1                      - continue running at memory address in reg1  (indirect jump)
-calli       reg1                      - calls a subroutine (without arguments and without return valus) at memory addres in reg1 (indirect jsr)
+calli       reg1,reg2                 - reg1 = result (uword) of calling a subroutine (without arguments) at memory address in reg1 ('indirect jsr')
 call   label(argument register list) [: resultreg.type]
                                       - calls a subroutine with the given arguments and return value (optional).
                                         save current instruction location+1, continue execution at instruction nr of the label.
@@ -684,7 +684,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
     Opcode.JUMPI      to InstructionFormat.from("N,<r1"),
-    Opcode.CALLI      to InstructionFormat.from("N,<r1"),
+    Opcode.CALLI      to InstructionFormat.from("W,>r1,<r2"),
     Opcode.CALL       to InstructionFormat.from("N,call"),
     Opcode.CALLFAR    to InstructionFormat.from("N,<i,<a"),
     Opcode.CALLFARVB  to InstructionFormat.from("N,<r1,<a"),
@@ -1115,7 +1115,7 @@ data class IRInstruction(
             if(opcode==Opcode.SQRT)
                 return IRDataType.WORD
         }
-        if(opcode==Opcode.JUMPI || opcode==Opcode.CALLI || opcode==Opcode.STOREZI || opcode==Opcode.LSIGW || opcode==Opcode.MSIGW)
+        if(opcode==Opcode.JUMPI || opcode==Opcode.STOREZI || opcode==Opcode.LSIGW || opcode==Opcode.MSIGW)
             return IRDataType.WORD
         if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null

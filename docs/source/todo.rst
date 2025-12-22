@@ -61,13 +61,11 @@ Future Things and Ideas
 
 IR/VM
 -----
+- getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
+- encode asmsub/extsub clobber info in the call, or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - extend the index register datatype in the LOADX, STOREX, STOREZX instructions from byte to word (0-255 to 0-65535) (this not compatible with 8 bit 6502, but the 68000 can use that)
 - get rid of LOADX/STOREX/STOREZX, LOADFIELD/STOREFIELD just use add + loadi / storei?
 - if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
-- add and sub instructions should modify the status flags so an explicit compare to zero can be avoided for example: if cx16.r0sL + cx16.r1sL <= 0  now compiles into:  addr.b r10,r11 /  bgts.b r10,#0,label
-- getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
-- BUG: fix call() return value handling (... what's wrong with it again?)
-- proper code gen for the CALLI instruction and that it (optionally) returns a word value that needs to be assigned to a reg
 - make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
     FUNCTION_PARAMS,     // For passing function parameters
@@ -92,15 +90,10 @@ IR/VM
 - change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer. Breaks SSA form though?
 - register reuse to reduce the number of required variables in memory eventually. But can only re-use a register if a) it's the same type and b) if the second occurrence is not called from the first occurrence (otherwise the value gets overwritten!) Breaks SSA form though?
 - reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
-  don't forget to take into account the data type of the register when it's going to be reused!
-- encode asmsub/extsub clobber info in the call , or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
+  don't forget to take into account the data type of the register when it's going to be reused! Reuse breaks SSA form though
 - implement fast code paths for TODO("inplace split....
 - implement more TODOs in AssignmentGen
-- do something with the 'split' tag on split word arrays
 - add more optimizations in IRPeepholeOptimizer, implement the TODOs in there at least
-- idea: replace all scalar variables that are not @shared by an allocated register. Keep a table of the variable to register mapping (including the datatype)
-  global initialization values are simply a list of LOAD instructions.
-  Variables replaced include all subroutine parameters? Or not?  So the only variables that remain as variables are arrays and strings.
 - the split word arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...? Should array operations be encoded in a more high level form in the IR?
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change.. :(
