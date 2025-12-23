@@ -11,6 +11,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - add a -profile option that instruments the start of every prog8 subroutine with code that dumps to the emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count.  Start of program must set cycle count to zero.
 - BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
+- add a PET sound demo? see http://blog.tynemouthsoftware.co.uk/2022/05/pet-sounds.html
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
