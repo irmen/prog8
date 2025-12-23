@@ -1,23 +1,17 @@
 %import textio
+%import floats
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        uword func1 = &function1
-        uword func2 = &function2
-        txt.print_uw(call(func1))
-        void call(func1)
-        txt.print_uw(call(func2))
-        void call(func2)
-    }
+        long @shared lv = 1234567
+        float @shared fl1 = lv as float / 1.234
+        float @shared fl2 = (cx16.r0r1sl - cx16.r2r3sl) as float
+        float @shared fl3 = -lv as float
 
-    sub function1() {
-        txt.print("function1\n")
-    }
-
-    sub function2() -> uword {
-        txt.print("function1\n")
-        return 12345
+        txt.print_f(fl1)
+        txt.nl()
+        txt.print_f(fl3)
     }
 }

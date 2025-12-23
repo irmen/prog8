@@ -2804,7 +2804,17 @@ $endLabel""")
                     asmgen.out("  jsr  floats.GIVAYFAY")
                 }
                 valueDt.isLong -> {
-                    TODO("assign typecasted long to float ${value.position}")
+                    when(value) {
+                        is PtIdentifier -> {
+                            val varname = asmgen.asmVariableName(value)
+                            asmgen.out("""
+                                lda  #<$varname
+                                ldy  #>$varname
+                                clc
+                                jsr  floats.cast_from_long""")
+                        }
+                        else -> TODO("assign typecasted long value to float FAC1 ${value.position} - please report this issue. Use simple expressions and temporary variables for now")
+                    }
                 }
                 else -> throw AssemblyError("invalid dt at ${target.position}")
             }
@@ -3083,6 +3093,7 @@ $endLabel""")
                         sty  cx16.r0H
                         lda  #<$sourceAsmVarName
                         ldy  #>$sourceAsmVarName
+                        sec
                         jsr  floats.cast_from_long""")
                 } else
                     throw AssemblyError("weird type")
@@ -3298,7 +3309,15 @@ $endLabel""")
                 } else if(targetDt.isWord || targetDt.isPointer) {
                     asmgen.out("  lda  cx16.$startreg |  sta  $targetAsmVarName |  lda  cx16.$startreg+1 |  sta  $targetAsmVarName+1")
                 } else if(targetDt.isFloat) {
-                    TODO("assign type casted long register $regs to float - use temporary variable for now. Target var=$targetAsmVarName")
+                    asmgen.out("""
+                        lda  #<$targetAsmVarName
+                        ldy  #>$targetAsmVarName
+                        sta  cx16.r0L
+                        sty  cx16.r0H
+                        lda  #<cx16.$startreg
+                        ldy  #>cx16.$startreg
+                        sec
+                        jsr  floats.cast_from_long""")
                 } else
                     throw AssemblyError("weird type $targetDt")
             }
@@ -5462,7 +5481,13 @@ $endLabel""")
                     }
                     TargetStorageKind.ARRAY -> TODO(" - long array ${target.position}")
                     TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
-                    TargetStorageKind.REGISTER -> TODO("32 bits register negate ${target.position}")
+                    TargetStorageKind.REGISTER -> {
+                        val regstart = target.register!!.startregname()
+                        asmgen.out("""
+                            lda  #<cx16.$regstart
+                            ldy  #>cx16.$regstart
+                            jsr  prog8_lib.long_negate_inplace""")
+                    }
                     TargetStorageKind.POINTER -> pointergen.inplaceLongNegate(PtrTarget(target), scope)
                     TargetStorageKind.VOID -> { /* do nothing */ }
                 }

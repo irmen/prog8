@@ -605,6 +605,56 @@ long_xor_inplace       .proc
 		rts
 		.pend
 
+long_negate_inplace	.proc
+		; negate a signed long pointed to by AY in place
+		; Uses two's complement: flip all bits then add 1
+		sta P8ZP_SCRATCH_PTR
+		sty P8ZP_SCRATCH_PTR+1
+
+		ldy #$00
+		lda (P8ZP_SCRATCH_PTR),y
+		eor #$FF
+		sta (P8ZP_SCRATCH_PTR),y
+		iny
+
+		lda (P8ZP_SCRATCH_PTR),y
+		eor #$FF
+		sta (P8ZP_SCRATCH_PTR),y
+		iny
+
+		lda (P8ZP_SCRATCH_PTR),y
+		eor #$FF
+		sta (P8ZP_SCRATCH_PTR),y
+		iny
+
+		lda (P8ZP_SCRATCH_PTR),y
+		eor #$FF
+		sta (P8ZP_SCRATCH_PTR),y
+
+		; Add 1 to get two's complement (incrementing the 32-bit value)
+		clc
+		lda #$01
+		ldy #$00
+		adc (P8ZP_SCRATCH_PTR),y
+		sta (P8ZP_SCRATCH_PTR),y
+		bcc +
+		iny
+		lda #$00
+		adc (P8ZP_SCRATCH_PTR),y
+		sta (P8ZP_SCRATCH_PTR),y
+		bcc +
+		iny
+		lda #$00
+		adc (P8ZP_SCRATCH_PTR),y
+		sta (P8ZP_SCRATCH_PTR),y
+		bcc +
+		iny
+		lda #$00
+		adc (P8ZP_SCRATCH_PTR),y
+		sta (P8ZP_SCRATCH_PTR),y
++		rts
+		.pend
+
 long_shiftleftX_inplace         .proc
 		; bit shift left X bits the long value pointed to by AY
 		cpx  #0
