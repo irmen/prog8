@@ -1,6 +1,10 @@
 TODO
 ====
 
+- implement this: float @shared fl1 = cx16.r0r1sl / 1.234
+- implement this: float @shared fl2 = (cx16.r0r1sl - cx16.r2r3sl) as float
+- implement this: float @shared fl3 = -cx16.r0r1sl as float
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)

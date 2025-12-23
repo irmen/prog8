@@ -22,8 +22,7 @@ wavfile {
     ubyte wavefmt
     ubyte nchannels
     uword block_align
-    uword data_size_hi
-    uword data_size_lo
+    long data_size
 
     sub parse_header(uword wav_data) -> bool {
         ; "RIFF" , filesize (int32) , "WAVE", "fmt ", fmtsize (int32)
@@ -52,8 +51,7 @@ wavfile {
             header += 8 + chunksize
         }
 
-        data_size_lo = chunksize
-        data_size_hi = peekw(header+6)
+        data_size = mklong2(peekw(header+6), chunksize)
         data_offset = header + 8 - wav_data
         return true
     }

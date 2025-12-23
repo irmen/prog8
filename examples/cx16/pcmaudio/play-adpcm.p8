@@ -71,7 +71,7 @@ main {
     }
 
     sub calculate_adpcm_blocks() {
-        adpcm_size = wavfile.data_size_lo                   ; we assume the data is <64Kb so only low word is enough
+        adpcm_size = lsw(wavfile.data_size)                 ; we assume the data is <64Kb so only low word is enough
         num_adpcm_blocks = (adpcm_size / 256) as ubyte      ; THE ADPCM DATA NEEDS TO BE ENCODED IN 256-byte BLOCKS !
     }
 
@@ -207,7 +207,7 @@ stereo {
     }
 
     sub decode_block() {
-        ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)      TODO 996 rather for stereo?
+        ; refill the fifo buffer with one decoded adpcm block (996 bytes of pcm data)
         adpcm.init(peekw(main.nibblesptr), @(main.nibblesptr+2))            ; left channel
         cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
         cx16.VERA_AUDIO_DATA = msb(adpcm.predict)

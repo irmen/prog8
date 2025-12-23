@@ -29,28 +29,32 @@ main {
     ubyte vera_rate
 
     sub start() {
-        diskio.fastmode(1)
+        void diskio.fastmode(1)
         txt.print("name of .wav file to play on drive 8: ")
         while 0==txt.input_chars(MUSIC_FILENAME) {
             ; until user types a name...
         }
         prepare_music()
-        txt.print("\ngood file! playback starts! ")
-        cx16.rombank(0)                         ; activate kernal bank for faster calls
-        interrupts.wait()
+        txt.print("\ngood file! playback starts!\n\n")
         interrupts.set_handler()
         play_stuff()
-        txt.print("done!\n")
-        repeat { }
+        txt.print("\n\ndone!\n")
+        repeat {
+            if cbm.GETIN2()!=0
+                sys.reset_system()
+        }
     }
 
     sub error(str msg) {
         txt.print(msg)
-        repeat { }
+        repeat {
+            if cbm.GETIN2()!=0
+                sys.reset_system()
+        }
     }
 
     sub prepare_music() {
-        txt.print("\nchecking ")
+        txt.print("\n\nchecking ")
         txt.print(MUSIC_FILENAME)
         txt.nl()
         bool wav_ok = false
@@ -64,24 +68,25 @@ main {
 
         calculate_vera_rate()
 
-        txt.print("wav format: ")
+        txt.print(" wav format: ")
         txt.print_ub(wavfile.wavefmt)
-        txt.print("\nchannels: ")
+        txt.print("\n channels: ")
         txt.print_ub(wavfile.nchannels)
-        txt.print("\nsample rate: ")
+        txt.print("\n sample rate: ")
         txt.print_uw(wavfile.sample_rate)
-        txt.print("\nbits per sample: ")
+        txt.print("\n bits per sample: ")
         txt.print_uw(wavfile.bits_per_sample)
-        txt.print("\ndata size: ")
-        txt.print_uwhex(wavfile.data_size_hi, true)
-        txt.print_uwhex(wavfile.data_size_lo, false)
-        txt.print("\nvera rate: ")
+        txt.print("\n data size: ")
+        txt.print_l(wavfile.data_size)
+        txt.print(" = ")
+        txt.print_ulhex(wavfile.data_size, true)
+        txt.print("\n vera rate: ")
         txt.print_ub(vera_rate)
         txt.print(" = ")
         txt.print_uw(vera_rate_hz)
         txt.print(" hz\n")
         if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
-            txt.print("adpcm block size: ")
+            txt.print(" adpcm block size: ")
             txt.print_uw(wavfile.block_align)
             txt.nl()
         }
@@ -123,8 +128,12 @@ main {
             music.pre_buffer(block_size)
             cx16.VERA_AUDIO_RATE = vera_rate    ; start audio playback
 
-            str progress_chars = "-\\|/-\\|/"
-            ubyte progress = 0
+            long prev_disk_read_bytes, prev_pcm_fifo_bytes
+            ubyte statx,staty
+            txt.print("disk i/o: ")
+            statx,staty = txt.get_cursor()
+            txt.print("\npcm fifo: ")
+            txt.print("\n    idle: ")
 
             repeat {
                 interrupts.wait()
@@ -133,9 +142,10 @@ main {
                     if not music.load_next_block(block_size)
                         break
                     ; Note: copying the samples into the fifo buffer is done by the aflow interrupt handler itself.
-                    txt.chrout(progress_chars[progress/2 & 7])
-                    txt.chrout($9d)     ; cursor left
-                    progress++
+
+                    print_stats()
+                    prev_disk_read_bytes = music.disk_read_bytes
+                    prev_pcm_fifo_bytes = music.pcm_fifo_bytes
                 }
             }
 
@@ -145,6 +155,26 @@ main {
         }
 
         cx16.VERA_AUDIO_RATE = 0                ; halt playback
+
+        sub print_stats() {
+            ; don't print decimal numbers, that take quite a bit of cpu time to calculate
+            txt.plot(statx,staty)
+            txt.print_ulhex(music.disk_read_bytes, true)
+            txt.print(" +")
+            txt.print_uwhex(lsw(music.disk_read_bytes - prev_disk_read_bytes), true)
+            txt.print("   ")
+            txt.plot(statx,staty+1)
+            txt.print_ulhex(music.pcm_fifo_bytes, true)
+            txt.print(" +")
+            txt.print_uwhex(lsw(music.pcm_fifo_bytes - prev_pcm_fifo_bytes), true)
+            txt.print("   ")
+            txt.plot(statx,staty+2)
+            txt.print_uwhex(interrupts.idle_counter, true)
+            if interrupts.idle_counter < 100
+                txt.print("  !!!")
+            else
+                txt.print("     ")
+        }
     }
 
 }
@@ -160,11 +190,15 @@ interrupts {
     }
 
     bool aflow
+    uword idle_counter
 
-    inline asmsub wait() {
-        %asm {{
-            wai
-        }}
+    sub wait() {
+        ; NOTE: should be doing a WAI instruction here to wait for the next AFLOW irq
+        ; but we want to gather "idle time" counter statistics.
+        idle_counter = 0
+        while not aflow {
+            idle_counter++
+        }
     }
 
     sub handler() {
@@ -193,12 +227,15 @@ interrupts {
 
 
 music {
+    long disk_read_bytes
+    long pcm_fifo_bytes
+
     uword @requirezp nibblesptr
     uword buffer = memory("buffer", 1024, 256)
 
     sub pre_buffer(uword block_size) {
         ; pre-buffer first block
-        void diskio.f_read(buffer, block_size)
+        disk_read_bytes = diskio.f_read(buffer, block_size)
     }
 
     sub aflow_play_block() {
@@ -208,20 +245,27 @@ music {
             if wavfile.nchannels==2 {
                 adpcm_block_stereo()
                 adpcm_block_stereo()
+                music.pcm_fifo_bytes += 996 * 2
             }
             else {
                 adpcm_block_mono()
                 adpcm_block_mono()
+                music.pcm_fifo_bytes += 1010 * 2
             }
         }
-        else if wavfile.bits_per_sample==16
+        else if wavfile.bits_per_sample==16 {
             uncompressed_block_16()
-        else
+            music.pcm_fifo_bytes += 1024
+        }
+        else {
             uncompressed_block_8()
+            music.pcm_fifo_bytes += 1024
+        }
     }
 
     sub load_next_block(uword block_size) -> bool {
         ; read next block from disk into the buffer, for next time the irq triggers
+        disk_read_bytes += block_size
         return diskio.f_read(buffer, block_size) == block_size
     }
 
@@ -318,7 +362,7 @@ _lp2        lda  $ffff,y    ; modified
     }
 
     sub adpcm_block_stereo() {
-        ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)   TODO 996 rather for stereo?
+        ; refill the fifo buffer with one decoded adpcm block (996 bytes of pcm data)
         adpcm.init(peekw(nibblesptr), @(nibblesptr+2))            ; left channel
         cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
         cx16.VERA_AUDIO_DATA = msb(adpcm.predict)

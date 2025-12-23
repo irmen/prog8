@@ -2803,6 +2803,9 @@ $endLabel""")
                     assignExpressionToRegister(value, RegisterOrPair.AY, true)
                     asmgen.out("  jsr  floats.GIVAYFAY")
                 }
+                valueDt.isLong -> {
+                    TODO("assign typecasted long to float ${value.position}")
+                }
                 else -> throw AssemblyError("invalid dt at ${target.position}")
             }
             if(target.register==RegisterOrPair.FAC2) {
@@ -3294,10 +3297,12 @@ $endLabel""")
                     asmgen.out("  lda  cx16.$startreg |  sta  $targetAsmVarName")
                 } else if(targetDt.isWord || targetDt.isPointer) {
                     asmgen.out("  lda  cx16.$startreg |  sta  $targetAsmVarName |  lda  cx16.$startreg+1 |  sta  $targetAsmVarName+1")
+                } else if(targetDt.isFloat) {
+                    TODO("assign type casted long register $regs to float - use temporary variable for now. Target var=$targetAsmVarName")
                 } else
-                    throw AssemblyError("weird type")
+                    throw AssemblyError("weird type $targetDt")
             }
-            else -> throw AssemblyError("weird type")
+            else -> throw AssemblyError("weird type $sourceDt")
         }
     }
 
