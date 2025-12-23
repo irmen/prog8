@@ -40,9 +40,8 @@ main {
     }
 
     sub perf_print() {
-        cx16.r4, cx16.r5 = emudbg.cpu_cycles()
-        txt.print_uwhex(cx16.r5, true)
-        txt.print_uwhex(cx16.r4, false)
+        long cycles = emudbg.cpu_cycles()
+        txt.print_ulhex(cycles, true)
         txt.nl()
     }
 

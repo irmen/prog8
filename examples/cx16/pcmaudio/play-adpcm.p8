@@ -207,7 +207,7 @@ stereo {
     }
 
     sub decode_block() {
-        ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)
+        ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)      TODO 996 rather for stereo?
         adpcm.init(peekw(main.nibblesptr), @(main.nibblesptr+2))            ; left channel
         cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
         cx16.VERA_AUDIO_DATA = msb(adpcm.predict)

@@ -303,7 +303,7 @@ emudbg  {
     console_value1  (ubyte value) 
     console_value2  (ubyte value) 
     console_write  (str isoString) 
-    cpu_cycles  () -> uword @R0, uword @R1 
+    cpu_cycles  () -> long @R0R1_32
     is_emulator  () -> bool 
     reset_cpu_cycles  () 
 }
