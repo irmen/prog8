@@ -662,7 +662,7 @@ main {
         err[0] shouldContain("15:16: incompatible value type, can only assign uword or correct pointer")
     }
 
-    xtest("pointer uword assignments with cast") {
+    test("pointer uword assignments with cast") {
         val src="""
 main {
     struct Node1 {
@@ -677,17 +677,17 @@ main {
     sub start() {
         ^^Node1 @shared next
         ^^Node2 @shared this
-        ^^ubyte ubptr
+        ^^ubyte @shared ubptr
 
         ubptr = next as ^^ubyte
         ubptr = 12345
         ubptr = cx16.r0
-        ubptr = next as uword       ; TODO fix type error; the cast should succeed
+        ubptr = next as uword
 
         this.text = next as ^^ubyte
         this.text = 12345
         this.text = cx16.r0
-        this.text = next as uword       ; TODO fix type error; the cast should succeed
+        this.text = next as uword
     }
 }"""
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null

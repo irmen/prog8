@@ -11,7 +11,6 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - add a -profile option that instruments the start of every prog8 subroutine with code that dumps to the emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count.  Start of program must set cycle count to zero.
 - BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
-- add a PET sound demo? see http://blog.tynemouthsoftware.co.uk/2022/05/pet-sounds.html
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
@@ -68,7 +67,7 @@ IR/VM
 - extend the index register datatype in the LOADX, STOREX, STOREZX instructions from byte to word (0-255 to 0-65535) (this not compatible with 8 bit 6502, but the 68000 can use that)
 - get rid of LOADX/STOREX/STOREZX, LOADFIELD/STOREFIELD just use add + loadi / storei?
 - if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
-- make multiple classes of registers and maybe also categorize by life time , to prepare for better register allocation in the future
+- make multiple classes of registers and maybe also categorize by life time? , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
     FUNCTION_PARAMS,     // For passing function parameters
     FUNCTION_RETURNS,    // For function return values
@@ -78,13 +77,10 @@ IR/VM
     HARDWARE_MAPPED,     // Mapped to CPU hardware registers
     LOOP_INDICES,        // Used as loop counters
     ADDRESS_CALCULATION  // Used for pointer arithmetic
-  Categorizing registers by lifetime can significantly improve allocation:
-   - Short-lived: Temporary registers used in expressions
-   - Medium-lived: Local variables within a function
   Registers could be categorized by how frequently they're accessed:
    - Hot Registers: Frequently accessed (should be allocated to faster physical registers)
    - Warm Registers: Moderately accessed
-   - Cold Registers: Rarely accessed (can be spilled to memory if needed)
+   - Cold Registers: Rarely accessed (move to memory variables)
   We already have type-based pools
     - byte, word, long, float registers
 
@@ -106,7 +102,7 @@ Libraries
 - Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
-- c128 target: make syslib more complete (missing kernal routines)?
+- add a PET sound utility library? see http://blog.tynemouthsoftware.co.uk/2022/05/pet-sounds.html
 
 
 Optimizations

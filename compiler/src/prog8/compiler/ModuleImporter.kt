@@ -107,10 +107,7 @@ class ModuleImporter(private val program: Program,
                             importModule(it)
                         },
                         failure = {
-                            if(moduleName=="string")
-                                errors.err("the 'string' module is now named 'strings'", import.position)
-                            else
-                                errors.err("no module found with name $moduleName. Searched in: $sourcePaths (and internal libraries)", import.position)
+                            errors.err("no module found with name $moduleName. Searched in: $sourcePaths (and internal libraries)", import.position)
                             return null
                         }
                     )

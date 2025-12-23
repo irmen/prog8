@@ -170,9 +170,9 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             }
         }
 
-        if(typecast.type.isWord && typecast.expression.inferType(program).isPointer) {
-            // pointers can be assigned to untyped pointer (uword) without a cast, but not if it's part of an expression!
-            if(parent !is Expression)
+        if(typecast.type.isWord && parent is Assignment && typecast.expression.inferType(program).isPointer) {
+            // a cast to uword can be removed if the assignment target type is uword (because any pointer can be assigned to uword)
+            if(parent.target.inferType(program).isUnsignedWord)
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
         }
 
