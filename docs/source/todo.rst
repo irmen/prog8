@@ -108,6 +108,9 @@ Libraries
 Optimizations
 -------------
 
+- chained assignment should reuse a more efficient temporary value?  vptr.volume = vptr.envelope_maxvol = volume & %00111111
+- voices[voicesnr]^^.channels=0  generates awful assembly code (voices is pointer to Voice struct, psg2 module)
+- optimize code for lsb(vptr.frequency), it now reads the whole word through the pointer
 - peek(address + offset) and poke(address + offset, value) generate quite large asm segments. Optimize into subroutines for "indexed memory peek/pokes"?
 - (6502) optimize if sgn(value)<0: still does a compare with 0 even though SGN sets all status bits.
 - longvar = lptr^^ ,  lptr2^^=lptr^^  now go via temporary registers, optimize this to avoid using temps.  (seems like it is dereferencing the pointer first and then assigning the intermediate value)

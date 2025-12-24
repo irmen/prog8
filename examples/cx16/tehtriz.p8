@@ -10,7 +10,7 @@
 %import syslib
 %import textio
 %import math
-%import psg
+%import psg2
 
 main {
 
@@ -678,54 +678,53 @@ blocklogic {
 
 sound {
     sub init() {
-        cx16.vpoke(1, $f9c2, %00111111)     ; volume max, no channels
-        psg.silent()
+        psg2.init()
         cx16.enable_irq_handlers(true)
-        cx16.set_vsync_irq_handler(&psg.envelopes_irq)
+        cx16.set_vsync_irq_handler(&psg2.update)
     }
 
     sub blockrotate() {
         ; soft click/"tschk" sound
-        psg.freq(0, 15600)
-        psg.voice(0, psg.LEFT | psg.RIGHT, 32, psg.NOISE, 0)
-        psg.envelope(0, 32, 200, 1, 100)
+        psg2.voice(0, psg2.LEFT | psg2.RIGHT, 32, psg2.NOISE, 0)
+        psg2.frequency(0, 15600)
+        psg2.envelope(0, 200, 0, 255)
     }
 
     sub blockdrop() {
         ; swish
-        psg.freq(1, 4600)
-        psg.voice(1, psg.LEFT | psg.RIGHT, 32, psg.NOISE, 0)
-        psg.envelope(1, 32, 200, 5, 20)
+        psg2.voice(1, psg2.LEFT | psg2.RIGHT, 40, psg2.NOISE, 0)
+        psg2.frequency(1, 4600)
+        psg2.envelope(1, 200, 5, 30)
     }
 
     sub swapping() {
         ; beep
-        psg.freq(2, 1500)
-        psg.voice(2, psg.LEFT | psg.RIGHT, 32, psg.TRIANGLE, 0)
-        psg.envelope(2, 40, 100, 6, 10)
+        psg2.voice(2, psg2.LEFT | psg2.RIGHT, 40, psg2.TRIANGLE, 0)
+        psg2.frequency(2, 1500)
+        psg2.envelope(2, 200, 2, 40)
     }
 
     sub lineclear() {
         ; explosion
-        psg.freq(3, 1400)
-        psg.voice(3, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
-        psg.envelope(3, 63, 100, 8, 10)
+        psg2.voice(3, psg2.LEFT | psg2.RIGHT, 63, psg2.NOISE, 0)
+        psg2.frequency(3, 1400)
+        psg2.envelope(3, 100, 8, 10)
     }
 
     sub lineclear_big() {
         ; big explosion
-        psg.freq(4, 2500)
-        psg.voice(4, psg.LEFT | psg.RIGHT, 63, psg.NOISE, 0)
-        psg.envelope(4, 63, 100, 20, 10)
+        psg2.voice(4, psg2.LEFT | psg2.RIGHT, 63, psg2.NOISE, 0)
+        psg2.frequency(4, 2500)
+        psg2.envelope(4, 100, 20, 10)
     }
 
     sub gameover() {
         ; attempt at buzz/boing
-        psg.freq(5, 300)
-        psg.freq(6, 600)
-        psg.voice(5, psg.LEFT | psg.RIGHT, 0, psg.SAWTOOTH, 0)
-        psg.voice(6, psg.LEFT | psg.RIGHT, 0, psg.TRIANGLE, 0)
-        psg.envelope(5, 50, 100, 30, 10)
-        psg.envelope(6, 50, 100, 30, 10)
+        psg2.voice(5, psg2.LEFT | psg2.RIGHT, 50, psg2.SAWTOOTH, 0)
+        psg2.voice(6, psg2.LEFT | psg2.RIGHT, 50, psg2.TRIANGLE, 0)
+        psg2.frequency(5, 300)
+        psg2.frequency(6, 600)
+        psg2.envelope(5, 100, 10, 50)
+        psg2.envelope(6, 100, 10, 60)
     }
 }
