@@ -203,7 +203,7 @@ class VarConstantValueTypeAdjuster(
                         else -> throw FatalAstException("min/max type")
                     }
                 } else if(t1.isNumeric && t2.isNumeric) {
-                    errors.err("min/max not supported for floats", functionCallExpr.position)
+                    errors.err("min/max not supported for floats, use floats.minf/maxf instead", functionCallExpr.position)
                     return noModifications
                 } else {
                     errors.err("expected numeric arguments", functionCallExpr.args[0].position)
