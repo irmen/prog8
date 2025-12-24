@@ -412,10 +412,9 @@ cx16 {
     &ubyte  VERA_FX_ACCUM       = VERA_BASE + $000a
     &ubyte  VERA_FX_ACCUM_RESET = VERA_BASE + $0009
 
-
-; VERA_PSG_BASE     = $1F9C0
-; VERA_PALETTE_BASE = $1FA00
-; VERA_SPRITES_BASE = $1FC00
+    const long VERA_PSG_BASE     = $1F9C0
+    const long VERA_PALETTE_BASE = $1FA00
+    const long VERA_SPRITES_BASE = $1FC00
 
 ; I/O
 

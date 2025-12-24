@@ -140,10 +140,7 @@ internal class AstChecker(private val program: Program,
             val valueDt = actual.inferType(program)
             if(valueDt.isKnown) {
                 if (expectedDt != valueDt.getOrUndef()) {
-                    if(valueDt.isBool && expectedDt.isUnsignedByte) {
-                        // if the return value is a bool and the return type is ubyte, allow this. But give a warning.
-                        errors.info("return type of the subroutine should probably be bool instead of ubyte", actual.position)
-                    } else if(expectedDt.isUnsignedWord && (valueDt.isIterable || valueDt.isPointer)) {
+                    if(expectedDt.isUnsignedWord && (valueDt.isIterable || valueDt.isPointer)) {
                         // you can return a string or array or pointer when an uword (pointer) is returned
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string

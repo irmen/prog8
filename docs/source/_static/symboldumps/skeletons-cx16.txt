@@ -303,7 +303,7 @@ emudbg  {
     console_value1  (ubyte value) 
     console_value2  (ubyte value) 
     console_write  (str isoString) 
-    cpu_cycles  () -> long @R0R1_32
+    cpu_cycles  () -> long @R0R1_32 
     is_emulator  () -> bool 
     reset_cpu_cycles  () 
 }
@@ -945,9 +945,12 @@ cx16  {
     &uword  VERA_L1_VSCROLL 
     &ubyte  VERA_L1_VSCROLL_H 
     &ubyte  VERA_L1_VSCROLL_L 
+    const long  VERA_PALETTE_BASE 
+    const long  VERA_PSG_BASE 
     &ubyte  VERA_SCANLINE_L 
     &ubyte  VERA_SPI_CTRL 
     &ubyte  VERA_SPI_DATA 
+    const long  VERA_SPRITES_BASE 
     const uword  VIA1_BASE 
     const uword  VIA2_BASE 
     &ubyte  YM_ADDRESS 
@@ -1102,10 +1105,13 @@ cx16  {
     &ubyte  via1pra 
     &ubyte  via1prb 
     &ubyte  via1sr 
+    &uword  via1t1 
     &ubyte  via1t1h 
     &ubyte  via1t1l 
     &ubyte  via1t1lh 
     &ubyte  via1t1ll 
+    &uword  via1t1lw 
+    &uword  via1t2 
     &ubyte  via1t2h 
     &ubyte  via1t2l 
     &ubyte  via2acr 
@@ -1118,10 +1124,13 @@ cx16  {
     &ubyte  via2pra 
     &ubyte  via2prb 
     &ubyte  via2sr 
+    &uword  via2t1 
     &ubyte  via2t1h 
     &ubyte  via2t1l 
     &ubyte  via2t1lh 
     &ubyte  via2t1ll 
+    &uword  via2t1lw 
+    &uword  via2t2 
     &ubyte  via2t2h 
     &ubyte  via2t2l 
     BSAVE  (ubyte zp_startaddr @A, uword endaddr @XY)  clobbers (X,Y) -> bool @Pc, ubyte @A  = $feba
@@ -1278,6 +1287,8 @@ cx16  {
     set_program_args  (str args_ptr, ubyte args_size) 
     set_screen_mode  (ubyte mode @A)  clobbers (A,X,Y) 
     set_sprcol_irq_handler  (uword address @AY)  clobbers (A) 
+    set_timer1  (uword delay, bool keeprunning) 
+    set_timer1_irq_handler  (uword address @AY) 
     set_vsync_irq_handler  (uword address @AY)  clobbers (A) 
     sprite_set_image  (uword pixels @R0, uword mask @R1, ubyte bpp @R2, ubyte number @A, ubyte width @X, ubyte height @Y, bool apply_mask @Pc)  clobbers (A,X,Y) -> bool @Pc  = $fef0
     sprite_set_position  (uword x @R0, uword y @R1, ubyte number @A)  clobbers (A,X,Y)  = $fef3
