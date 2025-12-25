@@ -323,6 +323,8 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             }
             else -> paramsPossibleDatatypes = emptyList()
         }
+        if(paramsPossibleDatatypes.size != call.args.size)
+            return emptyList()  // proper error message for arg count mismatch will be given elsewhere
         return fixupArgumentList(paramsPossibleDatatypes, call.args, call as Node)
     }
 

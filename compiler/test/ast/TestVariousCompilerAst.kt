@@ -177,6 +177,24 @@ txt {
             errors.errors[0] shouldContain "undefined symbol: txt.print2222"
             errors.errors[1] shouldContain "undefined symbol: txt.DEFAULT_WIDTH_XXX"
         }
+
+        test("function call on alias with wrong param count gives correct error") {
+            val src="""
+main {
+    sub start() {
+        alias func = actualfunc
+        func(1,2)
+
+        sub actualfunc(ubyte a) {
+            a++
+        }
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldBe null
+            errors.errors.size shouldBe 1
+            errors.errors[0] shouldContain "invalid number of arguments: expected 1 but got 2"
+        }
     }
 
     context("strings") {

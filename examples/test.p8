@@ -1,17 +1,10 @@
-%import textio
-%import floats
-%zeropage basicsafe
-%option no_sysinit
-
 main {
     sub start() {
-        long @shared lv = 1234567
-        float @shared fl1 = lv as float / 1.234
-        float @shared fl2 = (cx16.r0r1sl - cx16.r2r3sl) as float
-        float @shared fl3 = -lv as float
+        alias func = actualfunc
+        func(1,2)       ; expected: "invalid number of arguments"  got: crash
 
-        txt.print_f(fl1)
-        txt.nl()
-        txt.print_f(fl3)
+        sub actualfunc(ubyte a) {
+            a++
+        }
     }
 }

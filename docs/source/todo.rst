@@ -1,6 +1,9 @@
 TODO
 ====
 
+fix alias function call crash with wrong number of parameters, also make sure it's the correct complete message
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
