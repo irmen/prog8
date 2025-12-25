@@ -39,7 +39,7 @@ class VarConstantValueTypeAdjuster(
 
         // replace variables by constants, if possible
         if(options.optimize) {
-            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || !decl.datatype.isNumeric)
+            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || !decl.datatype.isNumericOrBool)
                 return noModifications
             if (decl.value != null && decl.value!!.constValue(program) == null)
                 return noModifications
