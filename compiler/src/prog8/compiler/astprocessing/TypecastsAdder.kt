@@ -278,7 +278,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         // exception for @(...) = -byte  (direct memory write) it's just convenient to be able to write negative numbers too (like pokew also allows)
                         if(assignment.target.memoryAddress!=null) {
                             if(valuetype.isByteOrBool && targettype.isUnsignedByte) {
-                                require(cvalue.number.toInt() in -128..127)
+                                require(cvalue.number.toInt() in -128..127) { "signed byte out of range at ${cvalue.position}" }
                                 val asUByte = NumericLiteral(BaseDataType.UBYTE, cvalue.number.toInt().toUByte().toDouble(), assignment.value.position)
                                 return listOf(IAstModification.ReplaceNode(assignment.value, asUByte, assignment))
                             }
@@ -664,7 +664,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
     }
 
     private fun fixupArgumentList(possibleDatatypes: List<List<DataType>>, args: List<Expression>, parent: Node): List<IAstModification> {
-        require(possibleDatatypes.size==args.size)
+        require(possibleDatatypes.size==args.size) { "argument count mismatch at ${parent.position}"}
         val modifications = mutableListOf<IAstModification>()
         possibleDatatypes.zip(args).forEach {
             val possibleTargetDt = it.first.first()
