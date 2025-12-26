@@ -845,13 +845,13 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 }
             } else {
                 if(structSize==1) {
-                    // ptr + right, just keep it as it is
-                    val plus = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                    // ptr +/- right, just keep it as it is
+                    val plus = PtBinaryExpression(operator, DataType.UWORD, expr.position)
                     plus.add(transformExpression(expr.left))
                     plus.add(transformExpression(expr.right))
                     return plus
                 } else {
-                    // ptr + right * structSize
+                    // ptr +/- right * structSize
                     val offset: PtExpression
                     if(structSize in powersOfTwoInt) {
                         // don't multiply simply shift
@@ -886,13 +886,13 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 }
             } else {
                 if(structSize==1) {
-                    // ptr + left, just keep it as it is
-                    val plus = PtBinaryExpression("+", DataType.UWORD, expr.position)
+                    // ptr +/- left, just keep it as it is
+                    val plus = PtBinaryExpression(operator, DataType.UWORD, expr.position)
                     plus.add(transformExpression(expr.left))
                     plus.add(transformExpression(expr.right))
                     return plus
                 } else {
-                    // ptr + left  * structSize
+                    // ptr +/- left  * structSize
                     val offset: PtExpression
                     if(structSize in powersOfTwoInt) {
                         // don't multiply simply shift
