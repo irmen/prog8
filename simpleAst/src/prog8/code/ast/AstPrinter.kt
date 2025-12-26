@@ -208,8 +208,11 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 val txt = txt(node)
                 val library = if(node is PtBlock) node.library else node.definingBlock()?.library==true
                 if(!library || !skipLibraries) {
-                    if (txt.isNotEmpty())
+                    if (txt.isNotEmpty()) {
+                        if(node is PtSub)
+                            output("")
                         output("    ".repeat(depth) + txt(node))
+                    }
                 }
             }
         }

@@ -91,7 +91,7 @@ main {
         }
     }
 
-    context("alias") {
+    context("alias statement") {
         test("aliases ok") {
             val src="""
 main {
@@ -178,12 +178,28 @@ txt {
             errors.errors[1] shouldContain "undefined symbol: txt.DEFAULT_WIDTH_XXX"
         }
 
-        test("function call on alias with wrong param count gives correct error") {
+        test("aliased function call with wrong args count gives correct error") {
             val src="""
 main {
     sub start() {
-        alias func = actualfunc
-        func(1,2)
+        alias func1 = actualfunc
+        alias func2 = mkword
+        alias func3 = func1
+        alias func4 = func2
+
+        ; all wrong:
+        func1(1,2)
+        func1()
+        func2(1,2,3,4)
+        func2()
+        func3()
+        func4()
+
+        ; all ok:
+        func1(1)
+        cx16.r0 = func2(1,2)
+        func3(1)
+        cx16.r0 = func4(1,2)
 
         sub actualfunc(ubyte a) {
             a++
@@ -192,8 +208,13 @@ main {
 }"""
             val errors = ErrorReporterForTests()
             compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldBe null
-            errors.errors.size shouldBe 1
+            errors.errors.size shouldBe 6
             errors.errors[0] shouldContain "invalid number of arguments: expected 1 but got 2"
+            errors.errors[1] shouldContain "invalid number of arguments: expected 1 but got 0"
+            errors.errors[2] shouldContain "invalid number of arguments: expected 2 but got 4"
+            errors.errors[3] shouldContain "invalid number of arguments: expected 2 but got 0"
+            errors.errors[4] shouldContain "invalid number of arguments: expected 1 but got 0"
+            errors.errors[5] shouldContain "invalid number of arguments: expected 2 but got 0"
         }
     }
 

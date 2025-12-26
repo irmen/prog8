@@ -455,8 +455,9 @@ jump p8_label_gen_2
                     }
                     if(idx>=2) {
                         val previous = indexedInstructions[idx-2].value
-                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg)
-                            return idx-2 to previous.immediate!!
+                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg && previous.immediate!=null) {
+                            return idx - 2 to previous.immediate!!
+                        }
                     }
                     return null
                 }

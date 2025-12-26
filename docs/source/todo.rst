@@ -1,9 +1,6 @@
 TODO
 ====
 
-fix alias function call crash with wrong number of parameters, also make sure it's the correct complete message
-
-
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
@@ -47,7 +44,6 @@ Future Things and Ideas
 - Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
-- detect circular aliases and print proper error message for them
 - Improve register load order in subroutine call args assignments:
   in certain situations (need examples!), the "wrong" order of evaluation of function call arguments is done which results
   in overwriting registers that already got their value, which requires a lot of stack juggling (especially on plain 6502 cpu!)

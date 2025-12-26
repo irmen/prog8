@@ -233,56 +233,61 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     private fun visitFunctionCall(call: IFunctionCall) {
-        if(call.target.nameInSource==listOf("rnd") || call.target.nameInSource==listOf("rndw")) {
-            val target = call.target.targetStatement(program.builtinFunctions)
-            if(target==null) {
-                errors.err("rnd() and rndw() builtin functions have been moved into the math module", call.position)
-                return
-            }
-        }
-        when (val target = call.target.targetStatement(program.builtinFunctions)) {
-            is Subroutine -> {
-                val expectedNumberOfArgs: Int = target.parameters.size
-                if(call.args.size != expectedNumberOfArgs) {
-                    val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                    invalidNumberOfArgsError(pos, call.args.size, target.parameters.map { it.name })
-                }
-            }
-            is BuiltinFunctionPlaceholder -> {
-                val func = BuiltinFunctions.getValue(target.name)
-                val expectedNumberOfArgs: Int = func.parameters.size
-                if(call.args.size != expectedNumberOfArgs) {
-                    val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                    invalidNumberOfArgsError(pos, call.args.size, func.parameters.map {it.name })
-                }
-                if(target.name=="memory") {
-                    val name = call.args[0] as? StringLiteral
-                    if(name!=null) {
-                        val processed = name.value.map {
-                            if(it.isLetterOrDigit())
-                                it
-                            else
-                                '_'
-                        }.joinToString("")
-                        val textEncoding = (call as Node).definingModule.textEncoding
-                        call.args[0] = StringLiteral.create(processed, textEncoding, name.position)
-                        call.args[0].linkParents(call as Node)
+        fun check(target: Statement?, aliasDepth: Int) {
+            when (target) {
+                is Subroutine -> {
+                    val expectedNumberOfArgs: Int = target.parameters.size
+                    if(call.args.size != expectedNumberOfArgs) {
+                        val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
+                        invalidNumberOfArgsError(pos, call.args.size, target.parameters.map { it.name })
                     }
                 }
-            }
-            is Label -> {
-                if(call.args.isNotEmpty()) {
-                    val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
-                    errors.err("cannot use arguments when calling a label", pos)
+                is BuiltinFunctionPlaceholder -> {
+                    val func = BuiltinFunctions.getValue(target.name)
+                    val expectedNumberOfArgs: Int = func.parameters.size
+                    if(call.args.size != expectedNumberOfArgs) {
+                        val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
+                        invalidNumberOfArgsError(pos, call.args.size, func.parameters.map {it.name })
+                    }
+                    if(target.name=="memory") {
+                        val name = call.args[0] as? StringLiteral
+                        if(name!=null) {
+                            val processed = name.value.map {
+                                if(it.isLetterOrDigit())
+                                    it
+                                else
+                                    '_'
+                            }.joinToString("")
+                            val textEncoding = (call as Node).definingModule.textEncoding
+                            call.args[0] = StringLiteral.create(processed, textEncoding, name.position)
+                            call.args[0].linkParents(call as Node)
+                        }
+                    }
                 }
+                is Label -> {
+                    if(call.args.isNotEmpty()) {
+                        val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
+                        errors.err("cannot use arguments when calling a label", pos)
+                    }
+                }
+                is VarDecl -> {
+                    if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
+                        errors.err("wrong address variable datatype, expected uword", call.target.position)
+                }
+                is Alias -> {
+                    if(aliasDepth>1000) {
+                        errors.err("circular alias", target.position)
+                    } else {
+                        val actualtarget = target.target.targetStatement(program.builtinFunctions)
+                        check(actualtarget, aliasDepth + 1)
+                    }
+                }
+                is StructDecl, is StructFieldRef -> {}
+                null -> {}  // symbol error is given elsewhere
+                else -> errors.err("cannot call this as a subroutine or function", call.target.position)
             }
-            is VarDecl -> {
-                if(target.type!=VarDeclType.VAR || !target.datatype.isUnsignedWord)
-                    errors.err("wrong address variable datatype, expected uword", call.target.position)
-            }
-            is Alias, is StructDecl, is StructFieldRef -> {}
-            null -> {}
-            else -> errors.err("cannot call this as a subroutine or function", call.target.position)
         }
+
+        check(call.target.targetStatement(program.builtinFunctions), 0)
     }
 }

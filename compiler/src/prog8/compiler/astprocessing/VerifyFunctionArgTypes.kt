@@ -125,8 +125,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             val target = call.target.targetStatement(program.builtinFunctions)
             if (target is Subroutine) {
                 val consideredParamTypes: List<DataType> = target.parameters.map { it.type }
-                if(argtypes.size != consideredParamTypes.size)
-                    return Pair("invalid number of arguments", call.position)
+                require(argtypes.size == consideredParamTypes.size)
                 val mismatch = argtypes.zip(consideredParamTypes).indexOfFirst { !argTypeCompatible(it.first, it.second) }
                 if(mismatch>=0) {
                     val actual = argtypes[mismatch]
@@ -174,8 +173,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
             else if (target is BuiltinFunctionPlaceholder) {
                 val func = BuiltinFunctions.getValue(target.name)
                 val consideredParamTypes = func.parameters.map { it.possibleDatatypes }
-                if(argtypes.size != consideredParamTypes.size)
-                    return Pair("invalid number of arguments", call.position)
+                require(argtypes.size==consideredParamTypes.size)
                 argtypes.zip(consideredParamTypes).forEachIndexed { index, pair ->
                     val anyCompatible = pair.second.any {
                         if(it.isArray)
