@@ -561,6 +561,8 @@ txt  {
     height  () -> ubyte 
     home  () 
     input_chars  (str buffer) -> ubyte 
+    iso2petscii  (ubyte iso_char) -> ubyte 
+    iso2petscii_str  (str iso_string) 
     lowercase  () 
     nl  () 
     petscii2scr  (ubyte petscii_char) -> ubyte 

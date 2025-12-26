@@ -1432,6 +1432,8 @@ txt  {
     input_chars  (^^ubyte buffer @AY)  clobbers (A) -> ubyte @Y 
     iso  () 
     iso16  () 
+    iso2petscii  (ubyte iso_char) -> ubyte 
+    iso2petscii_str  (str iso_string @AY) 
     iso5  () 
     iso_off  () 
     kata  () 

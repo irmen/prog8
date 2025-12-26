@@ -823,6 +823,8 @@ txt  {
     height  ()  clobbers (X,Y) -> ubyte @A 
     home  () 
     input_chars  (^^ubyte buffer @AY)  clobbers (A) -> ubyte @Y 
+    iso2petscii  (ubyte iso_char) -> ubyte 
+    iso2petscii_str  (str iso_string @AY) 
     lowercase  () 
     nl  () 
     petscii2scr  (ubyte petscii_char @A) -> ubyte @A 

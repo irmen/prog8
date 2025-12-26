@@ -220,4 +220,38 @@ sub petscii2scr_str(str petscii_string) {
     }
 }
 
+    sub iso2petscii(ubyte iso_char) -> ubyte {
+        ; --converts iso 8859-15 character to petscii character (lowercase)
+        if iso_char & $7f <= $20
+        	return petscii:' '  ; whitspace
+        if iso_char <= $3f
+            return iso_char  ; numbers and symbols
+        if iso_char < $80
+            return translate40to7F[iso_char-$40]
+        return translateA0toFF[iso_char-$a0]
+
+        ubyte[$40] translate40to7F = [
+            $40, $c1, $c2, $c3, $c4, $c5, $c6, $c7, $c8, $c9, $ca, $cb, $cc, $cd, $ce, $cf,
+            $d0, $d1, $d2, $d3, $d4, $d5, $d6, $d7, $d8, $d9, $da, $5b, $3f, $5d, $5e, $e4,
+            $27, $41, $42, $43, $44, $45, $46, $47, $48, $49, $4a, $4b, $4c, $4d, $4e, $4f,
+            $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $5a, $f3, $7d, $eb, $3f, $3f,
+        ]
+        ubyte[$60] translateA0toFF = [
+            $20, $21, $20, $5c, $c5, $d9, $3f, $3f, $3f, $c3, $3f, $28, $3f, $3f, $d2, $e3,
+            $3f, $3f, $32, $33, $3f, $3f, $ff, $3f, $3f, $31, $3f, $3e, $3f, $3f, $d9, $3f,
+            $c1, $c1, $c1, $c1, $c1, $c1, $c1, $c3, $c5, $c5, $c5, $c5, $c9, $c9, $c9, $c9,
+            $c4, $ce, $cf, $cf, $cf, $cf, $cf, $58, $cf, $d5, $d5, $d5, $d5, $d9, $3f, $53,
+            $41, $41, $41, $41, $41, $41, $41, $43, $45, $45, $45, $45, $49, $49, $49, $49,
+            $4f, $4e, $4f, $4f, $4f, $4f, $4f, $3f, $4f, $55, $55, $55, $55, $59, $3f, $59,
+        ]
+    }
+
+    sub iso2petscii_str(str iso_string) {
+        ; -- convert iso string to petscii (lowercase) string
+        cx16.r0 = iso_string
+        while @(cx16.r0)!=0 {
+            @(cx16.r0) = iso2petscii(@(cx16.r0))
+            cx16.r0++
+        }
+    }
 }
