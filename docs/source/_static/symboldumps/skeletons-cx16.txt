@@ -665,6 +665,42 @@ psg  {
 }
 
 
+LIBRARY MODULE NAME: psg2
+-------------------------
+
+psg2  {
+    const ubyte  BOTH 
+    const ubyte  DISABLED 
+    const ubyte  E_ATTACK 
+    const ubyte  E_OFF 
+    const ubyte  E_RELEASE 
+    const ubyte  E_SUSTAIN 
+    const ubyte  LEFT 
+    const ubyte  NOISE 
+    const ubyte  PULSE 
+    const ubyte  RIGHT 
+    const ubyte  SAWTOOTH 
+    const ubyte  SQUARE 
+    const ubyte  TRIANGLE 
+    ubyte[]  envelope_attacks 
+    ubyte[]  envelope_maxvolumes 
+    ubyte[]  envelope_releases 
+    ubyte[]  envelope_states 
+    ubyte[]  envelope_sustains 
+    uword[]  envelope_volumes 
+    ^^psg2.Voice  voices 
+    ^^psg2.Voice  vptr 
+    envelope  (ubyte voice_num, ubyte attack, ubyte sustain, ubyte release) 
+    frequency  (ubyte voice_num, uword freq) 
+    getvoice  (ubyte voice_num) -> ^^psg2.Voice 
+    init  () 
+    off  () 
+    update  () -> bool 
+    voice  (ubyte voice_num, ubyte channels, ubyte volume, ubyte waveform, ubyte pulsewidth) 
+    volume  (ubyte voice_num, ubyte vol) 
+}
+
+
 LIBRARY MODULE NAME: sorting
 ----------------------------
 

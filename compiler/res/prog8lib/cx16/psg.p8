@@ -1,5 +1,7 @@
 %import syslib
 
+; NOTE: deprecated, use psg2 module instead
+
 psg {
     %option ignore_unused
 

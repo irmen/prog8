@@ -961,12 +961,23 @@ psg  (cx16 only)
 ^^^^^^^^^^^^^^^^
 
 Available for the Cx16 target.
+**Note: New code should probaly use the psg2 module instead!**
 Contains a simple abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
-It includes an interrupt routine to handle simple Attack/Release envelopes as well.
+It includes an interrupt handler routine for handling automatic ASR volume envelopes as well.
+
+Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg.p8>` to see what's in there.
+
+
+psg2  (cx16 only)
+^^^^^^^^^^^^^^^^^
+
+Available for the Cx16 target.
+Contains an abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
+It has better consistent envelope timings than the older ``psg`` module, and easier access to all voice parameters if desired.
+It includes an interrupt handler routine for handling automatic ASR volume envelopes as well.
 See the examples/cx16/bdmusic.p8  program for ideas how to use it.
 
-Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg.p8>`
-to see what's in there.
+Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg2.p8>` to see what's in there.
 
 
 sorting (experimental)
