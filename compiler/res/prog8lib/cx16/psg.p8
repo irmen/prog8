@@ -1,6 +1,6 @@
 %import syslib
 
-; NOTE: deprecated, use psg2 module instead
+; NOTE: deprecated, use psg2 module instead. That fixes timing and has other benefits.
 
 psg {
     %option ignore_unused

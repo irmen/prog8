@@ -719,12 +719,12 @@ sound {
     }
 
     sub gameover() {
-        ; attempt at buzz/boing
+        ; buzz/boing
         psg2.voice(5, psg2.LEFT | psg2.RIGHT, 50, psg2.SAWTOOTH, 0)
-        psg2.voice(6, psg2.LEFT | psg2.RIGHT, 50, psg2.TRIANGLE, 0)
-        psg2.frequency(5, 300)
+        psg2.voice(6, psg2.LEFT | psg2.RIGHT, 53, psg2.TRIANGLE, 0)
+        psg2.frequency(5, 200)
         psg2.frequency(6, 600)
-        psg2.envelope(5, 100, 10, 50)
-        psg2.envelope(6, 100, 10, 60)
+        psg2.envelope(5, 200, 5, 20)
+        psg2.envelope(6, 255, 5, 20)
     }
 }
