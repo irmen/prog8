@@ -20,6 +20,7 @@
 %import adpcm
 %import wavfile
 %import textio
+%zeropage basicsafe
 %option no_sysinit
 
 main {
@@ -30,6 +31,8 @@ main {
 
     sub start() {
         void diskio.fastmode(1)
+        txt.cls()
+        txt.print("streaming wav file example\n\n")
         txt.print("name of .wav file to play on drive 8: ")
         while 0==txt.input_chars(MUSIC_FILENAME) {
             ; until user types a name...
@@ -38,19 +41,13 @@ main {
         txt.print("\ngood file! playback starts!\n\n")
         interrupts.set_handler()
         play_stuff()
+        interrupts.clear_handler()
         txt.print("\n\ndone!\n")
-        repeat {
-            if cbm.GETIN2()!=0
-                sys.reset_system()
-        }
     }
 
     sub error(str msg) {
         txt.print(msg)
-        repeat {
-            if cbm.GETIN2()!=0
-                sys.reset_system()
-        }
+        sys.exit(1)
     }
 
     sub prepare_music() {
@@ -64,32 +61,34 @@ main {
             diskio.f_close()
         }
         if not wav_ok
-            error("no good wav file!")
+            error("unsupported wav file!")
 
         calculate_vera_rate()
 
-        txt.print(" wav format: ")
+        txt.print("           format: ")
         txt.print_ub(wavfile.wavefmt)
-        txt.print("\n channels: ")
+        txt.print("\n         channels: ")
         txt.print_ub(wavfile.nchannels)
-        txt.print("\n sample rate: ")
+        txt.print("\n      sample rate: ")
         txt.print_uw(wavfile.sample_rate)
-        txt.print("\n bits per sample: ")
-        txt.print_uw(wavfile.bits_per_sample)
-        txt.print("\n data size: ")
-        txt.print_l(wavfile.data_size)
-        txt.print(" = ")
-        txt.print_ulhex(wavfile.data_size, true)
-        txt.print("\n vera rate: ")
+        txt.print(" hz\n        vera rate: ")
         txt.print_ub(vera_rate)
         txt.print(" = ")
         txt.print_uw(vera_rate_hz)
-        txt.print(" hz\n")
+        txt.print(" hz\n  bits per sample: ")
+        txt.print_uw(wavfile.bits_per_sample)
         if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
-            txt.print(" adpcm block size: ")
+            txt.print("\n adpcm block size: ")
             txt.print_uw(wavfile.block_align)
-            txt.nl()
         }
+        float bytes_per_sample = wavfile.bits_per_sample as float / 8.0
+        float duration = wavfile.data_size as float / (wavfile.nchannels as float) / (wavfile.sample_rate as float) / bytes_per_sample
+        txt.print("\n         duration: ")
+        cx16.r0 = duration as uword
+        if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
+            cx16.r0 *= 4    ; adpcm is 1:4 compression
+        txt.print_uw(cx16.r0)
+        txt.print(" seconds\n")
 
         if wavfile.nchannels>2 or
            (wavfile.wavefmt!=wavfile.WAVE_FORMAT_DVI_ADPCM and wavfile.wavefmt!=wavfile.WAVE_FORMAT_PCM) or
@@ -133,7 +132,7 @@ main {
             txt.print("disk i/o: ")
             statx,staty = txt.get_cursor()
             txt.print("\npcm fifo: ")
-            txt.print("\n    idle: ")
+            txt.print("\n    idle:\n")
 
             repeat {
                 interrupts.wait()
@@ -182,10 +181,20 @@ main {
 
 interrupts {
 
+    uword system_irq
+
     sub set_handler() {
         sys.set_irqd()
+        system_irq = cbm.CINV
         cbm.CINV = &handler          ; irq handler for AFLOW
         cx16.VERA_IEN = %00001000    ; enable AFLOW only
+        sys.clear_irqd()
+    }
+
+    sub clear_handler() {
+        sys.set_irqd()
+        cbm.CINV = system_irq
+        cx16.VERA_IEN = 1
         sys.clear_irqd()
     }
 

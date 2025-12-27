@@ -1,35 +1,28 @@
 %import textio
-%import psg2
 %zeropage basicsafe
 %option no_sysinit
 
 main {
     sub start() {
-        psg2.init()
-        cx16.enable_irq_handlers(false)
-        cx16.set_vsync_irq_handler(&psg2.update)
-
-        psg2.voice(1, psg2.BOTH, 60, psg2.SQUARE, 1)
-        psg2.frequency(1, 240)
-        psg2.envelope(1, 5, 60, 15)
-        sys.wait(200)
-
-        psg2.volume(1, 63)
-        ^^psg2.Voice v1 = psg2.getvoice(1)
-        repeat 7 {
-            repeat 40 {
-                v1.pulsewidth ++
-                v1.frequency ++
-                sys.waitvsync()
-            }
-            repeat 40 {
-                v1.pulsewidth --
-                v1.frequency ++
-                sys.waitvsync()
-            }
-        }
-
-        psg2.off()
-        cx16.disable_irq_handlers()
+        extcommand_print_ulhex($12345678, true)
+        txt.nl()
+        extcommand_print_ulhex($abcdef99, false)
+        txt.nl()
     }
+
+    asmsub extcommand_print_ulhex(long value @R0R1_32, bool prefix @A) clobbers(A,X,Y) {
+        %asm {{
+            sta  txt.print_ulhex.prefix
+            lda  cx16.r0
+            sta  txt.print_ulhex.value
+            lda  cx16.r0+1
+            sta  txt.print_ulhex.value+1
+            lda  cx16.r0+2
+            sta  txt.print_ulhex.value+2
+            lda  cx16.r0+3
+            sta  txt.print_ulhex.value+3
+            jmp  txt.print_ulhex
+        }}
+    }
+
 }

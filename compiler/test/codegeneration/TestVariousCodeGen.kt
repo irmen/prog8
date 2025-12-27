@@ -694,4 +694,23 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!
     }
+
+    test("long argument and another to asmsub") {
+        val src= $$"""
+main {
+    sub start() {
+        extcommand_print_ulhex($12345678, true)
+        extcommand_print_ulhex($abcdef99, false)
+    }
+
+    asmsub extcommand_print_ulhex(long value @R0R1_32, bool prefix @A) clobbers(A,X,Y) {
+        %asm {{
+            rts
+        }}
+    }
+
+}"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!
+    }
 })
