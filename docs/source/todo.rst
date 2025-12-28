@@ -10,8 +10,8 @@ Weird Heisenbug
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - add a -profile option that instruments the start of every prog8 subroutine with code that dumps to the emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count.  Start of program must set cycle count to zero.
-- BUG: structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
+- structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
@@ -27,6 +27,8 @@ Future Things and Ideas
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
+- allow the value of a memory mapped variable to be address-of another variable, not just a constant number
+- implement for loops with long loopvar over long range expression
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?

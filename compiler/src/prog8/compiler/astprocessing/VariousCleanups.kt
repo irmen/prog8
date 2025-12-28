@@ -63,8 +63,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                             }
                         }
                     }
-                    VarDeclType.MEMORY -> if(!valueType.isWords && !valueType.isBytes)
-                        throw FatalAstException("value type for a memory var should be word or byte (address)")
+                    VarDeclType.MEMORY -> { }
                 }
             }
         }

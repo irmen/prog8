@@ -966,7 +966,7 @@ internal class AstChecker(private val program: Program,
                         valueerr($$"memory address must be valid integer 0..$ffff")
                     }
                 } else {
-                    valueerr("value of memory mapped variable can only be a constant, maybe use an address pointer type instead?")
+                    valueerr("value of memory mapped variable can only be a constant number, maybe use an address pointer type instead?")
                 }
             }
         }

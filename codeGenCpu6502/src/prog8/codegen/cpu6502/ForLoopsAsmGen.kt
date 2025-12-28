@@ -727,6 +727,11 @@ $loopLabel          sty  $indexVar
             if(range.step==1 && range.last>range.first) return translateForSimpleWordRangeAsc(stmt, range)
             if(range.step==-1 && range.last<range.first) return translateForSimpleWordRangeDesc(stmt, range)
         }
+        else if(iterableDt.isLongArray) {
+            if(range.last==range.first) return translateForSimpleLongRangeAsc(stmt, range)
+            if(range.step==1 && range.last>range.first) return translateForSimpleLongRangeAsc(stmt, range)
+            if(range.step==-1 && range.last<range.first) return translateForSimpleLongRangeDesc(stmt, range)
+        }
 
         // not one of the easy cases, generate more complex code...
         val loopLabel = asmgen.makeLabel("for_loop")
@@ -835,7 +840,18 @@ $loopLabel""")
                     }
                 }
             }
-            else -> throw AssemblyError("range expression can only be byte or word")
+            iterableDt.isLongArray -> {
+                // loop over long range via loopvar, step >= 2 or <= -2
+                when(range.step) {
+                    0, 1, -1 -> {
+                        throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
+                    }
+                    else -> {
+                        TODO("for long range. Report this error please, and use word loops in the meantime  ${stmt.position}")
+                    }
+                }
+            }
+            else -> throw AssemblyError("invalid range expression datatype")
         }
         asmgen.loopEndLabels.removeLast()
     }
@@ -904,6 +920,7 @@ $loopLabel""")
     }
 
     private fun translateForSimpleWordRangeAsc(stmt: PtForLoop, range: IntProgression) {
+        require(range.step==1)
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.add(endLabel)
@@ -931,6 +948,7 @@ $loopLabel""")
     }
 
     private fun translateForSimpleWordRangeDesc(stmt: PtForLoop, range: IntProgression) {
+        require(range.step==-1)
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.add(endLabel)
@@ -965,6 +983,16 @@ $loopLabel""")
         asmgen.jmp(loopLabel)
         asmgen.out(endLabel)
         asmgen.loopEndLabels.removeLast()
+    }
+
+    private fun translateForSimpleLongRangeAsc(stmt: PtForLoop, range: IntProgression) {
+        require(range.step==1)
+        TODO("for long range step +1. Report this error please, and use word loops in the meantime  ${stmt.position}")
+    }
+
+    private fun translateForSimpleLongRangeDesc(stmt: PtForLoop, range: IntProgression) {
+        require(range.step==-1)
+        TODO("for long range step -1. Report this error please, and use word loops in the meantime  ${stmt.position}")
     }
 
     private fun assignLoopvarWord(stmt: PtForLoop, range: PtRange) =
