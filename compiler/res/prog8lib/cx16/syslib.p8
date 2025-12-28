@@ -2329,6 +2329,7 @@ asmsub  init_system()  {
         sta  $00    ; select ram bank
         lda  #0
         sta  $01    ; set ROM bank to kernal bank to speed up kernal calls
+        sta  cx16.VERA_DC_BORDER
         tax
         tay
         cli

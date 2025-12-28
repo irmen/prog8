@@ -250,7 +250,7 @@ callfar (bank, address, argumentword) -> uword
     The argumentword will be loaded into the A+Y registers before calling the routine.
     The uword value that the routine returns in the A+Y registers, will be returned.
     NOTE: this routine is very inefficient, so don't use it to call often. Set the bank yourself
-    or even write a custom tailored trampoline routine if you need to. Or use ``call`` if you can.
+    or even write a custom tailored trampoline routine that you reuse. Or use ``call`` if you can.
 
 callfar2 (bank, address, argA, argX, argY, argCarry) -> uword
     Identical to ``callfar``, except here you can give arguments not only for AY,
