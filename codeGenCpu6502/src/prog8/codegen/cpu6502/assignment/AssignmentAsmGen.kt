@@ -783,7 +783,7 @@ internal class AssignmentAsmGen(
             true
         else {
             if(expr.type.isLong && expr.operator in "*/%")
-                TODO("long multiplication or division ${expr.position}")
+                TODO("long multiplication or division - use floats for now ${expr.position} ")
 
             anyExprGen.assignAnyExpressionUsingStack(expr, assign)
         }
@@ -2813,7 +2813,14 @@ $endLabel""")
                                 clc
                                 jsr  floats.cast_from_long""")
                         }
-                        else -> TODO("assign typecasted long value to float FAC1 ${value.position} - please report this issue. Use simple expressions and temporary variables for now")
+                        else -> {
+                            assignExpressionToRegister(value, RegisterOrPair.R14R15_32, true)
+                            asmgen.out("""
+                                lda  #<cx16.r14
+                                ldy  #>cx16.r14
+                                clc
+                                jsr  floats.cast_from_long""")
+                        }
                     }
                 }
                 else -> throw AssemblyError("invalid dt at ${target.position}")

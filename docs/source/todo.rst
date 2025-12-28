@@ -1,8 +1,6 @@
 TODO
 ====
 
-fix TODO: "assign typecasted long value to float FAC1"    float duration = (wavfile.data_size / wavfile.nchannels as float) / wavfile.sample_rate
-
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
