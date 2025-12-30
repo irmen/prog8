@@ -1,6 +1,7 @@
 ; Prog8 definitions for the Text I/O and Screen routines for the Commodore-128
 ; All routines work with Screencode character encoding, except `print`, `chrout` and `input_chars`,
 ; these work with PETSCII encoding instead.
+; NOTE: most of the routines here do not work on the 80 column VDC text screen, but only on the 40 column VIC-II text screen.
 
 %import syslib
 %import conv
@@ -75,7 +76,7 @@ asmsub get_cursor() -> ubyte @X, ubyte @Y {
 
 
 asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
-	; ---- fill the character screen with the given fill character and character color.
+	; ---- fill the VIC-II character screen with the given fill character and character color.
 	;      (assumes screen and color matrix are at their default addresses)
 
 	%asm {{
@@ -90,7 +91,7 @@ asmsub  fill_screen (ubyte char @ A, ubyte color @ Y) clobbers(A)  {
 }
 
 asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
-	; ---- clear the character screen with the given fill character (leaves colors)
+	; ---- clear the VIC-II character screen with the given fill character (leaves colors)
 	;      (assumes screen matrix is at the default address)
 	%asm {{
 		ldy  #250
@@ -105,7 +106,7 @@ asmsub  clear_screenchars (ubyte char @ A) clobbers(Y)  {
 }
 
 asmsub  clear_screencolors (ubyte color @ A) clobbers(Y)  {
-	; ---- clear the character screen colors with the given color (leaves characters).
+	; ---- clear the VIC-II character screen colors with the given color (leaves characters).
 	;      (assumes color matrix is at the default address)
 	%asm {{
 		ldy  #250
@@ -134,7 +135,7 @@ sub uppercase() {
 }
 
 asmsub  scroll_left  (bool alsocolors @ Pc) clobbers(A, X, Y)  {
-	; ---- scroll the whole screen 1 character to the left
+	; ---- scroll the whole VIC-II text screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 
@@ -173,7 +174,7 @@ _scroll_screen  ; scroll only the screen memory
 }
 
 asmsub  scroll_right  (bool alsocolors @ Pc) clobbers(A,X)  {
-	; ---- scroll the whole screen 1 character to the right
+	; ---- scroll the whole VIC-II text screen 1 character to the right
 	;      contents of the leftmost column are unchanged, you should clear/refill this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
@@ -207,7 +208,7 @@ _scroll_screen  ; scroll only the screen memory
 }
 
 asmsub  scroll_up  (bool alsocolors @ Pc) clobbers(A,X)  {
-	; ---- scroll the whole screen 1 character up
+	; ---- scroll the whole VIC-II text screen 1 character up
 	;      contents of the bottom row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
@@ -241,7 +242,7 @@ _scroll_screen  ; scroll only the screen memory
 }
 
 asmsub  scroll_down  (bool alsocolors @ Pc) clobbers(A,X)  {
-	; ---- scroll the whole screen 1 character down
+	; ---- scroll the whole VIC-II text screen 1 character down
 	;      contents of the top row are unchanged, you should refill/clear this yourself
 	;      Carry flag determines if screen color data must be scrolled too
 	%asm {{
@@ -275,7 +276,7 @@ _scroll_screen  ; scroll only the screen memory
 }
 
 asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y)  {
-	; ---- sets the character in the screen matrix at the given position
+	; ---- sets the character in the VIC-II screen matrix at the given position
 	%asm {{
 		pha
 		tya
@@ -297,7 +298,7 @@ _screenrows	.word  cbm.Screen + range(0, 1000, 40)
 }
 
 asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
-	; ---- get the character in the screen matrix at the given location
+	; ---- get the character in the VIC-II screen matrix at the given location
 	%asm  {{
 		pha
 		tya
@@ -315,7 +316,7 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 }
 
 asmsub  setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers(A, Y)  {
-	; ---- set the color in A on the screen matrix at the given position
+	; ---- set the color in A on the VIC-II screen matrix at the given position
 	%asm {{
 		pha
 		tya
@@ -337,7 +338,7 @@ _colorrows	.word  $d800 + range(0, 1000, 40)
 }
 
 asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
-	; ---- get the color in the screen color matrix at the given location
+	; ---- get the color in the VIC-II screen color matrix at the given location
 	%asm  {{
 		pha
 		tya
@@ -355,7 +356,7 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 }
 
 sub  setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)  {
-	; ---- set char+color at the given position on the screen
+	; ---- set char+color at the given position on the VIC-II screen
 	%asm {{
 _charptr = P8ZP_SCRATCH_W1
 _colorptr = P8ZP_SCRATCH_W2

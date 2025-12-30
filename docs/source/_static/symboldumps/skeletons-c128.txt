@@ -549,6 +549,8 @@ c64  {
 }
 
 c128  {
+    &ubyte  MMUCR 
+    &ubyte  SCREEN_MODE 
     &ubyte  VM1 
     &ubyte  VM2 
     &ubyte  VM3 
@@ -576,7 +578,12 @@ c128  {
     disable_basic  ()  clobbers (A) 
     disable_fkey_macros  () 
     enable_fkey_macros  () 
+    fast  () 
     getbanks  () -> ubyte @A 
+    is80  () -> bool 
+    set40  () 
+    set80  () 
+    slow  () 
     x16jsrfar  () 
 }
 

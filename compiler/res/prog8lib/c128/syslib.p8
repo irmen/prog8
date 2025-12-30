@@ -338,6 +338,8 @@ c128 {
     &ubyte  VM2     = $0A2D         ; shadow for VIC $d018 in bitmap screen mode
     &ubyte  VM3     = $0A2E         ; starting page for VDC screen mem
     &ubyte  VM4     = $0A2F         ; starting page for VDC attribute mem
+    &ubyte  MMUCR   = $ff00         ; MMU control register
+    &ubyte SCREEN_MODE = $d7        ; 40 or 80 column mode active?
 
 
 extsub $FF47 = SPIN_SPOUT() clobbers(A)                         ; set up serial bus for fast communications mode
@@ -348,7 +350,7 @@ extsub $FF53 = BOOT_CALL(ubyte device @X, ubyte drive @A) clobbers(A,X,Y) ; try 
 extsub $FF56 = PHOENIX() clobbers(A,X,Y)                        ; search for and autostart ROMs, cartridges, then default disk
 extsub $FF59 = LKUPLA(ubyte lfn @A) -> bool @Pc, ubyte @X       ; look up logical file number to see if it's open; returns device
 extsub $FF5C = LKUPSA(ubyte sa @Y) -> bool @Pc, ubyte @A, ubyte @X ; look up secondary address to see if it's in use; returns lfn and device
-extsub $FF5F = SWAPPER() clobbers(A,X,Y)                        ; swap active screen (between 40- and 80-column)
+extsub $FF5F = SWAPPER() clobbers(A,X,Y)                        ; swap active screen (between 40- and 80-column) (see set40/set80 if you want to do it idempotently)
 extsub $FF62 = DLCHR() clobbers(A,X,Y)                          ; copy character ROM into VDC video RAM
 extsub $FF65 = PFKEY(ubyte zpaddr @A, ubyte key @X, ubyte length @Y) ; redefine programmable function key (string descriptor in zp, addr in A)
 extsub $FF68 = SETBNK(ubyte data_bank @A, ubyte filename_bank @X) ; set memory bank for load/save
@@ -366,14 +368,14 @@ extsub $FF7D = PRIMM()                                          ; print immediat
 inline asmsub banks(ubyte banks @A) {
     ; -- set the memory bank configuration MMU register
     %asm {{
-        sta  $FF00
+        sta  MMUCR
     }}
 }
 
 inline asmsub getbanks() -> ubyte @A {
     ; -- get the current memory bank configuration from the MMU register
     %asm {{
-        lda  $FF00
+        lda  MMUCR
     }}
 }
 
@@ -393,7 +395,7 @@ asmsub  disable_basic() clobbers(A) {
         sta $033c
 
         lda #$0e    ; bank out BASIC ROM
-        sta $ff00
+        sta MMUCR
         rts
     }}
 }
@@ -464,6 +466,46 @@ asmsub  x16jsrfar() {
         rts                    ; and return
     }}
 }
+
+asmsub fast() {
+    ; -- enable 2 MHz cpu mode, blanks VIC screen
+    %asm {{
+        lda  #10
+        sta  $d011           ; disable VIC-II display
+        lda  $d030
+        ora  #$01            ; Set FAST bit
+        sta  $d030
+        rts
+    }}
+}
+
+asmsub slow() {
+    ; -- disable 2 MHz cpu mode, makes VIC screen visible
+    %asm {{
+        lda  $d030
+        and  #$fe            ; clear FAST bit
+        sta  $d030
+        lda  #27
+        sta  $d011           ; enable VIC-II display
+        rts
+    }}
+}
+
+sub is80() -> bool {
+    ; -- return true if 80 column mode is active, false if 40 column mode is active
+     return SCREEN_MODE & $80 == $80
+}
+
+sub set40() {
+    ; -- set 40 column mode.
+    if is80() SWAPPER()
+}
+
+sub set80() {
+    ; -- set 80 column mode.
+    if not is80() SWAPPER()
+}
+
 
 ; ---- end of C128 specific system utility routines ----
 
@@ -690,7 +732,7 @@ user_vector	.word ?
         %asm {{
             sei
             lda  #0
-            sta  $ff00      ; default bank 15
+            sta  c128.MMUCR      ; default bank 15
             jmp  (cbm.RESET_VEC)
         }}
     }
@@ -1316,12 +1358,12 @@ asmsub  init_system()  {
     %asm {{
         sei
         lda  #0
-        sta  $ff00      ; select default bank 15
+        sta  c128.MMUCR      ; select default bank 15
         jsr  cbm.IOINIT
         jsr  cbm.RESTOR
         jsr  cbm.CINT
         lda  #%00001110
-        sta  $ff00      ; bank out basic rom so we have ram from $1c00-$bfff
+        sta  c128.MMUCR      ; bank out basic rom so we have ram from $1c00-$bfff
         lda  #6
         sta  c64.EXTCOL
         lda  #7
@@ -1353,11 +1395,11 @@ asmsub  cleanup_at_exit() {
     ; executed when the main subroutine does rts
     %asm {{
         lda  #0
-        sta  $ff00          ; default bank 15
+        sta  c128.MMUCR          ; default bank 15
         jsr  cbm.CLRCHN		; reset i/o channels
         jsr  enable_runstop_and_charsetswitch
-        ldx  #<$ff00
-        ldy  #>$ff00
+        ldx  #<c128.MMUCR
+        ldy  #>c128.MMUCR
         clc
         jsr  cbm.MEMTOP     ; adjust MEMTOP to original value again
         jsr  c128.enable_fkey_macros

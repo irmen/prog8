@@ -174,7 +174,7 @@ datablock2 $8000 {
 
         result.codegenAst!!.children.size shouldBeGreaterThan 5
         val blocks = result.codegenAst.children.filterIsInstance<PtBlock>()
-        blocks.size shouldBe 15
+        blocks.size shouldBe 16
         blocks[0].name shouldBe "p8b_main"
         blocks[1].name shouldBe "p8_sys_startup"
         blocks[2].name shouldBe "p8b_otherblock1"
@@ -182,7 +182,7 @@ datablock2 $8000 {
         blocks[4].name shouldBe INTERNED_STRINGS_MODULENAME
         blocks[5].name shouldBe "txt"
         blocks[5].library shouldBe true
-        blocks[13].name shouldBe "p8b_datablock2"
-        blocks[14].name shouldBe "p8b_datablock1"
+        blocks[14].name shouldBe "p8b_datablock2"
+        blocks[15].name shouldBe "p8b_datablock1"
     }
 })

@@ -458,6 +458,34 @@ _jmpfar_vec .word ?
     }
 }
 
+c128 {
+    asmsub fast() {
+        ; -- if in C64 mode on a C128: enable 2 MHz cpu mode. blanks VIC screen.
+        ;    On a real C64, only blacks the screen.
+        %asm {{
+            lda  #10
+            sta  $d011           ; disable VIC-II display
+            lda  $d030
+            ora  #$01            ; Set FAST bit
+            sta  $d030
+            rts
+        }}
+    }
+
+    asmsub slow() {
+        ; -- if in C64 mode on a C128: disable 2 MHz cpu mode, makes VIC screen visible
+        ;    On a real C64, only restores the screen.
+        %asm {{
+            lda  $d030
+            and  #$fe            ; clear FAST bit
+            sta  $d030
+            lda  #27
+            sta  $d011           ; enable VIC-II display
+            rts
+        }}
+    }
+}
+
 sys {
     ; ------- lowlevel system routines --------
 

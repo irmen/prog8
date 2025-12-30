@@ -689,6 +689,11 @@ c64  {
     x16jsrfar  () 
 }
 
+c128  {
+    fast  () 
+    slow  () 
+}
+
 sys  {
     const byte  MAX_BYTE 
     const float  MAX_FLOAT 
