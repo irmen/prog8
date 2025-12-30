@@ -572,12 +572,14 @@ private fun createAssemblyAndAssemble(program: PtProgram,
                                       lastGeneratedLabelSequenceNr: Int
 ): Boolean {
 
+    val retainSSAforIR = true;
+
     val asmgen = if(compilerOptions.experimentalCodegen)
-        prog8.codegen.experimental.ExperiCodeGen()
+        prog8.codegen.experimental.ExperiCodeGen(retainSSAforIR)
     else if (compilerOptions.compTarget.cpu in arrayOf(CpuType.CPU6502, CpuType.CPU65C02))
         prog8.codegen.cpu6502.AsmGen6502(prefixSymbols = true, lastGeneratedLabelSequenceNr+1)
     else if (compilerOptions.compTarget.name == VMTarget.NAME)
-        VmCodeGen()
+        VmCodeGen(retainSSAforIR)
     else
         throw NotImplementedError("no code generator for cpu ${compilerOptions.compTarget.cpu}")
 

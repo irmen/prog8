@@ -3,12 +3,12 @@ package prog8.codegen.intermediate
 import prog8.code.core.IErrorReporter
 import prog8.intermediate.*
 
-class IRPeepholeOptimizer(private val irprog: IRProgram) {
+class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: Boolean) {
     fun optimize(optimizationsEnabled: Boolean, errors: IErrorReporter) {
         if(!optimizationsEnabled)
-            return optimizeOnlyJoinChunks()
+            return optimizeOnlyJoinChunks(retainSSA)
 
-        peepholeOptimize()
+        peepholeOptimize(retainSSA)
         val remover = IRUnusedCodeRemover(irprog, errors)
         var totalRemovals = 0
         do {
@@ -22,21 +22,21 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         }
     }
 
-    private fun optimizeOnlyJoinChunks() {
+    private fun optimizeOnlyJoinChunks(retainSSA: Boolean) {
         // this chunk-joining is REQUIRED (optimization or no) to end up with a structurally sound chunk list
         irprog.foreachSub { sub ->
-            joinChunks(sub)
+            joinChunks(sub, retainSSA)
             removeEmptyChunks(sub)
-            joinChunks(sub)
+            joinChunks(sub, retainSSA)
         }
         irprog.linkChunks() // re-link
     }
 
-    private fun peepholeOptimize() {
+    private fun peepholeOptimize(retainSSA: Boolean) {
         irprog.foreachSub { sub ->
-            joinChunks(sub)
+            joinChunks(sub, retainSSA)
             removeEmptyChunks(sub)
-            joinChunks(sub)
+            joinChunks(sub, retainSSA)
 
             sub.chunks.withIndex().forEach { (index, chunk1) ->
                 // we don't optimize Inline Asm chunks here.
@@ -153,7 +153,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
         }
     }
 
-    private fun joinChunks(sub: IRSubroutine) {
+    private fun joinChunks(sub: IRSubroutine, retainSSA: Boolean) {
         // Subroutine contains a list of chunks. Some can be joined into one.
 
         if(sub.chunks.isEmpty())
@@ -163,10 +163,12 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             if(chunk.label!=null)
                 return false
             if(previous is IRCodeChunk && chunk is IRCodeChunk) {
-                // if the previous chunk doesn't end in a SSA branching instruction, flow continues into the next chunk, so they may be joined
-                val lastInstruction = previous.instructions.lastOrNull()
-                if(lastInstruction!=null)
-                    return lastInstruction.opcode !in OpcodesThatEndSSAblock
+                if(retainSSA) {
+                    // if the previous chunk doesn't end in a SSA branching instruction, flow continues into the next chunk, so they may be joined
+                    val lastInstruction = previous.instructions.lastOrNull()
+                    if (lastInstruction != null)
+                        return lastInstruction.opcode !in OpcodesThatEndSSAblock
+                }
                 return true
             }
             return false
@@ -302,7 +304,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // remove useless RETURN
             if(idx>0 && (ins.opcode == Opcode.RETURN || ins.opcode==Opcode.RETURNR || ins.opcode==Opcode.RETURNI)) {
                 val previous = chunk.instructions[idx-1]
-                if(previous.opcode in OpcodesThatBranchUnconditionally) {
+                if(previous.opcode in OpcodesThatBranchUnconditionally && idx<chunk.instructions.size) {
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }
@@ -311,7 +313,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram) {
             // replace subsequent opcodes that jump by just the first
             if(idx>0 && (ins.opcode in OpcodesThatBranchUnconditionally)) {
                 val previous = chunk.instructions[idx-1]
-                if(previous.opcode in OpcodesThatBranchUnconditionally) {
+                if(previous.opcode in OpcodesThatBranchUnconditionally && idx<chunk.instructions.size) {
                     chunk.instructions.removeAt(idx)
                     changed = true
                 }

@@ -44,7 +44,7 @@ class TestVmCodeGen: FunSpec({
 //        xx += cx16.r0
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
@@ -163,7 +163,7 @@ class TestVmCodeGen: FunSpec({
 //            nop
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
@@ -235,7 +235,7 @@ class TestVmCodeGen: FunSpec({
 //            nop
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
@@ -303,7 +303,7 @@ class TestVmCodeGen: FunSpec({
 //            goto $c000
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
@@ -341,7 +341,7 @@ class TestVmCodeGen: FunSpec({
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
-        irChunks.size shouldBe 2
+        irChunks.size shouldBe 1
     }
 
     test("integer comparison expressions against zero") {
@@ -359,7 +359,7 @@ class TestVmCodeGen: FunSpec({
 //            nop
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
@@ -431,7 +431,7 @@ class TestVmCodeGen: FunSpec({
 //            nop
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
@@ -499,7 +499,7 @@ class TestVmCodeGen: FunSpec({
 //            goto $c000
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
@@ -537,7 +537,7 @@ class TestVmCodeGen: FunSpec({
         val errors = ErrorReporterForTests()
         val result = codegen.generate(program, st, options, errors) as VmAssemblyProgram
         val irChunks = (result.irProgram.blocks.first().children.single() as IRSubroutine).chunks
-        irChunks.size shouldBe 2
+        irChunks.size shouldBe 1
     }
 
     test("extsub allowed in ir-codegen") {
@@ -548,7 +548,7 @@ class TestVmCodeGen: FunSpec({
 //        routine()
 //    }
 //}
-        val codegen = VmCodeGen()
+        val codegen = VmCodeGen(false)
         val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
         val block = PtBlock("main", false, SourceCode.Generated("test"), PtBlock.Options(), Position.DUMMY)
         val extsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
