@@ -251,6 +251,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     }
 
     private fun writeVariables() {
+        xml.writeStartElement("VARS")
+        xml.writeCharacters("\n")
+
         fun writeNoInitVar(variable: IRStStaticVariable) {
             if(variable.dt.isSplitWordArray) {
                 // split into 2 ubyte arrays lsb+msb
@@ -357,10 +360,10 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         val (variablesNoInit, variablesWithInit) = irProgram.st.allVariables().partition { it.uninitialized }
 
         val (dirtyvars, cleanvars) = variablesNoInit.partition { it.dirty }
-        writeNoInitVars("VARIABLESNOINIT", cleanvars)
-        writeNoInitVars("VARIABLESNOINITDIRTY", dirtyvars)
+        writeNoInitVars("NOINITCLEAN", cleanvars)
+        writeNoInitVars("NOINITDIRTY", dirtyvars)
 
-        xml.writeStartElement("VARIABLESWITHINIT")
+        xml.writeStartElement("INIT")
         xml.writeCharacters("\n")
         val (initNotAligned, initAligned) = variablesWithInit.partition { it.align==0u || it.align==1u }
         for (variable in initNotAligned) {
@@ -425,7 +428,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeEndElement()
         xml.writeCharacters("\n")
 
-        xml.writeStartElement("MEMORYMAPPEDVARIABLES")
+        xml.writeStartElement("MEMORYMAPPED")
         xml.writeCharacters("\n")
         for (variable in irProgram.st.allMemMappedVariables()) {
             xml.writeCharacters("@${variable.typeString} ${variable.name}=${variable.address.toHex()}\n")
@@ -438,5 +441,9 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         irProgram.st.allMemorySlabs().forEach{ slab -> xml.writeCharacters("${slab.name} ${slab.size} ${slab.align}\n") }
         xml.writeEndElement()
         xml.writeCharacters("\n")
+
+        xml.writeEndElement()
+        xml.writeCharacters("\n")
+
     }
 }

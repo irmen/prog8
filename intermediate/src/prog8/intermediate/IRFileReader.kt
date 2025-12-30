@@ -49,14 +49,23 @@ class IRFileReader {
         val compilerVersion = start.attributes.asSequence().single { it.name.localPart == "COMPILERVERSION" }.value
         val options = parseOptions(reader, compilerVersion)
         val asmsymbols = parseAsmSymbols(reader)
-        val varsWithoutInitClean = parseVarsWithoutInit("VARIABLESNOINIT", false, reader)
-        val varsWithoutInitDirty = parseVarsWithoutInit("VARIABLESNOINITDIRTY", true, reader)
+
+        skipText(reader)
+        val varsStart = reader.nextEvent().asStartElement()
+        require(varsStart.name.localPart=="VARS") { "missing VARS" }
+
+        val varsWithoutInitClean = parseVarsWithoutInit("NOINITCLEAN", false, reader)
+        val varsWithoutInitDirty = parseVarsWithoutInit("NOINITDIRTY", true, reader)
         val variables = parseVariables(reader)
         val structsWithoutInit = parseStructInstancesNoInit(reader)
         val structs = parseStructInstances(reader)
         val constants = parseConstants(reader)
         val memorymapped = parseMemMapped(reader)
         val slabs = parseSlabs(reader)
+
+        skipText(reader)
+        require(reader.nextEvent().isEndElement)
+
         val initGlobals = parseInitGlobals(reader)
         val blocks = parseBlocksUntilProgramEnd(reader)
 
@@ -226,7 +235,7 @@ class IRFileReader {
     private fun parseVariables(reader: XMLEventReader): List<IRStStaticVariable> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="VARIABLESWITHINIT") { "missing VARIABLESWITHINIT" }
+        require(start.name.localPart=="INIT") { "missing INIT" }
         val text = readText(reader).trim()
         require(reader.nextEvent().isEndElement)
 
@@ -353,7 +362,7 @@ class IRFileReader {
     private fun parseMemMapped(reader: XMLEventReader): List<IRStMemVar> {
         skipText(reader)
         val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="MEMORYMAPPEDVARIABLES") { "missing MEMORYMAPPEDVARIABLES" }
+        require(start.name.localPart=="MEMORYMAPPED") { "missing MEMORYMAPPED" }
         val text = readText(reader).trim()
         require(reader.nextEvent().isEndElement)
 
@@ -366,7 +375,7 @@ class IRFileReader {
                 // examples:
                 // @uword main.start.mapped=49152
                 // @ubyte[20] main.start.mappedarray=49408
-                val match = mappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPEDVARIABLES $line")
+                val match = mappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPED $line")
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
