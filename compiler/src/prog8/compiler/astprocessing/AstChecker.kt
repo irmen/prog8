@@ -801,9 +801,13 @@ internal class AstChecker(private val program: Program,
                 // cannot check pointer deref for rom target, assume no there.
                 if(idx.plainarrayvar!=null) {
                     val decl = idx.plainarrayvar!!.targetVarDecl()!!
-                    if(decl.type!=VarDeclType.MEMORY && decl.zeropage!=ZeropageWish.REQUIRE_ZEROPAGE) {
-                        // memory mapped arrays are assumed to be in RAM. If they're not.... well, POOF
-                        errors.err("cannot assign to an array or string that is located in ROM (option romable is enabled)", assignTarget.position)
+                    val declvalueNumber = (decl.value as? NumericLiteral)?.number
+                    if(decl.type==VarDeclType.MEMORY && (declvalueNumber==null || declvalueNumber>255) ) {
+                        errors.err("cannot write to this memory mapped string or array (possibly located in ROM because option romable is enabled)", assignTarget.position)
+                    }
+                    if(decl.type==VarDeclType.VAR && decl.value!=null) {
+                        // arrays with initializer value is not placed in BSS so is no longer mutable
+                        errors.err("cannot write to a string or an array with initalization values (located in ROM because option romable is enabled)", assignTarget.position)
                     }
                 }
             }

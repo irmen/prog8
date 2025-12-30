@@ -1,14 +1,19 @@
-%import textio
 %zeropage basicsafe
-%option no_sysinit
+%option no_sysinit, romable
 
 main {
-    sub start() {
-        long v = $12345678
-        ubyte @shared ubv = 15
 
-        v <<= 31 - ubv
+    sub start()  {
+        str name = "irmen"
+        ubyte[] array1 = [11,22,33,44]
+        ubyte[10] array2
+        &ubyte[10] memorymappedarray = 1000
+        &ubyte[10] memorymappedarray_zp = 200
 
-        txt.print_ulhex(v, true)
+        name[1] = 'a'
+        array1[1] = 'b'
+        array2[1] = 'c'
+        memorymappedarray[2] = 99
+        memorymappedarray_zp[2] = 99
     }
 }

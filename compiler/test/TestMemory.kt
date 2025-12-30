@@ -422,18 +422,26 @@ class TestMemory: FunSpec({
 
 main {
     ubyte[] array = [1,2,3,4,5]
+    ubyte[10] ramarray
     str name = "foobar"
+    &ubyte[10] memorymappedarray = 1000
+    &ubyte[10] memorymappedarray_zp = 200
+    
     sub start() {
         array[2] = 99
-        name[2] = 'x'   
+        name[2] = 'x'
+        ramarray[2] = 42
+        memorymappedarray[2] = 42
+        memorymappedarray_zp[2] = 42
     }
 }"""
 
         val errors=ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, errors=errors, writeAssembly = false, varshigh=1, slabshigh=1) shouldBe null
-        errors.errors.size shouldBe 2
-        errors.errors[0] shouldContain "8:9: cannot assign to an array or string that is located in ROM"
-        errors.errors[1] shouldContain "9:9: cannot assign to an array or string that is located in ROM"
+        errors.errors.size shouldBe 3
+        errors.errors[0] shouldContain "12:9: cannot write to a string or an array with initalization values (located in ROM"
+        errors.errors[1] shouldContain "13:9: cannot write to a string or an array with initalization values (located in ROM"
+        errors.errors[2] shouldContain "15:9: cannot write to this memory mapped string or array (possibly located in ROM"
     }
 
     test("long addresses not yet supported in memread and memwrite") {
