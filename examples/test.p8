@@ -1,17 +1,18 @@
 %import textio
-%import math
+%import test_stack
 %zeropage basicsafe
 %option no_sysinit
 
 main {
 
     sub start()  {
-        ubyte x,y
-        c128.set80()
-        c128.fast()
+        sys.save_prog8_internals()
+        sys.restore_prog8_internals()
 
-        repeat {
-            txt.chrout(205 + math.randrange(2))
-        }
+        txt.print_uwhex(sys.progstart(), true)
+        txt.nl()
+        txt.print_uwhex(sys.progend(), true)
+        txt.nl()
+
     }
 }

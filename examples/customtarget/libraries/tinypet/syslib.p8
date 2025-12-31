@@ -2,24 +2,12 @@
 
 ; Tiny syslib for minimalistic programs that can run on a PET
 
+%import shared_sys_functions
+
 sys {
     extsub $FFD2 = CHROUT(ubyte character @ A)           ; output a character
 
     ; these push/pop routines are always required by the compiler:
-
-    inline asmsub progend() -> uword @AY {
-        %asm {{
-            lda  #<prog8_program_end
-            ldy  #>prog8_program_end
-        }}
-    }
-
-    inline asmsub progstart() -> uword @AY {
-        %asm {{
-            lda  #<prog8_program_start
-            ldy  #>prog8_program_start
-        }}
-    }
 
     inline asmsub push(ubyte value @A) {
         %asm {{

@@ -266,6 +266,14 @@ sys {
         ; Returns true when you have a 65816 cpu, false when it's a 6502.
         return false
     }
+
+    sub progstart() -> uword {
+        return $1000        ; just a dummy value
+    }
+
+    sub progend() -> uword {
+        return $c000        ; just a dummy value
+    }
 }
 
 cx16 {

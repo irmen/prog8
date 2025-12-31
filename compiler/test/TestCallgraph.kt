@@ -38,8 +38,8 @@ class TestCallgraph: FunSpec({
         val result = compileText(C64Target(), false, sourcecode, outputDir)!!
         val graph = CallGraph(result.compilerAst)
 
-        graph.imports.size shouldBe 1
-        graph.importedBy.size shouldBe 1
+        graph.imports.size shouldBe 2
+        graph.importedBy.size shouldBe 2
         val toplevelModule = result.compilerAst.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
         importedModule.name shouldBe "conv"
@@ -79,8 +79,8 @@ class TestCallgraph: FunSpec({
         val result = compileText(C64Target(), false, sourcecode, outputDir)!!
         val graph = CallGraph(result.compilerAst)
 
-        graph.imports.size shouldBe 1
-        graph.importedBy.size shouldBe 1
+        graph.imports.size shouldBe 2
+        graph.importedBy.size shouldBe 2
         val toplevelModule = result.compilerAst.toplevelModule
         val importedModule = graph.imports.getValue(toplevelModule).single()
         importedModule.name shouldBe "conv"

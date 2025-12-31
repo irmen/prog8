@@ -384,6 +384,8 @@ sys  {
     pop  () -> ubyte 
     popl  () -> long 
     popw  () -> uword 
+    progend  () -> uword 
+    progstart  () -> uword 
     push  (ubyte b) 
     push_returnaddress  (uword w) 
     pushl  (long l) 
