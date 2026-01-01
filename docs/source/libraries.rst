@@ -101,9 +101,11 @@ msb (x)
 msw (x)
     Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.
     For a long integer though, it returns the upper 16 bits of x as an uword.
-    If x is not greater than a 24 bit number ($ffffff), ``msw(x)`` will actually give you the bank byte of x (bits 16 to 23).
+    If x is a constant integer not greater than a 24 bit number ($ffffff), ``msw(x)`` will actually give you the bank byte of x (bits 16 to 23).
     You can treat this as an ubyte value, even if the function is normally returning a uword:
     ``msw($123456)`` is $0012, which you can treat as an ubyte.  ``msw($12345678)`` is $1234, an uword.
+    ``msw`` of a *variable* will always be considered to be an uword, so to grab the bank byte of a long variable, you need to do this:
+    ``lsb(msw(longvariable))`` (or the equivalent, ``@(&longvariable+2)``).
 
 mkword (msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.

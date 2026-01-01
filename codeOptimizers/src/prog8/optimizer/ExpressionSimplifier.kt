@@ -615,6 +615,15 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                     val cast = TypecastExpression(arg.expression, DataType.UBYTE, true, arg.position)
                     return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
                 }
+            } else if(arg is FunctionCallExpression && arg.target.nameInSource == listOf("msw")) {
+                // lsb(msb(longvar)) -->  @(&longvar+2)   ; get the bank byte from a long variable
+                val longvar = arg.args[0] as? IdentifierReference
+                if(longvar!=null && longvar.inferType(program).isLong) {
+                    val address = AddressOf(longvar, null, null, false, false, functionCallExpr.position)
+                    val plus2 = BinaryExpression(address, "+", NumericLiteral(BaseDataType.UWORD, 2.0, functionCallExpr.position), functionCallExpr.position)
+                    val memread = DirectMemoryRead(plus2, functionCallExpr.position)
+                    return listOf(IAstModification.ReplaceNode(functionCallExpr, memread, parent))
+                }
             } else {
                 if(arg is IdentifierReference && arg.nameInSource.size==2
                     && arg.nameInSource[0]=="cx16" && arg.nameInSource[1].uppercase() in RegisterOrPair.names) {

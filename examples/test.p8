@@ -1,18 +1,22 @@
 %import textio
-%import test_stack
 %zeropage basicsafe
-%option no_sysinit
 
 main {
 
     sub start()  {
-        sys.save_prog8_internals()
-        sys.restore_prog8_internals()
+        const long longconst = $12345678
+        long @shared longvar = $abcdef99
 
-        txt.print_uwhex(sys.progstart(), true)
-        txt.nl()
-        txt.print_uwhex(sys.progend(), true)
+        txt.print_uwhex(msw(longconst), true)
+        txt.spc()
+        txt.print_ubhex(lsb(msw(longconst)), true)
         txt.nl()
 
+        txt.print_uwhex(msw(longvar), true)
+        txt.spc()
+        txt.print_ubhex(lsb(msw(longvar)), true)
+        txt.spc()
+        txt.print_ubhex(@(&longvar+2), true)
+        txt.nl()
     }
 }
