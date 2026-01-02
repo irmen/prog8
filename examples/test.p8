@@ -26,7 +26,6 @@ main {
         }
 
         sub test2() {
-            ; TODO make IR use LOADFIELD here instead of doing a separate add (peephole optimizer)
             b1 = @(&vptr.f1+1)
             b2 = @(&vptr.f1)
             b3 = @(&vptr.f2+1)

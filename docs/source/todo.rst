@@ -66,7 +66,8 @@ IR/VM
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - encode asmsub/extsub clobber info in the call, or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - extend the index register datatype in the LOADX, STOREX, STOREZX instructions from byte to word (0-255 to 0-65535) (this not compatible with 8 bit 6502, but the 68000 can use that , well, up to 32867)
-- get rid of LOADX/STOREX/STOREZX, LOADFIELD/STOREFIELD just use add + loadi / storei?
+- get rid of LOADX/STOREX/STOREZX, just use add + loadi / storei?
+- rollback this exception?:  "LOADI has an exception to allow reg1 and reg2 to be the same"  + actual exception check in the check "reg1 must not be same as reg2"
 - if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
 - make multiple classes of registers and maybe also categorize by life time? , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)

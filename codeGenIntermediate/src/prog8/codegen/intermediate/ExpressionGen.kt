@@ -140,7 +140,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = firstField.second.toInt())
                 if (firstField.first.isPointer) {
                     // get the address stored in the pointer and use that for the rest of the chain
-                    // LOADI has an exception to allo reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                    // LOADI has an exception to allo reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
                     it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg)
                 } else {
                     require(chain.isEmpty())
@@ -1841,7 +1841,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 // get new pointer from field
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt())
-                    // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                    // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
                     it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg)
                 }
             }
@@ -1854,7 +1854,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 require(fieldinfo.first.isPointer)
                 // add the field offset
                 addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt()), null)
-                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+                // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
                 addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
                 return result to 0u
             } else {
@@ -1863,7 +1863,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
         if(targetPointerDeref.derefLast) {
             require(fieldinfo.first.isPointer)
-            // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADS
+            // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
             addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg), null)
         }
         return result to 0u
