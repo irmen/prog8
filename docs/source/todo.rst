@@ -109,7 +109,6 @@ Libraries
 Optimizations
 -------------
 
-- optimize code for lsb(vptr.frequency), it now reads the whole word through the pointer
 - (6502) optimize if sgn(value)<0: still does a compare with 0 even though SGN sets all status bits.
 - longvar = lptr^^ ,  lptr2^^=lptr^^  now go via temporary registers, optimize this to avoid using temps.  (seems like it is dereferencing the pointer first and then assigning the intermediate value)
 - optimize inplaceLongShiftRight() for byte aligned cases

@@ -14,6 +14,7 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
     while (errors.noErrors() &&
         optimizeAssignTargets(program, st)
         + optimizeFloatComparesToZero(program)
+        + optimizeLsbMsbOnStructfields(program)
         + optimizeBinaryExpressions(program, options) > 0) {
         // keep rolling
     }
@@ -175,5 +176,39 @@ private fun optimizeFloatComparesToZero(program: PtProgram): Int {
         }
         true
     }
+    return changes
+}
+
+
+private fun optimizeLsbMsbOnStructfields(program: PtProgram): Int {
+    var changes = 0
+    walkAst(program) { node: PtNode, depth: Int ->
+        if (node is PtBuiltinFunctionCall && (node.name=="msb" || node.name=="lsb")) {
+            if(node.args[0] is PtPointerDeref) {
+                if(!node.args[0].type.isByteOrBool) {
+                    // msb(struct.field) -->  @(&struct.field+1)
+                    // lsb(struct.field) -->  @(&struct.field)
+                    val addressOfDeref = PtAddressOf(DataType.UWORD, false, node.args[0].position)
+                    addressOfDeref.add(node.args[0])
+                    val address: PtExpression
+                    if(node.name=="msb") {
+                        address = PtBinaryExpression("+", addressOfDeref.type, addressOfDeref.position)
+                        address.add(addressOfDeref)
+                        address.add(PtNumber(BaseDataType.UWORD, 1.0, addressOfDeref.position))
+                    } else {
+                        address = addressOfDeref
+                    }
+                    val memread = PtMemoryByte(address.position)
+                    memread.add(address)
+                    memread.parent = node.parent
+                    val index = node.parent.children.indexOf(node)
+                    node.parent.children[index] = memread
+                    changes++
+                }
+            }
+        }
+        true
+    }
+
     return changes
 }

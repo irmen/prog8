@@ -137,7 +137,7 @@ psg2 {
         ; you have to call this routine every 1/60th second, for example from your vsync irq handler.
         ; Or just install this routine as the only irq handler if you don't have to do other things there.
 
-        sys.pushw(cx16.r0)
+        sys.push(cx16.r0L)
         sys.pushw(cx16.r1)
         sys.pushw(cx16.r2)
         sys.pushw(cx16.r3)
@@ -196,9 +196,8 @@ psg2 {
         vptr = voices
         repeat 16 {
             if vptr.channels != DISABLED {
-                cx16.r0 = vptr.frequency
-                cx16.VERA_DATA0 = cx16.r0L
-                cx16.VERA_DATA0 = cx16.r0H
+                cx16.VERA_DATA0 = lsb(vptr.frequency)
+                cx16.VERA_DATA0 = msb(vptr.frequency)
                 cx16.VERA_DATA0 = vptr.channels | (vptr.volume & %00111111)
                 cx16.VERA_DATA0 = vptr.waveform | (vptr.pulsewidth & %00111111)
             } else {
@@ -210,7 +209,7 @@ psg2 {
         cx16.r3 = sys.popw()
         cx16.r2 = sys.popw()
         cx16.r1 = sys.popw()
-        cx16.r0 = sys.popw()
+        cx16.r0L = sys.pop()
 
         return true
     }
