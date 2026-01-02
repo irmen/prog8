@@ -1086,6 +1086,9 @@ Subroutines can be defined in a Block, but also nested inside another subroutine
 There are three different types of subroutines: regular subroutines (the one above), assembly-only, and
 external subroutines. These last two are described in detail below.
 
+
+.. _reusevirtualregs_params:
+
 Reusing *virtual registers* R0-R15 for parameters
 *************************************************
 .. sidebar::

@@ -164,7 +164,7 @@ For *single* byte, word, and pointer arguments (not long or float), the values a
 *The subroutine itself will take care of putting the values into the parameter variables.* This saves on code size because
 otherwise all callers would have to store the values in those variables themselves.
 Note that his convention is also still used for subroutines that specify parameters to be put into
-one of the *virtual registers* R0-R15, as those are in the end just variables too.
+one of the *virtual registers* R0-R15, as those are in the end just variables too (see :ref:`reusevirtualregs_params`)
 The rules are as follows:
 
 Single byte parameter: ``sub foo(ubyte bar) { ... }``

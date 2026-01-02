@@ -200,7 +200,7 @@ _after:
             val memread = DirectMemoryRead(functionCall.args.single(), position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, memread, parent))
         }
-        if(functionCall.target.nameInSource==listOf("poke")) {
+        if(functionCall.target.nameInSource==listOf("poke") && parent !is Assignment) {
             // poke(a, v) is synonymous with @(a) = v
             val tgt = AssignTarget(
                 null,
