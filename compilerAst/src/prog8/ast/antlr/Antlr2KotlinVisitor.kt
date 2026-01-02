@@ -192,9 +192,33 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitConstdecl(ctx: ConstdeclContext): VarDecl {
-        val vardecl = ctx.varinitializer().accept(this) as VarDecl
-        vardecl.type = VarDeclType.CONST
-        return vardecl
+        if(ctx.datatype()==null)
+            throw SyntaxError("datatype missing", ctx.identifierlist().toPosition())
+        val datatype = dataTypeFor(ctx.datatype()) ?: DataType.LONG
+        val identifiers = ctx.identifierlist().identifier().map { getname(it) }
+        val identifiername = identifiers[0]
+        val name = if(identifiers.size==1) identifiername else "<multiple>"
+        val initialvalue = ctx.expression().accept(this) as Expression
+        val actualValue = if(initialvalue is NumericLiteral && datatype.base.largerSizeThan(initialvalue.type))
+                NumericLiteral(datatype.base, initialvalue.number, initialvalue.position)
+            else
+                initialvalue
+
+        return VarDecl(
+            VarDeclType.CONST,
+            VarDeclOrigin.USERCODE,
+            datatype,
+            ZeropageWish.DONTCARE,
+            SplitWish.DONTCARE,
+            null,
+            name,
+            if(identifiers.size==1) emptyList() else identifiers,
+            actualValue,
+            false,
+            0u,
+            false,
+            ctx.toPosition()
+        )
     }
 
     override fun visitMemoryvardecl(ctx: MemoryvardeclContext): VarDecl {

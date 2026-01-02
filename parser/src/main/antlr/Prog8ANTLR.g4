@@ -167,7 +167,7 @@ identifierlist: identifier (',' identifier)* ;
 
 varinitializer : vardecl '=' expression ;
 
-constdecl: 'const' varinitializer ;
+constdecl: 'const' datatype? identifierlist '=' expression ;
 
 memoryvardecl: ADDRESS_OF varinitializer;
 
