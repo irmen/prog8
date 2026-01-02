@@ -353,6 +353,24 @@ internal class AssignmentAsmGen(
             assignMemoryByte(target, null, address)
             return
         }
+        else if(address is PtAddressOf) {
+            if(address.identifier!=null) {
+                if(asmgen.isZpVar(address.identifier!!)) {
+                    asmgen.loadIndirectByte(asmgen.asmVariableName(address.identifier!!), 0u)
+                    assignRegisterByte(target, CpuRegister.A, false, true)
+                    return
+                }
+            } else if(address.dereference!=null) {
+                val (zpPtrVar, offset) = pointergen.deref(address.dereference!!, false)
+                asmgen.loadIndirectByte(zpPtrVar, offset)
+                assignRegisterByte(target, CpuRegister.A, false, true)
+                return
+            }
+            asmgen.assignExpressionToVariable(address, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+            asmgen.loadIndirectByte("P8ZP_SCRATCH_PTR", 0u)
+            assignRegisterByte(target, CpuRegister.A, false, true)
+            return
+        }
         else if (address is PtBinaryExpression) {
             if(asmgen.tryOptimizedPointerAccessWithA(address, false)) {
                 assignRegisterByte(target, CpuRegister.A, false, true)
