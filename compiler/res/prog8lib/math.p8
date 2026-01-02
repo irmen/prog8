@@ -524,7 +524,7 @@ log2_tab
             sbc  P8ZP_SCRATCH_REG
             bcs  +
             eor  #255
-            inc  a
+            adc  #1
 +           rts
         }}
     }
@@ -543,7 +543,7 @@ log2_tab
             sta  cx16.r0H
             lda  cx16.r0L
             eor  #255
-            inc  a
+            adc  #1
             sta  cx16.r0L
             bne  +
             inc  cx16.r0H
