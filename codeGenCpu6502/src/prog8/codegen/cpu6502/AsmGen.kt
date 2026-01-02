@@ -1575,7 +1575,8 @@ $repeatLabel""")
                 if(addrOf.isFromArrayElement) {
                     TODO("address-of array element ${addrOf.position}")
                 } else if(addrOf.dereference!=null) {
-                    TODO("read &dereference ${addrOf.position}")
+                    if(pointerGen.readByteByAddressOfDereference(addrOf, constOffset))
+                        return true
                 } else {
                     out("  lda  ${asmSymbolName(addrOf.identifier!!)}+${constOffset}")
                     return true

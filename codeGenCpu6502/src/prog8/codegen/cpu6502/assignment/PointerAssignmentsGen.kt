@@ -709,6 +709,21 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
     }
 
+    internal fun readByteByAddressOfDereference(addressOfDereference: PtAddressOf, constOffset: Int): Boolean {
+        require(addressOfDereference.dereference!=null)
+        if(constOffset<=255) {
+            // TODO generate better code for  @(&pointer.field + 99)    -> LDA  (pointer.field),99
+            asmgen.assignExpressionToVariable(addressOfDereference, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+            if(constOffset==0 && asmgen.isTargetCpu(CpuType.CPU65C02))
+                asmgen.out("  lda  (P8ZP_SCRATCH_PTR)")
+            else
+                asmgen.out("  ldy  #$constOffset |  lda  (P8ZP_SCRATCH_PTR),y")
+            return true
+        }
+
+        // TODO("read &dereference with offet $constOffset ${addressOfDereference.position}")
+        return false
+    }
 
 
     internal fun operatorDereference(binExpr: PtBinaryExpression): Triple<String, UByte, DataType> {
@@ -2589,5 +2604,4 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             else -> asmgen.restoreRegisterStack(regs.asCpuRegister(), false)
         }
     }
-
 }

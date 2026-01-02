@@ -404,6 +404,43 @@ jump p8_label_gen_2
                         chunk.instructions.removeAt(idx)
                         changed = true
                     }
+
+                    if(!changed && idx < chunk.instructions.size-1) {
+                        val nextInstr = chunk.instructions[idx+1]
+                        if(nextInstr.reg1==ins.reg1) {
+                            when (nextInstr.opcode) {
+                                Opcode.INC -> {
+                                    // INC after ADD or SUB
+                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! + 1 else ins.immediate!! - 1
+                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    chunk.instructions.removeAt(idx + 1)
+                                    changed = true
+                                }
+                                Opcode.DEC -> {
+                                    // DEC after ADD or SUB
+                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! - 1 else ins.immediate!! + 1
+                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    chunk.instructions.removeAt(idx + 1)
+                                    changed = true
+                                }
+                                Opcode.ADD -> {
+                                    // ADD after ADD or SUB
+                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! + nextInstr.immediate!! else ins.immediate!! - nextInstr.immediate!!
+                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    chunk.instructions.removeAt(idx + 1)
+                                    changed = true
+                                }
+                                Opcode.SUB -> {
+                                    // SUB after ADD or SUB
+                                    val newValue = if (ins.opcode == Opcode.ADD) ins.immediate!! - nextInstr.immediate!! else ins.immediate!! + nextInstr.immediate!!
+                                    chunk.instructions[idx] = IRInstruction(ins.opcode, ins.type, reg1 = ins.reg1, immediate = newValue)
+                                    chunk.instructions.removeAt(idx + 1)
+                                    changed = true
+                                }
+                                else -> {}
+                            }
+                        }
+                    }
                 }
                 Opcode.AND -> {
                     when (ins.immediate) {

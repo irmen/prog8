@@ -1,34 +1,47 @@
-%import math
 %import textio
 %zeropage basicsafe
 
 main {
-
+    struct Voice {
+        uword f1
+        uword f2
+    }
     sub start()  {
+        ^^Voice @shared vptr = $4000
+        vptr.f1 = $1234
+        vptr.f2 = $abcd
 
-        cx16.r0 = 12345
-        cx16.r1 = 22222
-        txt.print_uw(math.diffw(cx16.r0, cx16.r1))
-        txt.nl()
+        ubyte b1,b2,b3,b4
 
-        cx16.r2L = 99
-        cx16.r3L = 200
-        txt.print_ub(math.diff(cx16.r2L, cx16.r3L))
-        txt.nl()
+        test1()
+        printbytes()
+        test2()
+        printbytes()
 
-;        const long longconst = $12345678
-;        long @shared longvar = $abcdef99
-;
-;        txt.print_uwhex(msw(longconst), true)
-;        txt.spc()
-;        txt.print_ubhex(lsb(msw(longconst)), true)
-;        txt.nl()
-;
-;        txt.print_uwhex(msw(longvar), true)
-;        txt.spc()
-;        txt.print_ubhex(lsb(msw(longvar)), true)
-;        txt.spc()
-;        txt.print_ubhex(@(&longvar+2), true)
-;        txt.nl()
+        sub test1() {
+            b1 = msb(vptr.f1)
+            b2 = lsb(vptr.f1)
+            b3 = msb(vptr.f2)
+            b4 = lsb(vptr.f2)
+        }
+
+        sub test2() {
+            ; TODO make IR use LOADFIELD here instead of doing a separate add (peephole optimizer)
+            b1 = @(&vptr.f1+1)
+            b2 = @(&vptr.f1)
+            b3 = @(&vptr.f2+1)
+            b4 = @(&vptr.f2)
+        }
+
+        sub printbytes() {
+            txt.print_ubhex(b1, false)
+            txt.spc()
+            txt.print_ubhex(b2, false)
+            txt.nl()
+            txt.print_ubhex(b3, false)
+            txt.spc()
+            txt.print_ubhex(b4, false)
+            txt.nl()
+        }
     }
 }
