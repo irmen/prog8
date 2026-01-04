@@ -37,7 +37,7 @@ strings {
         for ix in 0 to slen-1 {
             target[ix] = source[ix+offset]
         }
-        target[ix]=0
+        target[slen]=0
     }
 
     sub slice(str source, ubyte start, ubyte slen, str target) {
@@ -50,7 +50,7 @@ strings {
         for ix in 0 to slen-1 {
             target[ix] = source[ix+start]
         }
-        target[ix]=0
+        target[slen]=0
     }
 
     sub find(str st, ubyte character) -> ubyte, bool {

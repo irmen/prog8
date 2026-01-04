@@ -1079,9 +1079,9 @@ manipulation
 
 ``left (source, length, target)``
     Copies the left side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
+    It is assumed the target string buffer is large enough to contain the result (which includes a terminating 0 byte).
+    Length must be smaller or equal to the length of the source string.
+    Writes in-place; doesn't return a value (so can't be used in an expression).
 
 ``lstrip (string)``
     Gets rid of whitespace and other non-visible characters at the start of the string. (destructive)
@@ -1105,9 +1105,9 @@ manipulation
 
 ``right (source, length, target)``
     Copies the right side of the source string of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that length is smaller or equal to the length of the source string.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
+    It is assumed the target string buffer is large enough to contain the result (which includes a terminating 0 byte).
+    Length must be smaller or equal to the length of the source string.
+    Writes in-place; doesn't return a value (so can't be used in an expression).
 
 ``rstrip (string)``
     Gets rid of whitespace and other non-visible characters at the end of the string. (destructive)
@@ -1116,11 +1116,10 @@ manipulation
     Gets rid of whitespace characters at the end of the string. (destructive)
 
 ``slice (source, start, length, target)``
-    Copies a segment from the source string, starting at the given index,
-    and of the given length to target string.
-    It is assumed the target string buffer is large enough to contain the result.
-    Also, you have to make sure yourself that start and length are within bounds of the strings.
-    Modifies in-place, doesn't return a value (so can't be used in an expression).
+    Copies a segment from the source string, starting at the given index, and of the given length, to the target string.
+    It is assumed the target string buffer is large enough to contain the result (which includes a terminating 0 byte).
+    Start and length must be within bounds of the source string.
+    Writes in-place; doesn't return a value (so can't be used in an expression).
 
 ``strip (string)``
     Gets rid of whitespace and other non-visible characters at the edges of the string. (destructive)
