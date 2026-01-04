@@ -18,7 +18,7 @@ allprojects {
 
     kotlin {
         compilerOptions {
-            freeCompilerArgs = listOf("-Xwhen-guards")
+            freeCompilerArgs = listOf()
             jvmTarget = JvmTarget.JVM_11
             jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
             // languageVersion.set(KotlinVersion.KOTLIN_2_3)

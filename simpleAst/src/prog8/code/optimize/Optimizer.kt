@@ -15,6 +15,7 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
         optimizeAssignTargets(program, st)
         + optimizeFloatComparesToZero(program)
         + optimizeLsbMsbOnStructfields(program)
+        + optimizeSingleWhens(program, errors)
         + optimizeBinaryExpressions(program, options) > 0) {
         // keep rolling
     }
@@ -205,6 +206,47 @@ private fun optimizeLsbMsbOnStructfields(program: PtProgram): Int {
                     node.parent.children[index] = memread
                     changes++
                 }
+            }
+        }
+        true
+    }
+
+    return changes
+}
+
+
+private fun optimizeSingleWhens(program: PtProgram, errors: IErrorReporter): Int {
+    var changes = 0
+
+    walkAst(program) { node: PtNode, depth: Int ->
+        if(node is PtWhen && node.choices.children.size==2) {
+            val choice1 = node.choices.children[0] as PtWhenChoice
+            val choice2 = node.choices.children[1] as PtWhenChoice
+            if(choice1.isElse && choice2.values.children.size==1 || choice2.isElse && choice1.values.children.size==1) {
+                errors.info("when can be simplified into an if-else", node.position)
+                val truescope: PtNodeGroup
+                val elsescope: PtNodeGroup
+                val comparisonValue : PtNumber
+                if(choice1.isElse) {
+                    truescope = choice2.statements
+                    elsescope = choice1.statements
+                    comparisonValue = choice2.values.children.single() as PtNumber
+                } else {
+                    truescope = choice1.statements
+                    elsescope = choice2.statements
+                    comparisonValue = choice1.values.children.single() as PtNumber
+                }
+                val ifelse = PtIfElse(node.position)
+                val condition = PtBinaryExpression("==", DataType.BOOL, node.position)
+                condition.add(node.value)
+                condition.add(comparisonValue)
+                ifelse.add(condition)
+                ifelse.add(truescope)
+                ifelse.add(elsescope)
+                ifelse.parent = node.parent
+                val index = node.parent.children.indexOf(node)
+                node.parent.children[index] = ifelse
+                changes++
             }
         }
         true
