@@ -550,7 +550,7 @@ extsub $ff68 = mouse_config(byte shape @A, ubyte resX @X, ubyte resY @Y)  clobbe
 extsub $ff6b = mouse_get(ubyte zdataptr @X) -> ubyte @A, byte @X    ;  use mouse_pos() instead
 extsub $ff71 = mouse_scan()  clobbers(A, X, Y)
 extsub $ff53 = joystick_scan()  clobbers(A, X, Y)
-extsub $ff56 = joystick_get(ubyte joynr @A) -> uword @AX, bool @Y   ; note: everything is inverted even the boolean present flag.  Also see detect_joysticks() and get_all_joysticks()
+extsub $ff56 = joystick_get(ubyte joynr @A) -> uword @AX, bool @Y   ; note: everything is inverted even the boolean present flag.  Also see joysticks_detect() and joysticks_getall()
 
 ; X16Edit (rom bank 13/14 but you ideally should use the routine search_x16edit() to search for the correct bank)
 extsub $C000 = x16edit_default() clobbers(A,X,Y)
