@@ -4,18 +4,57 @@
 
 main {
     sub start() {
-        str source="the quick fox"
-        str target="?"*40
+        word zz
 
-        txt.print(source)
-        txt.print("<\n")
+        zz = 10
+        txt.print_w(zz)
+        txt.nl()
+        compares()
+        sgns()
+        txt.nl()
 
-        strings.slice(source, 4, 5, target)
-        txt.print(target)
-        txt.print("<\n")
+        zz= -10
+        txt.print_w(zz)
+        txt.nl()
+        compares()
+        sgns()
+        txt.nl()
 
-        strings.right(source, 3, target)
-        txt.print(target)
-        txt.print("<\n")
+        zz=0
+        txt.print_w(zz)
+        txt.nl()
+        compares()
+        sgns()
+        txt.nl()
+
+        sub compares() {
+            if zz>0
+                txt.print(">0\n")
+            if zz>=0
+                txt.print(">=0\n")
+            if zz<0
+                txt.print("<0\n")
+            if zz<=0
+                txt.print("<=0\n")
+            if zz==0
+                txt.print("==0\n")
+            if zz!=0
+                txt.print("!=0\n")
+        }
+
+        sub sgns() {
+            if sgn(zz)>0
+                txt.print(">0\n")
+            if sgn(zz)>=0
+                txt.print(">=0\n")
+            if sgn(zz)<0
+                txt.print("<0\n")
+            if sgn(zz)<=0
+                txt.print("<=0\n")
+            if sgn(zz)==0
+                txt.print("==0\n")
+            if sgn(zz)!=0
+                txt.print("!=0\n")
+        }
     }
 }

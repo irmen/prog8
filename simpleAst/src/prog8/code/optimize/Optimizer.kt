@@ -16,6 +16,7 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
         + optimizeFloatComparesToZero(program)
         + optimizeLsbMsbOnStructfields(program)
         + optimizeSingleWhens(program, errors)
+        + optimizeSgnComparisons(program, errors)
         + optimizeBinaryExpressions(program, options) > 0) {
         // keep rolling
     }
@@ -246,6 +247,31 @@ private fun optimizeSingleWhens(program: PtProgram, errors: IErrorReporter): Int
                 ifelse.parent = node.parent
                 val index = node.parent.children.indexOf(node)
                 node.parent.children[index] = ifelse
+                changes++
+            }
+        }
+        true
+    }
+
+    return changes
+}
+
+
+private fun optimizeSgnComparisons(program: PtProgram, errors: IErrorReporter): Int {
+    // NOTE: do *not* optimize away sgn() comparisons on floats! Those ARE more efficient than the normal compares!
+    var changes = 0
+
+    walkAst(program) { node: PtNode, depth: Int ->
+        if(node is PtBuiltinFunctionCall && node.name=="sgn" && node.args[0].type.isInteger) {
+            val comparison = node.parent as? PtBinaryExpression
+            if(comparison!=null && comparison.right.asConstInteger()==0 && comparison.operator in ComparisonOperators) {
+                //  sgn(integer) >= 0   -> just use   integer >= 0
+                val replacement = PtBinaryExpression(comparison.operator, DataType.BOOL, comparison.position)
+                replacement.add(node.args[0])
+                replacement.add(PtNumber(node.args[0].type.base, 0.0, comparison.position))
+                replacement.parent = comparison.parent
+                val index = comparison.parent.children.indexOf(comparison)
+                comparison.parent.children[index] = replacement
                 changes++
             }
         }

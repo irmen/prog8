@@ -110,7 +110,6 @@ Libraries
 Optimizations
 -------------
 
-- (6502) optimize if sgn(value)<0: still does a compare with 0 even though SGN sets all status bits.
 - longvar = lptr^^ ,  lptr2^^=lptr^^  now go via temporary registers, optimize this to avoid using temps.  (seems like it is dereferencing the pointer first and then assigning the intermediate value)
 - optimize inplaceLongShiftRight() for byte aligned cases
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
