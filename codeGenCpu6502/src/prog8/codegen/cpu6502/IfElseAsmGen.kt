@@ -1299,7 +1299,7 @@ _jump                       jmp  (${target.asmLabel})
 
     private fun longLessZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
         if(lessEquals) {
-            loadAndCheck0OrSignIntoCarry(value, true)
+            checkLongLeZeroIntoCarry(value)
             if (jump != null)
                 translateJumpElseBodies("bcs", "bcc", jump, stmt.elseScope)
             else
@@ -1313,23 +1313,23 @@ _jump                       jmp  (${target.asmLabel})
         }
     }
 
-    private fun longGreaterZero(value: PtExpression, lessEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
-        if(lessEquals) {
-            loadAndCheck0OrSignIntoCarry(value, false)
-            if (jump != null)
-                translateJumpElseBodies("bcs", "bcc", jump, stmt.elseScope)
-            else
-                translateIfElseBodies("bcc", stmt)
-        } else {
+    private fun longGreaterZero(value: PtExpression, greaterEquals: Boolean, jump: PtJump?, stmt: PtIfElse) {
+        if(greaterEquals) {
             loadAndCmp0MSB(value, true)
             if (jump != null)
                 translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
             else
                 translateIfElseBodies("bmi", stmt)
+        } else {
+            checkLongGtZeroIntoCarry(value)
+            if (jump != null)
+                translateJumpElseBodies("bcs", "bcc", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bcc", stmt)
         }
     }
 
-    private fun loadAndCheck0OrSignIntoCarry(value: PtExpression, negative: Boolean) {
+    private fun checkLongGtZeroIntoCarry(value: PtExpression) {
         if(value is PtIdentifier) {
             val varname = asmgen.asmVariableName(value)
             asmgen.out("""
@@ -1337,8 +1337,7 @@ _jump                       jmp  (${target.asmLabel})
                 ldy  #>$varname
                 sta  P8ZP_SCRATCH_W1
                 sty  P8ZP_SCRATCH_W1+1""")
-            asmgen.out(if(negative) "  sec" else "  clc")
-            asmgen.out("  jsr  prog8_lib.compare_long_0_and_sign")
+            asmgen.out("  jsr  prog8_lib.compare_long_gt_0")
         } else {
             assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
             asmgen.out("""
@@ -1346,8 +1345,27 @@ _jump                       jmp  (${target.asmLabel})
                 ldy  #>cx16.r14
                 sta  P8ZP_SCRATCH_W1
                 sty  P8ZP_SCRATCH_W1+1""")
-            asmgen.out(if(negative) "  sec" else "  clc")
-            asmgen.out("  jsr  prog8_lib.compare_long_0_and_sign")
+            asmgen.out("  jsr  prog8_lib.compare_long_gt_0")
+        }
+    }
+
+    private fun checkLongLeZeroIntoCarry(value: PtExpression) {
+        if(value is PtIdentifier) {
+            val varname = asmgen.asmVariableName(value)
+            asmgen.out("""
+                lda  #<$varname
+                ldy  #>$varname
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1""")
+            asmgen.out("  jsr  prog8_lib.compare_long_le_0")
+        } else {
+            assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
+            asmgen.out("""
+                lda  #<cx16.r14
+                ldy  #>cx16.r14
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1""")
+            asmgen.out("  jsr  prog8_lib.compare_long_le_0")
         }
     }
 

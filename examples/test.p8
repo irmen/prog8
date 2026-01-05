@@ -1,60 +1,28 @@
-%import strings
 %import textio
 %zeropage basicsafe
 
 main {
     sub start() {
-        word zz
+        compares(10)
+        compares(-10)
+        compares(0)
+        compares($00aa0000)
+        compares($ffaa0000)
 
-        zz = 10
-        txt.print_w(zz)
-        txt.nl()
-        compares()
-        sgns()
-        txt.nl()
+        sub compares(long value) {
+            txt.print_l(value)
+            txt.spc()
+            txt.spc()
+            if value>0
+                txt.print(" >0 ")
+            if value >=0
+                txt.print(" >=0 ")
+            if value < 0
+                txt.print(" <0 ")
+            if value<=0
+                txt.print(" <=0")
 
-        zz= -10
-        txt.print_w(zz)
-        txt.nl()
-        compares()
-        sgns()
-        txt.nl()
-
-        zz=0
-        txt.print_w(zz)
-        txt.nl()
-        compares()
-        sgns()
-        txt.nl()
-
-        sub compares() {
-            if zz>0
-                txt.print(">0\n")
-            if zz>=0
-                txt.print(">=0\n")
-            if zz<0
-                txt.print("<0\n")
-            if zz<=0
-                txt.print("<=0\n")
-            if zz==0
-                txt.print("==0\n")
-            if zz!=0
-                txt.print("!=0\n")
-        }
-
-        sub sgns() {
-            if sgn(zz)>0
-                txt.print(">0\n")
-            if sgn(zz)>=0
-                txt.print(">=0\n")
-            if sgn(zz)<0
-                txt.print("<0\n")
-            if sgn(zz)<=0
-                txt.print("<=0\n")
-            if sgn(zz)==0
-                txt.print("==0\n")
-            if sgn(zz)!=0
-                txt.print("!=0\n")
+            txt.nl()
         }
     }
 }
