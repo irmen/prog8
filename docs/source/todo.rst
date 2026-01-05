@@ -9,6 +9,7 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- add something linke bnk(longvalue) to get the bank byte (bits 16-23) from a long value?  Currently you have to do lsb(msw(longvalue)) .. but what about the middle byte? msb(lsw(longvalue))...  split3(longvalue) -> h,m,l ?
 - add a -profile option that instruments the start of every prog8 subroutine with code that dumps to the emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count.  Start of program must set cycle count to zero.
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198

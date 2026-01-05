@@ -96,7 +96,8 @@ lsw (x)
     Get the least significant (lower) word of the value x. Equivalent to ``x & 65535`` or even ``x as uword``.
 
 msb (x)
-    Get the most significant (highest) byte of the word or long value x.
+    Get the most significant (highest) byte of the word or long value x
+    (so for a long value, msb($11223344) is $11, not $33).
 
 msw (x)
     Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.
@@ -105,7 +106,7 @@ msw (x)
     You can treat this as an ubyte value, even if the function is normally returning a uword:
     ``msw($123456)`` is $0012, which you can treat as an ubyte.  ``msw($12345678)`` is $1234, an uword.
     ``msw`` of a *variable* will always be considered to be an uword, so to grab the bank byte of a long variable, you need to do this:
-    ``lsb(msw(longvariable))`` (or the equivalent, ``@(&longvariable+2)``).
+    ``lsb(msw(longvariable))`` or the equivalent ``@(&longvariable+2)``.
 
 mkword (msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.

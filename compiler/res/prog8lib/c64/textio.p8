@@ -354,6 +354,7 @@ asmsub  getclr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 		pla
 		tay
         lda  (P8ZP_SCRATCH_W1),y
+        and  #15
 		rts
 	}}
 }
