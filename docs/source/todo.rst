@@ -1,9 +1,6 @@
 TODO
 ====
 
-- fix TODO pointer cast , for example:  @(&lv as ^^ubyte + 1) = 0
-
-
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)

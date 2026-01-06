@@ -3151,13 +3151,12 @@ $endLabel""")
                     BaseDataType.BYTE -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                     }
-                    BaseDataType.UWORD, BaseDataType.WORD -> {
+                    BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER -> {
                         if(asmgen.isTargetCpu(CpuType.CPU65C02))
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  stz  $targetAsmVarName+1")
                         else
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.POINTER -> TODO("cast to pointer $position")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             st${regs.toString().lowercase()}  $targetAsmVarName
@@ -3195,7 +3194,7 @@ $endLabel""")
                         else
                             asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName |  lda  #0  |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.WORD -> {
+                    BaseDataType.WORD, BaseDataType.POINTER -> {
                         when(regs) {
                             RegisterOrPair.A -> {}
                             RegisterOrPair.X -> asmgen.out("  txa")
@@ -3205,7 +3204,6 @@ $endLabel""")
                         asmgen.signExtendAYlsb(sourceDt)
                         asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
                     }
-                    BaseDataType.POINTER -> TODO("assign to pointer cast $position")
                     BaseDataType.LONG -> {
                         asmgen.out("  st${regs.toString().lowercase()}  $targetAsmVarName")
                         asmgen.signExtendLongVariable(targetAsmVarName, sourceDt)
@@ -3233,7 +3231,7 @@ $endLabel""")
                     BaseDataType.BYTE, BaseDataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }
-                    BaseDataType.WORD -> {
+                    BaseDataType.WORD, BaseDataType.POINTER -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
                             RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
@@ -3241,7 +3239,6 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
-                    BaseDataType.POINTER -> TODO("assign to pointer cast $position")
                     BaseDataType.LONG -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
@@ -3272,7 +3269,7 @@ $endLabel""")
                     BaseDataType.BYTE, BaseDataType.UBYTE -> {
                         asmgen.out("  st${regs.toString().lowercase().first()}  $targetAsmVarName")
                     }
-                    BaseDataType.UWORD -> {
+                    BaseDataType.UWORD, BaseDataType.POINTER -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
                             RegisterOrPair.AY -> asmgen.out("  sta  $targetAsmVarName |  sty  $targetAsmVarName+1")
@@ -3280,7 +3277,6 @@ $endLabel""")
                             else -> throw AssemblyError("non-word regs")
                         }
                     }
-                    BaseDataType.POINTER -> TODO("assign to pointer cast $position")
                     BaseDataType.LONG -> {
                         when(regs) {
                             RegisterOrPair.AX -> asmgen.out("  sta  $targetAsmVarName |  stx  $targetAsmVarName+1")
