@@ -89,8 +89,8 @@ class FSignature(val pure: Boolean,      // does it have side effects?
 }
 
 val BuiltinFunctions: Map<String, FSignature> = mapOf(
-    "setlsb"  to FSignature(false, null, FParam("variable", BaseDataType.WORD, BaseDataType.UWORD), FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
-    "setmsb"  to FSignature(false, null, FParam("variable", BaseDataType.WORD, BaseDataType.UWORD), FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
+    "setlsb"  to FSignature(false, null, FParam("variable", BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG), FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
+    "setmsb"  to FSignature(false, null, FParam("variable", BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG), FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
     "rol"     to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.LONG)),
     "ror"     to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.LONG)),
     "rol2"    to FSignature(false, null, FParam("item", BaseDataType.UBYTE, BaseDataType.UWORD, BaseDataType.LONG)),

@@ -56,7 +56,7 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || simplifyConstantReturns(chunk1, indexedInstructions)
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
                                 || useArrayIndexingInsteadOfAdds(chunk1, indexedInstructions)
-                                || loadfields(chunk1, indexedInstructions)
+                                || loadfieldsAndStorefields(chunk1, indexedInstructions)
                                 || removeNops(chunk1, indexedInstructions)   // last time, in case one of the optimizers replaced something with a nop
                     } while (changed)
                 }
@@ -633,7 +633,7 @@ jump p8_label_gen_2
         return changed
     }
 
-    private fun loadfields(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+    private fun loadfieldsAndStorefields(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
         var changed = false
         indexedInstructions.reversed().forEach { (idx, ins) ->
             if (ins.opcode == Opcode.LOADFIELD && ins.immediate==0) {
@@ -641,21 +641,41 @@ jump p8_label_gen_2
                 chunk.instructions[idx] = loadi
                 changed = true
             }
+            else if (ins.opcode == Opcode.STOREFIELD && ins.immediate==0) {
+                val loadi = IRInstruction(Opcode.STOREI, ins.type, ins.reg1!!, ins.reg2!!)
+                chunk.instructions[idx] = loadi
+                changed = true
+            }
 
-            // add.w R2,#offset   loadi.b R1,R2   ->  loadfield.b R1,R2,#offset
-            if(ins.opcode==Opcode.LOADI && ins.reg1!=ins.reg2 && idx>1) {
+            // add.w R2,#offset   loadi.b R1,R2    ->  loadfield.b R1,R2,#offset
+            // add.w R2,#offset   storei.b R1,R2   ->  storefield.b R1,R2,#offset
+            if (ins.reg1!=ins.reg2 && idx>1) {
                 val previous = indexedInstructions[idx-1].value
-                if(previous.opcode==Opcode.ADD && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
-                    val loadfield = IRInstruction(Opcode.LOADFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = previous.immediate!!)
-                    chunk.instructions[idx-1] = loadfield
-                    chunk.instructions.removeAt(idx)
-                    changed = true
+                if (ins.opcode == Opcode.LOADI) {
+                    if(previous.opcode==Opcode.ADD && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
+                        val loadfield = IRInstruction(Opcode.LOADFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = previous.immediate!!)
+                        chunk.instructions[idx-1] = loadfield
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    } else if(previous.opcode==Opcode.INC && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
+                        val loadfield = IRInstruction(Opcode.LOADFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = 1)
+                        chunk.instructions[idx-1] = loadfield
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    }
                 }
-                else if(previous.opcode==Opcode.INC && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
-                    val loadfield = IRInstruction(Opcode.LOADFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = 1)
-                    chunk.instructions[idx-1] = loadfield
-                    chunk.instructions.removeAt(idx)
-                    changed = true
+                else if(ins.opcode == Opcode.STOREI) {
+                    if(previous.opcode==Opcode.ADD && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
+                        val storefield = IRInstruction(Opcode.STOREFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = previous.immediate!!)
+                        chunk.instructions[idx-1] = storefield
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    } else if(previous.opcode==Opcode.INC && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
+                        val storefield = IRInstruction(Opcode.STOREFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = 1)
+                        chunk.instructions[idx-1] = storefield
+                        chunk.instructions.removeAt(idx)
+                        changed = true
+                    }
                 }
             }
         }

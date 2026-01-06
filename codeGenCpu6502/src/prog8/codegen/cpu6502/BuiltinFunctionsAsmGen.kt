@@ -807,7 +807,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val target: AsmAssignTarget
         when(fcall.args[0]) {
             is PtIdentifier -> {
-                val varname = asmgen.asmVariableName(fcall.args[0] as PtIdentifier) + if(msb) "+1" else ""
+                val msbOffset = if(!msb) "" else if(fcall.args[0].type.isLong) "+3" else "+1"
+                val varname = asmgen.asmVariableName(fcall.args[0] as PtIdentifier) + msbOffset
                 target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, variableAsmName = varname)
             }
             is PtArrayIndexer -> {
@@ -821,8 +822,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     elementSize = 1
                     msbAdd = 0
                 } else {
-                    elementSize = 2
-                    msbAdd = if(msb) 1 else 0
+                    elementSize = indexer.type.size(program.memsizer)
+                    msbAdd = if(msb) elementSize-1 else 0
                 }
 
                 // double the index because of word array (if not split), add one if msb (if not split)
@@ -832,13 +833,21 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     indexer.children[1].parent = indexer
                 } else {
                     val multipliedIndex: PtExpression
-                    if(elementSize==1) {
-                        multipliedIndex = indexer.index
-                    } else {
-                        multipliedIndex = PtBinaryExpression("<<", indexer.index.type, indexer.position)
-                        multipliedIndex.add(indexer.index)
-                        multipliedIndex.add(PtNumber(BaseDataType.UBYTE, 1.0, indexer.position))
+                    when (elementSize) {
+                        1 -> {
+                            multipliedIndex = indexer.index
+                        }
+                        2 -> {
+                            multipliedIndex = PtBinaryExpression("<<", indexer.index.type, indexer.position)
+                            multipliedIndex.add(indexer.index)
+                            multipliedIndex.add(PtNumber(BaseDataType.UBYTE, 1.0, indexer.position))
+                        }
+                        4 -> {
+                            TODO("setlsb/msb on array of long ${indexer.position}")
+                        }
+                        else -> throw AssemblyError("weird element size")
                     }
+
                     if(msbAdd>0) {
                         val msbIndex = PtBinaryExpression("+", indexer.index.type, indexer.position)
                         msbIndex.add(multipliedIndex)

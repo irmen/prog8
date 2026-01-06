@@ -228,6 +228,10 @@ class VmProgramLoader {
                                 memory.setFloat(addr, 0.0)
                                 addr += program.options.compTarget.FLOAT_MEM_SIZE
                             }
+                            dt.isLongArray -> {
+                                memory.setSL(addr, 0)
+                                addr += 4
+                            }
                             else -> throw IRParseException("invalid dt")
                         }
                     }

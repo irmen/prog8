@@ -212,10 +212,10 @@ ror2 (x)
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror2(@($5000))``
 
 setlsb (x, value)
-    Sets the least significant byte of word variable x to a new value. Leaves the MSB untouched.
+    Sets the least significant byte of word or long variable x to a new value.
 
 setmsb (x, value)
-    Sets the most significant byte of word variable x to a new value. Leaves the LSB untouched.
+    Sets the most significant byte of word or long variable x to a new value.
 
 sizeof (name)  ;  sizeof (number)  ;  sizeof(datatype)
     The constant number of bytes that the object 'name', the number 'number' or the type 'datatype' occupies in memory.
