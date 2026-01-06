@@ -5,11 +5,15 @@ main {
     sub start() {
         long @shared lv = $aabbccdd
 
-;        txt.print_ubhex(lsb(msw($11223344)), true)
-;        txt.nl()
-;        txt.print_ubhex(lsb(msw(lv)),true)
-;        txt.nl()
-;
+        @(&lv as ^^ubyte + 1) = 0
+
+        txt.print_ubhex(lsb(msw($11223344)), true)
+        txt.nl()
+        txt.print_ubhex(lsb(msw(lv)),true)
+        txt.nl()
+        txt.print_ubhex(msb(lsw(lv)),true)
+        txt.nl()
+
 ;        txt.print_ubhex(bsb($11223344),true)
 ;        txt.nl()
 ;        txt.print_ubhex(bsb(lv),true)

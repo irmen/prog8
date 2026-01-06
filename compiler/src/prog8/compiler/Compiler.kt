@@ -318,7 +318,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override val purefunctionNames = functions.filter { it.value.pure }.map { it.key }.toSet()
 
     override fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral? {
-        if((funcName=="bsb" || funcName=="msw") && !args[0].inferType(program).isLong)
+        if(funcName=="msw" && !args[0].inferType(program).isLong)
             return NumericLiteral.optimalInteger(0, position)
 
         val func = BuiltinFunctions[funcName]
