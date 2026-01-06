@@ -817,41 +817,63 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 }
             } else {
                 // P8ZP_SCRATCH_PTR = value * scale
-                if(value is PtBinaryExpression && value.operator=="+" && value.right is PtNumber) {
-                    // (x + y) * scale == (x * scale) + (y * scale)
-                    addUnsignedByteOrWordToAY(value.left, scale)
-                    addUnsignedByteOrWordToAY(value.right, scale)
-                } else if(value is PtIdentifier) {
-                    // no need to save AY on the stack in this case we can slightly optimize it by storing them in a temp variable instead
-                    asmgen.out("  sta  P8ZP_SCRATCH_PTR |  sty  P8ZP_SCRATCH_PTR+1")
-                    val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
-                    mult.parent = value.parent
-                    mult.add(value)
-                    mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
-                    val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
-                    val target = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UWORD, value.definingISub(), value.position, register = RegisterOrPair.AY)
-                    val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
-                    asmgen.translateNormalAssignment(assign, value.definingISub())
-                    asmgen.out("""
-                        clc
-                        adc  P8ZP_SCRATCH_PTR
-                        pha
-                        tya
-                        adc  P8ZP_SCRATCH_PTR+1
-                        tay
-                        pla""")
-                } else {
-                    asmgen.saveRegisterStack(CpuRegister.A, false)
-                    asmgen.saveRegisterStack(CpuRegister.Y, false)
-                    val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
-                    mult.parent = value.parent
-                    mult.add(value)
-                    mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
-                    val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
-                    val target = AsmAssignTarget(TargetStorageKind.VARIABLE, asmgen, DataType.UWORD, value.definingISub(), value.position, variableAsmName = "P8ZP_SCRATCH_PTR")
-                    val assign= AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
-                    asmgen.translateNormalAssignment(assign, value.definingISub())
-                    restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR", false)
+                when (value) {
+                    is PtBinaryExpression if value.operator == "+" && value.right is PtNumber -> {
+                        // (x + y) * scale == (x * scale) + (y * scale)
+                        addUnsignedByteOrWordToAY(value.left, scale)
+                        addUnsignedByteOrWordToAY(value.right, scale)
+                    }
+
+                    is PtIdentifier -> {
+                        // no need to save AY on the stack in this case we can slightly optimize it by storing them in a temp variable instead
+                        asmgen.out("  sta  P8ZP_SCRATCH_PTR |  sty  P8ZP_SCRATCH_PTR+1")
+                        val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
+                        mult.parent = value.parent
+                        mult.add(value)
+                        mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
+                        val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
+                        val target = AsmAssignTarget(
+                            TargetStorageKind.REGISTER,
+                            asmgen,
+                            DataType.UWORD,
+                            value.definingISub(),
+                            value.position,
+                            register = RegisterOrPair.AY
+                        )
+                        val assign = AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
+                        asmgen.translateNormalAssignment(assign, value.definingISub())
+                        asmgen.out(
+                            """
+                                    clc
+                                    adc  P8ZP_SCRATCH_PTR
+                                    pha
+                                    tya
+                                    adc  P8ZP_SCRATCH_PTR+1
+                                    tay
+                                    pla"""
+                        )
+                    }
+
+                    else -> {
+                        asmgen.saveRegisterStack(CpuRegister.A, false)
+                        asmgen.saveRegisterStack(CpuRegister.Y, false)
+                        val mult = PtBinaryExpression("*", DataType.UWORD, value.position)
+                        mult.parent = value.parent
+                        mult.add(value)
+                        mult.add(PtNumber(BaseDataType.UWORD, scale.toDouble(), value.position))
+                        val multSrc = AsmAssignSource.fromAstSource(mult, asmgen.program, asmgen)
+                        val target = AsmAssignTarget(
+                            TargetStorageKind.VARIABLE,
+                            asmgen,
+                            DataType.UWORD,
+                            value.definingISub(),
+                            value.position,
+                            variableAsmName = "P8ZP_SCRATCH_PTR"
+                        )
+                        val assign = AsmAssignment(multSrc, listOf(target), asmgen.program.memsizer, value.position)
+                        asmgen.translateNormalAssignment(assign, value.definingISub())
+                        restoreAYandAddAsmVariable("P8ZP_SCRATCH_PTR", false)
+                    }
                 }
             }
         }
@@ -951,24 +973,28 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         } else {
             asmgen.assignExpressionToRegister(index, RegisterOrPair.AY)
             if(eltSize>1) {
-                if(eltSize in powersOfTwoInt) {
-                    val shift = log2(eltSize.toDouble()).toInt()
-                    asmgen.out("  sty  P8ZP_SCRATCH_REG")
-                    repeat(shift) {
-                        asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_REG")
+                when (eltSize) {
+                    in powersOfTwoInt -> {
+                        val shift = log2(eltSize.toDouble()).toInt()
+                        asmgen.out("  sty  P8ZP_SCRATCH_REG")
+                        repeat(shift) {
+                            asmgen.out("  asl  a |  rol  P8ZP_SCRATCH_REG")
+                        }
+                        asmgen.out("  ldy  P8ZP_SCRATCH_REG")
                     }
-                    asmgen.out("  ldy  P8ZP_SCRATCH_REG")
-                } else if(eltSize in asmgen.optimizedWordMultiplications) {
-                    asmgen.out("  jsr  prog8_math.mul_word_${eltSize}")
-                } else {
-                    asmgen.out(
-                        """
-                        sta  prog8_math.multiply_words.multiplier
-                        sty  prog8_math.multiply_words.multiplier+1
-                        lda  #<$eltSize
-                        ldy  #>$eltSize
-                        jsr  prog8_math.multiply_words"""
-                    )
+                    in asmgen.optimizedWordMultiplications -> {
+                        asmgen.out("  jsr  prog8_math.mul_word_${eltSize}")
+                    }
+                    else -> {
+                        asmgen.out(
+                            """
+                                    sta  prog8_math.multiply_words.multiplier
+                                    sty  prog8_math.multiply_words.multiplier+1
+                                    lda  #<$eltSize
+                                    ldy  #>$eltSize
+                                    jsr  prog8_math.multiply_words"""
+                        )
+                    }
                 }
             }
             addArrayBaseAddressToOffsetInAY()

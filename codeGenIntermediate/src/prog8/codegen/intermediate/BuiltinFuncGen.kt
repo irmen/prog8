@@ -712,10 +712,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                         val pointerReg = codeGen.registers.next(IRDataType.WORD)
                         it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, labelSymbol = target.name)
                         if (msb) {
-                            if(target.type.isLong)
-                                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = 3)
+                            it += if(target.type.isLong)
+                                IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = 3)
                             else
-                                it += IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = pointerReg)
+                                IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = pointerReg)
                         }
                         it += IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = pointerReg)
                     }
@@ -726,10 +726,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                         val pointerReg = codeGen.registers.next(IRDataType.WORD)
                         it += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1 = pointerReg, labelSymbol = target.name)
                         if (msb) {
-                            if(target.type.isLong)
-                                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = 3)
+                            it += if(target.type.isLong)
+                                IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = 3)
                             else
-                                it += IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = pointerReg)
+                                IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = pointerReg)
                         }
                         it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = pointerReg)
                     }
@@ -794,10 +794,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                 if(eltSize>1)
                                     it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb) {
-                                    if(target.type.isLong)
-                                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = indexTr.resultReg, immediate = 3)
+                                    it += if(target.type.isLong)
+                                        IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = indexTr.resultReg, immediate = 3)
                                     else
-                                        it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexTr.resultReg)
+                                        IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexTr.resultReg)
                                 }
                                 it += IRInstruction(Opcode.STOREZX, IRDataType.BYTE, reg1=indexTr.resultReg, labelSymbol = targetVariable.name)
                             }
@@ -819,10 +819,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                                 if(eltSize>1)
                                     it += codeGen.multiplyByConst(DataType.UBYTE, indexTr.resultReg, eltSize)
                                 if(msb) {
-                                    if(target.type.isLong)
-                                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = indexTr.resultReg, immediate = 3)
+                                    it += if(target.type.isLong)
+                                        IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = indexTr.resultReg, immediate = 3)
                                     else
-                                        it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexTr.resultReg)
+                                        IRInstruction(Opcode.INC, IRDataType.BYTE, reg1 = indexTr.resultReg)
                                 }
                                 it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=valueTr.resultReg, reg2=indexTr.resultReg, labelSymbol = targetVariable.name)
                             }

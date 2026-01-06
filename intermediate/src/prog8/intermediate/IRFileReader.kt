@@ -201,7 +201,7 @@ class IRFileReader {
                 val newVar = IRStStaticVariable(name, dt, null, null, null, arraysize, zp, align, dirty)
                 variables.add(newVar)
             }
-            return variables
+            variables
         }
     }
 
@@ -228,7 +228,7 @@ class IRFileReader {
                 val value = parseIRValue(valueStr)
                 constants.add(IRStConstant(name, dt, value))
             }
-            return constants
+            constants
         }
     }
 
@@ -254,14 +254,14 @@ class IRFileReader {
                 val name = match.groups["name"]!!.value
                 val value = match.groups["value"]!!.value
                 val zpwish = match.groups["zp"]!!.value
-                val splitStr = match.groups["split"]?.value ?: ""
+                //val splitStr = match.groups["split"]?.value ?: ""
                 val alignment = match.groups["align"]?.value ?: ""
                 if('.' !in name)
                     throw IRParseException("unscoped varname: $name")
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
                 val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                val split = if(splitStr.isBlank()) false else splitStr.toBoolean()
+                // val split = if(splitStr.isBlank()) false else splitStr.toBoolean()
                 val align = if(alignment.isBlank()) 0u else alignment.toUInt()
                 val dirty = false // these variables have initialization values.
                 var initNumeric: Double? = null
@@ -291,7 +291,7 @@ class IRFileReader {
                 val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align, dirty)
                 variables.add(stVar)
             }
-            return variables
+            variables
         }
     }
 

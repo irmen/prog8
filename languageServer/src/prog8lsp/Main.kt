@@ -18,5 +18,5 @@ fun main(args: Array<String>) {
     server.connect(launcher.remoteProxy)
     launcher.startListening()
     
-    println("Prog8 Language Server started. Prog8 version: ${VERSION}")
+    println("Prog8 Language Server started. Prog8 version: $VERSION")
 }

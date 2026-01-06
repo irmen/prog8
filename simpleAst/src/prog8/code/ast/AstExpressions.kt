@@ -24,35 +24,37 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
         return when(this) {
             is PtAddressOf -> {
                 if(other !is PtAddressOf)
-                    return false
-                if (other.type!==type)
-                    return false
-                if(other.identifier==null && identifier!=null)
-                    return false
-                if(other.identifier!=null && identifier==null)
-                    return false
-                if(other.identifier!=null && identifier!=null && !(other.identifier!! isSameAs identifier!!))
-                    return false
-                if(other.dereference==null && identifier!=dereference)
-                    return false
-                if(other.dereference!=null && identifier==dereference)
-                    return false
-                if(other.dereference!=null && dereference!=null && !(other.dereference!! isSameAs dereference!!))
-                    return false
-                if(other.children.size!=children.size)
-                    return false
-                if(children.size==1)
-                    return true
-                return arrayIndexExpr!! isSameAs other.arrayIndexExpr!!
+                    false
+                else if (other.type!==type)
+                    false
+                else if(other.identifier==null && identifier!=null)
+                    false
+                else if(other.identifier!=null && identifier==null)
+                    false
+                else if(other.identifier!=null && identifier!=null && !(other.identifier!! isSameAs identifier!!))
+                    false
+                else if(other.dereference==null && identifier!=dereference)
+                    false
+                else if(other.dereference!=null && identifier==dereference)
+                    false
+                else if(other.dereference!=null && dereference!=null && !(other.dereference!! isSameAs dereference!!))
+                    false
+                else if(other.children.size!=children.size)
+                    false
+                else if(children.size==1)
+                    true
+                else
+                    arrayIndexExpr!! isSameAs other.arrayIndexExpr!!
             }
             is PtArrayIndexer -> {
                 if(!(other is PtArrayIndexer && other.type==type && other.index isSameAs index && other.splitWords==splitWords))
-                    return false
-                if(other.variable==null && variable!=null || other.variable!=null && variable==null)
-                    return false
-                if(other.variable==null && variable!=null)
-                    return true
-                return other.variable!! isSameAs variable!!
+                    false
+                else if(other.variable==null && variable!=null || other.variable!=null && variable==null)
+                    false
+                else if(other.variable==null && variable!=null)
+                    true
+                else
+                    other.variable!! isSameAs variable!!
             }
             is PtBinaryExpression -> {
                 if(other !is PtBinaryExpression || other.operator!=operator)

@@ -362,7 +362,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             listOf(IAstModification.ReplaceNode(functionCallExpr, constvalue, parent))
         else {
             val const2 = evaluator.evaluate(functionCallExpr, program)
-            return if(const2!=null)
+            if(const2!=null)
                 listOf(IAstModification.ReplaceNode(functionCallExpr, const2, parent))
             else
                 noModifications
@@ -541,7 +541,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                     }
                 } else {
                     return if(subleftIsConst) {
-                        return ShuffleOperands(expr, null, subExpr, null, subExpr.right, null, expr.right)
+                        ShuffleOperands(expr, null, subExpr, null, subExpr.right, null, expr.right)
                     } else {
                         IAstModification.ReplaceNode(expr,
                                 BinaryExpression(

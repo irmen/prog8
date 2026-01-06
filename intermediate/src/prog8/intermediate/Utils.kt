@@ -76,7 +76,7 @@ fun parseIRValue(value: String): Double {
     else if(value.startsWith('@'))
         throw IRParseException("address-of @ should have been handled earlier")
     else
-        return value.toDouble()
+        value.toDouble()
 }
 
 
@@ -156,10 +156,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                             immediateFp = value
                         else if(type == IRDataType.LONG) {
                             val immediateLong = value.toLong()
-                            if(immediateLong == 0x80000000L) {
-                                immediateInt = -2147483648
-                            } else
-                                immediateInt = immediateLong.toInt()
+                            immediateInt = if(immediateLong == 0x80000000L) -2147483648 else immediateLong.toInt()
                         } else
                             immediateInt = value.toInt()
                     } else {

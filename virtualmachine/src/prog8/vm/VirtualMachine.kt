@@ -356,12 +356,12 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> {
                 registers.setUB(reg, value.toUByte())
                 statusZero = value==0
-                statusNegative = value<0 || value>=0x80
+                statusNegative = value !in 0..<0x80
             }
             IRDataType.WORD -> {
                 registers.setUW(reg, value.toUShort())
                 statusZero = value==0
-                statusNegative = value<0 || value>=0x8000
+                statusNegative = value !in 0..<0x8000
             }
             IRDataType.LONG -> {
                 registers.setSL(reg, value)
@@ -2911,11 +2911,10 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun plusMinusMultAnyLong(operator: String, reg1: Int, reg2: Int) {
         val left = registers.getSL(reg1)
         val right = registers.getSL(reg2)
-        val result: Int
-        when(operator) {
-            "+" -> result = left + right
-            "-" -> result = left - right
-            "*" -> result = left * right
+        val result: Int = when(operator) {
+            "+" -> left + right
+            "-" -> left - right
+            "*" -> left * right
             else -> throw IllegalArgumentException("operator word $operator")
         }
         registers.setSL(reg1, result)
@@ -2923,11 +2922,10 @@ class VirtualMachine(irProgram: IRProgram) {
 
     private fun plusMinusMultConstLong(operator: String, reg1: Int, value: Int) {
         val left = registers.getSL(reg1)
-        val result: Int
-        when(operator) {
-            "+" -> result = left + value
-            "-" -> result = left - value
-            "*" -> result = left * value
+        val result: Int = when(operator) {
+            "+" -> left + value
+            "-" -> left - value
+            "*" -> left * value
             else -> throw IllegalArgumentException("operator long $operator")
         }
         registers.setSL(reg1, result)
@@ -2936,11 +2934,10 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun plusMinusMultAnyLongInplace(operator: String, reg1: Int, address: Int) {
         val memvalue = memory.getSL(address)
         val operand = registers.getSL(reg1)
-        val result: Int
-        when(operator) {
-            "+" -> result = memvalue + operand
-            "-" -> result = memvalue - operand
-            "*" -> result = memvalue * operand
+        val result: Int = when(operator) {
+            "+" -> memvalue + operand
+            "-" -> memvalue - operand
+            "*" -> memvalue * operand
             else -> throw IllegalArgumentException("operator word $operator")
         }
         memory.setSL(address, result)

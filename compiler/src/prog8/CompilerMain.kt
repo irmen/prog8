@@ -2,7 +2,6 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
-import prog8.buildversion.VERSION
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
@@ -374,7 +373,7 @@ fun runVm(irFilename: String, quiet: Boolean) {
 
 
 private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
-    val library_prefix = "/prog8lib"
+    val libraryPrefix = "/prog8lib"
 
     val dumpPath = if(dump!=null) pathFrom(dump) else null
     val pattern = searchPattern?.toRegex(RegexOption.IGNORE_CASE)
@@ -386,7 +385,7 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
     if(dumpPath!=null) {
         println("Dumping embedded library files into $dumpPath\n")
         dumpPath.createDirectories()
-        val license = dumpPath / "${library_prefix.drop(1)}-$VERSION/LICENSE.txt"
+        val license = dumpPath / "${libraryPrefix.drop(1)}-${prog8.buildversion.VERSION}/LICENSE.txt"
         license.parent.createDirectories()
         license.writeText("These library files belong to the Prog8 compiler project, see https://github.com/irmen/prog8/\n" +
         "They are licensed under the GNU GPL 3.0 software license, see https://www.gnu.org/licenses/gpl.html\n")
@@ -402,15 +401,15 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
             }
         }
         if(hits.isNotEmpty()) {
-            println("Found in Library file '${path.absolutePathString().drop(library_prefix.length+1)}':")
+            println("Found in Library file '${path.absolutePathString().drop(libraryPrefix.length+1)}':")
             hits.forEach(::println)
             println()
         }
     }
 
     fun dump(path: Path) {
-        val targetfolder = dumpPath!! / (path.first().pathString + "-$VERSION")
-        val target = targetfolder / path.pathString.drop(library_prefix.length+1)
+        val targetfolder = dumpPath!! / (path.first().pathString + "-${prog8.buildversion.VERSION}")
+        val target = targetfolder / path.pathString.drop(libraryPrefix.length+1)
         target.parent.createDirectories()
         target.writeBytes(path.readBytes())
     }
@@ -418,7 +417,7 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
     // Get the location of the current JAR
     val jarUrl = object {}.javaClass.protectionDomain.codeSource.location
     FileSystems.newFileSystem(URI.create("jar:$jarUrl"), emptyMap<String, String>()).use { fs ->
-        val dir = fs.getPath(library_prefix)
+        val dir = fs.getPath(libraryPrefix)
         Files.walk(dir).use { paths ->
             paths.filter { Files.isRegularFile(it) }.forEach { path ->
                 if(pattern!=null)

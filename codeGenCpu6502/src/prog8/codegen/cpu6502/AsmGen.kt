@@ -182,9 +182,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
         fun findSubtypeReplacement(sub: ISubType): StStruct? {
             if(updatedSt.lookup(sub.scopedNameString)!=null)
                 return null
-            val old = st.lookup(sub.scopedNameString)
-            if(old==null)
-                throw AssemblyError("old subtype not found: ${sub.scopedNameString}")
+            val old = st.lookup(sub.scopedNameString) ?: throw AssemblyError("old subtype not found: ${sub.scopedNameString}")
 
             val prefixed = ArrayDeque<String>()
             var node: StNode = old

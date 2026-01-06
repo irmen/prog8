@@ -125,12 +125,8 @@ private fun builtinOffsetof(args: List<Expression>, position: Position, program:
 
     val structname = identifier.dropLast(1)
     val fieldname = identifier.last()
-    val struct = args[0].definingScope.lookup(structname) as? StructDecl
-    if(struct==null)
-        throw SyntaxError("cannot find struct '$structname'", args[0].position)
-    val offset = struct.offsetof(fieldname, program.memsizer)
-    if(offset==null)
-        throw SyntaxError("no such field '${identifier.joinToString(".")}'", args[0].position)
+    val struct = args[0].definingScope.lookup(structname) as? StructDecl ?: throw SyntaxError("cannot find struct '$structname'", args[0].position)
+    val offset = struct.offsetof(fieldname, program.memsizer) ?: throw SyntaxError("no such field '${identifier.joinToString(".")}'", args[0].position)
     return NumericLiteral.optimalInteger(offset.toInt(), position)
 }
 
