@@ -3063,7 +3063,6 @@ $endLabel""")
                     BaseDataType.UWORD, BaseDataType.POINTER -> {
                         asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                     }
-                    BaseDataType.POINTER -> TODO("cast to pointer")
                     BaseDataType.LONG -> {
                         asmgen.out("""
                             lda  $sourceAsmVarName

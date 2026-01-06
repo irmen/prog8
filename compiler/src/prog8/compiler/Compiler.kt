@@ -575,7 +575,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
                                       lastGeneratedLabelSequenceNr: Int
 ): Boolean {
 
-    val retainSSAforIR = true;
+    val retainSSAforIR = true
 
     val asmgen = if(compilerOptions.experimentalCodegen)
         prog8.codegen.experimental.ExperiCodeGen(retainSSAforIR)

@@ -1478,27 +1478,50 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
         if (arg is PtIdentifier) {
             val sourceName = asmgen.asmVariableName(arg)
-            when(resultRegister) {
+            when (resultRegister) {
                 null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName+3")
                 RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+3")
                 RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+3")
-                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+3 |  ldx  #0")
-                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+3 |  ldy  #0")
-                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+3 |  ldy  #0")
+                RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName+3")
+                RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName+3")
+                RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName+3")
                 in Cx16VirtualRegisters -> {
                     val regname = resultRegister.name.lowercase()
-                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
-                        asmgen.out("  lda  $sourceName+3 |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                    if (asmgen.isTargetCpu(CpuType.CPU65C02))
+                        asmgen.out("  stz  cx16.$regname+1 |  lda  $sourceName+3 |  sta  cx16.$regname")
                     else
-                        asmgen.out("  lda  $sourceName+3 |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                        asmgen.out("  lda  #0 |  sta  cx16.$regname+1 |  lda  $sourceName+3 |  sta  cx16.$regname")
                 }
                 in combinedLongRegisters -> {
                     TODO("msb__long into long register ${fcall.position}")
                 }
                 else -> throw AssemblyError("invalid reg")
             }
+        } else if(arg is PtArrayIndexer) {
+            TODO("msb of long array element ${fcall.position}")
         } else {
-            TODO("msb__long from $arg  ${fcall.position}")
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, arg.type.isSigned)
+            when(resultRegister) {
+                null, RegisterOrPair.A -> asmgen.out("  lda  cx16.r0+3")
+                RegisterOrPair.X -> asmgen.out("  ldx  cx16.r0+3")
+                RegisterOrPair.Y -> asmgen.out("  ldy  cx16.r0+3")
+                RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  cx16.r0+3")
+                RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  cx16.r0+3")
+                RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  cx16.r0+3")
+                RegisterOrPair.R0 -> asmgen.out("  lda  #0 |  sta  cx16.r0H |  lda  cx16.r0+3 |  sta  cx16.r0L")
+                in Cx16VirtualRegisters -> {
+                    val reg = "cx16.${resultRegister.toString().lowercase()}"
+                    asmgen.out("""
+                        ldy  #0
+                        lda  cx16.r0+3
+                        sty  ${reg}H
+                        sta  ${reg}L""")
+                }
+                in combinedLongRegisters -> {
+                    TODO("msb into long register ${fcall.position}")
+                }
+                else -> throw AssemblyError("invalid reg")
+            }
         }
     }
 
@@ -1514,15 +1537,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName+1")
                 RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+1")
                 RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+1")
-                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+1 |  ldx  #0")
-                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+1 |  ldy  #0")
-                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+1 |  ldy  #0")
+                RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName+1")
+                RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName+1")
+                RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName+1")
                 in Cx16VirtualRegisters -> {
                     val regname = resultRegister.name.lowercase()
                     if(asmgen.isTargetCpu(CpuType.CPU65C02))
-                        asmgen.out("  lda  $sourceName+1 |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                        asmgen.out("  stz  cx16.$regname+1 |  lda  $sourceName+1 |  sta  cx16.$regname")
                     else
-                        asmgen.out("  lda  $sourceName+1 |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                        asmgen.out("  lda  #0 |  sta  cx16.$regname+1 |  lda  $sourceName+1 |  sta  cx16.$regname")
                 }
                 in combinedLongRegisters -> {
                     TODO("msb into long register ${fcall.position}")
@@ -1627,15 +1650,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName")
                 RegisterOrPair.X -> asmgen.out("  ldx  $sourceName")
                 RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName")
-                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName |  ldx  #0")
-                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName |  ldy  #0")
-                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName |  ldy  #0")
+                RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  $sourceName")
+                RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  $sourceName")
+                RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  $sourceName")
                 in Cx16VirtualRegisters -> {
                     val regname = resultRegister.name.lowercase()
                     if(asmgen.isTargetCpu(CpuType.CPU65C02))
-                        asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                        asmgen.out("  stz  cx16.$regname+1 |  lda  $sourceName |  sta  cx16.$regname")
                     else
-                        asmgen.out("  lda  $sourceName |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                        asmgen.out("  lda  #0 |  sta  cx16.$regname+1 |  lda  $sourceName |  sta  cx16.$regname")
                 }
                 in combinedLongRegisters -> {
                     TODO("lsb into long register ${fcall.position}")
@@ -1661,6 +1684,29 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     RegisterOrPair.X -> {
                         asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
                         asmgen.out("  ldx  $arrayVar,y")
+                    }
+                    else -> throw AssemblyError("invalid reg")
+                }
+            } else if(fromLong) {
+                asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, arg.type.isSigned)
+                when(resultRegister) {
+                    null, RegisterOrPair.A -> asmgen.out("  lda  cx16.r0L")
+                    RegisterOrPair.X -> asmgen.out("  ldx  cx16.r0L")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  cx16.r0L")
+                    RegisterOrPair.AX -> asmgen.out("  ldx  #0 |  lda  cx16.r0L")
+                    RegisterOrPair.AY -> asmgen.out("  ldy  #0 |  lda  cx16.r0L")
+                    RegisterOrPair.XY -> asmgen.out("  ldy  #0 |  ldx  cx16.r0L")
+                    RegisterOrPair.R0 -> asmgen.out("  lda  cx16.r0L")          // for status bits
+                    in Cx16VirtualRegisters -> {
+                        val reg = "cx16.${resultRegister.toString().lowercase()}"
+                        asmgen.out("""
+                            ldy  #0
+                            lda  cx16.r0L
+                            sty  ${reg}H
+                            sta  ${reg}L""")
+                    }
+                    in combinedLongRegisters -> {
+                        TODO("lsb into long register ${fcall.position}")
                     }
                     else -> throw AssemblyError("invalid reg")
                 }

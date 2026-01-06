@@ -7,34 +7,22 @@ main {
 
         ; TODO fix :  @(&lv as ^^ubyte + 1) = 0
 
-        txt.print_ubhex(lsb(msw($11223344)), true)
+        ubyte b1,b2
+        uword w1,w2
+
+        b1 = lsb(lv+$11000011)
+        b2 = msb(lv+$11000011)
+        w1 = lsw(lv+$11000011)
+        w2 = msw(lv+$11000011)
+
+        txt.print_ubhex(b1, true)
         txt.nl()
-        txt.print_ubhex(lsb(msw(lv)),true)
+        txt.print_ubhex(b2, true)
         txt.nl()
-        txt.print_ubhex(msb(lsw(lv)),true)
+        txt.print_uwhex(w1, true)
+        txt.nl()
+        txt.print_uwhex(w2, true)
         txt.nl()
 
-;        txt.print_ubhex(bsb($11223344),true)
-;        txt.nl()
-;        txt.print_ubhex(bsb(lv),true)
-;        txt.nl()
-
-        ;setbsb(lv, $99)
-
-;        setlsb(lv, $44)
-;        setmsb(lv, $11)
-;        txt.print_ulhex(lv, true)
-;        txt.nl()
-;        setlsb(lv, 0)
-;        setmsb(lv, 0)
-;        txt.print_ulhex(lv, true)
-;        txt.nl()
-;
-;        long[32] longs
-;        longs[3]=$aabbccdd
-;        setmsb(longs[3], $11)
-;        setlsb(longs[3], $44)
-;        txt.print_ulhex(longs[3], true)
-;        txt.nl()
     }
 }
