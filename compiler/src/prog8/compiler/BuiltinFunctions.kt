@@ -39,6 +39,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()} },
     "msb__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 24 and 255).toDouble()} },
     "msw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 16 and 65535).toDouble()} },
+    "bsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 16 and 255).toDouble() } },
     "mkword" to ::builtinMkword,
     "mklong" to ::builtinMklong,
     "mklong2" to ::builtinMklong,

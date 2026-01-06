@@ -121,6 +121,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "lsb__long"     to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.LONG)),
     "msb"           to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
     "msb__long"     to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.LONG)),
+    "bsb"           to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.LONG)),
     "lsw"           to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
     "msw"           to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
     "mkword"        to FSignature(true, BaseDataType.UWORD, FParam("msb", BaseDataType.UBYTE), FParam("lsb", BaseDataType.UBYTE)),
@@ -171,6 +172,6 @@ val InplaceModifyingBuiltinFunctions = setOf(
 )
 
 val SimpleBuiltinFunctions = setOf(
-    "msb", "lsb", "msw", "lsw",
+    "msb", "lsb", "bsb", "msw", "lsw",
     "mkword", "mklong", "mklong2",
     "set_carry", "set_irqd", "clear_carry", "clear_irqd")

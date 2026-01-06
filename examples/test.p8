@@ -3,26 +3,20 @@
 
 main {
     sub start() {
-        compares(10)
-        compares(-10)
-        compares(0)
-        compares($00aa0000)
-        compares($ffaa0000)
+        txt.print_ubhex(lsb(msw($11223344)), true)
+        txt.nl()
+        long @shared lv = $aabbccdd
+        txt.print_ubhex(lsb(msw(lv)),true)
+        txt.nl()
 
-        sub compares(long value) {
-            txt.print_l(value)
-            txt.spc()
-            txt.spc()
-            if value>0
-                txt.print(" >0 ")
-            if value >=0
-                txt.print(" >=0 ")
-            if value < 0
-                txt.print(" <0 ")
-            if value<=0
-                txt.print(" <=0")
-
-            txt.nl()
-        }
+        txt.print_ubhex(bsb($11223344),true)
+        txt.nl()
+        txt.print_ubhex(bsb(lv),true)
+        txt.nl()
+        txt.nl()
+        txt.print_ubhex(bsb(cx16.r0),true)
+        txt.nl()
+        txt.print_ubhex(bsb(cx16.r0L),true)
+        txt.nl()
     }
 }

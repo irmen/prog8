@@ -33,6 +33,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "msb__long" -> funcMsbLong(fcall, resultRegister)
             "lsb" -> funcLsb(fcall, resultRegister, false)
             "lsb__long" -> funcLsb(fcall, resultRegister, true)
+            "bsb" -> funcBsb(fcall, resultRegister)
             "mkword" -> funcMkword(fcall, resultRegister)
             "mklong", "mklong2" -> funcMklong(fcall)  // result is in R14:R15
             "clamp__byte", "clamp__ubyte", "clamp__word", "clamp__uword", "clamp__long" -> funcClamp(fcall, resultRegister)
@@ -1490,6 +1491,39 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
         } else {
             TODO("msb__long from $arg  ${fcall.position}")
+        }
+    }
+
+    private fun funcBsb(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
+        val arg = fcall.args.single()
+        if (!arg.type.isLong)
+            throw AssemblyError("bsb requires long argument")
+        if (arg is PtNumber)
+            throw AssemblyError("bsb(const) should have been const-folded away")
+
+        if (arg is PtIdentifier) {
+            val sourceName = asmgen.asmVariableName(arg)
+            when(resultRegister) {
+                null, RegisterOrPair.A -> asmgen.out("  lda  $sourceName+2")
+                RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+2")
+                RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+2")
+                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+2 |  ldx  #0")
+                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+2 |  ldy  #0")
+                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+2 |  ldy  #0")
+                in Cx16VirtualRegisters -> {
+                    val regname = resultRegister.name.lowercase()
+                    if(asmgen.isTargetCpu(CpuType.CPU65C02))
+                        asmgen.out("  lda  $sourceName+2 |  sta  cx16.$regname |  stz  cx16.$regname+1")
+                    else
+                        asmgen.out("  lda  $sourceName+2 |  sta  cx16.$regname |  lda  #0 |  sta  cx16.$regname+1")
+                }
+                in combinedLongRegisters -> {
+                    TODO("bsb into long register ${fcall.position}")
+                }
+                else -> throw AssemblyError("invalid reg")
+            }
+        } else {
+            TODO("bsb from $arg  ${fcall.position}")
         }
     }
 

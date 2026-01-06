@@ -313,6 +313,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LSIGW -> InsLSIGW(ins)
             Opcode.MSIGB -> InsMSIGB(ins)
             Opcode.MSIGW -> InsMSIGW(ins)
+            Opcode.BSIGB -> InsBSIGB(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
@@ -2596,6 +2597,14 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             else -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
+        nextPc()
+    }
+
+    private fun InsBSIGB(i: IRInstruction) {
+        val value = registers.getSL(i.reg2!!)
+        val newValue = value ushr 16 and 255
+        statusbitsNZ(newValue, i.type!!)
+        registers.setUB(i.reg1!!, newValue.toUByte())
         nextPc()
     }
 

@@ -99,6 +99,9 @@ msb (x)
     Get the most significant (highest) byte of the word or long value x
     (so for a long value, msb($11223344) is $11, not $33).
 
+bsb (x)
+    Get the 'bank' byte of the long value x (this is bits 16-23): bsb($00aabbcc) is $aa.
+
 msw (x)
     Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.
     For a long integer though, it returns the upper 16 bits of x as an uword.
