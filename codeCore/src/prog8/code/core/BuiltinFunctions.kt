@@ -169,3 +169,8 @@ val InplaceModifyingBuiltinFunctions = setOf(
     "rol", "ror", "rol2", "ror2",
     "divmod", "divmod__ubyte", "divmod__uword"
 )
+
+val SimpleBuiltinFunctions = setOf(
+    "msb", "lsb", "msw", "lsw",
+    "mkword", "mklong", "mklong2",
+    "set_carry", "set_irqd", "clear_carry", "clear_irqd")

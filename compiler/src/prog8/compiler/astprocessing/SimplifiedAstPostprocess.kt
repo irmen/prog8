@@ -168,17 +168,12 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         node.parent.add(idx, invokedefer)
     }
 
-    fun notComplex(value: PtExpression): Boolean = when(value) {
-        is PtAddressOf -> value.arrayIndexExpr == null || notComplex(value.arrayIndexExpr!!)
-        is PtBuiltinFunctionCall -> {
-            when (value.name) {
-                in arrayOf("msb", "lsb", "msw", "lsw", "mkword", "mklong", "mklong2", "set_carry", "set_irqd", "clear_carry", "clear_irqd") -> value.args.all { notComplex(it) }
-                else -> false
-            }
-        }
+    fun isSimple(value: PtExpression): Boolean = when(value) {
+        is PtAddressOf -> value.arrayIndexExpr == null || isSimple(value.arrayIndexExpr!!)
+        is PtBuiltinFunctionCall -> value.isSimple()
         is PtMemoryByte -> value.address is PtNumber
-        is PtPrefix -> notComplex(value.value)
-        is PtTypeCast -> notComplex(value.value)
+        is PtPrefix -> isSimple(value.value)
+        is PtTypeCast -> isSimple(value.value)
         is PtArray,
         is PtIrRegister,
         is PtBool,
@@ -196,7 +191,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
 
     // return exits
     for(ret in returnsToAugment) {
-        if(ret.children.isEmpty() || ret.children.all { notComplex(it as PtExpression) }) {
+        if(ret.children.isEmpty() || ret.children.all { isSimple(it as PtExpression) }) {
             invokedeferbefore(ret)
             continue
         }
