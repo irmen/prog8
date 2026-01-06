@@ -1,6 +1,9 @@
 TODO
 ====
 
+- fix TODO pointer cast , for example:  @(&lv as ^^ubyte + 1) = 0
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
@@ -11,7 +14,7 @@ Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
 - implement msb(a+b), lsb(a+b),  msw(a+b),  lsw(a+b)
 - make divmod() return the 2 results rather than accepting 2 extra variables as arguments
-- introduce lmh(longvalue) builtin function that returns the low, mid, hi (bank) bytes of a long.
+- introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
 - add a -profile option that instruments the start of every prog8 subroutine with code that dumps to the emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count.  Start of program must set cycle count to zero.
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
