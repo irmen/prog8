@@ -255,7 +255,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         }
         else if(value.type.isLong) {
             asmgen.loadIndirectLongIntoR14R15(zpPtrVar, offset)
-            asmgen.assignRegister(RegisterOrPair.R14R15_32, target)
+            asmgen.assignRegister(RegisterOrPair.R14R15, target)
         }
         else
             throw AssemblyError("weird dt ${value.type} in pointer deref assignment ${target.position}")
@@ -1468,7 +1468,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 // it's not an expression so no need to preserve R14-R15
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, true)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15, true)
                 asmgen.out("""
                     ldy  #$offset
                     clc
@@ -1538,7 +1538,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             }
             SourceStorageKind.EXPRESSION -> {
                 // it's not an expression so no need to preserve R14-R15
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, true)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15, true)
                 asmgen.out("""
                     ldy  #$offset
                     sec
@@ -2349,7 +2349,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isLong)
                 // not an expression so no need to preserve R14/R15
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, target.dt.isSigned)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15, target.dt.isSigned)
                 asmgen.out("""
                     ldy  #$offset
                     lda  ($zpPtrVar),y
@@ -2420,7 +2420,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isLong)
                 // not an expression so no need to preserve R14/R15
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, target.dt.isSigned)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15, target.dt.isSigned)
                 asmgen.out("""
                     ldy  #$offset
                     lda  ($zpPtrVar),y
@@ -2491,7 +2491,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.EXPRESSION -> {
                 require(value.datatype.isLong)
                 // not an expression so no need to preserve R14/R15
-                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15_32, target.dt.isSigned)
+                asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.R14R15, target.dt.isSigned)
                 asmgen.out("""
                     ldy  #$offset
                     lda  ($zpPtrVar),y

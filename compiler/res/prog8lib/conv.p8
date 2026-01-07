@@ -572,7 +572,7 @@ _try_iso
 	}}
 }
 
-asmsub hex2long(str string @AY) -> long @R0R1_32 {
+asmsub hex2long(str string @AY) -> long @R0R1 {
 	; -- hexadecimal string (with or without '$') to long.
 	;    string may be in petscii or c64-screencode encoding.
 	;    stops parsing at the first character that's not a hex digit (except leading $)

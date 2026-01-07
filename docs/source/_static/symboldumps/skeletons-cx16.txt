@@ -1,5 +1,5 @@
 
-Prog8 compiler v12.0.2 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -151,7 +151,7 @@ conv  {
     ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> uword @AY, ubyte @X 
     bin2uword  (str string @AY) -> uword @AY 
-    hex2long  (str string @AY) -> long @R0R1_32 
+    hex2long  (str string @AY) -> long @R0R1 
     hex2uword  (str string @AY) -> uword @AY 
     internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
     internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 
@@ -303,7 +303,7 @@ emudbg  {
     console_value1  (ubyte value) 
     console_value2  (ubyte value) 
     console_write  (str isoString) 
-    cpu_cycles  () -> long @R0R1_32 
+    cpu_cycles  () -> long @R0R1 
     is_emulator  () -> bool 
     reset_cpu_cycles  () 
 }
@@ -530,7 +530,7 @@ math  {
     crc16_update  (ubyte value @A) 
     crc32  (^^ubyte data, uword length) -> long 
     crc32_end  () -> long 
-    crc32_end_result  () -> long @R14R15_32 
+    crc32_end_result  () -> long @R14R15 
     crc32_start  () 
     crc32_update  (ubyte value) 
     diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
@@ -858,7 +858,7 @@ cbm  {
     RAMTAS  ()  clobbers (A,X,Y)  = $ff87
     RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y  = $ffde
     RDTIM16  ()  clobbers (X) -> uword @AY 
-    RDTIML  ()  clobbers (X) -> long @R0R1_32 
+    RDTIML  ()  clobbers (X) -> long @R0R1 
     RDTIM_safe  () -> ubyte @A, ubyte @X, ubyte @Y 
     READST  () -> ubyte @A  = $ffb7
     RESTOR  ()  clobbers (A,X,Y)  = $ff8a
@@ -870,7 +870,7 @@ cbm  {
     SETMSG  (ubyte value @A)  = $ff90
     SETNAM  (ubyte namelen @A, str filename @XY)  = $ffbd
     SETTIM  (ubyte low @A, ubyte middle @X, ubyte high @Y)  = $ffdb
-    SETTIML  (long jiffies @R0R1_32) 
+    SETTIML  (long jiffies @R0R1) 
     SETTMO  (ubyte timeout @A)  = $ffa2
     STOP  ()  clobbers (X) -> bool @Pz, ubyte @A  = $ffe1
     STOP2  ()  clobbers (A,X) -> bool @Pz 
@@ -1398,14 +1398,14 @@ sys  {
     memset  (uword mem @R0, uword numbytes @R1, ubyte value @A)  clobbers (A,X,Y) 
     memsetw  (uword mem @R0, uword numwords @R1, uword value @AY)  clobbers (A,X,Y) 
     pop  () -> ubyte @A 
-    popl  () -> long @R0R1_32 
+    popl  () -> long @R0R1 
     popw  () -> uword @AY 
     poweroff_system  () 
     progend  () -> uword @AY 
     progstart  () -> uword @AY 
     push  (ubyte value @A) 
     push_returnaddress  (uword address @XY) 
-    pushl  (long value @R0R1_32) 
+    pushl  (long value @R0R1) 
     pushw  (uword value @AY) 
     read_flags  () -> ubyte @A 
     reset_system  () 
@@ -1521,7 +1521,7 @@ verafx  {
     available  () -> bool 
     clear  (ubyte vbank, uword vaddr, ubyte data, uword num_longwords) 
     copy  (ubyte srcbank, uword srcaddr, ubyte tgtbank, uword tgtaddr, uword num_longwords) 
-    muls  (word value1 @R0, word value2 @R1)  clobbers (X) -> long @R0R1_32 
+    muls  (word value1 @R0, word value2 @R1)  clobbers (X) -> long @R0R1 
     muls16  (word value1 @R0, word value2 @R1)  clobbers (X) -> word @AY 
     mult16  (uword value1 @R0, uword value2 @R1)  clobbers (X) -> uword @AY 
     transparency  (bool enable) 

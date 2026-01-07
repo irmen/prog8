@@ -403,7 +403,7 @@ enum class RegisterOrPair {
     R0, R1, R2, R3, R4, R5, R6, R7,
     R8, R9, R10, R11, R12, R13, R14, R15,
     // combined virtual registers to store 32 bits longs:
-    R0R1_32, R2R3_32, R4R5_32, R6R7_32, R8R9_32, R10R11_32, R12R13_32, R14R15_32;
+    R0R1, R2R3, R4R5, R6R7, R8R9, R10R11, R12R13, R14R15;
 
     companion object {
         val names by lazy { entries.map { it.toString()} }
@@ -421,14 +421,14 @@ enum class RegisterOrPair {
      * @return The starting register name as a string, WITHOUT THE cx16 block scope prefix!
      */
     fun startregname() = when(this) {
-        R0R1_32 -> "r0"
-        R2R3_32 -> "r2"
-        R4R5_32 -> "r4"
-        R6R7_32 -> "r6"
-        R8R9_32 -> "r8"
-        R10R11_32 -> "r10"
-        R12R13_32 -> "r12"
-        R14R15_32 -> "r14"
+        R0R1 -> "r0"
+        R2R3 -> "r2"
+        R4R5 -> "r4"
+        R6R7 -> "r6"
+        R8R9 -> "r8"
+        R10R11 -> "r10"
+        R12R13 -> "r12"
+        R14R15 -> "r14"
         else -> throw IllegalArgumentException("must be a combined virtual register $this")
     }
 
@@ -490,14 +490,14 @@ val Cx16VirtualRegisters = arrayOf(
 )
 
 val combinedLongRegisters = arrayOf(
-    RegisterOrPair.R0R1_32,
-    RegisterOrPair.R2R3_32,
-    RegisterOrPair.R4R5_32,
-    RegisterOrPair.R6R7_32,
-    RegisterOrPair.R8R9_32,
-    RegisterOrPair.R10R11_32,
-    RegisterOrPair.R12R13_32,
-    RegisterOrPair.R14R15_32
+    RegisterOrPair.R0R1,
+    RegisterOrPair.R2R3,
+    RegisterOrPair.R4R5,
+    RegisterOrPair.R6R7,
+    RegisterOrPair.R8R9,
+    RegisterOrPair.R10R11,
+    RegisterOrPair.R12R13,
+    RegisterOrPair.R14R15
 )
 
 val CpuRegisters = arrayOf(

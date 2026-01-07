@@ -3,10 +3,11 @@
 
 main {
     sub start() {
-        long @shared lv = $aabbccdd
-        @(&lv as ^^ubyte + 1) = 0
-        @(&lv as ^^ubyte + 2) = $77
+        foo("hello")
+    }
 
-        txt.print_ulhex(lv, true)
+    sub foo(str s) {
+        cx16.r0L = len(s)
+        cx16.r1L = len(false)
     }
 }

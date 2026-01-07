@@ -1,5 +1,5 @@
 
-Prog8 compiler v12.0.2 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -113,7 +113,7 @@ conv  {
     ubyte[] @shared  string_out 
     any2uword  (str string @AY) -> uword @AY, ubyte @X 
     bin2uword  (str string @AY) -> uword @AY 
-    hex2long  (str string @AY) -> long @R0R1_32 
+    hex2long  (str string @AY) -> long @R0R1 
     hex2uword  (str string @AY) -> uword @AY 
     internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
     internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 
@@ -357,7 +357,7 @@ math  {
     crc16_update  (ubyte value @A) 
     crc32  (^^ubyte data, uword length) -> long 
     crc32_end  () -> long 
-    crc32_end_result  () -> long @R14R15_32 
+    crc32_end_result  () -> long @R14R15 
     crc32_start  () 
     crc32_update  (ubyte value) 
     diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
@@ -526,7 +526,7 @@ cbm  {
     RAMTAS  ()  clobbers (A,X,Y)  = $ff87
     RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y  = $ffde
     RDTIM16  ()  clobbers (X) -> uword @AY 
-    RDTIML  ()  clobbers (X) -> long @R0R1_32 
+    RDTIML  ()  clobbers (X) -> long @R0R1 
     READST  () -> ubyte @A  = $ffb7
     RESTOR  ()  clobbers (A,X,Y)  = $ff8a
     SAVE  (ubyte zp_startaddr @A, uword endaddr @XY) -> bool @Pc, ubyte @A  = $ffd8
@@ -537,7 +537,7 @@ cbm  {
     SETMSG  (ubyte value @A)  = $ff90
     SETNAM  (ubyte namelen @A, str filename @XY)  = $ffbd
     SETTIM  (ubyte low @A, ubyte middle @X, ubyte high @Y)  = $ffdb
-    SETTIML  (long jiffies @R0R1_32) 
+    SETTIML  (long jiffies @R0R1) 
     SETTMO  (ubyte timeout @A)  = $ffa2
     STOP  ()  clobbers (X) -> bool @Pz, ubyte @A  = $ffe1
     STOP2  ()  clobbers (A,X) -> bool @Pz 
@@ -733,13 +733,13 @@ sys  {
     memset  (uword mem @R0, uword numbytes @R1, ubyte value @A)  clobbers (A,X,Y) 
     memsetw  (uword mem @R0, uword numwords @R1, uword value @AY)  clobbers (A,X,Y) 
     pop  () -> ubyte @A 
-    popl  () -> long @R0R1_32 
+    popl  () -> long @R0R1 
     popw  () -> uword @AY 
     progend  () -> uword @AY 
     progstart  () -> uword @AY 
     push  (ubyte value @A) 
     push_returnaddress  (uword address @XY) 
-    pushl  (long value @R0R1_32) 
+    pushl  (long value @R0R1) 
     pushw  (uword value @AY) 
     read_flags  () -> ubyte @A 
     reset_system  () 

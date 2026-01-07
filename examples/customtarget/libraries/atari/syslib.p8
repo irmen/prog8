@@ -166,7 +166,7 @@ sys {
         }}
     }
 
-    inline asmsub pushl(long value @R0R1_32) {
+    inline asmsub pushl(long value @R0R1) {
         %asm {{
             lda  cx16.r0
             pha
@@ -179,7 +179,7 @@ sys {
         }}
     }
 
-    inline asmsub popl() -> long @R0R1_32 {
+    inline asmsub popl() -> long @R0R1 {
         %asm {{
             pla
             sta  cx16.r0+3

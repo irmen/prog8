@@ -442,8 +442,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         sbc  $var2+3""")
                 } else {
                     // cmp() doesn't return a value and as such can't be used in an expression, so no need to save the temp registers' original values
-                    assignAsmGen.assignExpressionToRegister(arg2, RegisterOrPair.R14R15_32, true)
-                    assignAsmGen.assignExpressionToRegister(arg1, RegisterOrPair.R12R13_32, true)
+                    assignAsmGen.assignExpressionToRegister(arg2, RegisterOrPair.R14R15, true)
+                    assignAsmGen.assignExpressionToRegister(arg1, RegisterOrPair.R12R13, true)
                     asmgen.out("""
                         sec
                         lda  cx16.r12
@@ -899,7 +899,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
             BaseDataType.LONG -> {
                 asmgen.out("  jsr  prog8_lib.abs_l_into_R14R15")
-                assignAsmGen.assignRegisterLong(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R14R15_32, true, fcall.position, scope, asmgen), RegisterOrPair.R14R15_32)
+                assignAsmGen.assignRegisterLong(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R14R15, true, fcall.position, scope, asmgen), RegisterOrPair.R14R15)
             }
             BaseDataType.FLOAT -> {
                 asmgen.out("  jsr  floats.func_abs_f_into_FAC1")
@@ -1071,7 +1071,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         asmgen.saveRegisterStack(CpuRegister.A, false)
         asmgen.saveRegisterStack(CpuRegister.Y, false)
         // it's a statement so no need to preserve R14:R15
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15_32, true)
+        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15, true)
         asmgen.restoreRegisterStack(CpuRegister.Y, false)
         asmgen.restoreRegisterStack(CpuRegister.A, false)
         asmgen.out("  jsr  prog8_lib.func_pokel")
@@ -1202,8 +1202,8 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         // TODO optimize for the simple cases
         asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.func_peekl")
-        val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R14R15_32, true, fcall.position, fcall.definingISub(), asmgen)
-        assignAsmGen.assignRegisterLong(targetReg, RegisterOrPair.R14R15_32)
+        val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R14R15, true, fcall.position, fcall.definingISub(), asmgen)
+        assignAsmGen.assignRegisterLong(targetReg, RegisterOrPair.R14R15)
     }
 
 
@@ -1500,7 +1500,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         } else if(arg is PtArrayIndexer) {
             TODO("msb of long array element ${fcall.position}")
         } else {
-            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, arg.type.isSigned)
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1, arg.type.isSigned)
             when(resultRegister) {
                 null, RegisterOrPair.A -> asmgen.out("  lda  cx16.r0+3")
                 RegisterOrPair.X -> asmgen.out("  ldx  cx16.r0+3")
@@ -1688,7 +1688,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     else -> throw AssemblyError("invalid reg")
                 }
             } else if(fromLong) {
-                asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1_32, arg.type.isSigned)
+                asmgen.assignExpressionToRegister(arg, RegisterOrPair.R0R1, arg.type.isSigned)
                 when(resultRegister) {
                     null, RegisterOrPair.A -> asmgen.out("  lda  cx16.r0L")
                     RegisterOrPair.X -> asmgen.out("  ldx  cx16.r0L")
@@ -1773,7 +1773,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         } else {
             // TODO can't efficiently preserve R14:R15 on the stack because the result of the routine is likely to be in CPU registers,
             //      which in turn would be clobbered by popping stuff from the stack...
-            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15_32, true)
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15, true)
             when(resultRegister) {
                 RegisterOrPair.AX -> asmgen.out("  lda  cx16.r15 |  ldx  cx16.r15+1")
                 null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r15 |  ldy  cx16.r15+1")
@@ -1808,7 +1808,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         } else {
             // TODO can't efficiently preserve R14:R15 on the stack because the result of the routine is likely to be in CPU registers,
             //      which in turn would be clobbered by popping stuff from the stack...
-            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15_32, true)
+            asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15, true)
             when(resultRegister) {
                 RegisterOrPair.AX -> asmgen.out("  lda  cx16.r14 |  ldx  cx16.r14+1")
                 null, RegisterOrPair.AY -> asmgen.out("  lda  cx16.r14 |  ldy  cx16.r14+1")

@@ -137,7 +137,7 @@ verafx {
     }
 
 
-    asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> long @R0R1_32 {
+    asmsub muls(word value1 @R0, word value2 @R1) clobbers(X) -> long @R0R1 {
         ; Returns the 32 bits signed result in R0:R1  (lower word, upper word).
         ; Vera Fx multiplication support only works on signed values!
         ; Note: clobbers VRAM $1f9bc - $1f9bf (inclusive)

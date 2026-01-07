@@ -957,7 +957,7 @@ _jump                       jmp  (${target.asmLabel})
             else -> {
                 if(long) {
                     // note: clobbers R14+R15
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, true)
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15, true)
                     asmgen.out("  lda  cx16.r14+3")
                 } else {
                     asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
@@ -1273,15 +1273,15 @@ _jump                       jmp  (${target.asmLabel})
                 ora  $varname+2
                 ora  $varname+3""")
         } else {
-            asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
-            asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
+            asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
+            asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15, value.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 ora  cx16.r14+1
                 ora  cx16.r14+2
                 ora  cx16.r14+3
                 sta  P8ZP_SCRATCH_REG""")
-            asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.popLongRegisters(RegisterOrPair.R14R15, 1)
             asmgen.out("  lda  P8ZP_SCRATCH_REG  ; restore flags")
         }
         if(notEquals) {
@@ -1339,7 +1339,7 @@ _jump                       jmp  (${target.asmLabel})
                 sty  P8ZP_SCRATCH_W1+1""")
             asmgen.out("  jsr  prog8_lib.compare_long_gt_0")
         } else {
-            assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15, value.type.isSigned)
             asmgen.out("""
                 lda  #<cx16.r14
                 ldy  #>cx16.r14
@@ -1359,7 +1359,7 @@ _jump                       jmp  (${target.asmLabel})
                 sty  P8ZP_SCRATCH_W1+1""")
             asmgen.out("  jsr  prog8_lib.compare_long_le_0")
         } else {
-            assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15_32, value.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15, value.type.isSigned)
             asmgen.out("""
                 lda  #<cx16.r14
                 ldy  #>cx16.r14
@@ -1488,7 +1488,7 @@ _jump                       jmp  (${target.asmLabel})
         else
         {
             // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
-            asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15_32, left.type.isSigned)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, left.type.isSigned)
             if(constRight!=null) {
                 val hex = constRight.toLongHex()
                 asmgen.out("""
@@ -1547,12 +1547,12 @@ _jump                       jmp  (${target.asmLabel})
         // this comparison is not part of an expression but part of an if statement, there's no need to save the previous values of the temp registers
 
         if(operator=="<" || operator ==">=") {
-            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R14R15_32, left.type.isSigned)
-            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R12R13_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R14R15, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R12R13, left.type.isSigned)
         } else {
             // flip operands
-            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R14R15_32, left.type.isSigned)
-            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R12R13_32, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R14R15, left.type.isSigned)
+            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R12R13, left.type.isSigned)
         }
         asmgen.out("""
             sec

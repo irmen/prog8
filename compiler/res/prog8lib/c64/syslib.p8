@@ -132,7 +132,7 @@ asmsub RDTIM16() clobbers(X) -> uword @AY {
     }}
 }
 
-asmsub SETTIML(long jiffies @R0R1_32) {
+asmsub SETTIML(long jiffies @R0R1) {
     ; -- just like SETTIM, but with a single 32 bit (lower 24 bits used) argument.
     %asm {{
         lda  cx16.r0
@@ -142,7 +142,7 @@ asmsub SETTIML(long jiffies @R0R1_32) {
     }}
 }
 
-asmsub RDTIML() clobbers(X) -> long @R0R1_32 {
+asmsub RDTIML() clobbers(X) -> long @R0R1 {
     ; --  like RDTIM() and returning the timer value as a 32 bit (lower 24 bits used) value.
     %asm {{
         jsr  RDTIM
@@ -849,7 +849,7 @@ _larger
         }}
     }
 
-    inline asmsub pushl(long value @R0R1_32) {
+    inline asmsub pushl(long value @R0R1) {
         %asm {{
             lda  cx16.r0
             pha
@@ -862,7 +862,7 @@ _larger
         }}
     }
 
-    inline asmsub popl() -> long @R0R1_32 {
+    inline asmsub popl() -> long @R0R1 {
         %asm {{
             pla
             sta  cx16.r0+3

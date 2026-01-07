@@ -74,7 +74,7 @@ emudbg {
             EMU_CPUCLK_L = 0
     }
 
-    asmsub cpu_cycles() -> long @R0R1_32 {
+    asmsub cpu_cycles() -> long @R0R1 {
         ; -- returns the 32 bits cpu clock counter in R1:R0
         %asm {{
             lda  p8v_EMU_CPUCLK_L

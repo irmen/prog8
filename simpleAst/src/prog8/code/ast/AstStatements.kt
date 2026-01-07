@@ -18,7 +18,7 @@ sealed interface IPtSubroutine {
                 fun cpuRegisterFor(returntype: DataType): RegisterOrStatusflag = when {
                     returntype.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
                     returntype.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-                    returntype.isLong -> RegisterOrStatusflag(RegisterOrPair.R14R15_32, null)
+                    returntype.isLong -> RegisterOrStatusflag(RegisterOrPair.R14R15, null)
                     returntype.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
                     else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
                 }
@@ -50,35 +50,35 @@ sealed interface IPtSubroutine {
                             else {
                                 // remove the pair from integer regs
                                 when(reg) {
-                                    RegisterOrPair.R0R1_32 -> {
+                                    RegisterOrPair.R0R1 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R0)
                                         availableIntegerRegisters.remove(RegisterOrPair.R1)
                                     }
-                                    RegisterOrPair.R2R3_32 -> {
+                                    RegisterOrPair.R2R3 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R2)
                                         availableIntegerRegisters.remove(RegisterOrPair.R3)
                                     }
-                                    RegisterOrPair.R4R5_32 -> {
+                                    RegisterOrPair.R4R5 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R4)
                                         availableIntegerRegisters.remove(RegisterOrPair.R5)
                                     }
-                                    RegisterOrPair.R6R7_32 -> {
+                                    RegisterOrPair.R6R7 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R6)
                                         availableIntegerRegisters.remove(RegisterOrPair.R7)
                                     }
-                                    RegisterOrPair.R8R9_32 -> {
+                                    RegisterOrPair.R8R9 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R8)
                                         availableIntegerRegisters.remove(RegisterOrPair.R9)
                                     }
-                                    RegisterOrPair.R10R11_32 -> {
+                                    RegisterOrPair.R10R11 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R10)
                                         availableIntegerRegisters.remove(RegisterOrPair.R11)
                                     }
-                                    RegisterOrPair.R12R13_32 -> {
+                                    RegisterOrPair.R12R13 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R12)
                                         availableIntegerRegisters.remove(RegisterOrPair.R13)
                                     }
-                                    RegisterOrPair.R14R15_32 -> {
+                                    RegisterOrPair.R14R15 -> {
                                         availableIntegerRegisters.remove(RegisterOrPair.R14)
                                         availableIntegerRegisters.remove(RegisterOrPair.R15)
                                     }
@@ -95,14 +95,14 @@ sealed interface IPtSubroutine {
                             else {
                                 // remove it from long regs
                                 when(reg) {
-                                    RegisterOrPair.R0, RegisterOrPair.R1 -> availableLongRegisters.remove(RegisterOrPair.R0R1_32)
-                                    RegisterOrPair.R2, RegisterOrPair.R3 -> availableLongRegisters.remove(RegisterOrPair.R2R3_32)
-                                    RegisterOrPair.R4, RegisterOrPair.R5 -> availableLongRegisters.remove(RegisterOrPair.R4R5_32)
-                                    RegisterOrPair.R6, RegisterOrPair.R7 -> availableLongRegisters.remove(RegisterOrPair.R6R7_32)
-                                    RegisterOrPair.R8, RegisterOrPair.R9 -> availableLongRegisters.remove(RegisterOrPair.R8R9_32)
-                                    RegisterOrPair.R10, RegisterOrPair.R11 -> availableLongRegisters.remove(RegisterOrPair.R10R11_32)
-                                    RegisterOrPair.R12, RegisterOrPair.R13 -> availableLongRegisters.remove(RegisterOrPair.R12R13_32)
-                                    RegisterOrPair.R14, RegisterOrPair.R15 -> availableLongRegisters.remove(RegisterOrPair.R14R15_32)
+                                    RegisterOrPair.R0, RegisterOrPair.R1 -> availableLongRegisters.remove(RegisterOrPair.R0R1)
+                                    RegisterOrPair.R2, RegisterOrPair.R3 -> availableLongRegisters.remove(RegisterOrPair.R2R3)
+                                    RegisterOrPair.R4, RegisterOrPair.R5 -> availableLongRegisters.remove(RegisterOrPair.R4R5)
+                                    RegisterOrPair.R6, RegisterOrPair.R7 -> availableLongRegisters.remove(RegisterOrPair.R6R7)
+                                    RegisterOrPair.R8, RegisterOrPair.R9 -> availableLongRegisters.remove(RegisterOrPair.R8R9)
+                                    RegisterOrPair.R10, RegisterOrPair.R11 -> availableLongRegisters.remove(RegisterOrPair.R10R11)
+                                    RegisterOrPair.R12, RegisterOrPair.R13 -> availableLongRegisters.remove(RegisterOrPair.R12R13)
+                                    RegisterOrPair.R14, RegisterOrPair.R15 -> availableLongRegisters.remove(RegisterOrPair.R14R15)
                                     else -> throw AssemblyError("weird byte/long register $reg")
                                 }
                                 return reg

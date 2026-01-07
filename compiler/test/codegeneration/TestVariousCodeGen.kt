@@ -685,7 +685,7 @@ main {
         test(0)
     }
     
-    asmsub test(long arg @R0R1_32) {
+    asmsub test(long arg @R0R1) {
         %asm {{
             rts
         }}
@@ -703,7 +703,7 @@ main {
         extcommand_print_ulhex($abcdef99, false)
     }
 
-    asmsub extcommand_print_ulhex(long value @R0R1_32, bool prefix @A) clobbers(A,X,Y) {
+    asmsub extcommand_print_ulhex(long value @R0R1, bool prefix @A) clobbers(A,X,Y) {
         %asm {{
             rts
         }}

@@ -674,7 +674,7 @@ log2_tab
         return crc32_end_result()
     }
 
-    asmsub crc32_end_result() -> long @R14R15_32 {
+    asmsub crc32_end_result() -> long @R14R15 {
         ; finalize the "streaming" crc32
         ; returns the result value in cx16.r15 (high word) and r14 (low word)
         %asm {{

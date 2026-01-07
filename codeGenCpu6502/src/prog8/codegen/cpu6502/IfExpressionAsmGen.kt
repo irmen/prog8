@@ -386,7 +386,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 bne  $falseLabel""")
         } else {
             // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 cmp  #$${hex.substring(6, 8)}
@@ -424,7 +424,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 bne  $falseLabel""")
         } else {
             // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 cmp  $varname2
@@ -492,15 +492,15 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 ora  $varname+3
                 bne  $falseLabel""")
         } else {
-            asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
+            asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 ora  cx16.r14+1
                 ora  cx16.r14+2
                 ora  cx16.r14+3
                 sta  P8ZP_SCRATCH_REG""")
-            asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.popLongRegisters(RegisterOrPair.R14R15, 1)
             asmgen.out("  lda  P8ZP_SCRATCH_REG |  bne  $falseLabel")
         }
     }
@@ -517,15 +517,15 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 ora  $varname+3
                 beq  $falseLabel""")
         } else {
-            asmgen.pushLongRegisters(RegisterOrPair.R14R15_32, 1)
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15_32, expr.type.isSigned)
+            asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
+            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
             asmgen.out("""
                 lda  cx16.r14
                 ora  cx16.r14+1
                 ora  cx16.r14+2
                 ora  cx16.r14+3
                 sta  P8ZP_SCRATCH_REG""")
-            asmgen.popLongRegisters(RegisterOrPair.R14R15_32, 1)
+            asmgen.popLongRegisters(RegisterOrPair.R14R15, 1)
             asmgen.out("  lda  P8ZP_SCRATCH_REG |  beq  $falseLabel")
         }
     }
