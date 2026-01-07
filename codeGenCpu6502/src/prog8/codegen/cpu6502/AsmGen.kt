@@ -527,7 +527,7 @@ class AsmGen6502Internal (
     }
 
 
-    internal fun loadByteFromPointerIntoA(pointervar: PtIdentifier): String {
+    internal fun loadByteFromPointerIntoA(pointervar: PtIdentifier, tempZpPtrVar: String = "P8ZP_SCRATCH_PTR"): String {
         // returns the source name of the zero page pointervar if it's already in the ZP,
         // otherwise returns "P8ZP_SCRATCH_PTR" which is the intermediary
         val symbol = symbolTable.lookup(pointervar.name)
@@ -548,10 +548,10 @@ class AsmGen6502Internal (
                         out("""
                             lda  $sourceName
                             ldy  $sourceName+1
-                            sta  P8ZP_SCRATCH_PTR
-                            sty  P8ZP_SCRATCH_PTR+1
-                            lda  (P8ZP_SCRATCH_PTR)""")
-                        "P8ZP_SCRATCH_PTR"
+                            sta  $tempZpPtrVar
+                            sty  $tempZpPtrVar+1
+                            lda  ($tempZpPtrVar)""")
+                        tempZpPtrVar
                     }
                 } else {
                     return if (allocator.isZpVar((target as PtNamedNode).scopedName)) {
@@ -562,11 +562,11 @@ class AsmGen6502Internal (
                         out("""
                             lda  $sourceName
                             ldy  $sourceName+1
-                            sta  P8ZP_SCRATCH_PTR
-                            sty  P8ZP_SCRATCH_PTR+1
+                            sta  $tempZpPtrVar
+                            sty  $tempZpPtrVar+1
                             ldy  #0
-                            lda  (P8ZP_SCRATCH_PTR),y""")
-                        "P8ZP_SCRATCH_PTR"
+                            lda  ($tempZpPtrVar),y""")
+                        tempZpPtrVar
                     }
                 }
             }

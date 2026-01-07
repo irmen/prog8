@@ -102,11 +102,15 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignByteMemory(target: PtrTarget, address: UInt) {
-        TODO("assign memory byte to pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.out("  lda  $address")
+        asmgen.storeIndirectByteReg(CpuRegister.A, zpPtrVar, offset, false, false)
     }
 
     internal fun assignByteMemory(target: PtrTarget, identifier: PtIdentifier) {
-        TODO("assign memory byte to pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.loadByteFromPointerIntoA(identifier, tempZpPtrVar = "P8ZP_SCRATCH_W1")
+        asmgen.storeIndirectByteReg(CpuRegister.A, zpPtrVar, offset, false, false)
     }
 
     internal fun inplaceByteInvert(target: PtrTarget) {
