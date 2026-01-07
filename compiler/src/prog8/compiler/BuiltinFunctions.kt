@@ -7,7 +7,10 @@ import prog8.ast.SyntaxError
 import prog8.ast.expressions.*
 import prog8.ast.statements.StructDecl
 import prog8.ast.statements.VarDecl
-import prog8.code.core.*
+import prog8.code.core.BaseDataType
+import prog8.code.core.BuiltinFunctions
+import prog8.code.core.Position
+import prog8.code.core.isInteger
 import kotlin.math.*
 
 private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
@@ -200,7 +203,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
     if(args[0] is StringLiteral)
         return NumericLiteral.optimalInteger((args[0] as StringLiteral).value.length, position)
     if(args[0] !is IdentifierReference)
-        throw SyntaxError("len argument should be an identifier", position)
+        throw SyntaxError("len argument should be an identifier of type string or array", position)
     val target = (args[0] as IdentifierReference).targetVarDecl()
         ?: throw CannotEvaluateException("len", "no target vardecl")
 
@@ -218,7 +221,7 @@ private fun builtinLen(args: List<Expression>, position: Position, program: Prog
         target.datatype.isNumericOrBool -> throw SyntaxError("cannot use len on a numeric value. Perhaps you meant sizeof?", position)
         target.datatype.isPointerToByte -> throw SyntaxError("cannot use len on pointer to bytes. Perhaps you want to use strings.strlen() here to get the length of the string?", position)
         target.datatype.isPointer -> throw SyntaxError("cannot use len on pointer, only on strings and arrays", position)
-        else -> throw InternalCompilerException("weird datatype ${target.datatype} $position")
+        else -> throw CannotEvaluateException("len", "weird datatype")
     }
 }
 
