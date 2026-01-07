@@ -5,10 +5,31 @@ main {
     sub start() {
         long @shared lv
 
-        ^^long @nozp lptr = 2000
-        ^^long @nozp lptr2 = 2000
+        lv = 12345678
+        lv >>= 8
+        txt.print_l(lv)
+        txt.nl()
+        lv = 12345678
+        lv >>= 16
+        txt.print_l(lv)
+        txt.nl()
+        lv = 12345678
+        lv >>= 24
+        txt.print_l(lv)
+        txt.nl()
+        txt.nl()
 
-        lv = lptr^^
-        lptr2^^ = lptr^^
+        lv = -12345678
+        lv >>= 8
+        txt.print_l(lv)
+        txt.nl()
+        lv = -12345678
+        lv >>= 16
+        txt.print_l(lv)
+        txt.nl()
+        lv = -12345678
+        lv >>= 24
+        txt.print_l(lv)
+        txt.nl()
     }
 }

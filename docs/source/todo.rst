@@ -112,7 +112,8 @@ Libraries
 Optimizations
 -------------
 
-- optimize the right shifts in inplacemodificationLongWithLiteralval() for more shift values such as 8, 16, 24 etc but take sign bit into account!
+- optimize lsb(long>>8/16/24) and (long>>8/16/24) as ubyte  into single byte accesses (skip the whole shift)
+- optimize msb(long<<8/16/24) into single byte accesses (skip the whole shift)
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for long const and variable operands to not assign needlessly to R0-R3.
 - optimize optimizedBitwiseExpr()  for long const and variable operands to not assign needlessly to R0-R3.

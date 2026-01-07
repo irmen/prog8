@@ -818,6 +818,45 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     }
                 }
                 // TODO optimize for more cases 8, 16, 24 etc but don't forget to take the sign bit into account!
+                value==8 -> {
+                    asmgen.out("""
+                        lda  $variable+1
+                        sta  $variable
+                        lda  $variable+2
+                        sta  $variable+1
+                        lda  $variable+3
+                        sta  $variable+2
+                        bpl  +
+                        lda  #255
+                        bne  ++
++                       lda  #0
++                       sta  $variable+3""")
+                }
+                value==16-> {
+                    asmgen.out("""
+                        lda  $variable+2
+                        sta  $variable
+                        lda  $variable+3
+                        sta  $variable+1
+                        bpl  +
+                        lda  #255
+                        bne  ++
++                       lda  #0
++                       sta  $variable+2
+                        sta  $variable+3""")
+                }
+                value==24 -> {
+                    asmgen.out("""
+                        lda  $variable+3
+                        sta  $variable
+                        bpl  +
+                        lda  #255
+                        bne  ++
++                       lda  #0
++                       sta  $variable+1
+                        sta  $variable+2
+                        sta  $variable+3""")
+                }
                 value <= 31 -> {
                     asmgen.out("""
                         ldy  #$value
