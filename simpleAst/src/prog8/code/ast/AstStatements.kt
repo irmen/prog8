@@ -39,7 +39,7 @@ sealed interface IPtSubroutine {
 
                         val availableIntegerRegisters = Cx16VirtualRegisters.toMutableList()
                         val availableFloatRegisters = mutableListOf(RegisterOrPair.FAC1)        // just one value is possible
-                        val availableLongRegisters = combinedLongRegisters.toMutableList()
+                        val availableLongRegisters = CombinedLongRegisters.toMutableList()
 
                         availableLongRegisters.remove(firstRegister.first.registerOrPair)
 

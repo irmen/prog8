@@ -723,7 +723,7 @@ internal class AssignmentAsmGen(
                         RegisterOrPair.AY -> assignVirtualRegister(target, RegisterOrPair.AY)
                         RegisterOrPair.XY -> assignVirtualRegister(target, RegisterOrPair.XY)
                         in Cx16VirtualRegisters -> assignVirtualRegister(target, returnValue.first.registerOrPair!!)
-                        in combinedLongRegisters -> assignVirtualRegister(target, returnValue.first.registerOrPair!!)
+                        in CombinedLongRegisters -> assignVirtualRegister(target, returnValue.first.registerOrPair!!)
                         else -> {
                             val sflag = returnValue.first.statusflag
                             if(sflag!=null)
@@ -777,7 +777,7 @@ internal class AssignmentAsmGen(
             }
             target.datatype.isWord || target.datatype.isPointer -> assignRegisterpairWord(target, register)
             target.datatype.isLong -> {
-                require(register in combinedLongRegisters)
+                require(register in CombinedLongRegisters)
                 assignRegisterLong(target, register)
             }
             else -> throw AssemblyError("expected byte or word")
@@ -2665,7 +2665,7 @@ $endLabel""")
                     assignRegisterByte(target, CpuRegister.A, valueDt.isSigned, true)
                     return
                 }
-                in combinedLongRegisters -> {
+                in CombinedLongRegisters -> {
                     assignExpressionToRegister(value, RegisterOrPair.A, false)
                     assignRegisterByte(target, CpuRegister.A, valueDt.isSigned, true)
                     return
@@ -3556,7 +3556,7 @@ $endLabel""")
                     sta  ${target.asmVarname}+3,y""")
             }
             TargetStorageKind.REGISTER -> {
-                require(target.register in combinedLongRegisters)
+                require(target.register in CombinedLongRegisters)
                 val regstart = target.register!!.startregname()
                 when(sourceDt) {
                     DataType.BYTE -> {
@@ -3625,7 +3625,7 @@ $endLabel""")
                     sta  ${target.asmVarname}+3""")
             }
             TargetStorageKind.REGISTER -> {
-                require(target.register in combinedLongRegisters)
+                require(target.register in CombinedLongRegisters)
                 val regstart = target.register!!.startregname()
                 asmgen.out("""
                     lda  $arrayVarName,y
@@ -3759,7 +3759,7 @@ $endLabel""")
                             else
                                 asmgen.out("  lda  #0 |  sta  cx16.${target.register.toString().lowercase()}+1")
                         }
-                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
+                        in CombinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("can't load word in a single 8-bit register")
                     }
                 } else {
@@ -3774,7 +3774,7 @@ $endLabel""")
                                 lda  $varName+1
                                 sta  cx16.${target.register.toString().lowercase()}+1""")
                         }
-                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
+                        in CombinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("can't load word in a single 8-bit register")
                     }
                 }
@@ -3953,7 +3953,7 @@ $endLabel""")
                             lda  #0
                             sta  cx16.${target.register.toString().lowercase()}+1""")
                     }
-                    in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
+                    in CombinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                     else -> throw AssemblyError("weird register")
                 }
             }
@@ -4148,7 +4148,7 @@ $endLabel""")
     internal fun assignRegisterLong(target: AsmAssignTarget, pairedRegisters: RegisterOrPair) {
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
-                if(pairedRegisters in combinedLongRegisters) {
+                if(pairedRegisters in CombinedLongRegisters) {
                     val startreg = pairedRegisters.startregname()
                     asmgen.out("""
                         lda  cx16.$startreg
@@ -4179,7 +4179,7 @@ $endLabel""")
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {
                 val targetreg = target.register!!
-                require(targetreg in combinedLongRegisters && pairedRegisters in combinedLongRegisters)
+                require(targetreg in CombinedLongRegisters && pairedRegisters in CombinedLongRegisters)
                 if(targetreg!=pairedRegisters) {
                     val sourceStartReg = pairedRegisters.startregname()
                     val targetStartReg = targetreg.startregname()
@@ -4299,7 +4299,7 @@ $endLabel""")
                             if(extendSignedBits)
                                 extendToMSBofVirtualReg(CpuRegister.A, reg, signed)
                         }
-                        in combinedLongRegisters -> {
+                        in CombinedLongRegisters -> {
                             val reg = target.register.startregname()
                             asmgen.out("  sta  cx16.$reg")
                             if(extendSignedBits) {
@@ -4357,7 +4357,7 @@ $endLabel""")
                             if(extendSignedBits)
                                 extendToMSBofVirtualReg(CpuRegister.X, reg, signed)
                         }
-                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
+                        in CombinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("weird register")
                     }
                     CpuRegister.Y -> when(target.register!!) {
@@ -4411,7 +4411,7 @@ $endLabel""")
                             if(extendSignedBits)
                                 extendToMSBofVirtualReg(CpuRegister.Y, reg, signed)
                         }
-                        in combinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
+                        in CombinedLongRegisters -> TODO("assign byte to long reg ${target.position}")
                         else -> throw AssemblyError("weird register")
                     }
                 }
@@ -4733,7 +4733,7 @@ $endLabel""")
             }
             TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
             TargetStorageKind.REGISTER -> {
-                require(target.register in combinedLongRegisters)
+                require(target.register in CombinedLongRegisters)
                 val regstart = target.register!!.startregname()
                 val hex = long.toLongHex()
                 asmgen.out("""
@@ -5083,7 +5083,7 @@ $endLabel""")
                             lda  #0
                             sta  cx16.${target.register.toString().lowercase()}+1""")
                     }
-                    in combinedLongRegisters -> TODO("assign memory byte into long ${target.position}")
+                    in CombinedLongRegisters -> TODO("assign memory byte into long ${target.position}")
                     else -> throw AssemblyError("weird register")
                 }
                 TargetStorageKind.POINTER -> pointergen.assignByteMemory(PtrTarget(target), address)
@@ -5119,7 +5119,7 @@ $endLabel""")
                                 lda  #0
                                 sta  cx16.${target.register.toString().lowercase()}+1""")
                         }
-                        in combinedLongRegisters -> {
+                        in CombinedLongRegisters -> {
                             val startreg = target.register.startregname()
                             asmgen.out("""
                                 sta  cx16.$startreg
@@ -5342,7 +5342,7 @@ $endLabel""")
                             RegisterOrPair.AY -> asmgen.out("  pha |  tya |  eor  #255 |  tay |  pla |  eor  #255")
                             RegisterOrPair.XY -> asmgen.out("  txa |  eor  #255 |  tax |  tya |  eor  #255 |  tay")
                             in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
-                            in combinedLongRegisters -> TODO("in place negate long invert ${target.position}")
+                            in CombinedLongRegisters -> TODO("in place negate long invert ${target.position}")
                             else -> throw AssemblyError("invalid reg dt for word invert")
                         }
                     }
@@ -5471,7 +5471,7 @@ $endLabel""")
                                     tay""")
                             }
                             in Cx16VirtualRegisters -> throw AssemblyError("cx16 virtual regs should be variables, not real registers")
-                            in combinedLongRegisters -> TODO("in place negate long reg ${target.position}")
+                            in CombinedLongRegisters -> TODO("in place negate long reg ${target.position}")
                             else -> throw AssemblyError("invalid reg dt for word neg")
                         }
                     }

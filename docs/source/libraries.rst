@@ -96,8 +96,9 @@ lsw (x)
     Get the least significant (lower) word of the value x. Equivalent to ``x & 65535`` or even ``x as uword``.
 
 msb (x)
-    Get the most significant (highest) byte of the word or long value x
-    (so for a long value, msb($11223344) is $11, not $33).
+    Get the most significant (highest) byte of the word or long value
+    (so for a long value, msb($11223344) is $11, not $33. To grab the bank byte of a long variable, you need to do this:
+    ``lsb(msw(longvariable))`` or the equivalent ``@(&longvariable+2)``.)
 
 msw (x)
     Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.

@@ -118,7 +118,7 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
                         val dt = if(signed) DataType.WORD else DataType.UWORD
                         AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, dt, scope, pos, register = registers)
                     }
-                    in combinedLongRegisters -> {
+                    in CombinedLongRegisters -> {
                         val dt = if(signed) DataType.LONG
                             else
                                 TODO("unsigned long $pos")

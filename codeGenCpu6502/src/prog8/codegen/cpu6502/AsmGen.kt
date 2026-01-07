@@ -813,7 +813,7 @@ class AsmGen6502Internal (
             RegisterOrPair.AY,
             RegisterOrPair.XY -> assignmentAsmGen.assignRegisterpairWord(target, reg)
             in Cx16VirtualRegisters -> assignmentAsmGen.assignVirtualRegister(target, reg)
-            in combinedLongRegisters -> assignmentAsmGen.assignVirtualRegister(target, reg)
+            in CombinedLongRegisters -> assignmentAsmGen.assignVirtualRegister(target, reg)
             RegisterOrPair.FAC1 -> assignmentAsmGen.assignFAC1float(target)
             RegisterOrPair.FAC2 -> assignmentAsmGen.assignFAC2float(target)
             else -> throw AssemblyError("invalid register")
@@ -946,7 +946,7 @@ class AsmGen6502Internal (
                                 TargetStorageKind.ARRAY -> TODO("assign typecasted long to array  ${target.position}")
                                 TargetStorageKind.MEMORY -> throw AssemblyError("memory is bytes not long ${target.position}")
                                 TargetStorageKind.REGISTER -> {
-                                    require(target.register in combinedLongRegisters)
+                                    require(target.register in CombinedLongRegisters)
                                     val startreg = target.register!!.startregname()
                                     out("""
                                         lda  $valuesym
@@ -2123,20 +2123,21 @@ $repeatLabel""")
         }
     }
 
-    internal fun loadIndirectLongIntoR14R15(zpPtrVar: String, offset: UByte) {
+    internal fun loadIndirectLongIntoCombinedLongRegister(zpPtrVar: String, offset: UByte, targetRegPair: RegisterOrPair) {
+        val regstart = targetRegPair.startregname()
         out("""
             ldy  #$offset
             lda  ($zpPtrVar),y
-            sta  cx16.r14
+            sta  cx16.$regstart
             iny
             lda  ($zpPtrVar),y
-            sta  cx16.r14+1
+            sta  cx16.$regstart+1
             iny
             lda  ($zpPtrVar),y
-            sta  cx16.r14+2
+            sta  cx16.$regstart+2
             iny
             lda  ($zpPtrVar),y
-            sta  cx16.r14+3""")
+            sta  cx16.$regstart+3""")
     }
 
     internal fun storeIndirectByte(byte: Int, zpPtrVar: String, offset: UByte) {

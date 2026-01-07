@@ -112,13 +112,12 @@ Libraries
 Optimizations
 -------------
 
-- longvar = lptr^^ ,  lptr2^^=lptr^^  now go via temporary registers, optimize this to avoid using temps.  (seems like it is dereferencing the pointer first and then assigning the intermediate value)
-- optimize inplaceLongShiftRight() for byte aligned cases
+- optimize the right shifts in inplacemodificationLongWithLiteralval() for more shift values such as 8, 16, 24 etc but take sign bit into account!
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for long const and variable operands to not assign needlessly to R0-R3.
 - optimize optimizedBitwiseExpr()  for long const and variable operands to not assign needlessly to R0-R3.
-- optimize inplacemodificationLongWithLiteralval() for more shift values such as 8, 16, 24 etc but take sign bit into account!
 - optimize simple cases in funcPeekL and funcPokeL
+- lptr2^^=lptr^^  now always go via temporary var, optimize this to avoid using temps if possible. (assignPointerDerefExpression)
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?

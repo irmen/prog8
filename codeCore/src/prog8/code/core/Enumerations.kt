@@ -452,7 +452,7 @@ enum class RegisterOrPair {
     }
 
     fun isWord() = this==AX || this == AY || this==XY || this in Cx16VirtualRegisters
-    fun isLong() = this in combinedLongRegisters
+    fun isLong() = this in CombinedLongRegisters
 
 }       // only used in parameter and return value specs in asm subroutines
 
@@ -489,7 +489,7 @@ val Cx16VirtualRegisters = arrayOf(
     RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15
 )
 
-val combinedLongRegisters = arrayOf(
+val CombinedLongRegisters = arrayOf(
     RegisterOrPair.R0R1,
     RegisterOrPair.R2R3,
     RegisterOrPair.R4R5,

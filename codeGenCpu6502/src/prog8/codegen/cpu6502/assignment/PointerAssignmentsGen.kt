@@ -258,8 +258,37 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             asmgen.assignRegister(RegisterOrPair.FAC1, target)
         }
         else if(value.type.isLong) {
-            asmgen.loadIndirectLongIntoR14R15(zpPtrVar, offset)
-            asmgen.assignRegister(RegisterOrPair.R14R15, target)
+            when(target.kind) {
+                TargetStorageKind.VARIABLE -> {
+                    asmgen.out("""
+                        ldy  #$offset
+                        lda  ($zpPtrVar),y
+                        sta  ${target.asmVarname}
+                        iny
+                        lda  ($zpPtrVar),y
+                        sta  ${target.asmVarname}+1
+                        iny
+                        lda  ($zpPtrVar),y
+                        sta  ${target.asmVarname}+2
+                        iny
+                        lda  ($zpPtrVar),y
+                        sta  ${target.asmVarname}+3
+                    """)
+                }
+                TargetStorageKind.REGISTER -> {
+                    require(target.register!! in CombinedLongRegisters)
+                    asmgen.loadIndirectLongIntoCombinedLongRegister(zpPtrVar, offset, target.register)
+                }
+                TargetStorageKind.POINTER -> {
+                    // TODO optimize this so it doesn't need a temporary long var all the time
+                    asmgen.loadIndirectLongIntoCombinedLongRegister(zpPtrVar, offset, RegisterOrPair.R14R15)
+                    asmgen.assignRegister(RegisterOrPair.R14R15, target)
+                }
+                else -> {
+                    asmgen.loadIndirectLongIntoCombinedLongRegister(zpPtrVar, offset, RegisterOrPair.R14R15)
+                    asmgen.assignRegister(RegisterOrPair.R14R15, target)
+                }
+            }
         }
         else
             throw AssemblyError("weird dt ${value.type} in pointer deref assignment ${target.position}")
@@ -2589,7 +2618,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     lda  $regname+1
                     pha""")
             }
-            in combinedLongRegisters -> {
+            in CombinedLongRegisters -> {
                 TODO("save on stack long register pair - do we really want to do this?")
             }
             else -> asmgen.saveRegisterStack(regs.asCpuRegister(), false)
@@ -2624,7 +2653,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     pla
                     sta  $regname""")
             }
-            in combinedLongRegisters -> {
+            in CombinedLongRegisters -> {
                 TODO("restore from stack long register - do we really want to do this?")
             }
             else -> asmgen.restoreRegisterStack(regs.asCpuRegister(), false)

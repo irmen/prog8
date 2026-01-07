@@ -1,9 +1,9 @@
 package prog8.codegen.cpu6502
 
 import prog8.code.ast.PtAsmSub
+import prog8.code.core.CombinedLongRegisters
 import prog8.code.core.Cx16VirtualRegisters
 import prog8.code.core.RegisterOrPair
-import prog8.code.core.combinedLongRegisters
 
 
 fun asmsub6502ArgsEvalOrder(sub: PtAsmSub): List<Int> {
@@ -16,7 +16,7 @@ fun asmsub6502ArgsEvalOrder(sub: PtAsmSub): List<Int> {
     //  5) floating point registers (FAC1, FAC2),
     //  6) CPU Carry status flag
     val args = sub.parameters.withIndex()
-    val (combinedLongRegs, args1) = args.partition { it.value.first.registerOrPair in combinedLongRegisters }
+    val (combinedLongRegs, args1) = args.partition { it.value.first.registerOrPair in CombinedLongRegisters }
     val (cx16regs, args2) = args1.partition { it.value.first.registerOrPair in Cx16VirtualRegisters }
     val pairedRegisters = arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)
     val (pairedRegs , args3) = args2.partition { it.value.first.registerOrPair in pairedRegisters }
