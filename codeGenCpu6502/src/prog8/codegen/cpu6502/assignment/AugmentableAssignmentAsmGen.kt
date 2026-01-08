@@ -817,7 +817,6 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                             ror  $variable""")
                     }
                 }
-                // TODO optimize for more cases 8, 16, 24 etc but don't forget to take the sign bit into account!
                 value==8 -> {
                     asmgen.out("""
                         lda  $variable+1

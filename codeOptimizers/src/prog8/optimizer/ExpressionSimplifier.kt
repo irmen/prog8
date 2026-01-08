@@ -340,13 +340,43 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                         FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left.copy()), expr.position),
                         expr.parent.parent))
             }
-            else if(amount==16.0 && idt.isLong) {
-                // msw(long<<16) --> lsw(long)
-                val msw = expr.parent as? IFunctionCall
-                if(msw?.target?.nameInSource == listOf("msw"))
-                    return listOf(IAstModification.ReplaceNode(expr.parent,
-                        FunctionCallExpression(IdentifierReference(listOf("lsw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
-                        expr.parent.parent))
+
+            if(idt.isLong) {
+                when(amount) {
+                    8.0 -> {
+                        // msb(long<<8) --> lsb(msw(long))
+                        val msb = (expr.parent as? IFunctionCall)?.target?.nameInSource
+                        if(msb?.singleOrNull() in arrayOf("msb__long", "msb")) {
+                            val msw = FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position)
+                            val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(msw), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr.parent, lsb, expr.parent.parent))
+                        }
+                    }
+                    16.0 -> {
+                        // msw(long<<16) --> lsw(long)
+                        val msw = expr.parent as? IFunctionCall
+                        if(msw?.target?.nameInSource == listOf("msw"))
+                            return listOf(IAstModification.ReplaceNode(expr.parent,
+                                FunctionCallExpression(IdentifierReference(listOf("lsw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                                expr.parent.parent))
+
+                        // msb(long<<16) --> msb(lsw(lv))
+                        val msb = (expr.parent as? IFunctionCall)?.target?.nameInSource
+                        if(msb?.singleOrNull() in arrayOf("msb__long", "msb")) {
+                            val lsw = FunctionCallExpression(IdentifierReference(listOf("lsw"), expr.position), mutableListOf(expr.left.copy()), expr.position)
+                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(lsw), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr.parent, msb, expr.parent.parent))
+                        }
+                    }
+                    24.0 -> {
+                        // msb(long<<24) --> lsb__long(long)
+                        val msb = (expr.parent as? IFunctionCall)?.target?.nameInSource
+                        if(msb?.singleOrNull() in arrayOf("msb__long", "msb"))
+                            return listOf(IAstModification.ReplaceNode(expr.parent,
+                                FunctionCallExpression(IdentifierReference(listOf("lsb__long"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                                expr.parent.parent))
+                    }
+                }
             }
         }
         else if(expr.operator==">>") {
