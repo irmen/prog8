@@ -1199,7 +1199,6 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcPeekL(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?) {
-        // TODO optimize for the simple cases
         asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.func_peekl")
         val targetReg = AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.R14R15, true, fcall.position, fcall.definingISub(), asmgen)

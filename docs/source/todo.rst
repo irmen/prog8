@@ -113,9 +113,9 @@ Optimizations
 -------------
 
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
-- optimize longEqualsValue() for long const and variable operands to not assign needlessly to R0-R3.
-- optimize optimizedBitwiseExpr()  for long const and variable operands to not assign needlessly to R0-R3.
-- optimize simple cases in funcPeekL and funcPokeL
+- optimize longEqualsValue() for long const and variable operands to not assign needlessly to R14-R15.
+- optimize optimizedBitwiseExpr()  for long const and variable operands to not assign needlessly to R14-R15.
+- optimize simple cases of funcPokeL
 - lptr2^^=lptr^^  now always go via temporary var, optimize this to avoid using temps if possible. (assignPointerDerefExpression)
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)

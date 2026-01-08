@@ -656,6 +656,43 @@ internal class AssignmentAsmGen(
     }
 
     private fun assignBuiltinFunctionCall(target: AsmAssignTarget, value: PtBuiltinFunctionCall) {
+
+        if(value.name=="peekl" && target.kind==TargetStorageKind.VARIABLE) {
+            val arg = value.args[0]
+            if(arg is PtNumber) {
+                val address = arg.number.toInt()
+                asmgen.out("""
+                    lda  $address
+                    sta  ${target.asmVarname}
+                    lda  $address+1
+                    sta  ${target.asmVarname}+1
+                    lda  $address+2
+                    sta  ${target.asmVarname}+2
+                    lda  $address+3
+                    sta  ${target.asmVarname}+3""")
+                return
+            }
+            else if(arg is PtIdentifier) {
+                val varname = asmgen.asmVariableName(arg)
+                if(asmgen.isZpVar(arg)) {
+                    asmgen.out("""
+                        ldy  #0
+                        lda  ($varname),y
+                        sta  ${target.asmVarname}
+                        iny
+                        lda  ($varname),y
+                        sta  ${target.asmVarname}+1
+                        iny
+                        lda  ($varname),y
+                        sta  ${target.asmVarname}+2
+                        iny
+                        lda  ($varname),y
+                        sta  ${target.asmVarname}+3""")
+                    return
+                }
+            }
+        }
+
         val returnDt = asmgen.translateBuiltinFunctionCallExpression(value, target.register)
         if(target.register==null) {
             // still need to assign the result to the target variable/etc.
