@@ -342,8 +342,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
             else if(amount==16.0 && idt.isLong) {
                 // msw(long<<16) --> lsw(long)
-                val msb = expr.parent as? IFunctionCall
-                if(msb?.target?.nameInSource == listOf("msw"))
+                val msw = expr.parent as? IFunctionCall
+                if(msw?.target?.nameInSource == listOf("msw"))
                     return listOf(IAstModification.ReplaceNode(expr.parent,
                         FunctionCallExpression(IdentifierReference(listOf("lsw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
                         expr.parent.parent))
@@ -367,20 +367,63 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                         FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left.copy()), expr.position),
                         expr.parent.parent))
             }
-            else if(amount==16.0 && idt.isLong) {
-                // lsw(long>>16) --> msw(long)
-                // long>>16 as uword --> msw(long)
-                val lsb = expr.parent as? IFunctionCall
-                if(lsb?.target?.nameInSource == listOf("lsw"))
-                    return listOf(IAstModification.ReplaceNode(expr.parent,
-                        FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
-                        expr.parent.parent))
+            else if (idt.isLong) {
+                when(amount) {
+                    8.0 -> {
+                        val lsb = (expr.parent as? IFunctionCall)?.target?.nameInSource
+                        if(lsb?.singleOrNull() in arrayOf("lsb__long", "lsb")) {
+                            // lsb(long>>8) --> msb(lsw(long))
+                            val lsw = FunctionCallExpression(IdentifierReference(listOf("lsw"), expr.position), mutableListOf(expr.left.copy()), expr.position)
+                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(lsw), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr.parent, msb, expr.parent.parent))
+                        }
+                        val castbyte = expr.parent as? TypecastExpression
+                        if(castbyte?.type?.isByte==true) {
+                            // long>>8 as ubyte --> msb(lsw(long))
+                            val lsw = FunctionCallExpression(IdentifierReference(listOf("lsw"), expr.position), mutableListOf(expr.left.copy()), expr.position)
+                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(lsw), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr.parent, msb, expr.parent.parent))
+                        }
+                    }
+                    16.0 -> {
+                        // lsw(long>>16) --> msw(long)
+                        // long>>16 as uword --> msw(long)
+                        val lsw = expr.parent as? IFunctionCall
+                        if(lsw?.target?.nameInSource == listOf("lsw"))
+                            return listOf(IAstModification.ReplaceNode(expr.parent,
+                                FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                                expr.parent.parent))
 
-                val castbyte = expr.parent as? TypecastExpression
-                if(castbyte?.type?.isWord==true)
-                    return listOf(IAstModification.ReplaceNode(expr.parent,
-                        FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
-                        expr.parent.parent))
+                        val castbyte = expr.parent as? TypecastExpression
+                        if(castbyte?.type?.isWord==true)
+                            return listOf(IAstModification.ReplaceNode(expr.parent,
+                                FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                                expr.parent.parent))
+
+                        val lsb = (expr.parent as? IFunctionCall)?.target?.nameInSource
+                        if(lsb?.singleOrNull() in arrayOf("lsb__long", "lsb") || castbyte?.type?.isByte==true) {
+                            // lsb(long>>16) --> lsb(msw(long)
+                            // long>>16 as ubyte --> msb(long)
+                            val msw = FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position)
+                            val lsb = FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(msw), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr.parent, lsb, expr.parent.parent))
+                        }
+                    }
+                    24.0 -> {
+                        val lsb = (expr.parent as? IFunctionCall)?.target?.nameInSource
+                        if(lsb?.singleOrNull() in arrayOf("lsb__long", "lsb")) {
+                            // lsb(long>>24) --> msb(long)
+                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb__long"), expr.position), mutableListOf(expr.left.copy()), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr.parent, msb, expr.parent.parent))
+                        }
+                        val castbyte = expr.parent as? TypecastExpression
+                        if(castbyte?.type?.isByte==true) {
+                            // long>>24 as ubyte --> msb(long)
+                            val msb = FunctionCallExpression(IdentifierReference(listOf("msb__long"), expr.position), mutableListOf(expr.left.copy()), expr.position)
+                            return listOf(IAstModification.ReplaceNode(expr.parent, msb, expr.parent.parent))
+                        }
+                    }
+                }
             }
         }
 
