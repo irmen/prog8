@@ -329,6 +329,61 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
             }
         }
 
+        if(expr.operator=="<<") {
+            val amount = expr.right.constValue(program)?.number
+            val idt = expr.left.inferType(program)
+            if(amount==8.0 && idt.isWords) {
+                // msb(word<<8) --> lsb(word)
+                val msb = expr.parent as? IFunctionCall
+                if(msb?.target?.nameInSource == listOf("msb"))
+                    return listOf(IAstModification.ReplaceNode(expr.parent,
+                        FunctionCallExpression(IdentifierReference(listOf("lsb"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                        expr.parent.parent))
+            }
+            else if(amount==16.0 && idt.isLong) {
+                // msw(long<<16) --> lsw(long)
+                val msb = expr.parent as? IFunctionCall
+                if(msb?.target?.nameInSource == listOf("msw"))
+                    return listOf(IAstModification.ReplaceNode(expr.parent,
+                        FunctionCallExpression(IdentifierReference(listOf("lsw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                        expr.parent.parent))
+            }
+        }
+        else if(expr.operator==">>") {
+            val amount = expr.right.constValue(program)?.number
+            val idt = expr.left.inferType(program)
+            if(amount==8.0 && idt.isWords) {
+                // lsb(word>>8) --> msb(word)
+                // word>>8 as ubyte --> msb(word)
+                val lsb = expr.parent as? IFunctionCall
+                if(lsb?.target?.nameInSource == listOf("lsb"))
+                    return listOf(IAstModification.ReplaceNode(expr.parent,
+                        FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                        expr.parent.parent))
+
+                val castbyte = expr.parent as? TypecastExpression
+                if(castbyte?.type?.isByte==true)
+                    return listOf(IAstModification.ReplaceNode(expr.parent,
+                        FunctionCallExpression(IdentifierReference(listOf("msb"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                        expr.parent.parent))
+            }
+            else if(amount==16.0 && idt.isLong) {
+                // lsw(long>>16) --> msw(long)
+                // long>>16 as uword --> msw(long)
+                val lsb = expr.parent as? IFunctionCall
+                if(lsb?.target?.nameInSource == listOf("lsw"))
+                    return listOf(IAstModification.ReplaceNode(expr.parent,
+                        FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                        expr.parent.parent))
+
+                val castbyte = expr.parent as? TypecastExpression
+                if(castbyte?.type?.isWord==true)
+                    return listOf(IAstModification.ReplaceNode(expr.parent,
+                        FunctionCallExpression(IdentifierReference(listOf("msw"), expr.position), mutableListOf(expr.left.copy()), expr.position),
+                        expr.parent.parent))
+            }
+        }
+
         // simplify when a term is constant and directly determines the outcome
         val constFalse = NumericLiteral.fromBoolean(false, expr.position)
         val newExpr2 = when (expr.operator) {
