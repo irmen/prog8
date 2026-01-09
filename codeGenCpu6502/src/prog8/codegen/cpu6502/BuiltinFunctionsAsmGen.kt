@@ -1066,12 +1066,122 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcPokeL(fcall: PtBuiltinFunctionCall) {
-        // TODO optimize for the simple cases
-        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
+        val (targetArg, valueArg) = fcall.args
+        if(targetArg is PtNumber) {
+            val address = targetArg.number.toInt()
+            if(valueArg is PtNumber) {
+                val hex = valueArg.number.toLongHex()
+                asmgen.out("""
+                    lda  #$${hex.substring(6,8)}
+                    sta  $address
+                    lda  #$${hex.substring(4, 6)}
+                    sta  $address+1
+                    lda  #$${hex.substring(2, 4)}
+                    sta  $address+2
+                    lda  #$${hex.take(2)}
+                    sta  $address+3""")
+                return
+            } else if(valueArg is PtIdentifier) {
+                val varname = asmgen.asmVariableName(valueArg)
+                asmgen.out("""
+                    lda  $varname
+                    sta  $address
+                    lda  $varname+1
+                    sta  $address+1
+                    lda  $varname+2
+                    sta  $address+2
+                    lda  $varname+3
+                    sta  $address+3""")
+                return
+            }
+        }
+
+        if(targetArg is PtIdentifier) {
+            val ptrname = asmgen.asmVariableName(targetArg)
+            if(asmgen.isZpVar(targetArg)) {
+                if(valueArg is PtNumber) {
+                    val hex = valueArg.number.toLongHex()
+                    asmgen.out("""
+                        ldy  #0
+                        lda  #$${hex.substring(6,8)}
+                        sta  ($ptrname),y
+                        iny
+                        lda  #$${hex.substring(4, 6)}
+                        sta  ($ptrname),y
+                        iny
+                        lda  #$${hex.substring(2, 4)}
+                        sta  ($ptrname),y
+                        iny
+                        lda  #$${hex.take(2)}
+                        sta  ($ptrname),y""")
+                    return
+                } else if(valueArg is PtIdentifier) {
+                    val varname = asmgen.asmVariableName(valueArg)
+                    asmgen.out("""
+                        lda  $varname
+                        ldy  #0
+                        sta  ($ptrname),y
+                        iny
+                        lda  $varname+1
+                        sta  ($ptrname),y
+                        iny
+                        lda  $varname+2
+                        sta  ($ptrname),y
+                        iny
+                        lda  $varname+3
+                        sta  ($ptrname),y""")
+                    return
+                }
+            } else {
+                if(valueArg is PtNumber) {
+                    val hex = valueArg.number.toLongHex()
+                    asmgen.out("""
+                        lda  $ptrname
+                        ldy  $ptrname+1
+                        sta  P8ZP_SCRATCH_PTR
+                        sty  P8ZP_SCRATCH_PTR+1
+                        ldy  #0
+                        lda  #$${hex.substring(6,8)}
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  #$${hex.substring(4, 6)}
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  #$${hex.substring(2, 4)}
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  #$${hex.take(2)}
+                        sta  (P8ZP_SCRATCH_PTR),y""")
+                    return
+                } else if(valueArg is PtIdentifier) {
+                    val varname = asmgen.asmVariableName(valueArg)
+                    asmgen.out("""
+                        lda  $ptrname
+                        ldy  $ptrname+1
+                        sta  P8ZP_SCRATCH_PTR
+                        sty  P8ZP_SCRATCH_PTR+1
+                        lda  $varname
+                        ldy  #0
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  $varname+1
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  $varname+2
+                        sta  (P8ZP_SCRATCH_PTR),y
+                        iny
+                        lda  $varname+3
+                        sta  (P8ZP_SCRATCH_PTR),y""")
+                    return
+                }
+            }
+        }
+
+        asmgen.assignExpressionToRegister(targetArg, RegisterOrPair.AY)
         asmgen.saveRegisterStack(CpuRegister.A, false)
         asmgen.saveRegisterStack(CpuRegister.Y, false)
         // it's a statement so no need to preserve R14:R15
-        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15, true)
+        asmgen.assignExpressionToRegister(valueArg, RegisterOrPair.R14R15, true)
         asmgen.restoreRegisterStack(CpuRegister.Y, false)
         asmgen.restoreRegisterStack(CpuRegister.A, false)
         asmgen.out("  jsr  prog8_lib.func_pokel")
