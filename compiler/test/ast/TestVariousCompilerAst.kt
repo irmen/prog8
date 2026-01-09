@@ -1339,5 +1339,28 @@ main {
         errors.errors[2] shouldContain "struct name cannot be a keyword"
         errors.errors[3] shouldContain "builtin function cannot be redefined"
     }
+
+    test("string and array multiplication require integer multiplicand") {
+        val src="""
+main {
+    sub start() {
+        const bool DERP = true
+
+        for cx16.r0L in 0 to 10 {
+            print_strXY(1,2,"irmen"*DERP,22,false)
+            print_strXY(1,2,[1,3,4]*DERP,22,false)
+        }
+    }
+
+    sub print_strXY(ubyte col, ubyte row, str txtstring, ubyte colors, bool convertchars) {
+        cx16.r0L++
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "can only multiply string by integer constant"
+        errors.errors[1] shouldContain "can only multiply array by integer constant"
+    }
 })
 

@@ -336,12 +336,26 @@ main {
         assignAddr4.type shouldBe BaseDataType.LONG
     }
 
-    test("out of range const byte and word give correct error") {
+    test("out of range const byte and word give correct error (negative values)") {
         var src = """
 main {
     sub start() {
         const byte MIN_BYTE = -129
         const word MIN_WORD = -32769
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 2
+        errors.errors[0] shouldContain "out of range"
+        errors.errors[1] shouldContain "out of range"
+    }
+
+    test("out of range const byte and word give correct error (positive values)") {
+        var src = """
+main {
+    sub start() {
         const byte MAX_BYTE = 128
         const word MAX_WORD = 32768
     }
@@ -349,11 +363,9 @@ main {
 
         val errors = ErrorReporterForTests()
         compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 4
+        errors.errors.size shouldBe 2
         errors.errors[0] shouldContain "out of range"
         errors.errors[1] shouldContain "out of range"
-        errors.errors[2] shouldContain "out of range"
-        errors.errors[3] shouldContain "out of range"
     }
 
     test("out of range var byte and word give correct error") {
@@ -412,6 +424,20 @@ main {
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain (":4:37: no cast available")
         errors.errors[1] shouldContain (":5:37: no cast available")
+    }
+
+    test("const bool with wrong value type gives error") {
+        var src = """
+main {
+    sub start() {
+        const bool TRUTH = 42
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(C64Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain ("doesn't match target type bool")
     }
 
     test("const evaluation of signed bitwise operations") {

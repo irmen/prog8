@@ -11,6 +11,7 @@ import prog8.ast.walk.IAstModification
 import prog8.code.core.AssociativeOperators
 import prog8.code.core.BaseDataType
 import prog8.code.core.IErrorReporter
+import prog8.code.core.isInteger
 import kotlin.math.floor
 
 
@@ -109,35 +110,56 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                 val concatStr = StringLiteral.create(concatenated, leftString.encoding, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, concatStr, parent))
             }
-            else if(expr.operator=="*" && rightconst!=null && expr.left is StringLiteral) {
-                // mutiply a string.
-                val part = expr.left as StringLiteral
-                if(part.value.isEmpty())
-                    errors.warn("resulting string has length zero", part.position)
-                val newStr = StringLiteral.create(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
-                return listOf(IAstModification.ReplaceNode(expr, newStr, parent))
+            else if (expr.operator=="*" && expr.left is StringLiteral) {
+                if (rightconst != null) {
+                    // mutiply a string.
+                    val part = expr.left as StringLiteral
+                    if(part.value.isEmpty())
+                        errors.warn("resulting string has length zero", part.position)
+                    if(rightconst.number>255)
+                        errors.err("string length must be 0-255", rightconst.position)
+                    else if(!rightconst.type.isInteger)
+                        errors.err("can only multiply string by integer constant", rightconst.position)
+                    else {
+                        val newStr = StringLiteral.create(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
+                        return listOf(IAstModification.ReplaceNode(expr, newStr, parent))
+                    }
+                } else {
+                    errors.err("can only multiply a string by an integer value", expr.right.position)
+                }
+                return noModifications
             }
         }
 
         if(expr.left.inferType(program).isArray) {
-            if (expr.operator=="*" && rightconst!=null) {
-                if (expr.left is ArrayLiteral) {
-                    // concatenate array literal.
-                    val part = expr.left as ArrayLiteral
-                    if(part.value.isEmpty())
-                        errors.warn("resulting array has length zero", part.position)
-                    val tmp = mutableListOf<Expression>()
-                    repeat(rightconst.number.toInt()) {
-                        part.value.forEach { tmp += it.copy() }
+            if (expr.operator=="*") {
+                if (rightconst != null) {
+                    if (expr.left is ArrayLiteral) {
+                        // concatenate array literal.
+                        val part = expr.left as ArrayLiteral
+                        if(part.value.isEmpty())
+                            errors.warn("resulting array has length zero", part.position)
+                        if(rightconst.number.toInt() !in 1..(255/part.value.size))
+                            errors.err("array length must be 1-255", rightconst.position)
+                        else if(!rightconst.type.isInteger)
+                            errors.err("can only multiply array by integer constant", rightconst.position)
+                        else {
+                            val tmp = mutableListOf<Expression>()
+                            repeat(rightconst.number.toInt()) {
+                                part.value.forEach { tmp += it.copy() }
+                            }
+                            val newArray = ArrayLiteral(part.type, tmp.toTypedArray(), part.position)
+                            return listOf(IAstModification.ReplaceNode(expr, newArray, parent))
+                        }
+                    } else {
+                        val leftTarget = (expr.left as? IdentifierReference)?.targetVarDecl()
+                        if(leftTarget!=null && leftTarget.origin==VarDeclOrigin.ARRAYLITERAL)
+                            throw FatalAstException("shouldn't see an array literal converted to an autovar here")
                     }
-                    val newArray = ArrayLiteral(part.type, tmp.toTypedArray(), part.position)
-                    return listOf(IAstModification.ReplaceNode(expr, newArray, parent))
+                } else {
+                    errors.err("can only multiply an array by an integer value", expr.right.position)
                 }
-                else {
-                    val leftTarget = (expr.left as? IdentifierReference)?.targetVarDecl()
-                    if(leftTarget!=null && leftTarget.origin==VarDeclOrigin.ARRAYLITERAL)
-                        throw FatalAstException("shouldn't see an array literal converted to an autovar here")
-                }
+                return noModifications
             }
         }
 

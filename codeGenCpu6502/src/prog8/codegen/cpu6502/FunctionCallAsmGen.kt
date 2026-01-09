@@ -291,11 +291,11 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
         val requiredDt = parameter.value.type
         if(requiredDt!=value.type) {
             if(value.type.largerSizeThan(requiredDt))
-                throw AssemblyError("can only convert byte values to word param types")
+                throw AssemblyError("can only convert byte values to word param types ${value.position}")
         }
         if (statusflag!=null) {
             if(requiredDt!=value.type)
-                throw AssemblyError("for statusflag, byte or bool value is required")
+                throw AssemblyError("for statusflag, byte or bool value is required ${value.position}")
             if (statusflag == Statusflag.Pc) {
                 // this boolean param needs to be set last, right before the jsr
                 // for now, this is already enforced on the subroutine definition by the Ast Checker
@@ -323,7 +323,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                         asmgen.out("  ror  a")
                     }
                 }
-            } else throw AssemblyError("can only use Carry as status flag parameter")
+            } else throw AssemblyError("can only use Carry as status flag parameter ${value.position}")
             return RegisterOrStatusflag(null, statusflag)
         }
         else {
