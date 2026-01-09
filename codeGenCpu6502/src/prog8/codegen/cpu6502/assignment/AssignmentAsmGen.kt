@@ -372,6 +372,25 @@ internal class AssignmentAsmGen(
             return
         }
         else if (address is PtBinaryExpression) {
+            val result = asmgen.pointerViaIndexRegisterPossible(address)
+            if(result!=null) {
+                val addressOfIdentifier = (result.first as? PtAddressOf)?.identifier
+                if(addressOfIdentifier!=null) {
+                    val varname = asmgen.asmVariableName(addressOfIdentifier)
+                    if(result.second is PtNumber) {
+                        val offset = (result.second as PtNumber).number.toInt()
+                        asmgen.out("  lda  $varname+$offset,x")
+                        assignRegisterByte(target, CpuRegister.A, false, true)
+                        return
+                    } else if (result.second is PtIdentifier) {
+                        val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
+                        asmgen.out("  ldx  $offsetname |  lda  $varname,x")
+                        assignRegisterByte(target, CpuRegister.A, false, true)
+                        return
+                    }
+                }
+            }
+
             if(asmgen.tryOptimizedPointerAccessWithA(address, false)) {
                 assignRegisterByte(target, CpuRegister.A, false, true)
                 return
@@ -5270,6 +5289,23 @@ $endLabel""")
                 asmgen.storeAIntoPointerVar(addressExpr)
             }
             addressExpr is PtBinaryExpression -> {
+                val result = asmgen.pointerViaIndexRegisterPossible(addressExpr)
+                if(result!=null) {
+                    val addressOfIdentifier = (result.first as? PtAddressOf)?.identifier
+                    if(addressOfIdentifier!=null) {
+                        val varname = asmgen.asmVariableName(addressOfIdentifier)
+                        if(result.second is PtNumber) {
+                            val offset = (result.second as PtNumber).number.toInt()
+                            asmgen.out("  sta  $varname+$offset")
+                            return
+                        } else if (result.second is PtIdentifier) {
+                            val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
+                            asmgen.out("  ldx  $offsetname |  sta  $varname,x")
+                            return
+                        }
+                    }
+                }
+
                 if(!asmgen.tryOptimizedPointerAccessWithA(addressExpr, true))
                     storeViaExprEval()
             }

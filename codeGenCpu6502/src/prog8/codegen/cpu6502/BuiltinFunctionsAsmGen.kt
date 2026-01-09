@@ -979,12 +979,19 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     asmgen.restoreRegisterStack(CpuRegister.Y, true)
                     asmgen.out("  sta  ($varname),y")
                     return
-                } else if(result!=null && addressOfIdentifier!=null && result.second is PtNumber && (addressOfIdentifier.type.isByteOrBool || addressOfIdentifier.type.isBoolArray || addressOfIdentifier.type.isByteArray)) {
+                } else if(result!=null && addressOfIdentifier!=null && (addressOfIdentifier.type.isByteOrBool || addressOfIdentifier.type.isBoolArray || addressOfIdentifier.type.isByteArray)) {
                     val varname = asmgen.asmVariableName(addressOfIdentifier)
-                    val offset = (result.second as PtNumber).number.toInt()
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
-                    asmgen.out("  sta  $varname+$offset")
-                    return
+                    if(result.second is PtNumber) {
+                        val offset = (result.second as PtNumber).number.toInt()
+                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
+                        asmgen.out("  sta  $varname+$offset")
+                        return
+                    } else if(result.second is PtIdentifier) {
+                        val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
+                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)
+                        asmgen.out("  ldx  $offsetname |  sta  $varname,x")
+                        return
+                    }
                 } else if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier) {
                     asmgen.assignExpressionToRegister(addrExpr.right, RegisterOrPair.AY, false)
                     val ptrName = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
@@ -1049,12 +1056,23 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             iny
                             sta  ($varname),y""")
                     return
-                } else if(result!=null && addressOfIdentifier!=null && result.second is PtNumber && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
+                } else if(result!=null && addressOfIdentifier!=null && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
                     val varname = asmgen.asmVariableName(addressOfIdentifier)
-                    val offset = (result.second as PtNumber).number.toInt()
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
-                    asmgen.out("  sta  $varname+$offset |  sty  $varname+${offset+1}")
-                    return
+                    if(result.second is PtNumber) {
+                        val offset = (result.second as PtNumber).number.toInt()
+                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
+                        asmgen.out("  sta  $varname+$offset |  sty  $varname+${offset + 1}")
+                        return
+                    } else if(result.second is PtIdentifier) {
+                        val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
+                        asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
+                        asmgen.out("""
+                            ldx  $offsetname
+                            sta  $varname,x
+                            tya
+                            sta  $varname+1,x""")
+                        return
+                    }
                 } else if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier) {
                     asmgen.assignExpressionToRegister(addrExpr.right, RegisterOrPair.AY, false)
                     val ptrName = asmgen.asmVariableName(addrExpr.left as PtIdentifier)
@@ -1194,48 +1212,94 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         else if(targetArg is PtBinaryExpression) {
             val result = asmgen.pointerViaIndexRegisterPossible(targetArg)
             val addressOfIdentifier = (result?.first as? PtAddressOf)?.identifier
-            if(result!=null && addressOfIdentifier!=null && result.second is PtNumber && (addressOfIdentifier.type.isLong || addressOfIdentifier.type.isByteArray)) {
+            if(result!=null && addressOfIdentifier!=null && (addressOfIdentifier.type.isLong || addressOfIdentifier.type.isByteArray)) {
                 val varname = asmgen.asmVariableName(addressOfIdentifier)
-                val offset = (result.second as PtNumber).number.toInt()
-                when(valueArg) {
-                    is PtNumber -> {
-                        val hex = valueArg.number.toLongHex()
-                        asmgen.out("""
-                            lda  #$${hex.substring(6,8)}
-                            sta  $varname+$offset
-                            lda  #$${hex.substring(4, 6)}
-                            sta  $varname+${offset+1}
-                            lda  #$${hex.substring(2, 4)}
-                            sta  $varname+${offset + 2}
-                            lda  #$${hex.take(2)}
-                            sta  $varname+${offset + 3}""")
+                if(result.second is PtNumber) {
+                    val offset = (result.second as PtNumber).number.toInt()
+                    when(valueArg) {
+                        is PtNumber -> {
+                            val hex = valueArg.number.toLongHex()
+                            asmgen.out("""
+                                lda  #$${hex.substring(6,8)}
+                                sta  $varname+$offset
+                                lda  #$${hex.substring(4, 6)}
+                                sta  $varname+${offset+1}
+                                lda  #$${hex.substring(2, 4)}
+                                sta  $varname+${offset + 2}
+                                lda  #$${hex.take(2)}
+                                sta  $varname+${offset + 3}""")
+                        }
+                        is PtIdentifier -> {
+                            val srcvar = asmgen.asmVariableName(valueArg)
+                            asmgen.out("""
+                                lda  $srcvar
+                                sta  $varname+$offset
+                                lda  $srcvar+1
+                                sta  $varname+${offset+1}
+                                lda  $srcvar+2
+                                sta  $varname+${offset + 2}
+                                lda  $srcvar+3
+                                sta  $varname+${offset + 3}""")
+                        }
+                        else -> {
+                            asmgen.assignExpressionToRegister(valueArg, RegisterOrPair.R14R15, signed=valueArg.type.isSigned)
+                            asmgen.out("""
+                                lda  cx16.r14
+                                sta  $varname+$offset
+                                lda  cx16.r14+1
+                                sta  $varname+${offset+1}
+                                lda  cx16.r14+2
+                                sta  $varname+${offset+2}
+                                lda  cx16.r14+3
+                                sta  $varname+${offset+3}""")
+                        }
                     }
-                    is PtIdentifier -> {
-                        val srcvar = asmgen.asmVariableName(valueArg)
-                        asmgen.out("""
-                            lda  $srcvar
-                            sta  $varname+$offset
-                            lda  $srcvar+1
-                            sta  $varname+${offset+1}
-                            lda  $srcvar+2
-                            sta  $varname+${offset + 2}
-                            lda  $srcvar+3
-                            sta  $varname+${offset + 3}""")
+                    return
+                } else if(result.second is PtIdentifier) {
+                    val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
+                    when(valueArg) {
+                        is PtNumber -> {
+                            val hex = valueArg.number.toLongHex()
+                            asmgen.out("""
+                                ldx  $offsetname
+                                lda  #$${hex.substring(6,8)}
+                                sta  $varname,x
+                                lda  #$${hex.substring(4, 6)}
+                                sta  $varname+1,x
+                                lda  #$${hex.substring(2, 4)}
+                                sta  $varname+2,x
+                                lda  #$${hex.take(2)}
+                                sta  $varname+3,x""")
+                        }
+                        is PtIdentifier -> {
+                            val srcvar = asmgen.asmVariableName(valueArg)
+                            asmgen.out("""
+                                ldx  $offsetname
+                                lda  $srcvar
+                                sta  $varname,x
+                                lda  $srcvar+1
+                                sta  $varname+$1,x
+                                lda  $srcvar+2
+                                sta  $varname+2,x
+                                lda  $srcvar+3
+                                sta  $varname+3,x""")
+                        }
+                        else -> {
+                            asmgen.assignExpressionToRegister(valueArg, RegisterOrPair.R14R15, signed=valueArg.type.isSigned)
+                            asmgen.out("""
+                                ldx  $offsetname
+                                lda  cx16.r14
+                                sta  $varname,x
+                                lda  cx16.r14+1
+                                sta  $varname+1,x
+                                lda  cx16.r14+2
+                                sta  $varname+2,x
+                                lda  cx16.r14+3
+                                sta  $varname+3,x""")
+                        }
                     }
-                    else -> {
-                        asmgen.assignExpressionToRegister(valueArg, RegisterOrPair.R14R15, signed=valueArg.type.isSigned)
-                        asmgen.out("""
-                            lda  cx16.r14
-                            sta  $varname+$offset
-                            lda  cx16.r14+1
-                            sta  $varname+${offset+1}
-                            lda  cx16.r14+2
-                            sta  $varname+${offset+2}
-                            lda  cx16.r14+3
-                            sta  $varname+${offset+3}""")
-                    }
+                    return
                 }
-                return
             }
         }
 
