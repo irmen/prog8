@@ -1,8 +1,9 @@
 TODO
 ====
 
-- fix IR: TODO("peephole opt LOADI.float")    and the STOREI one too
 - test if still working:  unzip, xar, koala viewer, fileseek example, tony's movie player
+
+- add link to vs code syntax plugin (see discord)
 
 
 Weird Heisenbug
@@ -73,7 +74,9 @@ IR/VM
 - encode asmsub/extsub clobber info in the call, or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
 - extend the index register datatype in the LOADX, STOREX, STOREZX instructions from byte to word (0-255 to 0-65535) (this not compatible with 8 bit 6502, but the 68000 can use that , well, up to 32867)
 - or just get rid of LOADX/STOREX/STOREZX, just use add + loadi / storei?
+- if instruction has both integer and float registers, the sequence of the registers is sometimes weird in the .p8ir file (float regs always at the end even when otherwise the target -integer- register is the first one in the list, for example.)
 - rollback this exception?:  "LOADI has an exception to allow reg1 and reg2 to be the same"  + actual exception check in the check "reg1 must not be same as reg2"
+- fix IR: TODO("peephole opt STOREI.float
 - if float<0 / if word<0  uses sgn or load, but still use a bgt etc instruction after that with a #0 operand even though the sgn and load instructions sets the status bits already, so just use bstneg etc
 - make multiple classes of registers and maybe also categorize by life time? , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
