@@ -22,6 +22,45 @@ class StatementOptimizer(private val program: Program,
                     errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
                 return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
             }
+
+            when (functionName) {
+                "poke" -> {
+                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
+                    if(addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isBytes) {
+                        // poke(&bytevar, x) --> bytevar=x
+                        val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
+                        val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                    }
+                }
+                "pokew" -> {
+                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
+                    if(addrOfIdentifier!=null && (addrOfIdentifier.inferType(program).isWords || addrOfIdentifier.inferType(program).isPointer)) {
+                        // pokew(&wordvar, x) --> wordvar=x
+                        val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
+                        val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                    }
+                }
+                "pokel" -> {
+                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
+                    if(addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isLong) {
+                        // pokel(&longvar, x) --> longvar=x
+                        val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
+                        val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                    }
+                }
+                "pokef" -> {
+                    val addrOfIdentifier = (functionCallStatement.args[0] as? AddressOf)?.identifier
+                    if(addrOfIdentifier!=null && addrOfIdentifier.inferType(program).isFloat) {
+                        // pokef(&floatvar, x) --> floatvar=x
+                        val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
+                        val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
+                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                    }
+                }
+            }
         }
 
         // printing a literal string of just 2 or 1 characters is replaced by directly outputting those characters
@@ -298,6 +337,17 @@ class StatementOptimizer(private val program: Program,
                     return listOf(IAstModification.SwapOperands(binExpr))
             }
 
+        }
+
+        val memwriteAddr = assignment.target.memoryAddress
+        if(memwriteAddr!=null) {
+            val addrOfIdentifier = (memwriteAddr.addressExpression as? AddressOf)?.identifier
+            if(addrOfIdentifier!=null && (addrOfIdentifier.inferType(program).isBytes || addrOfIdentifier.inferType(program).isBool)) {
+                // @(&bytevar) = x --> bytevar = x
+                val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = assignment.position)
+                val assign = Assignment(target, assignment.value, AssignmentOrigin.OPTIMIZER, assignment.position)
+                return listOf(IAstModification.ReplaceNode(assignment, assign, parent))
+            }
         }
 
         return noModifications

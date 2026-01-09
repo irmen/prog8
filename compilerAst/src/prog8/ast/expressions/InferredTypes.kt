@@ -57,6 +57,7 @@ object InferredTypes {
         val isBytes = datatype?.isByte==true
         val isWords = datatype?.isWord==true
         val isLong = datatype?.isLong==true
+        val isFloat = datatype?.isFloat==true
         val isPointer = datatype?.isPointer==true
         val isStructInstance = datatype?.isStructInstance==true
         val isUnsignedWord = datatype?.isUnsignedWord==true

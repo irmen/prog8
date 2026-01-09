@@ -2532,5 +2532,6 @@ internal class SubroutineExtraAsmInfo {
 }
 
 
-internal fun Double.toLongHex(): String = this.toUInt().toString(16).padStart(8, '0')
 internal fun Int.toLongHex(): String = this.toUInt().toString(16).padStart(8, '0')
+internal fun Long.toLongHex(): String = this.toUInt().toString(16).padStart(8, '0')
+internal fun Double.toLongHex(): String = this.toLong().toLongHex()

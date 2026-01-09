@@ -606,23 +606,31 @@ jump p8_label_gen_2
                     val lastInstruction = indexedInstructions[idx+1].value
                     if(lastInstruction.opcode==Opcode.LOADI) {
                         val targetRegister = lastInstruction.reg1!!
-                        if(ins.reg1==lastInstruction.reg2!! && load.reg1==lastInstruction.reg2!!) {
-                            val loadm = IRInstruction(Opcode.LOADM, lastInstruction.type, reg1=targetRegister, labelSymbol = load.labelSymbol, symbolOffset = ins.immediate)
-                            chunk.instructions[idx-1] = loadm
-                            chunk.instructions.removeAt(idx+1)
-                            chunk.instructions.removeAt(idx)
-                            changed = true
-                        }
-                    } else if(lastInstruction.opcode==Opcode.STOREI) {
-                        val targetRegister = lastInstruction.reg1!!
-                        if(ins.reg1==lastInstruction.reg2!! && load.reg1==lastInstruction.reg2!!) {
-                            val valueLoad = indexedInstructions[idx-2].value
-                            if(valueLoad.opcode==Opcode.LOAD && valueLoad.reg1==targetRegister) {
-                                val storem = IRInstruction(Opcode.STOREM, lastInstruction.type, reg1=valueLoad.reg1, labelSymbol = load.labelSymbol, symbolOffset = ins.immediate)
-                                chunk.instructions[idx-1] = storem
+                        if(lastInstruction.type== IRDataType.FLOAT) {
+                            TODO("peephole opt LOADI.float")
+                        } else {
+                            if(ins.reg1==lastInstruction.reg2!! && load.reg1==lastInstruction.reg2!!) {
+                                val loadm = IRInstruction(Opcode.LOADM, lastInstruction.type, reg1=targetRegister, labelSymbol = load.labelSymbol, symbolOffset = ins.immediate)
+                                chunk.instructions[idx-1] = loadm
                                 chunk.instructions.removeAt(idx+1)
                                 chunk.instructions.removeAt(idx)
                                 changed = true
+                            }
+                        }
+                    } else if(lastInstruction.opcode==Opcode.STOREI) {
+                        val targetRegister = lastInstruction.reg1!!
+                        if(lastInstruction.type==IRDataType.FLOAT) {
+                            TODO("peephole opt STOREI.float")
+                        } else {
+                            if(ins.reg1==lastInstruction.reg2!! && load.reg1==lastInstruction.reg2!!) {
+                                val valueLoad = indexedInstructions[idx-2].value
+                                if(valueLoad.opcode==Opcode.LOAD && valueLoad.reg1==targetRegister) {
+                                    val storem = IRInstruction(Opcode.STOREM, lastInstruction.type, reg1=valueLoad.reg1, labelSymbol = load.labelSymbol, symbolOffset = ins.immediate)
+                                    chunk.instructions[idx-1] = storem
+                                    chunk.instructions.removeAt(idx+1)
+                                    chunk.instructions.removeAt(idx)
+                                    changed = true
+                                }
                             }
                         }
                     }

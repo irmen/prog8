@@ -1,6 +1,10 @@
 TODO
 ====
 
+- fix IR: TODO("peephole opt LOADI.float")    and the STOREI one too
+- test if still working:  unzip, xar, koala viewer, fileseek example, tony's movie player
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
