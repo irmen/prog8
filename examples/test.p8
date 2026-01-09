@@ -63,10 +63,10 @@ main {
         sub peek_constoffset() {
             cx16.r0L = @(&bytevar+4)
             bytevar = peek(&bytevar+4)
-
-            ; TODO not optimized yet:
             boolvar = peekbool(&boolvar+4)
             addr = peekw(&addr+4)
+
+            ; TODO not optimized yet:
             lv2 = peekl(&lv2+4)
             fv = peekf(&fv+4)
         }
