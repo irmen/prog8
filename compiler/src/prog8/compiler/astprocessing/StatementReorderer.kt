@@ -21,6 +21,7 @@ internal class StatementReorderer(
     // - in-place assignments are reordered a bit so that they are mostly of the form A = A <operator> <rest>
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc.).
+    // - consolidates multiple consecutive additions , subtractions, multiplications.
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop", "%option", "%encoding")
 
@@ -302,6 +303,35 @@ internal class StatementReorderer(
     }
 
     override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        val isIO = try {
+            assignment.target.isIOAddress(options.compTarget)
+        } catch (_: FatalAstException) {
+            false
+        }
+        if(!isIO) {
+            // consolidate subsequent adds / subs / muls into a single statement
+            if (assignment.isAugmentable) {
+                val operator = (assignment.value as? BinaryExpression)?.operator
+                if(operator!=null && operator in "+-*") {
+                    val allAssignments = gatherAllConsecutiveOptimiazableAddSubOrMuls(assignment, operator)
+                    if(allAssignments.size>1) {
+                        val total: Double = when(operator) {
+                            "+", "-" -> allAssignments.sumOf { (it.value as BinaryExpression).right.constValue(program)!!.number }
+                            "*" -> allAssignments.fold(1.0) { acc, element -> (element.value as BinaryExpression).right.constValue(program)!!.number * acc }
+                            else -> throw IllegalStateException("unexpected operator $operator")
+                        }
+                        val type = assignment.value.inferType(program).getOrUndef()
+                        val totalNumber = NumericLiteral(type.base, total, assignment.position)
+                        (assignment.value as BinaryExpression).right = totalNumber
+                        totalNumber.parent = assignment.value
+                        return allAssignments.drop(1).map {
+                            IAstModification.Remove(it, parent as IStatementContainer)
+                        }
+                    }
+                }
+            }
+        }
+
         // rewrite in-place assignment expressions a bit so that the assignment target usually is the leftmost operand
         val binExpr = assignment.value as? BinaryExpression
         if(binExpr!=null) {
@@ -317,8 +347,25 @@ internal class StatementReorderer(
                 }
             }
         }
-
         return noModifications
+    }
+
+    private fun gatherAllConsecutiveOptimiazableAddSubOrMuls(assignment: Assignment, operator: String): List<Assignment> {
+        val result = mutableListOf<Assignment>()
+        val initialTarget = assignment.target
+        var assign: Assignment? = assignment
+        while(assign!=null) {
+            if(assign.target.isSameAs(initialTarget, program)) {
+                val expr = assign.value as? BinaryExpression
+                if (expr?.operator==operator && expr.right.constValue(program)!=null) {
+                    result.add(assign)
+                    assign = assign.nextSibling() as? Assignment
+                }
+                else break
+            }
+            else break
+        }
+        return result
     }
 
     override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {

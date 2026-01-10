@@ -918,6 +918,22 @@ _after:
             }
         }
 
+
+        // consolidates simple assignment followed by augmented assignment into a single combined assignment.
+        // a = simplevalue  |  a += expression  -->   a = simplevalue + expression  (for all augmented operators)
+        if(!assignment.isAugmentable && assignment.value.isSimple) {
+            val next = assignment.nextSibling() as? Assignment
+            if(next?.isAugmentable==true && next.value is BinaryExpression && next.target.isSameAs(assignment.target, program)) {
+                val combined = next.value as BinaryExpression
+                if(combined.left isSameAs assignment.target) {
+                    combined.left = assignment.value
+                    assignment.value = combined
+                    combined.linkParents(assignment)
+                    return listOf(IAstModification.Remove(next, parent as IStatementContainer))
+                }
+            }
+        }
+
         return noModifications
     }
 

@@ -489,14 +489,13 @@ jump p8_label_gen_2
                     // returns (index of load instruction, immediate value) or null.
                     if(idx>=1) {
                         val previous = indexedInstructions[idx-1].value
-                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg)
+                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg && previous.immediate!=null)
                             return idx-1 to previous.immediate!!
                     }
                     if(idx>=2) {
                         val previous = indexedInstructions[idx-2].value
-                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg && previous.immediate!=null) {
+                        if(previous.opcode==Opcode.LOAD && previous.reg1==reg && previous.immediate!=null)
                             return idx - 2 to previous.immediate!!
-                        }
                     }
                     return null
                 }

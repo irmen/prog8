@@ -114,7 +114,6 @@ Libraries
 Optimizations
 -------------
 
-- optimize successive additions/subtractions and multiplications (with const) into just a single add/sub, mul
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for long const and variable operands to not assign needlessly to R14-R15.
 - optimize optimizedBitwiseExpr()  for long const and variable operands to not assign needlessly to R14-R15.

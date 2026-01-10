@@ -222,6 +222,7 @@ other {
                 sub start() {
                     ubyte ub
                     float ff = 1.0
+                    cx16.r0L++
                     ff += (ub as float)         ; operator doesn't matter
                 }
             }
@@ -245,6 +246,7 @@ other {
                     ubyte unused                        ; removed
                     ubyte @shared unused_but_shared     ; this one should remain
                     ubyte usedvar_only_written          ; not removed because has multiple assignments
+                    cx16.r0L++
                     usedvar_only_written=2
                     usedvar_only_written++
                     ubyte usedvar                       ; and this one remains too
@@ -254,7 +256,7 @@ other {
             }
         """
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 8
+        result.compilerAst.entrypoint.statements.size shouldBe 9
         val alldecls = result.compilerAst.entrypoint.allDefinedSymbols.toList()
         alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
     }

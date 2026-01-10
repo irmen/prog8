@@ -907,17 +907,16 @@ main {
     sub start() {
         byte[10] @shared bottom
         byte @shared col = 20
-        col++
         ubyte @shared ubb = lsb(col as uword)
         uword @shared vaddr = bottom[cx16.r0L] as uword << 8          ; a mkword will get inserted here
     }
 }"""
         val result = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 9
-        val assignUbbVal = (st[5] as Assignment).value as IdentifierReference
+        st.size shouldBe 8
+        val assignUbbVal = (st[4] as Assignment).value as IdentifierReference
         assignUbbVal.inferType(result.compilerAst) shouldBe InferredTypes.knownFor(BaseDataType.BYTE)
-        val assignVaddr = (st[7] as Assignment).value as FunctionCallExpression
+        val assignVaddr = (st[6] as Assignment).value as FunctionCallExpression
         assignVaddr.target.nameInSource shouldBe listOf("mkword")
         val tc = assignVaddr.args[0] as TypecastExpression
         tc.type shouldBe DataType.UBYTE

@@ -868,9 +868,9 @@ main {
         const uword WIDTH = 40
         const uword WIDER = 400
         cx16.r0 = cx16.r0-1+WIDTH
-        cx16.r0 = cx16.r0-1+WIDER 
-        cx16.r0 = cx16.r0L * 5               ; byte multiplication
-        cx16.r0 = cx16.r0L * $0005      ; word multiplication
+        cx16.r1 = cx16.r1-1+WIDER 
+        cx16.r2 = cx16.r2L * 5               ; byte multiplication
+        cx16.r3 = cx16.r3L * $0005      ; word multiplication
     }
 }"""
         val result = compileText(C64Target(), false, src, outputDir, writeAssembly = false)!!
@@ -885,7 +885,7 @@ main {
 
         val v2 = (st[3] as Assignment).value as BinaryExpression
         v2.operator shouldBe "+"
-        (v2.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0")
+        (v2.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r1")
         (v2.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v2.right as NumericLiteral).number shouldBe 399
 
@@ -893,7 +893,7 @@ main {
         v3.type shouldBe DataType.UWORD
         val v3e = v3.expression as BinaryExpression
         v3e.operator shouldBe "*"
-        (v3e.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0L")
+        (v3e.left as IdentifierReference).nameInSource shouldBe listOf("cx16", "r2L")
         (v3e.right as NumericLiteral).type shouldBe BaseDataType.UBYTE
         (v3e.right as NumericLiteral).number shouldBe 5
 
@@ -901,7 +901,7 @@ main {
         v4.operator shouldBe "*"
         val v4t = v4.left as TypecastExpression
         v4t.type shouldBe DataType.UWORD
-        (v4t.expression as IdentifierReference).nameInSource shouldBe listOf("cx16", "r0L")
+        (v4t.expression as IdentifierReference).nameInSource shouldBe listOf("cx16", "r3L")
         (v4.right as NumericLiteral).type shouldBe BaseDataType.UWORD
         (v4.right as NumericLiteral).number shouldBe 5
     }
@@ -937,28 +937,28 @@ main {
         val src = """
 main {
     sub start() {
-        word[5] xpos
+        word[10] xpos
 
         xpos[4] &= ${'$'}fff8            
-        xpos[4] &= ${'$'}fff8 as word    
-        xpos[4] = xpos[4] & ${'$'}fff8   
-        xpos[4] = xpos[4] & ${'$'}fff8 as word   
+        xpos[5] &= ${'$'}fff8 as word    
+        xpos[6] = xpos[4] & ${'$'}fff8   
+        xpos[7] = xpos[4] & ${'$'}fff8 as word   
 
         xpos[4] &= $7000            
-        xpos[4] &= $7000 as word    
-        xpos[4] = xpos[4] & $7000   
-        xpos[4] = xpos[4] & $7000 as word   
+        xpos[5] &= $7000 as word    
+        xpos[6] = xpos[4] & $7000   
+        xpos[7] = xpos[4] & $7000 as word   
 
         xpos[4] |= $7000            
-        xpos[4] |= $7000 as word    
-        xpos[4] = xpos[4] | $7000   
-        xpos[4] = xpos[4] | $7000 as word   
+        xpos[5] |= $7000 as word    
+        xpos[6] = xpos[4] | $7000   
+        xpos[7] = xpos[4] | $7000 as word   
 
         ; the error doesn't occur with other operators:
         xpos[4] += $7000
-        xpos[4] += $7000 as word
-        xpos[4] = xpos[4] + $7000
-        xpos[4] = xpos[4] + $7000 as word   
+        xpos[5] += $7000 as word
+        xpos[6] = xpos[4] + $7000
+        xpos[7] = xpos[4] + $7000 as word   
     }
 }"""
 
