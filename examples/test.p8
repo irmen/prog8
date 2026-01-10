@@ -1,45 +1,33 @@
 %import textio
-%import floats
 %zeropage basicsafe
+%option no_sysinit
 
 main {
 
     sub start() {
-        float @shared fv,fv2,fv3,fv4 = 1.11111
-        uword @shared @nozp uw,uw2,uw3,uw4 = 1111
-        ubyte @shared @nozp ub,ub2,ub3,ub4 = 111
+        uword @shared ww
 
+;        ww += 5
+;        ww += 256
+;        ww += $9500
+;        ; TODO optimize into  just a single  ww += $9605
+;
+;        ww *= 3
+;        ww *= 4
+;        ww *= 5
+;        ; TODO optimize into just a single ww *= 60
 
-        txt.print_ub(peek(&ub2 + 2))
-        txt.spc()
-        cx16.r0++
-        poke(&ub2+2, 222)
-        cx16.r0--
-        txt.print_ub(peek(&ub2 + 2))
-        txt.spc()
-        txt.print_ub(pokemon(&ub2 + 2, 99))
-        txt.spc()
-        txt.print_ub(peek(&ub2 + 2))
+        txt.print_uwhex(ww, true)
+        txt.print_uwhex(ww + 5, true)
+        txt.print_uwhex(ww + 256, true)
+        txt.print_uwhex(ww + 512, true)
+        txt.print_uwhex(ww + $9b00, true)
+        txt.print_uwhex(ww + $9b22, true)
         txt.nl()
-        txt.nl()
-
-
-        txt.print_uw(peekw(&uw2 + 4))
-        txt.spc()
-        cx16.r0++
-        pokew(&uw2+ 4, 9999)
-        cx16.r0--
-        txt.print_uw(peekw(&uw2 + 4))
-        txt.nl()
-        txt.nl()
-
-        txt.print_f(peekf(&fv + sizeof(float)))
-        txt.spc()
-        cx16.r0++
-        pokef(&fv+ sizeof(float), 2.22222)
-        cx16.r0--
-        txt.print_f(peekf(&fv + sizeof(float)))
-        txt.nl()
-
+        txt.print_uwhex(ww - 5, true)
+        txt.print_uwhex(ww - 256, true)
+        txt.print_uwhex(ww - 512, true)
+        txt.print_uwhex(ww - $9b00, true)
+        txt.print_uwhex(ww - $9b22, true)
     }
 }

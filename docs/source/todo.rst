@@ -114,7 +114,6 @@ Libraries
 Optimizations
 -------------
 
-- optimize expression: uwordvar + 256  and variants.   (now uses 2 adds, can use 1 inc?)
 - optimize successive additions/subtractions and multiplications (with const) into just a single add/sub, mul
 - more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
 - optimize longEqualsValue() for long const and variable operands to not assign needlessly to R14-R15.

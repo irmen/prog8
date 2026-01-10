@@ -1722,23 +1722,55 @@ internal class AssignmentAsmGen(
                         }
                     } else {
                         if(expr.operator=="+") {
-                            asmgen.out("""
-                                clc
-                                adc  #<${right.number.toHex()}
-                                tax
-                                tya
-                                adc  #>${right.number.toHex()}
-                                tay
-                                txa""")
+                            if(right.number.toInt() and 255 == 0) {
+                                // can add only to the msb, which is in Y
+                                if(right.number==256.0)
+                                    asmgen.out("  iny")
+                                else if(right.number==512.0)
+                                    asmgen.out("  iny |  iny")
+                                else
+                                    asmgen.out("""
+                                        tax
+                                        tya
+                                        clc
+                                        adc  #>${right.number.toHex()}
+                                        tay
+                                        txa""")
+                            } else {
+                                asmgen.out("""
+                                    clc
+                                    adc  #<${right.number.toHex()}
+                                    tax
+                                    tya
+                                    adc  #>${right.number.toHex()}
+                                    tay
+                                    txa""")
+                            }
                         } else if(expr.operator=="-") {
-                            asmgen.out("""
-                                sec
-                                sbc  #<${right.number.toHex()}
-                                tax
-                                tya
-                                sbc  #>${right.number.toHex()}
-                                tay
-                                txa""")
+                            if(right.number.toInt() and 255 == 0) {
+                                // can sub only from the msb, which is in Y
+                                if(right.number==256.0)
+                                    asmgen.out("  dey")
+                                else if(right.number==512.0)
+                                    asmgen.out("  dey |  dey")
+                                else
+                                    asmgen.out("""
+                                        tax
+                                        tya
+                                        sec
+                                        sbc  #>${right.number.toHex()}
+                                        tay
+                                        txa""")
+                                } else {
+                                asmgen.out("""
+                                    sec
+                                    sbc  #<${right.number.toHex()}
+                                    tax
+                                    tya
+                                    sbc  #>${right.number.toHex()}
+                                    tay
+                                    txa""")
+                            }
                         }
                     }
                     assignRegisterpairWord(target, RegisterOrPair.AY)
