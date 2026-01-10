@@ -58,16 +58,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "pokew" -> funcPokeW(fcall)
             "pokel" -> funcPokeL(fcall)
             "pokef" -> funcPokeF(fcall)
-            "pokemon" -> {
-                val memread = PtMemoryByte(fcall.position)
-                memread.add(fcall.args[0])
-                memread.parent = fcall
-                asmgen.assignExpressionToRegister(memread, RegisterOrPair.A)
-                asmgen.out("  pha")
-                val memtarget = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.position, memory=memread)
-                asmgen.assignExpressionTo(fcall.args[1], memtarget)
-                asmgen.out("  pla")
-            }
+            "pokemon" -> funcPokemon(fcall)
             "poke" -> throw AssemblyError("poke() should have been replaced by @()")
             "pokebool" -> funcPokeBool(fcall)
             "rsave" -> funcRsave()
@@ -915,6 +906,23 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
     }
 
+    private fun funcPokemon(fcall: PtBuiltinFunctionCall) {
+        val memread = PtMemoryByte(fcall.position)
+        memread.add(fcall.args[0])
+        memread.parent = fcall
+        asmgen.assignExpressionToRegister(memread, RegisterOrPair.A)
+        if(fcall.args[1] is PtNumber || fcall.args[1] is PtIdentifier)
+            asmgen.out("  tay")
+        else
+            asmgen.out("  pha")
+        val memtarget = AsmAssignTarget(TargetStorageKind.MEMORY, asmgen, DataType.UBYTE, fcall.definingISub(), fcall.position, memory=memread)
+        asmgen.assignExpressionTo(fcall.args[1], memtarget)
+        if(fcall.args[1] is PtNumber || fcall.args[1] is PtIdentifier)
+            asmgen.out("  tya")
+        else
+            asmgen.out("  pla")
+    }
+
     private fun funcPokeF(fcall: PtBuiltinFunctionCall) {
         when(val number = fcall.args[1]) {
             is PtIdentifier -> {
@@ -1352,7 +1360,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val varname = asmgen.asmVariableName(addressOfIdentifier)
                     if(result.second is PtNumber) {
                         val offset = (result.second as PtNumber).number.toInt()
-                        asmgen.out("  lda  $varname+$offset,x")
+                        asmgen.out("  lda  $varname+$offset")
                     } else if(result.second is PtIdentifier) {
                         val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
                         asmgen.out("  ldx  $offsetname |  lda  $varname,x")

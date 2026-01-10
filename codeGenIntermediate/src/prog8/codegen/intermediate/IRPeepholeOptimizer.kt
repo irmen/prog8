@@ -664,38 +664,6 @@ jump p8_label_gen_2
                 chunk.instructions[idx] = loadi
                 changed = true
             }
-
-            // add.w R2,#offset   loadi.b R1,R2    ->  loadfield.b R1,R2,#offset
-            // add.w R2,#offset   storei.b R1,R2   ->  storefield.b R1,R2,#offset
-            if (ins.reg1!=ins.reg2 && idx>1) {
-                val previous = indexedInstructions[idx-1].value
-                if (ins.opcode == Opcode.LOADI) {
-                    if(previous.opcode==Opcode.ADD && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
-                        val loadfield = IRInstruction(Opcode.LOADFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = previous.immediate!!)
-                        chunk.instructions[idx-1] = loadfield
-                        chunk.instructions.removeAt(idx)
-                        changed = true
-                    } else if(previous.opcode==Opcode.INC && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
-                        val loadfield = IRInstruction(Opcode.LOADFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = 1)
-                        chunk.instructions[idx-1] = loadfield
-                        chunk.instructions.removeAt(idx)
-                        changed = true
-                    }
-                }
-                else if(ins.opcode == Opcode.STOREI) {
-                    if(previous.opcode==Opcode.ADD && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
-                        val storefield = IRInstruction(Opcode.STOREFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = previous.immediate!!)
-                        chunk.instructions[idx-1] = storefield
-                        chunk.instructions.removeAt(idx)
-                        changed = true
-                    } else if(previous.opcode==Opcode.INC && previous.type == IRDataType.WORD && previous.reg1==ins.reg2) {
-                        val storefield = IRInstruction(Opcode.STOREFIELD, ins.type, ins.reg1!!, ins.reg2!!, immediate = 1)
-                        chunk.instructions[idx-1] = storefield
-                        chunk.instructions.removeAt(idx)
-                        changed = true
-                    }
-                }
-            }
         }
 
         return changed

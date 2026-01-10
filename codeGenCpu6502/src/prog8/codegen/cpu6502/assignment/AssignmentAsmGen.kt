@@ -379,7 +379,7 @@ internal class AssignmentAsmGen(
                     val varname = asmgen.asmVariableName(addressOfIdentifier)
                     if(result.second is PtNumber) {
                         val offset = (result.second as PtNumber).number.toInt()
-                        asmgen.out("  lda  $varname+$offset,x")
+                        asmgen.out("  lda  $varname+$offset")
                         assignRegisterByte(target, CpuRegister.A, false, true)
                         return
                     } else if (result.second is PtIdentifier) {
