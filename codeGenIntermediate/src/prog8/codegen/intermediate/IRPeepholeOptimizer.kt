@@ -625,6 +625,7 @@ jump p8_label_gen_2
                             }
                         }
                     } else if(lastInstruction.opcode==Opcode.STOREI) {
+                        // TODO this optimization is never hit right now because of instruction sequence mismatch? (value evaluation is inbetween address and store)
                         val valueLoad = indexedInstructions[idx-2].value
                         val targetRegister = lastInstruction.reg1!!
                         if(lastInstruction.type==IRDataType.FLOAT) {

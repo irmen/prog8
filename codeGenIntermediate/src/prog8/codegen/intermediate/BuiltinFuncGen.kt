@@ -448,6 +448,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             }
         } else {
             if (call.args[0] is PtNumber) {
+                // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
                 val address = (call.args[0] as PtNumber).number.toInt()
                 val tr = exprGen.translateExpression(call.args[1])
                 if(dt==IRDataType.FLOAT) {
@@ -462,6 +463,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                     }
                 }
             } else {
+                // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
                 val addressTr = exprGen.translateExpression(call.args[0])
                 addToResult(result, addressTr, addressTr.resultReg, -1)
                 val valueTr = exprGen.translateExpression(call.args[1])
@@ -558,6 +560,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = resultRegister, address = addressNum)
             }
+            // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
             pokeM(result, addressNum, call.args[1])
             ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
@@ -567,6 +570,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             result += IRCodeChunk(null, null).also {
                 it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = addressTr.resultReg)
             }
+            // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
             pokeI(result, addressTr.resultReg, call.args[1])
             ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         }

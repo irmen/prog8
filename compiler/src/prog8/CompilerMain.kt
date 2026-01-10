@@ -389,6 +389,7 @@ private fun scanLibraryFiles(dump: String?, searchPattern: String?) {
         license.parent.createDirectories()
         license.writeText("These library files belong to the Prog8 compiler project, see https://github.com/irmen/prog8/\n" +
         "They are licensed under the GNU GPL 3.0 software license, see https://www.gnu.org/licenses/gpl.html\n")
+        println("Note: the exported library source files have the same software license as the compiler itself.\n")
     }
 
     fun search(path: Path) {
