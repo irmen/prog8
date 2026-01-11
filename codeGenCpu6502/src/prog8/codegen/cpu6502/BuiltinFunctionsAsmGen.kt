@@ -71,10 +71,33 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, BaseDataType.UBYTE, resultRegister)
             "prog8_lib_square_word" -> funcSquare(fcall, BaseDataType.UWORD, resultRegister)
+            "prog8_lib_copylong" -> funcCopyFromPointer1ToPointer2(fcall, BaseDataType.LONG)
+            "prog8_lib_copyfloat" -> funcCopyFromPointer1ToPointer2(fcall, BaseDataType.FLOAT)
             else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
+    }
+
+    private fun funcCopyFromPointer1ToPointer2(fcall: PtBuiltinFunctionCall, type: BaseDataType) {
+        if(fcall.args[1].isSimple()) {
+            asmgen.assignExpressionToVariable(fcall.args[0], asmgen.asmVariableName("P8ZP_SCRATCH_W1"), DataType.UWORD)
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY, false)
+        }
+        else {
+            asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY, false)
+            asmgen.saveRegisterStack(CpuRegister.A, false)
+            asmgen.saveRegisterStack(CpuRegister.Y, false)
+            asmgen.assignExpressionToVariable(fcall.args[0], asmgen.asmVariableName("P8ZP_SCRATCH_W1"), DataType.UWORD)
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+        }
+        when(type) {
+            BaseDataType.WORD -> asmgen.out("  jsr  prog8_lib.copyfrompointer1topointer2_word")
+            BaseDataType.LONG -> asmgen.out("  jsr  prog8_lib.copyfrompointer1topointer2_long")
+            BaseDataType.FLOAT -> asmgen.out("  jsr  floats.copy_float")
+            else -> throw AssemblyError("unsupported type for copyfrompointer1topointer2: $type")
+        }
     }
 
     private fun funcSquare(fcall: PtBuiltinFunctionCall, resultType: BaseDataType, resultRegister: RegisterOrPair?) {

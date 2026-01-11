@@ -36,14 +36,26 @@ main {
         poke(ubptr2, peek(ubptr1))
         ubptr2^^ = ubptr1^^
 
-        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  copyword()
-        uwptr2^^ = uwptr1^^                 ; TODO rewrite as  copyword()
+        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  uwptr2^^ = uwptr1^^ ?
+        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  uwptr2^^ = uwptr1^^ ?
+        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  uwptr2^^ = uwptr1^^ ?
+        uwptr2^^ = uwptr1^^
+        uwptr2^^ = uwptr1^^
+        uwptr2^^ = uwptr1^^
 
-        pokel(lptr2, peekl(lptr1))          ; TODO rewrite as  copylong()
-        lptr2^^ = lptr1^^                   ; TODO rewrite as  copylong()
+        pokel(lptr2, peekl(lptr1))
+        pokel(lptr2, peekl(lptr1))
+        pokel(lptr2, peekl(lptr1))
+        lptr2^^ = lptr1^^
+        lptr2^^ = lptr1^^
+        lptr2^^ = lptr1^^
 
-        pokef(fptr2, peekf(fptr1))          ; TODO rewrite as  copyfloat()
-        fptr2^^ = fptr1^^                   ; TODO rewrite as  copyfloat()
+        pokef(fptr2, peekf(fptr1))
+        pokef(fptr2, peekf(fptr1))
+        pokef(fptr2, peekf(fptr1))
+        fptr2^^ = fptr1^^
+        fptr2^^ = fptr1^^
+        fptr2^^ = fptr1^^
 
         txt.print_ub(ubptr2^^)
         txt.spc()

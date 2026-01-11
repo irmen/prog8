@@ -746,3 +746,36 @@ compare_long_le_0        .proc
 _success	sec
 		rts
 		.pend
+
+
+copyfrompointer1topointer2_word         .proc
+		; copy word pointed to by P8ZP_SCRATCH_W1 to word pointed to by AY
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend
+
+copyfrompointer1topointer2_long         .proc
+		; copy long pointed to by P8ZP_SCRATCH_W1 to long pointed to by AY
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		ldy  #0
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		iny
+		lda  (P8ZP_SCRATCH_W1),y
+		sta  (P8ZP_SCRATCH_W2),y
+		rts
+		.pend

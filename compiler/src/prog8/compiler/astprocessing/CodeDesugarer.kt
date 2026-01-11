@@ -217,7 +217,32 @@ _after:
         }
 
         if(outerFunc==listOf("pokew") || outerFunc==listOf("pokel") || outerFunc==listOf("pokef")) {
-            // TODO optimize if value is peek
+            val innercall = functionCall.args[1] as? IFunctionCall
+            val innerFunc = innercall?.target?.nameInSource
+            val peekname = "peek" + outerFunc[0].substring(4)
+            if(innerFunc==listOf(peekname)) {
+                val targetAddress = functionCall.args[0]
+                val sourceAddress = innercall.args[0]
+                val targetDt = targetAddress.inferType(program).getOrUndef().sub
+                if(targetDt!=null) {
+                    val copy = when {
+                        targetDt.isLong ->
+                            FunctionCallStatement(
+                                IdentifierReference(listOf("prog8_lib_copylong"), position),
+                                mutableListOf(sourceAddress, targetAddress), false, position
+                            )
+                        targetDt.isFloat ->
+                            FunctionCallStatement(
+                                IdentifierReference(listOf("prog8_lib_copyfloat"), position),
+                                mutableListOf(sourceAddress, targetAddress), false, position
+                            )
+                        else -> null
+                    }
+
+                    if(copy!=null)
+                        return listOf(IAstModification.ReplaceNode(functionCall as Node, copy, parent))
+                }
+            }
         }
 
         return noModifications
@@ -938,6 +963,31 @@ _after:
                     combined.linkParents(assignment)
                     return listOf(IAstModification.Remove(next, parent as IStatementContainer))
                 }
+            }
+        }
+
+        if(assignment.target.pointerDereference!=null && assignment.value is PtrDereference) {
+            val targetPtr = assignment.target.pointerDereference!!
+            val sourcePtr = assignment.value as PtrDereference
+            val targetDt = targetPtr.inferType(program)
+            if (targetDt == sourcePtr.inferType(program)) {
+                val sourceAddress = IdentifierReference(sourcePtr.chain, assignment.position)
+                val targetAddress = IdentifierReference(targetPtr.chain, assignment.position)
+
+                val copy = when {
+                    targetDt.isLong -> FunctionCallStatement(
+                        IdentifierReference(listOf("prog8_lib_copylong"), assignment.position),
+                        mutableListOf(sourceAddress, targetAddress), false, assignment.position
+                    )
+                    targetDt.isFloat -> FunctionCallStatement(
+                        IdentifierReference(listOf("prog8_lib_copyfloat"), assignment.position),
+                        mutableListOf(sourceAddress, targetAddress), false, assignment.position
+                    )
+                    else -> null
+                }
+
+                if(copy!=null)
+                    return listOf(IAstModification.ReplaceNode(assignment, copy, parent))
             }
         }
 

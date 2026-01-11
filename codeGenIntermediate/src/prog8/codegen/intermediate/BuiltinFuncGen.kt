@@ -58,10 +58,38 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
             "prog8_lib_structalloc" -> funcStructAlloc(call)
+            "prog8_lib_copylong" -> funcCopyFromPointer1ToPointer2(call, IRDataType.LONG)
+            "prog8_lib_copyfloat" -> funcCopyFromPointer1ToPointer2(call, IRDataType.FLOAT)
             "sizeof" -> throw AssemblyError("sizeof must have been replaced with a constant")
             "offsetof" -> throw AssemblyError("offsetof must have been replaced with a constant")
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
+    }
+
+    private fun funcCopyFromPointer1ToPointer2(call: PtBuiltinFunctionCall, type: IRDataType): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val trSourceAddr = exprGen.translateExpression(call.args[0])
+        val trTargetAddr = exprGen.translateExpression(call.args[1])
+        addToResult(result, trSourceAddr, trSourceAddr.resultReg, -1)
+        addToResult(result, trTargetAddr, trTargetAddr.resultReg, -1)
+        when(type) {
+            IRDataType.LONG -> {
+                val intermediateReg = codeGen.registers.next(IRDataType.LONG)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, type, reg1=intermediateReg, reg2=trSourceAddr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, type, reg1=intermediateReg, reg2=trTargetAddr.resultReg)
+                }
+            }
+            IRDataType.FLOAT -> {
+                val intermediateReg = codeGen.registers.next(IRDataType.FLOAT)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, type, fpReg1=intermediateReg, reg1=trSourceAddr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, type, fpReg1=intermediateReg, reg1=trTargetAddr.resultReg)
+                }
+            }
+            else -> throw AssemblyError("invalid type $type")
+        }
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcSquare(call: PtBuiltinFunctionCall, resultType: IRDataType): ExpressionCodeResult {
