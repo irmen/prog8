@@ -204,7 +204,10 @@ The IRQ handler routine must return a boolean value (0 or 1) in the A register:
 0 means do *not* run the system IRQ handler routine afterwards, 1 means run the system IRQ handler routine afterwards.
 
 
-**CommanderX16 specific notes**
+.. _x16_irqhandling_notes:
+
+CommanderX16 specific notes
+---------------------------
 
 .. sidebar::
     X16 specific routines
@@ -261,6 +264,7 @@ Instead of using the routines in ``sys`` as mentioned above (that are more or le
 across the C64,C128 and cx16), you can also use the special routines made for the Commander X16,
 in ``cx16``. The idea is to let Prog8 do the irq dispatching and housekeeping for you, and that
 your program only has to register the specific handlers for the specific IRQ sources that you want to handle.
+*The Commander-X16 notes in the previous paragraph regarding the VERA and Virtual registers, still apply!* :ref:`x16_irqhandling_notes`
 
 Look at the examples/cx16/multi-irq-new.p8 example to see how these routines can be used.
 Here they are, all available in ``cx16``:
