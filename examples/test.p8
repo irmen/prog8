@@ -3,44 +3,43 @@
 %option no_sysinit
 
 main {
-
-    sub set_state(uword buffer) {
-        uword addr = &buffer[2]
-        addr++
-    }
-
     sub start() {
-        set_state(100)
+        ^^ubyte ubptr1 = 4000
+        ^^ubyte ubptr2 = 4001
+        ^^uword uwptr1 = 5000
+        ^^uword uwptr2 = 5002
+        ^^long lptr1 = 6000
+        ^^long lptr2 = 6004
 
-        uword @shared ww
-        cx16.r0L += 2
 
-        ww = 2
-        ww += 5
-        ww += 256
-        ww += $9500
-        txt.print_uwhex(ww, true)
+        @(4000) = 11
+        @(4001) = 22
+        pokew(5000, 1111)
+        pokew(5002, 2222)
+        pokel(6000, 11111111)
+        pokel(6004, 22222222)
+
+        txt.print_ub(ubptr2^^)
+        txt.spc()
+        txt.print_uw(uwptr2^^)
+        txt.spc()
+        txt.print_l(lptr2^^)
         txt.nl()
 
-        ww = 2
-        ww *= 3
-        ww *= 4
-        ww *= 5
-        txt.print_uw(ww)
-        txt.nl()
+        poke(ubptr2, peek(ubptr1))
+        ubptr2^^ = ubptr1^^
 
-        ww = 0
-        txt.print_uwhex(ww, true)
-        txt.print_uwhex(ww + 5, true)
-        txt.print_uwhex(ww + 256, true)
-        txt.print_uwhex(ww + 512, true)
-        txt.print_uwhex(ww + $9b00, true)
-        txt.print_uwhex(ww + $9b22, true)
+        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  uwptr2^^ = uwptr1^^
+        uwptr2^^ = uwptr1^^
+
+        pokel(lptr2, peekl(lptr1))          ; TODO rewrite as  lptr2^^ = lptr1^^
+        lptr2^^ = lptr1^^
+
+        txt.print_ub(ubptr2^^)
+        txt.spc()
+        txt.print_uw(uwptr2^^)
+        txt.spc()
+        txt.print_l(lptr2^^)
         txt.nl()
-        txt.print_uwhex(ww - 5, true)
-        txt.print_uwhex(ww - 256, true)
-        txt.print_uwhex(ww - 512, true)
-        txt.print_uwhex(ww - $9b00, true)
-        txt.print_uwhex(ww - $9b22, true)
     }
 }

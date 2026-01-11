@@ -185,8 +185,8 @@ The 16 'virtual' 16-bit registers that are defined on the Commander X16 machine 
 registers and are just 16 memory-mapped word values that you *can* access directly from everywhere.
 
 
-IRQ Handling
-============
+IRQ Handling (general)
+======================
 
 Normally, the system's default IRQ handling is not interfered with.
 You can however install your own IRQ handler (for clean separation, it is advised to define it inside its own block).
@@ -203,39 +203,22 @@ These routines are::
 The IRQ handler routine must return a boolean value (0 or 1) in the A register:
 0 means do *not* run the system IRQ handler routine afterwards, 1 means run the system IRQ handler routine afterwards.
 
-
-.. _x16_irqhandling_notes:
-
-CommanderX16 specific notes
----------------------------
-
-.. sidebar::
-    X16 specific routines
-
-    For the X16 there are also some specialized IRQ handling routines, see  :ref:`x16-specific-irq` below.
-
-Note that for the CommanderX16 the set_rasterirq() will disable VSYNC irqs and never call the system IRQ handler regardless
-of the return value of the user handler routine. This also means the default sys.wait() routine won't work anymore,
-when using this handler.
-
-
-These two helper routines are not particularly suited to handle multiple IRQ sources on the Commander X16.
-It's possible but it requires correct fiddling with IRQ enable bits, acknowledging the IRQs, and properly calling
-or not calling the system IRQ handler routine. See the section below for perhaps a better and easier solution that
-is tailored to this system.
-
-The Commander X16 syslib provides some additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
-They take care of saving and restoring the Vera state of the interrupted main program, otherwise the IRQ handler's manipulation
-will corrupt any Vera operations that were going on in the main program. The routines are::
-
-    cx16.save_vera_context()
-    ; perhaps also cx16.save_virtual_registers() here... see caution below
-    ; ... do your work that uses vera here!...
-    ; perhaps also cx16.restore_virtual_registers() here... see caution below
-    cx16.restore_vera_context()
+.. caution::
+    Be cautious about calling ROM routines within an interrupt handler. Some kernal routines are fine to call,
+    others can be problematic. The safest approach is just to modify a flag variable in the handler and act on that
+    flag in the regular main loop of the program (i.e. call the required kernal routines there, and then reset the flag).
 
 .. caution::
-    The Commander X16's 16 'virtual registers' R0-R15 *are not preserved* in the IRQ handler! (On any system!)
+    It is advised to **not use floating point calculations** inside IRQ handler routines.
+    Beside them being very slow, there are intricate requirements such as having the
+    correct ROM bank enabled to be able to successfully call them (and making sure the correct
+    ROM bank is reset at the end of the handler), and the possibility
+    of corrupting variables and floating point calculations that are being executed
+    in the interrupted main program. These memory locations should be backed up
+    and restored at the end of the handler, further increasing its execution time...
+
+.. caution::
+    The Commander X16's sixteen 'virtual registers' R0-R15 *are not preserved* in the IRQ handler! (On any system!)
     So you should make sure that the handler routine does NOT use these registers, or do some sort of saving/restoring yourself
     of the ones that you do need in the IRQ handler.  Note that Prog8 itself may also use these registers, so be very careful.
     This is not a X16 specific thing; these registers also exist on the other compiler targets, and the same
@@ -246,25 +229,40 @@ will corrupt any Vera operations that were going on in the main program. The rou
     These routines are ``cx16.save_virtual_registers()`` and ``cx16.restore_virtual_registers()``.
 
 
-    It is also advised to **not use floating point calculations** inside IRQ handler routines.
-    Beside them being very slow, there are intricate requirements such as having the
-    correct ROM bank enabled to be able to successfully call them (and making sure the correct
-    ROM bank is reset at the end of the handler), and the possibility
-    of corrupting variables and floating point calculations that are being executed
-    in the interrupted main program. These memory locations should be backed up
-    and restored at the end of the handler, further increasing its execution time...
-
-
 .. _x16-specific-irq:
 
 Commander X16 specific IRQ handling
 ===================================
 
+Note that for the CommanderX16 the set_rasterirq() will disable VSYNC irqs and never call the system IRQ handler regardless
+of the return value of the user handler routine. This also means the default sys.wait() routine won't work anymore,
+when using this handler.
+
+These two helper routines are not particularly suited to handle multiple IRQ sources on the Commander X16.
+It's possible but it requires correct fiddling with IRQ enable bits, acknowledging the IRQs, and properly calling
+or not calling the system IRQ handler routine. See the paragraph below for perhaps a better and easier solution that
+is tailored to this system.
+
+.. caution::
+    **When Using VERA in the handler:**
+    The Commander X16 syslib provides some additional routines that should be used *in your IRQ handler routine* if it uses the Vera registers.
+    They take care of saving and restoring the Vera state of the interrupted main program, otherwise the IRQ handler's manipulation
+    will corrupt any Vera operations that were going on in the main program. The routines are::
+
+        cx16.save_vera_context()
+        ; perhaps also cx16.save_virtual_registers() here... see caution below
+        ; ... do your work that uses vera here!...
+        ; perhaps also cx16.restore_virtual_registers() here... see caution below
+        cx16.restore_vera_context()
+
+
+**Multi-IRQ support routines**
+
 Instead of using the routines in ``sys`` as mentioned above (that are more or less portable
 across the C64,C128 and cx16), you can also use the special routines made for the Commander X16,
 in ``cx16``. The idea is to let Prog8 do the irq dispatching and housekeeping for you, and that
 your program only has to register the specific handlers for the specific IRQ sources that you want to handle.
-*The Commander-X16 notes in the previous paragraph regarding the VERA and Virtual registers, still apply!* :ref:`x16_irqhandling_notes`
+*All cautions mentioned above, regarding the VERA and Virtual registers, floating point and kernal routines, still apply!*
 
 Look at the examples/cx16/multi-irq-new.p8 example to see how these routines can be used.
 Here they are, all available in ``cx16``:

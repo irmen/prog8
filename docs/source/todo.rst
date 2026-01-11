@@ -114,10 +114,8 @@ Libraries
 Optimizations
 -------------
 
-- more optimized operator handling of different types, for example uword a ^ byte b now does a type cast of b to word first
-- optimize longEqualsValue() for long const and variable operands to not assign needlessly to R14-R15.
-- optimize optimizedBitwiseExpr()  for long const and variable operands to not assign needlessly to R14-R15.
-- lptr2^^=lptr^^  now always go via temporary var, optimize this to avoid using temps if possible. (assignPointerDerefExpression)
+- 6502: rewrite  pokew(wptr2, peekw(wptr1))  and   wptr2^^ = wptr1^^   into  1 single optimized word copy through pointers,  prog8_lib_copyword(s,t) ?   assignPointerDerefExpression?
+- 6502: rewrite  pokel(lptr2, peekl(lptr1))  and   lptr2^^ = lptr1^^   into  1 single optimized long copy through pointers,  prog8_lib_copylong(s,t) ?   assignPointerDerefExpression?
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
