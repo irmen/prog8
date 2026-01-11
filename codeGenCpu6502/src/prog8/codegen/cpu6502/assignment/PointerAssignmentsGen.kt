@@ -41,7 +41,8 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignFAC1(target: PtrTarget) {
-        TODO("assign FAC1 float to pointer deref ${target.position}")
+        val (zpPtrVar, offset) = deref(target.pointer)
+        asmgen.storeIndirectFloatFP1(zpPtrVar, offset)
     }
 
     internal fun assignFloatAY(target: PtrTarget) {

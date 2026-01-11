@@ -195,12 +195,14 @@ _after:
         before(functionCallExpr as IFunctionCall, parent, functionCallExpr.position)
 
     private fun before(functionCall: IFunctionCall, parent: Node, position: Position): Iterable<IAstModification> {
-        if(functionCall.target.nameInSource==listOf("peek")) {
+        val outerFunc = functionCall.target.nameInSource
+
+        if(outerFunc==listOf("peek")) {
             // peek(a) is synonymous with @(a)
             val memread = DirectMemoryRead(functionCall.args.single(), position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, memread, parent))
         }
-        if(functionCall.target.nameInSource==listOf("poke") && parent !is Assignment) {
+        if(outerFunc==listOf("poke") && parent !is Assignment) {
             // poke(a, v) is synonymous with @(a) = v
             val tgt = AssignTarget(
                 null,
@@ -213,6 +215,11 @@ _after:
             val assign = Assignment(tgt, functionCall.args[1], AssignmentOrigin.OPTIMIZER, position)
             return listOf(IAstModification.ReplaceNode(functionCall as Node, assign, parent))
         }
+
+        if(outerFunc==listOf("pokew") || outerFunc==listOf("pokel") || outerFunc==listOf("pokef")) {
+            // TODO optimize if value is peek
+        }
+
         return noModifications
     }
 

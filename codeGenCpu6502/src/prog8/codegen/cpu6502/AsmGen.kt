@@ -2442,6 +2442,34 @@ $repeatLabel""")
             jsr  floats.copy_float""")
     }
 
+    internal fun storeIndirectFloatFP1(zpPtrVar: String, offset: UByte) {
+        val floattempvar = AsmAssignTarget(TargetStorageKind.VARIABLE, this, DataType.FLOAT, null, Position.DUMMY, variableAsmName = "floats.floats_temp_var")
+        assignRegister(RegisterOrPair.FAC1, floattempvar)
+        if(offset>0u) {
+            out("""
+                lda  #<floats.floats_temp_var
+                ldy  #>floats.floats_temp_var
+                sta  P8ZP_SCRATCH_W1
+                sty  P8ZP_SCRATCH_W1+1
+                lda  $zpPtrVar
+                ldy  $zpPtrVar+1
+                clc
+                adc  #$offset
+                bcc  +
+                iny
++               jsr  floats.copy_float""")
+            return
+        }
+        
+        out("""
+            lda  #<floats.floats_temp_var
+            ldy  #>floats.floats_temp_var
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            lda  $zpPtrVar
+            ldy  $zpPtrVar+1
+            jsr  floats.copy_float""")                        
+    }
 
     internal fun romableError(problem: String, pos: Position, assemblerShouldFail: Boolean = true) {
         if(options.romable) {
