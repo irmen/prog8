@@ -1149,9 +1149,17 @@ searching
 
 ``pattern_match (string, pattern) -> bool`` (not on Virtual target)
     Returns true if the string matches the pattern, false if not.
+    The matching is CASE-SENSITIVE. If you want to match case-insensitively, use pattern_match_nocase().
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
     An empty pattern matches nothing. If you need everything to match, use a single '*'.
-    Note: this routine does not work when code is in ROM.
+    Note: this routine does not work when it is located in ROM.
+
+``pattern_match_nocase (string, lowercase_pattern) -> bool`` (not on Virtual target)
+    Returns true if the string matches the pattern, false if not.
+    The matching is CASE-INSENSITIVE (based on PETSCII encoding). If you want to match a bit faster but case-sensitively, use pattern_match().
+    '?' in the pattern matches any one character. '*' in the pattern matches any substring.
+    An empty pattern matches nothing. If you need everything to match, use a single '*'.
+    Note: this routine does not work when it is located in ROM.
 
 ``rfind (string, char) -> ubyte index, bool found``
     Like ``find``, but now looking from the *right* of the string instead.

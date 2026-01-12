@@ -1,69 +1,59 @@
 %import textio
-%import floats
+%import diskio
+%import strings
 %zeropage basicsafe
 %option no_sysinit
 
 main {
+    uword buffer=memory("filenames", 2000, 0)
+
     sub start() {
-        ^^ubyte ubptr1 = 4000
-        ^^ubyte ubptr2 = 4001
-        ^^uword uwptr1 = 5000
-        ^^uword uwptr2 = 5002
-        ^^long lptr1 = 6000
-        ^^long lptr2 = 6004
-        ^^float fptr1 = 7000
-        ^^float fptr2 = 7008
+        txt.iso()
 
+        str name = iso:"Irmen De Jong"
+        txt.print(name)
+        txt.nl()
+        strings.lower(name)
+        txt.print(name)
+        txt.nl()
+        sys.exit(1)
+        txt.lowercase()
+        ; diskio.chdir("ww/world")
 
-        @(4000) = 11
-        @(4001) = 22
-        pokew(5000, 1111)
-        pokew(5002, 2222)
-        pokel(6000, 11111111)
-        pokel(6004, 22222222)
-        pokef(7000, 11.111)
-        pokef(7008, 22.222)
+        ubyte num_files = diskio.list_filenames_nocase("irmen*", buffer, 2000)
+        txt.print_ub(num_files)
+        txt.nl()
+        uword fptr = buffer
+        repeat num_files {
+            txt.print(fptr)
+            txt.nl()
+            fptr += strings.length(fptr) + 1
+        }
+        sys.exit(1)
 
-        txt.print_ub(ubptr2^^)
-        txt.spc()
-        txt.print_uw(uwptr2^^)
-        txt.spc()
-        txt.print_l(lptr2^^)
-        txt.spc()
-        txt.print_f(fptr2^^)
+        diskio.lf_start_list_nocase("irmen*.txt")
+        while diskio.lf_next_entry() {
+            txt.print(diskio.list_filename)
+            txt.nl()
+        }
+        diskio.lf_end_list()
+
         txt.nl()
 
-        poke(ubptr2, peek(ubptr1))
-        ubptr2^^ = ubptr1^^
+        diskio.lf_start_list_files_nocase("irmen*.txt")
+        while diskio.lf_next_entry() {
+            txt.print(diskio.list_filename)
+            txt.nl()
+        }
+        diskio.lf_end_list()
 
-        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  uwptr2^^ = uwptr1^^ ?
-        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  uwptr2^^ = uwptr1^^ ?
-        pokew(uwptr2, peekw(uwptr1))        ; TODO rewrite as  uwptr2^^ = uwptr1^^ ?
-        uwptr2^^ = uwptr1^^
-        uwptr2^^ = uwptr1^^
-        uwptr2^^ = uwptr1^^
-
-        pokel(lptr2, peekl(lptr1))
-        pokel(lptr2, peekl(lptr1))
-        pokel(lptr2, peekl(lptr1))
-        lptr2^^ = lptr1^^
-        lptr2^^ = lptr1^^
-        lptr2^^ = lptr1^^
-
-        pokef(fptr2, peekf(fptr1))
-        pokef(fptr2, peekf(fptr1))
-        pokef(fptr2, peekf(fptr1))
-        fptr2^^ = fptr1^^
-        fptr2^^ = fptr1^^
-        fptr2^^ = fptr1^^
-
-        txt.print_ub(ubptr2^^)
-        txt.spc()
-        txt.print_uw(uwptr2^^)
-        txt.spc()
-        txt.print_l(lptr2^^)
-        txt.spc()
-        txt.print_f(fptr2^^)
         txt.nl()
+
+        diskio.lf_start_list_dirs_nocase("z*")
+        while diskio.lf_next_entry() {
+            txt.print(diskio.list_filename)
+            txt.nl()
+        }
+        diskio.lf_end_list()
     }
 }
