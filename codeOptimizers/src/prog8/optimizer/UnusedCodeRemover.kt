@@ -43,6 +43,10 @@ class UnusedCodeRemover(private val program: Program,
             val pop = subroutines.single { s -> s.name == "pop" }
             neverRemoveSubroutines.add(push)
             neverRemoveSubroutines.add(pop)
+
+            val cast_long_to_float = subroutines.singleOrNull { s -> s.name == "internal_long_to_float" }
+            if(cast_long_to_float!=null)
+                neverRemoveSubroutines.add(cast_long_to_float)
         }
     }
 

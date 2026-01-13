@@ -127,48 +127,9 @@ cast_FAC1_as_w_into_ay	.proc               ; also used for float 2 b
 		.pend
 
 
-cast_from_long          .proc
-        ; convert long pointed to by AY into FAC1 (or if Carry is Set, into a float pointed to by R0)
-        ; a bit slow algorithm implemented below:  (msw(l) as word) as float * 65536.0 + (lsw(l) as float)
-        php
-        sta  P8ZP_SCRATCH_W1
-        sty  P8ZP_SCRATCH_W1+1
-        ldy  #3
-        lda  (P8ZP_SCRATCH_W1),y
-        sta  P8ZP_SCRATCH_REG
-        dey
-        lda  (P8ZP_SCRATCH_W1),y
-        ldy  P8ZP_SCRATCH_REG
-        jsr  GIVAYFAY
-        lda  #<FL_65536_const
-        ldy  #>FL_65536_const
-        jsr  CONUPK
-        jsr  FMULTT
-        jsr  pushFAC1
-        ldy  #1
-        lda  (P8ZP_SCRATCH_W1),y
-        sta  P8ZP_SCRATCH_REG
-        dey
-        lda  (P8ZP_SCRATCH_W1),y
-        ldy  P8ZP_SCRATCH_REG
-        jsr  GIVUAYFAY
-        jsr  MOVEF
-        clc
-        jsr  popFAC
-        jsr  FADDT
-        plp
-        bcc  +
-        ldx  cx16.r0L
-        ldy  cx16.r0H
-        jmp  MOVMF
-+       rts
-
-FL_65536_const  .byte  $91, $00, $00, $00, $00  ; 65536.0
-        ; !notreached!
-        .pend
-
 cast_as_long            .proc
         ; convert float pointed to by R0 into a long pointed to by AY
+        ; the reverse routine that converts a long to a float is elsewhere as internal_long_to_float()
 
         FACHO = FAC_ADDR + 1
 

@@ -2916,16 +2916,32 @@ $endLabel""")
                             asmgen.out("""
                                 lda  #<$varname
                                 ldy  #>$varname
-                                clc
-                                jsr  floats.cast_from_long""")
+                                sta  floats.internal_long_to_float.sourceptr
+                                sty  floats.internal_long_to_float.sourceptr+1
+                                lda  #<floats.floats_temp_var
+                                ldy  #>floats.floats_temp_var
+                                sta  floats.internal_long_to_float.targetptr
+                                sty  floats.internal_long_to_float.targetptr+1
+                                jsr  floats.internal_long_to_float
+                                lda  #<floats.floats_temp_var
+                                ldy  #>floats.floats_temp_var
+                                jsr  floats.MOVFM""")
                         }
                         else -> {
                             assignExpressionToRegister(value, RegisterOrPair.R14R15, true)
                             asmgen.out("""
                                 lda  #<cx16.r14
                                 ldy  #>cx16.r14
-                                clc
-                                jsr  floats.cast_from_long""")
+                                sta  floats.internal_long_to_float.sourceptr
+                                sty  floats.internal_long_to_float.sourceptr+1
+                                lda  #<floats.floats_temp_var
+                                ldy  #>floats.floats_temp_var
+                                sta  floats.internal_long_to_float.targetptr
+                                sty  floats.internal_long_to_float.targetptr+1
+                                jsr  floats.internal_long_to_float
+                                lda  #<floats.floats_temp_var
+                                ldy  #>floats.floats_temp_var
+                                jsr  floats.MOVFM""")
                         }
                     }
                 }
@@ -3199,14 +3215,15 @@ $endLabel""")
                     asmgen.out("  lda  $sourceAsmVarName |  sta  $targetAsmVarName |  lda  $sourceAsmVarName+1 |  sta  $targetAsmVarName+1")
                 } else if(targetDt.isFloat) {
                     asmgen.out("""
-                        lda  #<$targetAsmVarName
-                        ldy  #>$targetAsmVarName
-                        sta  cx16.r0L
-                        sty  cx16.r0H
                         lda  #<$sourceAsmVarName
                         ldy  #>$sourceAsmVarName
-                        sec
-                        jsr  floats.cast_from_long""")
+                        sta  floats.internal_long_to_float.sourceptr
+                        sty  floats.internal_long_to_float.sourceptr+1
+                        lda  #<$targetAsmVarName
+                        ldy  #>$targetAsmVarName
+                        sta  floats.internal_long_to_float.targetptr
+                        sty  floats.internal_long_to_float.targetptr+1
+                        jsr  floats.internal_long_to_float""")
                 } else
                     throw AssemblyError("weird type")
             }
@@ -3418,14 +3435,15 @@ $endLabel""")
                     asmgen.out("  lda  cx16.$startreg |  sta  $targetAsmVarName |  lda  cx16.$startreg+1 |  sta  $targetAsmVarName+1")
                 } else if(targetDt.isFloat) {
                     asmgen.out("""
-                        lda  #<$targetAsmVarName
-                        ldy  #>$targetAsmVarName
-                        sta  cx16.r0L
-                        sty  cx16.r0H
                         lda  #<cx16.$startreg
                         ldy  #>cx16.$startreg
-                        sec
-                        jsr  floats.cast_from_long""")
+                        sta  floats.internal_long_to_float.sourceptr
+                        sty  floats.internal_long_to_float.sourceptr+1
+                        lda  #<$targetAsmVarName
+                        ldy  #>$targetAsmVarName
+                        sta  floats.internal_long_to_float.targetptr
+                        sty  floats.internal_long_to_float.targetptr+1
+                        jsr  floats.internal_long_to_float""")
                 } else
                     throw AssemblyError("weird type $targetDt")
             }

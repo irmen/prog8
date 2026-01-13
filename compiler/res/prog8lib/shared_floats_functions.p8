@@ -305,4 +305,62 @@ sub interpolate(float v, float inputMin, float inputMax, float outputMin, float 
     return v * (outputMax - outputMin) + outputMin
 }
 
+    sub internal_long_to_float(^^long sourceptr, ^^float targetptr) {
+        long value = sourceptr^^
+        ^^ubyte vptr = &value
+
+        cx16.r0 = targetptr
+        if value==0 {
+            cx16.r0[0] = 0
+            cx16.r0[1] = 0
+            cx16.r0[2] = 0
+            cx16.r0[3] = 0
+            cx16.r0[4] = 0
+            return
+        }
+
+        ; Determine the sign and work with the absolute value
+        bool is_negative = value < 0
+        value = abs(value)
+
+        ; Calculate the exponent by finding the highest set bit
+        ubyte highest_bit_pos = get_vptr_highest_bit_pos()
+        ; For the normalized mantissa, the highest bit is an implicit 1 followed by the rest
+        ; So we shift the absolute value to get the proper mantissa representation
+        value <<= 31 - highest_bit_pos
+
+        ; Store the exponent
+        cx16.r0[0] = highest_bit_pos + 129
+
+        ; Store the mantissa with the sign bit
+        cx16.r0[1] = vptr[3] & $7f
+        if is_negative
+            cx16.r0[1] |= $80
+        cx16.r0[2] = vptr[2]
+        cx16.r0[3] = vptr[1]
+        cx16.r0[4] = vptr[0]
+        return
+
+        sub get_vptr_highest_bit_pos() -> ubyte {
+            if vptr[3]==0
+                if vptr[2]==0
+                    if vptr[1]==0
+                        if vptr[0]==0 return 0
+                        else return highest_bit_in_byte(vptr[0])
+                    else return 8+highest_bit_in_byte(vptr[1])
+                else return 16+highest_bit_in_byte(vptr[2])
+            else return 24+highest_bit_in_byte(vptr[3])
+
+            asmsub highest_bit_in_byte(ubyte value @A) -> ubyte @Y {
+                %asm {{
+                    ldy  #0
+-                   lsr  a
+                    beq  +
+                    iny
+                    bne  -
++                   rts
+                }}
+            }
+        }
+    }
 }

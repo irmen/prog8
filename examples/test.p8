@@ -1,59 +1,84 @@
 %import textio
-%import diskio
-%import strings
-%zeropage basicsafe
+%import floats
 %option no_sysinit
+%zeropage basicsafe
+
 
 main {
-    uword buffer=memory("filenames", 2000, 0)
-
     sub start() {
-        txt.iso()
+        float @shared fv
+        long @shared lv = -12345678
 
-        str name = iso:"Irmen De Jong"
-        txt.print(name)
-        txt.nl()
-        strings.lower(name)
-        txt.print(name)
-        txt.nl()
-        sys.exit(1)
-        txt.lowercase()
-        ; diskio.chdir("ww/world")
-
-        ubyte num_files = diskio.list_filenames_nocase("irmen*", buffer, 2000)
-        txt.print_ub(num_files)
-        txt.nl()
-        uword fptr = buffer
-        repeat num_files {
-            txt.print(fptr)
-            txt.nl()
-            fptr += strings.length(fptr) + 1
+        fv=0
+        cbm.SETTIML(0)
+        repeat 1000 {
+            fv = lv as float
         }
-        sys.exit(1)
-
-        diskio.lf_start_list_nocase("irmen*.txt")
-        while diskio.lf_next_entry() {
-            txt.print(diskio.list_filename)
-            txt.nl()
-        }
-        diskio.lf_end_list()
-
+        txt.print_f(fv)
+        txt.nl()
+        txt.print_uw(cbm.RDTIM16())
+        txt.nl()
         txt.nl()
 
-        diskio.lf_start_list_files_nocase("irmen*.txt")
-        while diskio.lf_next_entry() {
-            txt.print(diskio.list_filename)
-            txt.nl()
+        fv=0
+        cbm.SETTIML(0)
+        repeat 1000 {
+            floats.internal_long_to_float(&lv, &fv)
         }
-        diskio.lf_end_list()
-
+        txt.print_f(fv)
+        txt.nl()
+        txt.print_uw(cbm.RDTIM16())
+        txt.nl()
         txt.nl()
 
-        diskio.lf_start_list_dirs_nocase("z*")
-        while diskio.lf_next_entry() {
-            txt.print(diskio.list_filename)
-            txt.nl()
-        }
-        diskio.lf_end_list()
+        lv = 1024
+        txt.print_f(lv as float)
+        txt.spc()
+        floats.internal_long_to_float(&lv, &fv)
+        txt.print_f(fv)
+        txt.nl()
+
+        lv = -1024
+        txt.print_f(lv as float)
+        txt.spc()
+        floats.internal_long_to_float(&lv, &fv)
+        txt.print_f(fv)
+        txt.nl()
+
+        lv = 99999
+        txt.print_f(lv as float)
+        txt.spc()
+        floats.internal_long_to_float(&lv, &fv)
+        txt.print_f(fv)
+        txt.nl()
+
+        lv =-99999
+        txt.print_f(lv as float)
+        txt.spc()
+        floats.internal_long_to_float(&lv, &fv)
+        txt.print_f(fv)
+        txt.nl()
+
+        lv = 1122334455
+        txt.print_f(lv as float)
+        txt.spc()
+        floats.internal_long_to_float(&lv, &fv)
+        txt.print_f(fv)
+        txt.nl()
+
+        lv = -1122334455
+        txt.print_f(lv as float)
+        txt.spc()
+        floats.internal_long_to_float(&lv, &fv)
+        txt.print_f(fv)
+        txt.nl()
+
+        lv = 0
+        txt.print_f(lv as float)
+        txt.spc()
+        floats.internal_long_to_float(&lv, &fv)
+        txt.print_f(fv)
+        txt.nl()
     }
+
 }

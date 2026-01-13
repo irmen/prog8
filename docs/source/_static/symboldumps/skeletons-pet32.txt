@@ -263,6 +263,7 @@ strings  {
     ncompare  (str string1 @R0, str string2 @AY, ubyte length @X)  clobbers (X,Y) -> byte @A 
     ncopy  (str source @R0, str target @AY, ubyte maxlength @X)  clobbers (A,X) -> ubyte @Y 
     pattern_match  (str string @AY, str pattern @R0)  clobbers (Y) -> bool @A 
+    pattern_match_nocase  (str string @AY, str lowercase_pattern @R0)  clobbers (Y) -> bool @A 
     rfind  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
     right  (str source @AY, ubyte length @X, str target @R1)  clobbers (A,Y) 
     rstrip  (str s) 

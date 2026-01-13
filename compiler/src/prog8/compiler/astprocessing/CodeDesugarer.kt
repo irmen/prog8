@@ -354,9 +354,10 @@ _after:
             }
         } else if(arrayVar!=null && (arrayVar.type==VarDeclType.MEMORY || arrayVar.datatype.isString || arrayVar.datatype.isPointer || arrayVar.datatype.isArray)) {
             return noModifications
-        } else if(arrayVar!=null) {
-            // it could be a pointer dereference instead of a simple array variable
-            TODO("deref[word] rewrite ????  ${arrayIndexedExpression.position}")
+        }
+//        else if(arrayVar!=null) {
+//            // it could be a pointer dereference instead of a simple array variable
+//            TODO("deref[word] rewrite ????  ${arrayIndexedExpression.position}")
 //            val dt = arrayIndexedExpression.plainarrayvar!!.traverseDerefChainForDt(null)
 //            if(dt.isUnsignedWord) {
 //                // ptr.field[index] -->  @(ptr.field + index)
@@ -370,7 +371,7 @@ _after:
 //                    return listOf(IAstModification.ReplaceNode(arrayIndexedExpression, memread, parent))
 //                }
 //            }
-        }
+//        }
         return noModifications
     }
 

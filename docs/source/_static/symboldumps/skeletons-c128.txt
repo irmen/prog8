@@ -178,6 +178,7 @@ diskio  {
     ubyte @shared  drivenumber 
     bool  iteration_in_progress 
     uword  list_blocks 
+    bool  list_case_insensitive 
     str  list_filename 
     str  list_filetype 
     ^^ubyte  list_pattern 
@@ -202,8 +203,12 @@ diskio  {
     lf_next_entry  () -> bool 
     lf_start_list  (str pattern_ptr) -> bool 
     lf_start_list_dirs  (str pattern_ptr) -> bool 
+    lf_start_list_dirs_nocase  (str pattern_ptr) -> bool 
     lf_start_list_files  (str pattern_ptr) -> bool 
+    lf_start_list_files_nocase  (str pattern_ptr) -> bool 
+    lf_start_list_nocase  (str pattern_ptr) -> bool 
     list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
+    list_filenames_nocase  (str lowercase_pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     load  (str filenameptr, uword address_override) -> uword 
     load_raw  (str filenameptr, uword start_address) -> uword 
     loadlib  (str libnameptr, uword libaddress) -> uword 
@@ -312,6 +317,7 @@ strings  {
     ncompare  (str string1 @R0, str string2 @AY, ubyte length @X)  clobbers (X,Y) -> byte @A 
     ncopy  (str source @R0, str target @AY, ubyte maxlength @X)  clobbers (A,X) -> ubyte @Y 
     pattern_match  (str string @AY, str pattern @R0)  clobbers (Y) -> bool @A 
+    pattern_match_nocase  (str string @AY, str lowercase_pattern @R0)  clobbers (Y) -> bool @A 
     rfind  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
     right  (str source @AY, ubyte length @X, str target @R1)  clobbers (A,Y) 
     rstrip  (str s) 
