@@ -294,6 +294,10 @@ One or more .p8 module files
     As soon as a change happens, the program gets compiled again.
     Note that it is possible to use the watch mode with multiple modules as well, but it will
     recompile everything in that list even if only one of the files got updated.
+    *Combined with the Emulator's Host-FS or real hardware Calypso's network drive:* this enables you to
+    edit prog8 source files with an editor on the X16 itself (such as XVI, XEdit). When saving the source file,
+    the compiler can sit in the background in watch mode, and recompile it for you immediately on save.
+    Then you can directly run the new resulting PRG file in the X16!
 
 
 Module source code files

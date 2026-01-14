@@ -1,6 +1,9 @@
 TODO
 ====
 
+- need ISO lower/uppercasing support in Strings module as well, and a ISO-compatible case insensitive pattern_match_nocase()  (extra flag?)
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)

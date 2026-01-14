@@ -2,6 +2,7 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
+import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
@@ -211,6 +212,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     errors = ErrorReporter(txtcolors)
                 )
                 val compilationResult = compileProgram(compilerArgs)
+                ImportFileSystem.clearCaches()
 
                 if(checkSource==true)
                     println("No output produced.")
