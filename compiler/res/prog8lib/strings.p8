@@ -344,6 +344,26 @@ _done       rts
         }}
     }
 
+    asmsub lower_iso(str st @AY) -> ubyte @Y {
+        ; Lowercases the ISO string in-place. Returns length of the string.
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            beq  _done
+            cmp  #65
+            bcc  +
+            cmp  #91
+            bcs  +
+            ora  #%00100000
++           sta  (P8ZP_SCRATCH_W1),y
+            iny
+            bne  -
+_done       rts
+        }}
+    }
+
     asmsub upper(str st @AY) -> ubyte @Y {
         ; Uppercases the petscii string in-place. Returns length of the string.
         %asm {{
@@ -364,7 +384,28 @@ _done       rts
         }}
     }
 
+    asmsub upper_iso(str st @AY) -> ubyte @Y {
+        ; Uppercases the ISO string in-place. Returns length of the string.
+        %asm {{
+            sta  P8ZP_SCRATCH_W1
+            sty  P8ZP_SCRATCH_W1+1
+            ldy  #0
+-           lda  (P8ZP_SCRATCH_W1),y
+            beq  _done
+            cmp  #97
+            bcc  +
+            cmp  #123
+            bcs  +
+            and  #%11011111
++           sta  (P8ZP_SCRATCH_W1),y
+            iny
+            bne  -
+_done       rts
+        }}
+    }
+
     asmsub lowerchar(ubyte character @A) -> ubyte @A {
+        ; to petscii lower case
         %asm {{
             and  #$7f
             cmp  #97
@@ -376,13 +417,38 @@ _done       rts
         }}
     }
 
+    asmsub lowerchar_iso(ubyte character @A) -> ubyte @A {
+        ; to ISO lowercase
+        %asm{{
+            cmp #65
+            bcc +
+            cmp #91
+            bcs +
+            ora #$20
++           rts
+        }}
+    }
+
     asmsub upperchar(ubyte character @A) -> ubyte @A {
+        ; to petscii upper case
         %asm {{
             cmp  #65
             bcc  +
             cmp  #91
             bcs  +
             ora  #%00100000
++           rts
+        }}
+    }
+
+    asmsub upperchar_iso(ubyte character @A) -> ubyte @A {
+        ; to ISO uppercase
+        %asm{{
+            cmp #97
+            bcc +
+            cmp #121
+            bcs +
+            and #%11011111
 +           rts
         }}
     }

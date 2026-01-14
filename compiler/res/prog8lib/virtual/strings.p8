@@ -171,7 +171,7 @@ strings {
     }
 
     sub lower(str st) -> ubyte {
-        ; Lowercases the petscii string in-place. Returns length of the string.
+        ; Lowercases the ISO string in-place. Returns length of the string.
         ; (for efficiency, non-letter characters > 128 will also not be left intact,
         ;  but regular text doesn't usually contain those characters anyway.)
         ubyte ix
@@ -186,7 +186,7 @@ strings {
     }
 
     sub upper(str st) -> ubyte {
-        ; Uppercases the petscii string in-place. Returns length of the string.
+        ; Uppercases the ISO string in-place. Returns length of the string.
         ubyte ix
         repeat {
             ubyte char=st[ix]

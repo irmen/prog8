@@ -1,83 +1,38 @@
 %import textio
-%import floats
+%import strings
 %option no_sysinit
 %zeropage basicsafe
 
 
 main {
     sub start() {
-        float @shared fv
-        long @shared lv = -12345678
+        txt.iso()
 
-        fv=0
-        cbm.SETTIML(0)
-        repeat 1000 {
-            fv = lv as float
+        str name = iso:"Irmen De Jong"
+        str name2 = iso:"Irmen De Jong"
+        str name3 = iso:"Irmen De Jong"
+        str name4 = iso:"Irmen De Jong"
+
+        txt.print(name)
+        txt.nl()
+        txt.nl()
+        strings.lower_iso(name)
+        strings.upper_iso(name2)
+        txt.print(name)
+        txt.nl()
+        txt.print(name2)
+        txt.nl()
+        txt.nl()
+
+        for cx16.r0L in 0 to len(name3)-1 {
+            name3[cx16.r0L] = strings.lowerchar_iso(name3[cx16.r0L])
         }
-        txt.print_f(fv)
+        txt.print(name3)
         txt.nl()
-        txt.print_uw(cbm.RDTIM16())
-        txt.nl()
-        txt.nl()
-
-        fv=0
-        cbm.SETTIML(0)
-        repeat 1000 {
-            floats.internal_long_to_float(&lv, &fv)
+        for cx16.r0L in 0 to len(name4)-1 {
+            name4[cx16.r0L] = strings.upperchar_iso(name4[cx16.r0L])
         }
-        txt.print_f(fv)
-        txt.nl()
-        txt.print_uw(cbm.RDTIM16())
-        txt.nl()
-        txt.nl()
-
-        lv = 1024
-        txt.print_f(lv as float)
-        txt.spc()
-        floats.internal_long_to_float(&lv, &fv)
-        txt.print_f(fv)
-        txt.nl()
-
-        lv = -1024
-        txt.print_f(lv as float)
-        txt.spc()
-        floats.internal_long_to_float(&lv, &fv)
-        txt.print_f(fv)
-        txt.nl()
-
-        lv = 99999
-        txt.print_f(lv as float)
-        txt.spc()
-        floats.internal_long_to_float(&lv, &fv)
-        txt.print_f(fv)
-        txt.nl()
-
-        lv =-99999
-        txt.print_f(lv as float)
-        txt.spc()
-        floats.internal_long_to_float(&lv, &fv)
-        txt.print_f(fv)
-        txt.nl()
-
-        lv = 1122334455
-        txt.print_f(lv as float)
-        txt.spc()
-        floats.internal_long_to_float(&lv, &fv)
-        txt.print_f(fv)
-        txt.nl()
-
-        lv = -1122334455
-        txt.print_f(lv as float)
-        txt.spc()
-        floats.internal_long_to_float(&lv, &fv)
-        txt.print_f(fv)
-        txt.nl()
-
-        lv = 0
-        txt.print_f(lv as float)
-        txt.spc()
-        floats.internal_long_to_float(&lv, &fv)
-        txt.print_f(fv)
+        txt.print(name4)
         txt.nl()
     }
 
