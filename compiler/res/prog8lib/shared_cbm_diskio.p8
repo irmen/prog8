@@ -149,7 +149,6 @@ io_error:
     uword list_blocks
     bool iteration_in_progress = false
     bool write_iteration_in_progress = false
-    bool list_case_insensitive
     str list_filetype = "???"       ; prg, seq, dir
     str list_filename = "?" * 50
 
@@ -157,67 +156,41 @@ io_error:
 
     sub list_filenames(str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
-        ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against (case sensitive).
+        ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against.
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
         ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
         ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
         ;    Note that no list of pointers of some form is returned, the names are just squashed together.
         ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
         ;    and registering when the next one starts after the 0-byte separator.
-        list_case_insensitive = false
-
-list_filenames_internal:
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
-
-        if list_case_insensitive {
-            if not lf_start_list_nocase(pattern_ptr)
-                goto done
-        } else if not lf_start_list(pattern_ptr)
-            goto done
-
-        while lf_next_entry() {
-            if list_filetype!="dir" {
-                filenames_buffer += strings.copy(list_filename, filenames_buffer) + 1
-                files_found++
-                if filenames_buffer - buffer_start > filenames_buf_size-20 {
-                    @(filenames_buffer)=0
-                    lf_end_list()
-                    sys.set_carry()
-                    return files_found
+        if lf_start_list(pattern_ptr) {
+            while lf_next_entry() {
+                if list_filetype!="dir" {
+                    filenames_buffer += strings.copy(list_filename, filenames_buffer) + 1
+                    files_found++
+                    if filenames_buffer - buffer_start > filenames_buf_size-20 {
+                        @(filenames_buffer)=0
+                        lf_end_list()
+                        sys.set_carry()
+                        return files_found
+                    }
                 }
             }
+            lf_end_list()
         }
-done:
-        lf_end_list()
         @(filenames_buffer)=0
         sys.clear_carry()
         return files_found
     }
 
-    sub list_filenames_nocase(str lowercase_pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
-        ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
-        ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against (case insensitive).
-        ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
-        ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
-        ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
-        ;    Note that no list of pointers of some form is returned, the names are just squashed together.
-        ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
-        ;    and registering when the next one starts after the 0-byte separator.
-        list_case_insensitive = true
-        diskio.list_filenames.pattern_ptr = lowercase_pattern_ptr
-        diskio.list_filenames.filenames_buffer = filenames_buffer
-        diskio.list_filenames.filenames_buf_size = filenames_buf_size
-        goto diskio.list_filenames.list_filenames_internal
-    }
-
     ; ----- iterative file lister functions (uses the read io channel) -----
 
     sub lf_start_list(str pattern_ptr) -> bool {
-        ; -- start an iterative file listing with optional pattern matching (case sensitive).
+        ; -- start an iterative file listing with optional pattern matching.
         ;    note: only a single iteration loop can be active at a time!
         cbm.SETNAM(1, "$")
-        list_case_insensitive = false
 
 start_list_internal:
         lf_end_list()
@@ -245,51 +218,20 @@ io_error:
     }
 
     sub lf_start_list_dirs(str pattern_ptr) -> bool {
-        ; -- start an iterative directory contents listing with optional pattern matching (case sensitive).
+        ; -- start an iterative directory contents listing with optional pattern matching.
         ;    this version it only returns directory entries!
         ;    note: only a single iteration loop can be active at a time!
         cbm.SETNAM(5, "$:*=c")  ; on C64 (1581 diskdrive) the type for directories is CBM
         diskio.lf_start_list.pattern_ptr = pattern_ptr
-        list_case_insensitive = false
         goto diskio.lf_start_list.start_list_internal
     }
 
     sub lf_start_list_files(str pattern_ptr) -> bool {
-        ; -- start an iterative directory contents listing with optional pattern matching (case sensitive).
+        ; -- start an iterative directory contents listing with optional pattern matching.
         ;    this version only returns actual file entries!
         ;    note: only a single iteration loop can be active at a time!
         cbm.SETNAM(5, "$:*=p")
         diskio.lf_start_list.pattern_ptr = pattern_ptr
-        list_case_insensitive = false
-        goto diskio.lf_start_list.start_list_internal
-    }
-
-    sub lf_start_list_nocase(str pattern_ptr) -> bool {
-        ; -- start an iterative file listing with optional pattern matching (case insensitive).
-        ;    note: only a single iteration loop can be active at a time!
-        cbm.SETNAM(1, "$")
-        diskio.lf_start_list.pattern_ptr = pattern_ptr
-        list_case_insensitive = true
-        goto diskio.lf_start_list.start_list_internal
-    }
-
-    sub lf_start_list_dirs_nocase(str pattern_ptr) -> bool {
-        ; -- start an iterative directory contents listing with optional pattern matching (case insensitive).
-        ;    this version it only returns directory entries!
-        ;    note: only a single iteration loop can be active at a time!
-        cbm.SETNAM(5, "$:*=c")  ; on C64 (1581 diskdrive) the type for directories is CBM
-        diskio.lf_start_list.pattern_ptr = pattern_ptr
-        list_case_insensitive = true
-        goto diskio.lf_start_list.start_list_internal
-    }
-
-    sub lf_start_list_files_nocase(str pattern_ptr) -> bool {
-        ; -- start an iterative directory contents listing with optional pattern matching (case insensitive).
-        ;    this version only returns actual file entries!
-        ;    note: only a single iteration loop can be active at a time!
-        cbm.SETNAM(5, "$:*=p")
-        diskio.lf_start_list.pattern_ptr = pattern_ptr
-        list_case_insensitive = true
         goto diskio.lf_start_list.start_list_internal
     }
 
@@ -348,11 +290,7 @@ io_error:
             if not list_skip_disk_name {
                 if list_pattern==0
                     return true
-                if list_case_insensitive {
-                    if strings.pattern_match_nocase(list_filename, list_pattern)
-                        return true
-                }
-                else if strings.pattern_match(list_filename, list_pattern)
+                if strings.pattern_match(list_filename, list_pattern)
                     return true
             }
             list_skip_disk_name = false

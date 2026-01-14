@@ -785,7 +785,9 @@ strings  {
     left  (str source @AX, ubyte length @Y, str target @R1)  clobbers (A,Y) 
     length  (str string @AY)  clobbers (A) -> ubyte @Y 
     lower  (str st @AY) -> ubyte @Y 
+    lower_iso  (str st @AY) -> ubyte @Y 
     lowerchar  (ubyte character @A) -> ubyte @A 
+    lowerchar_iso  (ubyte character @A) -> ubyte @A 
     lstrip  (str s) 
     lstripped  (str s) -> str 
     ltrim  (str s) 
@@ -794,7 +796,7 @@ strings  {
     ncompare  (str string1 @R0, str string2 @AY, ubyte length @X)  clobbers (X,Y) -> byte @A 
     ncopy  (str source @R0, str target @AY, ubyte maxlength @X)  clobbers (A,X) -> ubyte @Y 
     pattern_match  (str string @AY, str pattern @R0)  clobbers (Y) -> bool @A 
-    pattern_match_nocase  (str string @AY, str lowercase_pattern @R0)  clobbers (Y) -> bool @A 
+    pattern_match_nocase  (str string @AY, str lowercase_pattern @R0, bool iso @Pc)  clobbers (Y) -> bool @A 
     rfind  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
     right  (str source @AY, ubyte length @X, str target @R1)  clobbers (A,Y) 
     rstrip  (str s) 
@@ -804,7 +806,9 @@ strings  {
     strip  (str s) 
     trim  (str s) 
     upper  (str st @AY) -> ubyte @Y 
+    upper_iso  (str st @AY) -> ubyte @Y 
     upperchar  (ubyte character @A) -> ubyte @A 
+    upperchar_iso  (ubyte character @A) -> ubyte @A 
 }
 
 

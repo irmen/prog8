@@ -530,9 +530,9 @@ fail    clc             ; yes, no match found, return with c=0
 		}}
 	}
 
-    asmsub pattern_match_nocase(str string @AY, str lowercase_pattern @R0) clobbers(Y) -> bool @A {
+    asmsub pattern_match_nocase(str string @AY, str lowercase_pattern @R0, bool iso @Pc) clobbers(Y) -> bool @A {
         ; This routine matches a string against a pattern and returns with the carry bit set if they match, or clear if they don't.
-        ; The matching is CASE-INSENSITIVE (based on PETSCII encoding). If you want a slightly faster, but case-sensitive matching, use pattern_match().
+        ; The matching is CASE-INSENSITIVE. If you want a slightly faster, but case-sensitive matching, use pattern_match().
         ; The two characters ? and * have a special meaning when they appear in the pattern. All other characters match themselves.
         ; ? matches any one character. For example, F?? matches FOO but not FU, and ?? matches all two-character strings.
         ; * matches any string, including the empty string.
@@ -542,6 +542,7 @@ fail    clc             ; yes, no match found, return with c=0
         ;
         ; Input:  cx16.r0:  A NUL-terminated, <255-length pattern
         ;              AY:  A NUL-terminated, <255-length string
+        ;              Carry : SET for ISO encoding, CLEAR for petscii encoding
         ;
         ; Output: A = 1 if the string matches the pattern, A = 0 if not.
         ;
@@ -560,6 +561,17 @@ strptr = P8ZP_SCRATCH_W1
 	lda  cx16.r0+1
 	sta  modify_pattern1+2
 	sta  modify_pattern2+2
+
+
+	bcs  +
+	lda  #<lowerchar
+	ldy  #>lowerchar
+	bcc  ++
++   lda  #<lowerchar_iso
+	ldy  #>lowerchar_iso
++   sta  modify_lowerchar+1
+	sty  modify_lowerchar+2
+
 	jsr  _match
 	lda  #0
 	rol  a
@@ -581,7 +593,8 @@ next    lda $ffff,x   ; look at next pattern character    MODIFIED
 reg
     sta  P8ZP_SCRATCH_B1
     lda  (strptr),y
-    jsr  lowerchar
+modify_lowerchar
+    jsr  $ffff          ; modified
     cmp  P8ZP_SCRATCH_B1     ; are both characters the same (lowercased)?
 	bne fail        ; no, so no match
 	inx             ; yes, keep checking

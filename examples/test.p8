@@ -7,15 +7,21 @@
 main {
     sub start() {
         txt.iso()
+        ;txt.lowercase()
 
-        str name = iso:"Irmen De Jong"
+        str name =  iso:"Irmen De Jong"
         str name2 = iso:"Irmen De Jong"
         str name3 = iso:"Irmen De Jong"
         str name4 = iso:"Irmen De Jong"
 
+        str pattern = iso:"irmen*"
+
         txt.print(name)
         txt.nl()
+        txt.print_bool(strings.pattern_match_nocase(name, pattern, true))
         txt.nl()
+        txt.nl()
+
         strings.lower_iso(name)
         strings.upper_iso(name2)
         txt.print(name)
