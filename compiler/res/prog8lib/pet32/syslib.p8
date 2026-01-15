@@ -116,6 +116,29 @@ asmsub kbdbuf_clear() {
 
 }
 
+pet {
+    const uword  VIA1_BASE   = $e840                  ;VIA 6522
+    &ubyte  via1prb    = VIA1_BASE + 0
+    &ubyte  via1pra    = VIA1_BASE + 1
+    &ubyte  via1ddrb   = VIA1_BASE + 2
+    &ubyte  via1ddra   = VIA1_BASE + 3
+    &uword  via1t1     = VIA1_BASE + 4
+    &ubyte  via1t1l    = VIA1_BASE + 4
+    &ubyte  via1t1h    = VIA1_BASE + 5
+    &uword  via1t1lw   = VIA1_BASE + 6
+    &ubyte  via1t1ll   = VIA1_BASE + 6
+    &ubyte  via1t1lh   = VIA1_BASE + 7
+    &uword  via1t2     = VIA1_BASE + 8
+    &ubyte  via1t2l    = VIA1_BASE + 8
+    &ubyte  via1t2h    = VIA1_BASE + 9
+    &ubyte  via1sr     = VIA1_BASE + 10
+    &ubyte  via1acr    = VIA1_BASE + 11
+    &ubyte  via1pcr    = VIA1_BASE + 12
+    &ubyte  via1ifr    = VIA1_BASE + 13
+    &ubyte  via1ier    = VIA1_BASE + 14
+    &ubyte  via1ora    = VIA1_BASE + 15
+}
+
 %import shared_sys_functions
 
 sys {

@@ -987,12 +987,12 @@ $loopLabel""")
 
     private fun translateForSimpleLongRangeAsc(stmt: PtForLoop, range: IntProgression) {
         require(range.step==1)
-        TODO("for long range step +1. Report this error please, and use word loops in the meantime  ${stmt.position}")
+        TODO("for long range step +1. Report this error please, and use nested word loops in the meantime  ${stmt.position}")
     }
 
     private fun translateForSimpleLongRangeDesc(stmt: PtForLoop, range: IntProgression) {
         require(range.step==-1)
-        TODO("for long range step -1. Report this error please, and use word loops in the meantime  ${stmt.position}")
+        TODO("for long range step -1. Report this error please, and use nested word loops in the meantime  ${stmt.position}")
     }
 
     private fun assignLoopvarWord(stmt: PtForLoop, range: PtRange) =

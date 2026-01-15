@@ -17,11 +17,9 @@ internal class PtrTarget(target: AsmAssignTarget) {
 }
 
 internal class IndexedPtrTarget(target: AsmAssignTarget) {
-    val dt = target.datatype                        // TODO unneeded?
     val pointer = target.array!!.pointerderef!!
     val index = target.array!!.index
     val elementDt = target.array!!.type
-    val splitwords = target.array!!.splitWords      // TODO unneeded?
     val scope = target.scope
     val position = target.position
 }
@@ -139,11 +137,10 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
 
-    internal fun deref(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false, forceTemporary: Boolean=false): Pair<String, UByte> {
+    internal fun deref(pointer: PtPointerDeref, addOffsetToPointer: Boolean=false): Pair<String, UByte> {
         // walk the pointer deref chain and leaves the final pointer value in a ZP var
         // this will often be the temp var P8ZP_SCRATCH_PTR but can also be the original pointer variable if it is already in zeropage and there is nothing to add to it
         // returns the ZP var to use as a pointer, and a Y register offset (which can be zero)
-        // TODO optimize 'forceTemporary' to only use a temporary when the offset is >0?
 
         fun addFieldOffsetToScratchPointer(fieldoffset: UInt) {
             if(fieldoffset==0u)
@@ -177,7 +174,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
         if(pointer.chain.isEmpty()) {
             require(pointer.derefLast)
             // just return the pointer itself
-            if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name))
+            if (allocator.isZpVar(pointer.startpointer.name))
                 return pointer.startpointer.name to 0u
             else {
                 asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
@@ -192,7 +189,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     updateScratchPointer()
                 return "P8ZP_SCRATCH_PTR" to 0u
             } else {
-                if (!forceTemporary && allocator.isZpVar(pointer.startpointer.name)) {
+                if (allocator.isZpVar(pointer.startpointer.name)) {
                     if(pointer.derefLast) {
                         asmgen.assignExpressionToVariable(pointer.startpointer, "P8ZP_SCRATCH_PTR", DataType.UWORD)
                         addFieldOffsetToScratchPointer(field.second.toUInt())
@@ -745,7 +742,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
     internal fun readByteByAddressOfDereference(addressOfDereference: PtAddressOf, constOffset: Int): Boolean {
         require(addressOfDereference.dereference!=null)
-        val (zpPtrVar, offset) = deref(addressOfDereference.dereference!!, false, false)
+        val (zpPtrVar, offset) = deref(addressOfDereference.dereference!!)
         val finalOffset = offset.toInt()+constOffset
         if(finalOffset<=255) {
             asmgen.loadIndirectByte(zpPtrVar, finalOffset.toUByte())
@@ -2620,7 +2617,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     pha""")
             }
             in CombinedLongRegisters -> {
-                TODO("save on stack long register pair - do we really want to do this?")
+                TODO("save on stack long register pair - do we really want to do this? please report this error")
             }
             else -> asmgen.saveRegisterStack(regs.asCpuRegister(), false)
         }
@@ -2655,7 +2652,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                     sta  $regname""")
             }
             in CombinedLongRegisters -> {
-                TODO("restore from stack long register - do we really want to do this?")
+                TODO("restore from stack long register - do we really want to do this? please report this error")
             }
             else -> asmgen.restoreRegisterStack(regs.asCpuRegister(), false)
         }

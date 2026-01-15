@@ -1,9 +1,6 @@
 TODO
 ====
 
-- need ISO lower/uppercasing support in Strings module as well, and a ISO-compatible case insensitive pattern_match_nocase()  (extra flag?)
-
-
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
@@ -12,14 +9,13 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- make divmod() return the 2 results rather than accepting 2 extra variables as arguments
-- introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
-- add a -profile option that instruments the start of every prog8 subroutine with code that dumps to the emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count.  Start of program must set cycle count to zero.
+- make builtin functions capable of returning multiple values, then make divmod() return the 2 results rather than accepting 2 extra variables as arguments
+- then also introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
+- add a -profile option (for now X16 only) that instruments the start (and returns?) -of every prog8 subroutine with code that dumps to the X16 emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count. Save/restore all used registers!  Start of program must set cycle count to zero.
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
-- struct/ptr: optimize deref in PointerAssignmentsGen: optimize 'forceTemporary' to only use a temporary when the offset is >0
 - struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)
 - struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - struct/ptr: implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
@@ -29,7 +25,7 @@ Future Things and Ideas
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - should we have a SourceStorageKind.POINTER?   (there is one for TargetStorageKind...)
-- make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2
+- make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2 (see github issue #192)
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
 - allow the value of a memory mapped variable to be address-of another variable, not just a constant number
@@ -70,8 +66,8 @@ IR/VM
 -----
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - encode asmsub/extsub clobber info in the call, or maybe include these definitions in the p8ir file itself too.  (return registers are already encoded in the CALL instruction)
-- extend the index register datatype in the LOADX, STOREX, STOREZX instructions from byte to word (0-255 to 0-65535) (this not compatible with 8 bit 6502, but the 68000 can use that , well, up to 32867)
-- or just get rid of LOADX/STOREX/STOREZX, just use add + loadi / storei?
+- extend the index register datatype in the LOADX, STOREX, STOREZX instructions from byte to word (0-255 to 0-65535) (this not compatible with 8 bit 6502, but the 68000 can use that , well, up to 32767)
+- or just get rid of LOADX/STOREX/STOREZX, just use add + loadi / storei (because we have to translate that sequence anyway)?
 - if instruction has both integer and float registers, the sequence of the registers is sometimes weird in the .p8ir file (float regs always at the end even when otherwise the target -integer- register is the first one in the list, for example.)
 - rollback this exception?:  "LOADI has an exception to allow reg1 and reg2 to be the same"  + actual exception check in the check "reg1 must not be same as reg2"
 - maybe change all branch instructions to have 2 exits (label if branch condition ture, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
@@ -111,7 +107,7 @@ Libraries
 - Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
-- add a PET sound utility library? see http://blog.tynemouthsoftware.co.uk/2022/05/pet-sounds.html
+- pet32 target: add floating point support (are its FP routines complete?)
 
 
 Optimizations
