@@ -1031,14 +1031,26 @@ conversion and classification
 ``lower (string)``
     Lowercases the PETSCII-string in place.
 
+``lower_iso (string)``
+    Lowercases the ISO-string in place.
+
 ``upper (string)``
     Uppercases the PETSCII-string in place.
+
+``upper_iso (string)``
+    Uppercases the ISO-string in place.
 
 ``lowerchar (char)``
     Returns lowercased PETSCII character.
 
+``lowerchar_iso (char)``
+    Returns lowercased ISO character.
+
 ``upperchar (char)``
     Returns uppercased PETSCII character.
+
+``upperchar_iso (char)``
+    Returns uppercased ISO character.
 
 
 miscellaneous
@@ -1154,9 +1166,10 @@ searching
     An empty pattern matches nothing. If you need everything to match, use a single '*'.
     Note: this routine does not work when it is located in ROM.
 
-``pattern_match_nocase (string, lowercase_pattern) -> bool`` (not on Virtual target)
+``pattern_match_nocase (string, lowercase_pattern, iso_encoding) -> bool`` (not on Virtual target)
     Returns true if the string matches the pattern, false if not.
-    The matching is CASE-INSENSITIVE (based on PETSCII encoding). If you want to match a bit faster but case-sensitively, use pattern_match().
+    The matching is CASE-INSENSITIVE (based on ISO encoding if iso_encoding is true, otherwise based on PETSCII encoding).
+    If you want to match a bit faster but case-sensitively, use pattern_match().
     '?' in the pattern matches any one character. '*' in the pattern matches any substring.
     An empty pattern matches nothing. If you need everything to match, use a single '*'.
     Note: this routine does not work when it is located in ROM.
