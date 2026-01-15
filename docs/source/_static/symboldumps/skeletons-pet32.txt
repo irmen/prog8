@@ -215,6 +215,47 @@ math  {
 }
 
 
+LIBRARY MODULE NAME: petsnd
+---------------------------
+
+petsnd  {
+    const ubyte  A_4 
+    const ubyte  A_5 
+    const ubyte  A_SHARP_3 
+    const ubyte  A_SHARP_4 
+    const ubyte  A_SHARP_5 
+    const ubyte  B_3 
+    const ubyte  B_4 
+    const ubyte  B_5 
+    const ubyte  C_4 
+    const ubyte  C_5 
+    const ubyte  C_6 
+    const ubyte  C_SHARP_4 
+    const ubyte  C_SHARP_5 
+    const ubyte  D_4 
+    const ubyte  D_5 
+    const ubyte  D_SHARP_4 
+    const ubyte  D_SHARP_5 
+    const ubyte  E_4 
+    const ubyte  E_5 
+    const ubyte  F_4 
+    const ubyte  F_5 
+    const ubyte  F_SHARP_4 
+    const ubyte  F_SHARP_5 
+    const ubyte  G_4 
+    const ubyte  G_5 
+    const ubyte  G_SHARP_4 
+    const ubyte  G_SHARP_5 
+    const ubyte  OCTAVES_456 
+    const ubyte  OCTAVES_567 
+    const ubyte  OCTAVES_678 
+    note  (ubyte n) 
+    octaves  (ubyte oct) 
+    off  () 
+    on  () 
+}
+
+
 LIBRARY MODULE NAME: sorting
 ----------------------------
 
@@ -313,6 +354,29 @@ cbm  {
     STOP2  ()  clobbers (A,X) -> bool @Pz 
     UDTIM  ()  clobbers (A,X)  = $ffea
     kbdbuf_clear  () 
+}
+
+pet  {
+    const uword  VIA1_BASE 
+    &ubyte  via1acr 
+    &ubyte  via1ddra 
+    &ubyte  via1ddrb 
+    &ubyte  via1ier 
+    &ubyte  via1ifr 
+    &ubyte  via1ora 
+    &ubyte  via1pcr 
+    &ubyte  via1pra 
+    &ubyte  via1prb 
+    &ubyte  via1sr 
+    &uword  via1t1 
+    &ubyte  via1t1h 
+    &ubyte  via1t1l 
+    &ubyte  via1t1lh 
+    &ubyte  via1t1ll 
+    &uword  via1t1lw 
+    &uword  via1t2 
+    &ubyte  via1t2h 
+    &ubyte  via1t2l 
 }
 
 sys  {

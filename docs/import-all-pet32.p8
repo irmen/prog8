@@ -7,6 +7,7 @@
 %import coroutines
 %import cx16logo
 %import math
+%import petsnd
 %import prog8_lib
 %import sorting
 %import strings
