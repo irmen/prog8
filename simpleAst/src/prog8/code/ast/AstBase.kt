@@ -38,18 +38,31 @@ sealed class PtNode(val position: Position) {
 class PtNodeGroup : PtNode(Position.DUMMY)
 
 
-sealed class PtNamedNode(var name: String, position: Position): PtNode(position) {
-    // Note that as an exception, the 'name' is not read-only
-    // but a var. This is to allow for cheap node renames.
+sealed class PtNamedNode(initialName: String, position: Position): PtNode(position) {
+    private var nodeName = initialName
+    private var cachedScopedName: String? = null
+
+    var name
+        get() = nodeName
+        set(value) {
+            nodeName = value
+            cachedScopedName = null
+        }
+
     val scopedName: String
         get() {
-            var namedParent: PtNode = this.parent
-            return if(namedParent is PtProgram)
-                name
+            return if(cachedScopedName!=null)
+                cachedScopedName!!
             else {
-                while (namedParent !is PtNamedNode)
-                    namedParent = namedParent.parent
-                namedParent.scopedName + "." + name
+                var namedParent: PtNode = this.parent
+                cachedScopedName = if (namedParent is PtProgram)
+                    nodeName
+                else {
+                    while (namedParent !is PtNamedNode)
+                        namedParent = namedParent.parent
+                    namedParent.scopedName + "." + nodeName
+                }
+                cachedScopedName!!
             }
         }
 }

@@ -11,17 +11,21 @@ import java.util.*
 interface INamedStatement {
     val name: String
 
+    companion object {
+        private val scopedNameCache = HashMap<INamedStatement, List<String>>()
+    }
+
     val scopedName: List<String>
-        get() {
+        get() = scopedNameCache.getOrPut(this) {
             val scopedName = mutableListOf(name)
             var node: Node = this as Node
             while (node !is Block) {
                 node = node.parent
-                if(node is INameScope) {
+                if (node is INameScope) {
                     scopedName.add(0, node.name)
                 }
             }
-            return scopedName
+            scopedName
         }
 }
 
