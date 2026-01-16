@@ -26,6 +26,7 @@ main {
 
     str[20] benchmark_names
     uword[20] benchmark_score
+    str version = "12.1"
 
 
     sub start() {
@@ -35,8 +36,10 @@ main {
         txt.color2(1, 6)
         txt.clear_screen()
 
-        txt.print("\n\n\n  prog8 compiler benchmark tests.\n\n  benchmark version v12\n\n")
-        sys.wait(60)
+        txt.print("\n\n\n  prog8 compiler benchmark tests.\n\n  benchmark version ")
+        txt.print(version)
+        txt.print("\n\n")
+        sys.wait(120)
 
         benchmark_number = 0
 
@@ -88,7 +91,10 @@ main {
         txt.color2(1, 6)
         uword total_score
         benchmark_number = 0
-        txt.print("\nscore benchmark (v12)\n\n")
+        txt.print("\nscore benchmark (")
+        txt.print(version)
+        txt.print(")\n\n")
+
         do {
             txt.spc()
             txt.print_uw(benchmark_score[benchmark_number])

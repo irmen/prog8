@@ -116,7 +116,6 @@ Optimizations
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
-- in Identifier: use typedarray of strings instead of listOf? Other places?
 - Compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes twice as long as with prog8 10.5
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression" ... but maybe postpone until codegen from IR, where it seems solved?
