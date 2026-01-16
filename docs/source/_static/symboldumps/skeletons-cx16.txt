@@ -216,7 +216,6 @@ diskio  {
     ubyte @shared  drivenumber 
     bool  iteration_in_progress 
     uword  list_blocks 
-    bool  list_case_insensitive 
     str  list_filename 
     str  list_filetype 
     ^^ubyte  list_pattern 
@@ -247,15 +246,14 @@ diskio  {
     get_loadaddress  (str filename) -> uword 
     internal_f_open_w  (str filename, bool open_for_seeks) -> bool 
     internal_load_routine  (str filenameptr, uword address_override, bool headerless) -> uword 
+    internal_next_entry  () -> bool 
     internal_save_routine  (str filenameptr, uword startaddress, uword savesize, bool headerless) -> bool 
     lf_end_list  () 
     lf_next_entry  () -> bool 
+    lf_next_entry_nocase  () -> bool 
     lf_start_list  (str pattern_ptr) -> bool 
     lf_start_list_dirs  (str pattern_ptr) -> bool 
-    lf_start_list_dirs_nocase  (str pattern_ptr) -> bool 
     lf_start_list_files  (str pattern_ptr) -> bool 
-    lf_start_list_files_nocase  (str pattern_ptr) -> bool 
-    lf_start_list_nocase  (str pattern_ptr) -> bool 
     list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     list_filenames_nocase  (str lowercase_pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     load  (str filenameptr, uword address_override) -> uword 
