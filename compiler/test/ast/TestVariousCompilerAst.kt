@@ -144,6 +144,46 @@ main {
             errors.errors[2] shouldContain "references itself"
         }
 
+        test("alias scopes") {
+            val src="""
+main {
+    sub start() {
+        alias mything = other.thing
+        alias myvariable = other.variable
+
+        mything()
+        myvariable ++
+
+        other.thing2()
+        other.variable2 ++
+
+        alias nid = structdefs.element.value
+        nid++
+    }
+}
+
+other {
+    sub thing() {
+        cx16.r0++
+    }
+
+    ubyte @shared variable
+
+    alias thing2 = thing
+    alias variable2 = variable
+}
+
+structdefs {
+    struct Node {
+        ubyte value
+        uword value2
+    }
+
+    ^^Node @shared element
+}"""
+            compileText(VMTarget(), false, src, outputDir, writeAssembly=false) shouldNotBe null
+        }
+
         test("wrong alias gives correct error") {
             val src="""
 main {

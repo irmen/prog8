@@ -162,8 +162,19 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
 
         // don't replace an identifier in an Alias or when the alias points to another alias (that will be resolved first elsewhere)
         if(target is Alias && parent !is Alias) {
-            if(target.target.targetStatement() !is Alias)
-                return listOf(IAstModification.ReplaceNode(identifier, target.target.copy(position = identifier.position), parent))
+            val targetStatement = target.target.targetStatement()
+            if (targetStatement !is Alias) {
+                if (targetStatement is StructFieldRef) {
+                    // replace with target struct field reference
+                    val replacement = target.target.copy(position = identifier.position)
+                    return listOf(IAstModification.ReplaceNode(identifier, replacement, parent))
+                } else {
+                    // replace with scoped identifier
+                    val scoped=(targetStatement as INamedStatement).scopedName
+                    val scopedTarget = IdentifierReference(scoped, identifier.position)
+                    return listOf(IAstModification.ReplaceNode(identifier, scopedTarget, parent))
+                }
+            }
         }
 
 // experimental code to be able to alias blocks too:

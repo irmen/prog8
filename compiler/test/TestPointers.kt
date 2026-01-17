@@ -867,7 +867,7 @@ main {
         st.size shouldBe 9
         (st[3] as Assignment).value shouldBe instanceOf<AddressOf>()
         val a1v = (st[4] as Assignment).value as AddressOf
-        a1v.identifier?.nameInSource shouldBe listOf("array")
+        a1v.identifier?.nameInSource shouldBe listOf("main", "start", "array")
         a1v.arrayIndex?.indexExpr?.constValue(result.compilerAst)?.number shouldBe 3.0
 
         val a2v = (st[5] as Assignment).value as BinaryExpression
@@ -876,7 +876,7 @@ main {
         (a2v.right as NumericLiteral).number shouldBe 3.0
 
         val a3v = (st[6] as Assignment).value as AddressOf
-        a3v.identifier?.nameInSource shouldBe listOf("array")
+        a3v.identifier?.nameInSource shouldBe listOf("main", "start", "array")
         (a3v.arrayIndex?.indexExpr as IdentifierReference).nameInSource shouldBe listOf("index")
 
         val a4v = (st[7] as Assignment).value as BinaryExpression
