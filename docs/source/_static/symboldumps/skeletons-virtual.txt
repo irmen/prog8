@@ -305,6 +305,8 @@ LIBRARY MODULE NAME: strings
 strings  {
     append  (str target, str suffix) -> ubyte 
     compare  (str st1, str st2) -> byte 
+    compare_nocase  (str st1, str st2) -> byte 
+    compare_nocase_iso   alias for: strings.compare_nocase
     contains  (str st, ubyte character) -> bool 
     copy  (str source, str target) -> ubyte 
     endswith  (str st, str suffix) -> bool 
@@ -321,13 +323,14 @@ strings  {
     left  (str source, ubyte slen, str target) 
     length  (str st) -> ubyte 
     lower  (str st) -> ubyte 
+    lower_iso   alias for: strings.lower
     lowerchar  (ubyte char) -> ubyte 
+    lowerchar_iso   alias for: strings.lowerchar
     lstrip  (str s) 
     lstripped  (str s) -> str 
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
     nappend  (str target, str suffix, ubyte maxlength) -> ubyte 
-    ncompare  (str st1, str st2, ubyte length) -> byte 
     ncopy  (str source, str target, ubyte maxlength) -> ubyte 
     rfind  (str stringptr, ubyte character) -> ubyte, bool 
     right  (str source, ubyte slen, str target) 
@@ -338,7 +341,9 @@ strings  {
     strip  (str s) 
     trim  (str s) 
     upper  (str st) -> ubyte 
+    upper_iso   alias for: strings.upper
     upperchar  (ubyte char) -> ubyte 
+    upperchar_iso   alias for: strings.upperchar
 }
 
 

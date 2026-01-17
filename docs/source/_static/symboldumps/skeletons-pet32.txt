@@ -279,6 +279,8 @@ LIBRARY MODULE NAME: strings
 strings  {
     append  (str target @R0, str suffix @R1)  clobbers (Y) -> ubyte @A 
     compare  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
+    compare_nocase  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
+    compare_nocase_iso  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
     contains  (str string @AY, ubyte character @X) -> bool @Pc 
     copy  (str source @R0, str target @AY)  clobbers (A) -> ubyte @Y 
     endswith  (str st, str suffix) -> bool 
@@ -303,7 +305,6 @@ strings  {
     ltrim  (str s) 
     ltrimmed  (str s) -> str 
     nappend  (str target @R0, str suffix @R1, ubyte maxlength @X)  clobbers (Y) -> ubyte @A 
-    ncompare  (str string1 @R0, str string2 @AY, ubyte length @X)  clobbers (X,Y) -> byte @A 
     ncopy  (str source @R0, str target @AY, ubyte maxlength @X)  clobbers (A,X) -> ubyte @Y 
     pattern_match  (str string @AY, str pattern @R0)  clobbers (Y) -> bool @A 
     pattern_match_nocase  (str string @AY, str lowercase_pattern @R0, bool iso @Pc)  clobbers (Y) -> bool @A 

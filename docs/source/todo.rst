@@ -1,6 +1,8 @@
 TODO
 ====
 
+halloween is >300 bytes larger than with 12.0.1
+
 alias a = b  fails when calling a() in another scope, if b is not scoped.
 
 

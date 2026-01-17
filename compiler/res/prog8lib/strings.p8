@@ -318,7 +318,32 @@ _max_too_small
 		sty  P8ZP_SCRATCH_W2+1
 		lda  cx16.r0
 		ldy  cx16.r0+1
-		jmp  prog8_lib.strcmp_nocase_petscii
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0
+_loop
+		lda  (P8ZP_SCRATCH_W1),y
+		beq  _c1_zero
+		jsr  lowerchar
+		sta  P8ZP_SCRATCH_REG
+		lda  (P8ZP_SCRATCH_W2),y
+		jsr  lowerchar
+		cmp  P8ZP_SCRATCH_REG
+		beq  _equal
+		bpl  _less
+		lda  #1
+		rts
+_less
+		lda  #-1
+		rts
+_equal
+		iny
+		bne  _loop
+_c1_zero
+		lda  (P8ZP_SCRATCH_W2),y
+		beq  +
+		lda  #-1
++		rts
         }}
     }
 
@@ -332,7 +357,32 @@ _max_too_small
 		sty  P8ZP_SCRATCH_W2+1
 		lda  cx16.r0
 		ldy  cx16.r0+1
-		jmp  prog8_lib.strcmp_nocase_iso
+		sta  P8ZP_SCRATCH_W1
+		sty  P8ZP_SCRATCH_W1+1
+		ldy  #0
+_loop
+		lda  (P8ZP_SCRATCH_W1),y
+		beq  _c1_zero
+		jsr  lowerchar_iso
+		sta  P8ZP_SCRATCH_REG
+		lda  (P8ZP_SCRATCH_W2),y
+		jsr  lowerchar_iso
+		cmp  P8ZP_SCRATCH_REG
+		beq  _equal
+		bpl  _less
+		lda  #1
+		rts
+_less
+		lda  #-1
+		rts
+_equal
+		iny
+		bne  _loop
+_c1_zero
+		lda  (P8ZP_SCRATCH_W2),y
+		beq  +
+		lda  #-1
++		rts
         }}
     }
 
