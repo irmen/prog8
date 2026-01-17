@@ -165,33 +165,7 @@ strings {
         %ir {{
             loadm.w r99000,strings.compare_nocase.st1
             loadm.w r99001,strings.compare_nocase.st2
-            syscall 63 (r99000.w, r99001.w) : r99100.b
-            returnr.b r99100
-        }}
-    }
-
-    sub ncompare(str st1, str st2, ubyte length) -> byte {
-        ; Compares two strings for sorting (case sensitive).
-        ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Only compares the strings from index 0 up to the length argument.
-        %ir {{
-            loadm.w r99000,strings.ncompare.st1
-            loadm.w r99001,strings.ncompare.st2
-            loadm.b r99100,strings.ncompare.length
-            syscall 58 (r99000.w, r99001.w, r99100.b) : r99100.b
-            returnr.b r99100
-        }}
-    }
-
-    sub ncompare_nocase(str st1, str st2, ubyte length) -> byte {
-        ; Compares two strings for sorting (case insensitive).
-        ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Only compares the strings from index 0 up to the length argument.
-        %ir {{
-            loadm.w r99000,strings.ncompare_nocase.st1
-            loadm.w r99001,strings.ncompare_nocase.st2
-            loadm.b r99100,strings.ncompare_nocase.length
-            syscall 64 (r99000.w, r99001.w, r99100.b) : r99100.b
+            syscall 58 (r99000.w, r99001.w) : r99100.b
             returnr.b r99100
         }}
     }
@@ -241,7 +215,6 @@ strings {
     alias lower_iso = strings.lower
     alias upper_iso = strings.upper
     alias compare_nocase_iso = strings.compare_nocase
-    alias ncompare_nocase_iso = strings.ncompare_nocase
 
     sub hash(str st) -> ubyte {
         ; experimental 8 bit hashing function.

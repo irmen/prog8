@@ -295,7 +295,7 @@ _max_too_small
     }
 
     asmsub compare(str string1 @R0, str string2 @AY) clobbers(Y) -> byte @A {
-        ; Compares two strings for sorting.
+        ; Compares two strings for sorting, case-sensitively.
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
         ; Note that you can also directly compare strings and string values with eachother using
         ; comparison operators ==, < etcetera (this will use strcmp automatically).
@@ -308,16 +308,31 @@ _max_too_small
         }}
     }
 
-    asmsub ncompare(str string1 @R0, str string2 @AY, ubyte length @X) clobbers(X, Y) -> byte @A {
-        ; Compares two strings for sorting.
+    asmsub compare_nocase(str string1 @R0, str string2 @AY) clobbers(Y) -> byte @A {
+        ; Compares two strings for sorting, case-insensitively for PETSCII strings.
         ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
-        ; Only compares the strings from index 0 up to the length argument.
+        ; Note that you can also directly compare strings and string values with eachother using
+        ; comparison operators ==, < etcetera (this will use strcmp automatically).
         %asm {{
 		sta  P8ZP_SCRATCH_W2
 		sty  P8ZP_SCRATCH_W2+1
 		lda  cx16.r0
 		ldy  cx16.r0+1
-		jmp  prog8_lib.strncmp_mem
+		jmp  prog8_lib.strcmp_nocase_petscii
+        }}
+    }
+
+    asmsub compare_nocase_iso(str string1 @R0, str string2 @AY) clobbers(Y) -> byte @A {
+        ; Compares two strings for sorting, case-insensitively for ISO strings.
+        ; Returns -1 (255), 0 or 1, meaning: string1 sorts before, equal or after string2.
+        ; Note that you can also directly compare strings and string values with eachother using
+        ; comparison operators ==, < etcetera (this will use strcmp automatically).
+        %asm {{
+		sta  P8ZP_SCRATCH_W2
+		sty  P8ZP_SCRATCH_W2+1
+		lda  cx16.r0
+		ldy  cx16.r0+1
+		jmp  prog8_lib.strcmp_nocase_iso
         }}
     }
 

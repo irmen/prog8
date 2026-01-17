@@ -1073,24 +1073,6 @@ miscellaneous
     the first terminating 0 byte in the string, regardless of the size of the string during compilation time.
     Don't confuse this with ``len`` and ``sizeof``!
 
-``ncompare (string1, string2, length) -> ubyte result``
-    Compares two strings up to the number of characters in the length parameter (case-sensitively).
-    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
-    Note that lengths of 0 or 1 evaluate the same.  The first character is always compared.
-    A length larger than either string will function identically to compare.
-
-``ncompare_nocase (string1, string2, length) -> ubyte result``
-    Compares two strings up to the number of characters in the length parameter (case-insensitively, for petscii strings).
-    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
-    Note that lengths of 0 or 1 evaluate the same.  The first character is always compared.
-    A length larger than either string will function identically to compare.
-
-``ncompare_nocase_iso (string1, string2, length) -> ubyte result``
-    Compares two strings up to the number of characters in the length parameter (case-insensitively, for iso strings).
-    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
-    Note that lengths of 0 or 1 evaluate the same.  The first character is always compared.
-    A length larger than either string will function identically to compare.
-
 ``hash (string) -> ubyte``
     Returns a simple 8 bit hash value for the given string.
     The formula is: hash(-1)=179; clear carry; hash(i) = ROL hash(i-1) XOR string[i]
