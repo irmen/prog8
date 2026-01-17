@@ -1057,10 +1057,16 @@ miscellaneous
 '''''''''''''
 
 ``compare (string1, string2) -> ubyte result``
-    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2 (case-sensitively)
     Note that you can also directly compare strings and string values with each other
     using ``==``, ``<`` etcetera (it will use strings.compare for you under water automatically).
     This even works when dealing with uword (pointer) variables when comparing them to a string type.
+
+``compare_nocase (string1, string2) -> ubyte result``
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2 (case-insensitively, for petscii strings).
+
+``compare_nocase_iso (string1, string2) -> ubyte result``
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2 (case-insensitively, for iso strings).
 
 ``length (str) -> ubyte length``
     Number of bytes in the string. This value is determined during runtime and counts upto
@@ -1068,7 +1074,19 @@ miscellaneous
     Don't confuse this with ``len`` and ``sizeof``!
 
 ``ncompare (string1, string2, length) -> ubyte result``
-    Compares two strings up to the number of characters in the length parameter.
+    Compares two strings up to the number of characters in the length parameter (case-sensitively).
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
+    Note that lengths of 0 or 1 evaluate the same.  The first character is always compared.
+    A length larger than either string will function identically to compare.
+
+``ncompare_nocase (string1, string2, length) -> ubyte result``
+    Compares two strings up to the number of characters in the length parameter (case-insensitively, for petscii strings).
+    Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
+    Note that lengths of 0 or 1 evaluate the same.  The first character is always compared.
+    A length larger than either string will function identically to compare.
+
+``ncompare_nocase_iso (string1, string2, length) -> ubyte result``
+    Compares two strings up to the number of characters in the length parameter (case-insensitively, for iso strings).
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2.
     Note that lengths of 0 or 1 evaluate the same.  The first character is always compared.
     A length larger than either string will function identically to compare.

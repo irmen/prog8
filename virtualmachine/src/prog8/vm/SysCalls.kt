@@ -72,6 +72,8 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 60 = i32 to string  ; put string representation of signed 32 bits integer (prog8 long) into memory
 61 = decimal string to prog8 long (i32 signed)
 62 = clamp long
+63 = compare strings (case insensitive)
+64 = ncompare strings (case insensitive)
 */
 
 enum class Syscall {
@@ -138,6 +140,8 @@ enum class Syscall {
     I32_TO_STRING,
     STR_TO_LONG,
     CLAMP_LONG,
+    COMPARE_STRINGS_NOCASE,
+    NCOMPARE_STRINGS_NOCASE,
     ;
 
     companion object {
@@ -317,6 +321,20 @@ object SysCalls {
                 else
                     returnValue(callspec.returns.single(), 1, vm)
             }
+            Syscall.COMPARE_STRINGS_NOCASE -> {
+                val (firstV, secondV) = getArgValues(callspec.arguments, vm)
+                val firstAddr = firstV as UShort
+                val secondAddr = secondV as UShort
+                val first = vm.memory.getString(firstAddr.toInt())
+                val second = vm.memory.getString(secondAddr.toInt())
+                val comparison = first.compareTo(second, ignoreCase = true)
+                if(comparison==0)
+                    returnValue(callspec.returns.single(), 0, vm)
+                else if(comparison<0)
+                    returnValue(callspec.returns.single(), -1, vm)
+                else
+                    returnValue(callspec.returns.single(), 1, vm)
+            }
             Syscall.NCOMPARE_STRINGS -> {
                 val (firstV, secondV, lengthV) = getArgValues(callspec.arguments, vm)
                 val firstAddr = firstV as UShort
@@ -325,6 +343,21 @@ object SysCalls {
                 val first = vm.memory.getString(firstAddr.toInt()).take(length)
                 val second = vm.memory.getString(secondAddr.toInt()).take(length)
                 val comparison = first.compareTo(second)
+                if(comparison==0)
+                    returnValue(callspec.returns.single(), 0, vm)
+                else if(comparison<0)
+                    returnValue(callspec.returns.single(), -1, vm)
+                else
+                    returnValue(callspec.returns.single(), 1, vm)
+            }
+            Syscall.NCOMPARE_STRINGS_NOCASE -> {
+                val (firstV, secondV, lengthV) = getArgValues(callspec.arguments, vm)
+                val firstAddr = firstV as UShort
+                val secondAddr = secondV as UShort
+                val length = (lengthV as UByte).toInt()
+                val first = vm.memory.getString(firstAddr.toInt()).take(length)
+                val second = vm.memory.getString(secondAddr.toInt()).take(length)
+                val comparison = first.compareTo(second, ignoreCase = true)
                 if(comparison==0)
                     returnValue(callspec.returns.single(), 0, vm)
                 else if(comparison<0)

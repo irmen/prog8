@@ -1,6 +1,9 @@
 TODO
 ====
 
+alias a = b  fails when calling a() in another scope, if b is not scoped.
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
