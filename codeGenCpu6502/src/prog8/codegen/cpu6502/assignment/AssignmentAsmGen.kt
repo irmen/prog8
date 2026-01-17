@@ -2916,32 +2916,14 @@ $endLabel""")
                             asmgen.out("""
                                 lda  #<$varname
                                 ldy  #>$varname
-                                sta  floats.internal_long_to_float.sourceptr
-                                sty  floats.internal_long_to_float.sourceptr+1
-                                lda  #<floats.floats_temp_var
-                                ldy  #>floats.floats_temp_var
-                                sta  floats.internal_long_to_float.targetptr
-                                sty  floats.internal_long_to_float.targetptr+1
-                                jsr  floats.internal_long_to_float
-                                lda  #<floats.floats_temp_var
-                                ldy  #>floats.floats_temp_var
-                                jsr  floats.MOVFM""")
+                                jsr  floats.internal_long_AY_to_FAC""")
                         }
                         else -> {
                             assignExpressionToRegister(value, RegisterOrPair.R14R15, true)
                             asmgen.out("""
                                 lda  #<cx16.r14
                                 ldy  #>cx16.r14
-                                sta  floats.internal_long_to_float.sourceptr
-                                sty  floats.internal_long_to_float.sourceptr+1
-                                lda  #<floats.floats_temp_var
-                                ldy  #>floats.floats_temp_var
-                                sta  floats.internal_long_to_float.targetptr
-                                sty  floats.internal_long_to_float.targetptr+1
-                                jsr  floats.internal_long_to_float
-                                lda  #<floats.floats_temp_var
-                                ldy  #>floats.floats_temp_var
-                                jsr  floats.MOVFM""")
+                                jsr  floats.internal_long_AY_to_FAC""")
                         }
                     }
                 }
@@ -3217,13 +3199,11 @@ $endLabel""")
                     asmgen.out("""
                         lda  #<$sourceAsmVarName
                         ldy  #>$sourceAsmVarName
-                        sta  floats.internal_long_to_float.sourceptr
-                        sty  floats.internal_long_to_float.sourceptr+1
+                        sta  cx16.r1L
+                        sty  cx16.r1H
                         lda  #<$targetAsmVarName
                         ldy  #>$targetAsmVarName
-                        sta  floats.internal_long_to_float.targetptr
-                        sty  floats.internal_long_to_float.targetptr+1
-                        jsr  floats.internal_long_to_float""")
+                        jsr  floats.internal_long_R1_to_float_AY""")
                 } else
                     throw AssemblyError("weird type")
             }
@@ -3434,16 +3414,16 @@ $endLabel""")
                 } else if(targetDt.isWord || targetDt.isPointer) {
                     asmgen.out("  lda  cx16.$startreg |  sta  $targetAsmVarName |  lda  cx16.$startreg+1 |  sta  $targetAsmVarName+1")
                 } else if(targetDt.isFloat) {
+                    if(regs==RegisterOrPair.R0R1)
+                        throw AssemblyError("cannot assign long in R0R1 to float because r1 is used as a parameter $position")
                     asmgen.out("""
                         lda  #<cx16.$startreg
                         ldy  #>cx16.$startreg
-                        sta  floats.internal_long_to_float.sourceptr
-                        sty  floats.internal_long_to_float.sourceptr+1
+                        sta  cx16.r1L
+                        sty  cx16.r1H
                         lda  #<$targetAsmVarName
                         ldy  #>$targetAsmVarName
-                        sta  floats.internal_long_to_float.targetptr
-                        sty  floats.internal_long_to_float.targetptr+1
-                        jsr  floats.internal_long_to_float""")
+                        jsr  floats.internal_long_R1_to_float_AY""")
                 } else
                     throw AssemblyError("weird type $targetDt")
             }

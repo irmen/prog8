@@ -44,9 +44,9 @@ class UnusedCodeRemover(private val program: Program,
             neverRemoveSubroutines.add(push)
             neverRemoveSubroutines.add(pop)
 
-            val cast_long_to_float = subroutines.singleOrNull { s -> s.name == "internal_long_to_float" }
-            if(cast_long_to_float!=null)
-                neverRemoveSubroutines.add(cast_long_to_float)
+            subroutines
+                .filter { s -> s.name == "internal_long_R1_to_float_AY" || s.name=="internal_long_AY_to_FAC" }
+                .forEach { neverRemoveSubroutines.add(it) }
         }
     }
 

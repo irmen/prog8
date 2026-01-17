@@ -2,6 +2,7 @@ package prog8tests.ast
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
@@ -517,5 +518,18 @@ main {
         errors.errors[1] shouldContain ":9:9: cannot assign to string"
         errors.errors[2] shouldContain ":10:9: cannot assign to string"
         errors.errors[3] shouldContain ":11:9: cannot assign to string"
+    }
+
+    test("if expression with and without then keyword") {
+        val src="""
+main {
+    sub start() {
+        cx16.r0L = if cx16.r1L==42 then 1 else 0
+        cx16.r1L = if cx16.r2L==42  1 else 0
+        cx16.r0L = if_cs then 1 else 0
+        cx16.r1L = if_cs   1 else 0
+    }
+}"""
+        compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false).shouldNotBeNull()
     }
 })

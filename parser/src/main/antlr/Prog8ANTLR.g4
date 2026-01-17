@@ -337,7 +337,7 @@ else_part :  ELSE EOL? (statement | statement_block) ;   // statement is constra
 
 if_expression :  'if' expression EOL? THEN? EOL? expression EOL? ELSE EOL? expression ;
 
-branchcondition_expression:  branchcondition expression EOL? ELSE EOL? expression ;
+branchcondition_expression:  branchcondition THEN? expression EOL? ELSE EOL? expression ;
 
 
 // This is a cursed mix of IdentifierReference (scoped identifiers) and binary expressions with '.' dereference operators.
