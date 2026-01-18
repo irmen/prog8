@@ -175,7 +175,7 @@ This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
         }
     }
 
-when compiled an ran on a C-64 you'll get:
+when compiled and ran on a C-64 you'll get:
 
 ![c64 screen](docs/source/_static/primes_example.png)
 

@@ -558,6 +558,11 @@ extsub $C003 = x16edit_loadfile(ubyte firstbank @X, ubyte lastbank @Y, str filen
 extsub $C006 = x16edit_loadfile_options(ubyte firstbank @X, ubyte lastbank @Y, str filename @R0,
                 uword filenameLengthAndOptions @R1, uword tabstopAndWordwrap @R2,
                 uword disknumberAndColors @R3, uword headerAndStatusColors @R4) clobbers(A,X,Y)
+; note: the following routine is not yet available in currently released ROMS (v49) hopefully the updated X16Edit will be in r50.
+extsub $C009 = x16edit_loadfile_options2(ubyte firstbank @X, ubyte lastbank @Y, str filename @R0,
+                uword filenameLengthAndOptions @R1, uword tabstopAndWordwrap @R2,
+                uword disknumberAndColors @R3, uword headerAndStatusColors @R4,
+                uword linenumberLM @R5, ubyte linenumberH @R6) clobbers(A,X,Y)
 
 ; Audio (rom bank 10)
 ; NOTE: because these are auto-banked, you should not call them from an IRQ handler routine (due to jsrfar race condition).
