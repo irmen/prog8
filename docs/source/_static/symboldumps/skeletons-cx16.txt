@@ -388,7 +388,10 @@ floats  {
     csc  (float value) -> float 
     deg  (float angle) -> float 
     floor  (float value) -> float 
-    internal_long_to_float  (^^long sourceptr, ^^float targetptr) 
+    highest_bit_in_byte  (ubyte value @A) -> ubyte @Y 
+    internal_get_vptr_highest_bit_pos  (^^ubyte vptr) -> ubyte 
+    internal_long_AY_to_FAC  () 
+    internal_long_R1_to_float_AY  () 
     interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float 
     lerp  (float v0, float v1, float t) -> float 
     lerp_fast  (float v0, float v1, float t) -> float 
@@ -1352,6 +1355,7 @@ cx16  {
     x16edit_default  ()  clobbers (A,X,Y)  = $c000
     x16edit_loadfile  (ubyte firstbank @X, ubyte lastbank @Y, str filename @R0, ubyte filenameLength @R1)  clobbers (A,X,Y)  = $c003
     x16edit_loadfile_options  (ubyte firstbank @X, ubyte lastbank @Y, str filename @R0, uword filenameLengthAndOptions @R1, uword tabstopAndWordwrap @R2, uword disknumberAndColors @R3, uword headerAndStatusColors @R4)  clobbers (A,X,Y)  = $c006
+    x16edit_loadfile_options2  (ubyte firstbank @X, ubyte lastbank @Y, str filename @R0, uword filenameLengthAndOptions @R1, uword tabstopAndWordwrap @R2, uword disknumberAndColors @R3, uword headerAndStatusColors @R4, uword linenumberLM @R5, ubyte linenumberH @R6)  clobbers (A,X,Y)  = $c009
     ym_get_chip_type  ()  clobbers (X) -> ubyte @A @bank 10 = $c0a5
     ym_getatten  (ubyte channel @A)  clobbers (Y) -> ubyte @X @bank 10 = $c099
     ym_getpan  (ubyte channel @A)  clobbers (Y) -> ubyte @X @bank 10 = $c09c

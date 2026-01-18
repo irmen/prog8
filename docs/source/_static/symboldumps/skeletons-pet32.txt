@@ -168,6 +168,88 @@ cx16logo  {
 }
 
 
+LIBRARY MODULE NAME: floats
+---------------------------
+
+floats  {
+    const float  E 
+    const float  EPSILON 
+    const uword  FAC_ADDR 
+    const float  PI 
+    const float  TWOPI 
+    const float  π 
+    ABS  ()  = $cd8e
+    ATN  ()  clobbers (A,X,Y)  = $d32c
+    AYINT  ()  clobbers (A,X,Y)  = $c2ea
+    AYINT2  ()  clobbers (X) -> word @AY 
+    CONUPK  (uword mflpt @AY)  clobbers (A,Y)  = $cbc2
+    COS  ()  clobbers (A,X,Y)  = $d282
+    DIV10  ()  clobbers (A,X,Y)  = $cc34
+    EXP  ()  clobbers (A,X,Y)  = $d184
+    FADD  (uword mflpt @AY)  clobbers (A,X,Y)  = $c99d
+    FADDH  ()  clobbers (A,X,Y)  = $c97f
+    FADDT  ()  clobbers (A,X,Y)  = $c9a0
+    FDIV  (uword mflpt @AY)  clobbers (A,X,Y)  = $cc45
+    FDIVT  ()  clobbers (A,X,Y)  = $cc48
+    FMULT  (uword mflpt @AY)  clobbers (A,X,Y)  = $cb5e
+    FMULTT  ()  clobbers (A,X,Y)  = $cb61
+    FOUT  ()  clobbers (X) -> uword @AY  = $cf93
+    FSUB  (uword mflpt @AY)  clobbers (A,X,Y)  = $c986
+    FSUBT  ()  clobbers (A,X,Y)  = $c989
+    GETADR  ()  clobbers (X) -> ubyte @Y, ubyte @A  = $c92d
+    GETADRAY  ()  clobbers (X) -> uword @AY 
+    GIVAYF  (ubyte lo @Y, ubyte hi @A)  clobbers (A,X,Y)  = $c4bc
+    GIVAYFAY  (uword value @AY)  clobbers (A,X,Y) 
+    INT  ()  clobbers (A,X,Y)  = $ce02
+    LOG  ()  clobbers (A,X,Y)  = $cb20
+    MOVAF  ()  clobbers (A,X)  = $cd42
+    MOVEF  ()  clobbers (A,X)  = $cd45
+    MOVFA  ()  clobbers (A,X)  = $cd32
+    MOVFM  (uword mflpt @AY)  clobbers (A,Y)  = $ccd8
+    MOVMF  (uword mflpt @XY)  clobbers (A,Y)  = $cd0a
+    MUL10  ()  clobbers (A,X,Y)  = $cc18
+    NEGOP  ()  clobbers (A)  = $d14b
+    NORMAL  ()  clobbers (A)  = $ca0d
+    QINT  ()  clobbers (A,X,Y)  = $cdd1
+    RND  ()  clobbers (A,X,Y)  = $d229
+    SIGN  () -> ubyte @A  = $cd61
+    SIN  ()  clobbers (A,X,Y)  = $d289
+    SQR  ()  clobbers (A,X,Y)  = $d108
+    TAN  ()  clobbers (A,X,Y)  = $d2d2
+    atan  (float value) -> float 
+    atan2  (float y, float x) -> float 
+    ceil  (float value) -> float 
+    clampf  (float value, float minimum, float maximum) -> float 
+    cos  (float angle) -> float 
+    cot  (float value) -> float 
+    csc  (float value) -> float 
+    deg  (float angle) -> float 
+    floor  (float value) -> float 
+    highest_bit_in_byte  (ubyte value @A) -> ubyte @Y 
+    internal_get_vptr_highest_bit_pos  (^^ubyte vptr) -> ubyte 
+    internal_long_AY_to_FAC  () 
+    internal_long_R1_to_float_AY  () 
+    interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float 
+    lerp  (float v0, float v1, float t) -> float 
+    lerp_fast  (float v0, float v1, float t) -> float 
+    ln  (float value) -> float 
+    log2  (float value) -> float 
+    maxf  (float f1, float f2) -> float 
+    minf  (float f1, float f2) -> float 
+    pop  () -> float @FAC1 
+    pow  (float value, float power) -> float 
+    print  (float value @FAC1)  clobbers (A,X,Y) 
+    push  (float value @FAC1) 
+    rad  (float angle) -> float 
+    rndseed  (float seed) 
+    round  (float value) -> float 
+    secant  (float value) -> float 
+    sin  (float angle) -> float 
+    tan  (float value) -> float 
+    tostr  (float value @FAC1)  clobbers (X) -> str @AY 
+}
+
+
 LIBRARY MODULE NAME: math
 -------------------------
 
@@ -192,7 +274,10 @@ math  {
     direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
     interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte 
+    interpolatef   alias for: floats.interpolate
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
+    lerpf   alias for: floats.lerp
+    lerpf_fast   alias for: floats.lerp_fast
     lerpw  (uword v0, uword v1, uword t) -> uword 
     log2  (ubyte value @A) -> ubyte @Y 
     log2w  (uword value @AY) -> ubyte @Y 
@@ -382,10 +467,12 @@ pet  {
 
 sys  {
     const byte  MAX_BYTE 
+    const float  MAX_FLOAT 
     const ubyte  MAX_UBYTE 
     const uword  MAX_UWORD 
     const word  MAX_WORD 
     const byte  MIN_BYTE 
+    const float  MIN_FLOAT 
     const ubyte  MIN_UBYTE 
     const uword  MIN_UWORD 
     const word  MIN_WORD 
@@ -618,6 +705,7 @@ txt  {
     print  (str text @AY)  clobbers (A,Y) 
     print_b  (byte value @A)  clobbers (A,X,Y) 
     print_bool  (bool value) 
+    print_f   alias for: floats.print
     print_l  (long value) 
     print_ub  (ubyte value @A)  clobbers (A,X,Y) 
     print_ub0  (ubyte value @A)  clobbers (A,X,Y) 

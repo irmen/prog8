@@ -35,7 +35,7 @@ No linker
 Data types
 ----------
 - There are byte, word (16 bits), long (32 bits) and float datatypes for numbers.
-- floats are available as native data type on systems that have a supported floating point library in ROM.
+- floats are available as native data type on most cbm-compatible systems.
 - **There is no automatic type enlargement:** all calculations remain within the data type of the operands. Any overflow silently wraps or truncates.
   You'll have to add explicit casts to increase the size of the value if required.
   For example when adding two byte variables having values 100 and 200, the result won't be 300, because that doesn't fit in a byte. It will be 44.

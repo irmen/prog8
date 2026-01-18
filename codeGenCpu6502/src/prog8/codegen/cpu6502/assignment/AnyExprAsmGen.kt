@@ -8,6 +8,7 @@ import prog8.code.core.DataType
 import prog8.code.core.RegisterOrPair
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
+import prog8.code.target.PETTarget
 import prog8.codegen.cpu6502.AsmGen6502Internal
 
 //
@@ -191,7 +192,7 @@ internal class AnyExprAsmGen(
 
     private fun assignFloatOperandsToFACandARG(left: PtExpression, right: PtExpression) {
         when(asmgen.options.compTarget.name) {
-            C64Target.NAME -> {
+            C64Target.NAME, PETTarget.NAME -> {
                 // C64 math library has a quirk: you have always make sure FAC2/ARG is loaded last (done using CONUPK)
                 // otherwise the result of certain floating point operations such as FDIVT will be wrong.
                 // see https://www.c64-wiki.com/wiki/CONUPK

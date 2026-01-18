@@ -587,7 +587,7 @@ floats
 ^^^^^^
 
 .. note::
-    Floating point support is only available on c64, cx16 and virtual targets for now.
+    Floating point support is available on most cbm-compatible targets (except the C128 for now), and the virtual target.
     On the X16, make sure rom bank 4 is still active before doing floationg point operations (it's the bank that contains the fp routines).
     On the C64, you have to make sure the Basic ROM is still banked in (same reason).
 

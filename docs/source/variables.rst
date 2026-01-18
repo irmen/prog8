@@ -272,11 +272,11 @@ Floating point numbers
 
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines.
 Floating point support is available on the c64 and cx16 (and virtual) compiler targets.
-On the c64 and cx16, the rom routines are used for floating point operations,
+On the cbm-compatible systems, the rom routines are used for floating point operations,
 so on both systems the correct rom banks have to be banked in to make this work.
 Although the C128 shares the same floating point format, Prog8 currently doesn't support
 using floating point on that system (because the c128 fp routines require the fp variables
-to be in another ram bank than the program, something Prog8 doesn't support yet).
+to be in another ram bank than the program, which Prog8 doesn't support yet).
 
 Also your code needs to import the ``floats`` library to enable floating point support
 in the compiler, and to gain access to the floating point routines.

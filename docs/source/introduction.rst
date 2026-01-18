@@ -90,7 +90,7 @@ Language Features
 - ``defer`` statement to help write concise and robust subroutine cleanup logic
 - Several specialized built-in functions, such as ``lsb``, ``msb``, ``min``, ``max``, ``rol``, ``ror``
 - Various powerful built-in libraries to do I/O, number conversions, graphics and more
-- Floating point math is supported on certain compiler targets.
+- Floating point math is supported on most cbm-compatible compiler targets.
 - Provides access to most Kernal ROM routines as external subroutine definitions you can call normally.
 - Strings can contain escaped characters but also many symbols directly if they have a PETSCII equivalent, such as "♠♥♣♦π▚●○╳". Characters like ^, _, \\, {, } and | are also accepted and converted to the closest PETSCII equivalents.
 - Encode strings and characters into petscii or screencodes or even other encodings, as desired (C64/Cx16)

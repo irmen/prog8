@@ -292,7 +292,10 @@ floats  {
     csc  (float value) -> float 
     deg  (float angle) -> float 
     floor  (float value) -> float 
-    internal_long_to_float  (^^long sourceptr, ^^float targetptr) 
+    highest_bit_in_byte  (ubyte value @A) -> ubyte @Y 
+    internal_get_vptr_highest_bit_pos  (^^ubyte vptr) -> ubyte 
+    internal_long_AY_to_FAC  () 
+    internal_long_R1_to_float_AY  () 
     interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float 
     lerp  (float v0, float v1, float t) -> float 
     lerp_fast  (float v0, float v1, float t) -> float 

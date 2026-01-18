@@ -1,19 +1,13 @@
 %import textio
 %import strings
+%import floats
 %option no_sysinit
 %zeropage basicsafe
 
 
-textOverlay {
-  uword overlayTop, overlayBot
-}
-
 main {
-    alias textOverlay_top = textOverlay.overlayTop
-    alias textOverlay_bot = textOverlay.overlayBot
-
+    float f1 = 3.1415927
     sub start() {
-        textOverlay_bot++
-        textOverlay_top++
+        txt.print_f(sqrt(f1))
     }
 }

@@ -107,7 +107,6 @@ Libraries
 - Add split-word array sorting routines to sorting module?
 - pet32 target: make syslib more complete (missing kernal routines)?
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
-- pet32 target: add floating point support (are its FP routines complete?)
 
 
 Optimizations

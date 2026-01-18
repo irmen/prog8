@@ -6,6 +6,7 @@
 %import conv
 %import coroutines
 %import cx16logo
+%import floats
 %import math
 %import petsnd
 %import prog8_lib
