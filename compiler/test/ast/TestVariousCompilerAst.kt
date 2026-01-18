@@ -97,6 +97,8 @@ main {
 main {
     alias print = txt.print
     alias width = txt.DEFAULT_WIDTH
+    alias textOverlay_top = txt.overlayTop
+    alias textOverlay_bot = txt.overlayBot
 
     sub start() {
         alias print2 = txt.print
@@ -109,10 +111,16 @@ main {
         ; chained aliases
         alias chained = print2
         chained("chained")
+        
+        ; multi vardecls
+        textOverlay_bot++
+        textOverlay_top++
     }
 }
 
 txt {
+    uword overlayTop, overlayBot
+    
     const ubyte DEFAULT_WIDTH = 80
     sub print_ub(ubyte value) {
         ; nothing

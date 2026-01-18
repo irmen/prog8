@@ -164,16 +164,31 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         if(target is Alias && parent !is Alias) {
             val targetStatement = target.target.targetStatement()
             if (targetStatement !is Alias) {
-                if (targetStatement is StructFieldRef) {
-                    // replace with target struct field reference
-                    val replacement = target.target.copy(position = identifier.position)
-                    return listOf(IAstModification.ReplaceNode(identifier, replacement, parent))
-                } else {
-                    // replace with scoped identifier
-                    val scoped=(targetStatement as INamedStatement).scopedName
-                    val scopedTarget = IdentifierReference(scoped, identifier.position)
-                    return listOf(IAstModification.ReplaceNode(identifier, scopedTarget, parent))
-                }
+                val replacement: IdentifierReference =
+                    when (targetStatement) {
+                        is StructFieldRef -> {
+                            // replace with target struct field reference
+                            target.target.copy(position = identifier.position)
+                        }
+                        is VarDecl -> {
+                            val scoped = if (targetStatement.names.isNotEmpty()) {
+                                // points to a vardecl of multiple names in 1 statement
+                                (targetStatement.parent as INamedStatement).scopedName + target.target.nameInSource.last()
+                            } else {
+                                (targetStatement as INamedStatement).scopedName
+                            }
+                            require(scoped.last() != "<multiple>")
+                            IdentifierReference(scoped, identifier.position)
+                        }
+                        else -> {
+                            // replace with scoped identifier
+                            val scoped = (targetStatement as INamedStatement).scopedName
+                            require(scoped.last() != "<multiple>")
+                            IdentifierReference(scoped, identifier.position)
+                        }
+                    }
+
+                return listOf(IAstModification.ReplaceNode(identifier, replacement, parent))
             }
         }
 
