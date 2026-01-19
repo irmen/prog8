@@ -204,6 +204,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
     val bothCx16AndC64 = cartesianProduct(
         listOf(
             "balls",
+            "boingball",
             "cube3d",
             "cube3d-float",
             "cube3d-gfx",

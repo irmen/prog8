@@ -24,18 +24,19 @@ const uword FAC_ADDR = $5e
 ;extsub $b7b5 = FREADSTR(ubyte length @ A) clobbers(A,X,Y)   ; str -> fac1, $22/23 must point to string, A=string length.  Also see parse()
 ;extsub $aabc = FPRINTLN() clobbers(A,X,Y)                   ; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
 ;
-;extsub $bc5b = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
 ;
-;extsub $bf7b = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
 ;extsub $bf78 = FPWR(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = fac2 ** mflpt from A/Y
 ;extsub $bd7e = FINLOG(byte value @A) clobbers (A, X, Y)     ; fac1 += signed byte in A
 ;
 ;extsub $aed4 = NOTOP() clobbers(A,X,Y)                      ; fac1 = NOT(fac1)
-;extsub $bc39 = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
 ;extsub $bf74 = SQRA() clobbers(A,X,Y)                       ; fac1 = SQRT(fac2)
 
 
 ; PET32 BASIC 4.0 ADDRESSES FOUND:
+; (source: https://www.zimmers.net/cbmpics/cbm/PETx/petmem.txt )
+
+; TODO need   FREADSA, correct implementation for GIVUAYFAY
+
 
 ;; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
 ;; (tip: use floats.GETADRAY to get A/Y output; lo/hi switched to normal little endian order)
@@ -68,16 +69,19 @@ extsub $c99d = FADD(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 += mflpt valu
 extsub $c97f = FADDH() clobbers(A,X,Y)                      ; fac1 += 0.5, for integer rounding- call this before INT
 extsub $c989 = FSUBT() clobbers(A,X,Y)                      ; fac1 = fac2-fac1   mind the order of the operands
 extsub $c986 = FSUB(uword mflpt @ AY) clobbers(A,X,Y)       ; fac1 = mflpt from A/Y - fac1
+extsub $cd91 = FCOMP(uword mflpt @ AY) clobbers(X,Y) -> ubyte @ A   ; A = compare fac1 to mflpt in A/Y, 0=equal 1=fac1 is greater, 255=fac1 is less than
+extsub $d112 = FPWRT() clobbers(A,X,Y)                      ; fac1 = fac2 ** fac1
 
 
 extsub $ca0d = NORMAL() clobbers(A)                         ; normalize FAC1
 extsub $cd61 = SIGN() -> ubyte @ A                          ; SIGN(fac1) to A, $ff, $0, $1 for negative, zero, positive
+extsub $cd6f = SGN() clobbers(A,X,Y)                        ; fac1 = SGN(fac1), result of SIGN (-1, 0 or 1)
 extsub $cd8e = ABS()                                        ; fac1 = ABS(fac1)
 extsub $cdd1 = QINT() clobbers(A,X,Y)                       ; fac1 -> 4-byte signed integer in FAC, with the MSB FIRST.
 extsub $ce02 = INT() clobbers(A,X,Y)                        ; INT() truncates, use FADDH first to integer round instead of trunc
 extsub $cf93 = FOUT() clobbers(X) -> uword @ AY             ; fac1 -> string, address returned in AY
 
-extsub $d108 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)   TODO is this address correct?
+extsub $d108 = SQR() clobbers(A,X,Y)                        ; fac1 = SQRT(fac1)
 extsub $d14b = NEGOP() clobbers(A)                          ; switch the sign of fac1 (fac1 = -fac1)
 extsub $d184 = EXP() clobbers(A,X,Y)                        ; fac1 = EXP(fac1)  (e ** fac1)
 extsub $d229 = RND() clobbers(A,X,Y)                        ; fac1 = RND(fac1) float random number generator
@@ -118,6 +122,15 @@ asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 		tya
 		ldy  P8ZP_SCRATCH_REG
 		jmp  GIVAYF		; this uses the inverse order, Y/A
+	}}
+}
+
+asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
+	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
+	%asm {{
+    	; TODO does PET have FLOATC?   does it have basic internal routine like the C64 version of this has?
+	    brk
+	    rts
 	}}
 }
 

@@ -11,6 +11,13 @@ cbm {
         &ubyte  TIME_MID        = $8e       ;  .. mid byte
         &ubyte  TIME_LO         = $8f       ;    .. lo byte. Updated by IRQ every 1/60 sec
         &ubyte  STATUS          = $96       ; kernal status variable for I/O
+        &ubyte  FNLEN           = $D1       ; Length of filename
+        &ubyte  LFN             = $D2       ; Current Logical File Number
+        &ubyte  SECADR          = $D3       ; Secondary address
+        &ubyte  DEVNUM          = $D4       ; Device number
+        &ubyte  CURS_X          = $C6       ; Cursor column
+        &ubyte  CURS_Y          = $D8       ; Cursor row
+        &ubyte  FNADR           = $DA       ; Pointer to file name
 
         &uword  CINV            = $0090     ; IRQ vector (in ram)
         &uword  CBINV           = $0092     ; BRK vector (in ram)
@@ -34,6 +41,37 @@ extsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; get a characte
 extsub $FFE7 = CLALL() clobbers(A,X)                            ; close all files
 extsub $FFEA = UDTIM() clobbers(A,X)                            ; update the software clock
 
+
+extsub $F563 = OPEN() clobbers(X,Y) -> bool @Pc, ubyte @A       ; open a logical file
+extsub $F2E2 = CLOSE(ubyte logical @ A) clobbers(A,X,Y)         ; close a logical file
+
+asmsub READST() -> ubyte @ A {
+    ; read io status
+    %asm {{
+        lda     STATUS
+        rts
+    }}
+}
+
+asmsub SETLFS(ubyte logical @ A, ubyte device @ X, ubyte secondary @ Y)  {
+    ; set logical file parameters
+    %asm {{
+        sta     LFN             ; LFN
+        stx     DEVNUM          ; Device address
+        sty     SECADR          ; Secondary address
+        rts
+    }}
+}
+
+asmsub SETNAM(ubyte namelen @ A, str filename @ XY) {
+    ; set filename parameters
+    %asm {{
+        sta     FNLEN
+        stx     FNADR
+        sty     FNADR+1
+        rts
+    }}
+}
 
 inline asmsub STOP2() clobbers(X,A) -> bool @Pz  {
     ; -- just like STOP, but omits the special keys result value in A.
@@ -137,6 +175,28 @@ pet {
     &ubyte  via1ifr    = VIA1_BASE + 13
     &ubyte  via1ier    = VIA1_BASE + 14
     &ubyte  via1ora    = VIA1_BASE + 15
+
+    extsub $ff93 = concat() clobbers (A,X,Y)
+    extsub $ff96 = dopen() clobbers (A,X,Y)
+    extsub $ff99 = dclose() clobbers (A,X,Y)
+    extsub $ff9c = record() clobbers (A,X,Y)
+    extsub $ff9f = header() clobbers (A,X,Y)
+    extsub $ffa2 = collect() clobbers (A,X,Y)
+    extsub $ffa5 = backup() clobbers (A,X,Y)
+    extsub $ffa8 = copy() clobbers (A,X,Y)
+    extsub $ffab = append() clobbers (A,X,Y)
+    extsub $ffae = dsave() clobbers (A,X,Y)
+    extsub $ffb1 = dload() clobbers (A,X,Y)
+    extsub $ffb4 = catalog() clobbers (A,X,Y)
+    extsub $ffb7 = rename() clobbers (A,X,Y)
+    extsub $ffba = scratch() clobbers (A,X,Y)
+    extsub $ffc0 = open() clobbers (A,X,Y)
+    extsub $ffc3 = close() clobbers (A,X,Y)
+    extsub $ffd5 = load() clobbers (A,X,Y)
+    extsub $ffd8 = save() clobbers (A,X,Y)
+    extsub $ffdb = verify() clobbers (A,X,Y)
+    extsub $ffde = sys() clobbers (A,X,Y)
+
 }
 
 %import shared_sys_functions

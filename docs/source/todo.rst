@@ -105,7 +105,8 @@ IR/VM
 Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
-- pet32 target: make syslib more complete (missing kernal routines)?
+- pet32: make syslib more complete (missing kernal routines)?
+- pet32: still missing floats.FREADSA and floats.GIVUAYFAY (and some others)
 - need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
 
 
