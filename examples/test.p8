@@ -1,24 +1,35 @@
 %import textio
-%import diskio
+%import floats
+%option no_sysinit
 %zeropage basicsafe
 
 main {
     sub start() {
-        cbm.SETNAM(7, "0:blerp")
-        cbm.SETLFS(12, 8, 0)
-        void cbm.OPEN()          ; open 12,8,0,"$"
-        cbm.CLOSE(12)
+        uword @shared uw = 50000
+        word @shared sw = uw as word
+        float @shared f = 65536
 
-        txt.print(diskio.status())
+        uw = 0
+        txt.print_f(uw as float)
+        txt.nl()
+        uw = 1
+        txt.print_f(uw as float)
+        txt.nl()
+        uw = 9999
+        txt.print_f(uw as float)
+        txt.nl()
+        uw = 32767
+        txt.print_f(uw as float)
+        txt.nl()
+        uw = 32768
+        txt.print_f(uw as float)
+        txt.nl()
+        uw = 50000
+        txt.print_f(uw as float)
+        txt.nl()
+        uw = 65535
+        txt.print_f(uw as float)
+        txt.nl()
 
-;
-;        void cbm.CHKIN(12)
-;
-;        while cbm.READST()==0 {
-;            cx16.r0L = cbm.CHRIN()
-;            txt.chrout(cx16.r0L)
-;        }
-;
-;        cbm.CLOSE(12)
     }
 }

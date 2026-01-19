@@ -4,7 +4,8 @@ TODO
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
-  caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?)
+  caused by the RTS after JMP removal in optimizeJsrRtsAndOtherCombinations (replacing it with a NOP makes the problem disappear !??!?).
+  Also observed in the boingball example for the C64 when some code was removed from the start and end.
 
 
 Future Things and Ideas
@@ -12,6 +13,7 @@ Future Things and Ideas
 - make builtin functions capable of returning multiple values, then make divmod() return the 2 results rather than accepting 2 extra variables as arguments
 - then also introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
 - add a -profile option (for now X16 only) that instruments the start (and returns?) -of every prog8 subroutine with code that dumps to the X16 emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count. Save/restore all used registers!  Start of program must set cycle count to zero.
+- add an option to produce warnings / infos for implicit value type casts for example assigning ubyte to uword variable
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
@@ -105,10 +107,8 @@ IR/VM
 Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
-- pet32: make syslib more complete (missing kernal routines)?
-- pet32: still missing floats.FREADSA and floats.GIVUAYFAY (and some others)
-- need help with: PET disk routines (OPEN, SETLFS etc are not exposed as kernal calls)
-
+- pet32: flesh out the PET diskio routines and syslib
+- make a list of all floats.* routines that the compiler expects for full float support?
 
 Optimizations
 -------------

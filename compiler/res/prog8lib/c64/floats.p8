@@ -168,6 +168,7 @@ asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) 
 
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
+	;      could use signed GIVAYFAY and add 65536 if negative, but there's a custom routine in rom here
 	%asm {{
 		sty  $62    ; facmo
 		sta  $63

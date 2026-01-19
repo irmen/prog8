@@ -139,14 +139,19 @@ asmsub FREADU24AXY(ubyte lo @ A, ubyte mid @ X, ubyte hi @ Y) clobbers(A, X, Y) 
 
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
-	; See "basic.sym" kernal symbol file for the facmo memory location.
-	; TODO find a way to not depend on that internal fac memory location. MOVFM doesn't work.
 	%asm {{
-	sty  $c4        ; facmo
-	sta  $c5        ; facmo+1
-	ldx  #$90
-	sec
-	jmp  FLOATC
+	    ; treat as signed first
+    	jsr  GIVAYFAY
+    	jsr  SIGN
+    	bpl  +
+    	; add 65536 to make it positive again
+    	lda  #<_float_const_65536
+    	ldy  #>_float_const_65536
+    	jmp  FADD
++	    rts
+
+_float_const_65536    .byte  $91, $00, $00, $00, $00  ; float 65536.0
+        ; !notreached!
 	}}
 }
 

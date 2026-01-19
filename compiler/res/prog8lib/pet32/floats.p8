@@ -20,7 +20,6 @@ const uword FAC_ADDR = $5e
 ;;
 ;
 ;extsub $b3a2 = FREADUY(ubyte value @ Y) clobbers(A,X,Y)     ; 8 bit unsigned Y -> float in fac1
-;extsub $bc3c = FREADSA(byte value @ A) clobbers(A,X,Y)      ; 8 bit signed A -> float in fac1
 ;extsub $b7b5 = FREADSTR(ubyte length @ A) clobbers(A,X,Y)   ; str -> fac1, $22/23 must point to string, A=string length.  Also see parse()
 ;extsub $aabc = FPRINTLN() clobbers(A,X,Y)                   ; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
 ;
@@ -34,8 +33,6 @@ const uword FAC_ADDR = $5e
 
 ; PET32 BASIC 4.0 ADDRESSES FOUND:
 ; (source: https://www.zimmers.net/cbmpics/cbm/PETx/petmem.txt )
-
-; TODO need   FREADSA, correct implementation for GIVUAYFAY
 
 
 ;; fac1 -> unsigned word in Y/A (might throw ILLEGAL QUANTITY) (result also in $14/15)
@@ -104,6 +101,18 @@ asmsub  AYINT2() clobbers(X) -> word @AY {
     }}
 }
 
+asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
+    ; ---- 8 bit signed A -> float in fac1
+    %asm {{
+        tay
+        bpl  +
+        lda  #$ff
+        jmp  GIVAYF
++       lda  #0
+        jmp  GIVAYF
+    }}
+}
+
 asmsub  GETADRAY  () clobbers(X) -> uword @ AY  {
 	; ---- fac1 to unsigned word in A/Y
 	%asm {{
@@ -128,9 +137,18 @@ asmsub  GIVAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 asmsub  GIVUAYFAY  (uword value @ AY) clobbers(A,X,Y)  {
 	; ---- unsigned 16 bit word in A/Y (lo/hi) to fac1
 	%asm {{
-    	; TODO does PET have FLOATC?   does it have basic internal routine like the C64 version of this has?
-	    brk
-	    rts
+	    ; treat as signed first
+    	jsr  GIVAYFAY
+    	jsr  SIGN
+    	bpl  +
+    	; add 65536 to make it positive again
+    	lda  #<_float_const_65536
+    	ldy  #>_float_const_65536
+    	jmp  FADD
++	    rts
+
+_float_const_65536    .byte  $91, $00, $00, $00, $00  ; float 65536.0
+        ; !notreached!
 	}}
 }
 
