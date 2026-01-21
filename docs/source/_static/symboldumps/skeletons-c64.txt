@@ -396,6 +396,16 @@ math  {
 }
 
 
+LIBRARY MODULE NAME: petgfx
+---------------------------
+
+petgfx  {
+    hline  (ubyte x, ubyte y, ubyte length) 
+    plot  (ubyte x, ubyte y) 
+    vline  (ubyte x, ubyte y, ubyte length) 
+}
+
+
 LIBRARY MODULE NAME: sorting
 ----------------------------
 

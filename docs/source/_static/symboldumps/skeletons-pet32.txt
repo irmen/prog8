@@ -212,6 +212,7 @@ floats  {
     FMULTT  ()  clobbers (A,X,Y)  = $cb61
     FOUT  ()  clobbers (X) -> uword @AY  = $cf93
     FPWRT  ()  clobbers (A,X,Y)  = $d112
+    FREADSA  (byte value @A)  clobbers (A,X,Y) 
     FSUB  (uword mflpt @AY)  clobbers (A,X,Y)  = $c986
     FSUBT  ()  clobbers (A,X,Y)  = $c989
     GETADR  ()  clobbers (X) -> ubyte @Y, ubyte @A  = $c92d
@@ -317,6 +318,16 @@ math  {
     sin8u  (ubyte angle @A)  clobbers (Y) -> ubyte @A 
     sinr8  (ubyte radians @A)  clobbers (Y) -> byte @A 
     sinr8u  (ubyte radians @A)  clobbers (Y) -> ubyte @A 
+}
+
+
+LIBRARY MODULE NAME: petgfx
+---------------------------
+
+petgfx  {
+    hline  (ubyte x, ubyte y, ubyte length) 
+    plot  (ubyte x, ubyte y) 
+    vline  (ubyte x, ubyte y, ubyte length) 
 }
 
 

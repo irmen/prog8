@@ -10,6 +10,7 @@
 %import floats
 %import graphics
 %import math
+%import petgfx
 %import prog8_lib
 %import sorting
 %import strings

@@ -94,6 +94,7 @@ class TestCompilerOnExamplesC64: FunSpec({
             "cube3d-sprites",
             "fileselector",
             "library/main",
+            "petswirl",
             "plasma",
             "rasterbars",
             "simplemultiplexer",

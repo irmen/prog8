@@ -1,6 +1,9 @@
 TODO
 ====
 
+- fix Github internal error issue
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
@@ -38,6 +41,7 @@ Future Things and Ideas
 - improve ANTLR grammar with better error handling (as suggested by Qwen AI)
 - add documentation for more library modules instead of just linking to the source code
 - add an Index to the documentation
+- can we just use index numbers instead of object hashes for struct instance labels (and other places?)  see labelnameForStructInstance
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed

@@ -954,6 +954,40 @@ Read the :source:`palette source code <compiler/res/prog8lib/cx16/palette.p8>`
 to see what's in there.
 
 
+petsnd  (PET only)
+^^^^^^^^^^^^^^^^^^
+Make sound on the Pet, without locking up the program in a busy loop: it uses the VIA timer as an oscillator.
+
+``sub on()``
+    enable sound
+
+``sub off()``
+    disable sound
+
+``sub octaves(ubyte octs)``
+    set octave(s), choice from range 1 to 3.   (1=octaves 4,5,6,  2=octaves 5,6,7, 3=octaves 6,7,8)
+
+``sub note(ubyte note)``
+    play the given note. Note constants are available in the module as well, such as A_4, A_5, F_SHARP_5 etc etc
+
+
+
+petgfx  (PET, C64, C128)
+^^^^^^^^^^^^^^^^^^^^^^^^
+To draw "graphics" at double the resolution of default text mode while using only Petscii block characters.
+
+``sub hline(ubyte x, ubyte y, ubyte length)``
+    Plots a horizontal line starting at x,y and with given length
+
+``sub vline(ubyte x, ubyte y, ubyte length)``
+    Plots a vertical line starting at x,y and with given length
+
+``sub plot(ubyte x, ubyte y)``
+    Plots a "petscii subpixel" using petscii block characters at position x,y in the text screen
+    where x and y can be double the size of the text screen (so 80 and 50, instead of 40 and 25).
+
+
+
 prog8_lib
 ^^^^^^^^^
 
