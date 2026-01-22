@@ -65,6 +65,10 @@ divmod (dividend, divisor, quotient, remainder)
     All values are ubytes or all are uwords.
     The last two arguments must be variables to receive the quotient and remainder results, respectively.
 
+gcd (a, b)
+    Returns the GCD (greatest common divisor) of uwords a and b
+    The routine is efficient and uses bit shifts instead of divisions.
+
 max (x, y)
     Returns the largest of x and y. Supported for integer types only, for floats use ``floats.maxf()`` instead.
 

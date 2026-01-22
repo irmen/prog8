@@ -441,4 +441,47 @@ math {
         cx16.r15 *= (outputMax-outputMin)
         return cx16.r15H + outputMin
     }
+
+    sub gcd(uword aa, uword bb) -> uword {
+        ; Calculate the Greatest Common Divisor of two 16-bit unsigned integers using the Binary GCD algorithm (Stein's algorithm).
+
+        ; Handle the case where one number is zero
+        if aa == 0  return bb
+        if bb == 0  return aa
+
+        ; Count the number of common factors of 2
+        ubyte shift = 0
+
+        ; Count common factors of 2 by shifting both numbers right until at least one is odd
+        while ((aa | bb) & 1) == 0 {
+            aa >>= 1
+            bb >>= 1
+            shift++
+        }
+
+        ; Remove remaining factors of 2 from a
+        while (aa & 1) == 0 {
+            aa >>= 1
+        }
+
+        ; Now a is odd. Loop until b becomes zero
+        while bb != 0 {
+            ; Remove remaining factors of 2 from b
+            while (bb & 1) == 0 {
+                bb >>= 1
+            }
+
+            ; Make sure a <= b
+            if aa > bb {
+                cx16.r0 = aa
+                aa = bb
+                bb = cx16.r0
+            }
+
+            bb -= aa
+        }
+
+        ; Return the result multiplied by the common factors of 2
+        return aa << shift
+    }
 }

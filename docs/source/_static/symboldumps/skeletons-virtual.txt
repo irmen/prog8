@@ -228,6 +228,7 @@ math  {
     direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
     direction_qd  (ubyte quadrant, ubyte xdelta, ubyte ydelta) -> ubyte 
     direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
+    gcd  (uword aa, uword bb) -> uword 
     interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte 
     lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
     lerpf   alias for: floats.lerp
