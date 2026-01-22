@@ -1,20 +1,21 @@
-%import math
-%import petgfx
-
-; Note: this program can be compiled for multiple target systems.
+%import textio
+%zeropage basicsafe
 
 main {
+    sub start() {
+        ^^Mblock mb = 4000
 
-    sub start()  {
-        uword anglex, angley
-        ubyte x,y
+        uword @shared temp
+        temp = mb
+        temp += 64
 
-        repeat {
-            x = (math.sin8u(msb(anglex)) * 256 / 820) as ubyte      ; range 0-79
-            y = (math.cos8u(msb(angley)) * 256 / 1310) as ubyte     ; range 0-49
-            petgfx.plot(x,y)
-            anglex+=375
-            angley+=291
-        }
+        cx16.r0 = mb
+        temp = cx16.r0
+        temp += 64
+    }
+
+    struct Mblock {
+        uword size
+        bool free
     }
 }

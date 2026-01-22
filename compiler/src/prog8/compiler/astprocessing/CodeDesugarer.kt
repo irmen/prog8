@@ -954,12 +954,19 @@ _after:
 
         // consolidates simple assignment followed by augmented assignment into a single combined assignment.
         // a = simplevalue  |  a += expression  -->   a = simplevalue + expression  (for all augmented operators)
+        // NOTE: this is NOT SAFE to do when dealing with pointer arithmetic because the semantics of the combined expression is different!
         if(!assignment.isAugmentable && assignment.value.isSimple) {
             val next = assignment.nextSibling() as? Assignment
             if(next?.isAugmentable==true && next.value is BinaryExpression && next.target.isSameAs(assignment.target, program)) {
                 val combined = next.value as BinaryExpression
                 if(combined.left isSameAs assignment.target) {
-                    combined.left = assignment.value
+                    if(!assignment.target.inferType(program).isPointer && (assignment.value.inferType(program).isPointer || combined.right.inferType(program).isPointer)) {
+                        // avoid pointer arithmetic:  a = (simplevalue as uword) + expression
+                        combined.left = TypecastExpression(assignment.value, DataType.UWORD, true, combined.left.position)
+                    } else {
+                        // no pointer arithmetic done, just transform it into   a = simplevalue + expression
+                        combined.left = assignment.value
+                    }
                     assignment.value = combined
                     combined.linkParents(assignment)
                     return listOf(IAstModification.Remove(next, parent as IStatementContainer))
