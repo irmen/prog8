@@ -12,5 +12,12 @@ fun verifyFinalAstBeforeAsmGen(program: PtProgram, options: CompilationOptions, 
         require(node is PtProgram || node.parentHasBeenSet()) {
             "node $node hasn't got a parent node"
         }
+
+        if(node is PtExpression) {
+            if(node.type.isStructInstance) {
+                if(node.parent is PtTypeCast || node.parent !is PtExpression)
+                    errors.err("no support for using struct instances in expressions in this way yet (use pointer to struct instead)", node.position)
+            }
+        }
     }
 }

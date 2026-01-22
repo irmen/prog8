@@ -2630,4 +2630,26 @@ main {
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("struct instances expression give proper error for now") {
+        val src="""
+main {
+    struct Struct {
+        ubyte field
+    }
+    sub start() {
+        void function()
+    }
+
+    sub function() -> uword {
+        ^^Struct temp
+        return temp^^ as uword
+    }
+}"""
+
+        val errors=ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), false, src, outputDir, errors=errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "struct instances"
+    }
 })
