@@ -40,7 +40,7 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
     val popFunc = if(pushFloat) "floats.pop" else if(pushWord) "sys.popw" else if(pushLong) "sys.popl" else "sys.pop"
     val pushCall = PtFunctionCall(pushFunc, true, DataType.UNDEFINED, value.position)
     if(pushTypecast!=null) {
-        val typecast = PtTypeCast(pushTypecast, value.position).also {
+        val typecast = PtTypeCast(pushTypecast, true, value.position).also {
             it.add(value)
         }
         pushCall.add(typecast)
@@ -48,7 +48,7 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
         pushCall.add(value)
     }
     val popCall = if(popTypecast!=null) {
-        PtTypeCast(popTypecast, value.position).also {
+        PtTypeCast(popTypecast, true, value.position).also {
             val returnDt = if(pushWord) DataType.UWORD else if(pushLong) DataType.LONG else if(pushFloat) DataType.FLOAT else DataType.UBYTE
             it.add(PtFunctionCall(popFunc, false, returnDt, value.position))
         }

@@ -43,6 +43,7 @@ class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
                         val writeAssembly: Boolean,
                         val warnSymbolShadowing: Boolean,
+                        val warnImplicitTypeCasts: Boolean,
                         val quietAll: Boolean,
                         val quietAssembler: Boolean,
                         val showTimings: Boolean,
@@ -108,6 +109,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
 
             with(compilationOptions) {
                 warnSymbolShadowing = args.warnSymbolShadowing
+                warnImplicitTypeCast = args.warnImplicitTypeCasts
                 optimize = args.optimize
                 asmQuiet = args.quietAssembler
                 quiet = args.quietAll

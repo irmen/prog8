@@ -34,6 +34,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         optimize,
         writeAssembly = true,
         warnSymbolShadowing = false,
+        warnImplicitTypeCasts= false,
         quietAll = true,
         quietAssembler = true,
         showTimings = false,

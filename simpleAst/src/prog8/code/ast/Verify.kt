@@ -19,5 +19,21 @@ fun verifyFinalAstBeforeAsmGen(program: PtProgram, options: CompilationOptions, 
                     errors.err("no support for using struct instances in expressions in this way yet (use pointer to struct instead)", node.position)
             }
         }
+
+        if(options.warnImplicitTypeCast) {
+            if (node is PtTypeCast) {
+                if (node.type.largerSizeThan(node.value.type)) {
+                    if (node.implicit) {
+                        errors.warn("implicit type cast to larger type: ${node.value.type} to ${node.type}", node.position)
+                    }
+                }
+            }
+            else if (node is PtAssignment) {
+                val targetDt = (node.children.first() as PtAssignTarget).type
+                if (targetDt.largerSizeThan(node.value.type)) {
+                    errors.warn("assignment to larger type: ${node.value.type} to $targetDt", node.position)
+                }
+            }
+        }
     }
 }

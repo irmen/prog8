@@ -424,12 +424,12 @@ class PtString(val value: String, val encoding: Encoding, position: Position) : 
 }
 
 
-class PtTypeCast(type: DataType, position: Position) : PtExpression(type, position) {
+class PtTypeCast(type: DataType, val implicit: Boolean, position: Position) : PtExpression(type, position) {
     val value: PtExpression
         get() = children.single() as PtExpression
 
     fun copy(): PtTypeCast {
-        val copy = PtTypeCast(type, position)
+        val copy = PtTypeCast(type, implicit, position)
         if(children[0] is PtIdentifier) {
             copy.add((children[0] as PtIdentifier).copy())
         } else {

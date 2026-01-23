@@ -277,6 +277,14 @@ One or more .p8 module files
 ``-vm``
     load and run a 'p8ir' intermediate representation file in the internal VirtualMachine instead of compiling a prog8 program file.
 
+``-warnimplicitcasts``
+    Give warnings for lines where a silent (implicit) type cast is done from a smaller to a larger type.
+    Example: when a byte is assigned to a word variable.
+    This may indicate a potential value evaluation issue because unlike most other programming languages, Prog8 doesn't do automatic type enlargement for expressions.
+    This means that for example if a=50 and b=20,  a times b is *not* equal to 1000 if a and b are bytes. Only if one or both of them are explicitly casted to a word type,
+    the calculation will result in the word value 1000. If you have code like this: `uword result = a * b` the compiler silently converted the *byte* result to a *word* variable,
+    but maybe you expected the result to actually be 1000 here (and forgot to add a cast in the expression to make it words)
+
 ``-warnshadow``
     Tells the assembler to issue warning messages about symbol shadowing.
     These *can* be problematic, but usually aren't because prog8 has different scoping rules

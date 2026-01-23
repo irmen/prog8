@@ -69,6 +69,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "run a .p8ir IR source file in the embedded VM")
     val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
+    val warnImplicitTypeCasts by cli.option(ArgType.Boolean, fullName = "warnimplicitcasts", description="show compiler warnings about implicit casts from a smaller to a larger type")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val version by cli.option(ArgType.Boolean, fullName = "version", description = "print compiler version and exit")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").optional().multiple(999)
@@ -189,6 +190,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     if(checkSource==true) false else dontOptimize != true,
                     if(checkSource==true) false else dontWriteAssembly != true,
                     warnSymbolShadowing == true,
+                    warnImplicitTypeCasts == true,
                     quietAll == true,
                     quietAll == true || quietAssembler == true,
                     showTimings == true,
@@ -274,6 +276,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     if(checkSource==true) false else dontOptimize != true,
                     if(checkSource==true) false else dontWriteAssembly != true,
                     warnSymbolShadowing == true,
+                    warnImplicitTypeCasts == true,
                     quietAll == true,
                     quietAll == true || quietAssembler == true,
                     showTimings == true,

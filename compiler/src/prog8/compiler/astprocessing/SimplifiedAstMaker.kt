@@ -935,14 +935,14 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 expr.add(high)
             } else {
                 val low = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
-                val lowFloat = PtTypeCast(DataType.FLOAT, range.from.position)
+                val lowFloat = PtTypeCast(DataType.FLOAT, true, range.from.position)
                 lowFloat.add(transformExpression(range.from))
                 low.add(lowFloat)
                 low.add(x1)
                 expr.add(low)
                 val high = PtBinaryExpression("<=", DataType.BOOL, srcCheck.position)
                 high.add(x2)
-                val highFLoat = PtTypeCast(DataType.FLOAT, range.to.position)
+                val highFLoat = PtTypeCast(DataType.FLOAT, true, range.to.position)
                 highFLoat.add(transformExpression(range.to))
                 high.add(highFLoat)
                 expr.add(high)
@@ -1031,7 +1031,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         PtString(srcString.value, srcString.encoding, srcString.position)
 
     private fun transform(srcCast: TypecastExpression): PtTypeCast {
-        val cast = PtTypeCast(srcCast.type, srcCast.position)
+        val cast = PtTypeCast(srcCast.type, srcCast.implicit, srcCast.position)
         cast.add(transformExpression(srcCast.expression))
         require(cast.type!=cast.value.type) {
             "bogus typecast shouldn't occur at ${srcCast.position}" }
@@ -1040,7 +1040,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
     private fun loadAsmIncludeFile(filename: String, source: SourceCode): Result<String, NoSuchFileException> {
         return if (SourceCode.isLibraryResource(filename)) {
-            return com.github.michaelbull.result.runCatching {
+            com.github.michaelbull.result.runCatching {
                 val physFilename = SourceCode.withoutPrefix(filename)
                 ImportFileSystem.getResource("/prog8lib/$physFilename").text
             }.mapError { NoSuchFileException(File(filename)) }
