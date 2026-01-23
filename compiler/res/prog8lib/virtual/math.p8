@@ -460,23 +460,18 @@ math {
         }
 
         ; Remove remaining factors of 2 from a
-        while (aa & 1) == 0 {
+        while (aa & 1) == 0
             aa >>= 1
-        }
 
         ; Now a is odd. Loop until b becomes zero
         while bb != 0 {
             ; Remove remaining factors of 2 from b
-            while (bb & 1) == 0 {
+            while (bb & 1) == 0
                 bb >>= 1
-            }
 
             ; Make sure a <= b
-            if aa > bb {
-                cx16.r0 = aa
-                aa = bb
-                bb = cx16.r0
-            }
+            if aa > bb
+                swap(aa, bb)
 
             bb -= aa
         }

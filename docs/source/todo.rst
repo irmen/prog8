@@ -1,9 +1,6 @@
 TODO
 ====
 
--    ubyte @shared @zp variable = 11        ; TODO should give ZP error when using %zeropage dontuse
-
-
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
@@ -16,7 +13,7 @@ Future Things and Ideas
 - make builtin functions capable of returning multiple values, then make divmod() return the 2 results rather than accepting 2 extra variables as arguments
 - then also introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
 - add a -profile option (for now X16 only) that instruments the start (and returns?) -of every prog8 subroutine with code that dumps to the X16 emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count. Save/restore all used registers!  Start of program must set cycle count to zero.
-- implement more swap() codegen paths, probably first for array elements, so that sorting routines such as in sorting.p8 can use swap() too
+- implement more swap() codegen paths, probably first for array elements, so that sorting routines such as in sorting.p8 (example and library module) can use swap() too
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)

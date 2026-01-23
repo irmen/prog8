@@ -733,11 +733,10 @@ log2_tab
     }
 
     sub gcd(uword @nozp a, uword @nozp b) -> uword {
-        ; Calculate the Greatest Common Divisor of two 16-bit unsigned integers using the Binary GCD algorithm (Stein's algorithm). Clobbers R0,R1,R2.
+        ; Calculate the Greatest Common Divisor of two 16-bit unsigned integers using the Binary GCD algorithm (Stein's algorithm). Clobbers R0,R1 !
 
         alias aa = cx16.r0
         alias bb = cx16.r1
-        alias temp = cx16.r2
 
         aa=a
         bb=b
@@ -757,23 +756,18 @@ log2_tab
         }
 
         ; Remove remaining factors of 2 from a
-        while (aa & 1) == 0 {
+        while (aa & 1) == 0
             aa >>= 1
-        }
 
         ; Now a is odd. Loop until b becomes zero
         while bb != 0 {
             ; Remove remaining factors of 2 from b
-            while (bb & 1) == 0 {
+            while (bb & 1) == 0
                 bb >>= 1
-            }
 
             ; Make sure a <= b
-            if aa > bb {
-                temp = aa
-                aa = bb
-                bb = temp
-            }
+            if aa > bb
+                swap(aa, bb)
 
             bb -= aa
         }
