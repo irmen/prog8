@@ -152,13 +152,14 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 val value = if(oper[0]=='#') parseIRValue(oper.drop(1)) else parseIRValue(oper)
                 if (format.immediate) {
                     if (immediateInt == null && immediateFp == null) {
-                        if (type == IRDataType.FLOAT && opcode != Opcode.LOADFIELD && opcode != Opcode.STOREFIELD)
-                            immediateFp = value
-                        else if(type == IRDataType.LONG) {
-                            val immediateLong = value.toLong()
-                            immediateInt = if(immediateLong == 0x80000000L) -2147483648 else immediateLong.toInt()
-                        } else
-                            immediateInt = value.toInt()
+                        when (type) {
+                            IRDataType.FLOAT if opcode != Opcode.LOADFIELD && opcode != Opcode.STOREFIELD -> immediateFp = value
+                            IRDataType.LONG -> {
+                                val immediateLong = value.toLong()
+                                immediateInt = if (immediateLong == 0x80000000L) -2147483648 else immediateLong.toInt()
+                            }
+                            else -> immediateInt = value.toInt()
+                        }
                     } else {
                         address = value.toInt()
                     }

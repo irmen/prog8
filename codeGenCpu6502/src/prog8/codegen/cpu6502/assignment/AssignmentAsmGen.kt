@@ -562,7 +562,7 @@ internal class AssignmentAsmGen(
                         dt.isLong -> {
                             TODO("read long ${value.position}")
                         }
-                        else -> throw AssemblyError("unsupported dereference type ${dt} ${value.position}")
+                        else -> throw AssemblyError("unsupported dereference type $dt ${value.position}")
                     }
                 }
                 else {

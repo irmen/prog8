@@ -198,7 +198,7 @@ class BinaryExpression(
                     InferredTypes.unknown()
                 else if(operator=="-" && leftDt.isNumeric && rightDt.isPointer) {
                     // x - pointer  is not pointer arithmetic like pointer-x or pointer+x, it's invalid, but return untyped pointer uword here
-                    return InferredTypes.knownFor(BaseDataType.UWORD)
+                    InferredTypes.knownFor(BaseDataType.UWORD)
                 }
                 else {
                     try {
@@ -322,7 +322,7 @@ class BinaryExpression(
 
             return when (leftDt.base) {
                 BaseDataType.BOOL -> {
-                    return if(rightDt.isBool)
+                    if(rightDt.isBool)
                         Pair(DataType.BOOL, null)
                     else
                         Pair(DataType.BOOL, right)
@@ -512,7 +512,7 @@ class TypecastExpression(var expression: Expression, var type: DataType, val imp
         return if(cast.isValid) {
             val newval = cast.valueOrZero()
             newval.linkParents(parent)
-            return newval
+            newval
         }
         else
             null

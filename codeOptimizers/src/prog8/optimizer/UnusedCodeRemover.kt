@@ -46,7 +46,7 @@ class UnusedCodeRemover(private val program: Program,
 
             subroutines
                 .filter { s -> s.name == "internal_long_R1_to_float_AY" || s.name=="internal_long_AY_to_FAC" }
-                .forEach { neverRemoveSubroutines.add(it) }
+                .forEach { sub -> neverRemoveSubroutines.add(sub) }
         }
     }
 

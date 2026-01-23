@@ -811,44 +811,44 @@ private fun optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByF
         sta  P8ZP_SCRATCH_PTR
         sty  P8ZP_SCRATCH_PTR+1
 
-	    ->
+        ->
 
         clc
-    	adc  P8ZP_SCRATCH_PTR
-    	sta  P8ZP_SCRATCH_PTR
-    	tya
-    	adc  P8ZP_SCRATCH_PTR+1
-    	sta  P8ZP_SCRATCH_PTR+1
+        adc  P8ZP_SCRATCH_PTR
+        sta  P8ZP_SCRATCH_PTR
+        tya
+        adc  P8ZP_SCRATCH_PTR+1
+        sta  P8ZP_SCRATCH_PTR+1
 
 
-    	also SECOND SEQUENCE:
+        also SECOND SEQUENCE:
 
         ldx  VALUE/  ldy  VALUE
-	    sta  SOMEWHERE_WITHOUT_,x_OR_,y
-	    txa /   tya
-    	ldy  #1
-    	sta  SOMEWHERE
-     	 -->
-    	sta  SOMEWHERE_WITHOUT_,x_OR_,y
-    	lda  VALUE
-    	ldy  #1
-    	sta  SOMEWHERE
+        sta  SOMEWHERE_WITHOUT_,x_OR_,y
+        txa /   tya
+        ldy  #1
+        sta  SOMEWHERE
+        -->
+        sta  SOMEWHERE_WITHOUT_,x_OR_,y
+        lda  VALUE
+        ldy  #1
+        sta  SOMEWHERE
 
 
         also THIRD SEQUENCE:
 
         ldx  VALUE
-	    ldy  #0
-	    sta  SOMEWHERE_WITHOUT_,x
-	    txa
-	    iny
-	    sta  SOMEWHERE
+        ldy  #0
+        sta  SOMEWHERE_WITHOUT_,x
+        txa
+        iny
+        sta  SOMEWHERE
          -->
-	    ldy  #0
-	    sta  SOMEWHERE_WITHOUT_,x
-	    lda  VALUE
-	    iny
-	    sta  SOMEWHERE
+        ldy  #0
+        sta  SOMEWHERE_WITHOUT_,x
+        lda  VALUE
+        iny
+        sta  SOMEWHERE
     */
     val mods = mutableListOf<Modification>()
     for (lines in linesByFourteen) {

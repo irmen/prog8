@@ -2646,7 +2646,6 @@ class VirtualMachine(irProgram: IRProgram) {
                 registers.setFloat(i.fpReg1!!, value2)
                 registers.setFloat(i.fpReg2!!, value1)
             }
-            else -> throw IllegalArgumentException("invalid type for this instruction $i")
         }
         nextPc()
     }

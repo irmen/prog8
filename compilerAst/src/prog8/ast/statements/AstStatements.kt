@@ -752,12 +752,12 @@ data class AssignTarget(
             arrayindexed != null -> value is ArrayIndexedExpression && arrayindexed!!.isSameArrayIndexedAs(value)
             multi != null -> false
             pointerDereference != null -> {
-                return if (value is PtrDereference) {
+                if (value is PtrDereference) {
                     pointerDereference!!.chain==value.chain
                 } else false
             }
             arrayIndexedDereference != null -> {
-                return if (value is ArrayIndexedPtrDereference) {
+                if (value is ArrayIndexedPtrDereference) {
                     arrayIndexedDereference!!.chain==value.chain && arrayIndexedDereference!!.derefLast==value.derefLast
                 } else false
             }

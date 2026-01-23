@@ -1028,9 +1028,9 @@ _after:
             if (numValues>0 && struct.fields.size != numValues) {
                 if (numValues < struct.fields.size) {
                     val missing = struct.fields.drop(numValues).joinToString(", ") { it.second }
-                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got ${numValues}, missing: $missing", array.position)
+                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got $numValues, missing: $missing", array.position)
                 } else
-                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got ${numValues}", array.position)
+                    errors.err("invalid number of field values: expected ${struct.fields.size} or 0 but got $numValues", array.position)
                 return false
             }
             return true
