@@ -127,8 +127,8 @@ class TestInstructions: FunSpec({
         Opcode.entries.forEach {
             val fmt = instructionFormats.getValue(it)
             fmt.values.forEach { format ->
-                require(format.reg2==OperandDirection.UNUSED || format.reg2==OperandDirection.READ) {"reg2 can only be used as input"}
-                require(format.fpReg2==OperandDirection.UNUSED || format.fpReg2==OperandDirection.READ) {"fpReg2 can only be used as input"}
+                require(format.reg2==OperandDirection.UNUSED || format.reg2==OperandDirection.READ || format.reg2==OperandDirection.READWRITE) {"reg2 can only be used as input or readwrite"}
+                require(format.fpReg2==OperandDirection.UNUSED || format.fpReg2==OperandDirection.READ || format.fpReg2==OperandDirection.READWRITE) {"fpReg2 can only be used as input or readwrite"}
             }
         }
     }

@@ -299,6 +299,25 @@ class VarConstantValueTypeAdjuster(
                     functionCallStatement))
             }
         }
+        else if(func==listOf("swap")) {
+            val t1 = functionCallStatement.args[0].inferType(program)
+            if(t1.isKnown) {
+                val dt = t1.getOrElse { throw InternalCompilerException("invalid dt") }
+                val replaceFunc = when {
+                    dt.isByteOrBool -> "swap__byte"
+                    dt.isWord || dt.isPointer -> "swap__word"
+                    dt.isLong -> "swap__long"
+                    dt.isFloat -> "swap__float"
+                    else -> {
+                        errors.err("expected numeric arguments", functionCallStatement.args[0].position)
+                        return noModifications
+                    }
+                }
+                return listOf(IAstModification.SetExpression({functionCallStatement.target = it as IdentifierReference},
+                    IdentifierReference(listOf(replaceFunc), functionCallStatement.target.position),
+                    functionCallStatement))
+            }
+        }
         return noModifications
     }
 }

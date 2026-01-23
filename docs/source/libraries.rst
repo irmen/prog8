@@ -226,6 +226,11 @@ sizeof (name)  ;  sizeof (number)  ;  sizeof(datatype)
     For a string, it returns the size of the string in memory (which includes the 0-byte terminator at the end)
     Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use len() for that.
 
+swap (var1, var2)
+    Swaps the values in var1 and var2 without the need of a temporary variable. Supports booleans and all other numeric datatypes including pointers.
+    Note that complicated expressions that you want to swap, may not be implemented yet. To avoid such errors you'll have to just swap them
+    in the old fashioned way, until an optimized code path gets implemented in a future Prog8 version.
+
 memory (name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
     with the given name. The name must be a string literal, it cannot be empty or be a variable.

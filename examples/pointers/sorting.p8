@@ -61,7 +61,7 @@ main{
             ubyte i
             for i in 1 to n-1 {
                 if strings.compare(countries[i-1].name, countries[i].name) > 0 {
-                    swap(i, i-1)
+                    swap_elements(i, i-1)
                     newn = i
                 }
             }
@@ -77,7 +77,7 @@ main{
             ubyte i
             for i in 1 to n-1 {
                 if countries[i-1].population < countries[i].population {
-                    swap(i, i-1)
+                    swap_elements(i, i-1)
                     newn = i
                 }
             }
@@ -93,7 +93,7 @@ main{
             ubyte i
             for i in 1 to n-1 {
                 if countries[i-1].area < countries[i].area {
-                    swap(i, i-1)
+                    swap_elements(i, i-1)
                     newn = i
                 }
             }
@@ -101,7 +101,8 @@ main{
         } until n<=1
     }
 
-    sub swap(ubyte i, ubyte j) {
+    sub swap_elements(ubyte i, ubyte j) {
+        ; TODO swap(countries[i], countries[j])
         ^^Country temp = countries[i]
         countries[i] = countries[j]
         countries[j] = temp

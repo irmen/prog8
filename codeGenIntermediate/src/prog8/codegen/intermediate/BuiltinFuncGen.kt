@@ -62,6 +62,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_copyfloat" -> funcCopyFromPointer1ToPointer2(call, IRDataType.FLOAT)
             "sizeof" -> throw AssemblyError("sizeof must have been replaced with a constant")
             "offsetof" -> throw AssemblyError("offsetof must have been replaced with a constant")
+            "swap__byte" -> funcSwap(call)
+            "swap__word" -> funcSwap(call)
+            "swap__long" -> funcSwap(call)
+            "swap__float" -> funcSwap(call)
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
     }
@@ -457,6 +461,30 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         }
         result += IRCodeChunk(after, null)
         return ExpressionCodeResult(result, type, leftTr.resultReg, -1)
+    }
+
+    private fun funcSwap(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        // TODO implement swap of two variables
+        require(call.args[0].type == call.args[1].type)
+        val result = mutableListOf<IRCodeChunkBase>()
+
+        val dt = irType(call.args[0].type)
+        val t1 = exprGen.translateExpression(call.args[0])
+        val t2 = exprGen.translateExpression(call.args[1])
+        if(dt==IRDataType.FLOAT) {
+            addToResult(result, t1, -1, t1.resultFpReg)
+            addToResult(result, t2, -1, t2.resultFpReg)
+            addInstr(result, IRInstruction(Opcode.SWAP, dt, fpReg1=t1.resultFpReg, fpReg2=t2.resultFpReg), null)
+            result += assignFpRegisterTo(call.args[0], t1.resultFpReg)
+            result += assignFpRegisterTo( call.args[1], t2.resultFpReg)
+        } else {
+            addToResult(result, t1, t1.resultReg, -1)
+            addToResult(result, t2, t2.resultReg, -1)
+            addInstr(result, IRInstruction(Opcode.SWAP, dt, reg1=t1.resultReg, reg2=t2.resultReg), null)
+            result += assignRegisterTo(call.args[0], t1.resultReg)
+            result += assignRegisterTo( call.args[1], t2.resultReg)
+        }
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcPoke(call: PtBuiltinFunctionCall, dt: IRDataType): ExpressionCodeResult {
@@ -874,6 +902,18 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         assignTarget.children.add(target)
         assignment.children.add(assignTarget)
         assignment.children.add(PtIrRegister(register, target.type, target.position))
+        val result = mutableListOf<IRCodeChunkBase>()
+        result += codeGen.translateNode(assignment)
+        return result
+    }
+
+    private fun assignFpRegisterTo(target: PtExpression, fpRegister: Int): IRCodeChunks {
+        require(target.type.isFloat)
+        val assignment = PtAssignment(target.position)
+        val assignTarget = PtAssignTarget(false, target.position)
+        assignTarget.children.add(target)
+        assignment.children.add(assignTarget)
+        assignment.children.add(PtIrRegister(fpRegister, DataType.FLOAT, target.position))
         val result = mutableListOf<IRCodeChunkBase>()
         result += codeGen.translateNode(assignment)
         return result

@@ -520,3 +520,22 @@ popFAC .proc
 	rts
 	.pend
 
+
+swap_floats      .proc
+	; -- swap float values pointed to by P8ZP_SCRATCH_W1 and AY.
+	sta  P8ZP_SCRATCH_W2
+	sty  P8ZP_SCRATCH_W2+1
+	ldy  #4
+-	lda  (P8ZP_SCRATCH_W1),y
+	sta  floats_temp_var,y
+	lda  (P8ZP_SCRATCH_W2),y
+	sta  (P8ZP_SCRATCH_W1),y
+	dey
+	bpl  -
+	ldy  #4
+-	lda  floats_temp_var,y
+	sta  (P8ZP_SCRATCH_W2),y
+	dey
+	bpl  -
+	rts
+	.pend

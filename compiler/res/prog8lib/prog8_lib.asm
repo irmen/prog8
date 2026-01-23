@@ -751,3 +751,48 @@ copyfrompointer1topointer2_long         .proc
 		sta  (P8ZP_SCRATCH_W2),y
 		rts
 		.pend
+
+
+swap_words      .proc
+	; -- swap word values pointed to by P8ZP_SCRATCH_W1 and AY
+	sta  P8ZP_SCRATCH_W2
+	sty  P8ZP_SCRATCH_W2+1
+	ldy  #0
+	lda  (P8ZP_SCRATCH_W1),y
+	pha
+	iny
+	lda  (P8ZP_SCRATCH_W1),y
+	tax
+	lda  (P8ZP_SCRATCH_W2),y
+	sta  (P8ZP_SCRATCH_W1),y
+	dey
+	lda  (P8ZP_SCRATCH_W2),y
+	sta  (P8ZP_SCRATCH_W1),y
+	pla
+	sta  (P8ZP_SCRATCH_W2),y
+	iny
+	txa
+	sta  (P8ZP_SCRATCH_W2),y
+	rts
+	.pend
+
+swap_longs      .proc
+	; -- swap long values pointed to by P8ZP_SCRATCH_W1 and AY. Clobbers R0 and R1 (temporary swap var)
+
+	sta  P8ZP_SCRATCH_W2
+	sty  P8ZP_SCRATCH_W2+1
+	ldy  #3
+-	lda  (P8ZP_SCRATCH_W1),y
+	sta  cx16.r0r1sl,y
+	lda  (P8ZP_SCRATCH_W2),y
+	sta  (P8ZP_SCRATCH_W1),y
+	dey
+	bpl  -
+	ldy  #3
+-	lda  cx16.r0r1sl,y
+	sta  (P8ZP_SCRATCH_W2),y
+	dey
+	bpl  -
+	rts
+	.pend
+

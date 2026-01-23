@@ -1826,7 +1826,7 @@ internal class AstChecker(private val program: Program,
                     if(fourthArg !is IdentifierReference && fourthArg !is ArrayIndexedExpression)
                         errors.err("this function can only act on an identifier or array element", fourthArg.position)
                 } else {
-                    if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead })
+                    if(functionCallStatement.args.any { it !is IdentifierReference && it !is ArrayIndexedExpression && it !is DirectMemoryRead && it !is PtrDereference })
                         errors.err("invalid argument to a in-place modifying function", functionCallStatement.args.first().position)
                 }
             }

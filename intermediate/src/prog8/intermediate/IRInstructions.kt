@@ -258,6 +258,7 @@ push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
 pushst                                    - push status register bits to stack
 popst                                     - pop status register bits from stack
+swap          reg1, reg2                  - exchange values in registers 1 and 2 (all datatypes)
  */
 
 enum class Opcode {
@@ -430,6 +431,7 @@ enum class Opcode {
     MSIGW,
     BSIGB,
     CONCAT,
+    SWAP,
     BREAKPOINT,
     ALIGN
 }
@@ -610,11 +612,15 @@ data class InstructionFormat(val datatype: IRDataType?,
                         ">r1" -> reg1 = OperandDirection.WRITE
                         "<>r1" -> reg1 = OperandDirection.READWRITE
                         "<r2" -> reg2 = OperandDirection.READ
+                        ">r2" -> reg2 = OperandDirection.WRITE
+                        "<>r2" -> reg2 = OperandDirection.READWRITE
                         "<r3" -> reg3 = OperandDirection.READ
                         "<fr1" -> fpreg1 = OperandDirection.READ
                         ">fr1" -> fpreg1 = OperandDirection.WRITE
                         "<>fr1" -> fpreg1 = OperandDirection.READWRITE
                         "<fr2" -> fpreg2 = OperandDirection.READ
+                        ">fr2" -> fpreg2 = OperandDirection.WRITE
+                        "<>fr2" -> fpreg2 = OperandDirection.READWRITE
                         ">i", "<>i" -> throw IllegalArgumentException("can't write into an immediate value")
                         "<i" -> immediate = true
                         "<a" -> address = OperandDirection.READ
@@ -816,6 +822,7 @@ val instructionFormats = mutableMapOf(
     Opcode.PUSHST     to InstructionFormat.from("N"),
     Opcode.POPST      to InstructionFormat.from("N"),
     Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2,<r3"),
+    Opcode.SWAP       to InstructionFormat.from("BWL,<>r1,<>r2  | F,<>fr1,<>fr2"),
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
     Opcode.CLI        to InstructionFormat.from("N"),
@@ -1023,7 +1030,20 @@ data class IRInstruction(
                         regsTypes[reg2] = actualtype
                 }
             }
-            else -> throw IllegalArgumentException("reg2 can only be read")
+            OperandDirection.READWRITE -> {
+                readRegsCounts[this.reg2!!] = readRegsCounts.getValue(this.reg2)+1
+                writeRegsCounts[this.reg2] = writeRegsCounts.getValue(this.reg2)+1
+                val actualtype = determineReg2Type()
+                if(actualtype!=null) {
+                    val existingType = regsTypes[reg2]
+                    if (existingType!=null) {
+                        if (existingType != actualtype)
+                            throw IllegalArgumentException("register $reg2 given multiple types! $existingType and $actualtype  in $chunk")
+                    } else
+                        regsTypes[reg2] = actualtype
+                }
+            }
+            else -> throw IllegalArgumentException("reg2 can only be read or readwrite")
         }
         when (this.reg3direction) {
             OperandDirection.UNUSED -> {}
@@ -1055,7 +1075,11 @@ data class IRInstruction(
         when (this.fpReg2direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> readFpRegsCounts[this.fpReg2!!] = readFpRegsCounts.getValue(this.fpReg2)+1
-            else -> throw IllegalArgumentException("fpReg2 can only be read")
+            OperandDirection.READWRITE -> {
+                readFpRegsCounts[this.fpReg2!!] = readFpRegsCounts.getValue(this.fpReg2)+1
+                writeFpRegsCounts[this.fpReg2] = writeFpRegsCounts.getValue(this.fpReg2)+1
+            }
+            else -> throw IllegalArgumentException("fpReg2 can only be read or readwrite")
         }
 
         if(fcallArgs!=null) {

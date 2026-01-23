@@ -175,6 +175,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
         }
 
+        // remove typecasts of arguments to builtin function like swap()
+        if(parent is IFunctionCall) {
+            if(parent.target.nameInSource.singleOrNull() in InplaceModifyingBuiltinFunctions) {
+                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+            }
+        }
+
         return noModifications
     }
 

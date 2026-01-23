@@ -345,7 +345,7 @@ class AsmGen6502Internal (
     private val anyExprGen = AnyExprAsmGen(this)
     private val pointerGen = PointerAssignmentsGen(this, allocator)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, pointerGen, anyExprGen, allocator)
-    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, assignmentAsmGen)
+    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, pointerGen,assignmentAsmGen)
     private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, pointerGen, assignmentAsmGen, errors)
     private val ifExpressionAsmgen = IfExpressionAsmGen(this, assignmentAsmGen, errors)
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, assignmentAsmGen, this, pointerGen, allocator)
