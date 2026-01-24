@@ -946,7 +946,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             var1ZpPtrVar = asmgen.loadByteFromPointerIntoA(v1.address as PtIdentifier)
                             asmgen.out("  pha")
                         } else {
-                            TODO("swap bytes not supported for this expression. Use a temporary variable and assignments for now. ${v1.position}")
+                            TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v1.position}")
                         }
                         if (v2.address is PtNumber) {
                             asmgen.out("  lda  ${v2.address.asConstInteger()!!.toHex()}")
@@ -956,7 +956,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                 tempZpPtrVar = "P8ZP_SCRATCH_W1"
                             )
                         } else {
-                            TODO("swap bytes not supported for this expression. Use a temporary variable and assignments for now. ${v2.position}")
+                            TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v2.position}")
                         }
 
                         if (v1.address is PtNumber) {
@@ -977,8 +977,22 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     TODO("swap bytes pointer dereference should not occur instead memorybyte? ${fcall.position}")
                 }
 
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
+                    asmgen.loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
+                    val varname1 = asmgen.asmVariableName(v1.variable!!.name)
+                    val varname2 = asmgen.asmVariableName(v2.variable!!.name)
+                    asmgen.out("""
+                        lda  $varname1,x
+                        pha
+                        lda  $varname2,y
+                        sta  $varname1,x
+                        pla
+                        sta  $varname2,y""")
+                }
+
                 else -> {
-                    TODO("swap bytes expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                    TODO("swap bytes expressions not supported yet for these expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${fcall.position}")
                 }
             }
         }
@@ -1029,8 +1043,47 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                 }
 
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
+                    asmgen.loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
+                    val varname1 = asmgen.asmVariableName(v1.variable!!.name)
+                    val varname2 = asmgen.asmVariableName(v2.variable!!.name)
+                    if(v1.splitWords && v2.splitWords) {
+                        // both of them are split-words arrays
+                        asmgen.out("""
+                            lda  ${varname1}_lsb,x
+                            pha
+                            lda  ${varname2}_lsb,y
+                            sta  ${varname1}_lsb,x
+                            pla
+                            sta  ${varname2}_lsb,y
+                            lda  ${varname1}_msb,x
+                            pha
+                            lda  ${varname2}_msb,y
+                            sta  ${varname1}_msb,x
+                            pla
+                            sta  ${varname2}_msb,y""")
+                    } else if(v1.splitWords || v2.splitWords) {
+                        TODO("swap words expressions not supported yet for 1 @split and 1 normal word array. Make them both the same, or use a temporary variable and assignments for now. ${fcall.position}")
+                    } else {
+                        asmgen.out("""
+                            lda  $varname1,x
+                            pha
+                            lda  $varname2,y
+                            sta  $varname1,x
+                            pla
+                            sta  $varname2,y
+                            lda  $varname1+1,x
+                            pha
+                            lda  $varname2+1,y
+                            sta  $varname1+1,x
+                            pla
+                            sta  $varname2+1,y""")
+                    }
+                }
+
                 else -> {
-                    TODO("swap words expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                    TODO("swap words expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
                 }
             }
         }
@@ -1067,9 +1120,27 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     require(offset2 == 0.toUByte())
                     asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  prog8_lib.swap_longs")
                 }
-
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
+                    asmgen.loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
+                    val varname1 = asmgen.asmVariableName(v1.variable!!.name)
+                    val varname2 = asmgen.asmVariableName(v2.variable!!.name)
+                    asmgen.out("""
+                        lda  #4
+                        sta  P8ZP_SCRATCH_REG
+-                       lda  $varname1,x
+                        pha
+                        lda  $varname2,y
+                        sta  $varname1,x
+                        pla
+                        sta  $varname2,y
+                        inx
+                        iny
+                        dec  P8ZP_SCRATCH_REG
+                        bne  -""")
+                }
                 else -> {
-                    TODO("swap longs expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                    TODO("swap longs expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
                 }
             }
         }
@@ -1097,9 +1168,28 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     require(offset2 == 0.toUByte())
                     asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  floats.swap_floats")
                 }
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
+                    asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
+                    asmgen.loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
+                    val varname1 = asmgen.asmVariableName(v1.variable!!.name)
+                    val varname2 = asmgen.asmVariableName(v2.variable!!.name)
+                    asmgen.out("""
+                        lda  #5
+                        sta  P8ZP_SCRATCH_REG
+-                       lda  $varname1,x
+                        pha
+                        lda  $varname2,y
+                        sta  $varname1,x
+                        pla
+                        sta  $varname2,y
+                        inx
+                        iny
+                        dec  P8ZP_SCRATCH_REG
+                        bne  -""")
+                }
 
                 else -> {
-                    TODO("swap floats expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                    TODO("swap floats expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
                 }
             }
         }

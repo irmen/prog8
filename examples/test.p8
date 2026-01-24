@@ -1,6 +1,7 @@
 %import textio
 %import floats
 %import math
+%zeropage basicsafe
 
 main {
     sub start() {
@@ -18,8 +19,11 @@ main {
         float f4 = 2.222
         ^^long ptr1 = 1111
         ^^long ptr2 = 2222
+        byte[2] bytes = [-11,-22]
         word[2] words = [-1111,-2222]
         word[2] @nosplit words2 = [-1111,-2222]
+        long[2] longs = [-1111111,-2222222]
+        float[2] floata = [-1.111,-2.222]
         cx16.r6 = 1111
         cx16.r7 = 2222
         cx16.r4L = 11
@@ -46,11 +50,21 @@ main {
         swap(lptr1^^, lptr2^^)
         swap(fptr1^^, fptr2^^)
 
-
         cx16.r9L = 0
-        cx16.r10 = 1
-        ;TODO implement array element swap: swap(words[cx16.r9L], words[cx16.r10L])
-        ;TODO implement array element swap: swap(words2[cx16.r9L], words2[cx16.r10L])
+        cx16.r10L = 1
+
+        swap(bytes[cx16.r9L], bytes[cx16.r10L])
+        swap(words[cx16.r9L], words[cx16.r10L])
+        swap(words2[cx16.r9L], words2[cx16.r10L])
+        swap(floata[cx16.r9L],floata[cx16.r10L])
+        swap(longs[cx16.r9L],longs[cx16.r10L])
+
+
+        txt.print_b(bytes[0])
+        txt.spc()
+        txt.print_b(bytes[1])
+        txt.nl()
+
 
         txt.print_bool(bb1)
         txt.spc()
@@ -82,16 +96,25 @@ main {
         txt.print_uw(cx16.r7)
         txt.nl()
 
-; TODO implement array swap
-;        txt.print_w(words[0])
-;        txt.spc()
-;        txt.print_w(words[1])
-;        txt.nl()
-;
-;        txt.print_w(words2[0])
-;        txt.spc()
-;        txt.print_w(words2[1])
-;        txt.nl()
+        txt.print_w(words[0])
+        txt.spc()
+        txt.print_w(words[1])
+        txt.nl()
+
+        txt.print_w(words2[0])
+        txt.spc()
+        txt.print_w(words2[1])
+        txt.nl()
+
+        txt.print_l(longs[0])
+        txt.spc()
+        txt.print_l(longs[1])
+        txt.nl()
+
+        txt.print_f(floata[0])
+        txt.spc()
+        txt.print_f(floata[1])
+        txt.nl()
 
         txt.print_l(l1)
         txt.spc()
@@ -110,10 +133,5 @@ main {
         txt.spc()
         txt.print_f(f4)
         txt.nl()
-
-
-
-        repeat {
-        }
     }
 }
