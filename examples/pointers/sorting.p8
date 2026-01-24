@@ -102,10 +102,7 @@ main{
     }
 
     sub swap_elements(ubyte i, ubyte j) {
-        ; TODO swap(countries[i], countries[j])
-        ^^Country temp = countries[i]
-        countries[i] = countries[j]
-        countries[j] = temp
+        swap(countries[i], countries[j])
     }
 
     sub dump() {

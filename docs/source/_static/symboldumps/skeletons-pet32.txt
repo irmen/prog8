@@ -753,7 +753,11 @@ txt  {
     clear_screencolors  (ubyte color) 
     cls  () 
     color  (ubyte txtcol) 
+    column  (ubyte col @A) 
     fill_screen  (ubyte character @A, ubyte color @Y)  clobbers (A) 
+    get_column  () -> ubyte @A 
+    get_cursor  () -> ubyte @X, ubyte @Y 
+    get_row  () -> ubyte @A 
     getchr  (ubyte col @A, ubyte row @Y)  clobbers (Y) -> ubyte @A 
     getclr  (ubyte col @A, ubyte row @Y) -> ubyte @A 
     height  ()  clobbers (X,Y) -> ubyte @A 
@@ -781,6 +785,7 @@ txt  {
     print_uwbin  (uword value @AY, bool prefix @Pc)  clobbers (A,X,Y) 
     print_uwhex  (uword value @AY, bool prefix @Pc)  clobbers (A,X,Y) 
     print_w  (word value @AY)  clobbers (A,X,Y) 
+    row  (ubyte rownum @A) 
     rvs_off  () 
     rvs_on  () 
     scroll_down  ()  clobbers (A,X) 

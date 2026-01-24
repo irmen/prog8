@@ -60,6 +60,45 @@ sub uppercase() {
     txt.chrout(142)
 }
 
+asmsub column(ubyte col @A) {
+    ; ---- set the cursor on the given column (starting with 0) on the current line
+    %asm {{
+        sta  $c6
+        rts
+    }}
+}
+
+asmsub get_column() -> ubyte @A {
+    %asm {{
+        lda  $c6
+        rts
+    }}
+}
+
+asmsub row(ubyte rownum @A) {
+    ; ---- set the cursor on the given row (starting with 0) on the current line
+    %asm {{
+        ldy  $c6
+        tax
+        jmp  plot
+    }}
+}
+
+asmsub get_row() -> ubyte @A {
+    %asm {{
+        lda  $d8
+        rts
+    }}
+}
+
+asmsub get_cursor() -> ubyte @X, ubyte @Y {
+    %asm {{
+        ldx  $c6
+        ldy  $d8
+        rts
+    }}
+}
+
 asmsub  scroll_left  () clobbers(A, X, Y)  {
 	; ---- scroll the whole screen 1 character to the left
 	;      contents of the rightmost column are unchanged, you should clear/refill this yourself

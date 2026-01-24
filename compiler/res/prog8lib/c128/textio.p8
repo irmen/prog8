@@ -34,7 +34,6 @@ asmsub column(ubyte col @A) clobbers(A, X, Y) {
     }}
 }
 
-
 asmsub get_column() -> ubyte @Y {
     %asm {{
         sec

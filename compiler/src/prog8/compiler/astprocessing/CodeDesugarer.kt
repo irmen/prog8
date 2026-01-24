@@ -281,6 +281,8 @@ _after:
         val indexExpr = arrayIndexedExpression.indexer.indexExpr
         val arrayVar = arrayIndexedExpression.plainarrayvar!!.targetVarDecl()
         if(arrayVar!=null && (arrayVar.datatype.isUnsignedWord || arrayVar.datatype.isPointer)) {
+            if(parent is IFunctionCall && parent.target.nameInSource.singleOrNull() in InplaceModifyingBuiltinFunctions)
+                return noModifications
             val wordIndex = TypecastExpression(indexExpr, DataType.UWORD, true, indexExpr.position)
             val address = BinaryExpression(
                 arrayIndexedExpression.plainarrayvar!!.copy(),
