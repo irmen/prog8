@@ -651,6 +651,10 @@ const ubyte  EXTAPI16_stack_push = $01
 const ubyte  EXTAPI16_stack_pop = $02
 const ubyte  EXTAPI16_stack_enter_kernal_stack = $03
 const ubyte  EXTAPI16_stack_leave_kernal_stack = $04
+const ubyte  EXTAPI16_xmacptr = $05
+const ubyte  EXTAPI16_xmciout = $06
+const ubyte  EXTAPI16_hbload = $07
+const ubyte  EXTAPI16_get_last_far_bank = $08
 
 
 asmsub set_screen_mode(ubyte mode @A) clobbers(A,X,Y) {
@@ -1250,7 +1254,7 @@ asmsub restore_vera_context() clobbers(A) {
 
     asmsub set_chrin_keyhandler(ubyte handlerbank @A, uword handler @XY) clobbers(A) {
         ; Install a custom CHRIN (BASIN) key handler in a safe manner. Call this before each line you want to read.
-        ; See https://github.com/X16Community/x16-docs/blob/101759f3bfa5e6cce4e8c5a0b67cb0f2f1c6341e/X16%20Reference%20-%2003%20-%20Editor.md#custom-basin-petscii-code-override-handler
+        ; See https://github.com/X16Community/x16-docs/blob/master/X16%20Reference%20-%2003%20-%20Editor.md#custom-basin-petscii-code-override-handler
         %asm {{
             sei
             sta  P8ZP_SCRATCH_REG

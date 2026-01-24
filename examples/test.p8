@@ -1,32 +1,119 @@
 %import textio
+%import floats
 %import math
-%zeropage basicsafe
 
 main {
     sub start() {
-        uword[] test_cases_a = [48, 56, 17, 1071, 100, 17, 0, 100, 256, 123]
-        uword[] test_cases_b = [18, 42, 13, 462, 25, 0, 23, 75, 64, 456]
+        bool bb1 = true
+        bool bb2 = false
+        ubyte ub1 = 11
+        ubyte ub2 = 22
+        uword uw1 = 1111
+        uword uw2 = 2222
+        long l1 = 1111111
+        long l2 = 2222222
+        float f1 = 1.111
+        float f2 = 2.222
+        float f3 = 1.111
+        float f4 = 2.222
+        ^^long ptr1 = 1111
+        ^^long ptr2 = 2222
+        word[2] words = [-1111,-2222]
+        word[2] @nosplit words2 = [-1111,-2222]
+        cx16.r6 = 1111
+        cx16.r7 = 2222
+        cx16.r4L = 11
+        cx16.r4H = 22
+        long l3 = 1111111
+        long l4 = 2222222
+        ^^long lptr1 = &l3
+        ^^long lptr2 = &l4
+        ^^uword uwptr1 = &cx16.r6
+        ^^uword uwptr2 = &cx16.r7
+        ^^byte bptr1 = &cx16.r4L
+        ^^byte bptr2 = &cx16.r4H
+        ^^float fptr1 = &f3
+        ^^float fptr2 = &f4
 
-        ubyte index
-        for index in 0 to len(test_cases_a)-1 {
-            uword r1 = math.gcd(test_cases_a[index], test_cases_b[index])
-            uword r2 = euclidean_gcd(test_cases_a[index], test_cases_b[index])
-            txt.print_uw(r1)
-            txt.spc()
-            txt.print_uw(r2)
-            if r1 != r2
-                txt.print("  fail\n")
-            else
-                txt.print("  ok\n")
-        }
-    }
+        swap(bb1, bb2)
+        swap(ub1, ub2)
+        swap(uw1, uw2)
+        swap(l1, l2)
+        swap(f1, f2)
+        swap(ptr1, ptr2)
+        swap(bptr1^^, bptr2^^)
+        swap(uwptr1^^, uwptr2^^)
+        swap(lptr1^^, lptr2^^)
+        swap(fptr1^^, fptr2^^)
 
-    sub euclidean_gcd(uword a, uword b) -> uword {
-        while b != 0 {
-            uword temp = b
-            b = a % b
-            a = temp
+
+        cx16.r9L = 0
+        cx16.r10 = 1
+        ;TODO implement array element swap: swap(words[cx16.r9L], words[cx16.r10L])
+        ;TODO implement array element swap: swap(words2[cx16.r9L], words2[cx16.r10L])
+
+        txt.print_bool(bb1)
+        txt.spc()
+        txt.print_bool(bb2)
+        txt.nl()
+
+        txt.print_ub(ub1)
+        txt.spc()
+        txt.print_ub(ub2)
+        txt.nl()
+
+        txt.print_ub(cx16.r4L)
+        txt.spc()
+        txt.print_ub(cx16.r4H)
+        txt.nl()
+
+        txt.print_uw(uw1)
+        txt.spc()
+        txt.print_uw(uw2)
+        txt.nl()
+
+        txt.print_uw(ptr1)
+        txt.spc()
+        txt.print_uw(ptr2)
+        txt.nl()
+
+        txt.print_uw(cx16.r6)
+        txt.spc()
+        txt.print_uw(cx16.r7)
+        txt.nl()
+
+; TODO implement array swap
+;        txt.print_w(words[0])
+;        txt.spc()
+;        txt.print_w(words[1])
+;        txt.nl()
+;
+;        txt.print_w(words2[0])
+;        txt.spc()
+;        txt.print_w(words2[1])
+;        txt.nl()
+
+        txt.print_l(l1)
+        txt.spc()
+        txt.print_l(l2)
+        txt.nl()
+        txt.print_l(l3)
+        txt.spc()
+        txt.print_l(l4)
+        txt.nl()
+
+        txt.print_f(f1)
+        txt.spc()
+        txt.print_f(f2)
+        txt.nl()
+        txt.print_f(f3)
+        txt.spc()
+        txt.print_f(f4)
+        txt.nl()
+
+
+
+        repeat {
         }
-        return a
     }
 }

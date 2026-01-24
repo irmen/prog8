@@ -905,110 +905,202 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         val (v1,v2) = fcall.args
 
         fun swapByte() {
-            if(v1 is PtIdentifier && v2 is PtIdentifier) {
-                val varname1 = asmgen.asmVariableName(v1)
-                val varname2 = asmgen.asmVariableName(v2)
-                asmgen.out(
-                    """
-                    lda  $varname1
-                    ldy  $varname2
-                    sta  $varname2
-                    sty  $varname1"""
-                )
-            } else if(v1 is PtMemoryByte && v2 is PtMemoryByte) {
-                var var1ZpPtrVar = ""
-                var var2ZpPtrVar = ""
-                if(v1.address is PtNumber) {
-                    asmgen.out("  lda  ${v1.address.asConstInteger()!!.toHex()} |  pha")
-                } else if(v1.address is PtIdentifier) {
-                    var1ZpPtrVar = asmgen.loadByteFromPointerIntoA(v1.address as PtIdentifier)
-                    asmgen.out("  pha")
-                } else {
-                    TODO("swap bytes not supported for this expression. Use a temporary variable and assignments for now. ${v1.position}")
-                }
-                if(v2.address is PtNumber) {
-                    asmgen.out("  lda  ${v2.address.asConstInteger()!!.toHex()}")
-                } else if(v2.address is PtIdentifier) {
-                    var2ZpPtrVar = asmgen.loadByteFromPointerIntoA(v2.address as PtIdentifier, tempZpPtrVar = "P8ZP_SCRATCH_W1")
-                } else {
-                    TODO("swap bytes not supported for this expression. Use a temporary variable and assignments for now. ${v2.position}")
+            when (v1) {
+                is PtIdentifier if v2 is PtIdentifier -> {
+                    val varname1 = asmgen.asmVariableName(v1)
+                    val varname2 = asmgen.asmVariableName(v2)
+                    asmgen.out("""
+                        lda  $varname1
+                        ldy  $varname2
+                        sta  $varname2
+                        sty  $varname1""")
                 }
 
-                if(v1.address is PtNumber) {
-                    asmgen.out("  sta  ${v1.address.asConstInteger()!!.toHex()}")
-                } else if(v1.address is PtIdentifier) {
-                    asmgen.storeIndirectByteReg(CpuRegister.A, var1ZpPtrVar, 0u, false, false)
+                is PtMemoryByte if v2 is PtMemoryByte -> {
+                    var var1ZpPtrVar = ""
+                    var var2ZpPtrVar = ""
+
+                    if(v1.address is PtIdentifier && v2.address is PtIdentifier) {
+                        var1ZpPtrVar = asmgen.asmVariableName(v1.address as PtIdentifier)
+                        var2ZpPtrVar = asmgen.asmVariableName(v2.address as PtIdentifier)
+                        if(!asmgen.isZpVar(v1.address as PtIdentifier)) {
+                            asmgen.out("  lda  $var1ZpPtrVar |  ldy  $var1ZpPtrVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                            var1ZpPtrVar = "P8ZP_SCRATCH_W1"
+                        }
+                        if(!asmgen.isZpVar(v2.address as PtIdentifier)) {
+                            asmgen.out("  lda  $var2ZpPtrVar |  ldy  $var2ZpPtrVar+1 |  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")
+                            var2ZpPtrVar = "P8ZP_SCRATCH_W2"
+                        }
+                        asmgen.out("""
+                            ldy  #0
+                            lda  ($var1ZpPtrVar),y
+                            pha
+                            lda  ($var2ZpPtrVar),y
+                            sta  ($var1ZpPtrVar),y
+                            pla
+                            sta  ($var2ZpPtrVar),y""")
+                    } else {
+                        if (v1.address is PtNumber) {
+                            asmgen.out("  lda  ${v1.address.asConstInteger()!!.toHex()} |  pha")
+                        } else if (v1.address is PtIdentifier) {
+                            var1ZpPtrVar = asmgen.loadByteFromPointerIntoA(v1.address as PtIdentifier)
+                            asmgen.out("  pha")
+                        } else {
+                            TODO("swap bytes not supported for this expression. Use a temporary variable and assignments for now. ${v1.position}")
+                        }
+                        if (v2.address is PtNumber) {
+                            asmgen.out("  lda  ${v2.address.asConstInteger()!!.toHex()}")
+                        } else if (v2.address is PtIdentifier) {
+                            var2ZpPtrVar = asmgen.loadByteFromPointerIntoA(
+                                v2.address as PtIdentifier,
+                                tempZpPtrVar = "P8ZP_SCRATCH_W1"
+                            )
+                        } else {
+                            TODO("swap bytes not supported for this expression. Use a temporary variable and assignments for now. ${v2.position}")
+                        }
+
+                        if (v1.address is PtNumber) {
+                            asmgen.out("  sta  ${v1.address.asConstInteger()!!.toHex()}")
+                        } else if (v1.address is PtIdentifier) {
+                            asmgen.storeIndirectByteReg(CpuRegister.A, var1ZpPtrVar, 0u, false, false)
+                        }
+                        if (v2.address is PtNumber) {
+                            asmgen.out("  pla |  sta  ${v2.address.asConstInteger()!!.toHex()}")
+                        } else if (v2.address is PtIdentifier) {
+                            asmgen.out("  pla")
+                            asmgen.storeIndirectByteReg(CpuRegister.A, var2ZpPtrVar, 0u, false, false)
+                        }
+                    }
                 }
-                if(v2.address is PtNumber) {
-                    asmgen.out("  pla |  sta  ${v2.address.asConstInteger()!!.toHex()}")
-                } else if(v2.address is PtIdentifier) {
-                    asmgen.out("  pla")
-                    asmgen.storeIndirectByteReg(CpuRegister.A, var2ZpPtrVar, 0u, false, false)
+
+                is PtPointerDeref if v2 is PtPointerDeref -> {
+                    TODO("swap bytes pointer dereference should not occur instead memorybyte? ${fcall.position}")
                 }
-            } else if(v1 is PtPointerDeref && v2 is PtPointerDeref) {
-                TODO("swap bytes pointer dereference not supported yet. Use a temporary variable and assignments for now. ${fcall.position}")
-            } else {
-                TODO("swap bytes expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+
+                else -> {
+                    TODO("swap bytes expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                }
             }
         }
 
         fun swapWord() {
-            if(v1 is PtIdentifier && v2 is PtIdentifier) {
-                val varname1 = asmgen.asmVariableName(v1)
-                val varname2 = asmgen.asmVariableName(v2)
-                asmgen.out("""
-                    lda  $varname1
-                    ldy  $varname2
-                    sta  $varname2
-                    sty  $varname1
-                    lda  $varname1+1
-                    ldy  $varname2+1
-                    sta  $varname2+1
-                    sty  $varname1+1""")
-            } else if(v1 is PtPointerDeref && v2 is PtPointerDeref) {
-                // TODO optimize when deref is just address or identifier
-                val (zpVar, offset) = ptrgen.deref(v1, true)
-                require(offset==0.toUByte())
-                asmgen.out("  lda  $zpVar |  ldy  $zpVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
-                val (zpVar2, offset2) = ptrgen.deref(v2, true)
-                require(offset2==0.toUByte())
-                asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  prog8_lib.swap_words")
-            } else {
-                TODO("swap words expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+            when (v1) {
+                is PtIdentifier if v2 is PtIdentifier -> {
+                    val varname1 = asmgen.asmVariableName(v1)
+                    val varname2 = asmgen.asmVariableName(v2)
+                    asmgen.out("""
+                        lda  $varname1
+                        ldy  $varname2
+                        sta  $varname2
+                        sty  $varname1
+                        lda  $varname1+1
+                        ldy  $varname2+1
+                        sta  $varname2+1
+                        sty  $varname1+1""")
+                }
+
+                is PtPointerDeref if v2 is PtPointerDeref -> {
+                    if(v1.derefLast && v1.chain.isEmpty() && v2.derefLast && v2.chain.isEmpty() && asmgen.isZpVar(v1.startpointer) && asmgen.isZpVar(v2.startpointer)) {
+                        // optimized case where v1 and v2 are both already zeropage pointer variables
+                        val name1 = asmgen.asmVariableName(v1.startpointer)
+                        val name2 = asmgen.asmVariableName(v2.startpointer)
+                        asmgen.out("""
+                            ldy  #0
+                            lda  ($name1),y
+                            pha
+                            lda  ($name2),y
+                            sta  ($name1),y
+                            pla
+                            sta  ($name2),y
+                            iny
+                            lda  ($name1),y
+                            pha
+                            lda  ($name2),y
+                            sta  ($name1),y
+                            pla
+                            sta  ($name2),y""")
+                    } else {
+                        val (zpVar, offset) = ptrgen.deref(v1, true)
+                        require(offset == 0.toUByte())
+                        asmgen.out("  lda  $zpVar |  ldy  $zpVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                        val (zpVar2, offset2) = ptrgen.deref(v2, true)
+                        require(offset2 == 0.toUByte())
+                        asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  prog8_lib.swap_words")
+                    }
+                }
+
+                else -> {
+                    TODO("swap words expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                }
             }
         }
 
         fun swapLong() {
-            if(v1 is PtIdentifier && v2 is PtIdentifier) {
-                val varname1 = asmgen.asmVariableName(v1)
-                val varname2 = asmgen.asmVariableName(v2)
-                asmgen.out("""
-                    lda  #<$varname1
-                    ldy  #>$varname1
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #<$varname2
-                    ldy  #>$varname2
-                    jsr  prog8_lib.swap_longs""")
-            } else {
-                TODO("swap longs expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+            when (v1) {
+                is PtIdentifier if v2 is PtIdentifier -> {
+                    val varname1 = asmgen.asmVariableName(v1)
+                    val varname2 = asmgen.asmVariableName(v2)
+                    asmgen.out("""
+                        lda  $varname1
+                        ldy  $varname2
+                        sta  $varname2
+                        sty  $varname1
+                        lda  $varname1+1
+                        ldy  $varname2+1
+                        sta  $varname2+1
+                        sty  $varname1+1
+                        lda  $varname1+2
+                        ldy  $varname2+2
+                        sta  $varname2+2
+                        sty  $varname1+2
+                        lda  $varname1+3
+                        ldy  $varname2+3
+                        sta  $varname2+3
+                        sty  $varname1+3""")
+                }
+
+                is PtPointerDeref if v2 is PtPointerDeref -> {
+                    val (zpVar, offset) = ptrgen.deref(v1, true)
+                    require(offset == 0.toUByte())
+                    asmgen.out("  lda  $zpVar |  ldy  $zpVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                    val (zpVar2, offset2) = ptrgen.deref(v2, true)
+                    require(offset2 == 0.toUByte())
+                    asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  prog8_lib.swap_longs")
+                }
+
+                else -> {
+                    TODO("swap longs expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                }
             }
         }
 
         fun swapFloat() {
-            if(v1 is PtIdentifier && v2 is PtIdentifier) {
-                val varname1 = asmgen.asmVariableName(v1)
-                val varname2 = asmgen.asmVariableName(v2)
-                asmgen.out("""
-                    lda  #<$varname1
-                    ldy  #>$varname1
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #<$varname2
-                    ldy  #>$varname2
-                    jsr  floats.swap_floats""")
-            } else {
-                TODO("swap floats expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+            when (v1) {
+                is PtIdentifier if v2 is PtIdentifier -> {
+                    val varname1 = asmgen.asmVariableName(v1)
+                    val varname2 = asmgen.asmVariableName(v2)
+                    asmgen.out("""
+                        lda  #<$varname1
+                        ldy  #>$varname1
+                        sta  P8ZP_SCRATCH_W1
+                        sty  P8ZP_SCRATCH_W1+1
+                        lda  #<$varname2
+                        ldy  #>$varname2
+                        jsr  floats.swap_floats""")
+                }
+
+                is PtPointerDeref if v2 is PtPointerDeref -> {
+                    val (zpVar, offset) = ptrgen.deref(v1, true)
+                    require(offset == 0.toUByte())
+                    asmgen.out("  lda  $zpVar |  ldy  $zpVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                    val (zpVar2, offset2) = ptrgen.deref(v2, true)
+                    require(offset2 == 0.toUByte())
+                    asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  floats.swap_floats")
+                }
+
+                else -> {
+                    TODO("swap floats expressions not supported yet for these expressions. Use a temporary variable and assignments for now. ${fcall.position}")
+                }
             }
         }
 
