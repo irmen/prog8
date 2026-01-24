@@ -927,7 +927,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         require(parameter.register in Cx16VirtualRegisters) { "can only use R0-R15 'registers' here" }
                         val regname = parameter.register!!.asScopedNameVirtualReg(parameter.type).joinToString(".")
                         val assign = PtAssignment(fcall.position)
-                        val target = PtAssignTarget(true, fcall.position)
+                        val target = PtAssignTarget(false, fcall.position)
                         target.add(PtIdentifier(regname, parameter.type, fcall.position))
                         assign.add(target)
                         assign.add(arg)

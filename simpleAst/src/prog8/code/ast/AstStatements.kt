@@ -199,13 +199,16 @@ class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {
 
     val type: DataType
         get() {
-            return when(val tgt = children.single()) {
-                is PtIdentifier -> tgt.type
-                is PtArrayIndexer -> tgt.type
-                is PtMemoryByte -> tgt.type
-                is PtPointerDeref -> tgt.type
-                else -> throw AssemblyError("weird target $tgt")
-            }
+            return if(void)
+                DataType.UNDEFINED
+            else
+                when(val tgt = children.single()) {
+                    is PtIdentifier -> tgt.type
+                    is PtArrayIndexer -> tgt.type
+                    is PtMemoryByte -> tgt.type
+                    is PtPointerDeref -> tgt.type
+                    else -> throw AssemblyError("weird target $tgt")
+                }
         }
 
     infix fun isSameAs(expression: PtExpression): Boolean = !void && expression.isSameAs(this)

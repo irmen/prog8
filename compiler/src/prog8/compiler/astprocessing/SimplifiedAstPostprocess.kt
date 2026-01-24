@@ -116,7 +116,7 @@ private fun setDeferMasks(program: PtProgram, errors: IErrorReporter): Map<PtSub
             val scope = defer.parent
             val idx = scope.children.indexOf(defer)
             val enableDefer = PtAugmentedAssign("|=", defer.position)
-            val target = PtAssignTarget(true, defer.position)
+            val target = PtAssignTarget(false, defer.position)
             target.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, defer.position))
             enableDefer.add(target)
             // enable the bit for this defer (beginning with high bits so the handler can simply shift right to check them in reverse order)
