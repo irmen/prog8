@@ -162,4 +162,31 @@ strings {
         sys.clear_carry()
         return 255
     }
+
+    sub next_token(str source, str delimiters) -> str {
+        ; -- Tokenize the source string according to the list of delimiter characters. Like C's ``strtok`` function.
+        if source == 0
+            source = last_token_source
+        else
+            last_token_source = source
+
+        if last_token_source^^ == 0
+            return 0
+
+        while last_token_source^^ != 0 {
+            ^^ubyte dptr = delimiters
+            while dptr^^ != 0 {
+                if last_token_source^^ == dptr^^ {
+                    last_token_source^^ = 0
+                    last_token_source += 1
+                    return source
+                }
+                dptr += 1
+            }
+            last_token_source += 1
+        }
+        return source
+    }
+    ^^ubyte last_token_source
+
 }

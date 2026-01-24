@@ -1160,6 +1160,13 @@ manipulation
     Copy a string to another, overwriting that one, but limited to the given length.
     Returns the length of the string that was copied.
 
+``next_token(str source, str delimiters) -> str``
+    Tokenize the source string according to the list of delimiter characters. Like C's ``strtok`` function.
+    You pass in the string to tokenize and the delimiters (make sure the delimiters end with a trailing 0 as well).
+    The routine returns a pointer to the next token (or first token, if you pass in a new string).
+    To get the next tokens, keep calling the routine but pass 0 for the source string (which tells it to continue
+    processing the previous string).  It returns 0 when there are no more tokens.
+
 ``right (source, length, target)``
     Copies the right side of the source string of the given length to target string.
     It is assumed the target string buffer is large enough to contain the result (which includes a terminating 0 byte).
@@ -1178,7 +1185,7 @@ manipulation
     Start and length must be within bounds of the source string.
     Writes in-place; doesn't return a value (so can't be used in an expression).
 
-``split (string, parts, max_parts)``
+``split (string, parts, max_parts) -> ubyte``
     Splits string into parts separated by white space (destructive).
     Pointers to each part are stored in the given parts array (sequential uwords, for instance in a @nosplit uword array), up to the given maximum number of parts.
     Returns the number of parts stored.
