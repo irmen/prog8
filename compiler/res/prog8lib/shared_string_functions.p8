@@ -2,6 +2,52 @@ strings {
     ; the string functions shared across compiler targets
     %option merge, no_symbol_prefixing, ignore_unused
 
+    sub split(str s, ^^uword parts, ubyte maxparts) -> ubyte {
+        ; -- split string into parts (splits on whitespace and other non-printable characters).
+        ;    Pointers to each part are stored in the given array.
+        ;    Returns number of parts found (up to the given maximum). Modifies the string in place!
+
+        if s==0 or s[0]==0
+            return 0
+
+        sys.push(cx16.r0L)
+        alias index = cx16.r0L
+        ubyte numparts
+
+        index = numparts = 0
+
+        while numparts < maxparts {
+            skipwhitespace()
+            if s[index]!=0 {
+                parts^^ = s+index
+                numparts++
+                parts++
+                skipchars()
+                if s[index]==0
+                    break
+                if numparts < maxparts
+                    s[index] = 0
+                index++
+            }
+        }
+        if numparts>0 {
+            parts--
+            strings.strip(parts^^)
+        }
+        cx16.r0L = sys.pop()
+        return numparts
+
+        sub skipwhitespace() {
+            while s[index]!=0 and (strings.isspace(s[index]) or not strings.isprint(s[index]))
+                index++
+        }
+
+        sub skipchars() {
+            while s[index]!=0 and not strings.isspace(s[index])
+                index++
+        }
+    }
+
     sub strip(str s) {
         ; -- gets rid of whitespace and other non-visible characters at the edges of the string
         rstrip(s)

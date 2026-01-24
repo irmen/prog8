@@ -1178,6 +1178,12 @@ manipulation
     Start and length must be within bounds of the source string.
     Writes in-place; doesn't return a value (so can't be used in an expression).
 
+``split (string, parts, max_parts)``
+    Splits string into parts separated by white space (destructive).
+    Pointers to each part are stored in the given parts array (sequential uwords, for instance in a @nosplit uword array), up to the given maximum number of parts.
+    Returns the number of parts stored.
+    Leading and trailing whitespace has been stripped from each part.
+
 ``strip (string)``
     Gets rid of whitespace and other non-visible characters at the edges of the string. (destructive)
 

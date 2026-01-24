@@ -295,6 +295,19 @@ io_error:
         goto diskio.lf_start_list.start_list_internal
     }
 
+    sub lf_start_list_having_prefix(str prefix) -> bool {
+        ; -- start an iterative directory contents listing for entries with given prefix.
+        ;    note: only a single iteration loop can be active at a time!
+        list_filename[0] = '$'
+        list_filename[1] = ':'
+        cx16.r0L = strings.copy(prefix, &list_filename+2)
+        list_filename[cx16.r0L+2] = '*'
+        list_filename[cx16.r0L+3] = 0
+        cbm.SETNAM(cx16.r0L+3, list_filename)
+        diskio.lf_start_list.pattern_ptr = 0
+        goto diskio.lf_start_list.start_list_internal
+    }
+
     sub lf_next_entry() -> bool {
         ; -- retrieve the next entry from an iterative file listing session.
         ;    results will be found in list_blocks, list_filename, and list_filetype.
