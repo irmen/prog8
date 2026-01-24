@@ -210,6 +210,28 @@ sub printit(str arg) {
         compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
     }
 
+    test("merge works with charset encoding") {
+        val src = """
+main {
+    sub start() {
+        cx16.r0L = KEY_0
+        cx16.r1L = KEY_9
+        when cx16.r0L {
+            KEY_0 to KEY_9 -> {}
+            else -> {}
+        }
+    }
+}
+
+main {
+    %option merge
+
+    const ubyte KEY_0 = 'A'
+    const ubyte KEY_9 = 'B'
+}"""
+        compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
+    }
+
     test("merge override existing subroutine") {
         val src="""
 %import textio

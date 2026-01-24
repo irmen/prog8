@@ -618,11 +618,13 @@ class TestProg8Parser: FunSpec( {
         val char1 = CharLiteral.create('A', Encoding.PETSCII, Position.DUMMY)
         val char2 = CharLiteral.create('z', Encoding.SCREENCODES, Position.DUMMY)
         val char3 = CharLiteral.create('_', Encoding.ISO, Position.DUMMY)
+        val char4 = CharLiteral.create('_', Encoding.DEFAULT, Position.DUMMY)
 
         val program = Program("test", DummyFunctions, DummyMemsizer, AsciiStringEncoder)
-        char1.constValue(program).number.toInt() shouldBe 65
-        char2.constValue(program).number.toInt() shouldBe 122
-        char3.constValue(program).number.toInt() shouldBe 95
+        char1.constValue(program)?.number?.toInt() shouldBe 65
+        char2.constValue(program)?.number?.toInt() shouldBe 122
+        char3.constValue(program)?.number?.toInt() shouldBe 95
+        char4.constValue(program) shouldBe null
     }
 
     test("testLiteralValueComparisons") {

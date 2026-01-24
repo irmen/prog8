@@ -381,9 +381,9 @@ open class Module(final override val statements: MutableList<Statement>,
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 
     val textEncoding: Encoding by lazy {
-        val encoding = (statements.singleOrNull { it is Directive && it.directive == "%encoding" } as? Directive)
+        val encoding = statements.singleOrNull { it is Directive && it.directive == "%encoding" } as? Directive
         if(encoding!=null)
-            Encoding.entries.first { it.prefix==encoding.args[0].string }
+            Encoding.entries.firstOrNull { it.prefix==encoding.args[0].string } ?: program.encoding.defaultEncoding       // invalid encoding will be noticed by ast checker error message
         else
             program.encoding.defaultEncoding
     }

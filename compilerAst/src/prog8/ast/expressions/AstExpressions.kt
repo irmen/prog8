@@ -1037,7 +1037,9 @@ class CharLiteral private constructor(val value: Char,
     override fun copy() =
         CharLiteral(value, encoding, position)
     override fun referencesIdentifier(nameInSource: List<String>) = false
-    override fun constValue(program: Program): NumericLiteral {
+    override fun constValue(program: Program): NumericLiteral? {
+        if(encoding== Encoding.DEFAULT) // will be determined at a later stage, hopefully
+            return null
         val bytevalue = program.encoding.encodeString(value.toString(), encoding).single()
         return NumericLiteral(BaseDataType.UBYTE, bytevalue.toDouble(), position)
     }
@@ -1611,6 +1613,8 @@ class ContainmentCheck(var element: Expression,
                 is StringLiteral -> {
                     if(elementConst.type.isByte) {
                         val stringval = iterable as StringLiteral
+                        if(stringval.encoding== Encoding.DEFAULT)   // will be set at a later stage, hopefully
+                            return null
                         val exists = program.encoding.encodeString(stringval.value, stringval.encoding).contains(elementConst.number.toInt().toUByte() )
                         return NumericLiteral.fromBoolean(exists, position)
                     }
