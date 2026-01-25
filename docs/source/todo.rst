@@ -13,6 +13,7 @@ Future Things and Ideas
 - make builtin functions capable of returning multiple values, then make divmod() return the 2 results rather than accepting 2 extra variables as arguments
 - then also introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
 - add a -profile option (for now X16 only) that instruments the start (and returns?) -of every prog8 subroutine with code that dumps to the X16 emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count. Save/restore all used registers!  Start of program must set cycle count to zero.
+- add @private to variables and subroutines declared in a scope to make them invisible from outside that scope?
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
 - structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
@@ -119,7 +120,6 @@ Optimizations
 - Compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes almost twice as long as with prog8 11.4 and 10.5 is even faster. Largest slowdown in "ast optimizing" pass.
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression" ... but maybe postpone until codegen from IR, where it seems solved?
-- optimize floats.cast_from_long and floats.cast_as_long by directly accessing FAC bits?
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
   This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on

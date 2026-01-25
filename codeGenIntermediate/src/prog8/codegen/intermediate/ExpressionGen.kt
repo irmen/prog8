@@ -948,7 +948,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 addInstr(result, IRInstruction(Opcode.CALL, labelSymbol = fcall.name,
                     fcallArgs = FunctionCallArgs(argRegisters, returnRegSpecs)), null)
                 return if(fcall.void)
-                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)       // TODO datatype void?
+                    ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
                 else if(returnRegSpecs.size==1) {
                     val returnRegSpec = returnRegSpecs.single()
                     if (fcall.type.isFloat)

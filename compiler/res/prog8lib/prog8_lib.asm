@@ -777,19 +777,19 @@ swap_words      .proc
 	.pend
 
 swap_longs      .proc
-	; -- swap long values pointed to by P8ZP_SCRATCH_W1 and AY. Clobbers R0 and R1 (temporary swap var)
+	; -- swap long values pointed to by P8ZP_SCRATCH_W1 and AY. Clobbers R14 and R15 (temporary swap var)
 
 	sta  P8ZP_SCRATCH_W2
 	sty  P8ZP_SCRATCH_W2+1
 	ldy  #3
 -	lda  (P8ZP_SCRATCH_W1),y
-	sta  cx16.r0r1sl,y
+	sta  cx16.r14r15sl,y
 	lda  (P8ZP_SCRATCH_W2),y
 	sta  (P8ZP_SCRATCH_W1),y
 	dey
 	bpl  -
 	ldy  #3
--	lda  cx16.r0r1sl,y
+-	lda  cx16.r14r15sl,y
 	sta  (P8ZP_SCRATCH_W2),y
 	dey
 	bpl  -

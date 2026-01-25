@@ -464,7 +464,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     }
 
     private fun funcSwap(call: PtBuiltinFunctionCall): ExpressionCodeResult {
-        // TODO implement swap of two variables
         require(call.args[0].type == call.args[1].type)
         val result = mutableListOf<IRCodeChunkBase>()
 

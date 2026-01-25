@@ -1338,7 +1338,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         tya
                         adc  $ptrName+1
                         sta  P8ZP_SCRATCH_W2+1""")
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // TODO *could* overwerite SCRATCH_W2 if it's a compliated expression...
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // TODO *could* overwrite SCRATCH_W2 if it's a compliated expression...
                     asmgen.storeIndirectByteReg(CpuRegister.A, "P8ZP_SCRATCH_W2", 0u, false, false)
                     return
                 }
@@ -1419,7 +1419,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         tya
                         adc  $ptrName+1
                         sta  P8ZP_SCRATCH_W2+1""")
-                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)      // TODO *could* overwerite SCRATCH_W2 if it's a compliated expression...
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)      // TODO *could* overwrite SCRATCH_W2 if it's a compliated expression...
                     asmgen.out("  jsr  prog8_lib.func_pokew_scratchW2")
                     //asmgen.storeIndirectWordReg(RegisterOrPair.AY, "P8ZP_SCRATCH_W2", 0u)
                     return
