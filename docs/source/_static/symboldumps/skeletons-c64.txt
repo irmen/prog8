@@ -203,6 +203,7 @@ diskio  {
     lf_start_list  (str pattern_ptr) -> bool 
     lf_start_list_dirs  (str pattern_ptr) -> bool 
     lf_start_list_files  (str pattern_ptr) -> bool 
+    lf_start_list_having_prefix  (str prefix) -> bool 
     list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     load  (str filenameptr, uword address_override) -> uword 
     load_raw  (str filenameptr, uword start_address) -> uword 
@@ -428,6 +429,7 @@ LIBRARY MODULE NAME: strings
 ----------------------------
 
 strings  {
+    ^^ubyte  last_token_source 
     append  (str target @R0, str suffix @R1)  clobbers (Y) -> ubyte @A 
     compare  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
     compare_nocase  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
@@ -457,6 +459,7 @@ strings  {
     ltrimmed  (str s) -> str 
     nappend  (str target @R0, str suffix @R1, ubyte maxlength @X)  clobbers (Y) -> ubyte @A 
     ncopy  (str source @R0, str target @AY, ubyte maxlength @X)  clobbers (A,X) -> ubyte @Y 
+    next_token  (str source, str delimiters) -> str 
     pattern_match  (str string @AY, str pattern @R0)  clobbers (Y) -> bool @A 
     pattern_match_nocase  (str string @AY, str lowercase_pattern @R0, bool iso @Pc)  clobbers (Y) -> bool @A 
     rfind  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
@@ -464,6 +467,7 @@ strings  {
     rstrip  (str s) 
     rtrim  (str s) 
     slice  (str source @R0, ubyte start @A, ubyte length @Y, str target @R1)  clobbers (A,Y) 
+    split  (str s, ^^uword parts, ubyte maxparts) -> ubyte 
     startswith  (str st, str prefix) -> bool 
     strip  (str s) 
     trim  (str s) 

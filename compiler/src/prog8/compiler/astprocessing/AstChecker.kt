@@ -89,7 +89,7 @@ internal class AstChecker(private val program: Program,
                 if(ppExpr?.operator==".")
                     return  // identifiers will be checked over at the BinaryExpression itself
             }
-            errors.undefined(identifier.nameInSource, identifier.position)
+            errors.undefined(identifier.nameInSource, identifier.firstTarget(program.builtinFunctions)==null, identifier.position)
         }
         else {
             val target = stmt as? VarDecl
@@ -764,7 +764,7 @@ internal class AstChecker(private val program: Program,
             val targetName = targetIdentifier.nameInSource
             when (val targetSymbol = assignment.definingScope.lookup(targetName)) {
                 null -> {
-                    errors.undefined(targetIdentifier.nameInSource, targetIdentifier.position)
+                    errors.undefined(targetIdentifier.nameInSource, targetIdentifier.firstTarget(program.builtinFunctions)==null, targetIdentifier.position)
                     return
                 }
                 is StructFieldRef -> {

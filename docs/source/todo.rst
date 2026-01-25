@@ -10,7 +10,6 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- if undefined symbol try to see if user perhaps forgot an import and improve error message
 - make builtin functions capable of returning multiple values, then make divmod() return the 2 results rather than accepting 2 extra variables as arguments
 - then also introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
 - add a -profile option (for now X16 only) that instruments the start (and returns?) -of every prog8 subroutine with code that dumps to the X16 emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count. Save/restore all used registers!  Start of program must set cycle count to zero.

@@ -25,8 +25,11 @@ internal class ErrorReporter(val colors: IConsoleColors): IErrorReporter {
         messages.add(CompilerMessage(MessageSeverity.INFO, msg, position))
     }
 
-    override fun undefined(symbol: List<String>, position: Position) {
-        err("undefined symbol: ${symbol.joinToString(".")}", position)
+    override fun undefined(symbol: List<String>, suggestImport: Boolean, position: Position) {
+        if(suggestImport)
+            err("undefined symbol: ${symbol.joinToString(".")} (maybe you forgot to import the module that defines ${symbol.first()}?)", position)
+        else
+            err("undefined symbol: ${symbol.joinToString(".")}", position)
     }
 
     override fun report() {

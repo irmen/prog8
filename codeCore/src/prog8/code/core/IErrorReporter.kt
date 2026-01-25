@@ -4,7 +4,7 @@ interface IErrorReporter {
     fun err(msg: String, position: Position)
     fun warn(msg: String, position: Position)
     fun info(msg: String, position: Position)
-    fun undefined(symbol: List<String>, position: Position)
+    fun undefined(symbol: List<String>, suggestImport: Boolean=false, position: Position)
     fun noErrors(): Boolean
     fun report()
     fun finalizeNumErrors(numErrors: Int, numWarnings: Int, numInfos: Int) {

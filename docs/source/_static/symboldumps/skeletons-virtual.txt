@@ -304,6 +304,7 @@ LIBRARY MODULE NAME: strings
 ----------------------------
 
 strings  {
+    ^^ubyte  last_token_source 
     append  (str target, str suffix) -> ubyte 
     compare  (str st1, str st2) -> byte 
     compare_nocase  (str st1, str st2) -> byte 
@@ -333,11 +334,13 @@ strings  {
     ltrimmed  (str s) -> str 
     nappend  (str target, str suffix, ubyte maxlength) -> ubyte 
     ncopy  (str source, str target, ubyte maxlength) -> ubyte 
+    next_token  (str source, str delimiters) -> str 
     rfind  (str stringptr, ubyte character) -> ubyte, bool 
     right  (str source, ubyte slen, str target) 
     rstrip  (str s) 
     rtrim  (str s) 
     slice  (str source, ubyte start, ubyte slen, str target) 
+    split  (str s, ^^uword parts, ubyte maxparts) -> ubyte 
     startswith  (str st, str prefix) -> bool 
     strip  (str s) 
     trim  (str s) 

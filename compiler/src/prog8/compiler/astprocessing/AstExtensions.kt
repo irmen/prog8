@@ -245,7 +245,7 @@ internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, st
             return targetStatement
         }
         null -> {
-            errors.undefined(this.nameInSource, this.position)
+            errors.undefined(this.nameInSource, this.firstTarget(program.builtinFunctions)==null, this.position)
         }
         else -> errors.err("cannot call that: ${this.nameInSource.joinToString(".")}", this.position)
     }
