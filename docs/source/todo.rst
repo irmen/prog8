@@ -109,7 +109,7 @@ IR/VM
 Libraries
 ---------
 - Add split-word array sorting routines to sorting module?
-- pet32: flesh out the PET diskio routines and syslib
+- pet32: flesh out the PET diskio routines (save routines!) and syslib more
 - make a list of all floats.* routines that the compiler expects for full float support?
 
 Optimizations

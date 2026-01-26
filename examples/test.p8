@@ -5,45 +5,33 @@
 
 main {
     sub start() {
-        ^^ubyte sentence = "the quick brown fox jumps over the lazy dog."
-        ubyte[] whitespace = [ 9, 10, 13, 32, 160, 0 ]
-        txt.lowercase()
+        uword end_address = diskio.load("0:test.prg", $1200)
+        txt.print("end address: ")
+        txt.print_uwhex(end_address, true)
+        txt.nl()
+        check(end_address)
+        end_address = diskio.load("0:test2.prg", $1200)
+        txt.print("end address: ")
+        txt.print_uwhex(end_address, true)
+        txt.nl()
+        check(end_address)
 
-        ^^ubyte token = strings.next_token(sentence, whitespace)
-        while token != 0 {
-            txt.print(token)
-            txt.nl()
-            token = strings.next_token(0, whitespace)
-        }
-
-        uword[4] @nosplit parts
-        ubyte numparts
-
-        numparts = strings.split(0, parts, len(parts))
-        printparts(numparts, parts)
-
-        numparts = strings.split("", parts, len(parts))
-        printparts(numparts, parts)
-
-        numparts = strings.split("hello", parts, len(parts))
-        printparts(numparts, parts)
-
-        numparts = strings.split("the quick brown fox jumps over the lazy dog", parts, len(parts))
-        printparts(numparts, parts)
-
-        numparts = strings.split("   the   quick   brown   fox  jumps  over  the  lazy  dog    ", parts, len(parts))
-        printparts(numparts, parts)
+        end_address = diskio.load_raw("0:test.prg", $1200)
+        txt.print("end address: ")
+        txt.print_uwhex(end_address, true)
+        txt.nl()
+        check(end_address)
+        end_address = diskio.load_raw("0:test2.prg", $1200)
+        txt.print("end address: ")
+        txt.print_uwhex(end_address, true)
+        txt.nl()
+        check(end_address)
     }
 
-    sub printparts(ubyte numparts, ^^uword parts) {
-        txt.print_ub(numparts)
-        txt.print(" parts: ")
-        if numparts > 0 {
-            for cx16.r0L in 0 to numparts-1 {
-                txt.print(parts[cx16.r0L])
-                txt.print(",")
-            }
+    sub check(uword end) {
+        if end==0 {
+            txt.print(diskio.status())
+            txt.nl()
         }
-        txt.nl()
     }
 }

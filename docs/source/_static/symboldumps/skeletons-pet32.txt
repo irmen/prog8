@@ -177,6 +177,8 @@ diskio  {
     const ubyte  WRITE_IO_CHANNEL 
     ubyte @shared  drivenumber 
     str  list_filename 
+    load  (str filenameptr, uword address_override) -> uword 
+    load_raw  (str filenameptr, uword start_address) -> uword 
     reset_read_channel  () 
     reset_write_channel  () 
     status  () -> str 

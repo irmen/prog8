@@ -13,8 +13,8 @@ Currently these machines can be selected as a compilation target (via the ``-tar
 
 - 'c64': the Commodore 64
 - 'cx16': the `Commander X16 <https://www.commanderx16.com/>`_
-- 'c128': the Commodore 128  (*limited support*)
-- 'pet32': the Commodore PET 4032  (*limited support*)
+- 'c128': the Commodore 128
+- 'pet32': the Commodore PET 4032
 - 'virtual': a builtin virtual machine
 - custom targets via a separate configuration file (see :ref:`customizable_target`)
 
