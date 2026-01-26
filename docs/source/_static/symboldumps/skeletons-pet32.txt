@@ -177,12 +177,20 @@ diskio  {
     const ubyte  WRITE_IO_CHANNEL 
     ubyte @shared  drivenumber 
     str  list_filename 
+    delete  (str filenameptr) 
+    directory  () -> bool 
+    diskname  () -> str 
+    exists  (str filename) -> bool 
+    get_loadaddress  (str filename) -> uword 
+    list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
     load  (str filenameptr, uword address_override) -> uword 
     load_raw  (str filenameptr, uword start_address) -> uword 
+    rename  (str oldfileptr, str newfileptr) 
     reset_read_channel  () 
     reset_write_channel  () 
     save  (str filenameptr, uword startaddress, uword savesize) -> bool 
     save_raw  (str filenameptr, uword startaddress, uword savesize) -> bool 
+    send_command  (str commandptr) 
     status  () -> str 
     status_code  () -> ubyte 
 }

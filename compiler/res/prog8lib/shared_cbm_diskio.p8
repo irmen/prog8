@@ -734,6 +734,7 @@ io_error:
             if cbm.READST()!=0
                 cx16.r0 = 0
         }
+        cbm.CLRCHN()
         cbm.CLOSE(READ_IO_CHANNEL)
         return cx16.r0
     }
