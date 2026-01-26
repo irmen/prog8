@@ -181,6 +181,8 @@ diskio  {
     load_raw  (str filenameptr, uword start_address) -> uword 
     reset_read_channel  () 
     reset_write_channel  () 
+    save  (str filenameptr, uword startaddress, uword savesize) -> bool 
+    save_raw  (str filenameptr, uword startaddress, uword savesize) -> bool 
     status  () -> str 
     status_code  () -> ubyte 
 }

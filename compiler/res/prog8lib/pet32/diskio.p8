@@ -53,7 +53,7 @@ diskio {
         }
 
         if cbm.READST()!=0 {
-            cx16.r0 = 0
+            address_override = 0
             goto end
         }
 
@@ -79,14 +79,14 @@ _done:
             lda  P8ZP_SCRATCH_PTR
             ldy  P8ZP_SCRATCH_PTR+1
 _done2:
-            sta  cx16.r0L
-            sty  cx16.r0H
+            sta  address_override
+            sty  address_override+1
         }}
 
 end:
         cbm.CLOSE(READ_IO_CHANNEL)
         cbm.CLRCHN()        ; restore default i/o devices
-        return cx16.r0
+        return address_override
     }
 
     ; Identical to load(), but DOES INCLUDE the first 2 bytes in the file.
@@ -104,6 +104,77 @@ end:
             sty  P8ZP_SCRATCH_PTR+1
         }}
         goto diskio.load.readloop
+    }
+
+
+    ; saves a block of memory to disk, including the default 2 byte prg header.
+    sub save(str filenameptr, uword startaddress, uword savesize) -> bool {
+        bool skip_header = false
+internal_save:
+        cbm.SETNAM(strings.length(filenameptr), filenameptr)
+        cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, 1)
+        void cbm.OPEN()
+        void cbm.CHKOUT(WRITE_IO_CHANNEL)
+        bool status=false
+
+        if cbm.READST()==0 {
+            %asm {{
+                ; write 2 bytes prg header
+                lda  skip_header
+                bne  +
+                lda  startaddress
+                jsr  cbm.CHROUT
+                lda  startaddress+1
+                jsr  cbm.CHROUT
++               lda  startaddress
+                ldy  startaddress+1
+                sta  P8ZP_SCRATCH_PTR
+                sty  P8ZP_SCRATCH_PTR+1
+
+                jsr  cbm.READST
+                bne  _error
+
+                ; decrease savesize by 1 for the loop
+                lda  savesize
+                bne  +
+                dec  savesize+1
++               dec  savesize
+
+                ldy  #0
+_loop:
+                lda  (P8ZP_SCRATCH_PTR),y
+                jsr  cbm.CHROUT
+
++               lda  savesize
+                bne  +
+                lda  savesize+1
+                beq  _done
+                dec  savesize+1
++               dec  savesize
+                iny
+                bne  _loop
+                jsr  cbm.READST
+                bne  _error
+                inc  P8ZP_SCRATCH_PTR+1
+                jmp  _loop
+_done:
+                inc  status
+_error:
+            }}
+        }
+
+        cbm.CLOSE(WRITE_IO_CHANNEL)
+        cbm.CLRCHN()        ; restore default i/o devices
+        return status
+    }
+
+    ; like save() but omits the 2 byte prg header.
+    sub save_raw(str filenameptr, uword startaddress, uword savesize) -> bool {
+        diskio.save.filenameptr = filenameptr
+        diskio.save.startaddress = startaddress
+        diskio.save.savesize = savesize
+        diskio.save.skip_header = true
+        goto diskio.save.internal_save
     }
 
 

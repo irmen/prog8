@@ -35,7 +35,7 @@ extsub $FFC6 = CHKIN(ubyte logical @ X) clobbers(A,X) -> bool @Pc    ; define an
 extsub $FFC9 = CHKOUT(ubyte logical @ X) clobbers(A,X)          ; define an output channel
 extsub $FFCC = CLRCHN() clobbers(A,X)                           ; restore default devices
 extsub $FFCF = CHRIN() clobbers(X, Y) -> ubyte @ A              ; input a character (for keyboard, read a whole line from the screen) A=byte read.
-extsub $FFD2 = CHROUT(ubyte character @ A)                           ; output a character
+extsub $FFD2 = CHROUT(ubyte character @ A)                      ; output a character
 extsub $FFE1 = STOP() clobbers(X) -> bool @ Pz, ubyte @ A       ; check the STOP key (and some others in A)     also see STOP2
 extsub $FFE4 = GETIN() clobbers(X,Y) -> bool @Pc, ubyte @ A     ; get a character       also see GETIN2
 extsub $FFE7 = CLALL() clobbers(A,X)                            ; close all files
@@ -176,6 +176,7 @@ pet {
     &ubyte  via1ier    = VIA1_BASE + 14
     &ubyte  via1ora    = VIA1_BASE + 15
 
+    ; these are not general kernal routines they're the full BASIC comands
     extsub $ff93 = concat() clobbers (A,X,Y)
     extsub $ff96 = dopen() clobbers (A,X,Y)
     extsub $ff99 = dclose() clobbers (A,X,Y)
