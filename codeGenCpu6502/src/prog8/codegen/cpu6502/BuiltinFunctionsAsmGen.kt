@@ -976,6 +976,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 is PtPointerDeref if v2 is PtPointerDeref -> {
                     TODO("swap bytes pointer dereference should not occur instead memorybyte? ${fcall.position}")
                 }
+                is PtArrayIndexer if v2 is PtArrayIndexer && (v1.variable?.type?.isPointer==true || v2.variable?.type?.isPointer==true) -> {
+                    TODO("swap bytes expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
+                }
 
                 is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
                     asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
@@ -991,8 +994,32 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         sta  $varname2,y""")
                 }
 
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v2.pointerderef==null -> {
+                    val offset1 = simpleOffsetIndexer(v1)
+                    val offset2 = simpleOffsetIndexer(v2)
+                    if(offset1==null || offset2==null)
+                        TODO("swap bytes not supported yet for nontrivial indexed[] expressions. Use a simpler index expression, or even just temporary variable and assignments for now. ${fcall.position}")
+                    else {
+                        val arrayname1 = asmgen.asmVariableName(v1.variable!!.name)
+                        val arrayname2 = asmgen.asmVariableName(v2.variable!!.name)
+                        val offsetname1 = asmgen.asmVariableName(offset1.first)
+                        val offsetname2 = asmgen.asmVariableName(offset2.first)
+                        val op1 = offset1.second
+                        val op2 = offset2.second
+                        asmgen.out("""
+                            ldx  $offsetname1
+                            ldy  $offsetname2
+                            lda  $arrayname1 $op1 ${offset1.third},x
+                            pha
+                            lda  $arrayname2 $op2 ${offset2.third},y
+                            sta  $arrayname1 $op1 ${offset1.third},x
+                            pla
+                            sta  $arrayname2 $op2 ${offset2.third},y""")
+                    }
+                }
+
                 else -> {
-                    TODO("swap bytes expressions not supported yet for these expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${fcall.position}")
+                    TODO("swap bytes not supported yet for these expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${fcall.position}")
                 }
             }
         }
@@ -1043,6 +1070,10 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     }
                 }
 
+                is PtArrayIndexer if v2 is PtArrayIndexer && (v1.variable?.type?.isPointer==true || v2.variable?.type?.isPointer==true) -> {
+                    TODO("swap words expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
+                }
+
                 is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
                     asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
                     asmgen.loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
@@ -1079,6 +1110,58 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             sta  $varname1+1,x
                             pla
                             sta  $varname2+1,y""")
+                    }
+                }
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v2.pointerderef==null -> {
+                    val offset1 = simpleOffsetIndexer(v1)
+                    val offset2 = simpleOffsetIndexer(v2)
+                    if(offset1==null || offset2==null)
+                        TODO("swap words not supported yet for nontrivial indexed[] expressions. Use a simpler index expression, or even just temporary variable and assignments for now. ${fcall.position}")
+                    else {
+                        val arrayname1 = asmgen.asmVariableName(v1.variable!!.name)
+                        val arrayname2 = asmgen.asmVariableName(v2.variable!!.name)
+                        val offsetname1 = asmgen.asmVariableName(offset1.first)
+                        val offsetname2 = asmgen.asmVariableName(offset2.first)
+                        val op1 = offset1.second
+                        val op2 = offset2.second
+                        if(v1.splitWords && v2.splitWords) {
+                            asmgen.out("""
+                                ldx  $offsetname1
+                                ldy  $offsetname2
+                                lda  ${arrayname1}_lsb $op1 ${offset1.third},x
+                                pha
+                                lda  ${arrayname2}_lsb $op2 ${offset2.third},y
+                                sta  ${arrayname1}_lsb $op1 ${offset1.third},x
+                                pla
+                                sta  ${arrayname2}_lsb $op2 ${offset2.third},y
+                                lda  ${arrayname1}_msb $op1 ${offset1.third},x
+                                pha
+                                lda  ${arrayname2}_msb $op2 ${offset2.third},y
+                                sta  ${arrayname1}_msb $op1 ${offset1.third},x
+                                pla
+                                sta  ${arrayname2}_msb $op2 ${offset2.third},y""")
+                        }
+                        else {
+                            asmgen.out("""
+                                lda  $offsetname1
+                                asl  a
+                                tax
+                                lda  $offsetname2
+                                asl  a
+                                tay
+                                lda  $arrayname1 $op1 ${offset1.third * 2},x
+                                pha
+                                lda  $arrayname2 $op2 ${offset2.third * 2},y
+                                sta  $arrayname1 $op1 ${offset1.third * 2},x
+                                pla
+                                sta  $arrayname2 $op2 ${offset2.third * 2},y
+                                lda  $arrayname1+1 $op1 ${offset1.third * 2},x
+                                pha
+                                lda  $arrayname2+1 $op2 ${offset2.third * 2},y
+                                sta  $arrayname1+1 $op1 ${offset1.third * 2},x
+                                pla
+                                sta  $arrayname2+1 $op2 ${offset2.third * 2},y""")
+                        }
                     }
                 }
 
@@ -1120,6 +1203,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     require(offset2 == 0.toUByte())
                     asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  prog8_lib.swap_longs")
                 }
+                is PtArrayIndexer if v2 is PtArrayIndexer && (v1.variable?.type?.isPointer==true || v2.variable?.type?.isPointer==true) -> {
+                    TODO("swap longs expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
+                }
                 is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
                     asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
                     asmgen.loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
@@ -1139,6 +1225,42 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         dec  P8ZP_SCRATCH_REG
                         bne  -""")
                 }
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v2.pointerderef==null -> {
+                    val offset1 = simpleOffsetIndexer(v1)
+                    val offset2 = simpleOffsetIndexer(v2)
+                    if(offset1==null || offset2==null)
+                        TODO("swap longs not supported yet for nontrivial indexed[] expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${fcall.position}")
+                    else {
+                        val arrayname1 = asmgen.asmVariableName(v1.variable!!.name)
+                        val arrayname2 = asmgen.asmVariableName(v2.variable!!.name)
+                        val offsetname1 = asmgen.asmVariableName(offset1.first)
+                        val offsetname2 = asmgen.asmVariableName(offset2.first)
+                        val op1 = offset1.second
+                        val op2 = offset2.second
+                        asmgen.out("""
+                            lda  $offsetname1
+                            asl  a
+                            asl  a
+                            tax
+                            lda  $offsetname2
+                            asl  a
+                            asl  a
+                            tay
+                            lda  #4
+                            sta  P8ZP_SCRATCH_REG
+-                           lda  $arrayname1 $op1 ${offset1.third * 4},x
+                            pha
+                            lda  $arrayname2 $op2 ${offset2.third * 4},y
+                            sta  $arrayname1 $op1 ${offset1.third * 4},x
+                            pla
+                            sta  $arrayname2 $op2 ${offset2.third * 4},y
+                            inx
+                            iny
+                            dec  P8ZP_SCRATCH_REG
+                            bne  -""")
+                    }
+                }
+
                 else -> {
                     TODO("swap longs expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
                 }
@@ -1168,6 +1290,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     require(offset2 == 0.toUByte())
                     asmgen.out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  floats.swap_floats")
                 }
+                is PtArrayIndexer if v2 is PtArrayIndexer && (v1.variable?.type?.isPointer==true || v2.variable?.type?.isPointer==true) -> {
+                    TODO("swap floats expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
+                }
                 is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v1.index.isSimple() && v2.pointerderef==null && v2.index.isSimple() -> {
                     asmgen.loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
                     asmgen.loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
@@ -1187,6 +1312,46 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         dec  P8ZP_SCRATCH_REG
                         bne  -""")
                 }
+                is PtArrayIndexer if v2 is PtArrayIndexer && v1.pointerderef==null && v2.pointerderef==null -> {
+                    val offset1 = simpleOffsetIndexer(v1)
+                    val offset2 = simpleOffsetIndexer(v2)
+                    if(offset1==null || offset2==null)
+                        TODO("swap floats not supported yet for nontrivial indexed[] expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${fcall.position}")
+                    else {
+                        require(asmgen.options.compTarget.FLOAT_MEM_SIZE==5)
+                        val arrayname1 = asmgen.asmVariableName(v1.variable!!.name)
+                        val arrayname2 = asmgen.asmVariableName(v2.variable!!.name)
+                        val offsetname1 = asmgen.asmVariableName(offset1.first)
+                        val offsetname2 = asmgen.asmVariableName(offset2.first)
+                        val op1 = offset1.second
+                        val op2 = offset2.second
+                        asmgen.out("""
+                            lda  $offsetname1
+                            asl  a
+                            asl  a
+                            clc
+                            adc  $offsetname1
+                            tax
+                            lda  $offsetname2
+                            asl  a
+                            asl  a
+                            clc
+                            adc  $offsetname2
+                            tay
+                            lda  #5
+                            sta  P8ZP_SCRATCH_REG
+-                           lda  $arrayname1 $op1 ${offset1.third * 5},x
+                            pha
+                            lda  $arrayname2 $op2 ${offset2.third * 5},y
+                            sta  $arrayname1 $op1 ${offset1.third * 5},x
+                            pla
+                            sta  $arrayname2 $op2 ${offset2.third * 5},y
+                            inx
+                            iny
+                            dec  P8ZP_SCRATCH_REG
+                            bne  -""")                        
+                    }
+                }
 
                 else -> {
                     TODO("swap floats expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${fcall.position}")
@@ -1202,6 +1367,20 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             dt.isFloat -> swapFloat()
             else -> throw AssemblyError("weird type $dt")
         }
+    }
+
+    private fun simpleOffsetIndexer(indexer: PtArrayIndexer): Triple<PtIdentifier, Char, Int>? {
+        val expr = indexer.index as? PtBinaryExpression
+        if(expr!=null && expr.operator in "+-") {
+            val identifier = expr.left as? PtIdentifier ?: return null
+            val offset = expr.right as? PtNumber ?: return null
+            return Triple(identifier, expr.operator.first(), offset.number.toInt())
+        }
+        val identifier = indexer.index as? PtIdentifier
+        return if(identifier!=null)
+            Triple(identifier,'+',0)
+        else
+            null
     }
 
     private fun funcAbs(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {

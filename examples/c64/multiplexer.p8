@@ -105,10 +105,9 @@ main {
                 pos++
             else {
                 ; swap elements
-                cx16.r0L = pos-1
-                swap(sort_ypositions[cx16.r0L], sort_ypositions[pos])
+                swap(sort_ypositions[pos-1], sort_ypositions[pos])
                 ; swap virtual sprite indexes
-                swap(sort_virtualsprite[cx16.r0L], sort_virtualsprite[pos])
+                swap(sort_virtualsprite[pos-1], sort_virtualsprite[pos])
                 pos--
                 if_z
                     pos++

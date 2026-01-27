@@ -1,74 +1,48 @@
 %import textio
-%import diskio
+%import floats
+%import math
 %zeropage basicsafe
-%option no_sysinit
 
 main {
     sub start() {
-        uword buffer = memory("buffer", 2000, 0)
+        byte[3] bytes = [9,-11,-22]
+        word[3] words = [9,-1111,-2222]
+        word[3] @nosplit words2 = [9,-1111,-2222]
+        long[3] longs = [9,-1111111,-2222222]
+        float[3] floata = [9,-1.111,-2.222]
 
-        txt.print("drive number? ")
-        diskio.drivenumber = cbm.CHRIN()-'0'
+        cx16.r9L = 3
+        cx16.r10L = 3
+
+        swap(bytes[cx16.r9L-1], bytes[cx16.r10L-2])
+        swap(words[cx16.r9L-1], words[cx16.r10L-2])
+        swap(words2[cx16.r9L-1], words2[cx16.r10L-2])
+        swap(longs[cx16.r9L-1],longs[cx16.r10L-2])
+        swap(floata[cx16.r9L-1],floata[cx16.r10L-2])
+
+        txt.print_b(bytes[1])
+        txt.spc()
+        txt.print_b(bytes[2])
         txt.nl()
 
-        txt.print_ub(diskio.list_filenames(0, buffer, 2000))
-        txt.print(" entries on disk:\n\n")
-
-        uword ptr = buffer
-        while @(ptr)!=0 {
-            txt.print(ptr)
-            txt.nl()
-            ptr += strings.length(ptr)+1
-        }
-
-
-        txt.plot(30, 24)
-        txt.print("012345678")
-        txt.plot(0, 10)
-        txt.print("***** saving this screen... *****\n***** ")
-        sys.wait(100)
-        diskio.delete("screendump.bin")
-        txt.print_bool(diskio.save("screendump.bin", $8000, 1000))
-        txt.print("***** ")
-        txt.print(diskio.status())
-        txt.nl()
-        sys.wait(100)
-        txt.cls()
-        txt.print("\n***** restoring screen... *****\n")
-        sys.wait(100)
-        void diskio.load("screendump.bin", 0)
-        txt.home()
-        txt.print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n***** done restoring screen *****\n***** ")
-        txt.print(diskio.status())
+        txt.print_w(words[1])
+        txt.spc()
+        txt.print_w(words[2])
         txt.nl()
 
-;        uword end_address = diskio.load("0:test.prg", $1200)
-;        txt.print("end address: ")
-;        txt.print_uwhex(end_address, true)
-;        txt.nl()
-;        check(end_address)
-;        end_address = diskio.load("0:doesnotexist.prg", $1200)
-;        txt.print("end address: ")
-;        txt.print_uwhex(end_address, true)
-;        txt.nl()
-;        check(end_address)
-;
-;        end_address = diskio.load_raw("0:test.prg", $8000)
-;        txt.print("end address: ")
-;        txt.print_uwhex(end_address, true)
-;        txt.nl()
-;        check(end_address)
-;        end_address = diskio.load_raw("0:doesnotexist.prg", $1200)
-;        txt.print("end address: ")
-;        txt.print_uwhex(end_address, true)
-;        txt.nl()
-;        check(end_address)
-    }
+        txt.print_w(words2[1])
+        txt.spc()
+        txt.print_w(words2[2])
+        txt.nl()
 
-    sub check(uword end) {
-        if end==0 {
-            txt.print(diskio.status())
-            txt.nl()
-        }
+        txt.print_l(longs[1])
+        txt.spc()
+        txt.print_l(longs[2])
+        txt.nl()
+
+        txt.print_f(floata[1])
+        txt.spc()
+        txt.print_f(floata[2])
+        txt.nl()
     }
 }
