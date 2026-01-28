@@ -191,7 +191,7 @@ class Return(val values: Array<Expression>, override val position: Position) : S
         val index = values.indexOf(node)
         if(replacement is Expression && index>=0) {
             values[index] = replacement
-        } else throw FatalAstException("invalid replace")
+        } else throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
     }
 
     override fun copy() = Return(values.map { it.copy() }.toTypedArray(), position)
@@ -463,7 +463,7 @@ class ArrayIndex(var indexExpr: Expression, override val position: Position) : N
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
         if (node===indexExpr) indexExpr = replacement
-        else throw FatalAstException("invalid replace")
+        else throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
     }
 
     companion object {
@@ -506,7 +506,7 @@ class ChainedAssignment(var target: AssignTarget, var nested: Statement, overrid
         when {
             node===target -> target = replacement as AssignTarget
             node===nested -> nested = replacement as Statement
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -530,7 +530,7 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
         when {
             node===target -> target = replacement as AssignTarget
             node===value -> value = replacement as Expression
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -1118,7 +1118,7 @@ class IfElse(var condition: Expression,
             node===condition -> condition = replacement as Expression
             node===truepart -> truepart = replacement as AnonymousScope
             node===elsepart -> elsepart = replacement as AnonymousScope
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -1149,7 +1149,7 @@ class ConditionalBranch(var condition: BranchCondition,
         when {
             node===truepart -> truepart = replacement as AnonymousScope
             node===elsepart -> elsepart = replacement as AnonymousScope
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -1180,7 +1180,7 @@ class ForLoop(var loopVar: IdentifierReference,
             node===loopVar -> loopVar = replacement as IdentifierReference
             node===iterable -> iterable = replacement as Expression
             node===body -> body = replacement as AnonymousScope
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -1214,7 +1214,7 @@ class WhileLoop(var condition: Expression,
         when {
             node===condition -> condition = replacement as Expression
             node===body -> body = replacement as AnonymousScope
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -1240,7 +1240,7 @@ class RepeatLoop(var iterations: Expression?, var body: AnonymousScope, override
         when {
             node===iterations -> iterations = replacement as Expression
             node===body -> body = replacement as AnonymousScope
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -1266,7 +1266,7 @@ class UnrollLoop(var iterations: Expression, var body: AnonymousScope, override 
     override fun replaceChildNode(node: Node, replacement: Node) {
         if (node===body) body = replacement as AnonymousScope
         else if (node===iterations) iterations = replacement as Expression
-        else throw FatalAstException("invalid replace")
+        else throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         replacement.parent = this
     }
 
@@ -1291,7 +1291,7 @@ class UntilLoop(var body: AnonymousScope,
         when {
             node===condition -> condition = replacement as Expression
             node===body -> body = replacement as AnonymousScope
-            else -> throw FatalAstException("invalid replace")
+            else -> throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
         }
         replacement.parent = this
     }

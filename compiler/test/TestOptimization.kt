@@ -1239,4 +1239,27 @@ other_block {
 }"""
         compileText(C64Target(), true, src, outputDir) shouldNotBe null
     }
+
+    test("complicated if statement optimization") {
+        val src="""
+main {
+    sub start() {
+        bool @shared ans
+        ans = false
+        if (ans == true) {
+            return
+        } else {
+            goto done
+        }
+    done:
+        return
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.entrypoint.statements
+        st.size shouldBe 6
+        val ifelseCond = (st[2] as IfElse).condition as PrefixExpression
+        ifelseCond.operator shouldBe "not"
+        (ifelseCond.expression as IdentifierReference).nameInSource shouldBe listOf("ans")
+    }
 })

@@ -345,6 +345,63 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 val replacement = BinaryExpression(expr.right, newOperator, expr.left, expr.position)
                 return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
             }
+
+
+            // optimize boolean constant comparisons
+            val leftDt = expr.left.inferType(program).getOrUndef()
+            val rightDt = expr.right.inferType(program).getOrUndef()
+            if(expr.operator=="==") {
+                if(rightDt.isBool && leftDt.isBool) {
+                    val rightConstBool = rightConstVal?.asBooleanValue
+                    if(rightConstBool==true) {
+                        return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                    }
+                }
+                if (rightConstVal?.number == 1.0) {
+                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                        if(!dt.isLong) {
+                            val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
+                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                        }
+                    }
+                }
+                else if (rightConstVal?.number == 0.0) {
+                    if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                        if(!dt.isLong) {
+                            val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
+                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                        }
+                    }
+                }
+            }
+            if (expr.operator=="!=") {
+                if(rightDt.isBool && leftDt.isBool) {
+                    val rightConstBool = rightConstVal?.asBooleanValue
+                    if(rightConstBool==false) {
+                        listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                    }
+                }
+                if (rightConstVal?.number == 1.0) {
+                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                        if(!dt.isLong) {
+                            val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
+                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                        }
+                    }
+                }
+                else if (rightConstVal?.number == 0.0) {
+                    if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
+                        val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
+                        if(!dt.isLong) {
+                            val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
+                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                        }
+                    }
+                }
+            }
         }
         return noModifications
     }
