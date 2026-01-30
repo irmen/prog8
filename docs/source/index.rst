@@ -17,7 +17,7 @@ Supported target systems are Commodores (C64, C128, PET), Commander X16, and oth
 Get the compiler here :ref:`downloading`.
 
 
-Open source Software License
+Open source Software :index:`License`
     Full source code is on github: https://github.com/irmen/prog8.git
     Prog8 is copyright © Irmen de Jong (irmen@razorvine.net | http://www.razorvine.net).
 
@@ -45,3 +45,4 @@ Open source Software License
     portingguide.rst
     software.rst
     todo.rst
+    genindex

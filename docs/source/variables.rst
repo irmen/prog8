@@ -3,6 +3,7 @@
 ********************
 Variables and Values
 ********************
+.. index:: single: Variables; Overview
 
 Because this is such a big subject, variables and values have their own chapter.
 Structs and pointers are in a separate chapter again: :ref:`pointers`.
@@ -23,6 +24,7 @@ that don't allocate storage but instead point to a fixed location in the address
 
 Declaring a variable
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Variables; Declaring
 
 Variables should be declared with their exact type and size so the compiler can allocate storage
 for them. You can give them an initial value as well. That value can be a simple literal value,
@@ -30,6 +32,16 @@ or an expression. If you don't provide an initial value yourself, zero will be u
 The syntax for variable declarations is::
 
 	<datatype>  [ @tag ]  <variable name>   [ = <initial value> ]
+
+.. index::
+    pair: Data Types; word
+    pair: Data Types; uword
+    pair: Data Types; byte
+    pair: Data Types; ubyte
+    pair: Data Types; float
+    pair: Data Types; bool
+    pair: Data Types; long
+    pair: Data Types; str
 
 For boolean and numeric variables, you can actually declare them in one go by listing the names in a comma separated list.
 Type tags, and the optional initialization value, are applied equally to all variables in such a list.
@@ -89,6 +101,8 @@ Values will usually be part of an expression or assignment statement::
     byte  counter  = 42   ; variable of size 8 bits, with initial value 42
 
 
+.. index:: pair: Variables; Zeropage
+
 **putting a variable in zeropage:**
 If you add the ``@zp`` tag to the variable declaration, the compiler will prioritize this variable
 when selecting variables to put into zeropage (but no guarantees). If there are enough free locations in the zeropage,
@@ -104,6 +118,8 @@ Example::
     uword  @requirezp  zppointer = $4000
 
 
+.. index:: pair: Variables; shared
+
 **shared variables:**
 If you add the ``@shared`` tag to the variable declaration, the compiler will know that this variable
 is a prog8 variable shared with some assembly code elsewhere. This means that the assembly code can
@@ -113,6 +129,8 @@ when assembling the rest of the code). Example::
 
     byte  @shared  assemblyVariable = 42
 
+
+.. index:: pair: Variables; uninitialized
 
 **uninitialized variables:**
 All variables will be initialized by prog8 at startup, they'll get their assigned initialization value, or be cleared to zero.
@@ -143,6 +161,7 @@ You can align on word, 64 bytes, and page boundaries::
 
 Initializing a variable
 ^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Variables; Initializing
 
 You can specify an initialization value in the variable declaration.
 This will then be used to initialize the variable with at the start of the subroutine, instead of the default value 0.
@@ -163,6 +182,7 @@ initializing a multi variable declaration: ``ubyte a,b,c = multi()``
 
 Data Types
 ----------
+.. index:: pair: Data Types; Overview
 
 Prog8 supports the following data types:
 
@@ -198,6 +218,7 @@ type identifier  type                     storage size       example var declara
 
 Integers (bytes, words, longs)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Data Types; Integers
 
 Integers are 8, 16 or 32 bit numbers and can be written in normal decimal notation,
 in hexadecimal and in binary notation. There is no octal notation. Hexadecimal has the '$' prefix,
@@ -261,6 +282,7 @@ to be done on word values, and don't want to explicitly have to cast everything 
 
 Booleans
 ^^^^^^^^
+.. index:: pair: Data Types; Booleans
 
 Booleans are a distinct type called ``bool`` in Prog8 and can have only the values ``true`` or ``false``.
 In memory, they are stored as a byte containing 0 or 1.
@@ -269,6 +291,7 @@ You can cast any numeric to a bool, in which case 0 will become ``false`` and an
 
 Floating point numbers
 ^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Data Types; Floating point
 
 Floats are stored in the 5-byte 'MFLPT' format that is used on CBM machines.
 Floating point support is available on the c64 and cx16 (and virtual) compiler targets.
@@ -298,6 +321,8 @@ For instance ``30_000.999_999`` is a valid floating point number 30000.999999.
 
 Arrays
 ^^^^^^
+.. index:: pair: Data Types; Arrays
+
 Arrays can be created from a list of booleans, bytes, words, floats, addresses of other variables
 (such as explicit address-of expressions, strings, or other array variables), and struct initializers.
 The values in an array literal always have to be constants.
@@ -401,6 +426,7 @@ code that expects the words to be sequentially in memory (such as the cx16.FB_se
 
 Strings
 ^^^^^^^
+.. index:: pair: Data Types; Strings
 
 Strings are a sequence of characters enclosed in double quotes. The length is limited to 255 characters.
 They're stored and treated much the same as a byte array,
@@ -518,6 +544,7 @@ Struct and Pointer types are explained in their own separate chapter :ref:`point
 
 Ranges
 ^^^^^^
+.. index:: pair: Data Types; Ranges
 
 A special value is the *range expression* which represents a range of integer numbers or characters,
 from the starting value to (and including) the ending value::
@@ -549,6 +576,7 @@ Range expressions are most often used in for loops, but can be also be used to c
 
 Constants
 ^^^^^^^^^
+.. index:: pair: Data Types; Constants
 
 When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
 You'll have to specify the initial value expression. This value is then used
@@ -562,6 +590,8 @@ compile time expressions. For example, the compiler knows what ``math.sin8u(12)`
 
 Memory-mapped
 ^^^^^^^^^^^^^
+.. index:: pair: Data Types; Memory-mapped
+
 When using ``&`` (the address-of operator but now applied to the datatype in the variable's declaration),
 the variable will be placed at a designated position in memory rather than being newly allocated somewhere.
 The initial value in the declaration should be the valid memory address where the variable should be placed.
@@ -616,6 +646,7 @@ Try to avoid those type conversions as much as possible.
 
 Initial values across multiple runs of the program
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Data Types; Initial values
 
 When declaring values with an initial value, this value will be set into the variable each time
 the program reaches the declaration again. This can be in loops, multiple subroutine calls,

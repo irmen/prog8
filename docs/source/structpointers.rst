@@ -4,6 +4,10 @@
 Structs and Pointers
 ********************
 
+.. index::
+      pair: Structs; Overview
+      pair: Pointers; Overview
+
 .. attention::
     The 6502 cpu lacks some features (addressing modes, registers) to make pointers work efficiently.
     Also it requires that pointer variables have to be in zero page, or copied to a temporary zero page variable,
@@ -37,6 +41,7 @@ Structs and Pointers
 
 Legacy untyped pointers (uword)
 -------------------------------
+.. index:: single: Pointers; legacy untyped
 
 Prior to version 12 of the language, the only pointer type available was a plain ``uword`` value (the memory address)
 which could be used as a pointer to an ``ubyte`` (the byte value at that memory address).
@@ -60,6 +65,7 @@ You can assign an untyped pointer (uword) to a typed pointer variable without th
 
 Typed pointer to simple datatype
 --------------------------------
+.. index:: single: Pointers; Simple Typed
 
 Prog8 syntax has the 'double hat' token ``^^`` that appears either in front of a type ("pointer to this type") or
 after a pointer variable ("get the value it points to" - a pointer dereference).
@@ -95,6 +101,9 @@ Resulting assembly code should be equivalent still.
 
 Dereferencing a pointer, pointer arithmetic
 -------------------------------------------
+.. index::
+    pair: Pointers; Dereferencing a pointer
+    pair: Pointers; Pointer arithmetic
 
 To get the value the pointer points at, you *dereference* the pointer. The syntax for that is: ``pointer^^``.
 Say the pointer variable is of type ``^^float``, then ``pointer^^`` will return the float value it points at.
@@ -119,6 +128,7 @@ the pointer value (memory address) by the appropriate number of bytes (X times t
 
 Structs
 -------
+.. index:: pair: Structs; Definition
 
 A struct is a grouping of multiple variables. Say your game is going to track several enemy sprites on the screen,
 in which case it may be useful to describe the various properties of an enemy together in a struct type, rather than
@@ -181,6 +191,7 @@ Because it implies pointer dereferencing you can usually omit the explicit `^^`,
 
 Static initialization of structs
 ================================
+.. index:: pair: Structs; Static initialization
 
 You can 'allocate' and statically initialize a struct. This behave much like initializing arrays does,
 and it won't reset to the original value when the program is restarted, so beware.
@@ -208,6 +219,7 @@ It is also possible to put struct initializer inside arrays to make them all sta
 
 Short form initializers
 ^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Structs; Initializers
 
 If the required type can be inferred from the context you can also omit the struct pointer type prefix altogether.
 The initializer value then is syntactically the same as an array, but Prog8 internally turns it back into a proper
@@ -227,6 +239,7 @@ So you can write the above in short form as::
 
 Dynamic allocation of structs
 =============================
+.. index:: pair: Structs; Dynamic allocation
 
 There is no real 'dynamic' memory allocation in Prog8. Everything is statically allocated. This doesn't change with struct types.
 However, it is possible to write a dynamic memory handling library yourself (it has to track memory blocks manually).
@@ -257,6 +270,7 @@ An example of how a super simple dynamic allocator could look like::
 
 Address-Of: untyped vs typed
 ----------------------------
+.. index:: single: Structs; Address-Of
 
 ``&`` still returns an untyped (uword) pointer, as it did in older Prog8 versions. This is for backward compatibility reasons so existing programs don't break.
 The new *double ampersand* operator ``&&`` returns a *typed* pointer to the value. The semantics are slightly different from the old untyped address-of operator, because adding or subtracting
@@ -265,6 +279,7 @@ a number from a typed pointer uses *pointer arithmetic* that takes the size of t
 
 Accessing struct definitions in Assembly code
 ---------------------------------------------
+.. index:: single: Structs; Access from assembly
 
 Prog8 lets you query the size of a struct type, and the offsets of a field.
 You can do the same in assembly code if needed: the struct definition gets written as `.struct` into the assembly file::

@@ -7,7 +7,7 @@ This is a compiled programming language targeting the 8-bit 6502 CPU family.
 The language aims to provide many conveniences over raw assembly code (even when using a macro assembler),
 while still being low level enough to create high performance programs.
 
-They targeted CPUs are the `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
+The targeted CPUs are the `6502 <https://en.wikipedia.org/wiki/MOS_Technology_6502>`_ /
 `6510 <https://en.wikipedia.org/wiki/MOS_Technology_6510>`_ /
 `65c02 <https://en.wikipedia.org/wiki/MOS_Technology_65C02>`_ microprocessors.
 They are from the late 1970's and early 1980's and was used in many home computers from that era,
@@ -33,11 +33,15 @@ Most of the development on Prog8 and the use of it is currently centered around
 the `Commander X16 <https://www.commanderx16.com/>`_ retro computer.
 However, the other compiler targets are also still worked on,  most notably the C64 target where it all started with!
 
+.. index:: Discord
+
 The X16 `Discord server <https://discord.gg/nS2PqEC>`_ contains a small channel
 dedicated to Prog8. Besides that, you can use the issue tracker on github for questions or problems or contributions.
 
 Want to buy me a coffee or a pizza perhaps?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: Donations
+
 This project was created over the last couple of years by dedicating thousands of hours of my free time to it, to make it the best I possibly can.
 If you like Prog8, and think it's worth a nice cup of hot coffee or a delicious pizza,
 you can help me out a little bit over at https://ko-fi.com/irmen or https://paypal.me/irmendejong .
@@ -64,8 +68,8 @@ you can help me out a little bit over at https://ko-fi.com/irmen or https://payp
     :alt: Chess program for the X16
 
 
-Language Features
-^^^^^^^^^^^^^^^^^
+Language :index:`Features`
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 - it is a cross-compiler running on modern machines (Linux, MacOS, Windows, ...)
 - the compiled programs run very fast, because compilation to highly efficient native machine code.
@@ -109,6 +113,8 @@ Language Features
 Code example
 ------------
 
+.. index:: single: Examples; Hello World
+
 Here is a hello world program::
 
     %import textio
@@ -119,6 +125,8 @@ Here is a hello world program::
             txt.print("hello world i ♥ prog8\n")
         }
     }
+
+.. index:: single: Examples; Prime Sieve
 
 This code calculates prime numbers using the Sieve of Eratosthenes algorithm::
 
@@ -185,9 +193,13 @@ when the exact same program is compiled for the Commander X16 target, and run on
 Getting the software
 ^^^^^^^^^^^^^^^^^^^^
 
+.. index:: single: Installation; Getting the software
+
 Usually you just download a fat jar of an official released compiler version, but you can also build it yourself from source.
 Detailed instructions on how to obtain a version of the compiler are in :ref:`building_compiler`.
 You can also read there what extra tools you need to get going.
+
+.. index:: pair: Tools; Emulators
 
 You may look for an **emulator** (or a real machine of course) to test and run your programs on.
 For the PET, C64 and C128 targets, the compiler assumes the presence of the `VICE emulator <http://vice-emu.sourceforge.net/>`_.
@@ -197,8 +209,12 @@ download a recent emulator version for the CommanderX16, such as `x16emu <https:
 There is also `Box16 <https://github.com/indigodarkwolf/box16>`_ which has powerful debugging features.
 If multiple options are listed above, you can select which one you want to launch using the ``-emu`` or ``-emu2`` command line options.
 
+.. index:: pair: Tools; Syntax highlighting
+
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
 Look in the :source:`syntax-files <syntax-files>` directory in the github repository to find them.
+
+.. index:: pair: Tools; CTags
 
 **CTags:** for editors that support them, such as Vim, there is an effort by a member of the cummunity to provide "ctags" files for Prog8.
 The basic purpose of ctags is to index the definitions from your source code and let you find them easily.

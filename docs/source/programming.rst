@@ -8,10 +8,10 @@ This chapter describes a high level overview of the elements that make up a prog
 Elements of a program
 ---------------------
 
-Program
+:index:`Program`
     Consists of one or more *modules*.
 
-Module
+:index:`Module`
     A file on disk with the ``.p8`` suffix. It can contain *directives* and *code blocks*.
     Whitespace and indentation in the source code are arbitrary and can be mixed tabs or spaces.
     A module file can *import* other modules, including *library modules*.
@@ -20,29 +20,29 @@ Module
     Other whitespace and line indentation is arbitrary and ignored by the compiler.
     You can use tabs or spaces as you wish.
 
-Comments
+:index:`Comments`
     Everything on the line after a semicolon ``;`` is a comment and is ignored by the compiler.
     If the whole line is just a comment, this line will be copied into the resulting assembly source code for reference.
     There's also a block-comment: everything surrounded with ``/*`` and ``*/`` is ignored and this can span multiple lines.
     The recommended way to comment out a bunch of lines remains to just bulk comment them individually with ``;``.
 
-Directive
+:index:`Directive`
     These are special instructions for the compiler, to change how it processes the code
     and what kind of program it creates. A directive is on its own line in the file, and
     starts with ``%``, optionally followed by some arguments. See the syntax reference for all directives.
     The list of directives is given below at :ref:`directives`.
 
-Code block
+:index:`Code block`
     A block of actual program code. It has a starting address in memory,
     and defines a *scope* (also known as 'namespace').
     It contains variables and subroutines.
     More details about this below: :ref:`blocks`.
 
-Variable declarations
+:index:`Variable declarations`
     The data that the code works on is stored in variables ('named values that can change').
     They are described in the chapter :ref:`variables`.
 
-Code
+:index:`Code`
     These are the instructions that make up the program's logic.
     Code can only occur inside a subroutine.
     There are different kinds of instructions ('statements' is a better name) such as:
@@ -53,14 +53,14 @@ Code
     - subroutine calls
     - label definition
 
-Subroutine
+:index:`Subroutine`
     Defines a piece of code that can be called by its name from different locations in your code.
     It accepts parameters and can return a value (optional).
     It can define its own variables, and it is also possible to define subroutines within other subroutines.
     Nested subroutines can access the variables from outer scopes easily, which removes the need and overhead to pass everything via parameters all the time.
     Subroutines do not have to be declared in the source code before they can be called.
 
-Label
+:index:`Label`
     This is a named position in your code where you can jump to from another place.
     A label is an identifier followed by a colon ``:``. It's ok to put the next statement on
     the same line, immediately after the label.
@@ -68,7 +68,7 @@ Label
     subroutine call to a label (but without parameters and return value), however 🦶🔫 footgun warning:
     doing that is tricky because it makes for weird control flow and interferes with defers.
 
-Scope
+:index:`Scope`
     Also known as 'namespace', this is a named box around the symbols defined in it.
     This prevents name collisions (or 'namespace pollution'), because the name of the scope
     is needed as prefix to be able to access the symbols in it.
@@ -89,6 +89,8 @@ Scope
 Identifiers
 -----------
 
+.. index:: pair: Identifiers; Overview
+
 Naming things in Prog8 is done via valid *identifiers*. They start with a letter,
 and after that, a combination of letters, numbers, or underscores.
 Note that any Unicode Letter symbol is accepted as a letter!
@@ -106,6 +108,8 @@ Examples of valid identifiers::
 
 **Scoped names**
 
+.. index:: pair: Identifiers; Scoped names
+
 Sometimes called "qualified names" or "dotted names", a scoped name is a sequence of identifiers separated by a dot.
 They are used to reference symbols in other scopes. Note that unlike many other programming languages,
 scoped names always need to be fully scoped (because they always start in the global scope). Also see :ref:`blocks`::
@@ -114,6 +118,8 @@ scoped names always need to be fully scoped (because they always start in the gl
     main.start.variable     ; a variable in the entrypoint subroutine
 
 **Aliases**
+
+.. index:: pair: Identifiers; Aliases
 
 The ``alias`` statement makes it easier to refer to symbols from other places, and they can save
 you from having to type the fully scoped name everytime you need to access that symbol.
@@ -127,6 +133,8 @@ The name has to be an unscoped identifier name, the target can be any symbol.
 
 Blocks, Scopes, and accessing Symbols
 -------------------------------------
+
+.. index:: single: Blocks
 
 **Blocks** are the top level separate pieces of code and data of your program. They have a
 starting address in memory and will be combined together into a single output program.
@@ -159,12 +167,12 @@ Usually it is omitted, and the compiler will automatically choose the location (
 the previous block in memory).
 It must be >= ``$0200`` (because ``$00``--``$ff`` is the ZP and ``$100``--``$1ff`` is the cpu stack).
 
-*Symbols* are names defined in a certain *scope*. Inside the same scope, you can refer
+*:index:`Symbols`* are names defined in a certain *scope*. Inside the same scope, you can refer
 to them by their 'short' name directly.  If the symbol is not found in the same scope,
 the enclosing scope is searched for it, and so on, up to the top level block, until the symbol is found.
 If the symbol was not found the compiler will issue an error message.
 
-**Subroutines** create a new scope. All variables inside a subroutine are hoisted up to the
+**:index:`Subroutines`** create a new scope. All variables inside a subroutine are hoisted up to the
 scope of the subroutine they are declared in. Note that you can define **nested subroutines** in Prog8,
 and such a nested subroutine has its own scope!  This also means that you have to use a fully qualified name
 to access a variable from a nested subroutine::
@@ -181,7 +189,7 @@ to access a variable from a nested subroutine::
         }
     }
 
-**Aliases** make it easier to refer to symbols from other places. They save
+**:index:`Aliases`** make it easier to refer to symbols from other places. They save
 you from having to type the fully scoped name everytime you need to access that symbol.
 Aliases can be created in any scope except at the module level.
 You can create and use an alias with the ``alias`` statement like so::
@@ -202,6 +210,10 @@ You can create and use an alias with the ``alias`` statement like so::
 
 Program Start and Entry Point
 -----------------------------
+
+.. index::
+    single: Program Start
+    single: Entry Point
 
 Your program must have a single entry point where code execution begins.
 The compiler expects a ``start`` subroutine in the ``main`` block for this,
@@ -230,7 +242,9 @@ stuff into their own block(s).
 
 Directives
 -----------
+.. index:: single: Directives; Overview
 
+.. index:: pair: Directives; %address
 .. data:: %address <address>
 
 	Level: module.
@@ -239,6 +253,7 @@ Directives
 	you don't use a CBM-BASIC launcher.
 
 
+.. index:: pair: Directives; %align
 .. data:: %align <interval>
 
     Level: not at module scope.
@@ -252,6 +267,7 @@ Directives
     of the machine code instructions by making gaps between them, this will probably crash the program!
 
 
+.. index:: pair: Directives; %asm
 .. data:: %asm {{ ... }}
 
     Level: not at module scope.
@@ -273,6 +289,7 @@ Directives
         Also, note that all prog8 symbols are prefixed in assembly code, see :ref:`symbol-prefixing`.
 
 
+.. index:: pair: Directives; %asmbinary
 .. data:: %asmbinary "<filename>" [, <offset>[, <length>]]
 
     Level: not at module scope.
@@ -288,6 +305,7 @@ Directives
     An example program for this can be found below at the description of %asminclude.
 
 
+.. index:: pair: Directives; %asminclude
 .. data:: %asminclude "<filename>"
 
     Level: not at module scope.
@@ -343,6 +361,7 @@ Directives
         }
 
 
+.. index:: pair: Directives; %breakpoint
 .. data:: %breakpoint!  or  %breakpoint
 
     Level: not at module scope.
@@ -359,6 +378,7 @@ Directives
         %breakpoint!      ; parsed correctly as directive
 
 
+.. index:: pair: Directives; %encoding
 .. data:: %encoding <encodingname>
 
     Overrides, in the module file it occurs in,
@@ -366,6 +386,7 @@ Directives
     You can use one of the recognised encoding names, see :ref:`encodings`.
 
 
+.. index:: pair: Directives; %import
 .. data:: %import <name>
 
 	Level: module.
@@ -375,6 +396,7 @@ Directives
 	You can import modules one at a time, and importing a module more than once has no effect.
 
 
+.. index:: pair: Directives; %jmptable
 .. data:: %jmptable ( lib.routine1, lib.routine2, ... )
 
     Level: block.
@@ -399,6 +421,7 @@ Directives
         jmp  lib.routine2       ; jump table second entry
         ...
 
+.. index:: pair: Directives; %launcher
 .. data:: %launcher <type>
 
 	Level: module.
@@ -409,6 +432,7 @@ Directives
 	- type ``none`` : no launcher logic is added at all
 
 
+.. index:: pair: Directives; %memtop
 .. data:: %memtop <address>
 
 	Level: module.
@@ -420,6 +444,7 @@ Directives
 	that program can no longer use. Everything up to and including $9fff is still usable.
 
 
+.. index:: pair: Directives; %option
 .. data:: %option <option> [, <option> ...]
 
 	Level: module, block.
@@ -450,6 +475,7 @@ Directives
       See :ref:`romable` for more details.
 
 
+.. index:: pair: Directives; %output
 .. data:: %output <type>
 
 	Level: module.
@@ -461,6 +487,7 @@ Directives
 	- type ``library`` : loadable library file. See :ref:`loadable_library`.
 
 
+.. index:: pair: Directives; %zeropage
 .. data:: %zeropage <style>
 
     Level: module.
@@ -498,6 +525,7 @@ Directives
     are always outside of the zeropage.
 
 
+.. index:: pair: Directives; %zpallowed
 .. data:: %zpallowed <fromaddress>,<toaddress>
 
     Level: module.
@@ -505,6 +533,7 @@ Directives
     the compiler is allowed to use (if other options don't prevent usage).
 
 
+.. index:: pair: Directives; %zpreserved
 .. data:: %zpreserved <fromaddress>,<toaddress>
 
     Level: module.
@@ -514,6 +543,8 @@ Directives
 
 Loops
 -----
+
+.. index:: single: Loops; Overview
 
 The *for*-loop is used to let a variable iterate over a range of values. Iteration is done in steps of 1, but you can change this.
 
@@ -549,6 +580,7 @@ Only simple statements are allowed to be inside an unroll loop (assignments, fun
 
 for loop
 ^^^^^^^^
+.. index:: pair: Loops; for loop
 
 The loop variable must be a byte or word variable, and it must be defined separately first.
 The expression that you loop over can be anything that supports iteration (such as ranges like ``0 to 100``,
@@ -620,6 +652,7 @@ You can use a single statement, or a statement block like in the example below::
 
 do-until loop
 ^^^^^^^^^^^^^
+.. index:: pair: Loops; do-until loop
 
 Until the given condition is true (1), repeat the given statement(s).
 You can use a single statement, or a statement block like in the example below::
@@ -633,6 +666,7 @@ You can use a single statement, or a statement block like in the example below::
 
 repeat loop
 ^^^^^^^^^^^
+.. index:: pair: Loops; repeat loop
 
 When you're only interested in repeating something a given number of times.
 It's a short hand for a for loop without an explicit loop variable::
@@ -649,6 +683,7 @@ You can still ``break`` out of such a loop if you want though.
 
 unroll loop
 ^^^^^^^^^^^
+.. index:: pair: Loops; unroll loop
 
 Like a repeat loop, but trades memory for speed by not generating the code
 for the counter. Instead it duplicates the code inside the loop on the spot for
@@ -664,9 +699,11 @@ A `break` or `continue` statement cannot occur in an unroll loop, as there is no
 
 Conditional Execution
 ---------------------
+.. index:: single: Conditionals; Overview
 
 if statement
 ^^^^^^^^^^^^
+.. index:: single: Conditionals; if statement
 
 Conditional execution means that the flow of execution changes based on certain conditions,
 rather than having fixed gotos or subroutine calls::
@@ -736,6 +773,7 @@ So ``if_cc goto target`` will directly translate into the single CPU instruction
 
 if expression
 ^^^^^^^^^^^^^
+.. index:: single: Conditionals; if expression
 
 Similar to the if statement, but this time selects one of two possible values as the outcome of the expression,
 depending on the condition. You write it as ``if <condition> [then] <value1> else <value2>`` (the then keyword is optional)
@@ -772,6 +810,7 @@ like the following where the value and the last part of the condition are both n
 
 on .. goto / on .. call statement (jump table)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: single: Conditionals; on goto/call statement
 
 The ``on goto / call`` statement is suitable to create a fast call of a subroutine from a list based on an index value.
 it selects a function to jump to in O(1) whereas a similar when-statement, runs in O(n) because that one checks each index value.
@@ -794,6 +833,7 @@ In this case you can optionally add an ``else`` block that is then executed inst
 
 when statement
 ^^^^^^^^^^^^^^
+.. index:: single: Conditionals; when statement
 
 Instead of writing a bunch of sequential if-elseif statements, it is more readable to
 use a ``when`` statement. (It will also result in greatly improved assembly code generation)
@@ -830,6 +870,7 @@ The else part is optional.
 
 Unconditional jump: goto
 ------------------------
+.. index:: single: Conditionals; goto statement
 
 To jump to another part of the program, you use a ``goto`` statement with an address or the name
 of a label or subroutine. Referencing labels or subroutines outside of their defined scope requires
@@ -852,6 +893,7 @@ to the address that's currently in the variable, or the result of the expression
 
 Assignments
 -----------
+.. index:: single: Assignments
 
 Assignment statements assign a single value to a target variable or memory location.
 Augmented assignments (such as ``aa += xx``) are also available, but these are just shorthands
@@ -878,6 +920,7 @@ Details can be found here: :ref:`multiassign`.
 
 Expressions
 -----------
+.. index:: single: Expressions
 
 Expressions tell the program to *calculate* something. They consist of
 values, variables, operators such as ``+`` and ``-``, function calls, type casts, or other expressions.
@@ -925,6 +968,10 @@ You can also reference identifiers defined elsewhere in your code.
 
 Arithmetic and Logical expressions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index::
+    single: Arithmetic expressions
+    single: Logical expressions
+
 Arithmetic expressions are expressions that calculate a numeric result (integer or floating point).
 Many common arithmetic operators can be used and follow the regular precedence rules.
 Logical expressions are expressions that calculate a boolean result: true or false
@@ -964,6 +1011,7 @@ and ``(true or false) and false`` is false instead of true.
 
 Operators
 ---------
+.. index:: single: Operators
 
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
@@ -1064,9 +1112,11 @@ precedence grouping in expressions, or subroutine parameter list:  ``(`` *expres
 
 Subroutines
 -----------
+.. index:: single: Subroutines; Overview
 
 Defining a subroutine
 ^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Subroutines; Defining
 
 You define a subroutine like so::
 
@@ -1113,6 +1163,8 @@ Here's an example that reuses the R0 and the R1L (lower byte of R1) virtual regi
 
 Assembly-Subroutines
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Subroutines; Assembly
+
 These are user-written subroutines in the program source code itself, implemented purely in assembly and
 which have an assembly calling convention (i.e. the parameters are strictly passed via cpu registers).
 Such subroutines are defined with ``asmsub`` like this::
@@ -1179,6 +1231,7 @@ so pay attention to any jumps and rts instructions in the inlined code!
 
 External subroutines
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Subroutines; External
 
 Thse define an external subroutine that's implemented outside of the program
 (for instance, a ROM routine, or a routine in a library loaded elsewhere in RAM).
@@ -1205,6 +1258,7 @@ See :ref:`banking` for more information.
 
 Calling a subroutine
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Subroutines; Calling
 
 You call a subroutine like this::
 
@@ -1244,6 +1298,8 @@ Otherwise the compiler will warn you about discarding the result of the call.
 
 Multiple return values
 ^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Subroutines; Return values
+
 Subroutines can return more than one value.
 ``asmsub`` and ``extsub`` routines return their multiple values spread across different registers,
 and can also efficiently use the CPU's status register flags for boolean returnvalues.
@@ -1294,6 +1350,7 @@ first and then use the result of that in the expression. However, also read the 
 
 Deferred ("cleanup") code
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Subroutines; Deferred code
 
 Usually when a subroutine exits, it has to clean up things that it worked on. For example, it has to close
 a file that it opened before to read data from, or it has to free a piece of memory that it allocated via

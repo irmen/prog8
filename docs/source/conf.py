@@ -139,13 +139,22 @@ htmlhelp_basename = "Prog8doc"
 
 # -- Options for LaTeX output ------------------------------------------------
 
+latex_engine = 'xelatex'
+
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
     #
-    # 'papersize': 'letterpaper',
+    "papersize": "letterpaper",
     # The font size ('10pt', '11pt' or '12pt').
     #
     # 'pointsize': '10pt',
+    "fontpkg": r'''
+\usepackage{xeCJK}
+\setCJKmainfont{TakaoMincho}
+\setmainfont{DejaVu Serif}
+\setsansfont{DejaVu Sans}
+\setmonofont{DejaVu Sans Mono}
+''',
     # Additional stuff for the LaTeX preamble.
     #
     # 'preamble': '',
