@@ -161,6 +161,7 @@ latex_elements = {
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
+    "printindex": r"\footnotesize\raggedright\printindex"
 }
 
 # Grouping the document tree into LaTeX files. List of tuples
