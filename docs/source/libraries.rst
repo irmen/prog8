@@ -483,7 +483,6 @@ This library handles the voodoo required to switch between such coroutines.
 Read the :source:`coroutines source code <compiler/res/prog8lib/coroutines.p8>`
 to see what's in there. And look at the ``multitasking`` example to see how it can be used.
 Better docs will be written here in the manual, at some point, but until then: here is a minimal example::
-.. index:: pair: Examples; Coroutines
 
     %import coroutine
 
@@ -503,6 +502,7 @@ Better docs will be written here in the manual, at some point, but until then: h
         }
     }
 
+.. index:: pair: Examples; Coroutines
 
 cx16
 ^^^^
