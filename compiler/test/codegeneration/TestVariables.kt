@@ -65,6 +65,19 @@ class TestVariables: FunSpec({
         """
         compileText(C64Target(), false, text, outputDir, writeAssembly = true) shouldNotBe null
     }
+
+    test("string init with int multiplication") {
+        val src="""
+main {
+    sub start() {
+        const uword size = 20
+        const uword sizeplus = 20+1
+        str @shared tmp1 = " " * size
+        str @shared tmp2 = " " * sizeplus
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
     
     test("negation of unsigned via casts") {
         val text = """

@@ -124,9 +124,8 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                         val newStr = StringLiteral.create(part.value.repeat(rightconst.number.toInt()), part.encoding, expr.position)
                         return listOf(IAstModification.ReplaceNode(expr, newStr, parent))
                     }
-                } else {
-                    errors.err("can only multiply a string by an integer value", expr.right.position)
                 }
+                // other errors are reported later
                 return noModifications
             }
         }
