@@ -3,6 +3,7 @@
 *************************
 Binary Loadable Libraries
 *************************
+.. index:: pair: Libraries; Overview
 
 **also called 'Library Blobs'.**
 
@@ -20,6 +21,7 @@ An example of a library file loaded in BASIC on the Commander X16:
 
 Requirements
 ^^^^^^^^^^^^
+.. index:: single: Libraries; Requirements
 
 Such a loadable library has to adhere to a few rules:
 
@@ -53,6 +55,8 @@ Binary output and loaded into a fixed memory address
 
 ``%output library``
 ^^^^^^^^^^^^^^^^^^^
+.. index:: single: Libraries; %output library
+
 Most of the above requirements can be fulfilled by setting various directives in your
 source code such as %launcher, %zeropage and so on. But there is a single directive that does it correctly for you in one go
 (and makes sure there won't be any initialization code left at all): ``%output library``
@@ -70,6 +74,7 @@ will be the very first thing at the beginning of the library.
 
 Jump table
 ^^^^^^^^^^
+.. index:: single: Libraries; Jump table
 
 For ease of use, libraries should probably have a fixed "jump table" where the offsets of the
 library routines stay the same across different versions of the library. Without needing new syntax,
@@ -89,9 +94,12 @@ But the users of the library are none the wiser and it just seems as if it is pa
 
 Loading and using the library
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: single: Libraries; Loading and using
 
 These examples below assume the target is the Commander X16.
 Assuming the load address of the library is $A000:
+
+.. index:: single: Examples; Library from BASIC
 
 **From BASIC**::
 
@@ -102,6 +110,8 @@ Assuming the load address of the library is $A000:
 
 
 **From Prog8**
+.. index:: single: Examples; Library from Prog8
+
 The ``diskio`` module actually provides a convenience routine called ``loadlib`` that loads a Prog8-compiled
 library blob into memory. It internally automatically uses either regular load() or load_raw(),
 as required by the compilation target (so you don't have to bother with target machine
@@ -126,6 +136,8 @@ differences if you want to write portable code)::
         }
     }
 
+.. index:: single: Examples; Library from C
+
 **From C**::
 
     #include <cbm.h>
@@ -144,6 +156,8 @@ differences if you want to write portable code)::
         lib_func2();
         return 0;
     }
+
+.. index:: single: Examples; Library from Assembly
 
 **From Assembly**::
 
@@ -175,6 +189,7 @@ differences if you want to write portable code)::
 
 Example library code
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: single: Examples; small example library
 
 Here is the small example library that was used in the example at the beginning of this chapter::
 

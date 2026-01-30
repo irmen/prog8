@@ -1,6 +1,7 @@
 *************************************
 Library modules and builtin functions
 *************************************
+.. index:: pair: Standard Libraries; Overview
 
 The compiler provides several library modules with useful subroutine and variables.
 There are also a bunch of builtin functions.
@@ -34,6 +35,8 @@ of these library modules automatically as required.
 
 Built-in Functions
 ------------------
+.. index:: single: Standard Libraries; Built-in Functions
+
 There's a set of predefined functions in the language. These are fixed and can't be redefined in user code.
 You can use them in expressions and the compiler will evaluate them at compile-time if possible.
 
@@ -41,7 +44,7 @@ You can use them in expressions and the compiler will evaluate them at compile-t
 Array operations
 ^^^^^^^^^^^^^^^^
 
-len (x)
+:index:`len` (x)
     Number of values in the array value x, or the number of characters in a string (excluding the 0-byte).
     Note: this can be different from the number of *bytes* in memory if the datatype isn't a byte. See sizeof().
     Note: lengths of strings and arrays are determined at compile-time! If your program modifies the actual
@@ -51,35 +54,36 @@ len (x)
 
 Math
 ^^^^
+.. index:: pair: Standard Libraries; Math builtin
 
-abs (x)
+:index:`abs` (x)
     Returns the absolute value of a number (integer or floating point).
 
-clamp (value, minimum, maximum)
+:index:`clamp` (value, minimum, maximum)
     Returns the value restricted to the given minimum and maximum.
     Supported for integer types only, for floats use ``floats.clampf()`` instead.
 
-divmod (dividend, divisor, quotient, remainder)
+:index:`divmod` (dividend, divisor, quotient, remainder)
     Performs division only once and returns both quotient and remainder in a single call, where using '/' and '%' separately
     would perform the division operation twice.
     All values are ubytes or all are uwords.
     The last two arguments must be variables to receive the quotient and remainder results, respectively.
 
-gcd (a, b)
+:index:`gcd` (a, b)
     Returns the GCD (greatest common divisor) of uwords a and b
     The routine is efficient and uses bit shifts instead of divisions.
 
-max (x, y)
+:index:`max` (x, y)
     Returns the largest of x and y. Supported for integer types only, for floats use ``floats.maxf()`` instead.
 
-min (x, y)
+:index:`min` (x, y)
     Returns the smallest of x and y. Supported for integer types only, for floats use ``floats.minf()`` instead.
 
-sgn (x)
+:index:`sgn` (x)
     Get the sign of the value (integer or floating point).
     The result is a byte: -1, 0 or 1 (negative, zero, positive).
 
-sqrt (x)
+:index:`sqrt` (x)
     Returns the square root of the number.
     Accepts unsigned integer (result is ubyte), long (result is uword, but this may not be implemented on all targets), and floating point numbers.
     To do the reverse - squaring a number - just write ``x*x``.
@@ -87,24 +91,25 @@ sqrt (x)
 
 Miscellaneous
 ^^^^^^^^^^^^^
+.. index:: single: Standard Libraries; Miscellaneous built-ins
 
-cmp (x,y)
+:index:`cmp` (x,y)
     Compare the integer value x to integer value y. Doesn't return a value or boolean result, only sets the processor's status bits!
     You can use a conditional jumps (``if_cc`` etcetera) to act on this.
     Normally you should just use a comparison expression (``x < y``)
 
-lsb (x)
+:index:`lsb` (x)
     Get the least significant (lower) byte of the value x. Equivalent to ``x & 255`` or even ``x as ubyte``.
 
-lsw (x)
+:index:`lsw` (x)
     Get the least significant (lower) word of the value x. Equivalent to ``x & 65535`` or even ``x as uword``.
 
-msb (x)
+:index:`msb` (x)
     Get the most significant (highest) byte of the word or long value
     (so for a long value, msb($11223344) is $11, not $33. To grab the bank byte of a long variable, you need to do this:
     ``lsb(msw(longvariable))`` or the equivalent ``@(&longvariable+2)``.)
 
-msw (x)
+:index:`msw` (x)
     Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.
     For a long integer though, it returns the upper 16 bits of x as an uword.
     If x is a constant integer not greater than a 24 bit number ($ffffff), ``msw(x)`` will actually give you the bank byte of x (bits 16 to 23).
@@ -113,7 +118,7 @@ msw (x)
     ``msw`` of a *variable* will always be considered to be an uword, so to grab the bank byte of a long variable, you need to do this:
     ``lsb(msw(longvariable))`` or the equivalent ``@(&longvariable+2)``.
 
-mkword (msb, lsb)
+:index:`mkword` (msb, lsb)
     Efficiently create a word value from two bytes (the msb and the lsb). Avoids multiplication and shifting.
     So mkword($80, $22) results in $8022.
 
@@ -122,7 +127,7 @@ mkword (msb, lsb)
         Don't get confused by how the system actually stores this 16-bit word value in memory (which is
         in little-endian format, so lsb first then msb)
 
-mklong (msb, b2, b1, lsb)
+:index:`mklong` (msb, b2, b1, lsb)
     Efficiently create a long value from four bytes (the msb, second, first and finally the lsb). Avoids multiplication and shifting.
     So mklong($12, $34, $56, $78) results in $12345678.
 
@@ -131,7 +136,7 @@ mklong (msb, b2, b1, lsb)
         Don't get confused by how the system actually stores this 32-bit word value in memory (which is
         in little-endian format, so lsb first then b1, b2 and finally the msb)
 
-mklong2 (msw, lsw)
+:index:`mklong2` (msw, lsw)
     Efficiently create a long value from two words (the msw, and the lsw). Avoids multiplication and shifting.
     So mklong2($1234, $abcd) results in $1234abcd.
 
@@ -140,50 +145,50 @@ mklong2 (msw, lsw)
         Don't get confused by how the system actually stores this 32-bit word value in memory (which is
         in little-endian format, so lsw first then the msw)
 
-offsetof (Struct.field)
+:index:`offsetof` (Struct.field)
     The offset in bytes of the given field in the struct. The first field will always have offset 0.
     Usually you just reference the fields directly but in some cases it might be useful to know how many
     bytes from the start of the structure a field is located at.
 
-peek (address)
+:index:`peek` (address)
     same as @(address) - reads the byte at the given address in memory.
 
-peekbool (address)
+:index:`peekbool` (address)
     Reads the boolean value (byte 0 or 1) at the given address in memory and returns it.
     If the memory location contains another value than 0 or 1, results are undefined.
 
-peekw (address)
+:index:`peekw` (address)
     reads the word value at the given address in memory. Word is read as usual little-endian lsb/msb byte order.
     Caution: when using peekw to get words out of an array pointer, make sure the array is *not* a split word array
     (peekw requires the LSB and MSB of the word value to be consecutive in memory).
 
-peekl (address)
+:index:`peekl` (address)
     reads the signed long value at the given address in memory. Long is read as usual little-endian lsb/msb byte order.
 
-peekf (address)
+:index:`peekf` (address)
     reads the float value at the given address in memory. On CBM machines, this reads 5 bytes.
 
-poke (address, value)
+:index:`poke` (address, value)
     same as @(address)=value - writes the byte value at the given address in memory.
 
-pokebool (address, value)
+:index:`pokebool` (address, value)
     Writes the boolean value at the given address in memory, as byte 0 or 1.
     Can also be written as pokebowl(addres, value), just for fun.
 
-pokew (address, value)
+:index:`pokew` (address, value)
     writes the word value at the given address in memory, in usual little-endian lsb/msb byte order.
 
-pokel (address, value)
+:index:`pokel` (address, value)
     writes the signed long value at the given address in memory, in usual little-endian lsb/msb byte order.
 
-pokef (address, value)
+:index:`pokef` (address, value)
     writes the float value at the given address in memory. On CBM machines, this writes 5 bytes.
 
-pokemon (address, value)
+:index:`pokemon` (address, value)
     Like poke(), but also returns the previous value in the given address.
     Also doesn't have anything to do with a certain video game.
 
-rol (x)
+:index:`rol` (x)
     Rotate the bits in x (byte or word) one position to the left.
     This uses the CPU's rotate semantics: bit 0 will be set to the current value of the Carry flag,
     while the highest bit will become the new Carry flag value.
@@ -192,13 +197,13 @@ rol (x)
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a rol to act on the new carry bit, if required.
 
-rol2 (x)
+:index:`rol2` (x)
     Like ``rol`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can rol a memory location directly by using the direct memory access syntax, so like ``rol2(@($5000))``
 
-ror (x)
+:index:`ror` (x)
     Rotate the bits in x (byte or word) one position to the right.
     This uses the CPU's rotate semantics: the highest bit will be set to the current value of the Carry flag,
     while bit 0 will become the new Carry flag value.
@@ -207,16 +212,16 @@ ror (x)
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror(@($5000))``
     You can use ``if_cc`` or ``if_cs`` after a ror to act on the new carry bit, if required.
 
-ror2 (x)
+:index:`ror2` (x)
     Like ``ror`` but now as 8-bit or 16-bit rotation.
     It uses some extra logic to not consider the carry flag as extra rotation bit.
     Modifies in-place, doesn't return a value (so can't be used in an expression).
     You can ror a memory location directly by using the direct memory access syntax, so like ``ror2(@($5000))``
 
-setlsb (x, value)
+:index:`setlsb` (x, value)
     Sets the least significant byte of word or long variable x to a new value.
 
-setmsb (x, value)
+:index:`setmsb` (x, value)
     Sets the most significant byte of word or long variable x to a new value.
 
 sizeof (name)  ;  sizeof (number)  ;  sizeof(datatype)
@@ -226,12 +231,12 @@ sizeof (name)  ;  sizeof (number)  ;  sizeof(datatype)
     For a string, it returns the size of the string in memory (which includes the 0-byte terminator at the end)
     Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use len() for that.
 
-swap (var1, var2)
+:index:`swap` (var1, var2)
     Swaps the values in var1 and var2 without the need of a temporary variable. Supports booleans and all other numeric datatypes including pointers.
     Note that complicated expressions that you want to swap, may not be implemented yet. To avoid such errors you'll have to just swap them
     in the old fashioned way, until an optimized code path gets implemented in a future Prog8 version.
 
-memory (name, size, alignment)
+:index:`memory` (name, size, alignment)
     Returns the address of the first location of a statically "reserved" block of memory of the given size in bytes,
     with the given name. The name must be a string literal, it cannot be empty or be a variable.
     The block is *uninitialized memory*; unlike other variables in Prog8 it is *not* set to zero at the start of the program!
@@ -248,7 +253,7 @@ memory (name, size, alignment)
     not suffice; for instance if you need more than 256 consecutive bytes.
     The return value is an uword address, and you can use that like a pointer to the memory buffer.
 
-call (address) -> uword
+:index:`call` (address) -> uword
     Calls a subroutine given by its memory address. You cannot pass arguments directly,
     although it is ofcourse possible to do this via the global ``cx16.r0...`` registers for example.
     It is *not* possible to use cpu registers to pass arguments, because these are clobbered while performing the call!
@@ -257,7 +262,7 @@ call (address) -> uword
     But because it doesn't handle bank switching etcetera by itself,
     it is a lot faster than ``callfar``. And it works on other systems than just the Commander X16.
 
-callfar (bank, address, argumentword) -> uword
+:index:`callfar` (bank, address, argumentword) -> uword
     Calls an assembly routine in another bank.
     Be aware that ram OR rom bank may be changed depending on the address it jumps to!
     The argumentword will be loaded into the A+Y registers before calling the routine.
@@ -265,16 +270,16 @@ callfar (bank, address, argumentword) -> uword
     NOTE: this routine is very inefficient, so don't use it to call often. Set the bank yourself
     or even write a custom tailored trampoline routine that you reuse. Or use ``call`` if you can.
 
-callfar2 (bank, address, argA, argX, argY, argCarry) -> uword
+:index:`callfar2` (bank, address, argA, argX, argY, argCarry) -> uword
     Identical to ``callfar``, except here you can give arguments not only for AY,
     but for each of the A, X and Y registers (each an ubyte) and the Carry status bit as well (a boolean).
 
-rsave
+:index:`rsave`
     Saves all registers including status (or only X) on the stack
     Note: the 16 bit 'virtual' registers of the Commander X16 are *not* saved,
     but you can use ``cx16.save_virtual_registers()`` for that.
 
-rrestore
+:index:`rrestore`
     Restore all registers including status (or only X) back from the cpu hardware stack
     Note: the 16 bit 'virtual' registers of the Commander X16 are *not* restored,
     but you can use ``cx16.restore_virtual_registers()`` for that.
@@ -298,6 +303,7 @@ Library modules
 
 bcd
 ^^^
+.. index:: pair: Libraries; bcd
 
 Decimal addition and subtraction routines, so for example $0987 + $1111 =  $2098 (rather than the usual hex outcome $1a98)
 Utilizes the BCD mode of the CPU (note: not all 6502 variants support this mode).
@@ -320,6 +326,7 @@ Available routines:
 
 bmx  (cx16 only)
 ^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; bmx
 
 Routines to load and save "BMX" files, the CommanderX16 bitmap file format:
 `BMX file format specification <https://cx16forum.com/forum/viewtopic.php?t=6945>`_
@@ -335,6 +342,7 @@ There's also the "showbmx" example to look at.
 
 buffers
 ^^^^^^^
+.. index:: pair: Libraries; buffers
 
 Provides few data buffer routines. These are available:
 
@@ -352,6 +360,8 @@ to see what's in there. Note that on the X16, the init() routines have that extr
 
 cbm
 ^^^
+.. index:: pair: Libraries; cbm
+
 Commodore (CBM) common variables, vectors and kernal routines. This 'library' is part of syslib and as such is always available.
 There's too much in this library to list in the docs here, but you can find things like:
 
@@ -367,6 +377,7 @@ it will contain different things based on what is available there. But the stuff
 
 compression
 ^^^^^^^^^^^
+.. index:: pair: Libraries; compression
 
 Routines for data compression and decompression.
 For compression the 'ByteRun1' aka 'PackBits' RLE encoding is available, this is the compression that was used in old MacPaint and Amiga IFF images.
@@ -447,6 +458,7 @@ Decompressors are available for RLE, TSCrunch and ZX0 (Salvador).
 
 conv
 ^^^^
+.. index:: pair: Libraries; conv
 
 Routines to convert strings to numbers or vice versa.
 
@@ -459,6 +471,7 @@ to see what's in there.
 
 coroutines
 ^^^^^^^^^^
+.. index:: pair: Libraries; coroutines
 
 Provides a system to make cooperative multitasking programs via coroutines.
 A 'coroutine' is a subroutine whose execution can be paused and resumed. This is done
@@ -470,6 +483,7 @@ This library handles the voodoo required to switch between such coroutines.
 Read the :source:`coroutines source code <compiler/res/prog8lib/coroutines.p8>`
 to see what's in there. And look at the ``multitasking`` example to see how it can be used.
 Better docs will be written here in the manual, at some point, but until then: here is a minimal example::
+.. index:: pair: Examples; Coroutines
 
     %import coroutine
 
@@ -492,6 +506,7 @@ Better docs will be written here in the manual, at some point, but until then: h
 
 cx16
 ^^^^
+.. index:: pair: Libraries; cx16
 
 Despite its name, this 'module' is available on *all targets*; it also is always available because it is a part of syslib.
 On the Commander X16 this module contains a *whole bunch* of things specific to that machine
@@ -510,6 +525,7 @@ For the Commander X16 version it has way too much to include here, you have to s
 
 cx16logo
 ^^^^^^^^
+.. index:: pair: Libraries; cx16logo
 
 Just a fun module that contains the Commander X16 logo in PETSCII graphics
 and allows you to print it anywhere on the screen.
@@ -522,6 +538,7 @@ and allows you to print it anywhere on the screen.
 
 diskio
 ^^^^^^
+.. index:: pair: Libraries; diskio
 
 Provides several routines that deal with disk drive I/O, such as:
 
@@ -573,6 +590,7 @@ to see what's in there. (Note: slight variations for different compiler targets)
 
 emudbg  (cx16 only)
 ^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; emudbg
 
 X16Emu Emulator debug routines, for Cx16 only.
 Allows you to interface with the emulator's debug routines/registers.
@@ -595,6 +613,7 @@ Information about the exposed debug registers is in the `emulator's documentatio
 
 floats
 ^^^^^^
+.. index:: pair: Libraries; floats
 
 .. note::
     Floating point support is available on most cbm-compatible targets (except the C128 for now), and the virtual target.
@@ -697,6 +716,9 @@ Provides definitions for the ROM/Kernal subroutines and utility routines dealing
 
 gfx_lores and gfx_hires (cx16 only)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index::
+    pair: Libraries; gfx_lores
+    pair: Libraries; gfx_hires
 
 Full-screen multicolor bitmap graphics routines, available on the X16 machine only.
 
@@ -717,6 +739,7 @@ They share the same routines.
 
 graphics
 ^^^^^^^^
+.. index:: pair: Libraries; graphics
 
 Bitmap graphics routines:
 
@@ -734,6 +757,7 @@ to see what's in there. (Note: slight variations for different compiler targets)
 
 math
 ^^^^
+.. index:: pair: Libraries; math
 
 Low-level integer math routines (which you usually don't have to bother with directly, but they are used by the compiler internally).
 Pseudo-Random number generators (byte and word).
@@ -742,6 +766,7 @@ Various 8-bit integer trig functions that use lookup tables to quickly calculate
 
 checksumming
 ''''''''''''
+.. index:: pair: Libraries; checksumming
 
 ``crc16 (uword data, uword length) -> uword``
     Returns a CRC-16 (XMODEM) checksum over the given data buffer.
@@ -768,6 +793,7 @@ checksumming
 
 interpolation
 '''''''''''''
+.. index:: pair: Libraries; interpolation
 
 ``lerp(v0, v1, t)``
     Linear interpolation routine for unsigned byte values.
@@ -787,6 +813,7 @@ interpolation
 
 large multiplications
 '''''''''''''''''''''
+.. index:: pair: Libraries; large multiplications
 
 ``mul32 (woord w1, word w2) -> long``
    Returns the 32 bits signed long result of w1 * w2
@@ -804,6 +831,7 @@ large multiplications
 
 miscellaneous
 '''''''''''''
+.. index:: pair: Libraries; miscellaneous
 
 ``direction (ubyte x1, ubyte y1, ubyte x2, ubyte y2)``
     From a pair of positive coordinates, calculate discrete direction between 0 and 23.
@@ -828,6 +856,7 @@ miscellaneous
 
 random numbers
 ''''''''''''''
+.. index:: pair: Libraries; random numbers
 
 ``rnd ()``
     Returns next random byte 0-255 from the pseudo-RNG sequence.
@@ -878,6 +907,7 @@ random numbers
 
 trigonometry
 ''''''''''''
+.. index:: pair: Libraries; trigonometry
 
 .. hint::
     This is a graph showing the various ranges of values mentioned in the integer sine and cosine
@@ -932,6 +962,7 @@ There is no ``tan`` function in this library (there is a floating point ``tan`` 
 
 monogfx  (cx16 and virtual)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; monogfx
 
 Full-screen lores or hires monochrome bitmap graphics routines, available on the X16 machine only.
 
@@ -951,6 +982,7 @@ and the `testmonogfx` example program, to see what's in there.
 
 palette  (cx16 only)
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; palette
 
 Available for the Cx16 target. Various routines to set the display color palette.
 There are also a few better looking Commodore 64 color palettes available here,
@@ -966,6 +998,8 @@ to see what's in there.
 
 petsnd  (PET only)
 ^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; petsnd
+
 Make sound on the Pet, without locking up the program in a busy loop: it uses the VIA timer as an oscillator.
 
 ``sub on()``
@@ -984,6 +1018,8 @@ Make sound on the Pet, without locking up the program in a busy loop: it uses th
 
 petgfx  (PET, C64, C128)
 ^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; petgfx
+
 To draw "graphics" at double the resolution of default text mode while using only Petscii block characters.
 
 ``sub hline(ubyte x, ubyte y, ubyte length)``
@@ -1000,6 +1036,7 @@ To draw "graphics" at double the resolution of default text mode while using onl
 
 prog8_lib
 ^^^^^^^^^
+.. index:: pair: Libraries; prog8_lib
 
 Low-level language support. You should not normally have to bother with this directly.
 The compiler needs it for various built-in system routines.
@@ -1007,6 +1044,7 @@ The compiler needs it for various built-in system routines.
 
 psg  (cx16 only)
 ^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; psg
 
 Available for the Cx16 target.
 **Note: New code should probaly use the psg2 module instead!**
@@ -1018,6 +1056,7 @@ Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg.p8>` to see wh
 
 psg2  (cx16 only)
 ^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; psg
 
 Available for the Cx16 target.
 Contains an abstraction for the Vera's PSG (programmable sound generator) to play simple waveforms.
@@ -1030,6 +1069,7 @@ Read the :source:`psg source code <compiler/res/prog8lib/cx16/psg2.p8>` to see w
 
 sorting (experimental)
 ^^^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; sorting
 
 Various sorting routines (gnome sort and shell sort variants) for byte, word and string arrays.
 API is experimental and may change or disappear in a future version.
@@ -1041,6 +1081,7 @@ to see what's in there.   Also check out the `sortingbech` example.
 
 sprites  (cx16 only)
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; sprites
 
 Available for the Cx16 target. Simple routines to manipulate sprites.
 They're not written for high performance, but for simplicity.
@@ -1054,11 +1095,13 @@ to see what's in there.
 
 strings
 ^^^^^^^
+.. index:: pair: Libraries; strings
 
 Provides string manipulation routines.
 
 conversion and classification
 '''''''''''''''''''''''''''''
+.. index:: pair: Libraries; conversion and classification
 
 ``isdigit (char)``
     Returns boolean if the character is a numerical digit 0-9
@@ -1099,6 +1142,7 @@ conversion and classification
 
 miscellaneous
 '''''''''''''
+.. index:: pair: Libraries; miscellaneous
 
 ``compare (string1, string2) -> ubyte result``
     Returns -1, 0 or 1 depending on whether string1 sorts before, equal or after string2 (case-sensitively)
@@ -1126,6 +1170,7 @@ miscellaneous
 
 manipulation
 ''''''''''''
+.. index:: pair: Libraries; manipulation
 
 ``append (string, suffix) -> ubyte length``
     Appends the suffix string to the other string. Make sure the memory buffer is large enough to contain the combined strings.
@@ -1201,6 +1246,7 @@ manipulation
 
 searching
 '''''''''
+.. index:: pair: Libraries; searching
 
 ``contains (string, char) -> bool``
     Just returns true if the character is in the given string, or false if it's not.
@@ -1240,6 +1286,7 @@ searching
 
 syslib
 ^^^^^^
+.. index:: pair: Libraries; syslib
 
 The "system library" for your target machine. It contains many system-specific definitions such
 as ROM/Kernal subroutine definitions, memory location constants, and utility subroutines.
@@ -1254,9 +1301,11 @@ depending on the chosen compilation target. Read the :source:`sys lib source cod
 
 sys (part of syslib)
 ^^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; sys
 
 miscellaneous
 '''''''''''''
+.. index:: pair: Libraries; miscellaneous
 
 ``cpu_is_65816()``
     Returns true if the CPU in the computer is a 65816, false otherwise (6502 cpu).
@@ -1352,6 +1401,8 @@ miscellaneous
 
 processor status flags
 ''''''''''''''''''''''
+.. index:: pair: Libraries; processor status flags
+
 ``clear_carry ()``
     Clears the CPU status register Carry flag.
 
@@ -1379,6 +1430,7 @@ processor status flags
 
 processor stack
 '''''''''''''''
+.. index:: pair: Libraries; processor stack
 
 ``push (value)``
     pushes a byte value on the CPU hardware stack.
@@ -1414,6 +1466,7 @@ processor stack
 
 textio (txt.*)
 ^^^^^^^^^^^^^^
+.. index:: pair: Libraries; textio
 
 This will probably be the most used library module. It contains a whole lot of routines
 dealing with text-based input and output (to the screen). Such as
@@ -1434,6 +1487,7 @@ to see what's in there. (Note: slight variations for different compiler targets)
 
 verafx  (cx16 only)
 ^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Libraries; verafx
 
 Available for the Cx16 target. Routines that use the Vera FX logic to accelerate certain operations.
 

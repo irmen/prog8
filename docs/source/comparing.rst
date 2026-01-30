@@ -10,6 +10,8 @@ It discusses some key design aspects of Prog8 and how it differs from what you m
 
 The language
 ------------
+.. index:: single: Features
+
 - Prog8 is a structured imperative programming language. It looks like a mix of Python and C.
 - It is meant to sit well above low level assembly code, but still allows that low level access to the system it runs on.
   Via language features, or even simply by using inline hand-written assembly code.
@@ -34,6 +36,8 @@ No linker
 
 Data types
 ----------
+.. index:: single: Data Types; Overview
+
 - There are byte, word (16 bits), long (32 bits) and float datatypes for numbers.
 - floats are available as native data type on most cbm-compatible systems.
 - **There is no automatic type enlargement:** all calculations remain within the data type of the operands. Any overflow silently wraps or truncates.
@@ -54,6 +58,8 @@ Data types
 
 Variables
 ---------
+.. index:: single: Variables; Overview
+
 - There is no dynamic memory management in the language; all variables are statically allocated.
   (but user written libraries are possible that provide that indirectly).
 - Variables can be declared everywhere inside the code but all variable declarations in a subroutine
@@ -65,6 +71,8 @@ Variables
 
 Subroutines
 -----------
+.. index:: single: Subroutines; Overview
+
 - Subroutines can be nested. Inner subroutines can directly access variables from their parent.
 - Subroutine parameters are just local variables in the subroutine. (you can access them directly as such via their scoped name, if you want)
 - There is no call stack for subroutine arguments: subroutine parameters are overwritten when called again. Thus recursion is not easily possible, but you can still do it with manual stack handling.
@@ -82,6 +90,11 @@ Subroutines
 
 Pointers and Structs
 --------------------
+.. index::
+    single: Pointers; Overview
+    single: Structs; Overview
+
+.. index:: single: Pointers; Untyped
 
 *Legacy 'untyped' pointers:*
 
@@ -97,6 +110,10 @@ Pointers and Structs
 
 *Typed pointers and structs:*
 
+.. index::
+    pair: Pointers; Data Types
+    pair: Structs; Data Types
+
 - Since **version 12.0**, prog8 supports struct types and typed pointers.
 - Structs are a grouping of one or more fields, that together make up the struct type.
 - Typed pointers are just that: a pointer to a specific type (which can be a simple type such as float, or a struct type.)
@@ -104,6 +121,8 @@ Pointers and Structs
 
 Foreign function interface (external/ROM calls)
 -----------------------------------------------
+.. index:: single: Subroutines; Foreign/ROM
+
 - You can use the ``extsub`` keyword to define the call signature of foreign functions (ROM routines or external routines elsewhere in RAM) in a natural way.
   Calling those generates code that is as efficient or even more efficient as calling regular subroutines.
   No additional stubs are needed.  Y

@@ -29,6 +29,7 @@ so that more system ram is available for the program code itself.
 
 ROM/RAM bank selection
 ----------------------
+.. index:: pair: Banking; Overview
 
 On certain systems prog8 provides support for managing the ROM or RAM banks that are active.
 
@@ -97,6 +98,7 @@ The bank number is not translated into assembly (only as a comment)::
 
 Symbol prefixing in generated Assembly code
 -------------------------------------------
+.. index:: single: Symbol prefixing
 
 *All* symbols in the prog8 program will be prefixed in the generated assembly code:
 
@@ -131,6 +133,7 @@ All elements in scoped names such as ``main.routine.var1`` are prefixed so this 
 
 Subroutine Calling Conventions
 ------------------------------
+.. index:: single: Subroutines; Calling conventions
 
 Calling a subroutine requires three steps:
 
@@ -146,6 +149,7 @@ Calling a subroutine requires three steps:
 
 Regular subroutines
 ^^^^^^^^^^^^^^^^^^^
+.. index:: single: Subroutines; Regular
 
 - Each subroutine parameter is represented as a variable scoped to the subroutine. Prog8 doesn't have a call stack.
 - The arguments passed in a subroutine call are evaluated by the caller, and then put into those variables by the caller.
@@ -208,6 +212,7 @@ In case of *multiple* return values:
 
 ``asmsub`` and ``extsub`` routines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: single: Subroutines; asmsub and extsub
 
 These are kernal (ROM) routines or low-level assembly routines, that get their arguments via specific registers.
 Sometimes even via a processor status flag such as the Carry flag.
@@ -234,6 +239,7 @@ for both the parameters and the return values::
 
 Compiler Internals
 ------------------
+.. index:: single: Compiler internals
 
 Here is a diagram of how the compiler translates your program source code into a binary program:
 
@@ -262,6 +268,7 @@ Some notes and references into the compiler's source code modules:
 
 Run-time memory profiling with the X16 emulator
 -----------------------------------------------
+.. index:: single: Memory profiling
 
 The compiler has the ``-dumpvars`` switch that will print a list of all variables and where they are placed into memory.
 This can be useful to track which variables end up in zeropage for instance. But it doesn't really show if the choices
@@ -326,6 +333,7 @@ could consider adding ``@zp`` to that variable's declaration to prioritize it to
 
 ROM-able programs
 -----------------
+.. index:: single: ROM-able programs
 
 Normally Prog8 will use some tricks to generate the smallest and most optimized code it can.
 This includes the following techniques that by default prevent generated program code from running in ROM:
@@ -363,6 +371,7 @@ There are a few things to note:
 
 Formal ANTLR4 syntax and grammar definition
 -------------------------------------------
+.. index:: single: Prog8 grammar
 
 .. literalinclude :: ../../parser/src/main/antlr/Prog8ANTLR.g4
    :language: antlr

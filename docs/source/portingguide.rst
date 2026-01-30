@@ -4,6 +4,7 @@
 *************
 Porting Guide
 *************
+.. index:: pair: Porting; Overview
 
 Here is a guide for making Prog8 work for other compilation targets.
 Answers to the questions below are used to configure the new target and supporting libraries.
@@ -23,14 +24,19 @@ information asked for in this porting guide and code that into the configuration
 
 CPU
 ---
+.. index:: pair: Porting; CPU
+
 #. 6502 or 65C02? (or strictly compatible with one of these)
 #. can the **64tass** cross assembler create programs for the system?  (if not, bad luck atm)
 
 Memory Map
 ----------
+.. index:: pair: Porting; Memory Map
 
 Zeropage
 ========
+.. index:: pair: Porting; Zeropage
+
 #. *Absolute requirement:* Provide four words (16 bit byte pairs) in the zeropage that are free to use at all times.
 #. Provide list of any additional free zeropage locations for a normal running system (BASIC + Kernal enabled)
 #. Provide list of any additional free zeropage locations when BASIC is off, but floating point routines should still work
@@ -42,6 +48,7 @@ But more known available zeropage locations mean smaller and faster programs.
 
 RAM, ROM, I/O
 =============
+.. index:: pair: Porting; RAM, ROM, I/O
 
 #. what part(s) of the address space is RAM?  What parts of the RAM can be used by user programs?
 #. what is the usual starting memory address of programs?
@@ -52,6 +59,8 @@ RAM, ROM, I/O
 
 Character encodings
 -------------------
+.. index:: pair: Porting; Character encodings
+
 #. provide the primary character encoding table that the system uses (i.e. how is text represented in memory. For example, PETSCII)
 #. provide alternate character encodings (if any)
 #. what are the system's standard character screen dimensions?
@@ -60,6 +69,8 @@ Character encodings
 
 ROM routines
 ------------
+.. index:: pair: Porting; ROM routines
+
 #. provide a list of the core ROM routines on the system, with names, addresses, and call signatures.
 
 Ideally there are at least some routines to manipulate the screen and get some user input (clear, print text, print numbers, input strings from the keyboard)
@@ -68,6 +79,8 @@ The more the merrier.
 
 Floating point
 ==============
+.. index:: pair: Porting; Floating point
+
 Prog8 can support floating point math *if* the target system has suitable floating point math routines in ROM. If that is the case:
 
 #. what is the binary representation format of the floating point numbers? (how many bytes, how the bits are set up)
@@ -77,6 +90,8 @@ Prog8 can support floating point math *if* the target system has suitable floati
 
 Support libraries
 -----------------
+.. index:: pair: Porting; Support libraries
+
 The most important libraries are ``syslib`` and ``textio``.
 ``syslib`` *has* to provide several system level functions such as how to initialize the machine to a sane state,
 and how to warm reset it, etc.

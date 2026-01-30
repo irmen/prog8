@@ -6,6 +6,7 @@ Compiling a program
 
 First, getting a working compiler
 ---------------------------------
+.. index:: single: Installation; Getting the compiler
 
 Before you can compile Prog8 programs, you'll have to download or build the compiler itself.
 Then make sure you have installed the :ref:`requirements`.
@@ -18,6 +19,8 @@ Then you can choose a few ways to get a compiler:
 
 **Or, install via a Package Manager (takes care of dependencies for you):**
 
+.. index:: single: Installation; Linux
+
 Arch Linux:
     Currently, it's available on `AUR <https://wiki.archlinux.org/title/Arch_User_Repository>`_ for Arch Linux and derivative systems.
     The package is called `"prog8" <https://aur.archlinux.org/packages/prog8>`_. There should be no need to install aything else as
@@ -29,6 +32,8 @@ Arch Linux:
     In case you prefer to install AUR packages in a traditional manner, make sure to install `"tass64" package <https://aur.archlinux.org/packages/tass64>`_
     before installing prog8, as `makepkg <https://wiki.archlinux.org/title/Makepkg>`_ itself doesn't fetch AUR dependencies.
 
+.. index:: single: Installation; macOS/Homebrew
+
 Mac OS (and Linux, and WSL2 on Windows):
     Prog8 can be installed via `Homebrew <https://formulae.brew.sh/formula/prog8>`_ using the command ``brew install prog8``.
     It will make the ``prog8c`` command available and also installs the other required software tools for you.
@@ -36,11 +41,15 @@ Mac OS (and Linux, and WSL2 on Windows):
 
 **Or, download a bleeding edge development version from Github:**
 
+.. index:: single: Installation; Development versions
+
 #. find the latest CI build on  `the actions page on Github <https://github.com/irmen/prog8/actions>`_
 #. download the zipped jar artifact from that build, and unzip it.
 #. run the compiler with "java -jar prog8c.jar"  (use the correct name and version of the jar file you've downloaded).
 
 **Or, use the Gradle build system to build it yourself from source:**
+
+.. index:: single: Installation; Build from source
 
 The Gradle build system is used to build the compiler. You will also need at least Java version 17 or higher to build it.
 The most interesting gradle commands to run are probably the ones listed below.
@@ -94,6 +103,8 @@ For normal use, the ``installDist`` task should suffice and after succesful comp
 Required additional tools
 -------------------------
 
+.. index:: single: Installation; Additional requirements
+
 `64tass <https://sourceforge.net/projects/tass64/>`_ - cross assembler. Install this program somewhere on your shell's search path.
 It's easy to compile yourself, but a recent precompiled .exe (only for Windows) can be obtained from
 `the files section <https://sourceforge.net/projects/tass64/files/binaries/>`_ in the official project on sourceforge.
@@ -110,6 +121,8 @@ For MacOS you can also use the Homebrew system to install a recent version of Op
 
 Running the compiler
 --------------------
+
+.. index:: pair: Usage; Running the Compiler
 
 You run the Prog8 compiler on a main source code module file.
 Other modules that this code needs will be loaded and processed via imports from within that file.
@@ -133,6 +146,8 @@ that creates the final runnable program.
 
 Command line options
 ^^^^^^^^^^^^^^^^^^^^
+
+.. index:: pair: Usage; Command line options
 
 One or more .p8 module files
     Specify the main module file(s) to compile.
@@ -311,6 +326,8 @@ One or more .p8 module files
 Module source code files
 ------------------------
 
+.. index:: single: Usage; Module files
+
 A module source file is a text file with the ``.p8`` suffix, containing the program's source code.
 It consists of compilation options and other directives, imports of other modules,
 and source code for one or more code blocks.
@@ -323,6 +340,8 @@ where they are, but their names are still reserved.
 
 Importing other source files and specifying search location(s)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: single: Usage; Importing Modules
+
 You can create multiple source files yourself to modularize your large programs into
 multiple module files. You can also create "library" modules this way with handy routines,
 that can be shared among programs. By importing those module files, you can use them in other modules.
@@ -336,6 +355,8 @@ doesn't have conditional compilation like #ifdef/#endif in C.
 
 Debugging (with VICE or Box16)
 ------------------------------
+
+.. index:: single: Usage; Debugging
 
 There's support for using the monitor and debugging capabilities of the rather excellent
 `VICE emulator <http://vice-emu.sourceforge.net/>`_.
@@ -361,6 +382,8 @@ that support these symbol and breakpoint lists.
 
 Troubleshooting
 ---------------
+
+.. index:: single: Usage; Troubleshooting
 
 Compiler doesn't run, complains about "UnsupportedClassVersionError"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -435,6 +458,8 @@ Assuming there are no programming errors in the code and the compiler has no cod
 
 Examples
 --------
+
+.. index:: single: Examples; Examples in source tree
 
 A bunch of example programs can be found in the 'examples' directory of the source tree.
 There are cross-platform examples that can be compiled for various systems unaltered,
