@@ -225,6 +225,7 @@ floats  {
     FOUT  ()  clobbers (X) -> uword @AY  = $cf93
     FPWRT  ()  clobbers (A,X,Y)  = $d112
     FREADSA  (byte value @A)  clobbers (A,X,Y) 
+    FREADUY  (ubyte value @Y)  clobbers (A,X,Y) 
     FSUB  (uword mflpt @AY)  clobbers (A,X,Y)  = $c986
     FSUBT  ()  clobbers (A,X,Y)  = $c989
     GETADR  ()  clobbers (X) -> ubyte @Y, ubyte @A  = $c92d
