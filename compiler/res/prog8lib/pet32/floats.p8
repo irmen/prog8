@@ -19,7 +19,6 @@ const uword FAC_ADDR = $5e
 ;extsub $ba90 = FAREADMEM() clobbers(A,Y)                    ; load mflpt value from memory  in $22/$23 into fac2
 ;;
 ;
-;extsub $b3a2 = FREADUY(ubyte value @ Y) clobbers(A,X,Y)     ; 8 bit unsigned Y -> float in fac1
 ;extsub $b7b5 = FREADSTR(ubyte length @ A) clobbers(A,X,Y)   ; str -> fac1, $22/23 must point to string, A=string length.  Also see parse()
 ;extsub $aabc = FPRINTLN() clobbers(A,X,Y)                   ; print string of fac1, on one line (= with newline) destroys fac1.  (consider FOUT + STROUT as well)
 ;
@@ -100,6 +99,15 @@ asmsub  AYINT2() clobbers(X) -> word @AY {
         rts
     }}
 }
+
+asmsub FREADUY(ubyte value @ Y) clobbers(A,X,Y) {
+    ; -- 8 bit unsigned Y -> float in fac1
+    %asm {{
+        lda  #0
+        jmp  GIVAYF
+    }}
+}
+
 
 asmsub  FREADSA  (byte value @A) clobbers(A,X,Y) {
     ; ---- 8 bit signed A -> float in fac1
