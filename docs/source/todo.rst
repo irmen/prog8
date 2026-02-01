@@ -31,7 +31,7 @@ Future Things and Ideas
 - should we have a SourceStorageKind.POINTER?   (there is one for TargetStorageKind...)
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2 (see github issue #192)
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
-- handle Alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers instead of replacing it scattered over multiple functions
+- handle alias in a general way in LiteralsToAutoVarsAndRecombineIdentifiers (or a whole separate ast processing step to avoid any replacement conflicts) instead of replacing it scattered over multiple functions
 - allow the value of a memory mapped variable to be address-of another variable, not just a constant number
 - implement for loops with long loopvar over long range expression
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
