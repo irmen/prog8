@@ -176,7 +176,10 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 		pha
 		tya
 		asl  a
-		tay
+		bit  $d5
+		bvc  +
+		asl  a
++		tay
 		lda  _screenrows,y
 		sta  P8ZP_SCRATCH_W1
 		lda  _screenrows+1,y
@@ -187,7 +190,7 @@ asmsub  setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers(A, Y) 
 		sta  (P8ZP_SCRATCH_W1),y
 		rts
 
-_screenrows	.word  cbm.Screen + range(0, 1000, 40)
+_screenrows	.word  cbm.Screen + range(0, 2000, 40)
         ; !notreached!
 	}}
 }
@@ -198,7 +201,10 @@ asmsub  getchr  (ubyte col @A, ubyte row @Y) clobbers(Y) -> ubyte @ A {
 		pha
 		tya
 		asl  a
-		tay
+		bit  $d5
+		bvc  +
+		asl  a
++		tay
 		lda  setchr._screenrows,y
 		sta  P8ZP_SCRATCH_W1
 		lda  setchr._screenrows+1,y
@@ -233,7 +239,10 @@ asmsub  plot  (ubyte col @ Y, ubyte row @ X) {
 		stx $d8
 		txa
 		asl a
-		tax
+		bit $d5
+		bvc +
+		asl a
++		tax
 		lda setchr._screenrows,x
 		sta $c4
 		lda setchr._screenrows+1,x
