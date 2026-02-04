@@ -360,7 +360,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if (rightConstVal?.number == 1.0) {
                     if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong) {
+                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                         }
@@ -369,7 +369,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 else if (rightConstVal?.number == 0.0) {
                     if (rightDt != leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong) {
+                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                         }
@@ -386,7 +386,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if (rightConstVal?.number == 1.0) {
                     if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong) {
+                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                         }
@@ -395,7 +395,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 else if (rightConstVal?.number == 0.0) {
                     if(rightDt!=leftDt && !(leftDt.isPointer && rightDt.isUnsignedWord)) {
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
-                        if(!dt.isLong) {
+                        if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
                             return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
                         }

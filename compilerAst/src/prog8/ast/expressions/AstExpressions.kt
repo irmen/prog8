@@ -654,8 +654,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
             BaseDataType.LONG -> { /*no hard requirement, the range will be checked later to give a proper error message instead of a crash */ }
             BaseDataType.BOOL -> require(number==0.0 || number==1.0)
             BaseDataType.POINTER -> throw FatalAstException("pointer literals should not be created, should have been UWORD $position")
-            else ->  require(type.isNumericOrBool) {
-                "numeric literal type should be numeric or bool: $type" }
+            else ->  require(type.isNumericOrBool) {"numeric literal type should be numeric or bool: $type at $position" }
         }
         if(type!=BaseDataType.FLOAT) {
             if(truncate(number) != number)

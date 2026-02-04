@@ -802,12 +802,23 @@ main {
             notdefined -> bar = 1
             else -> bar = 2
         }
+        
+        bool z = undefined != 0
+        bool z2 = undefined == 0
+        if undefined==0
+            z= true
+        if undefined!=0
+            z= false
     }
 }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 2
+        errors.errors.size shouldBe 10
         errors.errors[1] shouldContain "undefined symbol"
+        errors.errors[2] shouldContain "undefined symbol"
+        errors.errors[4] shouldContain "undefined symbol"
+        errors.errors[6] shouldContain "undefined symbol"
+        errors.errors[8] shouldContain "undefined symbol"
     }
 
     test("return unsigned values for signed results ok if value fits") {
