@@ -341,11 +341,48 @@ class AstPreprocessor(val program: Program,
         return noModifications
     }
 
-    override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
+    override fun before(alias: Alias, parent: Node): Iterable<IAstModification> {
+        // shortcut aliases that point to aliases (remove alias chains)
         val tgt = alias.target.targetStatement(program.builtinFunctions)
-        if(tgt is Block) {
-            errors.err("cannot alias blocks", alias.target.position)
+
+        if(tgt!=null) {
+            if(alias.alias == alias.target.nameInSource.first()) {
+                errors.err("alias loop", alias.position)
+            } else if(tgt is Block) {
+                errors.err("cannot alias blocks", alias.target.position)        // TODO remove this check? move it to AstChecker?
+            } else if(tgt is Alias) {
+                var chainedAlias = alias
+                var chainedTargetName = alias.target
+                var maxhops = 100
+                while(true) {
+                    val tgt2 = chainedAlias.target.targetStatement(program.builtinFunctions)
+                    if (tgt2 is Alias) {
+                        chainedAlias = tgt2
+                        chainedTargetName = tgt2.target
+                    }
+                    else {
+                        val tgt2 = chainedTargetName.targetStatement(program.builtinFunctions) as? INamedStatement
+                        val replacement = if(tgt2!=null) {
+                            if(tgt2.scopedName != chainedTargetName.nameInSource) {
+                                val scopedTarget = IdentifierReference(tgt2.scopedName, alias.position)
+                                Alias(alias.alias, scopedTarget, alias.position)
+                            } else {
+                                Alias(alias.alias, chainedTargetName, alias.position)
+                            }
+                        } else {
+                            Alias(alias.alias, chainedTargetName, alias.position)
+                        }
+                        return listOf(IAstModification.ReplaceNode(alias, replacement, parent))
+                    }
+                    maxhops--
+                    if(maxhops==0) {
+                        errors.err("alias loop", alias.position)
+                        break
+                    }
+                }
+            }
         }
+
         return noModifications
     }
 

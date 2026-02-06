@@ -126,16 +126,6 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         return noModifications
     }
 
-    override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
-        val target = alias.target.targetStatement()
-        if(target is Alias) {
-            // shortcut the alias that refers to another alias
-            val newAlias = Alias(alias.alias, target.target, alias.position)
-            return listOf(IAstModification.ReplaceNode(alias, newAlias, parent))
-        }
-        return noModifications
-    }
-
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
         val target = identifier.targetStatement()
 

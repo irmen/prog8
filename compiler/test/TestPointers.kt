@@ -2432,7 +2432,7 @@ main {
 
     sub alias1() {
         alias TheNode = structdefs.Node
-        ^^TheNode node = 20000
+        ^^TheNode @shared node = 20000
         node.value = 100
     }
 
@@ -2444,7 +2444,7 @@ main {
 
     sub alias3() {
         alias TheNode = structdefs.Node
-        ^^TheNode node = 20000
+        ^^TheNode @shared node = 20000
         node++
     }
 
