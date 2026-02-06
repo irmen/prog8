@@ -436,7 +436,7 @@ enum class Opcode {
     ALIGN
 }
 
-val OpcodesThatBranchUnconditionally = arrayOf(
+val OpcodesThatBranchUnconditionally = setOf(
     Opcode.JUMP,
     Opcode.JUMPI,
     Opcode.RETURN,
@@ -444,7 +444,7 @@ val OpcodesThatBranchUnconditionally = arrayOf(
     Opcode.RETURNI
 )
 
-val OpcodesThatBranch = OpcodesThatBranchUnconditionally + arrayOf(
+val OpcodesThatBranch = OpcodesThatBranchUnconditionally + setOf(
     Opcode.CALLI,
     Opcode.CALL,
     Opcode.CALLFAR,
@@ -472,7 +472,7 @@ val OpcodesThatBranch = OpcodesThatBranchUnconditionally + arrayOf(
     Opcode.BLES
 )
 
-val OpcodesThatEndSSAblock = OpcodesThatBranchUnconditionally + arrayOf(
+val OpcodesThatEndSSAblock = OpcodesThatBranchUnconditionally + setOf(
     Opcode.BSTCC,
     Opcode.BSTCS,
     Opcode.BSTEQ,
@@ -1143,13 +1143,13 @@ data class IRInstruction(
             if(opcode==Opcode.SQRT)
                 return IRDataType.WORD
         }
-        if(opcode in arrayOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI, Opcode.LSIGW, Opcode.MSIGW))
+        if(opcode in setOf(Opcode.JUMPI, Opcode.CALLI, Opcode.STOREZI, Opcode.LSIGW, Opcode.MSIGW))
             return IRDataType.WORD
         if(opcode==Opcode.EXT || opcode==Opcode.EXTS)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
         if(opcode==Opcode.CONCAT)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
-        if(opcode in arrayOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB))
+        if(opcode in setOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB))
             return IRDataType.BYTE
         return this.type
     }

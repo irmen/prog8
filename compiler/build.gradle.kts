@@ -3,7 +3,7 @@ plugins {
     kotlin("jvm")
     // id("com.github.johnrengelman.shadow") version "8.1.1"
     // id("io.github.goooler.shadow") version "8.1.8"
-    id("com.gradleup.shadow") version "9.2.2"
+    id("com.gradleup.shadow") version "9.3.1"
     id("com.peterabeles.gversion") version "1.10.3"
 }
 

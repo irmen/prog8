@@ -332,8 +332,8 @@ class AsmGen6502Internal (
     private var generatedLabelSequenceNumber: Int
 ) {
 
-    internal val optimizedByteMultiplications = arrayOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
-    internal val optimizedWordMultiplications = arrayOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
+    internal val optimizedByteMultiplications = setOf(3,5,6,7,9,10,11,12,13,14,15,20,25,40,50,80,100)
+    internal val optimizedWordMultiplications = setOf(3,5,6,7,9,10,12,15,20,25,40,50,80,100,320,640)
     internal val loopEndLabels = ArrayDeque<String>()
     private val zeropage = options.compTarget.zeropage
     private val allocator = VariableAllocator(symbolTable, options, errors)

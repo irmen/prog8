@@ -1528,7 +1528,7 @@ $shortcutLabel:""")
     }
 
     private fun inplacemodificationRegisterAwithVariable(operator: String, variable: String, signed: Boolean) {
-        if(operator in "+-" && variable in arrayOf("#1", "#$1", "#$01", "#%1", "#%00000001")) {
+        if(operator in "+-" && variable in setOf("#1", "#$1", "#$01", "#%1", "#%00000001")) {
             if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
                 if(operator=="+")
                     asmgen.out("  inc  a")

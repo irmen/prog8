@@ -373,7 +373,7 @@ class ConstExprEvaluator {
             }
             "isspace" -> {
                 val char = args[0].number.toInt()
-                NumericLiteral.fromBoolean(char in arrayOf(32, 13, 9, 10, 141, 160), func.position)
+                NumericLiteral.fromBoolean(char in setOf(32, 13, 9, 10, 141, 160), func.position)
             }
             "isprint" -> {
                 val char = args[0].number.toInt()

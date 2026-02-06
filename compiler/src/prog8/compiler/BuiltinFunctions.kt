@@ -62,7 +62,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
 )
 
 internal fun builtinFunctionReturnType(function: String): InferredTypes.InferredType {
-    if(function in arrayOf("set_carry", "set_irqd", "clear_carry", "clear_irqd"))
+    if(function in setOf("set_carry", "set_irqd", "clear_carry", "clear_irqd"))
         return InferredTypes.InferredType.void()
 
     val func = BuiltinFunctions.getValue(function)

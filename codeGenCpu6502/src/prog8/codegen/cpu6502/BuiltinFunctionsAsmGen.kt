@@ -2361,7 +2361,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            if(arg is PtArrayIndexer && resultRegister in arrayOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
+            if(arg is PtArrayIndexer && resultRegister in setOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
                 // just read the msb byte out of the word array
                 if(arg.splitWords) {
                     if(arg.variable==null)
@@ -2474,7 +2474,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 else -> throw AssemblyError("invalid reg")
             }
         } else {
-            if(arg is PtArrayIndexer && resultRegister in arrayOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
+            if(arg is PtArrayIndexer && resultRegister in setOf(null, RegisterOrPair.A, RegisterOrPair.Y, RegisterOrPair.X)) {
                 // just read the lsb byte out of the word array
                 if(arg.variable==null)
                     TODO("support for ptr indexing ${arg.position}")

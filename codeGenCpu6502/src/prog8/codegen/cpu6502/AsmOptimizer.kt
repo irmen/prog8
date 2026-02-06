@@ -584,7 +584,7 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
             }
             else if(" cmp  #0" in second || "\tcmp  #0" in second) {
                 // there are many instructions that modify A and set the bits...
-                for(instr in arrayOf("lda", "ora", "and", "eor", "adc", "sbc", "asl", "cmp", "inc  a", "lsr", "pla", "rol", "ror", "txa", "tya")) {
+                for(instr in setOf("lda", "ora", "and", "eor", "adc", "sbc", "asl", "cmp", "inc  a", "lsr", "pla", "rol", "ror", "txa", "tya")) {
                     if(" $instr" in first || "\t$instr" in first) {
                         mods.add(Modification(lines[1].index, true, null))
                     }

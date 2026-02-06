@@ -52,18 +52,18 @@ val BaseDataType.isByteOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDa
 val BaseDataType.isWord get() = this in arrayOf(BaseDataType.UWORD, BaseDataType.WORD)
 val BaseDataType.isLong get() = this == BaseDataType.LONG
 val BaseDataType.isFloat get() = this == BaseDataType.FLOAT
-val BaseDataType.isInteger get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
-val BaseDataType.isIntegerOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
-val BaseDataType.isWordOrByteOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.BOOL)
+val BaseDataType.isInteger get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)
+val BaseDataType.isIntegerOrBool get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.BOOL)
+val BaseDataType.isWordOrByteOrBool get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.BOOL)
 val BaseDataType.isNumeric get() = this == BaseDataType.FLOAT || this.isInteger
 val BaseDataType.isNumericOrBool get() = this == BaseDataType.BOOL || this.isNumeric
-val BaseDataType.isSigned get() = this in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+val BaseDataType.isSigned get() = this in setOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
 val BaseDataType.isArray get() = this == BaseDataType.ARRAY || this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isPointer get() = this == BaseDataType.POINTER
 val BaseDataType.isStructInstance get() = this == BaseDataType.STRUCT_INSTANCE
 val BaseDataType.isPointerArray get() = this == BaseDataType.ARRAY_POINTER
 val BaseDataType.isSplitWordArray get() = this == BaseDataType.ARRAY_SPLITW || this == BaseDataType.ARRAY_POINTER       // pointer arrays are also always stored as split uwords
-val BaseDataType.isIterable get() =  this in arrayOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
+val BaseDataType.isIterable get() =  this in setOf(BaseDataType.STR, BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW, BaseDataType.ARRAY_POINTER)
 val BaseDataType.isPassByRef get() = this.isIterable && !this.isPointer
 val BaseDataType.isPassByValue get() = !this.isIterable || this.isPointer
 
@@ -307,14 +307,14 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     infix fun isAssignableTo(targetType: DataType) =
         when(base) {
             BaseDataType.BOOL -> targetType.base == BaseDataType.BOOL
-            BaseDataType.UBYTE -> targetType.base in arrayOf(BaseDataType.UBYTE, BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.BYTE -> targetType.base in arrayOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.UWORD -> targetType.base in arrayOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT, BaseDataType.POINTER, BaseDataType.ARRAY_POINTER)
-            BaseDataType.WORD -> targetType.base in arrayOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
-            BaseDataType.LONG -> targetType.base in arrayOf(BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.UBYTE -> targetType.base in setOf(BaseDataType.UBYTE, BaseDataType.WORD, BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.BYTE -> targetType.base in setOf(BaseDataType.BYTE, BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.UWORD -> targetType.base in setOf(BaseDataType.UWORD, BaseDataType.LONG, BaseDataType.FLOAT, BaseDataType.POINTER, BaseDataType.ARRAY_POINTER)
+            BaseDataType.WORD -> targetType.base in setOf(BaseDataType.WORD, BaseDataType.LONG, BaseDataType.FLOAT)
+            BaseDataType.LONG -> targetType.base in setOf(BaseDataType.LONG, BaseDataType.FLOAT)
             BaseDataType.FLOAT -> targetType.base in arrayOf(BaseDataType.FLOAT)
-            BaseDataType.STR -> targetType.base in arrayOf(BaseDataType.STR, BaseDataType.UWORD) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
-            BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in arrayOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
+            BaseDataType.STR -> targetType.base in setOf(BaseDataType.STR, BaseDataType.UWORD) || (targetType.isPointer && targetType.sub==BaseDataType.UBYTE)
+            BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW -> targetType.base in setOf(BaseDataType.ARRAY, BaseDataType.ARRAY_SPLITW) && targetType.sub == sub
             BaseDataType.POINTER -> {
                 when {
                     targetType.base == BaseDataType.UWORD || targetType.base == BaseDataType.LONG -> true
