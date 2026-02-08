@@ -554,7 +554,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lda  $variable |  lsr  a |  bcc  + |  ora  #$80 |+  |  sta  $variable")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             BaseDataType.UWORD -> {
@@ -573,7 +573,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lsr  $variable+1 |  ror  $variable |  bcc  + |  lda  $variable+1 |  ora  #$80 |  sta  $variable+1 |+  ")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             BaseDataType.LONG -> {
@@ -593,7 +593,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             sta  $variable+3
 +""")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             else -> throw AssemblyError("weird type")
@@ -628,7 +628,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                 asmgen.storeAIntoZpPointerVar(sourceName, false)
                             }
                             else -> {
-                                TODO("ror ptr-expression ${what.position}")
+                                asmgen.out("  php")   // save Carry
+                                asmgen.assignExpressionToVariable(what.address, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                                asmgen.out("""
+                                    ldy  #0
+                                    lda  (P8ZP_SCRATCH_PTR),y
+                                    plp
+                                    ror  a
+                                    sta  (P8ZP_SCRATCH_PTR),y""")
                             }
                         }
                     }
@@ -636,7 +643,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             BaseDataType.UWORD -> {
@@ -657,7 +664,34 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable+1 |  ror  $variable")
                     }
-                    else -> throw AssemblyError("weird node")
+                    is PtPointerDeref -> {
+                        asmgen.out("  php")   // save Carry
+                        val (zpPtrVar, offset) = ptrgen.deref(what, false)
+                        asmgen.out("""
+                            ldy  #$offset+1
+                            lda  ($zpPtrVar),y
+                            plp
+                            ror  a
+                            sta  ($zpPtrVar),y
+                            dey
+                            lda  ($zpPtrVar),y
+                            ror  a
+                            sta  ($zpPtrVar),y""")
+                    }
+                    else -> {
+                        asmgen.out("  php")   // save Carry
+                        asmgen.assignExpressionToVariable(what, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                        asmgen.out("""
+                            ldy  #1
+                            lda  (P8ZP_SCRATCH_PTR),y
+                            plp
+                            ror  a
+                            sta  (P8ZP_SCRATCH_PTR),y
+                            dey
+                            lda  (P8ZP_SCRATCH_PTR),y
+                            ror  a
+                            sta  (P8ZP_SCRATCH_PTR),y""")
+                    }
                 }
             }
             BaseDataType.LONG -> {
@@ -668,7 +702,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  ror  $variable+3 |  ror  $variable+2 |  ror  $variable+1 |  ror  $variable")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> {
+                        TODO("ror long on expression $what")
+                    }
                 }
             }
             else -> throw AssemblyError("weird type")
@@ -700,7 +736,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  lda  $variable |  cmp  #$80 |  rol  a |  sta  $variable")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             BaseDataType.UWORD -> {
@@ -719,7 +755,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  asl  $variable |  rol  $variable+1 |  bcc  + |  inc  $variable |+  ")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             BaseDataType.LONG -> {
@@ -737,7 +773,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                             inc  $variable
 +""")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             else -> throw AssemblyError("weird type")
@@ -771,7 +807,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                                 asmgen.storeAIntoZpPointerVar(sourceName, false)
                             }
                             else -> {
-                                TODO("rol ptr-expression ${what.position}")
+                                asmgen.out("  php")   // save Carry
+                                asmgen.assignExpressionToVariable(what.address, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                                asmgen.out("""
+                                    ldy  #0
+                                    lda  (P8ZP_SCRATCH_PTR),y
+                                    plp
+                                    rol  a
+                                    sta  (P8ZP_SCRATCH_PTR),y""")
                             }
                         }
                     }
@@ -779,7 +822,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> throw AssemblyError("weird node $what")
                 }
             }
             BaseDataType.UWORD -> {
@@ -800,7 +843,34 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable |  rol  $variable+1")
                     }
-                    else -> throw AssemblyError("weird node")
+                    is PtPointerDeref -> {
+                        asmgen.out("  php")   // save Carry
+                        val (zpPtrVar, offset) = ptrgen.deref(what, false)
+                        asmgen.out("""
+                            ldy  #$offset
+                            lda  ($zpPtrVar),y
+                            plp
+                            rol  a
+                            sta  ($zpPtrVar),y
+                            iny
+                            lda  ($zpPtrVar),y
+                            rol  a
+                            sta  ($zpPtrVar),y""")
+                    }
+                    else -> {
+                        asmgen.out("  php")   // save Carry
+                        asmgen.assignExpressionToVariable(what, "P8ZP_SCRATCH_PTR", DataType.UWORD)
+                        asmgen.out("""
+                            ldy  #0
+                            lda  (P8ZP_SCRATCH_PTR),y
+                            plp
+                            rol  a
+                            sta  (P8ZP_SCRATCH_PTR),y
+                            iny
+                            lda  (P8ZP_SCRATCH_PTR),y
+                            rol  a
+                            sta  (P8ZP_SCRATCH_PTR),y""")
+                    }
                 }
             }
             BaseDataType.LONG -> {
@@ -811,7 +881,9 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                         val variable = asmgen.asmVariableName(what)
                         asmgen.out("  rol  $variable |  rol  $variable+1 |  rol  $variable+2 |  rol  $variable+3")
                     }
-                    else -> throw AssemblyError("weird node")
+                    else -> {
+                        TODO("rol long on expression $what")
+                    }
                 }
             }
             else -> throw AssemblyError("weird type")
