@@ -84,6 +84,13 @@ interface IStatementContainer {
             when(stmt) {
                 is VarDecl -> if(stmt.name==name || stmt.names.contains(name)) return stmt
                 is INamedStatement -> if(stmt.name==name) return stmt
+                is When -> {
+                    stmt.choices.forEach {
+                        val found = it.statements.searchSymbol(name)
+                        if(found!=null)
+                            return found
+                    }
+                }
                 is AnonymousScope -> {
                     val found = stmt.searchSymbol(name)
                     if(found!=null)
@@ -94,17 +101,7 @@ interface IStatementContainer {
                     if(found!=null)
                         return found
                 }
-                is ConditionalBranch -> {
-                    val found = stmt.truepart.searchSymbol(name) ?: stmt.elsepart.searchSymbol(name)
-                    if(found!=null)
-                        return found
-                }
                 is ForLoop -> {
-                    val found = stmt.body.searchSymbol(name)
-                    if(found!=null)
-                        return found
-                }
-                is WhileLoop -> {
                     val found = stmt.body.searchSymbol(name)
                     if(found!=null)
                         return found
@@ -114,17 +111,20 @@ interface IStatementContainer {
                     if(found!=null)
                         return found
                 }
+                is WhileLoop -> {
+                    val found = stmt.body.searchSymbol(name)
+                    if(found!=null)
+                        return found
+                }
                 is UntilLoop -> {
                     val found = stmt.body.searchSymbol(name)
                     if(found!=null)
                         return found
                 }
-                is When -> {
-                    stmt.choices.forEach {
-                        val found = it.statements.searchSymbol(name)
-                        if(found!=null)
-                            return found
-                    }
+                is ConditionalBranch -> {
+                    val found = stmt.truepart.searchSymbol(name) ?: stmt.elsepart.searchSymbol(name)
+                    if(found!=null)
+                        return found
                 }
                 is Alias -> if(stmt.alias==name) return stmt
                 else -> {

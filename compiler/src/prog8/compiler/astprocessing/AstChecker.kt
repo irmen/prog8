@@ -312,6 +312,10 @@ internal class AstChecker(private val program: Program,
         super.visit(jump)
     }
 
+    override fun visit(alias: Alias) {
+        throw FatalAstException("all Alias nodes should have been removed from the AST ${alias.position}")
+    }
+
     override fun visit(block: Block) {
         if(block.name.startsWith('_'))
             errors.err("identifiers cannot start with an underscore", block.position)
@@ -1247,7 +1251,7 @@ internal class AstChecker(private val program: Program,
                 for(arg in directive.args) {
                     val target = directive.definingScope.lookup(arg.string!!.split('.'))
                     if(target==null)
-                        errors.err("undefined symbol: ${arg.string}", arg.position)
+                        errors.undefined(listOf(arg.string!!), position = arg.position)
                     else if (target !is Subroutine)
                         errors.err("jmptable entry can only be a subroutine: ${arg.string}", arg.position)
                 }
@@ -2186,7 +2190,7 @@ internal class AstChecker(private val program: Program,
         if (deref.inferType(program).isUnknown) {
             val symbol = deref.definingScope.lookup(deref.chain.take(1))
             if(symbol==null)
-                errors.err("undefined symbol: ${deref.chain[0]}", deref.position)
+                errors.undefined(deref.chain.take(1), position=deref.position)
             else
                 errors.err("unable to determine type of dereferenced pointer expression", deref.position)
         }

@@ -345,11 +345,13 @@ class AstPreprocessor(val program: Program,
         // shortcut aliases that point to aliases (remove alias chains)
         val tgt = alias.target.targetStatement(program.builtinFunctions)
 
-        if(tgt!=null) {
+        if(tgt==null) {
+            errors.undefined(alias.target.nameInSource, position = alias.target.position)
+        } else {
             if(alias.alias == alias.target.nameInSource.first()) {
                 errors.err("alias loop", alias.position)
             } else if(tgt is Block) {
-                errors.err("cannot alias blocks", alias.target.position)        // TODO remove this check? move it to AstChecker?
+                errors.err("cannot alias blocks", alias.target.position)
             } else if(tgt is Alias) {
                 var chainedAlias = alias
                 var chainedTargetName = alias.target
@@ -363,7 +365,10 @@ class AstPreprocessor(val program: Program,
                     else {
                         val tgt2 = chainedTargetName.targetStatement(program.builtinFunctions) as? INamedStatement
                         val replacement = if(tgt2!=null) {
-                            if(tgt2.scopedName != chainedTargetName.nameInSource) {
+                            if(tgt2 is BuiltinFunctionPlaceholder) {
+                                val unscopedTarget = IdentifierReference(listOf(tgt2.name), alias.position)
+                                Alias(alias.alias, unscopedTarget, alias.position)
+                            } else if(tgt2.scopedName != chainedTargetName.nameInSource) {
                                 val scopedTarget = IdentifierReference(tgt2.scopedName, alias.position)
                                 Alias(alias.alias, scopedTarget, alias.position)
                             } else {

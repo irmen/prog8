@@ -1768,27 +1768,26 @@ class PtrDereference(
         fun resultType(dt: DataType?) = if(dt==null) InferredTypes.unknown() else InferredTypes.knownFor(if(derefLast) dt.dereference() else dt)
 
         val target = definingScope.lookup(chain) ?: return InferredTypes.unknown()
-        if(target is VarDecl)
-            return resultType(target.datatype)
-        if(target is StructFieldRef)
-            return resultType(target.type)
-        if(target is Alias)
-            return target.target.inferType(program)
-
-        TODO("infertype $chain -> $target")
+        return when (target) {
+            is VarDecl -> resultType(target.datatype)
+            is StructFieldRef -> resultType(target.type)
+            is Alias -> target.target.inferType(program)
+            else -> TODO("infertype $chain -> $target")
+        }
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) =
         throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = chain.size==1 && chain==nameInSource
     fun isSamePointerDeref(other: Expression?): Boolean {
-        if(other==null || other !is PtrDereference)
-            return false
-        if(derefLast != other.derefLast)
-            return false
-        if(chain != other.chain)
-            return false
-        return true
+        return if(other==null || other !is PtrDereference)
+            false
+        else if(derefLast != other.derefLast)
+            false
+        else if(chain != other.chain)
+            false
+        else
+            true
     }
 
     fun firstTarget(): Statement? = definingScope.lookup(chain.take(1))

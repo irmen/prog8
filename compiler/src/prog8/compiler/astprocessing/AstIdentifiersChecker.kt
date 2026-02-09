@@ -41,11 +41,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             errors.err("invalid number of arguments: expected $expected but got $numArgs", pos)
     }
 
-    override fun visit(alias: Alias) {
-        if(alias.target.targetStatement(program.builtinFunctions)==null)
-            errors.err("undefined symbol: ${alias.target.nameInSource.joinToString(".") }", alias.target.position)
-    }
-
     override fun visit(block: Block) {
         val existing = blocks[block.name]
         if(existing!=null) {
@@ -230,7 +225,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
     }
 
     private fun visitFunctionCall(call: IFunctionCall) {
-        fun check(target: Statement?, aliasDepth: Int) {
+        fun check(target: Statement?) {
             when (target) {
                 is Subroutine -> {
                     val expectedNumberOfArgs: Int = target.parameters.size
@@ -272,12 +267,8 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                         errors.err("wrong address variable datatype, expected uword", call.target.position)
                 }
                 is Alias -> {
-                    if(aliasDepth>1000) {
-                        errors.err("circular alias", target.position)
-                    } else {
-                        val actualtarget = target.target.targetStatement(program.builtinFunctions)
-                        check(actualtarget, aliasDepth + 1)
-                    }
+                    val actualtarget = target.target.targetStatement(program.builtinFunctions)
+                    check(actualtarget)
                 }
                 is StructDecl, is StructFieldRef -> {}
                 null -> {}  // symbol error is given elsewhere
@@ -285,6 +276,6 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
             }
         }
 
-        check(call.target.targetStatement(program.builtinFunctions), 0)
+        check(call.target.targetStatement(program.builtinFunctions))
     }
 }

@@ -52,7 +52,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is ChainedAssignment -> throw FatalAstException("ChainedAssignment should have been flattened")
             is Assignment -> transform(statement)
             is Block -> transform(statement)
-            is Alias -> throw FatalAstException("alias should have been desugared")
+            is Alias -> throw FatalAstException("alias should have been removed")
             is Break -> throw FatalAstException("break should have been replaced by Goto")
             is Continue -> throw FatalAstException("continue should have been replaced by Goto")
             is BuiltinFunctionPlaceholder -> throw FatalAstException("BuiltinFunctionPlaceholder should not occur in Ast here")

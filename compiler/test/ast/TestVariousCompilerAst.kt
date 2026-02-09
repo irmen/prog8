@@ -146,10 +146,11 @@ main {
 }"""
             val errors = ErrorReporterForTests()
             compileText(VMTarget(), false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
-            errors.errors.size shouldBe 3
-            errors.errors[0] shouldContain "references itself"
+            errors.errors.size shouldBe 4
+            errors.errors[0] shouldContain "alias loop"
             errors.errors[1] shouldContain "undefined symbol: xx.yy"
-            errors.errors[2] shouldContain "references itself"
+            errors.errors[2] shouldContain "alias loop"
+            errors.errors[3] shouldContain "alias loop"
         }
 
         test("alias scopes") {

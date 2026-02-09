@@ -23,15 +23,10 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
     // - pointer[word] replaced by @(pointer+word)
     // - @(&var) and @(&var+1) replaced by lsb(var) and msb(var) if var is a word
     // - flatten chained assignments
-    // - remove alias nodes
     // - convert on..goto/call to jumpaddr array and separate goto/call
     // - replace implicit pointer dereference chains (a.b.c.d) with explicit ones (a^^.b^^.c^^.d)
     // - replace ptr^^ by @(ptr) if ptr is just an uword.
     // - replace p1^^ = p2^^  by memcopy.
-
-    override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
-        return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
-    }
 
     override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
         fun jumpAfter(stmt: Statement): Iterable<IAstModification> {
@@ -570,10 +565,6 @@ _after:
             val firstDt = firstTarget?.datatype
             if (firstDt?.isPointer == true) {
                 // the a.b.c.d can be a pointer dereference chain ending in a struct field;  a^^.b^^.c^^.d
-                // don't change aliases!
-                if(parent is Alias)
-                    return noModifications
-
                 val chain = mutableListOf(identifier.nameInSource[0])
                 var struct = firstDt.subType
                 for(name in identifier.nameInSource.drop(1)) {
