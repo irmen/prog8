@@ -324,7 +324,7 @@ Arrays
 .. index:: pair: Data Types; Arrays
 
 Arrays can be created from a list of booleans, bytes, words, floats, addresses of other variables
-(such as explicit address-of expressions, strings, or other array variables), and struct initializers.
+(such as explicit address-of expressions, strings, or other array variables), pointers, or struct initializers.
 The values in an array literal always have to be constants.
 A trailing comma is allowed, sometimes this is easier when copying values
 or when adding more stuff to the array later. Here are some examples of arrays::
@@ -336,6 +336,7 @@ or when adding more stuff to the array later. Here are some examples of arrays::
     str[] names = ["ally", "pete"]    ; array of string pointers/addresses (equivalent to array of uwords)
     uword[] others = [names, array]   ; array of pointers/addresses to other arrays
     bool[2] flags = [true, false]     ; array of two boolean values  (take up 1 byte each, like a byte array)
+    ^^float[3] values                 ; array of three pointers to floats
 
     value = array[3]            ; the fourth value in the array (index is 0-based)
     char = string[4]            ; the fifth character (=byte) in the string
