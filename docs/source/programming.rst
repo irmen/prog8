@@ -125,8 +125,10 @@ The ``alias`` statement makes it easier to refer to symbols from other places, a
 you from having to type the fully scoped name everytime you need to access that symbol.
 Aliases can be created in any scope except at the module level.
 An alias is created with ``alias <name> = <target>`` and then you can use ``<name>`` as if it were ``<target>``.
-It is possible to alias variables, labels and subroutines, but not whole blocks.
-The name has to be an unscoped identifier name, the target can be any symbol.
+It is possible to alias variables, labels and subroutines, and even whole blocks.words
+The name has to be an unscoped identifier name, the target can be any scoped or unscoped symbol.
+Please consider using aliases sparingly because it may lead to confusing code if you alias
+well-known block names for example.
 
 
 .. _blocks:

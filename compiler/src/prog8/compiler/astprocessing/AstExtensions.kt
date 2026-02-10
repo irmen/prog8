@@ -251,7 +251,9 @@ internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, st
             return targetStatement
         }
         null -> {
-            errors.undefined(this.nameInSource, this.firstTarget(program.builtinFunctions)==null, this.position)
+            val alias = definingScope.lookup(this.nameInSource.take(1))
+            if(alias !is Alias || alias.target.targetStatement(program.builtinFunctions)==null)
+                errors.undefined(this.nameInSource, this.firstTarget(program.builtinFunctions)==null, this.position)
         }
         else -> errors.err("cannot call that: ${this.nameInSource.joinToString(".")}", this.position)
     }

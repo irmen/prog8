@@ -182,18 +182,6 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
 
             return listOf(IAstModification.ReplaceNode(identifier, replacement, parent))
         }
-
-// experimental code to be able to alias blocks too:
-//        if(target is INamedStatement) {
-//            if (identifier.nameInSource != target.scopedName) {
-//                val blockAlias = identifier.definingScope.lookup(identifier.nameInSource.take(1))
-//                if(blockAlias is Alias) {
-//                    val newname = mutableListOf(blockAlias.target.nameInSource.single())
-//                    newname.addAll(identifier.nameInSource.drop(1))
-//                    return listOf(IAstModification.ReplaceNode(identifier, IdentifierReference(newname, position = identifier.position), parent))
-//                }
-//            }
-//        }
         return noModifications
     }
 

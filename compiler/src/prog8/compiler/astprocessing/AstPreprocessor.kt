@@ -350,8 +350,6 @@ class AstPreprocessor(val program: Program,
         } else {
             if(alias.alias == alias.target.nameInSource.first()) {
                 errors.err("alias loop", alias.position)
-            } else if(tgt is Block) {
-                errors.err("cannot alias blocks", alias.target.position)
             } else if(tgt is Alias) {
                 var chainedAlias = alias
                 var chainedTargetName = alias.target
