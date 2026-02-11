@@ -585,4 +585,25 @@ main  {
             branches.size shouldBeLessThanOrEqual 1
         }
     }
+
+    xtest("deeply scoped variable references") {
+        val src= $"""
+main {
+    sub start() {
+        main.sub1.sub2.sub3.variable = 100
+    }
+
+    sub sub1() {
+        sub sub2() {
+            sub sub3() {
+                ubyte @shared variable
+            }
+        }
+    }
+}"""
+        compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
+        val result = compileText(VMTarget(), true, src, outputDir)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runProgram(virtfile.readText(), true)        // TODO fix vm crash on deeply scoped symbol ref
+    }
 })

@@ -463,7 +463,7 @@ conv
 Routines to convert strings to numbers or vice versa.
 
 - numbers to strings, in various formats (binary, hex, decimal)
-- strings in decimal, hex and binary format into numbers (bytes, words)
+- strings in decimal, hex and binary format into numbers (bytes, words, longs)
 
 Read the :source:`conv source code <compiler/res/prog8lib/conv.p8>`
 to see what's in there.

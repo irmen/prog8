@@ -1,6 +1,10 @@
 TODO
 ====
 
+- fix chained aliasing errors see test "chained aliasing"
+- fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
@@ -109,7 +113,6 @@ IR/VM
 
 Libraries
 ---------
-- add a string to long conv routine
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support?
 

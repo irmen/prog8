@@ -1,203 +1,159 @@
+%import textio
+%import conv
+%import strings
 %zeropage basicsafe
 
 main {
-    alias print = mytxt.print
-    alias width = mytxt.DEFAULT_WIDTH
-    alias textOverlay_top = mytxt.overlayTop
-    alias textOverlay_bot = mytxt.overlayBot
-
+    ; Test the routine
     sub start() {
-        address_of_alias()
-        alias1()
-        alias2()
-        alias3()
-        alias4()
-        alias5()
-        alias6()
-        player.test()
-        alias_scopes()
-        alias_loop_error()
-        alias_error()
-        aliased_func_error()
+        str test_string1 = "12345"
+        str test_string2 = "-98765"
+        str test_string3 = "0"
+        str test_string4 = "2147483647"  ; Max positive 32-bit signed integer
+        str test_string5 = "-2147483648" ; Min negative 32-bit signed integer
+        str test_string6 = "42"
+        str test_string7 = "1000000000"  ; Large number
+        str test_string8 = ""             ; Empty string
+        str test_string9 = "abc123"     ; Invalid string
+        str test_string10 = "255"        ; Max unsigned byte
+        str test_string11 = "127"        ; Max signed byte
+        str test_string12 = "-128"       ; Min signed byte
+        str test_string13 = "65535"      ; Max unsigned word
+        str test_string14 = "32767"      ; Max signed word
+        str test_string15 = "-32768"     ; Min signed word
+        str test_string16 = "100000"     ; Just over 65535/10
+        str test_string17 = "999999"     ; Larger number
+        str test_string18 = "+999999"    ; Larger number with plus
+
+        long result1 = conv.str2long(test_string1)
+        long result2 = conv.str2long(test_string2)
+        long result3 = conv.str2long(test_string3)
+        long result4 = conv.str2long(test_string4)
+        long result5 = conv.str2long(test_string5)
+        long result6 = conv.str2long(test_string6)
+        long result7 = conv.str2long(test_string7)
+        long result8 = conv.str2long(test_string8)  ; This should return 0 for empty string
+        long result9 = conv.str2long(test_string9) ; This should return 0 since it starts with non-digit
+        long result10 = conv.str2long(test_string10)  ; Max unsigned byte
+        long result11 = conv.str2long(test_string11)  ; Max signed byte
+        long result12 = conv.str2long(test_string12)  ; Min signed byte
+        long result13 = conv.str2long(test_string13)  ; Max unsigned word
+        long result14 = conv.str2long(test_string14)  ; Max signed word
+        long result15 = conv.str2long(test_string15)  ; Min signed word
+        long result16 = conv.str2long(test_string16)  ; Just over 65535/10
+        long result17 = conv.str2long(test_string17)  ; Larger number
+        long result18 = conv.str2long(test_string18)  ; Larger number with +
+
+        ; Print results using the built-in textio library
+        txt.print("str ")
+        txt.print(test_string1)
+        txt.print(" = ")
+        txt.print_l(result1)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string2)
+        txt.print(" = ")
+        txt.print_l(result2)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string3)
+        txt.print(" = ")
+        txt.print_l(result3)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string4)
+        txt.print(" = ")
+        txt.print_l(result4)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string5)
+        txt.print(" = ")
+        txt.print_l(result5)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string6)
+        txt.print(" = ")
+        txt.print_l(result6)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string7)
+        txt.print(" = ")
+        txt.print_l(result7)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string8)
+        txt.print(" = ")
+        txt.print_l(result8)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string9)
+        txt.print(" = ")
+        txt.print_l(result9)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string10)
+        txt.print(" = ")
+        txt.print_l(result10)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string11)
+        txt.print(" = ")
+        txt.print_l(result11)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string12)
+        txt.print(" = ")
+        txt.print_l(result12)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string13)
+        txt.print(" = ")
+        txt.print_l(result13)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string14)
+        txt.print(" = ")
+        txt.print_l(result14)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string15)
+        txt.print(" = ")
+        txt.print_l(result15)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string16)
+        txt.print(" = ")
+        txt.print_l(result16)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string17)
+        txt.print(" = ")
+        txt.print_l(result17)
+        txt.nl()
+
+        txt.print("str ")
+        txt.print(test_string18)
+        txt.print(" = ")
+        txt.print_l(result18)
+        txt.nl()
+
+        ; To make sure the program finishes properly
+        return
     }
-
-    sub address_of_alias() {
-        ubyte @shared index = 3
-        ubyte[10] array
-        alias curframe = array
-
-        cx16.r0 = &curframe
-        cx16.r1 = &curframe[3]
-        cx16.r2 = &curframe + 3
-        cx16.r3 = &curframe[index]
-        cx16.r4 = &curframe + index
-    }
-
-    sub alias1() {
-        alias TheNode = structdefs.Node
-        ^^TheNode @shared node = 20000
-        node.value = 100
-    }
-
-    sub alias2() {
-        ^^structdefs.Node node = 20000
-        alias thing = node
-        thing.value=200
-    }
-
-    sub alias3() {
-        alias TheNode = structdefs.Node
-        ^^TheNode @shared node = 20000
-        node++
-    }
-
-    sub alias4() {
-        alias currentElement = structdefs.element
-        currentElement = 20000
-
-        ; all 3 should be the same:
-        structdefs.element.value = 42
-        currentElement.value = 42
-        currentElement^^.value = 42
-
-        ; all 3 should be the same:
-        structdefs.element.value2 = 4242
-        currentElement.value2 = 4242
-        currentElement^^.value2 = 4242
-
-        cx16.r0 = currentElement^^.value2
-        cx16.r1 = currentElement.value2
-    }
-
-    sub alias5() {
-        alias nid = structdefs.element.value
-        nid++
-    }
-
-    sub alias6() {
-        alias print2 = mytxt.print
-        alias width2 = mytxt.DEFAULT_WIDTH
-        print("one")
-        print2("two")
-        mytxt.print_ub(width)
-        mytxt.print_ub(width2)
-
-        ; chained aliases
-        alias chained = print2
-        chained("chained")
-
-        ; multi vardecls
-        textOverlay_bot++
-        textOverlay_top++
-    }
-
-    sub alias_scopes() {
-        alias mything = other.thing
-        alias myvariable = other.variable
-
-        mything()
-        myvariable ++
-
-        other.thing2()
-        other.variable2 ++
-
-        alias nid = structdefs.element.value
-        nid++
-    }
-
-    sub alias_loop_error() {
-        alias vv = vv
-        alias xx = xx.yy
-        alias zz = mm
-        alias mm = zz
-    }
-
-    alias print = mytxt.print2222
-    alias width = mytxt.DEFAULT_WIDTH
-
-    sub alias_error() {
-        alias print2 = mytxt.print
-        alias width2 = mytxt.DEFAULT_WIDTH_XXX
-        print("one")
-        print2("two")
-        mytxt.print_ub(width)
-        mytxt.print_ub(width2)
-    }
-
-    sub aliased_func_error() {
-        alias func1 = actualfunc
-        alias func2 = mkword
-        alias func3 = func1
-        alias func4 = func2
-
-        ; all wrong:
-        func1(1,2)
-        func1()
-        func2(1,2,3,4)
-        func2()
-        func3()
-        func4()
-
-        ; all ok:
-        func1(1)
-        cx16.r0 = func2(1,2)
-        func3(1)
-        cx16.r0 = func4(1,2)
-
-        sub actualfunc(ubyte a) {
-            a++
-        }
-    }
-}
-
-
-
-cx16 {
-      %option merge
-      &^^word pword4 = &cx16.r4
-}
-
-player {
-      alias sxPtr = cx16.pword4
-      &^^word zxPtr      = &cx16.r6
-
-  sub test() {
-    sxPtr^^ = -99           ; aliased assignment
-    if (zxPtr^^ - sxPtr^^) in -13 to 13 {       ; aliased expression
-        cx16.r0++
-    }
-  }
-}
-
-
-mytxt {
-    uword overlayTop, overlayBot
-
-    const ubyte DEFAULT_WIDTH = 80
-    sub print_ub(ubyte value) {
-        ; nothing
-    }
-    sub print(str msg) {
-        ; nothing
-    }
-}
-
-structdefs {
-    struct Node {
-        ubyte value
-        uword value2
-    }
-
-    ^^Node @shared element
-}
-
-other {
-    sub thing() {
-        cx16.r0++
-    }
-
-    ubyte @shared variable
-
-    alias thing2 = thing
-    alias variable2 = variable
 }

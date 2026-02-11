@@ -1,5 +1,5 @@
 
-Prog8 compiler v12.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.1.1 by Irmen de Jong (irmen@razorvine.net)
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -94,6 +94,7 @@ conv  {
     internal_str_ub  (ubyte value, str out_ptr) 
     internal_str_uw  (uword value, str out_ptr) 
     str2byte  (str string) -> byte 
+    str2long  (str string) -> long 
     str2ubyte  (str string) -> ubyte 
     str2uword  (str string) -> uword 
     str2word  (str string) -> word 

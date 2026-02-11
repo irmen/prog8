@@ -12,6 +12,13 @@ This file contains project-specific information that helps the Qwen assistant un
 - Prog8 source files are a "module" that can contain 1 ore more "blocks". They can also import other modules, from internal library files or from source files on the filesystem.
 - The prog8 compiler is written mostly in Kotlin, those files have the .kt extension.
 
+## Prog8 language feature hints
+- an overview of the language features can be found in the documentation file docs/source/introduction.rst
+- the syntax and grammar is specified in an ANTLR4 grammar file found in the parser directory
+- the syntax for boolean logical operators is 'and', 'or', 'xor', 'not'. Bitwise operators are '&', '|', '^', '~', and '<<','>>' for bit shifting left and right respectively. All operators are documents in docs/source/programming.rst
+- note that Prog8 does have a 4-byte signed long type and 5-byte "Microsoft" floating point support
+- module imports are done using "%import modulename"
+
 ## Module Descriptions
 - `beanshell` - EXPERIMENTAL/UNFINISHED Contains BeanShell integration for scripting capabilities within the compiler
 - `benchmark-c` - C implementations for performance comparison and benchmarking

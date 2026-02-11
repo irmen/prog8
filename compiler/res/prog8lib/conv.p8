@@ -651,6 +651,30 @@ _try_iso
     }}
 }
 
+sub  str2long(str string) -> long {
+    ; -- convert a decimal string (terminated with a zero byte) into a long. Clobbers R0
+    long result = 0
+    bool @nozp negative = string[0] == '-'
+    if negative or string[0]=='+'
+        string++
+    alias digit_char = cx16.r0L
+    repeat {
+        digit_char = @(string)
+        if digit_char in '0' to '9' {
+            result = (result<<1) + (result<<3)  ; multiply by 10
+            result += digit_char - '0'  ; add digit
+        } else {
+            break   ; Invalid character, stop processing
+        }
+        string++
+    }
+
+    if negative
+        return -result
+    else
+        return result
+}
+
 asmsub  bin2uword(str string @AY) -> uword @AY {
 	; -- binary string (with or without '%') to uword.
 	;    stops parsing at the first character that's not a 0 or 1. (except leading %)

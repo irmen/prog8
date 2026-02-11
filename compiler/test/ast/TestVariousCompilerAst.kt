@@ -265,6 +265,36 @@ main {
             errors.errors[4] shouldContain "invalid number of arguments: expected 1 but got 0"
             errors.errors[5] shouldContain "invalid number of arguments: expected 2 but got 0"
         }
+
+        xtest("chained aliasing") {
+            val src="""
+main {
+    sub start() {
+        alias s1 = testblock.sub1
+        alias s2 = s1.sub2      ; TODO fix alias error
+        alias vx = s2.var2      ; TODO fix alias error
+        vx = 999
+
+        alias tb = testblock
+        alias vv = tb.variable      ; TODO fix alias error
+        vv = 99
+    }
+}
+
+
+testblock {
+    ubyte @shared variable
+
+    sub sub1() {
+        sub sub2() {
+            ubyte @shared var2
+        }
+    }
+}"""
+            val errors = ErrorReporterForTests()
+            compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors=errors) shouldNotBe null
+            errors.errors.size shouldBe 0
+        }
     }
 
     context("strings") {
