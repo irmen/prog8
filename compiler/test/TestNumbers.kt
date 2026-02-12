@@ -85,10 +85,10 @@ class TestNumbers: FunSpec({
         Mflpt5.fromNumber(1.7e-39) shouldBe Mflpt5(0x00u, 0x00u, 0x00u, 0x00u, 0x00u)
         Mflpt5.fromNumber(-1.7e-38) shouldBe Mflpt5(0x03u, 0xb9u, 0x1du, 0x15u, 0x63u)
         Mflpt5.fromNumber(-1.7e-39) shouldBe Mflpt5(0x00u, 0x00u, 0x00u, 0x00u, 0x00u)
-        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(1.7014118346e+38) }
-        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(-1.7014118346e+38) }
-        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(1.7014118347e+38) }
-        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(-1.7014118347e+38) }
+        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(1.7014118346e+38) }.message shouldContain  "mflpt range: 1.7014118346E38"
+        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(-1.7014118346e+38) }.message shouldContain "mflpt range: -1.7014118346E38"
+        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(1.7014118347e+38) }.message shouldContain "mflpt range: 1.7014118347E38"
+        shouldThrow<InternalCompilerException> { Mflpt5.fromNumber(-1.7014118347e+38) }.message shouldContain "mflpt range: -1.7014118347E38"
     }
 
     test("testMflpt5ToFloat") {

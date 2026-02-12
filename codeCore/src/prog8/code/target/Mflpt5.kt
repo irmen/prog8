@@ -19,7 +19,7 @@ data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, va
 
             val flt = num.toDouble()
             if (flt !in FLOAT_MAX_NEGATIVE..FLOAT_MAX_POSITIVE)
-                throw InternalCompilerException("floating point number out of 5-byte mflpt range: $this")
+                throw InternalCompilerException("floating point number out of 5-byte mflpt range: $flt")
             if (flt == 0.0)
                 return zero
 
@@ -40,7 +40,7 @@ data class Mflpt5(val b0: UByte, val b1: UByte, val b2: UByte, val b3: UByte, va
 
             return when {
                 exponent < 0 -> zero  // underflow, use zero instead
-                exponent > 255 -> throw InternalCompilerException("floating point overflow: $this")
+                exponent > 255 -> throw InternalCompilerException("floating point overflow: $flt")
                 exponent == 0 -> zero
                 else -> {
                     val mantLong = mantissa.toLong()
