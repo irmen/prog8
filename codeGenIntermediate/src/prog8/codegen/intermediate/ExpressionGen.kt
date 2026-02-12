@@ -84,7 +84,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtBinaryExpression -> translate(expr)
             is PtIfExpression -> translate(expr)
             is PtBranchCondExpression -> translate(expr)
-            is PtBuiltinFunctionCall -> codeGen.translateBuiltinFunc(expr)
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
             is PtPointerDeref -> translate(expr)
@@ -880,6 +879,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     internal fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
+        if(fcall.builtin)
+            return codeGen.translateBuiltinFunc(fcall)
+
         val callTarget = codeGen.symbolTable.lookup(fcall.name)!!
 
         when(callTarget.scopedNameString) {

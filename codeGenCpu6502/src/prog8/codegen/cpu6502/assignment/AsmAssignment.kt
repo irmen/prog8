@@ -208,19 +208,20 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                 is PtArrayIndexer -> {
                     AsmAssignSource(SourceStorageKind.ARRAY, program, asmgen, value.type, array = value)
                 }
-                is PtBuiltinFunctionCall -> {
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
-                }
                 is PtFunctionCall -> {
-                    val symbol = asmgen.symbolTable.lookup(value.name) ?: throw AssemblyError("lookup error ${value.name}")
-                    val sub = symbol.astNode as IPtSubroutine
-                    val returnType =
-                        if(sub is PtSub && sub.signature.returns.size>1)
-                            DataType.UNDEFINED      // TODO list of types instead?
-                        else
-                            sub.returnsWhatWhere().firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
-                            ?: throw AssemblyError("can't translate zero return values in assignment")
-                    AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
+                    if(value.builtin) {
+                        AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
+                    } else {
+                        val symbol = asmgen.symbolTable.lookup(value.name) ?: throw AssemblyError("lookup error ${value.name}")
+                        val sub = symbol.astNode as IPtSubroutine
+                        val returnType =
+                            if(sub is PtSub && sub.signature.returns.size>1)
+                                DataType.UNDEFINED      // TODO list of types instead?
+                            else
+                                sub.returnsWhatWhere().firstOrNull { rr -> rr.first.registerOrPair != null || rr.first.statusflag!=null }?.second
+                                ?: throw AssemblyError("can't translate zero return values in assignment")
+                        AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, returnType, expression = value)
+                    }
                 }
                 else -> {
                     AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
@@ -262,7 +263,7 @@ internal sealed class AsmAssignmentBase(val source: AsmAssignSource,
     }
 
     val target: AsmAssignTarget
-        get() = targets.single()
+        get() = targets.singleOrNull() ?: throw AssemblyError("code assumes single target but assignment is multi-value $position")
 }
 
 internal class AsmAssignment(source: AsmAssignSource,

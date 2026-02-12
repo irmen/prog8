@@ -340,7 +340,7 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
         }
         return null
     }
-    override fun returnType(funcName: String) = builtinFunctionReturnType(funcName)
+    override fun returnTypes(funcName: String) = builtinFunctionReturnTypes(funcName)
 }
 
 fun parseMainModule(filepath: Path,

@@ -309,7 +309,7 @@ divmod_w_asm	.proc
 divmod_uw_asm	.proc
 	; -- divide two unsigned words (16 bit each) into 16 bit results
 	;    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
-	;    output: P8ZP_SCRATCH_W2 in ZP: 16 bit remainder, A/Y: 16 bit division result
+	;    output: cx16.r15: 16 bit remainder, A/Y: 16 bit division result
 	;    division by zero will result in quotient = 65535 and remainder = divident
 
 dividend = P8ZP_SCRATCH_W1
@@ -342,6 +342,10 @@ result = dividend ;save memory by reusing divident to store the result
 +		dex
 		bne  -
 
+		lda  P8ZP_SCRATCH_W2
+		ldy  P8ZP_SCRATCH_W2+1
+		sta  cx16.r15L
+		sty  cx16.r15H
 		lda  result
 		ldy  result+1
 		rts

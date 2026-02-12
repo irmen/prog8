@@ -61,16 +61,12 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "max__long" to ::builtinMaxLong
 )
 
-internal fun builtinFunctionReturnType(function: String): InferredTypes.InferredType {
+internal fun builtinFunctionReturnTypes(function: String): Array<InferredTypes.InferredType> {
     if(function in setOf("set_carry", "set_irqd", "clear_carry", "clear_irqd"))
-        return InferredTypes.InferredType.void()
+        return emptyArray()
 
     val func = BuiltinFunctions.getValue(function)
-    val returnType = func.returnType
-    return if(returnType==null)
-        InferredTypes.InferredType.void()
-    else
-        InferredTypes.knownFor(returnType)
+    return func.returnTypes.map { InferredTypes.knownFor(it) }.toTypedArray()
 }
 
 

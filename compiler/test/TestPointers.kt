@@ -936,7 +936,8 @@ main {
 
         ((add1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
         (((add1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
-        val add1peek = (add1[3] as PtAssignment).value as PtBuiltinFunctionCall
+        val add1peek = (add1[3] as PtAssignment).value as PtFunctionCall
+        add1peek.builtin shouldBe true
         ((add1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
         val add2expr1 = (add2[1] as PtAugmentedAssign).value as PtBinaryExpression
@@ -945,13 +946,14 @@ main {
         val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
         add2expr2.operator shouldBe "<<"
         (add2expr2.right as PtNumber).number shouldBe 1.0
-        val add2expr3 = (((add2[3] as PtAssignment).value as PtBuiltinFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
+        val add2expr3 = (((add2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
         add2expr3.operator shouldBe "<<"
         (add2expr3.right as PtNumber).number shouldBe 1.0
 
         ((sub1[1] as PtAugmentedAssign).value as PtNumber).number shouldBe 10.0
         (((sub1[2] as PtAssignment).value as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
-        val sub1peek = (sub1[3] as PtAssignment).value as PtBuiltinFunctionCall
+        val sub1peek = (sub1[3] as PtAssignment).value as PtFunctionCall
+        sub1peek.builtin shouldBe true
         ((sub1peek.args[0] as PtBinaryExpression).right as PtNumber).number shouldBe 10.0
 
         val sub2expr1 = (sub2[1] as PtAugmentedAssign).value as PtBinaryExpression
@@ -960,7 +962,7 @@ main {
         val sub2expr2 = ((sub2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
         sub2expr2.operator shouldBe "<<"
         (sub2expr2.right as PtNumber).number shouldBe 1.0
-        val sub2expr3 = (((sub2[3] as PtAssignment).value as PtBuiltinFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
+        val sub2expr3 = (((sub2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
         sub2expr3.operator shouldBe "<<"
         (sub2expr3.right as PtNumber).number shouldBe 1.0
     }

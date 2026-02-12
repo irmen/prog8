@@ -38,8 +38,8 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                             else
                                 "& ${txt(it.dereference!!)}"
                         }
-                        is PtBuiltinFunctionCall -> {
-                            require(it.name=="prog8_lib_structalloc")
+                        is PtFunctionCall -> {
+                            require(it.builtin && it.name=="prog8_lib_structalloc")
                             txt(it)
                         }
                         else -> "invalid array element $it"
@@ -49,8 +49,8 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             }
             is PtArrayIndexer -> "<arrayindexer> ${type(node.type)} ${if(node.splitWords) "[splitwords]" else ""}"
             is PtBinaryExpression -> "<expr> ${node.operator} ${type(node.type)}"
-            is PtBuiltinFunctionCall -> {
-                if(node.name=="prog8_lib_structalloc") {
+            is PtFunctionCall -> {
+                if(node.builtin && node.name=="prog8_lib_structalloc") {
                     node.type.subType!!.scopedNameString+"()  <structalloc>"
                 } else {
                     val str = if (node.void) "void " else ""
@@ -58,10 +58,6 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 }
             }
             is PtContainmentCheck -> "in"
-            is PtFunctionCall -> {
-                val str = if(node.void) "void " else ""
-                str + node.name + "()"
-            }
             is PtIdentifier -> "${node.name} ${type(node.type)}"
             is PtIrRegister -> "IRREG#${node.register} ${type(node.type)}"
             is PtMemoryByte -> "@()"

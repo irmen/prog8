@@ -26,7 +26,6 @@ internal class IfElseAsmGen(private val program: PtProgram,
             stmt.condition is PtBool ||
             stmt.condition is PtArrayIndexer ||
             stmt.condition is PtTypeCast ||
-            stmt.condition is PtBuiltinFunctionCall ||
             stmt.condition is PtFunctionCall ||
             stmt.condition is PtMemoryByte ||
             stmt.condition is PtContainmentCheck)

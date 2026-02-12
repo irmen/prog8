@@ -38,8 +38,9 @@ internal class AssignmentAsmGen(
         val values = assignment.value as? PtFunctionCall
             ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
-        val extsub = asmgen.symbolTable.lookup(values.name) as? StExtSub
-        if(extsub!=null) {
+        val thing = asmgen.symbolTable.lookup(values.name)
+        if(thing?.type== StNodeType.EXTSUB) {
+            val extsub = thing as StExtSub
             require(extsub.returns.size>=2)
             if(extsub.returns.any { it.type.isFloat })
                 TODO("deal with (multiple?) FP return registers  ${assignment.position}")
@@ -59,17 +60,13 @@ internal class AssignmentAsmGen(
             } else {
                 throw AssemblyError("number of values and targets don't match")
             }
-        } else {
-            val sub = asmgen.symbolTable.lookup(values.name) as? StSub
-            if(sub!=null) {
-                val scope = assignment.definingISub()
-                val source = AsmAssignSource.fromAstSource(assignment.children.last() as PtExpression, program, asmgen)
-                val targets = AsmAssignTarget.fromAstAssignmentMulti(assignment.children.dropLast(1).map { it as PtAssignTarget }, scope, asmgen)
-                val asmassign = AsmAssignment(source, targets, program.memsizer, assignment.position)
-                assignExpression(asmassign, scope)
-            }
-            else throw AssemblyError("expected extsub or normal sub")
-        }
+        } else if(thing?.type==StNodeType.SUBROUTINE || thing?.type==StNodeType.BUILTINFUNC) {
+            val scope = assignment.definingISub()
+            val source = AsmAssignSource.fromAstSource(assignment.children.last() as PtExpression, program, asmgen)
+            val targets = AsmAssignTarget.fromAstAssignmentMulti(assignment.children.dropLast(1).map { it as PtAssignTarget }, scope, asmgen)
+            val asmassign = AsmAssignment(source, targets, program.memsizer, assignment.position)
+            assignExpression(asmassign, scope)
+        } else throw AssemblyError("expected extsub or normal sub or builtinfunc")
     }
 
     private fun assignStatusFlagsAndRegistersResults(
@@ -537,7 +534,6 @@ internal class AssignmentAsmGen(
             is PtMemoryByte -> throw AssemblyError("source kind should have been memory")
             is PtTypeCast -> assignTypeCastedValue(assign.target, value.type, value.value, value)
             is PtFunctionCall -> assignFunctionCall(assign, value)
-            is PtBuiltinFunctionCall -> assignBuiltinFunctionCall(assign.target, value)
             is PtPrefix -> assignPrefixExpr(assign, value, scope)
             is PtContainmentCheck -> {
                 containmentCheckIntoA(value)
@@ -674,83 +670,162 @@ internal class AssignmentAsmGen(
         }
     }
 
-    private fun assignBuiltinFunctionCall(target: AsmAssignTarget, value: PtBuiltinFunctionCall) {
-
-        if(value.name=="peekl" && target.kind==TargetStorageKind.VARIABLE) {
-            val arg = value.args[0]
-            if(arg is PtNumber) {
-                val address = arg.number.toInt()
-                asmgen.out("""
-                    lda  $address
-                    sta  ${target.asmVarname}
-                    lda  $address+1
-                    sta  ${target.asmVarname}+1
-                    lda  $address+2
-                    sta  ${target.asmVarname}+2
-                    lda  $address+3
-                    sta  ${target.asmVarname}+3""")
-                return
-            }
-            else if(arg is PtIdentifier) {
-                val varname = asmgen.asmVariableName(arg)
-                if(asmgen.isZpVar(arg)) {
-                    asmgen.out("""
-                        ldy  #0
-                        lda  ($varname),y
-                        sta  ${target.asmVarname}
-                        iny
-                        lda  ($varname),y
-                        sta  ${target.asmVarname}+1
-                        iny
-                        lda  ($varname),y
-                        sta  ${target.asmVarname}+2
-                        iny
-                        lda  ($varname),y
-                        sta  ${target.asmVarname}+3""")
-                    return
-                }
-            }
-        }
-
-        val returnDt = asmgen.translateBuiltinFunctionCallExpression(value, target.register)
-        if(target.register==null) {
-            // still need to assign the result to the target variable/etc.
-            when {
-                returnDt?.isByteOrBool==true -> assignRegisterByte(target, CpuRegister.A, returnDt.isSigned, false)            // function's byte result is in A
-                returnDt?.isWord==true -> assignRegisterpairWord(target, RegisterOrPair.AY)    // function's word result is in AY
-                returnDt==BaseDataType.STR -> {
-                    if (target.datatype.isUnsignedWord) assignRegisterpairWord(target, RegisterOrPair.AY)
-                    else throw AssemblyError("str return value type mismatch with target")
-                }
-                returnDt== BaseDataType.LONG -> {
-                    // longs are in R14:R15 (r14=lsw, r15=msw)
-                    assignRegisterLong(target, RegisterOrPair.R14R15)
-                }
-                returnDt==BaseDataType.FLOAT -> {
-                    // float result from function sits in FAC1
-                    assignFAC1float(target)
-                }
-                else -> throw AssemblyError("weird result type")
-            }
-        }
-    }
+//    private fun assignBuiltinFunctionCall(targets: List<AsmAssignTarget>, value: PtFunctionCall) {
+//        require(value.builtin)
+//        if(targets.size>1) {
+//            // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
+//            // (this allows unencumbered use of many Rx registers if you don't return that many values)
+//            val returnRegs = PtSubSignature(value.returntypes.toList(), value.position).returnsWhatWhere()
+//            targets.zip(returnRegs).forEach { target ->
+//                if(target.first.kind != TargetStorageKind.VOID) {
+//                    asmgen.assignRegister(target.second.first.registerOrPair!!, target.first)
+//                }
+//            }
+//            return
+//        }
+//
+//        // single value result
+//        val target = targets.single()
+//        if(value.name=="peekl" && target.kind==TargetStorageKind.VARIABLE) {
+//            val arg = value.args[0]
+//            if(arg is PtNumber) {
+//                val address = arg.number.toInt()
+//                asmgen.out("""
+//                    lda  $address
+//                    sta  ${target.asmVarname}
+//                    lda  $address+1
+//                    sta  ${target.asmVarname}+1
+//                    lda  $address+2
+//                    sta  ${target.asmVarname}+2
+//                    lda  $address+3
+//                    sta  ${target.asmVarname}+3""")
+//                return
+//            }
+//            else if(arg is PtIdentifier) {
+//                val varname = asmgen.asmVariableName(arg)
+//                if(asmgen.isZpVar(arg)) {
+//                    asmgen.out("""
+//                        ldy  #0
+//                        lda  ($varname),y
+//                        sta  ${target.asmVarname}
+//                        iny
+//                        lda  ($varname),y
+//                        sta  ${target.asmVarname}+1
+//                        iny
+//                        lda  ($varname),y
+//                        sta  ${target.asmVarname}+2
+//                        iny
+//                        lda  ($varname),y
+//                        sta  ${target.asmVarname}+3""")
+//                    return
+//                }
+//            }
+//        }
+//
+//        val returnDts = asmgen.translateBuiltinFunctionCallExpression(value, target.register)
+//        if(returnDts.isNotEmpty() && target.register==null) {
+//            // still need to assign the result to the target variable/etc.
+//            when {
+//                returnDt?.isByteOrBool==true -> assignRegisterByte(target, CpuRegister.A, returnDt.isSigned, false)            // function's byte result is in A
+//                returnDt?.isWord==true -> assignRegisterpairWord(target, RegisterOrPair.AY)    // function's word result is in AY
+//                returnDt==BaseDataType.STR -> {
+//                    if (target.datatype.isUnsignedWord) assignRegisterpairWord(target, RegisterOrPair.AY)
+//                    else throw AssemblyError("str return value type mismatch with target")
+//                }
+//                returnDt== BaseDataType.LONG -> {
+//                    // longs are in R14:R15 (r14=lsw, r15=msw)
+//                    assignRegisterLong(target, RegisterOrPair.R14R15)
+//                }
+//                returnDt==BaseDataType.FLOAT -> {
+//                    // float result from function sits in FAC1
+//                    assignFAC1float(target)
+//                }
+//                else -> throw AssemblyError("weird result type")
+//            }
+//        }
+//    }
 
     private fun assignFunctionCall(assign: AsmAssignment, value: PtFunctionCall) {
         val symbol = asmgen.symbolTable.lookup(value.name)
-        val sub = symbol!!.astNode as IPtSubroutine
+        if(symbol!!.type==StNodeType.BUILTINFUNC) {
+            // builtin function call
+
+            if (value.type.isLong && assign.targets.single().kind == TargetStorageKind.VARIABLE) {
+                val handled = when(value.name) {
+                    "peekl" -> asmgen.optimizedPeeklIntoLongvar(assign.targets.single(), value)
+                    "mklong" -> asmgen.optimizedMklongIntoLongvar(assign.targets.single(), value)
+                    "mklong2" -> asmgen.optimizedMklong2IntoLongvar(assign.targets.single(), value)
+                    else -> false
+                }
+                if(handled)
+                    return
+            }
+
+            // TODO optimized float functions into variable? (to avoid needless FAC1 register copying?)
+
+            // TODO restore the optimized target register codegen that avoids A/AY altogether
+            val firstTarget = assign.targets.firstOrNull()
+            var saveA = false
+            var saveAY = false
+            if(firstTarget?.kind==TargetStorageKind.REGISTER) {
+                if (firstTarget.register != RegisterOrPair.A && firstTarget.register != RegisterOrPair.AY) {
+                    when {
+                        firstTarget.datatype.isByteOrBool -> saveA = true
+                        firstTarget.datatype.isWord || firstTarget.datatype.isPointer -> saveAY = true
+                        else -> { /* do nothing, this datatype is not transferred in cpu registers */ }
+                    }
+                }
+            }
+
+            if(saveA)
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+            else if(saveAY) {
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+            }
+
+            asmgen.translateBuiltinFunctionCallExpression(value)
+
+            val returns = PtSubSignature(value.returntypes.toList(), value.position).returnsWhatWhere()
+            if(returns.size>1) {
+                // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
+                // (this allows unencumbered use of many Rx registers if you don't return that many values)
+                assign.targets.zip(returns)
+                    .filter { it.first.kind != TargetStorageKind.VOID }
+                    .forEach { target -> asmgen.assignRegister(target.second.first.registerOrPair!!, target.first) }
+            } else if(returns.isNotEmpty() && assign.targets.single().kind != TargetStorageKind.VOID) {
+                val target = assign.targets.single()
+                if(target.kind != TargetStorageKind.VOID)
+                    asmgen.assignRegister(returns.single().first.registerOrPair!!, target)
+            }
+
+            if(saveA)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+            else if(saveAY) {
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+            }
+
+            return
+        }
+
+        // regular subroutine call
+        val sub = symbol.astNode as IPtSubroutine
+        val returns = sub.returnsWhatWhere()
         asmgen.translateFunctionCall(value)
         if(sub is PtSub && sub.signature.returns.size>1) {
             // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
             // (this allows unencumbered use of many Rx registers if you don't return that many values)
-            val returnRegs = sub.returnsWhatWhere()
-            assign.targets.zip(returnRegs).forEach { target ->
+            assign.targets.zip(returns).forEach { target ->
                 if(target.first.kind != TargetStorageKind.VOID) {
                     asmgen.assignRegister(target.second.first.registerOrPair!!, target.first)
                 }
             }
         } else {
             val target = assign.target
-            val returnValue = sub.returnsWhatWhere().singleOrNull { it.first.registerOrPair!=null } ?: sub.returnsWhatWhere().single { it.first.statusflag!=null }
+            if(target.kind==TargetStorageKind.VOID)
+                return
+            val returnValue = returns.singleOrNull { it.first.registerOrPair!=null } ?: returns.single { it.first.statusflag!=null }
             when {
                 returnValue.second.isString -> {
                     val targetDt = target.datatype
@@ -1100,7 +1175,7 @@ internal class AssignmentAsmGen(
             is PtIdentifier -> true
             is PtIrRegister -> true
             is PtNumber -> true
-            is PtBuiltinFunctionCall -> expr.name in arrayOf("lsb", "msb")
+            is PtFunctionCall -> expr.builtin && expr.name in arrayOf("lsb", "msb")
             else -> false
         }
     }
@@ -2278,10 +2353,13 @@ internal class AssignmentAsmGen(
         fun requiresCmp(expr: PtExpression) =
             when (expr) {
                 is PtFunctionCall -> {
-                    val function = asmgen.symbolTable.lookup(expr.name)
-                    function is StExtSub        // don't assume the extsub/asmsub has set the cpu flags correctly on exit, add an explicit cmp
+                    if(expr.builtin)
+                        true
+                    else {
+                        val function = asmgen.symbolTable.lookup(expr.name)
+                        function is StExtSub        // don't assume the extsub/asmsub has set the cpu flags correctly on exit, add an explicit cmp
+                    }
                 }
-                is PtBuiltinFunctionCall -> true
                 is PtIfExpression -> true
                 else -> false
             }
@@ -2968,7 +3046,7 @@ $endLabel""")
     }
 
     private fun assignCastWordViaLsbFunc(value: PtExpression, target: AsmAssignTarget) {
-        val lsb = PtBuiltinFunctionCall("lsb", false, true, DataType.UBYTE, value.position)
+        val lsb = PtFunctionCall("lsb", true, true,arrayOf(DataType.UBYTE), value.position)
         lsb.parent = value.parent
         lsb.add(value)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UBYTE, expression = lsb)
@@ -2977,7 +3055,7 @@ $endLabel""")
     }
 
     private fun assignCastViaLswFunc(value: PtExpression, target: AsmAssignTarget) {
-        val lsb = PtBuiltinFunctionCall("lsw", false, true, DataType.UWORD, value.position)
+        val lsb = PtFunctionCall("lsw", true, true, arrayOf(DataType.UWORD), value.position)
         lsb.parent = value.parent
         lsb.add(value)
         val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = lsb)

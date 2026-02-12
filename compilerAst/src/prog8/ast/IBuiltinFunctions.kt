@@ -9,5 +9,5 @@ interface IBuiltinFunctions {
     val names: Set<String>
     val purefunctionNames: Set<String>
     fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral?
-    fun returnType(funcName: String): InferredTypes.InferredType
+    fun returnTypes(funcName: String): Array<InferredTypes.InferredType>
 }

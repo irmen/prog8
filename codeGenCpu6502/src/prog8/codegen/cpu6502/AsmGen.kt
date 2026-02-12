@@ -55,10 +55,21 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                 }
                 is PtSub -> prefixNamedNode(node)
                 is PtFunctionCall -> {
-                    val stNode = st.lookup(node.name)!!
-                    if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
-                        val index = node.parent.children.indexOf(node)
-                        functionCallsToPrefix += node.parent to index
+                    if(node.builtin) {
+                        // could be a struct instance creation
+                        if(node.name=="prog8_lib_structalloc") {
+                            val struct = node.type.subType!!
+                            if(struct is StStruct) {
+                                // update link to active symboltable node
+                                node.type.subType = st.lookup(struct.scopedNameString) as StStruct
+                            }
+                        }
+                    } else {
+                        val stNode = st.lookup(node.name)!!
+                        if (stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing != true) {
+                            val index = node.parent.children.indexOf(node)
+                            functionCallsToPrefix += node.parent to index
+                        }
                     }
                 }
                 is PtIdentifier -> {
@@ -99,16 +110,6 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                     nodesToPrefix += node.parent to index
                 }
                 is PtStructDecl -> prefixNamedNode(node)        // note: field names are not prefixed here, we take care of that at asm generation time, which was a lot easier
-                is PtBuiltinFunctionCall -> {
-                    // could be a struct instance creation
-                    if(node.name=="prog8_lib_structalloc") {
-                        val struct = node.type.subType!!
-                        if(struct is StStruct) {
-                            // update link to active symboltable node
-                            node.type.subType = st.lookup(struct.scopedNameString) as StStruct
-                        }
-                    }
-                }
                 else -> { }
             }
 
@@ -124,7 +125,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
         }
 
         fun maybePrefixFunctionCallsAndIdentifierReferences(node: PtNode) {
-            if(node is PtFunctionCall) {
+            if(node is PtFunctionCall && !node.builtin) {
                 // function calls to subroutines defined in a block that does NOT have NoSymbolPrefixing, still have to be prefixed at the call site
                 val stNode = st.lookup(node.name)!!
                 if(stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing!=true) {
@@ -250,7 +251,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                         newValue.add(newAddr)
                     }
                 }
-                is PtBuiltinFunctionCall -> {
+                is PtFunctionCall if elt.builtin -> {
                     // could be a struct instance or memory slab "allocation"
                     if (elt.name != "prog8_lib_structalloc" && elt.name != "memory")
                         throw AssemblyError("weird array value element $elt")
@@ -274,7 +275,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
 //}
 
 private fun PtFunctionCall.withNewName(name: String): PtFunctionCall {
-    val call = PtFunctionCall(name, void, type, position)
+    val call = PtFunctionCall(name, builtin, hasNoSideEffects, returntypes, position)
     call.children.addAll(children)
     call.children.forEach { it.parent = call }
     call.parent = parent
@@ -691,8 +692,12 @@ class AsmGen6502Internal (
             is PtSub -> programGen.translateSubroutine(stmt)
             is PtAsmSub -> programGen.translateAsmSubroutine(stmt)
             is PtInlineAssembly -> translate(stmt)
-            is PtBuiltinFunctionCall -> builtinFunctionsAsmGen.translateFunctioncallStatement(stmt)
-            is PtFunctionCall -> functioncallAsmGen.translateFunctionCallStatement(stmt)
+            is PtFunctionCall -> {
+                if(stmt.builtin)
+                    builtinFunctionsAsmGen.translateFunctioncallStatement(stmt)
+                else
+                    functioncallAsmGen.translateFunctionCallStatement(stmt)
+            }
             is PtAssignment -> {
                 if(stmt.multiTarget) assignmentAsmGen.translateMultiAssign(stmt)
                 else assignmentAsmGen.translate(stmt)
@@ -787,8 +792,8 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun translateBuiltinFunctionCallExpression(bfc: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?): BaseDataType? =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, resultRegister)
+    internal fun translateBuiltinFunctionCallExpression(bfc: PtFunctionCall): Array<BaseDataType> =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc)
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr)
@@ -3022,6 +3027,15 @@ $repeatLabel""")
             ldy  P8ZP_SCRATCH_B1
             txa""")
     }
+
+    internal fun optimizedMklong2IntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean =
+        builtinFunctionsAsmGen.optimizedMklong2IntoLongvar(target, value)
+
+    internal fun optimizedMklongIntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean =
+        builtinFunctionsAsmGen.optimizedMklongIntoLongvar(target, value)
+
+    internal fun optimizedPeeklIntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean =
+        builtinFunctionsAsmGen.optimizedPeeklIntoLongvar(target, value)
 }
 
 /**

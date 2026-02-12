@@ -29,7 +29,7 @@ class TestBuiltinFunctions: FunSpec({
         func.parameters[0].name shouldBe "value"
         func.parameters[0].possibleDatatypes. shouldForAll { it.isNumeric }
         func.pure shouldBe true
-        func.returnType shouldBe BaseDataType.BYTE
+        func.returnTypes shouldBe arrayOf(BaseDataType.BYTE)
 
         val conv = func.callConvention(listOf(BaseDataType.UBYTE))
         conv.params.size shouldBe 1
@@ -44,7 +44,7 @@ class TestBuiltinFunctions: FunSpec({
         val func = BuiltinFunctions.getValue("cmp")
         func.parameters.size shouldBe 2
         func.pure shouldBe false
-        func.returnType shouldBe null
+        func.returnTypes.size shouldBe 0
 
         val conv = func.callConvention(listOf(BaseDataType.UWORD, BaseDataType.UWORD))
         conv.params.size shouldBe 2
@@ -60,7 +60,7 @@ class TestBuiltinFunctions: FunSpec({
         func.parameters[1].name shouldBe "value"
         func.parameters[1].possibleDatatypes shouldBe arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
         func.pure shouldBe false
-        func.returnType shouldBe null
+        func.returnTypes.size shouldBe 0
     }
 
     test("certain builtin functions should be compile time evaluated") {
@@ -92,20 +92,6 @@ main {
         (a3.value as NumericLiteral).number shouldBe 6.0
         (a4.value as NumericLiteral).number shouldBe 200*256+100
         (a5.args[0] as NumericLiteral).number shouldBe 6.0
-    }
-
-    test("divmod target args should be treated as variables that are written") {
-        val src="""
-main {
-    ubyte c
-    ubyte l
-
-    sub start() {
-        divmod(99, 10, c, l)
-    }
-}"""
-
-        compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
     test("warning for return value discarding of pure functions") {

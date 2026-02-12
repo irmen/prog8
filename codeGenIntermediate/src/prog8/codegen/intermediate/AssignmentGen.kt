@@ -2,6 +2,7 @@ package prog8.codegen.intermediate
 
 import prog8.code.StExtSub
 import prog8.code.StExtSubParameter
+import prog8.code.StNodeType
 import prog8.code.StSub
 import prog8.code.ast.*
 import prog8.code.core.*
@@ -39,13 +40,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     throw AssemblyError("number of values and targets don't match")
                 }
             } else {
-                val normalsub = codeGen.symbolTable.lookup(values.name) as? StSub
-                if (normalsub != null) {
+                val thing = codeGen.symbolTable.lookup(values.name)
+                val normalsub = thing as? StSub
+                if (normalsub!=null) {
                     // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
                     // (this allows unencumbered use of many Rx registers if you don't return that many values)
                     val returnregs = (normalsub.astNode!! as IPtSubroutine).returnsWhatWhere()
-                    normalsub.returns.zip(assignmentTargets).zip(returnregs).forEach {
-                        val target = it.first.second as PtAssignTarget
+                    assignmentTargets.zip(returnregs).forEach {
+                        val target = it.first as PtAssignTarget
                         if(!target.void) {
                             val reg = it.second.first
                             val regnum = codeGen.registers.next(irType(it.second.second))
@@ -54,7 +56,23 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         }
                     }
                 }
-                else throw AssemblyError("expected extsub or normal sub")
+                else if(thing?.type==StNodeType.BUILTINFUNC) {
+                    // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
+                    // (this allows unencumbered use of many Rx registers if you don't return that many values)
+                    val returntypes = BuiltinFunctions.getValue(thing.name).returnTypes
+                    val signature = PtSubSignature(returntypes.map { DataType.forDt(it) }, Position.DUMMY)
+                    val returnregs = signature.returnsWhatWhere()
+                    assignmentTargets.zip(returnregs).forEach {
+                        val target = it.first as PtAssignTarget
+                        if(!target.void) {
+                            val reg = it.second.first
+                            val regnum = codeGen.registers.next(irType(it.second.second))
+                            val p = StExtSubParameter(reg, it.second.second)
+                            result += assignCpuRegister(p, regnum, target)
+                        }
+                    }
+                }
+                else throw AssemblyError("expected extsub or normal sub or builtin func")
             }
 
             return result

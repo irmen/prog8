@@ -11,7 +11,6 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
     init {
         if(type.isUndefined) {
             when(this) {
-                is PtBuiltinFunctionCall -> { /* void function call */ }
                 is PtFunctionCall -> { /* void function call */ }
                 is PtIdentifier -> { /* non-variable identifier */ }
                 else -> throw IllegalArgumentException("type should be known @$position")
@@ -124,9 +123,8 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtArray -> true
             is PtArrayIndexer -> index is PtNumber || index is PtIdentifier
             is PtBinaryExpression -> false
-            is PtBuiltinFunctionCall -> if (name in SimpleBuiltinFunctions) args.all { it.isSimple() } else false
             is PtContainmentCheck -> false
-            is PtFunctionCall -> false
+            is PtFunctionCall -> if (this.builtin && name in SimpleBuiltinFunctions) args.all { it.isSimple() } else false
             is PtIdentifier -> true
             is PtIrRegister -> true
             is PtMemoryByte -> address is PtNumber
@@ -218,21 +216,6 @@ class PtArray(type: DataType, position: Position): PtExpression(type, position) 
 }
 
 
-class PtBuiltinFunctionCall(val name: String,
-                            val void: Boolean,
-                            val hasNoSideEffects: Boolean,
-                            type: DataType,
-                            position: Position) : PtExpression(type, position) {
-    init {
-        if(!void)
-            require(!type.isUndefined)
-    }
-
-    val args: List<PtExpression>
-        get() = children.map { it as PtExpression }
-}
-
-
 class PtBinaryExpression(val operator: String, type: DataType, position: Position): PtExpression(type, position) {
     val left: PtExpression
         get() = children[0] as PtExpression
@@ -280,17 +263,17 @@ class PtContainmentCheck(position: Position): PtExpression(DataType.BOOL, positi
 
 
 class PtFunctionCall(val name: String,
-                     val void: Boolean,
-                     type: DataType,
-                     position: Position) : PtExpression(type, position) {
+                     val builtin: Boolean,
+                     val hasNoSideEffects: Boolean,
+                     val returntypes: Array<DataType>,
+                     position: Position) : PtExpression(singletype(returntypes), position) {
     val args: List<PtExpression>
         get() = children.map { it as PtExpression }
 
-    init {
-        if(void) require(type.isUndefined) {
-            "void fcall should have undefined datatype"
-        }
-        // note: non-void calls can have UNDEFINED type: if they return more than 1 value
+    val void = returntypes.isEmpty()
+
+    companion object {
+        fun singletype(types: Array<DataType>) = types.singleOrNull() ?: DataType.UNDEFINED
     }
 }
 

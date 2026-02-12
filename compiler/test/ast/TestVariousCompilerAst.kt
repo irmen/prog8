@@ -1151,12 +1151,12 @@ main {
 
         val ifelse = sub.children[5] as PtIfElse
         val ifscope = ifelse.ifScope.children[0] as PtNodeGroup
-        val ifscope_push = ifscope.children[0] as PtBuiltinFunctionCall
+        val ifscope_push = ifscope.children[0] as PtFunctionCall
         val ifscope_defer = ifscope.children[1] as PtFunctionCall
         val ifscope_return = ifscope.children[2] as PtReturn
         ifscope_defer.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"
         ifscope_push.name shouldBe "pushw"
-        (ifscope_return.children.single() as PtBuiltinFunctionCall).name shouldBe "popw"
+        (ifscope_return.children.single() as PtFunctionCall).name shouldBe "popw"
 
         val ending = sub.children[7] as PtFunctionCall
         ending.name shouldBe "p8b_main.p8s_test.p8s_prog8_invoke_defers"

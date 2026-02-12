@@ -554,7 +554,7 @@ class TestVmCodeGen: FunSpec({
         val extsub = PtAsmSub("routine", PtAsmSub.Address(null, null, 0x5000u), setOf(CpuRegister.Y), emptyList(), emptyList(), false, Position.DUMMY)
         block.add(extsub)
         val sub = PtSub("start", emptyList(), emptyList(), Position.DUMMY)
-        val call = PtFunctionCall("main.routine", true, DataType.UNDEFINED, Position.DUMMY)
+        val call = PtFunctionCall("main.routine", false, false, emptyArray(), Position.DUMMY)
         sub.add(call)
         block.add(sub)
         program.add(block)

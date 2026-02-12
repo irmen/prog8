@@ -56,7 +56,12 @@ sealed class Statement : Node {
 
 // this class is only created as temporary result from looking up the target for a builtin function call.
 // this node is never actually part of the Ast.
-class BuiltinFunctionPlaceholder(override val name: String, override val position: Position, override var parent: Node) : Statement(), INamedStatement {
+class BuiltinFunctionPlaceholder(
+    override val name: String,
+    val returntypes: List<DataType>,
+    override val position: Position,
+    override var parent: Node
+) : Statement(), INamedStatement {
     override fun linkParents(parent: Node) {}
     override fun accept(visitor: IAstVisitor) = throw FatalAstException("should not iterate over this node")
     override fun accept(visitor: AstWalker, parent: Node) = throw FatalAstException("should not iterate over this node")

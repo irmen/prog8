@@ -1342,8 +1342,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override val isSimple = true
 
     fun targetStatement(builtins: IBuiltinFunctions? = null): Statement? =
-        if(builtins!=null && nameInSource.singleOrNull() in builtins.names)
-            BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
+        if(builtins!=null && nameInSource.singleOrNull() in builtins.names) {
+            val returntypes = builtins.returnTypes(nameInSource[0]).map { it.getOrUndef() }
+            BuiltinFunctionPlaceholder(nameInSource[0], returntypes, position, parent)
+        }
         else
             definingScope.lookup(nameInSource)
     fun targetVarDecl(): VarDecl? {
@@ -1376,8 +1378,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     }
 
     fun firstTarget(builtins: IBuiltinFunctions? = null): Statement? =
-        if(builtins!=null && nameInSource.singleOrNull() in builtins.names)
-            BuiltinFunctionPlaceholder(nameInSource[0], position, parent)
+        if(builtins!=null && nameInSource.singleOrNull() in builtins.names) {
+            val returntypes = builtins.returnTypes(nameInSource[0]).map { it.getOrUndef() }
+            BuiltinFunctionPlaceholder(nameInSource[0], returntypes, position, parent)
+        }
         else
             definingScope.lookup(nameInSource.take(1))
 
@@ -1567,7 +1571,13 @@ class FunctionCallExpression(override var target: IdentifierReference,
         val stmt = target.targetStatement(program.builtinFunctions) ?: return InferredTypes.unknown()
         when (stmt) {
             is BuiltinFunctionPlaceholder -> {
-                return program.builtinFunctions.returnType(target.nameInSource[0])
+                val types = program.builtinFunctions.returnTypes(target.nameInSource[0])
+                if(types.isEmpty())
+                    return InferredTypes.void()
+                else if(types.size==1)
+                    return types[0]
+                else
+                    return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible
             }
             is Subroutine -> {
                 if(stmt.returntypes.isEmpty())

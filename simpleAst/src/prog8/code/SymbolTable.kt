@@ -122,7 +122,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
     }
 
     companion object {
-        fun labelnameForStructInstance(call: PtBuiltinFunctionCall): String {
+        fun labelnameForStructInstance(call: PtFunctionCall): String {
             require(call.name == "prog8_lib_structalloc")
             var structname = call.type.subType!!.scopedNameString
             val parts = structname.split('.')

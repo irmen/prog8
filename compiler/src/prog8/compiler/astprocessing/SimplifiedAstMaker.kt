@@ -13,7 +13,7 @@ import prog8.code.core.*
 import prog8.code.sanitize
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
-import prog8.compiler.builtinFunctionReturnType
+import prog8.compiler.builtinFunctionReturnTypes
 import java.io.File
 import kotlin.io.path.Path
 import kotlin.io.path.isRegularFile
@@ -401,9 +401,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val singleName = srcCall.target.nameInSource.singleOrNull()
         if(singleName!=null && singleName in BuiltinFunctions) {
             // it is a builtin function. Create a special Ast node for that.
-            val type = builtinFunctionReturnType(singleName).getOrUndef()
+            val types = builtinFunctionReturnTypes(singleName).map { it.getOrUndef() }.toTypedArray()
             val noSideFx = BuiltinFunctions.getValue(singleName).pure
-            val call = PtBuiltinFunctionCall(singleName, true, noSideFx, type, srcCall.position)
+            val call = PtFunctionCall(singleName, true, noSideFx, types, srcCall.position)
             for (arg in srcCall.args)
                 call.add(transformExpression(arg))
             return call
@@ -411,7 +411,12 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         // regular function call
         val (target, type) = srcCall.target.targetNameAndType(program)
-        val call = PtFunctionCall(target, true, type, srcCall.position)
+        val call = if(type.isUndefined) {
+            // TODO what if it is actually multiple return values!??!?!
+            PtFunctionCall(target, false, false, emptyArray(), srcCall.position)
+        } else {
+            PtFunctionCall(target, false, false, arrayOf(type), srcCall.position)
+        }
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call
@@ -424,8 +429,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             if (builtinFunc != null) {
                 // it's a builtin function. Create special node type for this.
                 val noSideFx = builtinFunc.pure
-                val type = srcCall.inferType(program).getOrElse { throw FatalAstException("unknown dt") }
-                val call = PtBuiltinFunctionCall(singleName, false, noSideFx, type, srcCall.position)
+                val types = builtinFunctionReturnTypes(singleName).map { it.getOrUndef() }.toTypedArray()
+                val call = PtFunctionCall(singleName, true, noSideFx, types, srcCall.position)
                 for (arg in srcCall.args)
                     call.add(transformExpression(arg))
                 return call
@@ -434,15 +439,16 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
 
         val (target, _) = srcCall.target.targetNameAndType(program)
         val iType = srcCall.inferType(program)
-        val call = PtFunctionCall(target, iType.isUnknown && srcCall.parent !is Assignment, iType.getOrElse { DataType.UNDEFINED }, srcCall.position)
+        val returntypes = arrayOf(iType.getOrElse { DataType.UNDEFINED })
+        val call = PtFunctionCall(target, false, false, returntypes, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call
     }
 
-    private fun transform(initializer: StaticStructInitializer): PtBuiltinFunctionCall {
+    private fun transform(initializer: StaticStructInitializer): PtFunctionCall {
         val targetStruct = initializer.structname.targetStructDecl()!!
-        val call = PtBuiltinFunctionCall("prog8_lib_structalloc", false, true, DataType.pointer(targetStruct), initializer.position)
+        val call = PtFunctionCall("prog8_lib_structalloc", true, true, arrayOf(DataType.pointer(targetStruct)), initializer.position)
         for (arg in initializer.args)
             call.add(transformExpression(arg))
         return call
@@ -765,7 +771,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val arr = PtArray(srcArr.inferType(program).getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
         for (elt in srcArr.value) {
             val child = transformExpression(elt)
-            require(child is PtAddressOf || child is PtBool || child is PtNumber || (child is PtBuiltinFunctionCall && child.name=="prog8_lib_structalloc")) {"array element invalid type $child" }
+            require(child is PtAddressOf || child is PtBool || child is PtNumber || (child is PtFunctionCall && child.builtin && child.name=="prog8_lib_structalloc")) {"array element invalid type $child" }
             arr.add(child)
         }
         return arr

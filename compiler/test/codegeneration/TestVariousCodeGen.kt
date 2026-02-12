@@ -87,7 +87,6 @@ main {
         st.flat.size shouldBeGreaterThan 100
         st.flat["cbm.CHROUT"]?.type shouldBe StNodeType.EXTSUB
         st.lookup("cbm.CHROUT")?.type shouldBe StNodeType.EXTSUB
-        st.lookupUnscoped("sizeof")?.type shouldBe StNodeType.BUILTINFUNC
     }
 
     test("peek and poke argument types") {

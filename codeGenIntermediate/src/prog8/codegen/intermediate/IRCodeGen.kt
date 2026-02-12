@@ -98,8 +98,12 @@ class IRCodeGen(
     private fun verifyNameScoping(program: PtProgram, symbolTable: SymbolTable) {
         fun verifyPtNode(node: PtNode) {
             when (node) {
-                is PtBuiltinFunctionCall -> require('.' !in node.name) { "builtin function call name should not be scoped: ${node.name}" }
-                is PtFunctionCall -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                is PtFunctionCall -> {
+                    if(node.builtin)
+                        require('.' !in node.name) { "builtin function call name should not be scoped: ${node.name}" }
+                    else
+                        require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
+                }
                 is PtAsmSub -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
                 is PtBlock -> require('.' !in node.name) { "block name should not be scoped: ${node.name}" }
                 is PtConstant -> require('.' in node.name) { "node $node name is not scoped: ${node.name}" }
@@ -225,14 +229,7 @@ class IRCodeGen(
             is PtAssignment -> assignmentGen.translate(node)
             is PtAugmentedAssign -> assignmentGen.translate(node)
             is PtNodeGroup -> translateGroup(node.children)
-            is PtBuiltinFunctionCall -> {
-                val result = translateBuiltinFunc(node)
-                result.chunks       // it's not an expression so no result value.
-            }
-            is PtFunctionCall -> {
-                val result = expressionEval.translate(node)
-                result.chunks       // it's not an expression so no result value
-            }
+            is PtFunctionCall -> expressionEval.translate(node).chunks   // it's not an expression so no result value
             is PtNop -> emptyList()
             is PtReturn -> translate(node)
             is PtJump -> translate(node)
@@ -1259,7 +1256,7 @@ class IRCodeGen(
                 result += tr.chunks
                 addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = afterIfLabel), null)
             }
-            is PtIdentifier, is PtArrayIndexer, is PtBuiltinFunctionCall, is PtFunctionCall, is PtContainmentCheck -> {
+            is PtIdentifier, is PtArrayIndexer, is PtFunctionCall, is PtContainmentCheck -> {
                 val tr = expressionEval.translateExpression(cond)
                 result += tr.chunks
                 addInstr(result, IRInstruction(Opcode.BSTEQ, labelSymbol = afterIfLabel), null)
@@ -1397,7 +1394,7 @@ class IRCodeGen(
                 result += tr.chunks
                 addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
             }
-            is PtIdentifier, is PtArrayIndexer, is PtBuiltinFunctionCall, is PtFunctionCall, is PtContainmentCheck -> {
+            is PtIdentifier, is PtArrayIndexer, is PtFunctionCall, is PtContainmentCheck -> {
                 val tr = expressionEval.translateExpression(cond)
                 result += tr.chunks
                 addInstr(result, branchInstr(goto, Opcode.BSTNE), null)
@@ -1690,7 +1687,7 @@ class IRCodeGen(
             is PtIdentifier, is PtArrayIndexer, is PtContainmentCheck -> {
                 translateSimple(cond, Opcode.BSTEQ, false)
             }
-            is PtBuiltinFunctionCall, is PtFunctionCall -> {
+            is PtFunctionCall -> {
                 translateSimple(cond, Opcode.BSTEQ, true)
             }
             is PtPrefix -> {
@@ -1994,8 +1991,9 @@ class IRCodeGen(
         return "${GENERATED_LABEL_PREFIX}$labelSequenceNumber"
     }
 
-    internal fun translateBuiltinFunc(call: PtBuiltinFunctionCall): ExpressionCodeResult
-        = builtinFuncGen.translate(call)
+    internal fun translateBuiltinFunc(call: PtFunctionCall): ExpressionCodeResult {
+        return builtinFuncGen.translate(call)
+    }
 
     internal fun isZero(expression: PtExpression): Boolean = (expression as? PtNumber)?.number==0.0 || (expression as? PtBool)?.value==false
 

@@ -16,7 +16,7 @@ internal object DummyFunctions : IBuiltinFunctions {
         position: Position,
     ): NumericLiteral? = null
 
-    override fun returnType(funcName: String) = InferredTypes.unknown()
+    override fun returnTypes(funcName: String) = emptyArray<InferredTypes.InferredType>()
 }
 
 internal object DummyMemsizer : IMemSizer {

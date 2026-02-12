@@ -13,114 +13,7 @@ sealed interface IPtSubroutine {
                 return returns
             }
             is PtSub -> {
-                // for non-asm subroutines, determine the return registers based on the type of the return values
-
-                fun cpuRegisterFor(returntype: DataType): RegisterOrStatusflag = when {
-                    returntype.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
-                    returntype.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-                    returntype.isLong -> RegisterOrStatusflag(RegisterOrPair.R14R15, null)
-                    returntype.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
-                    else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
-                }
-
-                val returns = signature.returns
-                when(returns.size) {
-                    0 -> return emptyList()
-                    1 -> {
-                        val returntype = returns.single()
-                        val register = cpuRegisterFor(returntype)
-                        return listOf(Pair(register, returntype))
-                    }
-                    else -> {
-                        // for multi-value results, put the first one in A or AY cpu register(s) and the rest in the virtual registers starting from R15 and counting down
-                        // a floating point return values is returned in FAC1. Only a single fp value is possible.
-                        // The reason FAC2 cannot be used as well to support 2 fp values is that working with both FACs interferes with another.
-                        val firstRegister = cpuRegisterFor(returns.first()) to returns.first()
-
-                        val availableIntegerRegisters = Cx16VirtualRegisters.toMutableList()
-                        val availableFloatRegisters = mutableListOf(RegisterOrPair.FAC1)        // just one value is possible
-                        val availableLongRegisters = CombinedLongRegisters.toMutableList()
-
-                        availableLongRegisters.remove(firstRegister.first.registerOrPair)
-
-                        fun getLongRegister(): RegisterOrPair {
-                            val reg = availableLongRegisters.removeLastOrNull()
-                            if(reg==null)
-                                throw AssemblyError("out of registers for long return type ${this.position}")
-                            else {
-                                // remove the pair from integer regs
-                                when(reg) {
-                                    RegisterOrPair.R0R1 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R0)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R1)
-                                    }
-                                    RegisterOrPair.R2R3 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R2)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R3)
-                                    }
-                                    RegisterOrPair.R4R5 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R4)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R5)
-                                    }
-                                    RegisterOrPair.R6R7 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R6)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R7)
-                                    }
-                                    RegisterOrPair.R8R9 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R8)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R9)
-                                    }
-                                    RegisterOrPair.R10R11 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R10)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R11)
-                                    }
-                                    RegisterOrPair.R12R13 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R12)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R13)
-                                    }
-                                    RegisterOrPair.R14R15 -> {
-                                        availableIntegerRegisters.remove(RegisterOrPair.R14)
-                                        availableIntegerRegisters.remove(RegisterOrPair.R15)
-                                    }
-                                    else -> throw AssemblyError("weird long register $reg")
-                                }
-                                return reg
-                            }
-                        }
-
-                        fun getIntegerRegister(): RegisterOrPair {
-                            val reg = availableIntegerRegisters.removeLastOrNull()
-                            if(reg==null)
-                                throw AssemblyError("out of registers for byte/word return type ${this.position}")
-                            else {
-                                // remove it from long regs
-                                when(reg) {
-                                    RegisterOrPair.R0, RegisterOrPair.R1 -> availableLongRegisters.remove(RegisterOrPair.R0R1)
-                                    RegisterOrPair.R2, RegisterOrPair.R3 -> availableLongRegisters.remove(RegisterOrPair.R2R3)
-                                    RegisterOrPair.R4, RegisterOrPair.R5 -> availableLongRegisters.remove(RegisterOrPair.R4R5)
-                                    RegisterOrPair.R6, RegisterOrPair.R7 -> availableLongRegisters.remove(RegisterOrPair.R6R7)
-                                    RegisterOrPair.R8, RegisterOrPair.R9 -> availableLongRegisters.remove(RegisterOrPair.R8R9)
-                                    RegisterOrPair.R10, RegisterOrPair.R11 -> availableLongRegisters.remove(RegisterOrPair.R10R11)
-                                    RegisterOrPair.R12, RegisterOrPair.R13 -> availableLongRegisters.remove(RegisterOrPair.R12R13)
-                                    RegisterOrPair.R14, RegisterOrPair.R15 -> availableLongRegisters.remove(RegisterOrPair.R14R15)
-                                    else -> throw AssemblyError("weird byte/long register $reg")
-                                }
-                                return reg
-                            }
-                        }
-
-                        val others = returns.drop(1).map { type ->
-                            when {
-                                type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLastOrNull()!!, null) to type
-                                type.isLong -> RegisterOrStatusflag(getLongRegister(), null) to type
-                                type.isWordOrByteOrBool -> RegisterOrStatusflag(getIntegerRegister(), null) to type
-                                else -> throw AssemblyError("unsupported return type $type")
-                            }
-                        }
-
-                        return listOf(firstRegister) + others
-                    }
-                }
+                return this.signature.returnsWhatWhere()
             }
         }
     }
@@ -158,6 +51,116 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
     init {
         if(returns.any { !it.isNumericOrBool && !it.isPointer })
             throw AssemblyError("returntype is not a bool, number or pointer")
+    }
+
+    fun returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
+        // for non-asm subroutines, determine the return registers based on the type of the return values
+
+        fun cpuRegisterFor(returntype: DataType): RegisterOrStatusflag = when {
+            returntype.isByteOrBool -> RegisterOrStatusflag(RegisterOrPair.A, null)
+            returntype.isWord -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+            returntype.isLong -> RegisterOrStatusflag(RegisterOrPair.R14R15, null)
+            returntype.isFloat -> RegisterOrStatusflag(RegisterOrPair.FAC1, null)
+            else -> RegisterOrStatusflag(RegisterOrPair.AY, null)
+        }
+
+        when(returns.size) {
+            0 -> return emptyList()
+            1 -> {
+                val returntype = returns.single()
+                val register = cpuRegisterFor(returntype)
+                return listOf(Pair(register, returntype))
+            }
+            else -> {
+                // for multi-value results, put the first one in A or AY cpu register(s) and the rest in the virtual registers starting from R15 and counting down
+                // a floating point return values is returned in FAC1. Only a single fp value is possible.
+                // The reason FAC2 cannot be used as well to support 2 fp values is that working with both FACs interferes with another.
+                val firstRegister = cpuRegisterFor(returns.first()) to returns.first()
+
+                val availableIntegerRegisters = Cx16VirtualRegisters.toMutableList()
+                val availableFloatRegisters = mutableListOf(RegisterOrPair.FAC1)        // just one value is possible
+                val availableLongRegisters = CombinedLongRegisters.toMutableList()
+
+                availableLongRegisters.remove(firstRegister.first.registerOrPair)
+
+                fun getLongRegister(): RegisterOrPair {
+                    val reg = availableLongRegisters.removeLastOrNull()
+                    if(reg==null)
+                        throw AssemblyError("out of registers for long return type ${this.position}")
+                    else {
+                        // remove the pair from integer regs
+                        when(reg) {
+                            RegisterOrPair.R0R1 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R0)
+                                availableIntegerRegisters.remove(RegisterOrPair.R1)
+                            }
+                            RegisterOrPair.R2R3 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R2)
+                                availableIntegerRegisters.remove(RegisterOrPair.R3)
+                            }
+                            RegisterOrPair.R4R5 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R4)
+                                availableIntegerRegisters.remove(RegisterOrPair.R5)
+                            }
+                            RegisterOrPair.R6R7 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R6)
+                                availableIntegerRegisters.remove(RegisterOrPair.R7)
+                            }
+                            RegisterOrPair.R8R9 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R8)
+                                availableIntegerRegisters.remove(RegisterOrPair.R9)
+                            }
+                            RegisterOrPair.R10R11 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R10)
+                                availableIntegerRegisters.remove(RegisterOrPair.R11)
+                            }
+                            RegisterOrPair.R12R13 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R12)
+                                availableIntegerRegisters.remove(RegisterOrPair.R13)
+                            }
+                            RegisterOrPair.R14R15 -> {
+                                availableIntegerRegisters.remove(RegisterOrPair.R14)
+                                availableIntegerRegisters.remove(RegisterOrPair.R15)
+                            }
+                            else -> throw AssemblyError("weird long register $reg")
+                        }
+                        return reg
+                    }
+                }
+
+                fun getIntegerRegister(): RegisterOrPair {
+                    val reg = availableIntegerRegisters.removeLastOrNull()
+                    if(reg==null)
+                        throw AssemblyError("out of registers for byte/word return type ${this.position}")
+                    else {
+                        // remove it from long regs
+                        when(reg) {
+                            RegisterOrPair.R0, RegisterOrPair.R1 -> availableLongRegisters.remove(RegisterOrPair.R0R1)
+                            RegisterOrPair.R2, RegisterOrPair.R3 -> availableLongRegisters.remove(RegisterOrPair.R2R3)
+                            RegisterOrPair.R4, RegisterOrPair.R5 -> availableLongRegisters.remove(RegisterOrPair.R4R5)
+                            RegisterOrPair.R6, RegisterOrPair.R7 -> availableLongRegisters.remove(RegisterOrPair.R6R7)
+                            RegisterOrPair.R8, RegisterOrPair.R9 -> availableLongRegisters.remove(RegisterOrPair.R8R9)
+                            RegisterOrPair.R10, RegisterOrPair.R11 -> availableLongRegisters.remove(RegisterOrPair.R10R11)
+                            RegisterOrPair.R12, RegisterOrPair.R13 -> availableLongRegisters.remove(RegisterOrPair.R12R13)
+                            RegisterOrPair.R14, RegisterOrPair.R15 -> availableLongRegisters.remove(RegisterOrPair.R14R15)
+                            else -> throw AssemblyError("weird byte/long register $reg")
+                        }
+                        return reg
+                    }
+                }
+
+                val others = returns.drop(1).map { type ->
+                    when {
+                        type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLastOrNull()!!, null) to type
+                        type.isLong -> RegisterOrStatusflag(getLongRegister(), null) to type
+                        type.isWordOrByteOrBool -> RegisterOrStatusflag(getIntegerRegister(), null) to type
+                        else -> throw AssemblyError("unsupported return type $type")
+                    }
+                }
+
+                return listOf(firstRegister) + others
+            }
+        }
     }
 }
 

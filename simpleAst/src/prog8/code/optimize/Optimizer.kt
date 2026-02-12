@@ -37,11 +37,7 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable): Int {
     walkAst(program) { node: PtNode, depth: Int ->
         if(node is PtAssignment) {
             val value = node.value
-            val functionName = when(value) {
-                is PtBuiltinFunctionCall -> value.name
-                is PtFunctionCall -> value.name
-                else -> null
-            }
+            val functionName = if (value is PtFunctionCall) value.name else null
             if(functionName!=null) {
                 val stNode = st.lookup(functionName)
                 if (stNode is StExtSub) {
@@ -65,7 +61,7 @@ private fun optimizeAssignTargets(program: PtProgram, st: SymbolTable): Int {
                 if(node.children.dropLast(1).all { (it as PtAssignTarget).void }) {
                     // all targets are now void, the whole assignment can be discarded and replaced by just a (void) call to the subroutine
                     val index = node.parent.children.indexOf(node)
-                    val voidCall = PtFunctionCall(functionName, true, DataType.UNDEFINED, value.position)
+                    val voidCall = PtFunctionCall(functionName, false, false, emptyArray(), value.position)
                     value.children.forEach { voidCall.add(it) }
                     node.parent.children[index] = voidCall
                     voidCall.parent = node.parent
@@ -165,7 +161,7 @@ private fun optimizeFloatComparesToZero(program: PtProgram): Int {
             val constvalue = node.right.asConstValue()
             if(node.type.isBool && constvalue==0.0 && node.left.type.isFloat && node.operator in ComparisonOperators) {
                 // float == 0 --> sgn(float) == 0
-                val sign = PtBuiltinFunctionCall("sgn", false, true, DataType.BYTE, node.position)
+                val sign = PtFunctionCall("sgn", true, true, arrayOf(DataType.BYTE), node.position)
                 sign.add(node.left)
                 val replacement = PtBinaryExpression(node.operator, DataType.BOOL, node.position)
                 replacement.add(sign)
@@ -185,7 +181,7 @@ private fun optimizeFloatComparesToZero(program: PtProgram): Int {
 private fun optimizeLsbMsbOnStructfields(program: PtProgram): Int {
     var changes = 0
     walkAst(program) { node: PtNode, depth: Int ->
-        if (node is PtBuiltinFunctionCall && (node.name=="msb" || node.name=="lsb")) {
+        if (node is PtFunctionCall && node.builtin && (node.name=="msb" || node.name=="lsb")) {
             if(node.args[0] is PtPointerDeref) {
                 if(!node.args[0].type.isByteOrBool) {
                     // msb(struct.field) -->  @(&struct.field+1)
@@ -262,7 +258,7 @@ private fun optimizeSgnComparisons(program: PtProgram, errors: IErrorReporter): 
     var changes = 0
 
     walkAst(program) { node: PtNode, depth: Int ->
-        if(node is PtBuiltinFunctionCall && node.name=="sgn" && node.args[0].type.isInteger) {
+        if(node is PtFunctionCall && node.builtin && node.name=="sgn" && node.args[0].type.isInteger) {
             val comparison = node.parent as? PtBinaryExpression
             if(comparison!=null && comparison.right.asConstInteger()==0 && comparison.operator in ComparisonOperators) {
                 //  sgn(integer) >= 0   -> just use   integer >= 0

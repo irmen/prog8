@@ -8,10 +8,8 @@ import prog8.code.target.VMTarget
 class SymbolTableMaker(private val program: PtProgram, private val options: CompilationOptions) {
     fun make(): SymbolTable {
         val st = SymbolTable(program)
-
         BuiltinFunctions.forEach {
-            val dt = DataType.forDt(it.value.returnType ?: BaseDataType.UNDEFINED)
-            st.add(StNode(it.key, StNodeType.BUILTINFUNC, PtIdentifier(it.key, dt, Position.DUMMY)))
+            st.add(StNode(it.key, StNodeType.BUILTINFUNC, null))
         }
 
         val scopestack = ArrayDeque<StNode>()
@@ -111,7 +109,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     stVar.setOnetimeInitNumeric(initialNumeric)
                 stVar
             }
-            is PtBuiltinFunctionCall -> {
+            is PtFunctionCall if node.builtin -> {
                 if(node.name=="memory") {
                     // memory slab allocations are a builtin functioncall in the program, but end up named as well in the symboltable
                     require(node.name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
@@ -143,7 +141,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             scope.removeLast()
     }
 
-    private fun handleStructAllocation(node: PtBuiltinFunctionCall): StStructInstance? {
+    private fun handleStructAllocation(node: PtFunctionCall): StStructInstance? {
+        require(node.builtin)
         val struct = node.type.subType as? StStruct ?: return null
         val initialValues = node.args.map {
             when(it) {
@@ -169,7 +168,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 }
                 is PtNumber -> StArrayElement(it.number, null, null,null,null)
                 is PtBool -> StArrayElement(null, null, null,null,it.value)
-                is PtBuiltinFunctionCall -> {
+                is PtFunctionCall -> {
+                    require(it.builtin)
                     if(it.name=="prog8_lib_structalloc") {
                         val instance = handleStructAllocation(it)
                         if(instance==null) {

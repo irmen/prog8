@@ -8,7 +8,7 @@ import prog8.code.core.*
 import prog8.code.target.C128Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
-import prog8.compiler.builtinFunctionReturnType
+import prog8.compiler.builtinFunctionReturnTypes
 import java.io.CharConversionException
 import java.io.File
 import kotlin.io.path.Path
@@ -692,13 +692,15 @@ internal class AstChecker(private val program: Program,
         }
 
         val fcall = assignment.value as? IFunctionCall
-        val fcallTarget = fcall?.target?.targetSubroutine()
+        val fcallTarget = fcall?.target?.targetStatement(program.builtinFunctions)
         if(assignment.target.multi!=null) {
             checkMultiAssignment(assignment, fcall, fcallTarget)
-        } else if(fcallTarget!=null) {
-            if(fcallTarget.returntypes.size!=1) {
+        } else if(fcallTarget is Subroutine) {
+            if(fcallTarget.returntypes.size!=1)
                 return numberOfReturnValuesError(1, fcallTarget.returntypes, fcall.position)
-            }
+        } else if(fcallTarget is BuiltinFunctionPlaceholder) {
+            if(fcallTarget.returntypes.size!=1)
+                return numberOfReturnValuesError(1, fcallTarget.returntypes, fcall.position)
         }
 
         if(fcall?.target?.targetStructDecl()!=null)
@@ -731,22 +733,45 @@ internal class AstChecker(private val program: Program,
             errors.err("call returns too few values: expected $numAssigns got ${providedTypes.size}", position)
     }
 
-    private fun checkMultiAssignment(assignment: Assignment, fcall: IFunctionCall?, fcallTarget: Subroutine?) {
+    private fun checkMultiAssignment(assignment: Assignment, fcall: IFunctionCall?, fcallTarget: Statement?) {
         // multi-assign: check the number of assign targets vs. the number of return values of the subroutine
         // also check the types of the variables vs the types of each return value
-        if(fcall==null || fcallTarget==null) {
-            errors.err("expected a function call with multiple return values", assignment.value.position)
-            return
-        }
-        val targets = assignment.target.multi!!
-        if(fcallTarget.returntypes.size!=targets.size) {
-            return numberOfReturnValuesError(targets.size, fcallTarget.returntypes, fcall.position)
-        }
-        fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
-            val (returnType, target) = p
-            val targetDt = target.inferType(program).getOrUndef()
-            if (!target.void && returnType != targetDt)
-                errors.err("can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt", target.position)
+        when {
+            fcall == null || fcallTarget==null -> {
+                errors.err("expected a function call with multiple return values", assignment.value.position)
+            }
+            fcallTarget is Subroutine -> {
+                // function calls regular subroutine
+                val targets = assignment.target.multi!!
+                if (fcallTarget.returntypes.size != targets.size) {
+                    return numberOfReturnValuesError(targets.size, fcallTarget.returntypes, fcall.position)
+                }
+                fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
+                    val (returnType, target) = p
+                    val targetDt = target.inferType(program).getOrUndef()
+                    if (!target.void && returnType != targetDt)
+                        errors.err(
+                            "can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt",
+                            target.position
+                        )
+                }
+            }
+            fcallTarget is BuiltinFunctionPlaceholder -> {
+                // function calls builtin function
+                val targets = assignment.target.multi!!
+                if (fcallTarget.returntypes.size != targets.size) {
+                    return numberOfReturnValuesError(targets.size, fcallTarget.returntypes, fcall.position)
+                }
+                fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
+                    val (returnType, target) = p
+                    val targetDt = target.inferType(program).getOrUndef()
+                    if (!target.void && returnType != targetDt)
+                        errors.err(
+                            "can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt",
+                            target.position
+                        )
+                }
+            }
         }
     }
 
@@ -1733,7 +1758,7 @@ internal class AstChecker(private val program: Program,
             }
         }
         else if(targetStatement is BuiltinFunctionPlaceholder) {
-            if(builtinFunctionReturnType(targetStatement.name).isUnknown) {
+            if(builtinFunctionReturnTypes(targetStatement.name).isEmpty()) {
                 if(functionCallExpr.parent is Expression || functionCallExpr.parent is Assignment)
                     errors.err("function doesn't return a value", functionCallExpr.position)
             }
@@ -1789,7 +1814,7 @@ internal class AstChecker(private val program: Program,
             if(functionCallStatement.void) {
                 when(targetStatement) {
                     is BuiltinFunctionPlaceholder -> {
-                        if(!builtinFunctionReturnType(targetStatement.name).isKnown)
+                        if(builtinFunctionReturnTypes(targetStatement.name).isEmpty())
                             errors.info("redundant void", functionCallStatement.position)
                     }
                     is Label -> {
@@ -1813,14 +1838,6 @@ internal class AstChecker(private val program: Program,
                 val idref = functionCallStatement.args.singleOrNull() as? IdentifierReference
                 if(idref!=null && idref.inferType(program).isFloatArray) {
                     errors.err("sorting a floating point array is not supported", functionCallStatement.args.first().position)
-                }
-            }
-            else if(funcName[0].startsWith("divmod")) {
-                if(functionCallStatement.args[2] is TypecastExpression || functionCallStatement.args[3] is TypecastExpression) {
-                    errors.err("arguments must be all ubyte or all uword", functionCallStatement.position)
-                } else {
-                    if(functionCallStatement.args[2] !is IdentifierReference || functionCallStatement.args[3] !is IdentifierReference)
-                        errors.err("arguments 3 and 4 must be variables to receive the division and remainder", functionCallStatement.position)
                 }
             }
 
@@ -2586,8 +2603,8 @@ internal fun checkUnusedReturnValues(call: FunctionCallStatement, target: Statem
             else
                 errors.info("result values of subroutine call are discarded (use void?)", call.position)
         } else if (target is BuiltinFunctionPlaceholder) {
-            val rt = builtinFunctionReturnType(target.name)
-            if (rt.isKnown)
+            val rt = builtinFunctionReturnTypes(target.name)
+            if (rt.isNotEmpty())
                 errors.info("result value of a function call is discarded (use void?)", call.position)
         }
     }

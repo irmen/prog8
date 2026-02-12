@@ -164,13 +164,13 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
 
     fun invokedeferbefore(node: PtNode) {
         val idx = node.parent.children.indexOf(node)
-        val invokedefer = PtFunctionCall(node.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true, DataType.UNDEFINED, node.position)
+        val invokedefer = PtFunctionCall(node.definingSub()!!.scopedName+"."+invokeDefersRoutineName, false, false, emptyArray(), node.position)
         node.parent.add(idx, invokedefer)
     }
 
     fun isSimple(value: PtExpression): Boolean = when(value) {
         is PtAddressOf -> value.arrayIndexExpr == null || isSimple(value.arrayIndexExpr!!)
-        is PtBuiltinFunctionCall -> value.isSimple()
+        is PtFunctionCall -> value.builtin && value.isSimple()
         is PtMemoryByte -> value.address is PtNumber
         is PtPrefix -> isSimple(value.value)
         is PtTypeCast -> isSimple(value.value)
@@ -204,7 +204,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
         val group = PtNodeGroup()
         pushCalls.forEach { group.add(it) }
         popCalls.forEach { newRet.add(it) }
-        group.add(PtFunctionCall(ret.definingSub()!!.scopedName+"."+invokeDefersRoutineName, true,DataType.UNDEFINED, ret.position))
+        group.add(PtFunctionCall(ret.definingSub()!!.scopedName+"."+invokeDefersRoutineName, false, false,emptyArray(), ret.position))
         group.add(newRet)
         replaceNode(ret, group)
     }
@@ -216,7 +216,7 @@ private fun integrateDefers(subdefers: Map<PtSub, List<PtDefer>>, program: PtPro
             val idx = sub.children.indexOfLast { it !is PtDefer }
             val ret = PtReturn(sub.position)
             sub.add(idx+1, ret)
-            val invokedefer = PtFunctionCall(sub.scopedName+"."+invokeDefersRoutineName, true, DataType.UNDEFINED, sub.position)
+            val invokedefer = PtFunctionCall(sub.scopedName+"."+invokeDefersRoutineName, false, false, emptyArray(), sub.position)
             sub.add(idx+1, invokedefer)
         }
     }

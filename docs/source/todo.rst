@@ -1,6 +1,11 @@
 TODO
 ====
 
+AssignmentAsmGen: TODO restore the optimized target register codegen that avoids A/AY altogether
+
+simplifiedAstMaker: transform(srcCall: FunctionCallStatement)  : what when the call actually returns multiple return values???
+
+
 Known bugs:
 - fix chained aliasing errors see test "chained aliasing"
 - fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"
@@ -119,6 +124,7 @@ Libraries
 Optimizations
 -------------
 
+- funcSgn can look directly at msb if arg is a variable
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Since fixing the missing zp-var initialization, programs grew in size again because STZ's reappeared. Can we add more intelligent (and correct!) optimizations to remove those STZs that might be redundant again?
