@@ -1,6 +1,7 @@
 TODO
 ====
 
+Known bugs:
 - fix chained aliasing errors see test "chained aliasing"
 - fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"
 
@@ -113,6 +114,7 @@ IR/VM
 
 Libraries
 ---------
+- diskio: make f_open (and f_open_w?) and exists to read the command channel for success status rather than depending on flaky ST
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support?
 

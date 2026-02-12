@@ -432,6 +432,7 @@ io_error:
     sub exists(str filename) -> bool {
         ; -- returns true if the given file exists on the disk, otherwise false
         ;    DON'T use this if you already have a file open with f_open!
+        ;    NOTE: may not work correctly for empty files. Try to avoid empty files on CBM DOS systems.
         ;    NOTE: doesn't clear the dos error status and message, you'll have to read/clear that yourself (with status() for example)
         cbm.SETNAM(strings.length(filename), filename)
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)

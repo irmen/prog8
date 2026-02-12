@@ -586,6 +586,7 @@ to see what's in there. (Note: slight variations for different compiler targets)
     Error handling is peculiar on CBM dos systems (C64, C128, cx16, PET). Read the
     descriptions for the various methods in this library for details and tips.
     PET support is limited, not all routines are available for this system.
+    Also there are some weird cases in CBM dos when dealing with empty (0-byte) files. It's best to avoid such files altogether.
 
 
 emudbg  (cx16 only)
