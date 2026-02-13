@@ -15,6 +15,7 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- make swap() a special syntax node with assigntarget arg types instead of a builtin function call (see swap-statement branch)
 - make builtin functions capable of returning multiple values, then make divmod() return the 2 results rather than accepting 2 extra variables as arguments
 - then also introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
 - and rewrite the divmod (and others?) function to just return the 2 results instead of taking target variables as arguments.
