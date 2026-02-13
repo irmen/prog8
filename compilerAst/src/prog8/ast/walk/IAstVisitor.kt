@@ -50,6 +50,11 @@ interface IAstVisitor {
     fun visit(field: StructFieldRef) {
     }
 
+    fun visit(swap: Swap) {
+        swap.t1.accept(this)
+        swap.t2.accept(this)
+    }
+
     fun visit(subroutine: Subroutine) {
         subroutine.asmAddress?.varbank?.accept(this)
         subroutine.statements.forEach { it.accept(this) }

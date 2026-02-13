@@ -77,6 +77,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is VarDecl -> transform(statement)
             is StructDecl -> transform(statement)
             is When -> transform(statement)
+            is Swap -> transform(statement)
             is WhileLoop -> throw FatalAstException("while loops must have been converted to jumps")
             is OnGoto -> throw FatalAstException("ongoto must have been converted to array and separate call/goto")
             is StructFieldRef -> throw FatalAstException("should not occur as part of the actual AST")
@@ -107,9 +108,16 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         }
     }
 
+    private fun transform(swap: Swap): PtSwap {
+        val ptswap = PtSwap(swap.position)
+        ptswap.add(transform(swap.t1))
+        ptswap.add(transform(swap.t2))
+        return ptswap
+    }
+
     private fun transform(deref: PtrDereference): PtPointerDeref {
         val type = deref.inferType(program).getOrElse {
-            throw FatalAstException("unknown dt")
+            throw FatalAstException("unknown dt ${deref.position}")
         }
 
         val targetVar = deref.definingScope.lookup(deref.chain) as? VarDecl

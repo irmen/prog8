@@ -692,10 +692,16 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         return dt to identifiers.map { getname(it) }
     }
 
+    override fun visitSwap(ctx: SwapContext): Swap {
+        val (t1, t2) = ctx.assign_target().map { it.accept(this) as AssignTarget }
+        return Swap(t1, t2, ctx.toPosition())
+    }
+
 
     override fun visitModule_element(ctx: Module_elementContext): Node = visitChildren(ctx)
     override fun visitBlock_statement(ctx: Block_statementContext): Statement = visitChildren(ctx) as Statement
     override fun visitStatement(ctx: StatementContext): Statement = visitChildren(ctx) as Statement
+
     override fun visitVariabledeclaration(ctx: VariabledeclarationContext): VarDecl = visitChildren(ctx) as VarDecl
     override fun visitLiteralvalue(ctx: LiteralvalueContext): Expression = visitChildren(ctx) as Expression
 

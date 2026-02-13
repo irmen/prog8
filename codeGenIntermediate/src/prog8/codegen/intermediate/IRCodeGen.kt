@@ -252,6 +252,7 @@ class IRCodeGen(
                 listOf(chunk)
             }
             is PtConditionalBranch -> translate(node)
+            is PtSwap -> translate(node)
             is PtInlineAssembly -> listOf(IRInlineAsmChunk(null, node.assembly, node.isIR, null))
             is PtIncludeBinary -> listOf(IRInlineBinaryChunk(null, readBinaryData(node), null))
             is PtAddressOf,
@@ -1921,6 +1922,50 @@ class IRCodeGen(
             }
         }
         return irBlock
+    }
+
+    private fun translate(swap: PtSwap): IRCodeChunks {
+        require(swap.target1.type == swap.target2.type)
+        val result = mutableListOf<IRCodeChunkBase>()
+        val target1: PtExpression = swap.target1.children.single() as PtExpression
+        val target2: PtExpression = swap.target2.children.single() as PtExpression
+        val t1 = expressionEval.translateExpression(target1)
+        val t2 = expressionEval.translateExpression(target2)
+        if(swap.target1.type.isFloat) {
+            addToResult(result, t1, -1, t1.resultFpReg)
+            addToResult(result, t2, -1, t2.resultFpReg)
+            result += assignFpRegisterTo(target1, t2.resultFpReg)
+            result += assignFpRegisterTo(target2, t1.resultFpReg)
+        } else {
+            addToResult(result, t1, t1.resultReg, -1)
+            addToResult(result, t2, t2.resultReg, -1)
+            result += assignRegisterTo(target1, t2.resultReg)
+            result += assignRegisterTo(target2, t1.resultReg)
+        }
+        return result
+    }
+
+    private fun assignFpRegisterTo(target: PtExpression, fpRegister: Int): IRCodeChunks {
+        require(target.type.isFloat)
+        val assignment = PtAssignment(target.position)
+        val assignTarget = PtAssignTarget(false, target.position)
+        assignTarget.children.add(target)
+        assignment.children.add(assignTarget)
+        assignment.children.add(PtIrRegister(fpRegister, DataType.FLOAT, target.position))
+        val result = mutableListOf<IRCodeChunkBase>()
+        result += translateNode(assignment)
+        return result
+    }
+
+    internal fun assignRegisterTo(target: PtExpression, register: Int): IRCodeChunks {
+        val assignment = PtAssignment(target.position)
+        val assignTarget = PtAssignTarget(false, target.position)
+        assignTarget.children.add(target)
+        assignment.children.add(assignTarget)
+        assignment.children.add(PtIrRegister(register, target.type, target.position))
+        val result = mutableListOf<IRCodeChunkBase>()
+        result += translateNode(assignment)
+        return result
     }
 
     private fun translateParameters(parameters: List<PtNode>): List<IRSubroutine.IRParam> {

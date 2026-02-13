@@ -258,7 +258,6 @@ push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
 pushst                                    - push status register bits to stack
 popst                                     - pop status register bits from stack
-swap          reg1, reg2                  - exchange values in registers 1 and 2 (all datatypes)
  */
 
 enum class Opcode {
@@ -431,7 +430,6 @@ enum class Opcode {
     MSIGW,
     BSIGB,
     CONCAT,
-    SWAP,
     BREAKPOINT,
     ALIGN
 }
@@ -822,7 +820,6 @@ val instructionFormats = mutableMapOf(
     Opcode.PUSHST     to InstructionFormat.from("N"),
     Opcode.POPST      to InstructionFormat.from("N"),
     Opcode.CONCAT     to InstructionFormat.from("BW,<>r1,<r2,<r3"),
-    Opcode.SWAP       to InstructionFormat.from("BWL,<>r1,<>r2  | F,<>fr1,<>fr2"),
     Opcode.CLC        to InstructionFormat.from("N"),
     Opcode.SEC        to InstructionFormat.from("N"),
     Opcode.CLI        to InstructionFormat.from("N"),

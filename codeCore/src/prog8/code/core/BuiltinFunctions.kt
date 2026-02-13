@@ -116,11 +116,6 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "sqrt__uword"   to FSignature(true, BaseDataType.UBYTE, FParam("value", BaseDataType.UWORD)),
     "sqrt__long"    to FSignature(true, BaseDataType.UWORD, FParam("value", BaseDataType.LONG)),
     "sqrt__float"   to FSignature(true, BaseDataType.FLOAT, FParam("value", BaseDataType.FLOAT)),
-    "swap"          to FSignature(false, null, FParam("var1", *NumericDatatypes + BaseDataType.BOOL), FParam("var2", *NumericDatatypes + BaseDataType.BOOL)),
-    "swap__byte"    to FSignature(false, null, FParam("var1", BaseDataType.BYTE, BaseDataType.UBYTE, BaseDataType.BOOL), FParam("var2",BaseDataType.BYTE, BaseDataType.UBYTE, BaseDataType.BOOL)),
-    "swap__word"    to FSignature(false, null, FParam("var1", BaseDataType.WORD, BaseDataType.UWORD), FParam("var2",BaseDataType.WORD, BaseDataType.UWORD)),
-    "swap__long"    to FSignature(false, null, FParam("var1", BaseDataType.LONG), FParam("var2",BaseDataType.LONG)),
-    "swap__float"   to FSignature(false, null, FParam("var1", BaseDataType.FLOAT), FParam("var2",BaseDataType.FLOAT)),
     "divmod"        to FSignature(false, null, FParam("dividend", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("divisor", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("quotient", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("remainder", BaseDataType.UBYTE, BaseDataType.UWORD)),
     "divmod__ubyte" to FSignature(false, null, FParam("dividend", BaseDataType.UBYTE), FParam("divisor", BaseDataType.UBYTE), FParam("quotient", BaseDataType.UBYTE), FParam("remainder", BaseDataType.UBYTE)),
     "divmod__uword" to FSignature(false, null, FParam("dividend", BaseDataType.UWORD), FParam("divisor", BaseDataType.UWORD), FParam("quotient", BaseDataType.UWORD), FParam("remainder", BaseDataType.UWORD)),
@@ -174,8 +169,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
 val InplaceModifyingBuiltinFunctions = setOf(
     "setlsb", "setmsb",
     "rol", "ror", "rol2", "ror2",
-    "divmod", "divmod__ubyte", "divmod__uword",
-    "swap", "swap__byte", "swap__word", "swap__long", "swap__float"
+    "divmod", "divmod__ubyte", "divmod__uword"
 )
 
 val SimpleBuiltinFunctions = setOf(

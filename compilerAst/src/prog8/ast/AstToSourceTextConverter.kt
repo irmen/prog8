@@ -591,4 +591,12 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         output(" : ")
         outputListMembers(initializer.args.toTypedArray())
     }
+
+    override fun visit(swap: Swap) {
+        output("swap (")
+        swap.t1.accept(this)
+        output(", ")
+        swap.t2.accept(this)
+        output(")")
+    }
 }

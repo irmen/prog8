@@ -22,6 +22,7 @@ internal class StatementReorderer(
     // - sorts the choices in when statement.
     // - insert AddressOf (&) expression where required (string params to a UWORD function param etc.).
     // - consolidates multiple consecutive additions , subtractions, multiplications.
+    // - swap byte pointer deref -> swap directmemory
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop", "%option", "%encoding")
 
@@ -429,5 +430,27 @@ internal class StatementReorderer(
             }
         }
         return noModifications
+    }
+
+    override fun after(swap: Swap, parent: Node): Iterable<IAstModification> {
+        val mods = mutableListOf<IAstModification>()
+        val dt = swap.t1.inferType(program).getOrUndef()
+        if(dt.isByteOrBool) {
+            // replace  swap(ptr^^, ...)   by  swap(@(ptr), ...)    when ptr is byte/ubyte/bool
+            // regular ptr^^ -> @(ptr) replacement only checks for unsigned byte type.
+            val deref1 = swap.t1.pointerDereference
+            val deref2 = swap.t2.pointerDereference
+            if(deref1!=null) {
+                val identifier = IdentifierReference(deref1.chain, deref1.position)
+                val memwrite = DirectMemoryWrite(identifier, deref1.position)
+                mods.add(IAstModification.ReplaceNode(deref1, memwrite, swap.t1))
+            }
+            if(deref2!=null) {
+                val identifier = IdentifierReference(deref2.chain, deref2.position)
+                val memwrite = DirectMemoryWrite(identifier, deref2.position)
+                mods.add(IAstModification.ReplaceNode(deref2, memwrite, swap.t2))
+            }
+        }
+        return mods
     }
 }

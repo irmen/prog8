@@ -451,6 +451,26 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 }
 
+class Swap(var t1: AssignTarget, var t2: AssignTarget, override val position: Position) : Statement() {
+    override lateinit var parent: Node
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        t1.linkParents(this)
+        t2.linkParents(this)
+    }
+
+    override fun copy(): Swap = Swap(t1.copy(), t2.copy(), position)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean  = t1.referencesIdentifier(nameInSource) || t2.referencesIdentifier(nameInSource)
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        if(node===t1) t1 = replacement as AssignTarget
+        else if(node===t2) t2 = replacement as AssignTarget
+        else throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
+    }
+
+}
 
 class ArrayIndex(var indexExpr: Expression, override val position: Position) : Node {
     override lateinit var parent: Node
