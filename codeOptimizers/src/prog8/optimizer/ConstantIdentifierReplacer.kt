@@ -247,10 +247,14 @@ class VarConstantValueTypeAdjuster(
                     dt.isLong -> {
                         val value = functionCallExpr.args[0].constValue(program)?.number
                         if(value!=null && value<0) {
-                            errors.err("expected unsigned or float numeric argument", functionCallExpr.args[0].position)
+                            errors.err("expected positive integer or float numeric argument", functionCallExpr.args[0].position)
                             return noModifications
                         }
                         "sqrt__long"
+                    }
+                    dt.isSigned -> {
+                        errors.err("expected unsigned (positive) numeric argument", functionCallExpr.args[0].position)
+                        return noModifications
                     }
                     else -> {
                         errors.err("expected numeric argument", functionCallExpr.args[0].position)

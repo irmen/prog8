@@ -440,12 +440,13 @@ enum class RegisterOrPair {
     }
 
     fun asScopedNameVirtualReg(type: DataType?): List<String> {
-        require(this in Cx16VirtualRegisters)
+        require(this in Cx16VirtualRegisters || this in CombinedLongRegisters)
         val suffix = when(type?.base) {
             BaseDataType.UBYTE, BaseDataType.BOOL -> "L"
             BaseDataType.BYTE -> "sL"
             BaseDataType.WORD -> "s"
             BaseDataType.UWORD, BaseDataType.POINTER, null -> ""
+            BaseDataType.LONG -> "sl"
             else -> throw IllegalArgumentException("invalid register param type for cx16 virtual reg")
         }
         return listOf("cx16", name.lowercase()+suffix)

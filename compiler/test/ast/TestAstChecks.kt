@@ -337,6 +337,7 @@ main {
     sub start() {
         foo(42)
         bar(9999,55)
+        bar2(9999999)
     }
 
     sub foo(ubyte arg @R2) {
@@ -346,14 +347,27 @@ main {
     sub bar(uword arg @R0, ubyte arg2 @R1) {
         arg += arg2
     }
+    
+    sub bar2(long arg @R14R15) {
+        arg++
+    }
 }"""
 
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
         errors.errors.size shouldBe 0
-        errors.warnings.size shouldBe 2
+        errors.warnings.size shouldBe 3
         errors.warnings[0] shouldContain "footgun"
         errors.warnings[1] shouldContain "footgun"
+        errors.warnings[2] shouldContain "footgun"
+
+        errors.clear()
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+        errors.warnings.size shouldBe 3
+        errors.warnings[0] shouldContain "footgun"
+        errors.warnings[1] shouldContain "footgun"
+        errors.warnings[2] shouldContain "footgun"
     }
 
     test("reg params R0-R15 cannot be used for invalid types") {

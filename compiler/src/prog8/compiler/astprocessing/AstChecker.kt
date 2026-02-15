@@ -584,12 +584,13 @@ internal class AstChecker(private val program: Program,
         // Instead, their reference (address) should be passed (as an UWORD).
         for(p in subroutine.parameters) {
             if (!subroutine.isAsmSubroutine && p.registerOrPair!=null) {
-                if (p.registerOrPair !in Cx16VirtualRegisters) errors.err("can only use R0-R15 as register param for normal subroutines", p.position)
+                if (p.registerOrPair !in Cx16VirtualRegisters && p.registerOrPair !in CombinedLongRegisters)
+                    errors.err("can only use R0-R15 as register param for normal subroutines", p.position)
                 else {
                     if(!compilerOptions.ignoreFootguns)
                         errors.warn("\uD83D\uDCA3 footgun: reusing R0-R15 as parameters risks overwriting due to clobbering or no callstack", subroutine.position)
-                    if(!p.type.isWordOrByteOrBool && !p.type.isPointer) {
-                        errors.err("can only use register param when type is boolean, byte, word or pointer", p.position)
+                    if(!p.type.isInteger && !p.type.isBool && !p.type.isPointer) {
+                        errors.err("can only use register param when type is boolean, integer or pointer", p.position)
                     }
                 }
             }

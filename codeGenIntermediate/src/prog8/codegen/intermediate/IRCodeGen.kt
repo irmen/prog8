@@ -1934,7 +1934,7 @@ class IRCodeGen(
                 result += IRSubroutine.IRParam(it.name, orig.dt)
             } else {
                 val reg = it.register
-                require(reg in Cx16VirtualRegisters) { "can only use R0-R15 'registers' here" }
+                require(reg in Cx16VirtualRegisters || reg in CombinedLongRegisters) { "can only use R0-R15 'registers' here" }
                 val regname = it.register!!.asScopedNameVirtualReg(it.type).joinToString(".")
                 val targetVar = symbolTable.lookup(regname) as StMemVar
                 result += IRSubroutine.IRParam(regname, targetVar.dt)

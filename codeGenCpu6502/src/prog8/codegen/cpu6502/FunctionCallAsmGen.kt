@@ -268,8 +268,8 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
 
         val reg = parameter.register
         if(reg!=null) {
-            require(reg in Cx16VirtualRegisters) { "can only use R0-R15 'registers' here" }
-            val varName = "cx16.${reg.name.lowercase()}"
+            require(reg in Cx16VirtualRegisters || reg in CombinedLongRegisters) { "can only use R0-R15 'registers' here" }
+            val varName = reg.asScopedNameVirtualReg(value.type).joinToString(".")
             asmgen.assignExpressionToVariable(value, varName, parameter.type)
         } else {
             val varName = asmgen.asmVariableName(sub.scopedName + "." + parameter.name)
