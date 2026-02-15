@@ -63,7 +63,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                 val paramConv = when(val paramType = actualParamTypes[0]) {
                     BaseDataType.UBYTE, BaseDataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
                     BaseDataType.UWORD, BaseDataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    BaseDataType.LONG -> ParamConvention(paramType, RegisterOrPair.R14R15, false)
+                    BaseDataType.LONG -> ParamConvention(paramType, RegisterOrPair.R14R15, false)     // TODO longs should not be passed in R14R15 but via parameter variable
                     BaseDataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // NOTE: for builtin functions, floating point arguments are passed by reference (so you get a pointer in AY)
                     in IterableDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
                     else -> ParamConvention(paramType, null, false)

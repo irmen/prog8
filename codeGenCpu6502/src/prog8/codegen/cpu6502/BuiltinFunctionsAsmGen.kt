@@ -509,18 +509,25 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
 
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
-        translateArguments(fcall, scope)
         when(fcall.args[0].type.base) {
             BaseDataType.UBYTE -> {
+                translateArguments(fcall, scope)
                 asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
             BaseDataType.UWORD -> {
+                translateArguments(fcall, scope)
                 asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
-            BaseDataType.LONG -> TODO("sqrt LONG ${fcall.position}")
+            BaseDataType.LONG -> {
+                // sqrt_long expects the argument in its "num" parameter
+                assignAsmGen.assignExpressionToVariable(fcall.args[0], "prog8_lib.sqrt_long.num", DataType.LONG)
+                asmgen.out("  jsr  prog8_lib.sqrt_long")
+                assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, scope, asmgen),RegisterOrPair.AY)
+            }
             BaseDataType.FLOAT -> {
+                translateArguments(fcall, scope)
                 asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
                 assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
             }
@@ -2738,6 +2745,17 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
         }
 
+        fun getSourceForLong(value: PtExpression): AsmAssignSource {
+            return when(value) {
+                is PtIdentifier -> AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, DataType.LONG, variableAsmName = asmgen.asmVariableName(value))
+                is PtNumber -> AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, DataType.LONG, number = value)
+                else -> {
+                    asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15, true)
+                    AsmAssignSource(SourceStorageKind.REGISTER, program, asmgen, DataType.LONG, register = RegisterOrPair.R14R15)
+                }
+            }
+        }
+
         call.args.zip(callConv.params).zip(signature.parameters).forEach {
             val paramName = it.second.name
             val conv = it.first.second
@@ -2747,7 +2765,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                     val varname = "prog8_lib.func_${call.name}._arg_${paramName}"
                     val src = when  {
                         conv.dt==BaseDataType.FLOAT -> getSourceForFloat(value)
-                        conv.dt==BaseDataType.LONG -> TODO("LONG argument for builtin func ${call.position}")
+                        conv.dt==BaseDataType.LONG -> getSourceForLong(value)
                         conv.dt.isPassByRef -> {
                             // put the address of the argument in AY
                             val addr = PtAddressOf(DataType.forDt(conv.dt).typeForAddressOf(false), false, value.position)

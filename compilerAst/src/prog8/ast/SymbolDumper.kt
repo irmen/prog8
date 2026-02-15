@@ -48,7 +48,10 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         }
     }
 
+    private val skipModuleNames = setOf("prog8_lib", "prog8_math")
+
     override fun visit(module: Module) {
+        if(module.name !in skipModuleNames)
         if(!module.isLibrary || !skipLibraries) {
             if(module.source.isFromFilesystem || module.source.isFromResources) {
                 currentModule = module

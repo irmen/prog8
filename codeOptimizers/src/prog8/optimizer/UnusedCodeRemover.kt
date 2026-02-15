@@ -48,6 +48,12 @@ class UnusedCodeRemover(private val program: Program,
                 .filter { s -> s.name == "internal_long_R1_to_float_AY" || s.name=="internal_long_AY_to_FAC" }
                 .forEach { sub -> neverRemoveSubroutines.add(sub) }
         }
+
+        program.allBlocks.singleOrNull { it.name=="prog8_lib" } ?.let {
+            val subroutines = it.statements.filterIsInstance<Subroutine>()
+            subroutines.filter { s -> s.name=="sqrt_long" }
+                .forEach { sub -> neverRemoveSubroutines.add(sub) }
+        }
     }
 
     override fun before(program: Program): Iterable<IAstModification> {
