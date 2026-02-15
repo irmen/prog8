@@ -99,15 +99,16 @@ _negative	lda  #-1
 		rts
 		.pend
 
-func_sign_l_r14r15_into_A      .proc
-    lda  cx16.r14+3              ; msb
+func_sign_l_into_A      .proc
+	; NOTE: takes long argument in _arg_value
+    lda  _arg_value+3              ; msb
     bmi  _negative
     bne  _positive
-    lda  cx16.r14+2
+    lda  _arg_value+2
     bne  _positive
-    lda  cx16.r14+1
+    lda  _arg_value+1
     bne  _positive
-    lda  cx16.r14
+    lda  _arg_value
     beq  _zero
     lda  #1
 _zero
@@ -118,6 +119,8 @@ _negative
 _positive
     lda  #1
     rts
+
+_arg_value  .byte 0,0,0,0
 
 .pend
 

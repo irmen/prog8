@@ -1,11 +1,6 @@
 TODO
 ====
 
-- FSignature.callConvention should not pass long via R14R15
-- func_sign_l_r14r15_into_A should not take the long in r14r15 but in regular parameter like sqrt_long
-
-
-
 Known bugs:
 - fix chained aliasing errors see test "chained aliasing"
 - fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"

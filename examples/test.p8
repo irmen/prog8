@@ -12,8 +12,29 @@ main {
         long @shared l1 = -1000000
 
         cx16.r0sL = sgn(b1)
+        txt.print_b(cx16.r0sL)
+        txt.spc()
         cx16.r1sL = sgn(w1)
+        txt.print_b(cx16.r1sL)
+        txt.spc()
         cx16.r2sL = sgn(l1)
+        txt.print_b(cx16.r2sL)
+        txt.nl()
+
+        b1 = 100
+        w1 = 1000
+        l1 = 1000000
+
+        cx16.r0sL = sgn(b1)
+        txt.print_b(cx16.r0sL)
+        txt.spc()
+        cx16.r1sL = sgn(w1)
+        txt.print_b(cx16.r1sL)
+        txt.spc()
+        cx16.r2sL = sgn(l1)
+        txt.print_b(cx16.r2sL)
+        txt.nl()
+
     }
 
     sub start() {

@@ -511,12 +511,12 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     private fun funcSqrt(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
         when(fcall.args[0].type.base) {
             BaseDataType.UBYTE -> {
-                translateArguments(fcall, scope)
+                translateArguments(fcall, null, scope)
                 asmgen.out("  ldy  #0 |  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
             BaseDataType.UWORD -> {
-                translateArguments(fcall, scope)
+                translateArguments(fcall, null, scope)
                 asmgen.out("  jsr  prog8_lib.func_sqrt16_into_A")
                 assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, false, false)
             }
@@ -527,7 +527,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
                 assignAsmGen.assignRegisterpairWord(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.AY, false, fcall.position, scope, asmgen),RegisterOrPair.AY)
             }
             BaseDataType.FLOAT -> {
-                translateArguments(fcall, scope)
+                translateArguments(fcall, null, scope)
                 asmgen.out("  jsr  floats.func_sqrt_into_FAC1")
                 assignAsmGen.assignFAC1float(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.FAC1, true, fcall.position, scope, asmgen))
             }
@@ -967,14 +967,31 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcSgn(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
-        translateArguments(fcall, scope)
         when (val dt = fcall.args.single().type.base) {
-            BaseDataType.UBYTE -> asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
-            BaseDataType.BYTE -> asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
-            BaseDataType.UWORD -> asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
-            BaseDataType.WORD -> asmgen.out("  jsr  prog8_lib.func_sign_w_into_A")
-            BaseDataType.LONG -> asmgen.out("  jsr  prog8_lib.func_sign_l_r14r15_into_A")          // note: long arg is stored in R14:R15
-            BaseDataType.FLOAT -> asmgen.out("  jsr  floats.func_sign_f_into_A")
+            BaseDataType.UBYTE -> {
+                translateArguments(fcall, null, scope)
+                asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
+            }
+            BaseDataType.BYTE -> {
+                translateArguments(fcall, null, scope)
+                asmgen.out("  jsr  prog8_lib.func_sign_b_into_A")
+            }
+            BaseDataType.UWORD -> {
+                translateArguments(fcall, null, scope)
+                asmgen.out("  jsr  prog8_lib.func_sign_uw_into_A")
+            }
+            BaseDataType.WORD -> {
+                translateArguments(fcall, null, scope)
+                asmgen.out("  jsr  prog8_lib.func_sign_w_into_A")
+            }
+            BaseDataType.LONG -> {
+                translateArguments(fcall, funcname="func_sign_l_into_A", scope)
+                asmgen.out("  jsr  prog8_lib.func_sign_l_into_A")
+            }
+            BaseDataType.FLOAT -> {
+                translateArguments(fcall, null, scope)
+                asmgen.out("  jsr  floats.func_sign_f_into_A")
+            }
             else -> throw AssemblyError("weird type $dt")
         }
         assignAsmGen.assignRegisterByte(AsmAssignTarget.fromRegisters(resultRegister ?: RegisterOrPair.A, false, fcall.position, scope, asmgen), CpuRegister.A, true, true)
@@ -1463,7 +1480,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
     }
 
     private fun funcAbs(fcall: PtBuiltinFunctionCall, resultRegister: RegisterOrPair?, scope: IPtSubroutine?) {
-        translateArguments(fcall, scope)
+        translateArguments(fcall, null, scope)
         val dt = fcall.args.single().type.base
         when (dt) {
             BaseDataType.BYTE -> {
@@ -2712,7 +2729,7 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
 
     }
 
-    private fun translateArguments(call: PtBuiltinFunctionCall, scope: IPtSubroutine?) {
+    private fun translateArguments(call: PtBuiltinFunctionCall, funcname: String?, scope: IPtSubroutine?) {
         val signature = BuiltinFunctions.getValue(call.name)
         val callConv = signature.callConvention(call.args.map {
             require(it.type.isNumericOrBool)
@@ -2756,13 +2773,15 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             }
         }
 
+        val libfuncname = funcname ?: "func_${call.name}"
+
         call.args.zip(callConv.params).zip(signature.parameters).forEach {
             val paramName = it.second.name
             val conv = it.first.second
             val value = it.first.first
             when {
                 conv.variable -> {
-                    val varname = "prog8_lib.func_${call.name}._arg_${paramName}"
+                    val varname = "prog8_lib.${libfuncname}._arg_${paramName}"
                     val src = when  {
                         conv.dt==BaseDataType.FLOAT -> getSourceForFloat(value)
                         conv.dt==BaseDataType.LONG -> getSourceForLong(value)

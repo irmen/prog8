@@ -57,13 +57,13 @@ class FSignature(val pure: Boolean,      // does it have side effects?
         return when {
             actualParamTypes.isEmpty() -> CallConvention(emptyList(), returns)
             actualParamTypes.size==1 -> {
-                // One parameter goes via register/registerpair.
+                // One parameter goes via register/registerpair (except longs)
                 // this avoids repeated code for every caller to store the value in the subroutine's argument variable.
                 // (that store is still done, but only coded once at the start at the subroutine itself rather than at every call site).
                 val paramConv = when(val paramType = actualParamTypes[0]) {
                     BaseDataType.UBYTE, BaseDataType.BYTE -> ParamConvention(paramType, RegisterOrPair.A, false)
                     BaseDataType.UWORD, BaseDataType.WORD -> ParamConvention(paramType, RegisterOrPair.AY, false)
-                    BaseDataType.LONG -> ParamConvention(paramType, RegisterOrPair.R14R15, false)     // TODO longs should not be passed in R14R15 but via parameter variable
+                    BaseDataType.LONG -> ParamConvention(paramType, null, true)
                     BaseDataType.FLOAT -> ParamConvention(paramType, RegisterOrPair.AY, false)      // NOTE: for builtin functions, floating point arguments are passed by reference (so you get a pointer in AY)
                     in IterableDatatypes -> ParamConvention(paramType, RegisterOrPair.AY, false)
                     else -> ParamConvention(paramType, null, false)
