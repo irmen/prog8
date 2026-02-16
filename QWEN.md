@@ -15,9 +15,20 @@ This file contains project-specific information that helps the Qwen assistant un
 ## Prog8 language feature hints
 - an overview of the language features can be found in the documentation file docs/source/introduction.rst
 - the syntax and grammar is specified in an ANTLR4 grammar file found in the parser directory
+- available primitive datatypes are bool, byte, ubyte, word, uword, long and float.  ubyte and uword are unsigned the others are signed. The long type is 4 bytes and the float type is 5-byte "Microsoft" floating point.
+- there is a str type which is a 0-terminated string consisting of ubytes
+- there are also arrays, and pointers. Pointer notation differs from C.
+- there are also structs which can contain primitive types. Prog8 does not yet have by-value struct variables, only pointer to structs.
+- while there are larger than byte datatypes, the intended compiler target is a 6502 CPU system which is 8 bit so operations on larger datatypes are expensive. Words are still somewhat okay, but longs and floats in particular are very inefficient.
 - the syntax for boolean logical operators is 'and', 'or', 'xor', 'not'. Bitwise operators are '&', '|', '^', '~', and '<<','>>' for bit shifting left and right respectively. All operators are documents in docs/source/programming.rst
-- note that Prog8 does have a 4-byte signed long type and 5-byte "Microsoft" floating point support
 - module imports are done using "%import modulename"
+- subroutines can return 0, 1 or more than one return value(s)
+- all variables including subroutine parameters are statically allocated exactly once; there is no call stack for variables, so recursion and reentrancy are not possible.
+- subroutines can be nested. Nested subroutines have direct access to all variables defined in their parent scope.
+- a program consists of a 'main' block containing the 'start' subroutine entry point, and zero or more other subroutines. Additional blocks and subroutines in those can be present too.
+- text output is done via the 'textio' module which defines routines such as txt.print, txt.chrout, txt.print_uw and so on.
+- math routines are in the 'math' module.
+- string to value and value to string conversion routines are in the 'conv' module.
 
 ## Module Descriptions
 - `beanshell` - EXPERIMENTAL/UNFINISHED Contains BeanShell integration for scripting capabilities within the compiler

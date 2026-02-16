@@ -1397,6 +1397,10 @@ It's possible to write a defer for a block of statements, but the advice is to k
     and defers won't be handled in such cases.
 
 .. attention::
+    you cannot use anything in a defer statement that depends on values on the CPU stack, for example pop() to use a previously push()-ed value.
+    This is because defers are handled using an internal subroutine call so a return address is pushed on the stack before the defer code is executed.
+
+.. attention::
     Using defer always has a slight code overhead.
     If you are returning non-constant values in a routine that uses defer, the compiler even has to insert some additional
     code that uses the cpu stack to save some temporary values.

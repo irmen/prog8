@@ -1410,6 +1410,13 @@ internal class AstChecker(private val program: Program,
         super.visit(expr)
 
         if(expr.operator==".") {
+
+            // detect invalid syntax 0..20   (instead of 0 to 20)  to avoid crashing later
+            if(expr.left is NumericLiteral && expr.right is NumericLiteral) {
+                errors.err("invalid range syntax. Use 'x to y' instead of 'x..y'", expr.position)
+                return
+            }
+
             val leftIdentfier = expr.left as? IdentifierReference
             val leftIndexer = expr.left as? ArrayIndexedExpression
             val rightIdentifier = expr.right as? IdentifierReference
