@@ -435,7 +435,7 @@ Decompressors are available for RLE, TSCrunch and ZX0 (Salvador).
         The TSCrunch in-place format is a bit different than regular memory decompression.
         It works with PRG files (so with a 2 byte load-address header) for both the *source* and *compressed* data files.
         So if you want to compress and decompress a block of data from $a000-$c000 your source file has to start with
-        the bytes $00 $0a, then followed by the 8192 data byes, for a total of 8194 bytes.
+        the bytes $00 $0a, then followed by the 8192 data bytes, for a total of 8194 bytes.
         Then you need to call the compressor program with the '-i' argument to tell it to create an in-place compressed data file.
         The data file will *not* be loaded at $a000 but have its own load address closer to the end of the memory buffer.
         If all is well, you can then load and decompress it like so::
