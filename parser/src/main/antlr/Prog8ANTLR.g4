@@ -121,7 +121,10 @@ statement :
     | labeldef
     | defer
     | alias
+    | swap
     ;
+
+swap: 'swap' '(' assign_target ',' assign_target ')' ;
 
 
 variabledeclaration :

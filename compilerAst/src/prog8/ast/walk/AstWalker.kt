@@ -144,6 +144,7 @@ abstract class AstWalker {
     open fun before(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun before(ongoto: OnGoto, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(swap: Swap, parent: Node): Iterable<IAstModification> = noModifications
 
     open fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
@@ -196,6 +197,7 @@ abstract class AstWalker {
     open fun after(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
     open fun after(ongoto: OnGoto, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(swap: Swap, parent: Node): Iterable<IAstModification> = noModifications
 
     protected val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
 
@@ -562,6 +564,13 @@ abstract class AstWalker {
         track(before(deref, parent), deref, parent)
         deref.chain.forEach { it.second?.accept(this) }
         track(after(deref, parent), deref, parent)
+    }
+
+    fun visit(swap: Swap, parent: Node) {
+        track(before(swap, parent), swap, parent)
+        swap.t1.accept(this, swap)
+        swap.t2.accept(this, swap)
+        track(after(swap, parent), swap, parent)
     }
 }
 

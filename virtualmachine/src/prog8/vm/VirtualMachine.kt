@@ -315,7 +315,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.MSIGW -> InsMSIGW(ins)
             Opcode.BSIGB -> InsBSIGB(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
-            Opcode.SWAP -> InsSWAP(ins)
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
             Opcode.PUSHST -> InsPUSHST()
@@ -2617,36 +2616,6 @@ class VirtualMachine(irProgram: IRProgram) {
             registers.setUW(i.reg1!!, newValue.toUShort())
         }
         else throw IllegalArgumentException("invalid float type for this instruction $i")
-        nextPc()
-    }
-
-    private fun InsSWAP(i: IRInstruction) {
-        when(i.type!!) {
-            IRDataType.BYTE -> {
-                val value1 = registers.getUB(i.reg1!!)
-                val value2 = registers.getUB(i.reg2!!)
-                registers.setUB(i.reg1!!, value2)
-                registers.setUB(i.reg2!!, value1)
-            }
-            IRDataType.WORD -> {
-                val value1 = registers.getUW(i.reg1!!)
-                val value2 = registers.getUW(i.reg2!!)
-                registers.setUW(i.reg1!!, value2)
-                registers.setUW(i.reg2!!, value1)
-            }
-            IRDataType.LONG -> {
-                val value1 = registers.getSL(i.reg1!!)
-                val value2 = registers.getSL(i.reg2!!)
-                registers.setSL(i.reg1!!, value2)
-                registers.setSL(i.reg2!!, value1)
-            }
-            IRDataType.FLOAT -> {
-                val value1 = registers.getFloat(i.fpReg1!!)
-                val value2 = registers.getFloat(i.fpReg2!!)
-                registers.setFloat(i.fpReg1!!, value2)
-                registers.setFloat(i.fpReg2!!, value1)
-            }
-        }
         nextPc()
     }
 

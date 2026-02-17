@@ -198,6 +198,9 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 val deref = if(node.derefLast) "^^" else ""
                 "deref  $chain $deref  ${type(node.type)}"
             }
+            is PtSwap -> {
+                "swap"
+            }
         }
     }
 

@@ -716,6 +716,7 @@ class AsmGen6502Internal (
             is PtDefer -> throw AssemblyError("defer should have been transformed")
             is PtNodeGroup -> stmt.children.forEach { translate(it) }
             is PtJmpTable -> translate(stmt)
+            is PtSwap -> translate(stmt)
             is PtNop, is PtStructDecl, is PtSubSignature -> {}
             else -> throw AssemblyError("missing asm translation for $stmt")
         }
@@ -1197,6 +1198,483 @@ $repeatLabel""")
             out("  jmp  ${asmSymbolName((name as PtIdentifier).name)}")
         }
         out("  ; end jumptable")
+    }
+
+    private fun translate(swap: PtSwap) {
+        // TODO only supports a select few combinations of swappable arguments
+
+        fun swapByte() {
+            if(swap.target1.identifier!=null && swap.target2.identifier!=null) {
+                val varname1 = asmVariableName(swap.target1.identifier!!)
+                val varname2 = asmVariableName(swap.target2.identifier!!)
+                out("""
+                    lda  $varname1
+                    ldy  $varname2
+                    sta  $varname2
+                    sty  $varname1""")
+            }
+            else if(swap.target1.memory!=null && swap.target2.memory!=null) {
+                var var1ZpPtrVar = ""
+                var var2ZpPtrVar = ""
+                val v1 = swap.target1.memory!!
+                val v2 = swap.target2.memory!!
+
+                if(v1.address is PtIdentifier && v2.address is PtIdentifier) {
+                    var1ZpPtrVar = asmVariableName(v1.address as PtIdentifier)
+                    var2ZpPtrVar = asmVariableName(v2.address as PtIdentifier)
+                    if(!isZpVar(v1.address as PtIdentifier)) {
+                        out("  lda  $var1ZpPtrVar |  ldy  $var1ZpPtrVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                        var1ZpPtrVar = "P8ZP_SCRATCH_W1"
+                    }
+                    if(!isZpVar(v2.address as PtIdentifier)) {
+                        out("  lda  $var2ZpPtrVar |  ldy  $var2ZpPtrVar+1 |  sta  P8ZP_SCRATCH_W2 |  sty  P8ZP_SCRATCH_W2+1")
+                        var2ZpPtrVar = "P8ZP_SCRATCH_W2"
+                    }
+                    out("""
+                        ldy  #0
+                        lda  ($var1ZpPtrVar),y
+                        pha
+                        lda  ($var2ZpPtrVar),y
+                        sta  ($var1ZpPtrVar),y
+                        pla
+                        sta  ($var2ZpPtrVar),y""")
+                } else {
+                    if (v1.address is PtNumber) {
+                        out("  lda  ${v1.address.asConstInteger()!!.toHex()} |  pha")
+                    } else if (v1.address is PtIdentifier) {
+                        var1ZpPtrVar = loadByteFromPointerIntoA(v1.address as PtIdentifier)
+                        out("  pha")
+                    } else {
+                        TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v1.position}")
+                    }
+                    if (v2.address is PtNumber) {
+                        out("  lda  ${v2.address.asConstInteger()!!.toHex()}")
+                    } else if (v2.address is PtIdentifier) {
+                        var2ZpPtrVar = loadByteFromPointerIntoA(
+                            v2.address as PtIdentifier,
+                            tempZpPtrVar = "P8ZP_SCRATCH_W1"
+                        )
+                    } else {
+                        TODO("swap bytes not supported for this expression. Use a simpler expression, or even just a temporary variable and assignments for now. ${v2.position}")
+                    }
+
+                    if (v1.address is PtNumber) {
+                        out("  sta  ${v1.address.asConstInteger()!!.toHex()}")
+                    } else if (v1.address is PtIdentifier) {
+                        storeIndirectByteReg(CpuRegister.A, var1ZpPtrVar, 0u, false, false)
+                    }
+                    if (v2.address is PtNumber) {
+                        out("  pla |  sta  ${v2.address.asConstInteger()!!.toHex()}")
+                    } else if (v2.address is PtIdentifier) {
+                        out("  pla")
+                        storeIndirectByteReg(CpuRegister.A, var2ZpPtrVar, 0u, false, false)
+                    }
+                }
+            }
+            else if(swap.target1.pointerDeref!=null || swap.target2.pointerDeref!=null) {
+                throw AssemblyError("swap bytes pointer dereference should have been replaced by swap memorybytes ${swap.position}")
+            }
+            else if(swap.target1.array?.variable?.type?.isPointer==true || swap.target2.array?.variable?.type?.isPointer==true) {
+                TODO("swap bytes expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${swap.position}")
+            }
+            else if(swap.target1.array?.pointerderef==null && swap.target1.array?.index?.isSimple()==true && swap.target2.array?.pointerderef==null && swap.target2.array?.index?.isSimple()==true) {
+                loadScaledArrayIndexIntoRegister(swap.target1.array!!, CpuRegister.X)
+                loadScaledArrayIndexIntoRegister(swap.target2.array!!, CpuRegister.Y)
+                val varname1 = asmVariableName(swap.target1.array!!.variable!!.name)
+                val varname2 = asmVariableName(swap.target2.array!!.variable!!.name)
+                out("""
+                    lda  $varname1,x
+                    pha
+                    lda  $varname2,y
+                    sta  $varname1,x
+                    pla
+                    sta  $varname2,y""")
+            }
+            else if(swap.target1.array!=null && swap.target2.array!=null && swap.target1.array!!.pointerderef==null && swap.target2.array!!.pointerderef==null) {
+                val offset1 = simpleOffsetIndexer(swap.target1.array!!)
+                val offset2 = simpleOffsetIndexer(swap.target2.array!!)
+                if(offset1==null || offset2==null)
+                    TODO("swap bytes not supported yet for nontrivial indexed[] expressions. Use a simpler index expression, or even just temporary variable and assignments for now. ${swap.position}")
+                else {
+                    val arrayname1 = asmVariableName(swap.target1.array!!.variable!!.name)
+                    val arrayname2 = asmVariableName(swap.target1.array!!.variable!!.name)
+                    val offsetname1 = asmVariableName(offset1.first)
+                    val offsetname2 = asmVariableName(offset2.first)
+                    val op1 = offset1.second
+                    val op2 = offset2.second
+                    out("""
+                        ldx  $offsetname1
+                        ldy  $offsetname2
+                        lda  $arrayname1 $op1 ${offset1.third},x
+                        pha
+                        lda  $arrayname2 $op2 ${offset2.third},y
+                        sta  $arrayname1 $op1 ${offset1.third},x
+                        pla
+                        sta  $arrayname2 $op2 ${offset2.third},y""")
+                }
+            }
+            else {
+                TODO("swap bytes not supported yet for these expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${swap.position}")
+            }
+        }
+
+        fun swapWord() {
+            if(swap.target1.identifier!=null && swap.target2.identifier!=null) {
+                val varname1 = asmVariableName(swap.target1.identifier!!)
+                val varname2 = asmVariableName(swap.target2.identifier!!)
+                out("""
+                    lda  $varname1
+                    ldy  $varname2
+                    sta  $varname2
+                    sty  $varname1
+                    lda  $varname1+1
+                    ldy  $varname2+1
+                    sta  $varname2+1
+                    sty  $varname1+1""")
+            }
+            else if(swap.target1.pointerDeref!=null && swap.target2.pointerDeref!=null) {
+                val v1 = swap.target1.pointerDeref!!
+                val v2 = swap.target1.pointerDeref!!
+                if(v1.derefLast && v1.chain.isEmpty() && v2.derefLast && v2.chain.isEmpty() && isZpVar(v1.startpointer) && isZpVar(v2.startpointer)) {
+                    // optimized case where v1 and v2 are both already zeropage pointer variables
+                    val name1 = asmVariableName(v1.startpointer)
+                    val name2 = asmVariableName(v2.startpointer)
+                    out("""
+                        ldy  #0
+                        lda  ($name1),y
+                        pha
+                        lda  ($name2),y
+                        sta  ($name1),y
+                        pla
+                        sta  ($name2),y
+                        iny
+                        lda  ($name1),y
+                        pha
+                        lda  ($name2),y
+                        sta  ($name1),y
+                        pla
+                        sta  ($name2),y""")
+                } else {
+                    val (zpVar, offset) = pointerGen.deref(v1, true)
+                    require(offset == 0.toUByte())
+                    out("  lda  $zpVar |  ldy  $zpVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                    val (zpVar2, offset2) = pointerGen.deref(v2, true)
+                    require(offset2 == 0.toUByte())
+                    out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  prog8_lib.swap_words")
+                }
+            }
+            else if(swap.target1.array?.variable?.type?.isPointer==true || swap.target2.array?.variable?.type?.isPointer==true) {
+                TODO("swap words expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${swap.position}")
+            }
+            else if(swap.target1.array?.pointerderef==null && swap.target1.array?.index?.isSimple()==true && swap.target2.array?.pointerderef==null && swap.target2.array?.index?.isSimple()==true) {
+                val v1 = swap.target1.array!!
+                val v2 = swap.target2.array!!
+                loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
+                loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
+                val varname1 = asmVariableName(v1.variable!!.name)
+                val varname2 = asmVariableName(v2.variable!!.name)
+                if(v1.splitWords && v2.splitWords) {
+                    // both of them are split-words arrays
+                    out("""
+                        lda  ${varname1}_lsb,x
+                        pha
+                        lda  ${varname2}_lsb,y
+                        sta  ${varname1}_lsb,x
+                        pla
+                        sta  ${varname2}_lsb,y
+                        lda  ${varname1}_msb,x
+                        pha
+                        lda  ${varname2}_msb,y
+                        sta  ${varname1}_msb,x
+                        pla
+                        sta  ${varname2}_msb,y""")
+                } else if(v1.splitWords || v2.splitWords) {
+                    TODO("swap words expressions not supported yet for 1 @split and 1 normal word array. Make them both the same, or use a temporary variable and assignments for now. ${swap.position}")
+                } else {
+                    out("""
+                        lda  $varname1,x
+                        pha
+                        lda  $varname2,y
+                        sta  $varname1,x
+                        pla
+                        sta  $varname2,y
+                        lda  $varname1+1,x
+                        pha
+                        lda  $varname2+1,y
+                        sta  $varname1+1,x
+                        pla
+                        sta  $varname2+1,y""")
+                }
+            }
+            else if(swap.target1.array!=null && swap.target2.array!=null && swap.target1.array!!.pointerderef==null && swap.target2.array!!.pointerderef==null) {
+                val v1 = swap.target1.array!!
+                val v2 = swap.target2.array!!
+                val offset1 = simpleOffsetIndexer(v1)
+                val offset2 = simpleOffsetIndexer(v2)
+                if(offset1==null || offset2==null)
+                    TODO("swap words not supported yet for nontrivial indexed[] expressions. Use a simpler index expression, or even just temporary variable and assignments for now. ${swap.position}")
+                else {
+                    val arrayname1 = asmVariableName(v1.variable!!.name)
+                    val arrayname2 = asmVariableName(v2.variable!!.name)
+                    val offsetname1 = asmVariableName(offset1.first)
+                    val offsetname2 = asmVariableName(offset2.first)
+                    val op1 = offset1.second
+                    val op2 = offset2.second
+                    if(v1.splitWords && v2.splitWords) {
+                        out("""
+                            ldx  $offsetname1
+                            ldy  $offsetname2
+                            lda  ${arrayname1}_lsb $op1 ${offset1.third},x
+                            pha
+                            lda  ${arrayname2}_lsb $op2 ${offset2.third},y
+                            sta  ${arrayname1}_lsb $op1 ${offset1.third},x
+                            pla
+                            sta  ${arrayname2}_lsb $op2 ${offset2.third},y
+                            lda  ${arrayname1}_msb $op1 ${offset1.third},x
+                            pha
+                            lda  ${arrayname2}_msb $op2 ${offset2.third},y
+                            sta  ${arrayname1}_msb $op1 ${offset1.third},x
+                            pla
+                            sta  ${arrayname2}_msb $op2 ${offset2.third},y""")
+                    }
+                    else {
+                        out("""
+                            lda  $offsetname1
+                            asl  a
+                            tax
+                            lda  $offsetname2
+                            asl  a
+                            tay
+                            lda  $arrayname1 $op1 ${offset1.third * 2},x
+                            pha
+                            lda  $arrayname2 $op2 ${offset2.third * 2},y
+                            sta  $arrayname1 $op1 ${offset1.third * 2},x
+                            pla
+                            sta  $arrayname2 $op2 ${offset2.third * 2},y
+                            lda  $arrayname1+1 $op1 ${offset1.third * 2},x
+                            pha
+                            lda  $arrayname2+1 $op2 ${offset2.third * 2},y
+                            sta  $arrayname1+1 $op1 ${offset1.third * 2},x
+                            pla
+                            sta  $arrayname2+1 $op2 ${offset2.third * 2},y""")
+                    }
+                }
+            }
+            else {
+                TODO("swap words expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${swap.position}")
+            }
+        }
+
+        fun swapLong() {
+            if(swap.target1.identifier!=null && swap.target2.identifier!=null) {
+                val varname1 = asmVariableName(swap.target1.identifier!!)
+                val varname2 = asmVariableName(swap.target2.identifier!!)
+                out("""
+                    lda  $varname1
+                    ldy  $varname2
+                    sta  $varname2
+                    sty  $varname1
+                    lda  $varname1+1
+                    ldy  $varname2+1
+                    sta  $varname2+1
+                    sty  $varname1+1
+                    lda  $varname1+2
+                    ldy  $varname2+2
+                    sta  $varname2+2
+                    sty  $varname1+2
+                    lda  $varname1+3
+                    ldy  $varname2+3
+                    sta  $varname2+3
+                    sty  $varname1+3""")
+            }
+            else if(swap.target1.pointerDeref!=null && swap.target2.pointerDeref!=null) {
+                val (zpVar, offset) = pointerGen.deref(swap.target1.pointerDeref!!, true)
+                require(offset == 0.toUByte())
+                out("  lda  $zpVar |  ldy  $zpVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                val (zpVar2, offset2) = pointerGen.deref(swap.target2.pointerDeref!!, true)
+                require(offset2 == 0.toUByte())
+                out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  prog8_lib.swap_longs")
+            }
+            else if(swap.target1.array?.variable?.type?.isPointer==true || swap.target2.array?.variable?.type?.isPointer==true) {
+                TODO("swap longs expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${swap.position}")
+            }
+            else if(swap.target1.array?.pointerderef==null && swap.target1.array?.index?.isSimple()==true && swap.target2.array?.pointerderef==null && swap.target2.array?.index?.isSimple()==true) {
+                val v1 = swap.target1.array!!
+                val v2 = swap.target2.array!!
+                loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
+                loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
+                val varname1 = asmVariableName(v1.variable!!.name)
+                val varname2 = asmVariableName(v2.variable!!.name)
+                out("""
+                    lda  #4
+                    sta  P8ZP_SCRATCH_REG
+-                   lda  $varname1,x
+                    pha
+                    lda  $varname2,y
+                    sta  $varname1,x
+                    pla
+                    sta  $varname2,y
+                    inx
+                    iny
+                    dec  P8ZP_SCRATCH_REG
+                    bne  -""")
+            }
+            else if(swap.target1.array!=null && swap.target2.array!=null && swap.target1.array!!.pointerderef==null && swap.target2.array!!.pointerderef==null) {
+                val v1 = swap.target1.array!!
+                val v2 = swap.target2.array!!
+                val offset1 = simpleOffsetIndexer(v1)
+                val offset2 = simpleOffsetIndexer(v2)
+                if(offset1==null || offset2==null)
+                    TODO("swap longs not supported yet for nontrivial indexed[] expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${swap.position}")
+                else {
+                    val arrayname1 = asmVariableName(v1.variable!!.name)
+                    val arrayname2 = asmVariableName(v2.variable!!.name)
+                    val offsetname1 = asmVariableName(offset1.first)
+                    val offsetname2 = asmVariableName(offset2.first)
+                    val op1 = offset1.second
+                    val op2 = offset2.second
+                    out("""
+                        lda  $offsetname1
+                        asl  a
+                        asl  a
+                        tax
+                        lda  $offsetname2
+                        asl  a
+                        asl  a
+                        tay
+                        lda  #4
+                        sta  P8ZP_SCRATCH_REG
+-                       lda  $arrayname1 $op1 ${offset1.third * 4},x
+                        pha
+                        lda  $arrayname2 $op2 ${offset2.third * 4},y
+                        sta  $arrayname1 $op1 ${offset1.third * 4},x
+                        pla
+                        sta  $arrayname2 $op2 ${offset2.third * 4},y
+                        inx
+                        iny
+                        dec  P8ZP_SCRATCH_REG
+                        bne  -""")
+                }
+            }
+            else {
+                TODO("swap longs expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${swap.position}")
+            }
+        }
+
+        fun swapFloat() {
+            if(swap.target1.identifier!=null && swap.target2.identifier!=null) {
+                val varname1 = asmVariableName(swap.target1.identifier!!)
+                val varname2 = asmVariableName(swap.target2.identifier!!)
+                out("""
+                    lda  #<$varname1
+                    ldy  #>$varname1
+                    sta  P8ZP_SCRATCH_W1
+                    sty  P8ZP_SCRATCH_W1+1
+                    lda  #<$varname2
+                    ldy  #>$varname2
+                    jsr  floats.swap_floats""")
+            }
+            else if(swap.target1.pointerDeref!=null || swap.target2.pointerDeref!=null) {
+                val (zpVar, offset) = pointerGen.deref(swap.target1.pointerDeref!!, true)
+                require(offset == 0.toUByte())
+                out("  lda  $zpVar |  ldy  $zpVar+1 |  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
+                val (zpVar2, offset2) = pointerGen.deref(swap.target2.pointerDeref!!, true)
+                require(offset2 == 0.toUByte())
+                out("  lda  $zpVar2 |  ldy  $zpVar2+1 |  jsr  floats.swap_floats")
+            }
+            else if(swap.target1.array?.variable?.type?.isPointer==true || swap.target2.array?.variable?.type?.isPointer==true) {
+                TODO("swap floats expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${swap.position}")
+            }
+            else if(swap.target1.array?.pointerderef==null && swap.target1.array?.index?.isSimple()==true && swap.target2.array?.pointerderef==null && swap.target2.array?.index?.isSimple()==true) {
+                val v1 = swap.target1.array!!
+                val v2 = swap.target2.array!!
+                loadScaledArrayIndexIntoRegister(v1, CpuRegister.X)
+                loadScaledArrayIndexIntoRegister(v2, CpuRegister.Y)
+                val varname1 = asmVariableName(v1.variable!!.name)
+                val varname2 = asmVariableName(v2.variable!!.name)
+                out("""
+                    lda  #5
+                    sta  P8ZP_SCRATCH_REG
+-                   lda  $varname1,x
+                    pha
+                    lda  $varname2,y
+                    sta  $varname1,x
+                    pla
+                    sta  $varname2,y
+                    inx
+                    iny
+                    dec  P8ZP_SCRATCH_REG
+                    bne  -""")
+            }
+            else if(swap.target1.array!=null && swap.target2.array!=null && swap.target1.array!!.pointerderef==null && swap.target2.array!!.pointerderef==null) {
+                val v1 = swap.target1.array!!
+                val v2 = swap.target2.array!!
+                val offset1 = simpleOffsetIndexer(v1)
+                val offset2 = simpleOffsetIndexer(v2)
+                if(offset1==null || offset2==null)
+                    TODO("swap floats not supported yet for nontrivial indexed[] expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${swap.position}")
+                else {
+                    require(options.compTarget.FLOAT_MEM_SIZE==5)
+                    val arrayname1 = asmVariableName(v1.variable!!.name)
+                    val arrayname2 = asmVariableName(v2.variable!!.name)
+                    val offsetname1 = asmVariableName(offset1.first)
+                    val offsetname2 = asmVariableName(offset2.first)
+                    val op1 = offset1.second
+                    val op2 = offset2.second
+                    out("""
+                        lda  $offsetname1
+                        asl  a
+                        asl  a
+                        clc
+                        adc  $offsetname1
+                        tax
+                        lda  $offsetname2
+                        asl  a
+                        asl  a
+                        clc
+                        adc  $offsetname2
+                        tay
+                        lda  #5
+                        sta  P8ZP_SCRATCH_REG
+-                       lda  $arrayname1 $op1 ${offset1.third * 5},x
+                        pha
+                        lda  $arrayname2 $op2 ${offset2.third * 5},y
+                        sta  $arrayname1 $op1 ${offset1.third * 5},x
+                        pla
+                        sta  $arrayname2 $op2 ${offset2.third * 5},y
+                        inx
+                        iny
+                        dec  P8ZP_SCRATCH_REG
+                        bne  -""")
+                }
+            }
+            else {
+                TODO("swap floats expressions not supported yet for these expressions. Use a simpler expression, or even just a temporary variable and assignments for now. ${swap.position}")
+            }
+        }
+
+        val dt = swap.target1.type
+        when {
+            dt.isByteOrBool -> swapByte()
+            dt.isWord || dt.isPointer -> swapWord()
+            dt.isLong -> swapLong()
+            dt.isFloat -> swapFloat()
+            else -> throw AssemblyError("weird type $dt")
+        }        
+    }
+
+    private fun simpleOffsetIndexer(indexer: PtArrayIndexer): Triple<PtIdentifier, Char, Int>? {
+        val expr = indexer.index as? PtBinaryExpression
+        if(expr!=null && expr.operator in "+-") {
+            val identifier = expr.left as? PtIdentifier ?: return null
+            val offset = expr.right as? PtNumber ?: return null
+            return Triple(identifier, expr.operator.first(), offset.number.toInt())
+        }
+        val identifier = indexer.index as? PtIdentifier
+        return if(identifier!=null)
+            Triple(identifier,'+',0)
+        else
+            null
     }
 
     private fun translate(stmt: PtConditionalBranch) {

@@ -344,3 +344,12 @@ class PtDefer(position: Position): PtNode(position)
 
 
 class PtJmpTable(position: Position) : PtNode(position)     // contains only PtIdentifier nodes
+
+
+class PtSwap(position: Position): PtNode(position) {
+    val target1: PtAssignTarget
+        get() = children[0] as PtAssignTarget
+    val target2: PtAssignTarget
+        get() = children[1] as PtAssignTarget
+}
+
