@@ -205,3 +205,10 @@ Here is a performance comparison with various C compilers for the 6502/C64 so yo
 an idea of how Prog8 stacks up.
 
 [comparison](benchmark-c/benchmark.md)
+
+
+Agent context instructions
+--------------------------
+
+[Agent context instructions](AGENTS.md)
+

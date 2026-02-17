@@ -41,7 +41,7 @@ Future Things and Ideas
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
-- improve ANTLR grammar with better error handling (as suggested by Qwen AI)
+- improve ANTLR grammar with better error handling
 - add documentation for more library modules instead of just linking to the source code
 - add an Index to the documentation
 - can we just use index numbers instead of object hashes for struct instance labels (and other places?)  see labelnameForStructInstance
