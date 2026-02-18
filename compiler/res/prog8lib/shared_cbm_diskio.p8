@@ -330,8 +330,6 @@ close_end:
         ; -- open a file for iterative reading with f_read
         ;    note: only a single iteration loop can be active at a time!
         ;    Returns true if the file is successfully opened and readable.
-        ;    No need to check status(), unlike f_open_w() !
-        ;    NOTE: may not work correctly for empty files. Try to avoid empty files on CBM DOS systems.
         ;    NOTE: the default input isn't yet set to this logical file, you must use reset_read_channel() to do this,
         ;          if you're going to read from it yourself instead of using f_read()!
         f_close()
@@ -340,16 +338,10 @@ close_end:
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, READ_IO_CHANNEL)     ; note: has to be Channel,x,Channel because otherwise f_seek doesn't work
         void cbm.OPEN()          ; open 12,8,12,"filename"
         if_cc {
-            reset_read_channel()
-            if cbm.READST()==0 {
+            ; check command channel for success status
+            if status_code()==0 {
                 iteration_in_progress = true
-                void cbm.CHRIN()        ; read first byte to test for file not found
-                if cbm.READST() & ~STATUS_EOF == 0 {
-                    cbm.CLOSE(READ_IO_CHANNEL)           ; close file because we already consumed first byte
-                    void cbm.OPEN()         ; re-open the file
-                    cbm.CLRCHN()            ; reset default i/o channels
-                    return true
-                }
+                return true
             }
         }
         f_close()
@@ -482,8 +474,6 @@ _end        jsr  cbm.READST
         ;    WARNING: returns true if the open command was received by the device,
         ;    but this can still mean the file wasn't successfully opened for writing!
         ;    (for example, if it already exists). This is different than f_open()!
-        ;    To be 100% sure if this call was successful, you have to use status()
-        ;    and check the drive's status message!
         ;    NOTE: the default output isn't yet set to this file, you must use reset_write_channel() to do this,
         ;          if you're going to write to it yourself instead of using f_write()!
         f_close_w()
@@ -492,9 +482,9 @@ _end        jsr  cbm.READST
         cbm.SETLFS(WRITE_IO_CHANNEL, drivenumber, 1)
         void cbm.OPEN()             ; open 13,8,1,"filename"
         if_cc {
-            if cbm.READST()==0 {
+            ; check command channel for success status
+            if status_code()==0 {
                 write_iteration_in_progress = true
-                cbm.CLRCHN()            ; reset default i/o channels
                 return true
             }
         }
@@ -704,8 +694,6 @@ io_error:
     sub exists(str filename) -> bool {
         ; -- returns true if the given file exists on the disk, otherwise false
         ;    DON'T use this if you already have a file open with f_open!
-        ;    NOTE: may not work correctly for empty files. Try to avoid empty files on CBM DOS systems.
-        ;    NOTE: doesn't clear the dos error status and message, you'll have to read/clear that yourself (with status() for example)
         if f_open(filename) {
             f_close()
             return true
