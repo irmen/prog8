@@ -1,6 +1,10 @@
 TODO
 ====
 
+push() and pop()  (and pushw, pushl etc)  should be builtin functions again instead of subs in sys, because you really want to avoid filling an intermediate parameter variable first before it actually does the pha/pla's
+add a nice conversion error message for that.
+
+
 Known bugs:
 - fix chained aliasing errors see test "chained aliasing"
 - fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"
