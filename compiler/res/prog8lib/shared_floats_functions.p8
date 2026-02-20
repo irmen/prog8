@@ -270,19 +270,6 @@ sub clampf(float value, float minimum, float maximum) -> float {
     return minimum
 }
 
-inline asmsub push(float value @FAC1) {
-    %asm {{
-        jsr  floats.pushFAC1
-    }}
-}
-
-inline asmsub pop() -> float @FAC1 {
-    %asm {{
-        clc
-        jsr  floats.popFAC
-    }}
-}
-
 sub lerp(float v0, float v1, float t) -> float {
     ; Linear interpolation (LERP)
     ; Precise method, which guarantees v = v1 when t = 1.

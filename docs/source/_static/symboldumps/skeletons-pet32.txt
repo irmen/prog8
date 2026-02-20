@@ -1,5 +1,6 @@
 
-Prog8 compiler v12.1.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 9aff85f0 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-pet32.p8
@@ -52,10 +53,10 @@ smallstack  {
     init  () 
     isempty  () -> bool 
     isfull  () -> bool 
-    pop  () -> ubyte 
-    popw  () -> uword 
-    push  (ubyte value) 
-    pushw  (uword value) 
+    pop_b  () -> ubyte 
+    pop_w  () -> uword 
+    push_b  (ubyte value) 
+    push_w  (uword value) 
     size  () -> ubyte 
 }
 
@@ -66,10 +67,10 @@ stack  {
     init  () 
     isempty  () -> bool 
     isfull  () -> bool 
-    pop  () -> ubyte 
-    popw  () -> uword 
-    push  (ubyte value) 
-    pushw  (uword value) 
+    pop_b  () -> ubyte 
+    pop_w  () -> uword 
+    push_b  (ubyte value) 
+    push_w  (uword value) 
     size  () -> uword 
 }
 
@@ -271,10 +272,8 @@ floats  {
     log2  (float value) -> float 
     maxf  (float f1, float f2) -> float 
     minf  (float f1, float f2) -> float 
-    pop  () -> float @FAC1 
     pow  (float value, float power) -> float 
     print  (float value @FAC1)  clobbers (A,X,Y) 
-    push  (float value @FAC1) 
     rad  (float angle) -> float 
     rndseed  (float seed) 
     round  (float value) -> float 
@@ -582,15 +581,9 @@ sys  {
     memcopy  (uword source @R0, uword target @R1, uword count @AY)  clobbers (A,X,Y) 
     memset  (uword mem @R0, uword numbytes @R1, ubyte value @A)  clobbers (A,X,Y) 
     memsetw  (uword mem @R0, uword numwords @R1, uword value @AY)  clobbers (A,X,Y) 
-    pop  () -> ubyte @A 
-    popl  () -> long @R0R1 
-    popw  () -> uword @AY 
     progend  () -> uword @AY 
     progstart  () -> uword @AY 
-    push  (ubyte value @A) 
     push_returnaddress  (uword address @XY) 
-    pushl  (long value @R0R1) 
-    pushw  (uword value @AY) 
     read_flags  () -> ubyte @A 
     reset_system  () 
     restore_prog8_internals  () 

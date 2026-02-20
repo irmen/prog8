@@ -72,7 +72,7 @@ smallringbuffer {
 smallstack {
     ; -- A small stack (LIFO) that uses just 256 bytes and is independent of the CPU stack. Stack is growing downward from the top of the buffer.
     ;    You can store and retrieve bytes and words. There are no guards against stack over/underflow.
-    ; note: for a "small stack"  (256 bytes size) you might also perhaps just use the CPU stack via sys.push[w] / sys.pop[w].
+    ; note: for a "small stack"  (256 bytes size) you might also perhaps just use the CPU stack via push[w] / pop[w].
 
     ubyte[256] buffer
     ubyte sp = 255
@@ -97,13 +97,13 @@ smallstack {
         return sp==255
     }
 
-    sub push(ubyte value) {
+    sub push_b(ubyte value) {
         ; -- put a byte on the stack
         buffer[sp] = value
         sp--
     }
 
-    sub pushw(uword value) {
+    sub push_w(uword value) {
         ; -- put a word on the stack (lsb first then msb)
         buffer[sp] = lsb(value)
         sp--
@@ -111,13 +111,13 @@ smallstack {
         sp--
     }
 
-    sub pop() -> ubyte {
+    sub pop_b() -> ubyte {
         ; -- pops a byte off the stack
         sp++
         return buffer[sp]
     }
 
-    sub popw() -> uword {
+    sub pop_w() -> uword {
         ; -- pops a word off the stack.
         sp++
         cx16.r0H = buffer[sp]
@@ -157,20 +157,20 @@ stack {
         return sp==$bfff
     }
 
-    sub push(ubyte value) {
+    sub push_b(ubyte value) {
         ; -- put a byte on the stack
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         @(sp) = value
         sp--
 
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
     }
 
-    sub pushw(uword value) {
+    sub push_w(uword value) {
         ; -- put a word on the stack (lsb first then msb)
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         @(sp) = lsb(value)
@@ -178,30 +178,30 @@ stack {
         @(sp) = msb(value)
         sp--
 
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
     }
 
-    sub pop() -> ubyte {
+    sub pop_b() -> ubyte {
         ; -- pops a byte off the stack
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         sp++
         cx16.r0L = @(sp)
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
         return cx16.r0L
     }
 
-    sub popw() -> uword {
+    sub pop_w() -> uword {
         ; -- pops a word off the stack.
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         sp++
         cx16.r0H = @(sp)
         sp++
         cx16.r0L = @(sp)
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
         return cx16.r0
     }
 }
@@ -240,42 +240,42 @@ ringbuffer {
 
     sub put(ubyte value) {
         ; -- store a byte in the buffer
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         @(head) = value
         fill++
         inc_head()
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
     }
 
     sub putw(uword value) {
         ; -- store a word in the buffer
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         pokew(head, value)
         fill += 2
         inc_head()
         inc_head()
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
     }
 
     sub get() -> ubyte {
         ; -- retrieves a byte from the buffer
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         fill--
         inc_tail()
         cx16.r0L= @(tail)
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
         return cx16.r0L
     }
 
     sub getw() -> uword {
         ; -- retrieves a word from the buffer
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.rambank(bank)
 
         fill -= 2
@@ -283,7 +283,7 @@ ringbuffer {
         cx16.r0L = @(tail)
         inc_tail()
         cx16.r0H = @(tail)
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
         return cx16.r0
     }
 

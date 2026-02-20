@@ -164,6 +164,14 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "callfar"       to FSignature(false, BaseDataType.UWORD, FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("arg", BaseDataType.UWORD)),
     "callfar2"      to FSignature(false, BaseDataType.UWORD, FParam("bank", BaseDataType.UBYTE), FParam("address", BaseDataType.UWORD), FParam("argA", BaseDataType.UBYTE), FParam("argX", BaseDataType.UBYTE), FParam("argY", BaseDataType.UBYTE), FParam("argC", BaseDataType.BOOL)),
     "call"          to FSignature(false, BaseDataType.UWORD, FParam("address", BaseDataType.UWORD)),
+    "push"          to FSignature(false, null, FParam("value", BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL)),
+    "pushw"         to FSignature(false, null, FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.POINTER)),
+    "pushl"         to FSignature(false, null, FParam("value", BaseDataType.LONG)),
+    "pushf"         to FSignature(false, null, FParam("value", BaseDataType.FLOAT)),
+    "pop"           to FSignature(false, BaseDataType.UBYTE),
+    "popw"          to FSignature(false, BaseDataType.UWORD),
+    "popl"          to FSignature(false, BaseDataType.LONG),
+    "popf"          to FSignature(false, BaseDataType.FLOAT),
 )
 
 val InplaceModifyingBuiltinFunctions = setOf(

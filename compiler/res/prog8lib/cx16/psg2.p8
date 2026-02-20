@@ -137,10 +137,10 @@ psg2 {
         ; you have to call this routine every 1/60th second, for example from your vsync irq handler.
         ; Or just install this routine as the only irq handler if you don't have to do other things there.
 
-        sys.push(cx16.r0L)
-        sys.pushw(cx16.r1)
-        sys.pushw(cx16.r2)
-        sys.pushw(cx16.r3)
+        push(cx16.r0L)
+        pushw(cx16.r1)
+        pushw(cx16.r2)
+        pushw(cx16.r3)
 
         vptr = voices
         alias voice = cx16.r0L
@@ -206,10 +206,10 @@ psg2 {
             vptr++
         }
         cx16.restore_vera_context()
-        cx16.r3 = sys.popw()
-        cx16.r2 = sys.popw()
-        cx16.r1 = sys.popw()
-        cx16.r0L = sys.pop()
+        cx16.r3 = popw()
+        cx16.r2 = popw()
+        cx16.r1 = popw()
+        cx16.r0L = pop()
 
         return true
     }

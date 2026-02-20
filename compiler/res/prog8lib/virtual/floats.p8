@@ -210,22 +210,6 @@ sub normalize(float value) -> float {
     return value
 }
 
-sub push(float value) {
-    ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-    %ir {{
-        loadm.f  fr99000,floats.push.value
-        push.f  fr99000
-    }}
-}
-
-sub pop() -> float {
-    ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-    %ir {{
-        pop.f  fr99000
-        returnr.f fr99000
-    }}
-}
-
 sub lerp(float v0, float v1, float t) -> float {
     ; Linear interpolation (LERP)
     ; Precise method, which guarantees v = v1 when t = 1.

@@ -113,14 +113,14 @@ btree {
         sub count_node(^^Node r) {
             count++
             if r.left!=0 {
-                sys.pushw(r)
+                pushw(r)
                 count_node(r.left)
-                r = sys.popw()
+                r = popw()
             }
             if r.right!=0 {
-                sys.pushw(r)
+                pushw(r)
                 count_node(r.right)
-                r = sys.popw()
+                r = popw()
             }
         }
     }
@@ -179,15 +179,15 @@ btree {
 
         sub process_tree(^^Node r) {
             if r.left!=0 {
-                sys.pushw(r)
+                pushw(r)
                 process_tree(r.left)
-                r = sys.popw()
+                r = popw()
             }
             cx16.r0 = r.value
             if r.right!=0 {
-                sys.pushw(r)
+                pushw(r)
                 process_tree(r.right)
-                r = sys.popw()
+                r = popw()
             }
         }
     }
@@ -200,18 +200,18 @@ btree {
         sub process_tree(^^Node r, ubyte depth) {
             cx16.r0 = r.value
             if r.left!=0 {
-                sys.pushw(r)
-                sys.push(depth)
+                pushw(r)
+                push(depth)
                 process_tree(r.left, depth+1)
-                depth = sys.pop()
-                r = sys.popw()
+                depth = pop()
+                r = popw()
             }
             if r.right!=0 {
-                sys.pushw(r)
-                sys.push(depth)
+                pushw(r)
+                push(depth)
                 process_tree(r.right, depth+1)
-                depth = sys.pop()
-                r = sys.popw()
+                depth = pop()
+                r = popw()
             }
         }
     }

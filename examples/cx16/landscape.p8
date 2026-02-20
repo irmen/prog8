@@ -74,13 +74,13 @@ main {
                 interpolate(half, e)
 
                 ; recurse
-                sys.pushw(e)
-                sys.pushw(half)
-                sys.push(displacement)
+                pushw(e)
+                pushw(half)
+                push(displacement)
                 recursive_midpoint(s, half, displacement-smoothness)
-                displacement = sys.pop()
-                half = sys.popw()
-                e = sys.popw()
+                displacement = pop()
+                half = popw()
+                e = popw()
                 recursive_midpoint(half, e, displacement-smoothness)
             }
         }

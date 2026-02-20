@@ -882,10 +882,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     internal fun translate(fcall: PtFunctionCall): ExpressionCodeResult {
         val callTarget = codeGen.symbolTable.lookup(fcall.name)!!
 
-        if(callTarget.scopedNameString in listOf("sys.push", "sys.pushw", "sys.pop", "sys.popw", "floats.push", "floats.pop")) {
-            // special case, these should be inlined, or even use specialized instructions. Instead of doing a normal subroutine call.
-            return translateStackFunctions(fcall, callTarget)
-        }
         when(callTarget.scopedNameString) {
             "sys.clear_carry" -> {
                 val chunk = mutableListOf<IRCodeChunkBase>()
@@ -1107,52 +1103,6 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
         }
         return null
-    }
-
-    private fun translateStackFunctions(fcall: PtFunctionCall, callTarget: StNode): ExpressionCodeResult {
-        val chunk = mutableListOf<IRCodeChunkBase>()
-        when(callTarget.scopedNameString) {
-            "sys.push" -> {
-                // push byte
-                val tr = translateExpression(fcall.args.single())
-                chunk += tr.chunks
-                addInstr(chunk, IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=tr.resultReg), null)
-                return ExpressionCodeResult(chunk, IRDataType.BYTE, -1, -1)
-            }
-            "sys.pushw" -> {
-                // push word
-                val tr = translateExpression(fcall.args.single())
-                chunk += tr.chunks
-                addInstr(chunk, IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=tr.resultReg), null)
-                return ExpressionCodeResult(chunk, IRDataType.WORD, -1, -1)
-            }
-            "sys.pop" -> {
-                // pop byte
-                val popReg = codeGen.registers.next(IRDataType.BYTE)
-                addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=popReg), null)
-                return ExpressionCodeResult(chunk, IRDataType.BYTE, popReg, -1)
-            }
-            "sys.popw" -> {
-                // pop word
-                val popReg = codeGen.registers.next(IRDataType.WORD)
-                addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.WORD, reg1=popReg), null)
-                return ExpressionCodeResult(chunk, IRDataType.WORD, popReg, -1)
-            }
-            "floats.push" -> {
-                // push float
-                val tr = translateExpression(fcall.args.single())
-                chunk += tr.chunks
-                addInstr(chunk, IRInstruction(Opcode.PUSH, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
-                return ExpressionCodeResult(chunk, IRDataType.FLOAT, -1, -1)
-            }
-            "floats.pop" -> {
-                // pop float
-                val popReg = codeGen.registers.next(IRDataType.FLOAT)
-                addInstr(chunk, IRInstruction(Opcode.POP, IRDataType.FLOAT, fpReg1 = popReg), null)
-                return ExpressionCodeResult(chunk, IRDataType.FLOAT, -1, resultFpReg = popReg)
-            }
-            else -> throw AssemblyError("unknown stack subroutine called")
-        }
     }
 
     private fun callExtSubWithMultipleReturnValues(

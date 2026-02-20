@@ -177,34 +177,11 @@ sys {
         }}
     }
 
-    sub push(ubyte b) {
-        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-        %ir {{
-            loadm.b r99100,sys.push.b
-            push.b r99100
-        }}
-    }
-
-    sub pushw(uword w) {
-        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-        %ir {{
-            loadm.w r99000,sys.pushw.w
-            push.w r99000
-        }}
-    }
-
-    sub pushl(long l) {
-        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-        %ir {{
-            loadm.l r99200,sys.pushl.l
-            push.l r99200
-        }}
-    }
 
     sub push_returnaddress(uword w) {
         ; note: this actually doesn't do anything useful on the VM because the code execution doesn't use the simulated cpu stack
         %ir {{
-            loadm.w r99000,sys.pushw.w
+            loadm.w r99000,sys.push_returnaddress.w
             push.w r99000
         }}
     }
@@ -213,30 +190,6 @@ sys {
         ; return the address like JSR would push onto the stack:  address-1,  MSB first then LSB
         address--
         return mkword(lsb(address), msb(address))
-    }
-
-    sub pop() -> ubyte {
-        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-        %ir {{
-            pop.b r99100
-            returnr.b r99100
-        }}
-    }
-
-    sub popw() -> uword {
-        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-        %ir {{
-            pop.w r99000
-            returnr.w r99000
-        }}
-    }
-
-    sub popl() -> long {
-        ; note: this *should* be inlined, however since the VM has separate program counter and value stacks, this also works
-        %ir {{
-            pop.l r99200
-            returnr.l r99200
-        }}
     }
 
     sub read_flags() -> ubyte {

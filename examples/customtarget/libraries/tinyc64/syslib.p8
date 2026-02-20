@@ -9,60 +9,6 @@ sys {
 
     ; these push/pop routines are always required by the compiler:
 
-    inline asmsub push(ubyte value @A) {
-        %asm {{
-            pha
-        }}
-    }
-
-    inline asmsub pushw(uword value @AY) {
-        %asm {{
-            pha
-            tya
-            pha
-        }}
-    }
-
-    inline asmsub pop() -> ubyte @A {
-        %asm {{
-            pla
-        }}
-    }
-
-    inline asmsub popw() -> uword @AY {
-        %asm {{
-            pla
-            tay
-            pla
-        }}
-    }
-
-    inline asmsub pushl(long value @R0R1) {
-        %asm {{
-            lda  cx16.r0
-            pha
-            lda  cx16.r0+1
-            pha
-            lda  cx16.r0+2
-            pha
-            lda  cx16.r0+3
-            pha
-        }}
-    }
-
-    inline asmsub popl() -> long @R0R1 {
-        %asm {{
-            pla
-            sta  cx16.r0+3
-            pla
-            sta  cx16.r0+2
-            pla
-            sta  cx16.r0+1
-            pla
-            sta  cx16.r0
-        }}
-    }
-
     asmsub reset_system()  {
         ; Soft-reset the system back to initial power-on Basic prompt.
         %asm {{

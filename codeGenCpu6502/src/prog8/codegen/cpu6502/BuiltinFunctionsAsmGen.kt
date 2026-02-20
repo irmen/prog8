@@ -68,6 +68,14 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
             "callfar" -> funcCallFar(fcall, resultRegister)
             "callfar2" -> funcCallFar2(fcall, resultRegister)
             "call" -> funcCall(fcall)
+            "push" -> funcPush(fcall)
+            "pushw" -> funcPushW(fcall)
+            "pushl" -> funcPushL(fcall)
+            "pushf" -> funcPushF(fcall)
+            "pop" -> funcPop()
+            "popw" -> funcPopW()
+            "popl" -> funcPopL()
+            "popf" -> funcPopF()
             "prog8_lib_structalloc" -> funcStructAlloc(fcall, discardResult, resultRegister)
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, resultRegister)
             "prog8_lib_square_byte" -> funcSquare(fcall, BaseDataType.UBYTE, resultRegister)
@@ -78,6 +86,91 @@ internal class BuiltinFunctionsAsmGen(private val program: PtProgram,
         }
 
         return BuiltinFunctions.getValue(fcall.name).returnType
+    }
+
+    private fun funcPush(fcall: PtBuiltinFunctionCall) {
+        asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)
+        asmgen.out("  pha")
+    }
+
+    private fun funcPushW(fcall: PtBuiltinFunctionCall) {
+        val value = fcall.args.single()
+        if(value is PtIdentifier) {
+            val varname = asmgen.asmVariableName(value)
+            asmgen.out("""
+                lda  $varname
+                pha
+                lda  $varname+1
+                pha""")
+        } else {
+            if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
+                asmgen.out("  pha |  phy")
+            } else {
+                asmgen.assignExpressionToRegister(value, RegisterOrPair.AY)
+                asmgen.out("  pha |  tya |  pha")
+            }
+        }
+    }
+
+    private fun funcPushL(fcall: PtBuiltinFunctionCall) {
+        val value = fcall.args.single()
+        if(value is PtIdentifier) {
+            val varname = asmgen.asmVariableName(value)
+            asmgen.out("""
+                lda  $varname
+                pha
+                lda  $varname+1
+                pha
+                lda  $varname+2
+                pha
+                lda  $varname+3
+                pha""")
+        } else {
+            asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)
+            asmgen.out("""
+                lda  cx16.r14
+                pha
+                lda  cx16.r14+1
+                pha
+                lda  cx16.r14+2
+                pha
+                lda  cx16.r14+3
+                pha""")
+        }
+    }
+
+    private fun funcPushF(fcall: PtBuiltinFunctionCall) {
+        asmgen.assignExpressionToRegister(fcall.args.single(), RegisterOrPair.FAC1, true)
+        asmgen.out("  jsr  floats.pushFAC1")
+    }
+
+    private fun funcPop() {
+        asmgen.out("  pla")
+    }
+
+    private fun funcPopW() {
+        if(asmgen.isTargetCpu(CpuType.CPU65C02)) {
+            asmgen.out("  ply |  pla")
+        } else {
+            asmgen.out("  pla |  tay |  pla")
+        }
+    }
+
+    private fun funcPopL() {
+        asmgen.out("""
+            pla
+            sta  cx16.r14+3
+            pla
+            sta  cx16.r14+2
+            pla
+            sta  cx16.r14+1
+            pla
+            sta  cx16.r14""")
+    }
+
+    private fun funcPopF() {
+        asmgen.out("  clc | jsr  floats.popFAC")
     }
 
     private fun funcCopyFromPointer1ToPointer2(fcall: PtBuiltinFunctionCall, type: BaseDataType) {

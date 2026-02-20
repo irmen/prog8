@@ -246,9 +246,9 @@ main {
                 sub start() {
                     uword variable
             
-                    sys.pushw(variable)
-                    sys.pushw(handler)
-                    sys.pushw(&handler)
+                    pushw(variable)
+                    pushw(handler)
+                    pushw(&handler)
                     handler(variable)
                     handler(handler)
                     handler(&handler)

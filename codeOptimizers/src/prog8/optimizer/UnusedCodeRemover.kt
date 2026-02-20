@@ -25,25 +25,8 @@ class UnusedCodeRemover(private val program: Program,
     init {
         neverRemoveSubroutines.add(program.entrypoint)
 
-        program.allBlocks.singleOrNull { it.name=="sys" } ?.let {
-            val subroutines = it.statements.filterIsInstance<Subroutine>()
-            val push = subroutines.single { s -> s.name == "push" }
-            val pushw = subroutines.single { s -> s.name == "pushw" }
-            val pop = subroutines.single { s -> s.name == "pop" }
-            val popw = subroutines.single { s -> s.name == "popw" }
-            neverRemoveSubroutines.add(push)
-            neverRemoveSubroutines.add(pushw)
-            neverRemoveSubroutines.add(pop)
-            neverRemoveSubroutines.add(popw)
-        }
-
         program.allBlocks.singleOrNull { it.name=="floats" } ?.let {
             val subroutines = it.statements.filterIsInstance<Subroutine>()
-            val push = subroutines.single { s -> s.name == "push" }
-            val pop = subroutines.single { s -> s.name == "pop" }
-            neverRemoveSubroutines.add(push)
-            neverRemoveSubroutines.add(pop)
-
             subroutines
                 .filter { s -> s.name == "internal_long_R1_to_float_AY" || s.name=="internal_long_AY_to_FAC" }
                 .forEach { sub -> neverRemoveSubroutines.add(sub) }

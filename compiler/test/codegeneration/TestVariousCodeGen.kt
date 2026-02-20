@@ -353,28 +353,6 @@ main {
         compileText(Cx16Target(), true, src, outputDir, writeAssembly = false) shouldNotBe null
     }
 
-    test("push pop are inlined also with noopt") {
-        val text = """
-main {
-    sub start() {
-        sys.push(11)
-        sys.pushw(2222)
-        sys.push_returnaddress(3333)
-        cx16.r2++
-        cx16.r1 = sys.popw()
-        cx16.r0L = sys.pop()
-    } 
-}"""
-        val result = compileText(C64Target(), false, text, outputDir, writeAssembly = true)!!
-        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
-        val assembly = assemblyFile.readText()
-        assembly shouldContain "inlined routine follows: push"
-        assembly shouldContain "inlined routine follows: pushw"
-        assembly shouldContain "inlined routine follows: push_returnaddress"
-        assembly shouldContain "inlined routine follows: pop"
-        assembly shouldContain "inlined routine follows: popw"
-    }
-
     test("syslib correctly available for raw outputs") {
         val text = """
 %output raw

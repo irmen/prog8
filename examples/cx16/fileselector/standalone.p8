@@ -79,9 +79,9 @@ fileselector {
         str defaultpattern="*"
         if pattern==0
             pattern = &defaultpattern
-        sys.push(cx16.getrambank())
+        push(cx16.getrambank())
         cx16.r0 = internal_select(pattern)
-        cx16.rambank(sys.pop())
+        cx16.rambank(pop())
         return cx16.r0
     }
 

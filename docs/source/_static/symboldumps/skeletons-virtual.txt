@@ -1,5 +1,6 @@
 
-Prog8 compiler v12.1.1 by Irmen de Jong (irmen@razorvine.net)
+Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
+Prerelease version from git commit 9aff85f0 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -32,10 +33,10 @@ smallstack  {
     init  () 
     isempty  () -> bool 
     isfull  () -> bool 
-    pop  () -> ubyte 
-    popw  () -> uword 
-    push  (ubyte value) 
-    pushw  (uword value) 
+    pop_b  () -> ubyte 
+    pop_w  () -> uword 
+    push_b  (ubyte value) 
+    push_w  (uword value) 
     size  () -> ubyte 
 }
 
@@ -46,10 +47,10 @@ stack  {
     init  () 
     isempty  () -> bool 
     isfull  () -> bool 
-    pop  () -> ubyte 
-    popw  () -> uword 
-    push  (ubyte value) 
-    pushw  (uword value) 
+    pop_b  () -> ubyte 
+    pop_w  () -> uword 
+    push_b  (ubyte value) 
+    push_w  (uword value) 
     size  () -> uword 
 }
 
@@ -192,10 +193,8 @@ floats  {
     minf  (float f1, float f2) -> float 
     normalize  (float value) -> float 
     parse  (str value) -> float 
-    pop  () -> float 
     pow  (float value, float power) -> float 
     print  (float value) 
-    push  (float value) 
     rad  (float angle) -> float 
     rnd  () -> float 
     rndseed  (float seed) 
@@ -391,15 +390,9 @@ sys  {
     memcopy  (uword source, uword tgt, uword count) 
     memset  (uword mem, uword numbytes, ubyte value) 
     memsetw  (uword mem, uword numwords, uword value) 
-    pop  () -> ubyte 
-    popl  () -> long 
-    popw  () -> uword 
     progend  () -> uword 
     progstart  () -> uword 
-    push  (ubyte b) 
     push_returnaddress  (uword w) 
-    pushl  (long l) 
-    pushw  (uword w) 
     read_flags  () -> ubyte 
     reset_system  () 
     restore_prog8_internals  () 

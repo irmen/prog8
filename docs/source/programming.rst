@@ -1193,17 +1193,12 @@ flag such as Carry (Pc).
 
 It is not possible to use floating point arguments or return values in an asmsub.
 
-**inline:** Trivial ``asmsub`` routines can be tagged as ``inline`` to tell the compiler to copy their code
-in-place to the locations where the subroutine is called, rather than inserting an actual call and return to the
-subroutine. This may increase code size significantly and can only be used in limited scenarios, so YMMV.
-Note that the routine's code is copied verbatim into the place of the subroutine call in this case,
-so pay attention to any jumps and rts instructions in the inlined code!
-
 .. note::
     Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
     directly instead of a call to them. Note that it is literal copy-paste of code that is done,
     so make sure the assembly is actually written to behave like such - which probably means you
     don't want a ``rts`` or ``jmp`` or ``bra`` in it!
+    Inlining may increase code size significantly and can only be used in limited scenarios
 
 .. note::
     The **sixteen 'virtual' 16-bit registers** from the Commander X16 can also be specified as ``R0`` .. ``R15`` .

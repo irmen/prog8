@@ -48,12 +48,12 @@ main {
             if could_place(row, col) {
                 board[row] = col
                 ; we need to save the local variables row and col.
-                sys.push(row)
-                sys.push(col)
+                push(row)
+                push(col)
                 place_queen(row + 1)
                 ; restore the local variables after the recursive call.
-                col = sys.pop()
-                row = sys.pop()
+                col = pop()
+                row = pop()
                 board[row] = 0
             }
         }

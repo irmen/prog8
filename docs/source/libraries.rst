@@ -88,6 +88,43 @@ Math
     Accepts unsigned integer (result is ubyte), long (result is uword), and floating point numbers.
     To do the reverse - squaring a number - just write ``x*x``.
 
+CPU Stack
+^^^^^^^^^
+:index:`push` (value)
+    pushes a byte value on the CPU hardware stack.
+    Low-level function that is seldomly used in user code.
+
+:index:`pushw` (value)
+    pushes a 16-bit word value on the CPU hardware stack.
+    Low-level function that is seldomly used in user code.
+    Don't assume anything about the order in which the bytes are pushed - popw will make sense of them again.
+
+:index:`pushl` (value)
+    pushes a 32-bit value on the CPU hardware stack.
+    Low-level function that is seldomly used in user code.
+    Don't assume anything about the order in which the bytes are pushed - popl will make sense of them again.
+
+:index:`pushf` (value)
+    pushes a floating point value on the CPU hardware stack.
+    Low-level function that is seldomly used in user code.
+    Don't assume anything about the order in which the bytes are pushed - popf will make sense of them again.
+
+:index:`pop` ()
+    pops a byte value off the CPU hardware stack and returns it.
+    Low-level function that is seldomly used in user code.
+
+:index:`popw` ()
+    pops a 16-bit word value off the CPU hardware stack that was pushed before by pushw, and returns it.
+    Low-level function that is seldomly used in user code.
+
+:index:`popl` ()
+    pops a 32-bit value off the CPU hardware stack that was pushed before by pushl, and returns it.
+    Low-level function that is seldomly used in user code.
+
+:index:`popf` ()
+    pops a floating point value off the CPU hardware stack that was pushed before by pushl, and returns it.
+    Low-level function that is seldomly used in user code.
+
 
 Miscellaneous
 ^^^^^^^^^^^^^
@@ -1433,36 +1470,14 @@ processor stack
 '''''''''''''''
 .. index:: pair: Libraries; processor stack
 
-``push (value)``
-    pushes a byte value on the CPU hardware stack.
-    Low-level function that is seldomly used in user code.
-
-``pushw (value)``
-    pushes a 16-bit word value on the CPU hardware stack.
-    Low-level function that is seldomly used in user code.
-    Don't assume anything about the order in which the bytes are pushed - popw will make sense of them again.
-
-``pushl (value)``
-    pushes a 32-bit value on the CPU hardware stack.
-    Low-level function that is seldomly used in user code.
-    Don't assume anything about the order in which the bytes are pushed - popl will make sense of them again.
+Pushing and popping values on the CPU hardware stack can be done via the stack related :ref:`builtinfunctions` (pop, push etc).
+There is a very specialized function in the sys module here as well:
 
 ``push_returnaddress (address)``
     pushes a 16 bit memory address on the CPU hardware stack in the same byte order as a JSR instruction would,
     which means the next RTS instruction will jump to that address instead.you
     You cannot use pushw() for this because the bytes pushed by JSR are different
 
-``pop ()``
-    pops a byte value off the CPU hardware stack and returns it.
-    Low-level function that is seldomly used in user code.
-
-``popw ()``
-    pops a 16-bit word value off the CPU hardware stack that was pushed before by pushw, and returns it.
-    Low-level function that is seldomly used in user code.
-
-``popl ()``
-    pops a 32-bit value off the CPU hardware stack that was pushed before by pushl, and returns it.
-    Low-level function that is seldomly used in user code.
 
 
 textio (txt.*)

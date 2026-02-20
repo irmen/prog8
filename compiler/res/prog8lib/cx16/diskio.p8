@@ -717,16 +717,14 @@ io_error:
             goto io_error
         void cbm.CHKIN(15)        ; use #15 as input channel
 
-        cx16.r0L = (cbm.CHRIN()-'0') * 10
-        cx16.r0L += (cbm.CHRIN()-'0')
-
+        push( (cbm.CHRIN()-'0') *10 + (cbm.CHRIN()-'0') )
         while cbm.READST()==0 {
             void cbm.CHRIN()
         }
 
         cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(15)
-        return cx16.r0L
+        return pop()
 
 io_error:
         cbm.CLRCHN()

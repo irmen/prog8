@@ -60,10 +60,78 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_structalloc" -> funcStructAlloc(call)
             "prog8_lib_copylong" -> funcCopyFromPointer1ToPointer2(call, IRDataType.LONG)
             "prog8_lib_copyfloat" -> funcCopyFromPointer1ToPointer2(call, IRDataType.FLOAT)
+            "push" -> funcPush(call)
+            "pushw" -> funcPushW(call)
+            "pushl" -> funcPushL(call)
+            "pushf" -> funcPushF(call)
+            "pop" -> funcPop()
+            "popw" -> funcPopW()
+            "popl" -> funcPopL()
+            "popf" -> funcPopF()
             "sizeof" -> throw AssemblyError("sizeof must have been replaced with a constant")
             "offsetof" -> throw AssemblyError("offsetof must have been replaced with a constant")
             else -> throw AssemblyError("missing builtinfunc for ${call.name}")
         }
+    }
+
+    private fun funcPush(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = exprGen.translateExpression(call.args[0])
+        addToResult(result, tr, tr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.BYTE, reg1=tr.resultReg), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+    }
+
+    private fun funcPushW(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = exprGen.translateExpression(call.args[0])
+        addToResult(result, tr, tr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.WORD, reg1=tr.resultReg), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+    }
+
+    private fun funcPushL(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = exprGen.translateExpression(call.args[0])
+        addToResult(result, tr, tr.resultReg, -1)
+        addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.LONG, reg1=tr.resultReg), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+    }
+
+    private fun funcPushF(call: PtBuiltinFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val tr = exprGen.translateExpression(call.args[0])
+        addToResult(result, tr, -1, tr.resultFpReg)
+        addInstr(result, IRInstruction(Opcode.PUSH, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
+    }
+
+    private fun funcPop(): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultRegister = codeGen.registers.next(IRDataType.BYTE)
+        addInstr(result, IRInstruction(Opcode.POP, IRDataType.BYTE, reg1=resultRegister), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+    }
+
+    private fun funcPopW(): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultRegister = codeGen.registers.next(IRDataType.WORD)
+        addInstr(result, IRInstruction(Opcode.POP, IRDataType.WORD, reg1=resultRegister), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+    }
+
+    private fun funcPopL(): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultRegister = codeGen.registers.next(IRDataType.LONG)
+        addInstr(result, IRInstruction(Opcode.POP, IRDataType.LONG, reg1=resultRegister), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+    }
+
+    private fun funcPopF(): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        val resultRegister = codeGen.registers.next(IRDataType.FLOAT)
+        addInstr(result, IRInstruction(Opcode.POP, IRDataType.FLOAT, fpReg1 = resultRegister), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, resultRegister)
     }
 
     private fun funcCopyFromPointer1ToPointer2(call: PtBuiltinFunctionCall, type: IRDataType): ExpressionCodeResult {

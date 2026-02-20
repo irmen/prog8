@@ -136,10 +136,10 @@ psg {
         ; cx16.r0 = the volume word (volume scaled by 256)
         ; cx16.r1L = the voice number
         ; cx16.r2L = attack value
-        sys.pushw(cx16.r0)
-        sys.push(cx16.r1L)
-        sys.push(cx16.r2L)
-        sys.pushw(cx16.r9)
+        pushw(cx16.r0)
+        push(cx16.r1L)
+        push(cx16.r2L)
+        pushw(cx16.r9)
         ; calculate new volumes
         for cx16.r1L in 0 to 15 {
             if not voice_enabled[cx16.r1L]
@@ -193,10 +193,10 @@ psg {
                 cx16.VERA_DATA0 = cx16.VERA_DATA1
         }
         cx16.restore_vera_context()
-        cx16.r9 = sys.popw()
-        cx16.r2L = sys.pop()
-        cx16.r1L = sys.pop()
-        cx16.r0 = sys.popw()
+        cx16.r9 = popw()
+        cx16.r2L = pop()
+        cx16.r1L = pop()
+        cx16.r0 = popw()
         return true     ; run the system IRQ handler afterwards
     }
 

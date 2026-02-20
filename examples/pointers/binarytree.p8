@@ -111,14 +111,14 @@ btree {
         sub count_node(^^Node r) {
             count++
             if r.left!=0 {
-                sys.pushw(r)
+                pushw(r)
                 count_node(r.left)
-                r = sys.popw()
+                r = popw()
             }
             if r.right!=0 {
-                sys.pushw(r)
+                pushw(r)
                 count_node(r.right)
-                r = sys.popw()
+                r = popw()
             }
         }
     }
@@ -178,16 +178,16 @@ btree {
 
         sub print_tree(^^Node r) {
             if r.left!=0 {
-                sys.pushw(r)
+                pushw(r)
                 print_tree(r.left)
-                r = sys.popw()
+                r = popw()
             }
             txt.print_uw(r.value)
             txt.print(", ")
             if r.right!=0 {
-                sys.pushw(r)
+                pushw(r)
                 print_tree(r.right)
-                r = sys.popw()
+                r = popw()
             }
         }
     }
@@ -203,18 +203,18 @@ btree {
             txt.print_uw(r.value)
             txt.nl()
             if r.left!=0 {
-                sys.pushw(r)
-                sys.push(depth)
+                pushw(r)
+                push(depth)
                 print_tree(r.left, depth+1)
-                depth = sys.pop()
-                r = sys.popw()
+                depth = pop()
+                r = popw()
             }
             if r.right!=0 {
-                sys.pushw(r)
-                sys.push(depth)
+                pushw(r)
+                push(depth)
                 print_tree(r.right, depth+1)
-                depth = sys.pop()
-                r = sys.popw()
+                depth = pop()
+                r = popw()
             }
         }
     }

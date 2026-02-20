@@ -505,12 +505,12 @@ main {
     sub start() {
         ubyte bb
         uword ww
-        sys.push(42)
+        push(42)
         bb++
-        bb=sys.pop()
-        sys.pushw(9999)
+        bb=pop()
+        pushw(9999)
         ww++
-        ww=sys.popw()
+        ww=popw()
     }
 }"""
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!

@@ -1584,12 +1584,12 @@ sub search_x16edit() -> ubyte {
         ; -- Set the inter-program arguments.
         ; standardized way to pass arguments between programs is in ram bank 0, address $bf00-$bfff.
         ; see https://github.com/X16Community/x16-docs/blob/r49/X16%20Reference%20-%2008%20-%20Memory%20Map.md#bank-0
-        sys.push(getrambank())
+        push(getrambank())
         rambank(0)
         sys.memcopy(args_ptr, $bf00, args_size)
         if args_size<255
             @($bf00+args_size) = 0
-        rambank(sys.pop())
+        rambank(pop())
     }
 
     asmsub get_program_args(^^ubyte buffer @R0, ubyte buf_size @R1, bool binary @Pc) {
@@ -1974,19 +1974,6 @@ _larger
         }}
     }
 
-    inline asmsub push(ubyte value @A) {
-        %asm {{
-            pha
-        }}
-    }
-
-    inline asmsub pushw(uword value @AY) {
-        %asm {{
-            pha
-            phy
-        }}
-    }
-
     inline asmsub push_returnaddress(uword address @XY) {
         %asm {{
             ; push like JSR would:  address-1,  MSB first then LSB
@@ -2008,45 +1995,6 @@ _larger
 +           dex
             tya
             rts
-        }}
-    }
-
-    inline asmsub pop() -> ubyte @A {
-        %asm {{
-            pla
-        }}
-    }
-
-    inline asmsub popw() -> uword @AY {
-        %asm {{
-            ply
-            pla
-        }}
-    }
-
-    inline asmsub pushl(long value @R0R1) {
-        %asm {{
-            lda  cx16.r0
-            pha
-            lda  cx16.r0+1
-            pha
-            lda  cx16.r0+2
-            pha
-            lda  cx16.r0+3
-            pha
-        }}
-    }
-
-    inline asmsub popl() -> long @R0R1 {
-        %asm {{
-            pla
-            sta  cx16.r0+3
-            pla
-            sta  cx16.r0+2
-            pla
-            sta  cx16.r0+1
-            pla
-            sta  cx16.r0
         }}
     }
 

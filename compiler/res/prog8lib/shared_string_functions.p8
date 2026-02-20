@@ -10,7 +10,7 @@ strings {
         if s==0 or s[0]==0
             return 0
 
-        sys.push(cx16.r0L)
+        push(cx16.r0L)
         alias index = cx16.r0L
         ubyte numparts
 
@@ -34,7 +34,7 @@ strings {
             parts--
             strings.strip(parts^^)
         }
-        cx16.r0L = sys.pop()
+        cx16.r0L = pop()
         return numparts
 
         sub skipwhitespace() {

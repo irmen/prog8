@@ -1,13 +1,14 @@
 package prog8.compiler.astprocessing
 
 import prog8.ast.FatalAstException
+import prog8.code.ast.PtBuiltinFunctionCall
 import prog8.code.ast.PtExpression
 import prog8.code.ast.PtFunctionCall
 import prog8.code.ast.PtTypeCast
 import prog8.code.core.DataType
 
 
-internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall, PtExpression> {
+internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtBuiltinFunctionCall, PtExpression> {
     var popTypecast: DataType? = null
     var pushTypecast: DataType? = null
     var pushWord = false
@@ -36,9 +37,9 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
         else -> throw FatalAstException("unsupported return value type ${value.type} with defer")
     }
 
-    val pushFunc = if(pushFloat) "floats.push" else if(pushWord) "sys.pushw" else if (pushLong) "sys.pushl" else "sys.push"
-    val popFunc = if(pushFloat) "floats.pop" else if(pushWord) "sys.popw" else if(pushLong) "sys.popl" else "sys.pop"
-    val pushCall = PtFunctionCall(pushFunc, true, DataType.UNDEFINED, value.position)
+    val pushFunc = if(pushFloat) "pushf" else if(pushWord) "pushw" else if (pushLong) "pushl" else "push"
+    val popFunc = if(pushFloat) "popf" else if(pushWord) "popw" else if(pushLong) "popl" else "pop"
+    val pushCall = PtBuiltinFunctionCall(pushFunc, true, false, DataType.UNDEFINED, value.position)
     if(pushTypecast!=null) {
         val typecast = PtTypeCast(pushTypecast, true, value.position).also {
             it.add(value)
@@ -53,7 +54,7 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
             it.add(PtFunctionCall(popFunc, false, returnDt, value.position))
         }
     } else
-        PtFunctionCall(popFunc, false, value.type, value.position)
+        PtBuiltinFunctionCall(popFunc, false, false, value.type, value.position)
 
     return Pair(pushCall, popCall)
 }

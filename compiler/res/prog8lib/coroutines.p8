@@ -83,7 +83,7 @@ coroutines {
                 ; activate the termination handler and start the first task
                 ; note: cannot use pushw() because JSR doesn't push the return address in the same way
                 sys.push_returnaddress(&termination)
-                sys.pushw(tasklist[active_task])
+                pushw(tasklist[active_task])
                 return
             }
         }
@@ -94,11 +94,11 @@ coroutines {
         ; Returns the associated userdata value.
         ; NOTE: CAN ONLY BE CALLED FROM THE SCOPE OF THE SUBROUTINE THAT HAS BEEN REGISTERED AS THE TASK!
         uword task_return_address
-        tasklist[active_task] = sys.popw()
+        tasklist[active_task] = popw()
 
 skip_task:
         if not next_task() {
-            void sys.popw()     ; remove return to the termination handler
+            void popw()     ; remove return to the termination handler
             return 0   ; exiting here will now actually return back to the calling program that called run()
         }
 
@@ -107,7 +107,7 @@ skip_task:
                 goto skip_task
 
         ; returning from yield then continues with the next coroutine:
-        sys.pushw(task_return_address)
+        pushw(task_return_address)
         return userdatas[active_task]
 
         sub next_task() -> bool {

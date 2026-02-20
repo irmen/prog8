@@ -388,17 +388,17 @@ monogfx {
         sub push_stack(word sxl, word sxr, word sy, byte sdy) {
             cx16.r0s = sy+sdy
             if cx16.r0s>=0 and cx16.r0s<=height-1 {
-                stack.pushw(sxl as uword)
-                stack.pushw(sxr as uword)
-                stack.pushw(sy as uword)
-                stack.push(sdy as ubyte)
+                stack.push_w(sxl as uword)
+                stack.push_w(sxr as uword)
+                stack.push_w(sy as uword)
+                stack.push_b(sdy as ubyte)
             }
         }
         sub pop_stack() {
-            dy = stack.pop() as byte
-            yy = stack.popw() as word
-            x2 = stack.popw() as word
-            x1 = stack.popw() as word
+            dy = stack.pop_b() as byte
+            yy = stack.pop_w() as word
+            x2 = stack.pop_w() as word
+            x1 = stack.pop_w() as word
             yy+=dy
         }
         cx16.r11L = pget(xx as uword, yy as uword) as ubyte       ; old_color

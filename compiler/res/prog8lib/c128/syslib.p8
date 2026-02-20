@@ -817,20 +817,6 @@ _larger
         }}
     }
 
-    inline asmsub push(ubyte value @A) {
-        %asm {{
-            pha
-        }}
-    }
-
-    inline asmsub pushw(uword value @AY) {
-        %asm {{
-            pha
-            tya
-            pha
-        }}
-    }
-
     inline asmsub push_returnaddress(uword address @XY) {
         %asm {{
             ; push like JSR would:  address-1,  MSB first then LSB
@@ -854,46 +840,6 @@ _larger
 +           dex
             tya
             rts
-        }}
-    }
-
-    inline asmsub pop() -> ubyte @A {
-        %asm {{
-            pla
-        }}
-    }
-
-    inline asmsub popw() -> uword @AY {
-        %asm {{
-            pla
-            tay
-            pla
-        }}
-    }
-
-    inline asmsub pushl(long value @R0R1) {
-        %asm {{
-            lda  cx16.r0
-            pha
-            lda  cx16.r0+1
-            pha
-            lda  cx16.r0+2
-            pha
-            lda  cx16.r0+3
-            pha
-        }}
-    }
-
-    inline asmsub popl() -> long @R0R1 {
-        %asm {{
-            pla
-            sta  cx16.r0+3
-            pla
-            sta  cx16.r0+2
-            pla
-            sta  cx16.r0+1
-            pla
-            sta  cx16.r0
         }}
     }
 

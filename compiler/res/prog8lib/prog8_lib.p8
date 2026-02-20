@@ -19,10 +19,10 @@ prog8_lib {
         alias numzp = cx16.r4r5sl
         alias res = cx16.r6r7sl
 
-        sys.pushl(cx16.r0r1sl)
-        sys.pushl(cx16.r2r3sl)
-        sys.pushl(cx16.r4r5sl)
-        sys.pushl(cx16.r6r7sl)
+        pushl(cx16.r0r1sl)
+        pushl(cx16.r2r3sl)
+        pushl(cx16.r4r5sl)
+        pushl(cx16.r6r7sl)
 
         ;    Start with the most significant pair of bits
         ;    For the digit-by-digit algorithm, we process the numzpber in groups of 2 bits
@@ -49,10 +49,10 @@ prog8_lib {
 
         uword @nozp resultword = lsw(res)
 
-        cx16.r6r7sl = sys.popl()
-        cx16.r4r5sl = sys.popl()
-        cx16.r2r3sl = sys.popl()
-        cx16.r0r1sl = sys.popl()
+        cx16.r6r7sl = popl()
+        cx16.r4r5sl = popl()
+        cx16.r2r3sl = popl()
+        cx16.r0r1sl = popl()
 
         return resultword
     }
