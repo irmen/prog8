@@ -45,7 +45,7 @@ bmx {
             } else
                 error_message = "invalid bmx file"
         } else
-            error_message = diskio.status()
+            error_message = "can't open file"
 
         close()
         return false
@@ -146,11 +146,6 @@ bmx {
         old_drivenumber = diskio.drivenumber
         diskio.drivenumber = drivenumber
         if diskio.f_open_w(filename) {
-            cx16.r0 = diskio.status()
-            if cx16.r0[0]!='0' {
-                error_message = cx16.r0
-                goto save_end
-            }
             diskio.reset_write_channel()
             if write_header() {
                 if write_palette() {
@@ -161,7 +156,7 @@ bmx {
             } else
                 error_message = "header error"
         } else
-             error_message = diskio.status()
+             error_message = "can't open file"
 save_end:
         diskio.f_close_w()
         diskio.drivenumber = old_drivenumber

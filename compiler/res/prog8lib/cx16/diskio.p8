@@ -717,9 +717,8 @@ io_error:
             goto io_error
         void cbm.CHKIN(15)        ; use #15 as input channel
 
-        list_filename[0] = cbm.CHRIN()
-        list_filename[1] = cbm.CHRIN()
-        list_filename[2] = 0
+        cx16.r0L = (cbm.CHRIN()-'0') * 10
+        cx16.r0L += (cbm.CHRIN()-'0')
 
         while cbm.READST()==0 {
             void cbm.CHRIN()
@@ -727,7 +726,7 @@ io_error:
 
         cbm.CLRCHN()        ; restore default i/o devices
         cbm.CLOSE(15)
-        return conv.str2ubyte(list_filename)
+        return cx16.r0L
 
 io_error:
         cbm.CLRCHN()
