@@ -384,33 +384,22 @@ done:
     ; similar to above, but instead of fetching the entire string, it only fetches the status code and returns it as ubyte
     ; in case of IO error, returns 255 (CMDR-DOS itself is physically unable to return such a value)
     sub status_code() -> ubyte {
-        if cbm.READST()==128 {
+        if cbm.READST()==128
             return 255
-        }
 
         cbm.SETNAM(0, list_filename)
         cbm.SETLFS(15, drivenumber, 15)
-        void cbm.OPEN()          ; open 15,8,15
-        if_cs
-            goto io_error
-        void cbm.CHKIN(15)        ; use #15 as input channel
+        void cbm.OPEN()      ; open 15,8,15
+        void cbm.CHKIN(15)
 
-        list_filename[0] = cbm.CHRIN()
-        list_filename[1] = cbm.CHRIN()
-        list_filename[2] = 0
+        push( (cbm.CHRIN()-'0') *10 + (cbm.CHRIN()-'0') )   ; 2-digit status code is return value
+        while cbm.READST()==0
+            void cbm.CHRIN()    ; clear rest of status message
 
-        while cbm.READST()==0 {
-            void cbm.CHRIN()
-        }
-
-        cbm.CLRCHN()        ; restore default i/o devices
-        cbm.CLOSE(15)
-        return conv.str2ubyte(list_filename)
-
-io_error:
+exit:
         cbm.CLRCHN()
         cbm.CLOSE(15)
-        return 255
+        return pop()
     }
 
     sub get_loadaddress(str filename) -> uword {
@@ -437,9 +426,7 @@ io_error:
         cbm.SETNAM(strings.length(filename), filename)
         cbm.SETLFS(READ_IO_CHANNEL, drivenumber, 0)
         void cbm.OPEN()          ; open 12,8,0,"filename"
-        void cbm.CHKIN(READ_IO_CHANNEL)
-        void cbm.CHRIN()
-        cx16.r0bL = cbm.READST()==0
+        cx16.r0bL = status_code()==0
         cbm.CLRCHN()
         cbm.CLOSE(READ_IO_CHANNEL)
         return cx16.r0bL
