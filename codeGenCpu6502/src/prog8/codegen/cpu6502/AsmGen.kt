@@ -792,8 +792,8 @@ class AsmGen6502Internal (
         }
     }
 
-    internal fun translateBuiltinFunctionCallExpression(bfc: PtFunctionCall): Array<BaseDataType> =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc)
+    internal fun translateBuiltinFunctionCallExpression(bfc: PtFunctionCall, firstReturnRegister: RegisterOrPair?): Array<RegisterOrPair> =
+            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, firstReturnRegister)
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr)

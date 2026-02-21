@@ -670,81 +670,6 @@ internal class AssignmentAsmGen(
         }
     }
 
-//    private fun assignBuiltinFunctionCall(targets: List<AsmAssignTarget>, value: PtFunctionCall) {
-//        require(value.builtin)
-//        if(targets.size>1) {
-//            // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
-//            // (this allows unencumbered use of many Rx registers if you don't return that many values)
-//            val returnRegs = PtSubSignature(value.returntypes.toList(), value.position).returnsWhatWhere()
-//            targets.zip(returnRegs).forEach { target ->
-//                if(target.first.kind != TargetStorageKind.VOID) {
-//                    asmgen.assignRegister(target.second.first.registerOrPair!!, target.first)
-//                }
-//            }
-//            return
-//        }
-//
-//        // single value result
-//        val target = targets.single()
-//        if(value.name=="peekl" && target.kind==TargetStorageKind.VARIABLE) {
-//            val arg = value.args[0]
-//            if(arg is PtNumber) {
-//                val address = arg.number.toInt()
-//                asmgen.out("""
-//                    lda  $address
-//                    sta  ${target.asmVarname}
-//                    lda  $address+1
-//                    sta  ${target.asmVarname}+1
-//                    lda  $address+2
-//                    sta  ${target.asmVarname}+2
-//                    lda  $address+3
-//                    sta  ${target.asmVarname}+3""")
-//                return
-//            }
-//            else if(arg is PtIdentifier) {
-//                val varname = asmgen.asmVariableName(arg)
-//                if(asmgen.isZpVar(arg)) {
-//                    asmgen.out("""
-//                        ldy  #0
-//                        lda  ($varname),y
-//                        sta  ${target.asmVarname}
-//                        iny
-//                        lda  ($varname),y
-//                        sta  ${target.asmVarname}+1
-//                        iny
-//                        lda  ($varname),y
-//                        sta  ${target.asmVarname}+2
-//                        iny
-//                        lda  ($varname),y
-//                        sta  ${target.asmVarname}+3""")
-//                    return
-//                }
-//            }
-//        }
-//
-//        val returnDts = asmgen.translateBuiltinFunctionCallExpression(value, target.register)
-//        if(returnDts.isNotEmpty() && target.register==null) {
-//            // still need to assign the result to the target variable/etc.
-//            when {
-//                returnDt?.isByteOrBool==true -> assignRegisterByte(target, CpuRegister.A, returnDt.isSigned, false)            // function's byte result is in A
-//                returnDt?.isWord==true -> assignRegisterpairWord(target, RegisterOrPair.AY)    // function's word result is in AY
-//                returnDt==BaseDataType.STR -> {
-//                    if (target.datatype.isUnsignedWord) assignRegisterpairWord(target, RegisterOrPair.AY)
-//                    else throw AssemblyError("str return value type mismatch with target")
-//                }
-//                returnDt== BaseDataType.LONG -> {
-//                    // longs are in R14:R15 (r14=lsw, r15=msw)
-//                    assignRegisterLong(target, RegisterOrPair.R14R15)
-//                }
-//                returnDt==BaseDataType.FLOAT -> {
-//                    // float result from function sits in FAC1
-//                    assignFAC1float(target)
-//                }
-//                else -> throw AssemblyError("weird result type")
-//            }
-//        }
-//    }
-
     private fun assignFunctionCall(assign: AsmAssignment, value: PtFunctionCall) {
         val symbol = asmgen.symbolTable.lookup(value.name)
         if(symbol!!.type==StNodeType.BUILTINFUNC) {
@@ -763,49 +688,28 @@ internal class AssignmentAsmGen(
 
             // TODO optimized float functions into variable? (to avoid needless FAC1 register copying?)
 
-            // TODO restore the optimized target register codegen that avoids A/AY altogether
             val firstTarget = assign.targets.firstOrNull()
-            var saveA = false
-            var saveAY = false
-            if(firstTarget?.kind==TargetStorageKind.REGISTER) {
-                if (firstTarget.register != RegisterOrPair.A && firstTarget.register != RegisterOrPair.AY) {
-                    when {
-                        firstTarget.datatype.isByteOrBool -> saveA = true
-                        firstTarget.datatype.isWord || firstTarget.datatype.isPointer -> saveAY = true
-                        else -> { /* do nothing, this datatype is not transferred in cpu registers */ }
-                    }
+            val actualResultRegisters = asmgen.translateBuiltinFunctionCallExpression(value, firstTarget?.register)
+
+            require(actualResultRegisters.size==assign.targets.size) { "builtin function call should have same number return values as assignment targets ${value.position}" }
+//            assign.targets.zip(actualResultRegisters).forEach { (target, register) ->
+//                if(target.kind==TargetStorageKind.REGISTER) {
+//                    if(target.register!! != register) {
+//                        println("OPTIMIZE: ${value.name} builtin func output register mismatch ${target.register}  got $register  ${value.position}")
+//                    }
+//                }
+//            }
+
+            if(assign.targets.size>1) {
+                assign.targets.zip(actualResultRegisters)
+                    .filter { it.first.kind != TargetStorageKind.VOID }
+                    .forEach { target -> asmgen.assignRegister(target.second, target.first) }
+            } else if(actualResultRegisters.isNotEmpty() && assign.targets.single().kind != TargetStorageKind.VOID) {
+                val target = assign.targets.single()
+                if(target.kind != TargetStorageKind.VOID) {
+                    asmgen.assignRegister(actualResultRegisters.single(), target)
                 }
             }
-
-            if(saveA)
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-            else if(saveAY) {
-                asmgen.saveRegisterStack(CpuRegister.A, false)
-                asmgen.saveRegisterStack(CpuRegister.Y, false)
-            }
-
-            asmgen.translateBuiltinFunctionCallExpression(value)
-
-            val returns = PtSubSignature(value.returntypes.toList(), value.position).returnsWhatWhere()
-            if(returns.size>1) {
-                // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
-                // (this allows unencumbered use of many Rx registers if you don't return that many values)
-                assign.targets.zip(returns)
-                    .filter { it.first.kind != TargetStorageKind.VOID }
-                    .forEach { target -> asmgen.assignRegister(target.second.first.registerOrPair!!, target.first) }
-            } else if(returns.isNotEmpty() && assign.targets.single().kind != TargetStorageKind.VOID) {
-                val target = assign.targets.single()
-                if(target.kind != TargetStorageKind.VOID)
-                    asmgen.assignRegister(returns.single().first.registerOrPair!!, target)
-            }
-
-            if(saveA)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
-            else if(saveAY) {
-                asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                asmgen.restoreRegisterStack(CpuRegister.A, false)
-            }
-
             return
         }
 

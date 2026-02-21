@@ -2,26 +2,20 @@
 %zeropage basicsafe
 
 main {
-    ; Test the routine
     sub start() {
-        uword @shared u1, u2, u3, u4
-        long @shared long1, long2
-        u2 = lsw(long1 - long2)
-        u1 = msw(long1 - long2)
+        pokew(cx16.r11+2, peekw(cx16.r11))
+        pokew(cx16.r11+2, cx16.r0*cx16.r0)
 
 
-        u1 = 40000
-        u2 = 165
+        ubyte @shared b1, b2
+        uword @shared w
 
-        u3, u4 = multi()
-        u3, u4 = divmod(u1, u2)
-        txt.print_uw(u3)
-        txt.spc()
-        txt.print_uw(u4)
-        txt.nl()
-    }
+        if b1+b2 == lsb(w)
+            cx16.r0++
 
-    sub multi() -> uword, uword {
-        return 99, 100
+        if b1+b2 == msb(w)
+            cx16.r0++
+
+        ; TODO test divmod results
     }
 }
