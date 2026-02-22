@@ -385,13 +385,36 @@ Troubleshooting
 
 .. index:: single: Usage; Troubleshooting
 
+Compilation errors or warnings
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+When there are warnings or errors during compilation of your program, no output files will be produced,
+and the error messages will be printed on the screen like this::
+
+    ERROR file:///home/user/code/test.p8:13:9: undefined symbol: zzz
+
+The severity is followed by the file and location in that source file where the error occurred
+(editors and IDEs that show the compiler output usually make these links clickable).
+The two numbers are the line number and column in the file.
+There are a couple of message severities:
+
+INFO
+    informational messages that can be ignored if you want
+
+WARNING
+    things that may be a problem depending on circumstances. If there are no errors,
+    a compiled program is still produced,  but it is a good idea to investigate the warnings that are printed.
+
+ERROR
+    unrecoverable problem that prevented succesful compilation
+
+
 Compiler doesn't run, complains about "UnsupportedClassVersionError"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 You need to install and use JDK version 11 or newer to run the prog8 compiler. Check this with "java -version".
 See :ref:`requirements`.
 
-The computer just resets (at the end of the program)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The computer resets after running my program
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 In the default compiler configuration, it is not safely possible to return back to the BASIC prompt when
 your program exits. The only reliable thing to do is to reboot the system.
 This is due to the fact that in this mode, prog8 will overwrite important BASIC and Kernal variables in zero page memory.
@@ -461,7 +484,9 @@ Examples
 
 .. index:: single: Examples; Examples in source tree
 
-A bunch of example programs can be found in the 'examples' directory of the source tree.
+A bunch of example programs can be found in the 'examples' directory of the source tree on Github.
+(Or download the source archive from there to get all the files at once).
+
 There are cross-platform examples that can be compiled for various systems unaltered,
 and there are also examples specific to certain computers (C64, X16, etcetera).
 So for instance, to compile and run the Commodore 64 rasterbars example program, use this command::

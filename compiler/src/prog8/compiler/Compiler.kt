@@ -254,7 +254,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         }
         return CompilationResult(resultingProgram!!, ast, symbolTable, compilationOptions, importedFiles)
     } catch (px: ParseError) {
-        args.errors.printSingleError("${px.position.toClickableStr()} parse error: ${px.message}".trim())
+        args.errors.printSingleError("ERROR ${px.position.toClickableStr()} parse error: ${px.message}".trim())
     } catch (ac: ErrorsReportedException) {
         if(args.printAst1 && resultingProgram!=null) {
             println("\n*********** COMPILER AST *************")
