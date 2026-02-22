@@ -2576,7 +2576,7 @@ $repeatLabel""")
             jsr  floats.MOVFM""")
     }
 
-    internal fun loadIndirectWord(zpPtrVar: String, offset: UByte) {
+    internal fun loadIndirectWordAY(zpPtrVar: String, offset: UByte) {
         // loads word pointed to by the ptr var into AY
         if (offset > 0u) {
             out("""
@@ -2603,6 +2603,41 @@ $repeatLabel""")
                     lda  ($zpPtrVar),y
                     tay
                     txa""")
+        }
+    }
+
+    internal fun loadIndirectWordAX(zpPtrVar: String, offset: UByte) {
+        // loads word pointed to by the ptr var into AX
+        if (offset > 0u) {
+            out("""
+                    ldy  #$offset+1
+                    lda  ($zpPtrVar),y
+                    tax
+                    dey
+                    lda  ($zpPtrVar),y""")
+        } else {
+            if(isTargetCpu(CpuType.CPU65C02))
+                out("""
+                    ldy  #1
+                    lda  ($zpPtrVar),y
+                    tax
+                    lda  ($zpPtrVar)""")
+            else
+                out("""
+                    ldy  #1
+                    lda  ($zpPtrVar),y
+                    tax
+                    dey
+                    lda  ($zpPtrVar),y""")
+        }
+    }
+
+    internal fun loadIndirectWordIntoRegisters(zpPtrVar: String, offset: UByte, register: RegisterOrPair) {
+        when(register) {
+            RegisterOrPair.AY -> loadIndirectWordAY(zpPtrVar, offset)
+            RegisterOrPair.AX -> loadIndirectWordAX(zpPtrVar, offset)
+            RegisterOrPair.XY -> TODO("load into XY")
+            else -> throw AssemblyError("invalid register for indirect load word $register")
         }
     }
 

@@ -1646,7 +1646,12 @@ import prog8.codegen.cpu6502.assignment.*
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(addrExpr)
                 if(asmgen.isZpVar(addrExpr)) {
-                    asmgen.loadIndirectWord(varname, 0u)
+                    if(resultReg in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                        asmgen.loadIndirectWordIntoRegisters(varname, 0u, resultReg)
+                        return arrayOf(resultReg)
+                    } else {
+                        asmgen.loadIndirectWordAY(varname, 0u)
+                    }
                 }
                 else
                     fallback()
@@ -1659,25 +1664,70 @@ import prog8.codegen.cpu6502.assignment.*
                     // can do (ZP),Y indexing
                     val varname = asmgen.asmVariableName(pointer)
                     asmgen.assignExpressionToRegister(result.second, RegisterOrPair.Y)
-                    asmgen.out("""
-                        lda  ($varname),y
-                        tax
-                        iny
-                        lda  ($varname),y
-                        tay
-                        txa""")
+                    when(resultReg) {
+                        RegisterOrPair.AX -> {
+                            asmgen.out("""
+                                iny
+                                lda  ($varname),y
+                                tax
+                                dey
+                                lda  ($varname),y""")
+                            return arrayOf(RegisterOrPair.AX)
+                        }
+                        RegisterOrPair.AY -> {
+                            asmgen.out("""
+                                lda  ($varname),y
+                                tax
+                                iny
+                                lda  ($varname),y
+                                tay
+                                txa""")
+                            return arrayOf(RegisterOrPair.AY)
+                        }
+                        RegisterOrPair.XY -> TODO("peekw into xy ${fcall.position}")
+                        else -> throw AssemblyError("invalid register for indirect load word $resultReg  ${fcall.position}")
+                    }
                 } else if(addressOfIdentifier!=null && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
                     val varname = asmgen.asmVariableName(addressOfIdentifier)
                     if(result.second is PtNumber) {
                         val offset = (result.second as PtNumber).number.toInt()
-                        asmgen.out("  lda  $varname+$offset |  ldy  $varname+${offset + 1}")
+                        when(resultReg) {
+                            RegisterOrPair.AX -> asmgen.out("  lda  $varname+$offset |  ldx  $varname+${offset + 1}")
+                            RegisterOrPair.AY -> asmgen.out("  lda  $varname+$offset |  ldy  $varname+${offset + 1}")
+                            RegisterOrPair.XY -> asmgen.out("  ldx  $varname+$offset |  ldy  $varname+${offset + 1}")
+                            else -> throw AssemblyError("peekw must have result in AX, AY or XY ${fcall.position}")
+                        }
                     } else if(result.second is PtIdentifier) {
                         val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
-                        asmgen.out("""
-                            ldx  $offsetname
-                            lda  $varname+1,x
-                            tay
-                            lda  $varname,x""")
+                        when(resultReg) {
+                            RegisterOrPair.AX -> {
+                                asmgen.out("""
+                                    ldy  $offsetname
+                                    lda  $varname+1,y
+                                    tax
+                                    lda  $varname,y""")
+                                return arrayOf(RegisterOrPair.AX)
+                            }
+                            RegisterOrPair.AY -> {
+                                asmgen.out("""
+                                    ldx  $offsetname
+                                    lda  $varname+1,x
+                                    tay
+                                    lda  $varname,x""")
+                                return arrayOf(RegisterOrPair.AY)
+                            }
+                            RegisterOrPair.XY -> {
+                                asmgen.out("""
+                                    ldx  $offsetname
+                                    lda  $varname+1,x
+                                    tay
+                                    lda  $varname,x
+                                    tax""")
+                                return arrayOf(RegisterOrPair.XY)
+                            }
+                            else -> throw AssemblyError("peekw must have result in AX, AY or XY ${fcall.position}")
+                        }
+                        // TODO load directly into other registers
                     } else fallback()
                 } else if(addrExpr.operator=="+" && addrExpr.left is PtIdentifier) {
                     readValueFromPointerPlusOffset(addrExpr.left as PtIdentifier, addrExpr.right, BaseDataType.UWORD)
@@ -2072,7 +2122,15 @@ import prog8.codegen.cpu6502.assignment.*
                 else -> throw AssemblyError("invalid register for lsb: $resultReg")
             }
         } else {
-            if(arg is PtArrayIndexer) {
+            if(fromLong) {
+                asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15, arg.type.isSigned)
+                when(resultReg) {
+                    RegisterOrPair.A -> asmgen.out("  lda  cx16.r14")
+                    RegisterOrPair.X -> asmgen.out("  ldx  cx16.r14")
+                    RegisterOrPair.Y -> asmgen.out("  ldy  cx16.r14")
+                    else -> throw AssemblyError("invalid register for lsb: $resultReg")
+                }
+            } else if(arg is PtArrayIndexer) {
                 // just read the lsb byte out of the word array
                 if(arg.variable==null)
                     TODO("support for ptr indexing ${arg.position}")
@@ -2094,19 +2152,19 @@ import prog8.codegen.cpu6502.assignment.*
                     }
                     else -> throw AssemblyError("invalid register for lsb: $resultReg")
                 }
-            } else if(fromLong) {
-                asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15, arg.type.isSigned)
-                when(resultReg) {
-                    RegisterOrPair.A -> asmgen.out("  lda  cx16.r14")
-                    RegisterOrPair.X -> asmgen.out("  ldx  cx16.r14")
-                    RegisterOrPair.Y -> asmgen.out("  ldy  cx16.r14")
-                    else -> throw AssemblyError("invalid register for lsb: $resultReg")
-                }
             } else {
-                asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
                 // NOTE: we rely on the fact that the above assignment to AY, assigns the Lsb to A as the last instruction.
                 //       this is required because the compiler assumes the status bits are set according to what A is (lsb)
                 //       and will not generate another cmp when lsb() is directly used inside a comparison expression.
+                when(resultReg) {
+                    RegisterOrPair.A -> asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
+                    RegisterOrPair.X -> asmgen.assignExpressionToRegister(arg, RegisterOrPair.XY)
+                    RegisterOrPair.Y -> {
+                        asmgen.assignExpressionToRegister(arg, RegisterOrPair.AY)
+                        asmgen.out("  tay")
+                    }
+                    else -> throw AssemblyError("invalid register for lsb: $resultReg")
+                }
             }
         }
 

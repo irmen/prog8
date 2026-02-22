@@ -548,8 +548,12 @@ internal class AssignmentAsmGen(
                             asmgen.assignRegister(RegisterOrPair.A, assign.target)
                         }
                         dt.isWord ||dt.isPointer -> {
-                            asmgen.loadIndirectWord(zpPtrVar, offset)
-                            asmgen.assignRegister(RegisterOrPair.AY, assign.target)
+                            if(assign.target.register in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                                asmgen.loadIndirectWordIntoRegisters(zpPtrVar, offset, assign.target.register!!)
+                            } else {
+                                asmgen.loadIndirectWordAY(zpPtrVar, offset)
+                                asmgen.assignRegister(RegisterOrPair.AY, assign.target)
+                            }
                         }
                         dt.isFloat -> {
                             asmgen.loadIndirectFloat(zpPtrVar, offset)

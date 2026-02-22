@@ -277,6 +277,13 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         args.errors.printSingleError("File not found: ${nsf.message}")
     } catch (ax: AstException) {
         args.errors.printSingleError(ax.toString())
+    } catch(fx: FileSystemException) {
+        if(fx.cause!=null) {
+            args.errors.printSingleError("\nfile I/O error: ${fx.file}: ${fx.cause}")
+        } else {
+            args.errors.printSingleError("\nfile I/O error")
+            throw fx
+        }
     } catch (x: Exception) {
         args.errors.printSingleError("\ninternal error")
         throw x

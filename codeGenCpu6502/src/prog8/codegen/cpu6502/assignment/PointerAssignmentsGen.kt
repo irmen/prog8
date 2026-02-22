@@ -248,8 +248,12 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             asmgen.assignRegister(RegisterOrPair.A, target)
         }
         else if(value.type.isWord || value.type.isPointer) {
-            asmgen.loadIndirectWord(zpPtrVar, offset)
-            asmgen.assignRegister(RegisterOrPair.AY, target)
+            if(target.register in arrayOf(RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY)) {
+                asmgen.loadIndirectWordIntoRegisters(zpPtrVar, offset, target.register!!)
+            } else {
+                asmgen.loadIndirectWordAY(zpPtrVar, offset)
+                asmgen.assignRegister(RegisterOrPair.AY, target)
+            }
         }
         else if(value.type.isFloat) {
             asmgen.loadIndirectFloat(zpPtrVar, offset)
@@ -1738,7 +1742,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
 
         fun multiply() {
             // on entry here: number placed in routine argument variable
-            asmgen.loadIndirectWord(zpPtrVar, 0u)
+            asmgen.loadIndirectWordAY(zpPtrVar, 0u)
             asmgen.out("""
                 jsr  prog8_math.multiply_words
                 tax
@@ -1807,7 +1811,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 val number = value.number!!.number.toInt()
                 if(number in powersOfTwoInt)
                     throw AssemblyError("divide by power of two should have been a shift $value.position")
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -1818,7 +1822,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.VARIABLE -> {
                 require(value.datatype.isWord)
                 val varname = value.asmVarname
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -1830,7 +1834,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 val register = value.register!!
                 require(register.isWord())
                 val regname = asmgen.asmSymbolName(register)
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -1839,7 +1843,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 divide(target.dt.isSigned)
             }
             SourceStorageKind.EXPRESSION -> {
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
                 asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AY)
                 divide(target.dt.isSigned)
@@ -1869,7 +1873,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 val number = value.number!!.number.toInt()
                 if(number in powersOfTwoInt)
                     throw AssemblyError("divide by power of two should have been a shift $value.position")
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -1880,7 +1884,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
             SourceStorageKind.VARIABLE -> {
                 require(value.datatype.isWord)
                 val varname = value.asmVarname
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -1892,7 +1896,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 val register = value.register!!
                 require(register.isWord())
                 val regname = asmgen.asmSymbolName(register)
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("""
                     sta  P8ZP_SCRATCH_W1
                     sty  P8ZP_SCRATCH_W1+1
@@ -1901,7 +1905,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                 modulus()
             }
             SourceStorageKind.EXPRESSION -> {
-                asmgen.loadIndirectWord(zpPtrVar, 0u)
+                asmgen.loadIndirectWordAY(zpPtrVar, 0u)
                 asmgen.out("  sta  P8ZP_SCRATCH_W1 |  sty  P8ZP_SCRATCH_W1+1")
                 asmgen.assignExpressionToRegister(value.expression!!, RegisterOrPair.AY)
                 modulus()
