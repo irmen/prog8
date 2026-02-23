@@ -1,39 +1,26 @@
 %import textio
-%import strings
 %zeropage basicsafe
 
 main {
+    ; Test the routine
     sub start() {
-        void strings.copy(peekw(cx16.r0 + (cx16.r1+cx16.r2)*$0002), "zzzz")
-
-        cx16.r11 = 4000
-        cx16.r12 = 5000
-        cx16.r0 = 111
-
-        pokew(cx16.r12, 55222)
-        pokew(cx16.r12+10, 44333)
-
-        pokew(cx16.r11+2, peekw(cx16.r12))
-        txt.print_uw(peekw(4002))
+        ubyte @shared b1, b2, b3, b4
+        b1 =  250
+        b2 =  29
+        b3, b4 = divmod(b1, b2)
+        txt.print_ub(b3)
+        txt.spc()
+        txt.print_ub(b4)
         txt.nl()
 
-        pokew(cx16.r11+2, peekw(cx16.r12+10))
-        txt.print_uw(peekw(4002))
+        uword @shared u1, u2, u3, u4
+        u1 = 40000
+        u2 = 165
+        u3, u4 = divmod(u1, u2)
+        txt.print_uw(u3)
+        txt.spc()
+        txt.print_uw(u4)
         txt.nl()
-
-        pokew(cx16.r11+2, cx16.r0*cx16.r0)
-        txt.print_uw(peekw(4002))
-        txt.nl()
-
-        ubyte @shared b1, b2
-        uword @shared w
-
-        if b1+b2 == lsb(w)
-            cx16.r0++
-
-        if b1+b2 == msb(w)
-            cx16.r0++
-
-        ; TODO test divmod results
     }
 }
+

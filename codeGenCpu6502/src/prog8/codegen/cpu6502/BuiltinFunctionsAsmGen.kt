@@ -261,7 +261,7 @@ import prog8.codegen.cpu6502.assignment.*
         asmgen.restoreRegisterStack(CpuRegister.A ,false)
         // math.divmod_ub_asm: -- divide A by Y, result quotient in Y, remainder in A   (unsigned)
         asmgen.out("  jsr  prog8_math.divmod_ub_asm")
-        TODO("divmod byte ${fcall.position} check result registers, asked: $resultReg")
+        return arrayOf(RegisterOrPair.Y, RegisterOrPair.A)
     }
 
     private fun funcDivmodW(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
@@ -270,7 +270,7 @@ import prog8.codegen.cpu6502.assignment.*
         //    input:  P8ZP_SCRATCH_W1 in ZP: 16-bit number, A/Y: 16 bit divisor
         //    output: cx16.r15: 16-bit remainder, A/Y: 16 bit division result
         asmgen.out("  jsr  prog8_math.divmod_uw_asm")
-        TODO("divmod word ${fcall.position} check result registers, asked: $resultReg")
+        return arrayOf(RegisterOrPair.AY, RegisterOrPair.R15)
     }
 
     private fun funcStringCompare(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
@@ -375,7 +375,7 @@ import prog8.codegen.cpu6502.assignment.*
                 .byte  $constBank""")
         } else {
             if(asmgen.options.romable)
-                TODO("no code for non-const callfar (jsrfar) yet that's usable in ROM  ${fcall.position}")
+                TODO("non-const callfar (jsrfar) yet that's usable in ROM  ${fcall.position}")
             // self-modifying code: set jsrfar arguments
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
             asmgen.out("  sta  (++)+0")
@@ -432,7 +432,7 @@ import prog8.codegen.cpu6502.assignment.*
                 .byte  $constBank""")
         } else {
             if(asmgen.options.romable)
-                TODO("no code for non-const callfar2 (jsrfar) yet that's usable in ROM  ${fcall.position}")
+                TODO("non-const callfar2 (jsrfar) yet that's usable in ROM  ${fcall.position}")
             // self-modifying code: set jsrfar arguments
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)      // bank
             asmgen.out("  sta  (++)+0")
@@ -658,7 +658,7 @@ import prog8.codegen.cpu6502.assignment.*
                 when (what) {
                     is PtArrayIndexer -> {
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
 
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable!!)
@@ -684,7 +684,7 @@ import prog8.codegen.cpu6502.assignment.*
                 when (what) {
                     is PtArrayIndexer -> {
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
@@ -736,7 +736,7 @@ import prog8.codegen.cpu6502.assignment.*
                         if(!what.index.isSimple()) asmgen.out("  plp")
 
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  ror  ${varname},x")
                     }
@@ -778,7 +778,7 @@ import prog8.codegen.cpu6502.assignment.*
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  ror  ${varname}_msb,x |  ror  ${varname}_lsb,x")
@@ -845,7 +845,7 @@ import prog8.codegen.cpu6502.assignment.*
                 when (what) {
                     is PtArrayIndexer -> {
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  lda  ${varname},x |  cmp  #$80 |  rol  a |  sta  ${varname},x")
@@ -871,7 +871,7 @@ import prog8.codegen.cpu6502.assignment.*
                     is PtArrayIndexer -> {
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  asl  ${varname}_lsb,x |  rol  ${varname}_msb,x |  bcc  + |  inc  ${varname}_lsb,x |+")
@@ -919,7 +919,7 @@ import prog8.codegen.cpu6502.assignment.*
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         asmgen.out("  rol  ${varname},x")
                     }
@@ -961,7 +961,7 @@ import prog8.codegen.cpu6502.assignment.*
                         asmgen.loadScaledArrayIndexIntoRegister(what, CpuRegister.X)
                         if(!what.index.isSimple()) asmgen.out("  plp")
                         if(what.variable==null)
-                            TODO("support for ptr indexing ${what.position}")
+                            TODO("ptr indexing ${what.position}")
                         val varname = asmgen.asmVariableName(what.variable!!)
                         if(what.splitWords)
                             asmgen.out("  rol  ${varname}_lsb,x |  rol  ${varname}_msb,x")
@@ -1034,7 +1034,7 @@ import prog8.codegen.cpu6502.assignment.*
                 val elementSize: Int
                 val msbAdd: Int
                 if(indexer.splitWords) {
-                    val arrayVariable = indexer.variable ?: TODO("support for ptr indexing ${indexer.position}")
+                    val arrayVariable = indexer.variable ?: TODO("ptr indexing ${indexer.position}")
                     indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.arrayFor(BaseDataType.UBYTE, false), arrayVariable.position)
                     indexer.children[0].parent = indexer
                     elementSize = 1
@@ -1685,6 +1685,17 @@ import prog8.codegen.cpu6502.assignment.*
                             return arrayOf(RegisterOrPair.AY)
                         }
                         RegisterOrPair.XY -> TODO("peekw into xy ${fcall.position}")
+                        in Cx16VirtualRegisters -> {
+                            asmgen.out("""
+                                iny
+                                lda  ($varname),y
+                                tax
+                                dey
+                                lda  ($varname),y""")
+                            val regname = resultReg.asScopedNameVirtualReg(null).joinToString(".")
+                            asmgen.out(" sta  $regname |  stx  $regname+1")
+                            return arrayOf(resultReg)
+                        }
                         else -> throw AssemblyError("invalid register for indirect load word $resultReg  ${fcall.position}")
                     }
                 } else if(addressOfIdentifier!=null && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
@@ -1950,14 +1961,32 @@ import prog8.codegen.cpu6502.assignment.*
             return expression.name.startsWith("cx16.${reg.name.lowercase()}")
         }
 
+        val (r1, r2) = when(resultReg) {
+            RegisterOrPair.R0R1 -> RegisterOrPair.R0 to RegisterOrPair.R1
+            RegisterOrPair.R2R3 -> RegisterOrPair.R2 to RegisterOrPair.R3
+            RegisterOrPair.R4R5 -> RegisterOrPair.R4 to RegisterOrPair.R5
+            RegisterOrPair.R6R7 -> RegisterOrPair.R6 to RegisterOrPair.R7
+            RegisterOrPair.R8R9 -> RegisterOrPair.R8 to RegisterOrPair.R9
+            RegisterOrPair.R10R11 -> RegisterOrPair.R10 to RegisterOrPair.R11
+            RegisterOrPair.R12R13 -> RegisterOrPair.R12 to RegisterOrPair.R13
+            RegisterOrPair.R14R15 -> RegisterOrPair.R14 to RegisterOrPair.R15
+            else -> null to null
+        }
+
         if(fcall.args.size==2) {
             // mklong2(msw, lsw)
             if(isArgRegister(fcall.args[0], RegisterOrPair.R14) || isArgRegister(fcall.args[0], RegisterOrPair.R15) ||
                 isArgRegister(fcall.args[1], RegisterOrPair.R14) || isArgRegister(fcall.args[1], RegisterOrPair.R15)) {
                 error("cannot use R14 and/or R15 as arguments for mklong2 because the result should go into R0:R1 ${fcall.position}")
             } else {
-                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r15", DataType.UWORD)
-                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r14", DataType.UWORD)
+                if(r1==null || r2==null) {
+                    assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R15, signed = false)
+                    assignAsmGen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14, signed = false)
+                } else {
+                    assignAsmGen.assignExpressionToRegister(fcall.args[0], r2, signed = false)
+                    assignAsmGen.assignExpressionToRegister(fcall.args[1], r1, signed = false)
+                    return arrayOf(resultReg)
+                }
             }
         } else {
             // mklong(msb, b2, b1, lsb)
@@ -1967,10 +1996,20 @@ import prog8.codegen.cpu6502.assignment.*
                 isArgRegister(fcall.args[3], RegisterOrPair.R14) || isArgRegister(fcall.args[3], RegisterOrPair.R15)) {
                 error("cannot use R14 and/or R15 as arguments for mklong because the result should go into R14:R15 ${fcall.position}")
             } else {
-                assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r15H", DataType.UBYTE)
-                assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r15L", DataType.UBYTE)
-                assignAsmGen.assignExpressionToVariable(fcall.args[2], "cx16.r14H", DataType.UBYTE)
-                assignAsmGen.assignExpressionToVariable(fcall.args[3], "cx16.r14L", DataType.UBYTE)
+                if(r1==null || r2==null) {
+                    assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r15H", DataType.UBYTE)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r15L", DataType.UBYTE)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[2], "cx16.r14H", DataType.UBYTE)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[3], "cx16.r14L", DataType.UBYTE)
+                } else {
+                    val r1name = "cx16.${r1.name.lowercase()}"
+                    val r2name = "cx16.${r2.name.lowercase()}"
+                    assignAsmGen.assignExpressionToVariable(fcall.args[0], "${r2name}H", DataType.UBYTE)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], "${r2name}L", DataType.UBYTE)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[2], "${r1name}H", DataType.UBYTE)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[3], "${r1name}L", DataType.UBYTE)
+                    return arrayOf(resultReg)
+                }
             }
         }
 
@@ -1978,6 +2017,14 @@ import prog8.codegen.cpu6502.assignment.*
     }
 
     private fun funcMkword(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+
+        if(resultReg in Cx16VirtualRegisters) {
+            val regname = "cx16.${resultReg.name.lowercase()}"
+            asmgen.assignExpressionToVariable(fcall.args[0], "$regname+1", DataType.UBYTE)      // msb
+            asmgen.assignExpressionToVariable(fcall.args[1], regname, DataType.UBYTE)      // lsb
+            return arrayOf(resultReg)
+        }
+
         var needAsaveForArg0 = asmgen.needAsaveForExpr(fcall.args[0])
         if(!needAsaveForArg0) {
             val mr0 = fcall.args[0] as? PtMemoryByte
@@ -1987,6 +2034,27 @@ import prog8.codegen.cpu6502.assignment.*
             if (mr1 != null)
                 needAsaveForArg0 = needAsaveForArg0 or (mr1.address !is PtNumber)
         }
+
+        if(resultReg==RegisterOrPair.AX) {
+            if(needAsaveForArg0 && !asmgen.needAsaveForExpr(fcall.args[1])) {
+                // first 0 then 1
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+            } else if(!needAsaveForArg0 && asmgen.needAsaveForExpr(fcall.args[1])) {
+                // first 1 then 0
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
+            } else {
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)      // lsb
+                if (needAsaveForArg0)
+                    asmgen.out("  pha")
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.X)      // msb
+                if (needAsaveForArg0)
+                    asmgen.out("  pla")
+            }
+            return arrayOf(RegisterOrPair.AX)
+        }
+
         if(needAsaveForArg0 && !asmgen.needAsaveForExpr(fcall.args[1])) {
             // first 0 then 1
             asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.Y)      // msb
@@ -2056,7 +2124,7 @@ import prog8.codegen.cpu6502.assignment.*
                 // just read the msb byte out of the word array
                 if(arg.splitWords) {
                     if(arg.variable==null)
-                        TODO("support for ptr indexing ${arg.position}")
+                        TODO("ptr indexing ${arg.position}")
                     val arrayVar = asmgen.asmVariableName(arg.variable!!)+"_msb"
                     when(resultReg) {
                         RegisterOrPair.A -> {
@@ -2075,7 +2143,7 @@ import prog8.codegen.cpu6502.assignment.*
                     }
                 } else {
                     if(arg.variable==null)
-                        TODO("support for ptr indexing ${arg.position}")
+                        TODO("ptr indexing ${arg.position}")
                     val arrayVar = asmgen.asmVariableName(arg.variable!!)
                     asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
                     when(resultReg) {
@@ -2133,7 +2201,7 @@ import prog8.codegen.cpu6502.assignment.*
             } else if(arg is PtArrayIndexer) {
                 // just read the lsb byte out of the word array
                 if(arg.variable==null)
-                    TODO("support for ptr indexing ${arg.position}")
+                    TODO("ptr indexing ${arg.position}")
 
                 val arrayVar = if(arg.splitWords) asmgen.asmVariableName(arg.variable!!)+"_lsb" else asmgen.asmVariableName(arg.variable!!)
                 asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)

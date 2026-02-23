@@ -2637,6 +2637,11 @@ $repeatLabel""")
             RegisterOrPair.AY -> loadIndirectWordAY(zpPtrVar, offset)
             RegisterOrPair.AX -> loadIndirectWordAX(zpPtrVar, offset)
             RegisterOrPair.XY -> TODO("load into XY")
+            in Cx16VirtualRegisters -> {
+                loadIndirectWordAY(zpPtrVar, offset)
+                val regname = register.asScopedNameVirtualReg(null).joinToString(".")
+                out(" sta  $regname |  sty  $regname+1")
+            }
             else -> throw AssemblyError("invalid register for indirect load word $register")
         }
     }

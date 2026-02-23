@@ -1,7 +1,7 @@
 TODO
 ====
 
-test new divmod routines
+add lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (=bank) bytes of a long.
 
 simplifiedAstMaker: transform(srcCall: FunctionCallStatement)  : what when the call actually returns multiple return values???
 
@@ -20,7 +20,6 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- introduce lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (bank) bytes of a long.
 - add a -profile option (for now X16 only) that instruments the start (and returns?) -of every prog8 subroutine with code that dumps to the X16 emulator debug console: name of sub, stack pointer (for call depth!), emudbg cycle count. Save/restore all used registers!  Start of program must set cycle count to zero.
 - add @private to variables and subroutines declared in a scope to make them invisible from outside that scope?
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast"
