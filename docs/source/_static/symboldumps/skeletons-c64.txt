@@ -1,10 +1,65 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 9aff85f0 in branch master
+Prerelease version from git commit 1b5dd980 in branch builtins-return-multivalue
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
 Compiler target: c64
+
+
+BUILTIN FUNCTIONS
+-----------------
+setlsb
+setmsb
+rol
+ror
+rol2
+ror2
+cmp
+abs
+len
+sizeof
+offsetof
+sgn
+sqrt
+divmod
+lmh
+lsb
+msb
+lsw
+msw
+mkword
+mklong
+mklong2
+clamp
+min
+max
+peek
+peekbool
+peekw
+peekl
+peekf
+poke
+pokebool
+pokebowl
+pokew
+pokel
+pokef
+pokemon
+rsave
+rrestore
+memory
+callfar
+callfar2
+call
+push
+pushw
+pushl
+pushf
+pop
+popw
+popl
+popf
 
 
 LIBRARY MODULE NAME: bcd

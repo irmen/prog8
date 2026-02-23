@@ -144,7 +144,13 @@ Miscellaneous
 :index:`msb` (x)
     Get the most significant (highest) byte of the word or long value
     (so for a long value, msb($11223344) is $11, not $33. To grab the bank byte of a long variable, you need to do this:
-    ``lsb(msw(longvariable))`` or the equivalent ``@(&longvariable+2)``.)
+    ``lsb(msw(longvariable))`` or the equivalent ``@(&longvariable+2)``.)  But also look at the ``lmh`` function.
+
+:index:`lmh` (x)
+    Get the three low, mid and high (bank) bytes of the given long value. The upper byte (bits 24-31) of the long value is not considered.
+    So this means lmh($11223344) returns the three bytes $44, $33, $22 in that order.
+    For the Commander X16 a possible use of this function is to set the 24-bits Vera address in one assignment statement:
+    ``cx16.VERA_ADDR_L, cx16.VERA_ADDR_M, cx16.VERA_ADDR_H = lmh(address)``
 
 :index:`msw` (x)
     Get the most significant (higher) word of the value x. For all word and byte numbers this will always result in 0.

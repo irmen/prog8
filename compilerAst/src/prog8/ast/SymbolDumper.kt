@@ -3,6 +3,7 @@ package prog8.ast
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
+import prog8.code.core.BuiltinFunctions
 import prog8.code.core.Position
 import prog8.code.core.ZeropageWish
 import prog8.code.core.toHex
@@ -34,6 +35,11 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     private fun outputln(line: String) = output(line + '\n')
 
     fun write(out: PrintStream) {
+        out.println("\nBUILTIN FUNCTIONS")
+        out.println("-----------------")
+        BuiltinFunctions.keys.filter { "__" !in it && "prog8_lib" !in it }.forEach { out.println(it) }
+        out.println()
+
         for((module, lines) in moduleOutputs.toSortedMap(compareBy { it.name })) {
             if(lines.any()) {
                 val moduleName = "LIBRARY MODULE NAME: ${module.source.name}"

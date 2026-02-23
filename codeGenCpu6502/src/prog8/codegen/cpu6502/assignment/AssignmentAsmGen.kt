@@ -690,6 +690,22 @@ internal class AssignmentAsmGen(
                     return
             }
 
+            if(value.name=="lmh") {
+                // avoid temporary variable use when assigning lmh results
+                val arg = value.args.single()
+                if(arg is PtIdentifier) {
+                    val (targetL, targetM, targetH) = assign.targets
+                    val acceptedTargets = arrayOf(TargetStorageKind.VARIABLE, TargetStorageKind.VOID)
+                    if(targetL.kind in acceptedTargets && targetM.kind in acceptedTargets && targetH.kind in acceptedTargets) {
+                        val varname = asmgen.asmVariableName(arg)
+                        if(targetL.kind==TargetStorageKind.VARIABLE) asmgen.out("  lda  $varname |  sta  ${targetL.asmVarname}")
+                        if(targetM.kind==TargetStorageKind.VARIABLE) asmgen.out("  lda  $varname+1 |  sta  ${targetM.asmVarname}")
+                        if(targetH.kind==TargetStorageKind.VARIABLE) asmgen.out("  lda  $varname+2 |  sta  ${targetH.asmVarname}")
+                        return
+                    }
+                }
+            }
+
             // TODO optimized float functions into variable? (to avoid needless FAC1 register copying?)
 
             val firstTarget = assign.targets.firstOrNull()

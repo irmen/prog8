@@ -13,7 +13,7 @@ syn keyword prog8BuiltInFunc sgn sqrtw
 syn keyword prog8BuiltInFunc len 
 
 " Miscellaneous functions
-syn keyword prog8BuiltInFunc cmp divmod lsb msb lsw msw mkword min max peek peekw peekl peekf peekbool poke pokew pokel pokef pokebool push pushw pushl pushf pop popw popl popf rsave rsavex rrestore rrestorex
+syn keyword prog8BuiltInFunc cmp divmod lsb msb lmh lsw msw mkword min max peek peekw peekl peekf peekbool poke pokew pokel pokef pokebool push pushw pushl pushf pop popw popl popf rsave rsavex rrestore rrestorex
 syn keyword prog8BuiltInFunc rol rol2 ror ror2 sizeof offsetof setlsb setmsb swap
 syn keyword prog8BuiltInFunc memory call callfar callfar2 clamp defer alias
 

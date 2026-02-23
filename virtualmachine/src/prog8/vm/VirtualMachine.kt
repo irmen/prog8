@@ -314,6 +314,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.MSIGB -> InsMSIGB(ins)
             Opcode.MSIGW -> InsMSIGW(ins)
             Opcode.BSIGB -> InsBSIGB(ins)
+            Opcode.MIDB -> InsMIDB(ins)
             Opcode.CONCAT -> InsCONCAT(ins)
             Opcode.PUSH -> InsPUSH(ins)
             Opcode.POP -> InsPOP(ins)
@@ -2603,6 +2604,14 @@ class VirtualMachine(irProgram: IRProgram) {
     private fun InsBSIGB(i: IRInstruction) {
         val value = registers.getSL(i.reg2!!)
         val newValue = value ushr 16 and 255
+        statusbitsNZ(newValue, i.type!!)
+        registers.setUB(i.reg1!!, newValue.toUByte())
+        nextPc()
+    }
+
+    private fun InsMIDB(i: IRInstruction) {
+        val value = registers.getSL(i.reg2!!)
+        val newValue = value ushr 8 and 255
         statusbitsNZ(newValue, i.type!!)
         registers.setUB(i.reg1!!, newValue.toUByte())
         nextPc()

@@ -31,6 +31,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "msb__long" -> funcMsb(call, true)
             "lsb" -> funcLsb(call, false)
             "lsb__long" -> funcLsb(call, true)
+            "lmh" -> funcLmh(call)
             "memory" -> funcMemory(call)
             "peek" -> funcPeek(call, IRDataType.BYTE)
             "peekbool" -> funcPeek(call, IRDataType.BYTE)
@@ -711,6 +712,22 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = resultReg, reg2 = tr.resultReg), null)
         // note: if a word result is needed, the upper byte is cleared by the typecast that follows. No need to do it here.
         return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
+    }
+
+    private fun funcLmh(call: PtFunctionCall): ExpressionCodeResult {
+        val result = mutableListOf<IRCodeChunkBase>()
+        // TODO this can be more optimal if the argument is a variable or memory address
+        val tr = exprGen.translateExpression(call.args.single())
+        addToResult(result, tr, tr.resultReg, -1)
+        // low byte returned in A, mid in R15, high (bank) in R14
+        val byteReg = codeGen.registers.next(IRDataType.BYTE)
+        addInstr(result, IRInstruction(Opcode.BSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+        addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = byteReg, labelSymbol = "cx16.r14"), null)
+        addInstr(result, IRInstruction(Opcode.MIDB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+        addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = byteReg, labelSymbol = "cx16.r15"), null)
+        addInstr(result, IRInstruction(Opcode.LSIGB, IRDataType.LONG, reg1 = byteReg, reg2 = tr.resultReg), null)
+        addInstr(result, IRInstruction(Opcode.STOREHA, IRDataType.BYTE, reg1 = byteReg), null)
+        return ExpressionCodeResult(result, IRDataType.BYTE, -1, -1)
     }
 
     private fun funcLsw(call: PtFunctionCall): ExpressionCodeResult {

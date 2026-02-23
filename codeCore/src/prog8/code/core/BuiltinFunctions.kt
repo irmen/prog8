@@ -126,6 +126,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "divmod"        to FSignature(false, arrayOf(BaseDataType.UNDEFINED, BaseDataType.UNDEFINED), FParam("dividend", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("divisor", BaseDataType.UBYTE, BaseDataType.UWORD)),
     "divmod__ubyte" to FSignature(false, arrayOf(BaseDataType.UBYTE, BaseDataType.UBYTE), FParam("dividend", BaseDataType.UBYTE), FParam("divisor", BaseDataType.UBYTE)),
     "divmod__uword" to FSignature(false, arrayOf(BaseDataType.UWORD, BaseDataType.UWORD), FParam("dividend", BaseDataType.UWORD), FParam("divisor", BaseDataType.UWORD)),
+    "lmh"           to FSignature(true, arrayOf(BaseDataType.UBYTE, BaseDataType.UBYTE, BaseDataType.UBYTE), FParam("value", BaseDataType.LONG)),
     "lsb"           to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
     "lsb__long"     to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("value", BaseDataType.LONG)),
     "msb"           to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),

@@ -13,6 +13,7 @@ import prog8.code.core.Position
 import prog8.code.core.isInteger
 import kotlin.math.*
 
+// NOTE: at this time this machinery only supports 1 return value
 private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
 
 internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> = mapOf(

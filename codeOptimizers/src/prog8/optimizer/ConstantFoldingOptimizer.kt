@@ -378,6 +378,17 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
     }
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        if(functionCallExpr.target.nameInSource == listOf("lmh")) {
+            // builtin that returns 3 values instead of 1
+            if(functionCallExpr.args.size==1) {
+                val constArg = functionCallExpr.args[0].constValue(program)?.number?.toLong()
+                if(constArg!=null) {
+                    errors.info("constant lmh expression can be replaced by 3 separate constant byte values", functionCallExpr.position)
+                    return noModifications
+                }
+            }
+        }
+
         val constvalue = functionCallExpr.constValue(program)
         return if(constvalue!=null)
             listOf(IAstModification.ReplaceNode(functionCallExpr, constvalue, parent))

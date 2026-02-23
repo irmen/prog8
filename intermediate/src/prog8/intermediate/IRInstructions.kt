@@ -253,6 +253,7 @@ lsigw [l]     reg1, reg2                  - reg1 becomes the least significant w
 msigb [w, l]  reg1, reg2                  - reg1 becomes the most significant byte of the word (or long) in reg2
 msigw [l]     reg1, reg2                  - reg1 becomes the most significant word of the long in reg2
 bsigb [l]     reg1, reg2                  - reg1 becomes the bank byte of the long in reg2 (bits 16-23)
+midb  [l]     reg1, reg2                  - reg1 becomes the 'mid' byte of the long in reg2 (bits 8-15)
 concat [b, w] reg1, reg2, reg3            - reg1.w/l = 'concatenate' two registers: lsb/lsw of reg2 (as msb) and lsb/lsw of reg3 (as lsb) into word or int)
 push [b, w, f]   reg1                     - push value in reg1 on the stack
 pop [b, w, f]    reg1                     - pop value from stack into reg1
@@ -429,6 +430,7 @@ enum class Opcode {
     MSIGB,
     MSIGW,
     BSIGB,
+    MIDB,
     CONCAT,
     BREAKPOINT,
     ALIGN
@@ -532,6 +534,7 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.MSIGB,
     Opcode.MSIGW,
     Opcode.BSIGB,
+    Opcode.MIDB,
     Opcode.CONCAT
 )
 
@@ -815,6 +818,7 @@ val instructionFormats = mutableMapOf(
     Opcode.MSIGB      to InstructionFormat.from("WL,>r1,<r2"),
     Opcode.MSIGW      to InstructionFormat.from("L,>r1,<r2"),
     Opcode.BSIGB      to InstructionFormat.from("L,>r1,<r2"),
+    Opcode.MIDB       to InstructionFormat.from("L,>r1,<r2"),
     Opcode.PUSH       to InstructionFormat.from("BWL,<r1       | F,<fr1"),
     Opcode.POP        to InstructionFormat.from("BWL,>r1       | F,>fr1"),
     Opcode.PUSHST     to InstructionFormat.from("N"),
@@ -1146,7 +1150,7 @@ data class IRInstruction(
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
         if(opcode==Opcode.CONCAT)
             return if (type == IRDataType.BYTE) IRDataType.WORD else null
-        if(opcode in setOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB))
+        if(opcode in setOf(Opcode.ASRNM, Opcode.LSRNM, Opcode.LSLNM, Opcode.SQRT, Opcode.LSIGB, Opcode.MSIGB, Opcode.BSIGB, Opcode.MIDB))
             return IRDataType.BYTE
         return this.type
     }

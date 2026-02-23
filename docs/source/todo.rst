@@ -1,8 +1,6 @@
 TODO
 ====
 
-add lmh(longvalue) -or whatever sensible name- builtin function that returns the low, mid, hi (=bank) bytes of a long.
-
 simplifiedAstMaker: transform(srcCall: FunctionCallStatement)  : what when the call actually returns multiple return values???
 
 
@@ -35,6 +33,7 @@ Future Things and Ideas
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - should we have a SourceStorageKind.POINTER?   (there is one for TargetStorageKind...)
+- add a "tuple" node that allows you to do:  a,b,c = 1,2,3   or   l,m,h = lmh($00aabbcc) -> l,m,h = $aa,$bb,$cc  (can't currently const-fold this, see ConstantFoldingOptimizer)
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2 (see github issue #192)
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - allow the value of a memory mapped variable to be address-of another variable, not just a constant number

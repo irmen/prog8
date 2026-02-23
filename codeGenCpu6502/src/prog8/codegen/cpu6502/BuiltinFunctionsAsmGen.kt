@@ -56,6 +56,7 @@ import prog8.codegen.cpu6502.assignment.*
             "sqrt__float" -> funcSqrt(fcall, sscope, firstReturnRegister ?: RegisterOrPair.FAC1)
             "divmod__ubyte" -> funcDivmod(fcall, firstReturnRegister ?: RegisterOrPair.A)
             "divmod__uword" -> funcDivmodW(fcall, firstReturnRegister ?: RegisterOrPair.AY)
+            "lmh" -> funcLmh(fcall, firstReturnRegister ?: RegisterOrPair.A)
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
             "ror" -> funcRor(fcall)
@@ -272,6 +273,29 @@ import prog8.codegen.cpu6502.assignment.*
         asmgen.out("  jsr  prog8_math.divmod_uw_asm")
         return arrayOf(RegisterOrPair.AY, RegisterOrPair.R15)
     }
+
+     private fun funcLmh(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+         // low byte returned in A, mid in R15, high (bank) in R14
+         val arg = fcall.args[0]
+         if(arg is PtIdentifier) {
+             val varname = asmgen.asmVariableName(arg)
+             asmgen.out("""
+                 lda  $varname
+                 ldy  $varname+1
+                 sty  cx16.r15
+                 ldy  $varname+2
+                 sty  cx16.r14""")
+         } else {
+             asmgen.assignExpressionToRegister(arg, RegisterOrPair.R14R15, signed = true)
+             asmgen.out("""
+                 lda  cx16.r14
+                 ldy  cx16.r15
+                 sty  cx16.r14
+                 ldy  cx16.r14+1
+                 sty  cx16.r15""")
+         }
+         return arrayOf(RegisterOrPair.A, RegisterOrPair.R15, RegisterOrPair.R14)
+     }
 
     private fun funcStringCompare(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
         asmgen.assignWordOperandsToAYAndVar(fcall.args[0], fcall.args[1], "P8ZP_SCRATCH_W2")
