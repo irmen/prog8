@@ -63,11 +63,10 @@ Math
     Returns the value restricted to the given minimum and maximum.
     Supported for integer types only, for floats use ``floats.clampf()`` instead.
 
-:index:`divmod` (dividend, divisor, quotient, remainder)
-    Performs division only once and returns both quotient and remainder in a single call, where using '/' and '%' separately
-    would perform the division operation twice.
-    All values are ubytes or all are uwords.
-    The last two arguments must be variables to receive the quotient and remainder results, respectively.
+:index:`divmod` (dividend, divisor)
+    Returns quotient and remainder of the division as two ubyte or uword values.
+    Performs the division only once. Using '/' and '%' separately
+    would perform the division twice, so using divmod is much more efficient for this.
 
 :index:`gcd` (a, b)
     Returns the GCD (greatest common divisor) of uwords a and b
