@@ -285,7 +285,8 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(identifier: IdentifierReference): PtExpression {
-        val (target, type) = identifier.targetNameAndType(program)
+        val (target, types) = identifier.targetNameAndTypes(program)
+        val type = if(types.size==1) types[0] else DataType.UNDEFINED
         return PtIdentifier(target, type, identifier.position)
     }
 
@@ -409,14 +410,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             return call
         }
 
-        // regular function call
-        val (target, type) = srcCall.target.targetNameAndType(program)
-        val call = if(type.isUndefined) {
-            // TODO what if it is actually multiple return values!??!?!
-            PtFunctionCall(target, false, false, emptyArray(), srcCall.position)
-        } else {
-            PtFunctionCall(target, false, false, arrayOf(type), srcCall.position)
-        }
+        // regular function call, and because it's a statement, it's void
+        val (target, _) = srcCall.target.targetNameAndTypes(program)
+        val call = PtFunctionCall(target, false, false, emptyArray(), srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))
         return call
@@ -437,9 +433,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             }
         }
 
-        val (target, _) = srcCall.target.targetNameAndType(program)
-        val iType = srcCall.inferType(program)
-        val returntypes = arrayOf(iType.getOrElse { DataType.UNDEFINED })
+        val (target, returntypes) = srcCall.target.targetNameAndTypes(program)
         val call = PtFunctionCall(target, false, false, returntypes, srcCall.position)
         for (arg in srcCall.args)
             call.add(transformExpression(arg))

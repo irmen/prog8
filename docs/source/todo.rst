@@ -1,9 +1,6 @@
 TODO
 ====
 
-simplifiedAstMaker: transform(srcCall: FunctionCallStatement)  : what when the call actually returns multiple return values???
-
-
 Known bugs:
 - fix chained aliasing errors see test "chained aliasing"
 - fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"

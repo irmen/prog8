@@ -1385,14 +1385,22 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         else
             definingScope.lookup(nameInSource.take(1))
 
-    fun targetNameAndType(program: Program): Pair<String, DataType> {
+    fun targetNameAndTypes(program: Program): Pair<String, Array<DataType>> {
         val target = targetStatement(program.builtinFunctions) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
         val targetname: String = if(target.name in program.builtinFunctions.names)
             "<builtin>.${target.name}"
         else
             target.scopedName.joinToString(".")
-        val type = inferType(program).getOrUndef()
-        return Pair(targetname, type)
+
+        val sub = target as? Subroutine
+        if(sub!=null) {
+            return targetname to sub.returntypes.toTypedArray()
+        }
+        val type = inferType(program)
+        return if(type.isKnown && !type.isVoid)
+            targetname to arrayOf(type.getOrUndef())
+        else
+            targetname to emptyArray()
     }
 
     override fun linkParents(parent: Node) {
@@ -1585,7 +1593,7 @@ class FunctionCallExpression(override var target: IdentifierReference,
                 if(stmt.returntypes.size==1)
                     return InferredTypes.knownFor(stmt.returntypes[0])
 
-                return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible
+                return InferredTypes.unknown()     // has multiple return types... so not a single resulting datatype possible at this point
             }
             is StructDecl -> {
                 // calling a struct is syntax for allocating a static instance, and returns a pointer to that (not the instance itself)
