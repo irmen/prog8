@@ -4,12 +4,42 @@
 main {
     ; Test the routine
     sub start() {
-        ubyte @shared b1, b2, b3, b4
-        b1, b2, b3 = multi()
-    }
+        byte @shared b1
+        word @shared w1
+        long @shared l1
 
-    sub multi() -> ubyte, ubyte, ubyte {
-        return cx16.r0L, cx16.r1L, cx16.r2L
+        b1 = -42
+        w1 = -4242
+        l1 = -42424242
+
+        txt.print_b(sgn(b1))
+        txt.spc()
+        txt.print_b(sgn(w1))
+        txt.spc()
+        txt.print_b(sgn(l1))
+        txt.spc()
+
+        b1 = 0
+        w1 = 0
+        l1 = 0
+
+        txt.print_b(sgn(b1))
+        txt.spc()
+        txt.print_b(sgn(w1))
+        txt.spc()
+        txt.print_b(sgn(l1))
+        txt.spc()
+
+        b1 = 42
+        w1 = 4242
+        l1 = 42424242
+
+        txt.print_b(sgn(b1))
+        txt.spc()
+        txt.print_b(sgn(w1))
+        txt.spc()
+        txt.print_b(sgn(l1))
+        txt.spc()
     }
 }
 

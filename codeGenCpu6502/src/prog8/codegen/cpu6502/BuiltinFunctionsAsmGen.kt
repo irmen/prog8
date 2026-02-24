@@ -1117,8 +1117,26 @@ import prog8.codegen.cpu6502.assignment.*
     }
 
     private fun funcSgn(fcall: PtFunctionCall, scope: IPtSubroutine?, resultReg: RegisterOrPair): Array<RegisterOrPair> {
-        // TODO optimize when the arg is a variable and we can directly check the msb
-        when (val dt = fcall.args.single().type.base) {
+        val arg = fcall.args.single()
+        if(arg is PtIdentifier) {
+            val varname = asmgen.asmVariableName(arg)
+            when(val dt = arg.type.base) {
+                BaseDataType.UBYTE -> asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_ub_into_A")
+                BaseDataType.BYTE -> asmgen.out("  lda  $varname |  jsr  prog8_lib.func_sign_b_into_A")
+                BaseDataType.UWORD -> asmgen.out("  lda  $varname+1 |  jsr  prog8_lib.func_sign_ub_into_A")
+                BaseDataType.WORD -> asmgen.out("  lda  $varname+1 |  jsr  prog8_lib.func_sign_b_into_A")
+                BaseDataType.LONG -> asmgen.out("  lda  $varname+3 |  jsr  prog8_lib.func_sign_b_into_A")
+                BaseDataType.FLOAT -> {
+                    translateArguments(fcall, null, scope)
+                    asmgen.out("  jsr  floats.func_sign_f_into_A")
+                }
+                else -> throw AssemblyError("weird type $dt")
+            }
+            // result in A
+            return arrayOf(RegisterOrPair.A)
+        }
+
+        when (val dt = arg.type.base) {
             BaseDataType.UBYTE -> {
                 translateArguments(fcall, null, scope)
                 asmgen.out("  jsr  prog8_lib.func_sign_ub_into_A")
@@ -1136,7 +1154,6 @@ import prog8.codegen.cpu6502.assignment.*
                 asmgen.out("  jsr  prog8_lib.func_sign_w_into_A")
             }
             BaseDataType.LONG -> {
-
                 translateArguments(fcall, funcname="func_sign_l_into_A", scope)
                 asmgen.out("  jsr  prog8_lib.func_sign_l_into_A")
             }
