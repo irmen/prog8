@@ -43,7 +43,7 @@ internal class AssignmentAsmGen(
             val extsub = thing as StExtSub
             require(extsub.returns.size>=2)
             if(extsub.returns.any { it.type.isFloat })
-                TODO("deal with (multiple?) FP return registers  ${assignment.position}")
+                TODO("floating point return registers  ${assignment.position}")
 
             asmgen.translate(values)
 

@@ -1186,12 +1186,14 @@ Such subroutines are defined with ``asmsub`` like this::
 
 the statement body of such a subroutine can only consist of just inline assembly.
 
-The ``@ <register>`` part is required for rom and assembly-subroutines, as it specifies for the compiler
-what cpu registers should take the routine's arguments.  You can use the regular set of registers
+The ``@ <register>`` part is required for rom and assembly-subroutines, as it specifies the
+cpu registers that take the arguments.  You can use the regular set of registers
 (A, X, Y), special 16-bit register pairs to take word values (AX, AY and XY) and even a processor status
 flag such as Carry (Pc).
 
-It is not possible to use floating point arguments or return values in an asmsub.
+.. note::
+    It is currently not possible to use floating point return values in an asmsub.
+    A floating point parameter is fine though and you can use the register FAC1 or FAC2 for that.
 
 .. note::
     Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
@@ -1238,8 +1240,10 @@ External subroutines are usually defined by compiler library files, with the fol
          -> bool @Pc, ubyte @ A, ubyte @ X, ubyte @ Y
 
 This defines the ``LOAD`` subroutine at memory address $FFD5, taking arguments in all three registers A, X and Y,
-and returning stuff in several registers as well. The ``clobbers`` clause is used to signify to the compiler
-what CPU registers are clobbered by the call instead of being unchanged or returning a meaningful result value.
+and returning stuff in several registers as well. The ``clobbers`` clause is used to tell what CPU registers
+are clobbered by the call instead of being unchanged or returning a meaningful result value.
+This register clobber information currently is only for documentation purposes.
+
 Note that the address ($ffd5 in the example above) can actually be an expression as long as it is a compile time constant. This can
 make it easier to define jump tables for example, like this::
 
