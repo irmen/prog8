@@ -34,7 +34,7 @@ class UnusedCodeRemover(private val program: Program,
 
         program.allBlocks.singleOrNull { it.name=="prog8_lib" } ?.let {
             val subroutines = it.statements.filterIsInstance<Subroutine>()
-            subroutines.filter { s -> s.name=="sqrt_long" }
+            subroutines.filter { s -> s.name in arrayOf("sqrt_long", "profile_sub_entry") }
                 .forEach { sub -> neverRemoveSubroutines.add(sub) }
         }
     }

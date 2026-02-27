@@ -51,6 +51,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val experimentalCodegen by cli.option(ArgType.Boolean, fullName = "expericodegen", description = "use experimental/alternative codegen")
     val float2bytes by cli.option(ArgType.String, fullName = "float2bytes", description = "convert floating point number to a list of bytes for the target system. NOTE: you need to supply a target option too, and also still have to supply a dummy module file name as well!")
     val ignoreFootguns by cli.option(ArgType.Boolean, fullName = "ignorefootguns", description = "don't print warnings for 'footgun' issues:  'Yes I know I'm treading on mighty thin ice here'.")
+    val profilingInstrumentation by cli.option(ArgType.Boolean, fullName = "profiling", description = "add subroutine profiling instrumentation (cx16 only).")
     val dontWriteAssembly by cli.option(ArgType.Boolean, fullName = "noasm", description="don't create assembly code")
     val dontOptimize by cli.option(ArgType.Boolean, fullName = "noopt", description = "don't perform code optimizations")
     val outputDir by cli.option(ArgType.String, fullName = "out", description = "directory for output files instead of current directory").default(".")
@@ -103,6 +104,11 @@ private fun compileMain(args: Array<String>): Boolean {
     val outputPath = pathFrom(outputDir)
     if(!outputPath.toFile().isDirectory) {
         System.err.println("Output path doesn't exist")
+        return false
+    }
+
+    if(profilingInstrumentation==true && compilationTarget!=Cx16Target.NAME) {
+        System.err.println("Profiling instrumentation is only available on the cx16 target.")
         return false
     }
 
@@ -208,6 +214,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     printAst1 == true,
                     printAst2 == true,
                     ignoreFootguns == true,
+                    profilingInstrumentation == true,
                     processedSymbols,
                     srcdirs,
                     outputPath,
@@ -294,6 +301,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     printAst1 == true,
                     printAst2 == true,
                     ignoreFootguns == true,
+                    profilingInstrumentation == true,
                     processedSymbols,
                     srcdirs,
                     outputPath,

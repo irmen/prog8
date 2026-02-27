@@ -52,6 +52,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         printAst1 = false,
         printAst2 = false,
         ignoreFootguns = false,
+        profilingInstrumentation = false,
         symbolDefs = emptyMap(),
         outputDir = outputDir
     )

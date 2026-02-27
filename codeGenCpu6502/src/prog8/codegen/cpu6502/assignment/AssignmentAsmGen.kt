@@ -41,7 +41,9 @@ internal class AssignmentAsmGen(
         val thing = asmgen.symbolTable.lookup(values.name)
         if(thing?.type== StNodeType.EXTSUB) {
             val extsub = thing as StExtSub
-            require(extsub.returns.size>=2)
+            require(extsub.returns.size>=2) {
+                "extsub ${extsub.name} must return at least 2 values but got ${extsub.returns.size}  ${assignment.position}"
+            }
             if(extsub.returns.any { it.type.isFloat })
                 TODO("floating point return registers  ${assignment.position}")
 

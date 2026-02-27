@@ -34,6 +34,7 @@ class CompilationOptions(val output: OutputType,
                          var ignoreFootguns: Boolean = false,
                          var outputDir: Path = Path(""),
                          var quiet: Boolean = false,
+                         var profilingInstrumentation: Boolean = false,
                          var symbolDefs: Map<String, String> = emptyMap()
 ) {
     init {

@@ -48,6 +48,7 @@ internal fun compileFile(
         printAst1 = false,
         printAst2 = false,
         ignoreFootguns = false,
+        profilingInstrumentation = false,
     )
     return compileProgram(args)
 }

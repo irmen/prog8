@@ -20,6 +20,7 @@ import prog8.code.target.VMTarget
 import prog8.code.target.getCompilationTargetByName
 import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
+import prog8.compiler.simpleastprocessing.profilingInstrumentation
 import prog8.optimizer.*
 import prog8.parser.ParseError
 import java.nio.file.Path
@@ -61,6 +62,7 @@ class CompilerArguments(val filepath: Path,
                         val printAst1: Boolean,
                         val printAst2: Boolean,
                         val ignoreFootguns: Boolean,
+                        val profilingInstrumentation: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -113,6 +115,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 optimize = args.optimize
                 asmQuiet = args.quietAssembler
                 quiet = args.quietAll
+                profilingInstrumentation = args.profilingInstrumentation
                 asmListfile = args.asmListfile
                 includeSourcelines = args.includeSourcelines
                 experimentalCodegen = args.experimentalCodegen
@@ -194,6 +197,12 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                         optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable!!, args.errors)
                         args.errors.report()
                         symbolTable = stMaker.make()        // need an updated ST because the optimization changes stuff
+                    }
+
+                    if (compilationOptions.profilingInstrumentation) {
+                        require(compilationOptions.compTarget.name == Cx16Target.NAME)
+                        profilingInstrumentation(intermediateAst, symbolTable, args.errors)
+                        args.errors.report()
                     }
 
                     if (args.printAst2) {

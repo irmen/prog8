@@ -42,6 +42,7 @@ Open source Software :index:`License`
     libraries.rst
     targetsystem.rst
     technical.rst
+    profiling.rst
     portingguide.rst
     software.rst
     todo.rst

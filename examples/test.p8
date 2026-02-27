@@ -4,42 +4,24 @@
 main {
     ; Test the routine
     sub start() {
-        byte @shared b1
-        word @shared w1
-        long @shared l1
+        ; emudbg.reset_cpu_cycles()
+        txt.print("zzzzz")
+        cbm.CHROUT('$')
+        repeat 100 {
+            zz(11, 11111111, "hello")
+            subje('.')
+        }
+    }
 
-        b1 = -42
-        w1 = -4242
-        l1 = -42424242
+    sub zz(ubyte sp, long cycles, str arg) {
+        cx16.r0++
+    }
 
-        txt.print_b(sgn(b1))
-        txt.spc()
-        txt.print_b(sgn(w1))
-        txt.spc()
-        txt.print_b(sgn(l1))
-        txt.spc()
-
-        b1 = 0
-        w1 = 0
-        l1 = 0
-
-        txt.print_b(sgn(b1))
-        txt.spc()
-        txt.print_b(sgn(w1))
-        txt.spc()
-        txt.print_b(sgn(l1))
-        txt.spc()
-
-        b1 = 42
-        w1 = 4242
-        l1 = 42424242
-
-        txt.print_b(sgn(b1))
-        txt.spc()
-        txt.print_b(sgn(w1))
-        txt.spc()
-        txt.print_b(sgn(l1))
-        txt.spc()
+    asmsub subje(ubyte value @ A) {
+        %asm {{
+            jsr  cbm.CHROUT
+            rts
+        }}
     }
 }
 
