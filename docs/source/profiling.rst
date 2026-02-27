@@ -129,9 +129,6 @@ This presents an interactive menu with the following options:
   Example call graph:
 
   .. image:: callgraph.svg
-     :alt: Example subroutine call graph
-     :align: center
-     :width: 100%
 
 **3. Generate flame graph SVG**
   Creates an interactive flame graph visualization using the standard ``flamegraph.pl`` tool.
@@ -142,9 +139,6 @@ This presents an interactive menu with the following options:
   Example flame graph:
 
   .. image:: flamegraph.svg
-     :alt: Example flame graph visualization
-     :align: center
-     :width: 100%
 
 **4. Print routine statistics**
   Prints three tables to the console:
