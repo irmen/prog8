@@ -1,8 +1,9 @@
 package prog8.code.ast
 
-import prog8.code.core.IMemSizer
-import prog8.code.core.IStringEncoding
-import prog8.code.core.Position
+import prog8.code.INTERNED_STRINGS_MODULENAME
+import prog8.code.StStaticVariable
+import prog8.code.SymbolTable
+import prog8.code.core.*
 import prog8.code.source.SourceCode
 import java.nio.file.Path
 
@@ -85,6 +86,17 @@ class PtProgram(
         allBlocks().firstOrNull { it.name == "main" || it.name=="p8b_main" }
             ?.children
             ?.firstOrNull { it is PtSub && (it.name == "start" || it.name=="main.start" || it.name=="p8s_start" || it.name=="p8b_main.p8s_start") } as PtSub?
+
+    fun internString(string: PtString, st: SymbolTable): String {
+        val internedStringsBlock = children.first { it is PtBlock && it.name == INTERNED_STRINGS_MODULENAME }
+        val varname = "ptstring_${internedStringsBlock.children.size}"
+        val internedString = PtVariable(varname, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, string, null, string.position)
+        internedStringsBlock.add(internedString)
+        val stEntry = StStaticVariable(internedString.scopedName, DataType.STR, string.value to string.encoding, null, string.value.length.toUInt()+1u,
+            ZeropageWish.NOT_IN_ZEROPAGE, 0u, false, astNode=internedString)
+        st.add(stEntry)
+        return internedString.scopedName
+    }
 }
 
 

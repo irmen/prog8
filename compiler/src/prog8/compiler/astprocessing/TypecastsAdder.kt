@@ -681,7 +681,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
                         addTypecastOrCastedValueModification(modifications, it.second, targetDt, parent)
                     } else if(identifier!=null && targetDt.isUnsignedWord && argDt.isPassByRef) {
                         if(!identifier.isSubroutineParameter()) {
-                            // We allow STR/ARRAY values for UWORD or ^^UBYTE parameters.
+                            // We allow STR/ARRAY values for UWORD or ^^UBYTE parameters, via typed AddressOf.
                             if(!argDt.isString || it.second is IdentifierReference) {
                                 modifications += IAstModification.ReplaceNode(
                                     identifier,

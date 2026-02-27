@@ -3758,7 +3758,12 @@ $endLabel""")
             assignRegisterpairWord(target, RegisterOrPair.AY)
             return
         }
-        require(sourceDt.isWord || sourceDt.isUnsignedByte || sourceDt.isBool || sourceDt.isPointer) { "weird source dt for word variable" }
+        require(sourceDt.isWord || sourceDt.isUnsignedByte || sourceDt.isBool || sourceDt.isPointer) {
+            if(sourceDt.isString)
+                "str source type for word variable should have been uword or ^^ubyte, a && is likely missing on the source variable $sourceDt ${target.position}"
+            else
+                "weird source dt for word variable: $sourceDt ${target.position}"
+        }
         when(target.kind) {
             TargetStorageKind.VARIABLE -> {
                 if(sourceDt.isUnsignedByte || sourceDt.isBool) {
