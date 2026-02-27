@@ -138,7 +138,7 @@ This presents an interactive menu with the following options:
 
   Example flame graph:
 
-  .. image:: flamegraph.svg
+  .. image:: _static/flamegraph.png
 
 **4. Print routine statistics**
   Prints three tables to the console:
