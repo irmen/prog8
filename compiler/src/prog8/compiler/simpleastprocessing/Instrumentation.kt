@@ -1,17 +1,32 @@
 package prog8.compiler.simpleastprocessing
 
+import prog8.code.INTERNED_STRINGS_MODULENAME
 import prog8.code.StExtSub
 import prog8.code.SymbolTable
 import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.core.Encoding
 import prog8.code.core.IErrorReporter
+import prog8.code.source.SourceCode
 
 
 fun profilingInstrumentation(program: PtProgram, st: SymbolTable, errors: IErrorReporter) {
     if(errors.noErrors()) {
 
         val instrumentationsToAdd = mutableListOf<Pair<PtNode, PtNode>>()
+
+        // make sure there is a block to put interned strings in
+        val newInternededStringBlock: Boolean
+        var internedStringsBlock: PtBlock? = program.children.firstOrNull { it is PtBlock && it.name == INTERNED_STRINGS_MODULENAME } as? PtBlock
+        if(internedStringsBlock==null) {
+            // there are no interned strings (anymore) so re-insert the block that we need
+            val options = PtBlock.Options(noSymbolPrefixing = true)
+            internedStringsBlock = PtBlock(INTERNED_STRINGS_MODULENAME, false, SourceCode.Generated(INTERNED_STRINGS_MODULENAME), options, program.position)
+            program.add(internedStringsBlock)
+            newInternededStringBlock = true
+        } else {
+            newInternededStringBlock = false
+        }
 
         walkAst(program) { node, depth ->
             when(node) {
@@ -70,6 +85,13 @@ fun profilingInstrumentation(program: PtProgram, st: SymbolTable, errors: IError
         }
 
         st.resetCachedFlat()
+
+        if(newInternededStringBlock) {
+            if(internedStringsBlock.children.isEmpty()) {
+                // no interned strings, remove the block again
+                program.children.remove(internedStringsBlock)
+            }
+        }
     }
 }
 

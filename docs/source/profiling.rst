@@ -94,7 +94,7 @@ To use subroutine profiling:
    - **Timestamp** (hex): The emulator cycle count when the call was made
    - **Routine name**: The fully qualified name of the subroutine (e.g., ``main.start``, ``galaxy.init``)
 
-   The file may contain compiler output headers before the actual CSV data starts. The data section begins after a line of dashes (``---``).
+   The file may contain compiler output headers before the actual CSV data starts. The data section begins after a line of dashes.
 
 Using the parse_profile_csv.py script
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -168,6 +168,9 @@ Here's a typical workflow for profiling a Prog8 program::
 The output will show you which routines consume the most time. For example, if a routine shows 49% of total time,
 optimizing that routine would have the biggest impact on overall performance.
 
+Make sure to eventually get rid of the profiling code and recompile the program normally without the ``-profiling`` option,
+because the logic takes up space and does slow down the actual program a bit.
+
 Tips for effective profiling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -177,6 +180,7 @@ Tips for effective profiling
 - A routine with high average time per call may need algorithmic improvements
 - Use the flame graph to quickly identify hot paths in the call stack
 - Compare profiles before and after optimizations to measure improvement
+= **Recompile the program WITHOUT profiling mode after you're done** -- because the profiling logic takes up space and slows down the actual program
 
 Limitations
 ^^^^^^^^^^^

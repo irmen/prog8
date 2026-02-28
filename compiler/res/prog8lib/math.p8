@@ -576,6 +576,7 @@ log2_tab
         ; update the "streaming" crc16 with next byte value
         ; note: tracks the crc16 checksum in cx16.r15!
         ;       if your code uses that, it must save/restore it before calling this routine
+        ; note: this routine doesn't use a lookup table to speed up the calculation, so it is not particularly fast.
         %asm {{
             eor  cx16.r15H
             sta  cx16.r15H
