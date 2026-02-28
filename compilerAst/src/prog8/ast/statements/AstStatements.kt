@@ -951,14 +951,13 @@ class InlineAssembly(val assembly: String, val isIR: Boolean, override val posit
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = false
 
-    fun hasReturnOrRts(): Boolean {
-        return if(isIR) {
-            " return" in assembly || "\treturn" in assembly || " jump" in assembly || "\tjump" in assembly || " jumpa" in assembly || "\tjumpa" in assembly
-        } else {
-            " rti" in assembly || "\trti" in assembly || " rts" in assembly || "\trts" in assembly ||
-            " jmp" in assembly || "\tjmp" in assembly || " bra" in assembly || "\tbra" in assembly
-        }
+    companion object {
+        private val returnJumpRegex = Regex("""[ \t](return|returnr|returni|jump|jumpi)\b""")
+        private val rtsRegex = Regex("""[ \t](rti|rts|jmp|bra)\b""")
     }
+
+    fun hasReturnOrRts(): Boolean =
+        if(isIR) returnJumpRegex.containsMatchIn(assembly) else rtsRegex.containsMatchIn(assembly)
 
 
     val names: Set<String> by lazy {

@@ -107,9 +107,9 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         if (!subroutine.inline) {
             if (subroutine.isAsmSubroutine && subroutine.asmAddress==null) {
                 if(!subroutine.hasRtsInAsm(true))
-                    errors.err("asmsub seems to never return as it doesn't end with RTS/JMP/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
+                    errors.err("asmsub seems to never return as it doesn't end with rts/jmp/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
                 else if (!subroutine.hasRtsInAsm(false))
-                    errors.err("asmsub seems to never return as it doesn't end with RTS/JMP/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
+                    errors.err("asmsub seems to never return as it doesn't end with rts/jmp/branch. If this is intended, add a '; !notreached!' comment at the end", subroutine.position)
             }
         }
 

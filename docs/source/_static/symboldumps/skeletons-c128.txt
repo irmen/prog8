@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 1b5dd980 in branch builtins-return-multivalue
+Prerelease version from git commit fedf342c in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -284,13 +284,12 @@ math  {
     cos8u  (ubyte angle @A)  clobbers (Y) -> ubyte @A 
     cosr8  (ubyte radians @A)  clobbers (Y) -> byte @A 
     cosr8u  (ubyte radians @A)  clobbers (Y) -> ubyte @A 
-    crc16  (^^ubyte data, uword length) -> uword 
-    crc16_end  () -> uword 
-    crc16_start  () 
+    crc16  (^^ubyte data, uword length, uword initvalue, uword xorout) -> uword 
+    crc16_end  (uword xorout) -> uword 
+    crc16_start  (uword initvalue) 
     crc16_update  (ubyte value @A) 
     crc32  (^^ubyte data, uword length) -> long 
-    crc32_end  () -> long 
-    crc32_end_result  () -> long @R14R15 
+    crc32_end  () -> long @R14R15 
     crc32_start  () 
     crc32_update  (ubyte value) 
     diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 

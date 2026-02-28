@@ -811,28 +811,25 @@ checksumming
 ''''''''''''
 .. index:: pair: Libraries; checksumming
 
-``crc16 (uword data, uword length) -> uword``
-    Returns a CRC-16 (XMODEM) checksum over the given data buffer.
-    Note: on the Commander X16, there is a CRC-16/IBM-3740 routine in the kernal: cx16.memory_crc().
-    That one is faster, but yields different results.
+``crc16 (uword data, uword length, uword initvalue, uword xorout) -> uword``
+    Returns a CRC-16 checksum over the given data buffer, with configuarable initialization value and final result xor value.
+    For XMODEM type checksum, use initvalue=0 and xorout=0.
+    For IBM-3740 type checksum, use initvalue=$ffff and xorout=0. (this is then equivalent to the cx16.memory_crc routine).
+    Many other types are possible with different values...
 
-``crc16_start() / crc16_update(ubyte value) / crc16_end() -> uword``
+``crc16_start(initvalue) / crc16_update(ubyte value) / crc16_end(xorout) -> uword``
     "streaming" crc16 calculation routines, when the data doesn't fit in a single buffer.
     Tracks the crc16 checksum in cx16.r15! If your code uses that, it must save/restore it before calling this routine!
     Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine which returns the crc16 value.
-    Note: after calling the crc16_end() routine you must start over.
 
 ``crc32 (uword data, uword length) -> long``
     Calculates a CRC-32 (ISO-HDLC/PKZIP) checksum over the given data buffer.
     The 32 bits result is returned as a long value.  The routine clobbers R0/R1 and R12 through R15.
 
-``crc32_start() / crc32_update(ubyte value) / crc32_end() / crc32_end_result()``
+``crc32_start() / crc32_update(ubyte value) / crc32_end()``
     "streaming" crc32 calculation routines, when the data doesn't fit in a single buffer.
     Tracks the crc32 checksum in cx16.r14 and cx16.r15! If your code uses these, it must save/restore them before calling this routine!
     Call the start() routine first, feed it bytes with the update() routine, finalize with calling the end() routine that returns the result value as a long.
-    Instead of the normal end() routine you can also call crc32_end_result() which finalizes the calculation,
-    and actually returns the high and low words of the 32 bits result value as two return word values.
-    Note: after calling the crc32_end() or crc32_end_result() routine you must start over.
 
 interpolation
 '''''''''''''

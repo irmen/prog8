@@ -322,24 +322,25 @@ math {
         return w2-w1
     }
 
-    sub crc16(^^ubyte data, uword length) -> uword {
-        ; calculates the CRC16 (XMODEM) checksum of the buffer.
-        ; There are also "streaming" crc16_start/update/end routines below, that allow you to calculate crc32 for data that doesn't fit in a single memory block.
-        crc16_start()
-        cx16.r13 = data
-        cx16.r14 = data+length
-        while cx16.r13!=cx16.r14 {
-            crc16_update(@(cx16.r13))
-            cx16.r13++
+    sub crc16(^^ubyte data, uword length, uword initvalue, uword xorout) -> uword {
+        ; Calculates the CRC16 checksum of the buffer. You provide the initial start value and the final value that is xored with the result.
+        ; For XMODEM type checksum, use initvalue=0 and xorout=0.
+        ; For IBM-3740 type checksum, use initvalue=$ffff and xorout=0. (this is then equivalent to the cx16.memory_crc routine).
+        ; There are also "streaming" crc16_start/update/end routines below, that allow you to calculate crc16 for data that doesn't fit in a single memory block.
+        cx16.r15 = initvalue
+        cx16.r14 = data
+        repeat length {
+            crc16_update(@(cx16.r14))
+            cx16.r14++
         }
-        return crc16_end()
+        return cx16.r15 ^ xorout
     }
 
-    sub crc16_start() {
+    sub crc16_start(uword initvalue) {
         ; start the "streaming" crc16
         ; note: tracks the crc16 checksum in cx16.r15!
         ;       if your code uses that, it must save/restore it before calling this routine
-        cx16.r15 = 0
+        cx16.r15 = initvalue
     }
 
     sub crc16_update(ubyte value) {
@@ -354,9 +355,9 @@ math {
         }
     }
 
-    sub crc16_end() -> uword {
+    sub crc16_end(uword xorout) -> uword {
         ; finalize the "streaming" crc16, returns resulting crc16 value
-        return cx16.r15
+        return cx16.r15 ^ xorout
     }
 
     sub crc32(^^ubyte data, uword length) -> long {
@@ -402,8 +403,6 @@ math {
         cx16.r14 ^= $ffff
         return mklong2(cx16.r15, cx16.r14)
     }
-
-    ; there's no crc32_end_result() here because IR cannot return multiple values yet
 
     sub lerp(ubyte v0, ubyte v1, ubyte t) -> ubyte {
         ; Linear interpolation (LERP)

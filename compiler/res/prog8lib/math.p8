@@ -553,23 +553,26 @@ log2_tab
         }}
     }
 
-    sub crc16(^^ubyte data, uword length) -> uword {
-        ; calculates the CRC16 (XMODEM) checksum of the buffer. Clobbers R14 and R15.
+    sub crc16(^^ubyte data, uword length, uword initvalue, uword xorout) -> uword {
+        ; Calculates the CRC16 checksum of the buffer. You provide the initial start value and the final value that is xored with the result.
+        ; For XMODEM type checksum, use initvalue=0 and xorout=0.
+        ; For IBM-3740 type checksum, use initvalue=$ffff and xorout=0. (this is then equivalent to the cx16.memory_crc routine).
+        ; Clobbers R14 and R15.
         ; There are also "streaming" crc16_start/update/end routines below, that allow you to calculate crc16 for data that doesn't fit in a single memory block.
+        cx16.r15 = initvalue
         cx16.r14 = data
-        crc16_start()
         repeat length {
             crc16_update(@(cx16.r14))
             cx16.r14++
         }
-        return crc16_end()
+        return cx16.r15 ^ xorout
     }
 
-    sub crc16_start() {
+    sub crc16_start(uword initvalue) {
         ; start the "streaming" crc16
         ; note: tracks the crc16 checksum in cx16.r15!
         ;       if your code uses that, it must save/restore it before calling this routine
-        cx16.r15 = 0
+        cx16.r15 = initvalue
     }
 
     asmsub crc16_update(ubyte value @A) {
@@ -578,34 +581,44 @@ log2_tab
         ;       if your code uses that, it must save/restore it before calling this routine
         ; note: this routine doesn't use a lookup table to speed up the calculation, so it is not particularly fast.
         %asm {{
-            eor  cx16.r15H
-            sta  cx16.r15H
-            ldy  #8
--           asl  cx16.r15L
-            rol  cx16.r15H
-            bcc  +
-            lda  cx16.r15H
-            eor  #$10
-            sta  cx16.r15H
-            lda  cx16.r15L
-            eor  #$21
-            sta  cx16.r15L
-+           dey
-            bne  -
-            rts
+        ; code is from: http://www.6502.org/source/integers/crc-more.html
+crclo   = cx16.r15L          ; current value of CRC
+crchi   = cx16.r15H
+
+        eor crchi       ; a contained the data
+        sta crchi       ; xor it into high byte
+        lsr             ; right shift a 4 bits
+        lsr             ; to make top of x^12 term
+        lsr             ; ($1...)
+        lsr
+        tax             ; save it
+        asl             ; then make top of x^5 term
+        eor crclo       ; and xor that with low byte
+        sta crclo       ; and save
+        txa             ; restore partial term
+        eor crchi       ; and update high byte
+        sta crchi       ; and save
+        asl             ; left shift three
+        asl             ; the rest of the terms
+        asl             ; have feedback from x^12
+        tax             ; save bottom of x^12
+        asl             ; left shift two more
+        asl             ; watch the carry flag
+        eor crchi       ; bottom of x^5 ($..2.)
+        tay             ; save high byte
+        txa             ; fetch temp value
+        rol             ; bottom of x^12, middle of x^5!
+        eor crclo       ; finally update low byte
+        sta crchi       ; then swap high and low bytes
+        sty crclo
+        rts
+
         }}
-; orignal prog8 code was:
-;        cx16.r15H ^= value
-;        repeat 8 {
-;            cx16.r15<<=1
-;            if_cs
-;                cx16.r15 ^= $1021
-;        }
     }
 
-    sub crc16_end() -> uword {
+    sub crc16_end(uword xorout) -> uword {
         ; finalize the "streaming" crc16, returns resulting crc16 value
-        return cx16.r15
+        return cx16.r15 ^ xorout
     }
 
     sub crc32(^^ubyte data, uword length) -> long {
@@ -670,12 +683,7 @@ log2_tab
 ;        }
     }
 
-    sub crc32_end() -> long {
-        ; finalize the "streaming" crc32 and returns the result
-        return crc32_end_result()
-    }
-
-    asmsub crc32_end_result() -> long @R14R15 {
+    asmsub crc32_end() -> long @R14R15 {
         ; finalize the "streaming" crc32
         ; returns the result value in cx16.r15 (high word) and r14 (low word)
         %asm {{
