@@ -187,7 +187,11 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             when(expr.operator) {
                 ">" -> {
                     // X>N  ->  X>=N+1,   easier to do in 6502
-                    val maximum = if(rightNum.type.isByte) 255 else 65535
+                    val maximum = when {
+                        rightNum.type.isByte -> 255
+                        rightNum.type.isWord -> 65535
+                        else -> 0x7fffffff
+                    }
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, ">=", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
@@ -196,7 +200,11 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 }
                 "<=" -> {
                     // X<=N ->  X<N+1,    easier to do in 6502
-                    val maximum = if(rightNum.type.isByte) 255 else 65535
+                    val maximum = when {
+                        rightNum.type.isByte -> 255
+                        rightNum.type.isWord -> 65535
+                        else -> 0x7fffffff
+                    }
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, "<", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)

@@ -186,19 +186,29 @@ class TestIRPeepholeOpt: FunSpec({
 
     test("remove useless and/or/xor") {
         val irProg = makeIRProgram(listOf(
+            IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=42, immediate = 0),
+            IRInstruction(Opcode.AND, IRDataType.WORD, reg1=42, immediate = 0),
+            IRInstruction(Opcode.AND, IRDataType.LONG, reg1=42, immediate = 0),
             IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=42, immediate = 255),
             IRInstruction(Opcode.AND, IRDataType.WORD, reg1=42, immediate = 65535),
+            IRInstruction(Opcode.AND, IRDataType.LONG, reg1=42, immediate = 2147483647),
+            IRInstruction(Opcode.AND, IRDataType.LONG, reg1=42, immediate = -1),
             IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, immediate = 0),
+            IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, immediate = 255),
+            IRInstruction(Opcode.OR, IRDataType.WORD, reg1=42, immediate = 65535),
+            IRInstruction(Opcode.OR, IRDataType.LONG, reg1=42, immediate = 2147483647),
+            IRInstruction(Opcode.OR, IRDataType.LONG, reg1=42, immediate = -1),
             IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=42, immediate = 0),
             IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=42, immediate = 200),
             IRInstruction(Opcode.AND, IRDataType.WORD, reg1=42, immediate = 60000),
             IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=42, immediate = 1),
             IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=42, immediate = 1)
         ))
-        irProg.chunks().single().instructions.size shouldBe 8
+        irProg.chunks().single().instructions.size shouldBe 17
         val opt = IRPeepholeOptimizer(irProg, false)
         opt.optimize(true, ErrorReporterForTests())
-        irProg.chunks().single().instructions.size shouldBe 4
+        irProg.chunks().single().instructions.size shouldBe 12
+        irProg.chunks().single().instructions.count { it.opcode == Opcode.LOAD } shouldBe 6
     }
 
     test("replace and/or/xor by constant number") {

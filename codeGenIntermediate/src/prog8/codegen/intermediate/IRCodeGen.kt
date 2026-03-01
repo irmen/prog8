@@ -673,7 +673,12 @@ class IRCodeGen(
         if(iterable.step==0)
             throw AssemblyError("step 0")
         val rangeEndExclusiveUntyped = iterable.last + iterable.step
-        val rangeEndExclusiveWrapped = if(loopvarDtIr==IRDataType.BYTE) rangeEndExclusiveUntyped and 255 else rangeEndExclusiveUntyped and 65535
+        val rangeEndExclusiveWrapped =
+            when (loopvarDtIr) {
+                IRDataType.BYTE -> rangeEndExclusiveUntyped and 255
+                IRDataType.WORD -> rangeEndExclusiveUntyped and 65535
+                else -> rangeEndExclusiveUntyped and 0x7fffffff
+            }
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
         val indexReg = registers.next(loopvarDtIr)
