@@ -737,10 +737,10 @@ $loopLabel          sty  $indexVar
         val loopLabel = asmgen.makeLabel("for_loop")
         val endLabel = asmgen.makeLabel("for_end")
         asmgen.loopEndLabels.add(endLabel)
+        val varname = asmgen.asmVariableName(stmt.variable)
         when {
             iterableDt.isByteArray -> {
                 // loop over byte range via loopvar, step >= 2 or <= -2
-                val varname = asmgen.asmVariableName(stmt.variable)
                 asmgen.out("""
                             lda  #${range.first}
                             sta  $varname
@@ -805,7 +805,6 @@ $loopLabel""")
             }
             iterableDt.isWordArray && !iterableDt.isSplitWordArray -> {
                 // loop over word range via loopvar, step >= 2 or <= -2
-                val varname = asmgen.asmVariableName(stmt.variable)
                 when (range.step) {
                     1, -1 -> {
                         throw AssemblyError("step 1 and -1 should have been handled specifically  $stmt")
@@ -826,7 +825,6 @@ $loopLabel""")
                             bne  +
                             lda  $varname+1
                             cmp  #>${range.last}
-                            bne  +
                             beq  $endLabel
 +                           lda  $varname
                             clc
@@ -847,7 +845,50 @@ $loopLabel""")
                         throw AssemblyError("step 1 and -1 should have been handled specifically  $stmt")
                     }
                     else -> {
-                        TODO("for long range with step >1. Report this error please, and use word loops in the meantime  ${stmt.position}")
+                        // long, step >= 2 or <= -2
+                        // note: range.last has already been adjusted by kotlin itself to actually be the last value of the sequence
+                        val from = range.first.toLongHex()
+                        val to = range.last.toLongHex()
+                        val step = range.step.toLongHex()
+                        asmgen.out("""
+                            lda  #$${from.substring(6, 8)}
+                            sta  $varname
+                            lda  #$${from.substring(4, 6)}
+                            sta  $varname+1
+                            lda  #$${from.substring(2, 4)}
+                            sta  $varname+2
+                            lda  #$${from.take(2)}
+                            sta  $varname+3
+$loopLabel""")
+                        asmgen.translate(stmt.statements)
+                        asmgen.out("""
+                            lda  $varname
+                            cmp  #$${to.substring(6, 8)}
+                            bne  +
+                            lda  $varname+1
+                            cmp  #$${to.substring(4, 6)}
+                            bne  +
+                            lda  $varname+2
+                            cmp  #$${to.substring(2, 4)}
+                            bne  +
+                            lda  $varname+3
+                            cmp  #$${to.take(2)}
+                            beq  $endLabel
++                           lda  $varname
+                            clc
+                            adc  #$${step.substring(6, 8)}
+                            sta  $varname
+                            lda  $varname+1
+                            adc  #$${step.substring(4, 6)}
+                            sta  $varname+1
+                            lda  $varname+2
+                            adc  #$${step.substring(2, 4)}
+                            sta  $varname+2
+                            lda  $varname+3
+                            adc  #$${step.take(2)}
+                            sta  $varname+3""")
+                        asmgen.jmp(loopLabel)
+                        asmgen.out(endLabel)
                     }
                 }
             }
