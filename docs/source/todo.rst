@@ -34,7 +34,7 @@ Future Things and Ideas
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2 (see github issue #192)
 - allow memory() to occur in array initializer (maybe needed for 2 dimensional arrays?) i.e. make it a constant (see github issue #192)
 - allow the value of a memory mapped variable to be address-of another variable, not just a constant number
-- implement for loops with long loopvar over long range expression
+- implement 6502 for loops with long loopvar over long range expression with step > 1
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?

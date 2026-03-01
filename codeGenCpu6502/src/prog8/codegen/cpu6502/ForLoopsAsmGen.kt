@@ -747,8 +747,8 @@ $loopLabel          sty  $indexVar
 $loopLabel""")
                 asmgen.translate(stmt.statements)
                 when (range.step) {
-                    0, 1, -1 -> {
-                        throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $range ${stmt.position}")
+                    1, -1 -> {
+                        throw AssemblyError("step 1 and -1 should have been handled specifically  $range ${stmt.position}")
                     }
                     2 -> {
                         if(range.last==255 || range.last==254) {
@@ -807,8 +807,8 @@ $loopLabel""")
                 // loop over word range via loopvar, step >= 2 or <= -2
                 val varname = asmgen.asmVariableName(stmt.variable)
                 when (range.step) {
-                    0, 1, -1 -> {
-                        throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
+                    1, -1 -> {
+                        throw AssemblyError("step 1 and -1 should have been handled specifically  $stmt")
                     }
                     else -> {
                         // word, step >= 2 or <= -2
@@ -843,11 +843,11 @@ $loopLabel""")
             iterableDt.isLongArray -> {
                 // loop over long range via loopvar, step >= 2 or <= -2
                 when(range.step) {
-                    0, 1, -1 -> {
-                        throw AssemblyError("step 0, 1 and -1 should have been handled specifically  $stmt")
+                    1, -1 -> {
+                        throw AssemblyError("step 1 and -1 should have been handled specifically  $stmt")
                     }
                     else -> {
-                        TODO("for long range. Report this error please, and use word loops in the meantime  ${stmt.position}")
+                        TODO("for long range with step >1. Report this error please, and use word loops in the meantime  ${stmt.position}")
                     }
                 }
             }
@@ -987,12 +987,106 @@ $loopLabel""")
 
     private fun translateForSimpleLongRangeAsc(stmt: PtForLoop, range: IntProgression) {
         require(range.step==1)
-        TODO("for long range step +1. Report this error please, and use nested word loops in the meantime  ${stmt.position}")
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
+        asmgen.loopEndLabels.add(endLabel)
+        val varname = asmgen.asmVariableName(stmt.variable)
+        val from = range.first.toLongHex()
+        val to = range.last.toLongHex()
+        asmgen.out("""
+            lda  #$${from.substring(6, 8)}
+            sta  $varname
+            lda  #$${from.substring(4, 6)}
+            sta  $varname+1
+            lda  #$${from.substring(2, 4)}
+            sta  $varname+2
+            lda  #$${from.take(2)}
+            sta  $varname+3
+$loopLabel""")
+        asmgen.translate(stmt.statements)
+        asmgen.out("""
+            lda  $varname
+            cmp  #$${to.substring(6, 8)}
+            bne  +
+            lda  $varname+1
+            cmp  #$${to.substring(4, 6)}
+            bne  +
+            lda  $varname+2
+            cmp  #$${to.substring(2, 4)}
+            bne  +
+            lda  $varname+3
+            cmp  #$${to.take(2)}
+            beq  $endLabel
++           inc  $varname
+            bne  $loopLabel
+            inc  $varname+1
+            bne  $loopLabel
+            inc  $varname+2
+            bne  $loopLabel
+            inc  $varname+3""")
+        asmgen.jmp(loopLabel)
+        asmgen.out(endLabel)
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun translateForSimpleLongRangeDesc(stmt: PtForLoop, range: IntProgression) {
         require(range.step==-1)
-        TODO("for long range step -1. Report this error please, and use nested word loops in the meantime  ${stmt.position}")
+        val loopLabel = asmgen.makeLabel("for_loop")
+        val endLabel = asmgen.makeLabel("for_end")
+        asmgen.loopEndLabels.add(endLabel)
+        val varname = asmgen.asmVariableName(stmt.variable)
+        val from = range.first.toLongHex()
+        val to = range.last.toLongHex()
+        asmgen.out("""
+            lda  #$${from.substring(6, 8)}
+            sta  $varname
+            lda  #$${from.substring(4, 6)}
+            sta  $varname+1
+            lda  #$${from.substring(2, 4)}
+            sta  $varname+2
+            lda  #$${from.take(2)}
+            sta  $varname+3
+$loopLabel""")
+        asmgen.translate(stmt.statements)
+        if(range.last==0) {
+            asmgen.out("""
+                lda  $varname
+                bne  ++++
+                lda  $varname+1
+                bne  +++
+                lda  $varname+2
+                bne  ++
+                lda  $varname+3
+                beq  $endLabel""")
+        } else {
+            asmgen.out("""
+                lda  $varname
+                cmp  #$${to.substring(6, 8)}
+                bne  +
+                lda  $varname+1
+                cmp  #$${to.substring(4, 6)}
+                bne  +
+                lda  $varname+2
+                cmp  #$${to.substring(2, 4)}
+                bne  +
+                lda  $varname+3
+                cmp  #$${to.take(2)}
+                beq  $endLabel""")
+        }
+        asmgen.out("""
++           lda  $varname
+            bne  +++
+            lda  $varname+1
+            bne  ++
+            lda  $varname+2
+            bne  +
+            dec  $varname+3
++           dec  $varname+2
++           dec  $varname+1
++           dec  $varname""")
+        asmgen.jmp(loopLabel)
+        asmgen.out(endLabel)
+        asmgen.loopEndLabels.removeLast()
     }
 
     private fun assignLoopvarWord(stmt: PtForLoop, range: PtRange) =
