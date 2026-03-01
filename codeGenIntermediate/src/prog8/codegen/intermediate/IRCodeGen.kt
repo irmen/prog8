@@ -677,7 +677,7 @@ class IRCodeGen(
             when (loopvarDtIr) {
                 IRDataType.BYTE -> rangeEndExclusiveUntyped and 255
                 IRDataType.WORD -> rangeEndExclusiveUntyped and 65535
-                else -> rangeEndExclusiveUntyped and 0x7fffffff
+                else -> rangeEndExclusiveUntyped
             }
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
