@@ -105,6 +105,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is PtrDereference -> transform(expr)
             is StaticStructInitializer -> transform(expr)
             is ArrayIndexedPtrDereference -> throw FatalAstException("this should have been converted to some other ast nodes")
+            is ExpressionTuple -> throw FatalAstException("this should have been converted to some other ast nodes")
         }
     }
 

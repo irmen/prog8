@@ -85,6 +85,9 @@ Elements of a program
     The global scope can only contain blocks and some directives, while the others can contain variables and subroutines too.
     Some more details about how to deal with scopes and names is discussed below.
 
+Variables
+---------
+How to declare variables in prog8 is explained in a separate chapter :ref:`variables`.
 
 Identifiers
 -----------
@@ -897,16 +900,17 @@ Assignments
 -----------
 .. index:: single: Assignments
 
-Assignment statements assign a single value to a target variable or memory location.
+Assignment statements assign a value to a target variable or memory location.
 Augmented assignments (such as ``aa += xx``) are also available, but these are just shorthands
 for normal assignments (``aa = aa + xx``).
 
 It is possible to "chain" assignments: ``x = y = z = 42``, this is just a shorthand
 for the three individual assignments with the same value 42.
 
-For subroutines that return multiple values, you should write a "multi assign" statement
-with comma separated assignment targets, to assigns those multiple values.
-Details can be found here: :ref:`multiassign`.
+It is also possible to do a multi-value assignment: ``x, y, z = 11, 22, 33``. This is
+just a shorter way to write the three separate assignments ``x=11`` followed by ``y=22`` followed by ``z=33``.
+For subroutines that return multiple values, you have to write sucha multi-value assigment statement
+as well, to assigns those multiple values. Details can be found here: :ref:`multiassign`.
 
 
 .. attention::

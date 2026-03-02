@@ -174,9 +174,15 @@ initializing an array: ``ubyte[3] array = [11,22,33]``
     The initiazation value has to be a range value or an array literal (remember you can use '[4] * 3' and such).
     Ofcourse the size of the range or the number of values in the array has to match the declared array size.
 
-initializing a multi variable declaration: ``ubyte a,b,c = multi()``
-    The initialization value can be a single constant value which will then be assigned to each of the variables.
-    It can also be a subroutine call to a subroutine returning multiple result values, which will then be put
+initializing a multi variable declaration with different values: ``ubyte a,b,c = 11,22,33``
+    Here we have separate initialization values for each of the declared variables in that order.
+    This is just a shorter way to write this as writing it as three separate variable declarations.
+
+initializing a multi variable declaration with the same value for all: ``ubyte a,b,c = 42``
+    The initialization value here is a single constant value which will then be assigned to each of the variables.
+
+initializing from a subroutine returning multiple result values: ``ubyte a,b,c = multi()``
+    Here the initialization value can also be a subroutine call to a subroutine returning multiple result values, which will then be put
     into the declared variables in order.  Ofcourse the number of values has to match the number of variables.
 
 

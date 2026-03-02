@@ -168,7 +168,10 @@ vardecl: datatype (arrayindex | EMPTYARRAYSIG)? TAG* identifierlist ;
 
 identifierlist: identifier (',' identifier)* ;
 
-varinitializer : vardecl '=' expression ;
+varinitializer :
+    vardecl '=' expression
+    | vardecl '=' tuple_expression
+    ;
 
 constdecl: 'const' datatype? identifierlist '=' expression ;
 
@@ -182,7 +185,12 @@ pointertype: POINTER (scoped_identifier | basedatatype);
 
 arrayindex:  '[' expression ']' ;
 
-assignment :  (assign_target '=' expression) | (assign_target '=' assignment) | (multi_assign_target '=' expression);
+assignment :
+    assign_target '=' expression
+    | assign_target '=' assignment
+    | multi_assign_target '=' expression
+    | multi_assign_target '=' tuple_expression
+    ;
 
 augassignment :
     assign_target operator=('+=' | '-=' | '/=' | '*=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
@@ -235,6 +243,7 @@ expression :
     | staticstructinitializer
     ;
 
+tuple_expression: expression (',' EOL? expression)+  ;
 
 sizeof_argument: basedatatype | expression | pointertype ;
 

@@ -82,6 +82,11 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         return visitChildren(ctx) as Expression
     }
 
+    override fun visitTuple_expression(ctx: Tuple_expressionContext): ExpressionTuple {
+        val expressions  = ctx.expression().map { it.accept(this) as Expression }
+        return ExpressionTuple(expressions, ctx.toPosition())
+    }
+
     override fun visitSubroutinedeclaration(ctx: SubroutinedeclarationContext): Subroutine {
         if(ctx.subroutine()!=null)
             return ctx.subroutine().accept(this) as Subroutine
@@ -187,7 +192,11 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitVarinitializer(ctx: VarinitializerContext): VarDecl {
         val vardecl = ctx.vardecl().accept(this) as VarDecl
-        vardecl.value = ctx.expression().accept(this) as Expression
+        val tuple = ctx.tuple_expression()
+        vardecl.value = if(tuple!=null)
+            tuple.accept(this) as ExpressionTuple
+        else
+            ctx.expression().accept(this) as Expression
         return vardecl
     }
 
@@ -232,6 +241,34 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitAssignment(ctx: AssignmentContext): Statement {
+        val tuple = ctx.tuple_expression()
+        if(tuple!=null) {
+            val targets = ctx.multi_assign_target().assign_target().map { it.accept(this) as AssignTarget }
+            val values = tuple.accept(this) as ExpressionTuple
+            if(targets.size!=values.expressions.size) {
+                throw SyntaxError("multivalue assignment: number of values does not match number of targets", ctx.toPosition())
+            } else {
+
+                if (values.expressions.all { it is NumericLiteral }) {
+                    val firstValue = (values.expressions.first() as NumericLiteral).number
+                    if(values.expressions.all { (it as NumericLiteral).number == firstValue }) {
+                        // replace by a chained assignment a=b=c = 42
+                        val value = values.expressions[0]
+                        var chain: Statement = Assignment(targets.last(), value, AssignmentOrigin.USERCODE, ctx.toPosition())
+                        for (target in targets.reversed().drop(1)) {
+                            chain = ChainedAssignment(target, chain, ctx.toPosition())
+                        }
+                        return chain
+                    }
+                }
+
+                val assigns = targets.zip(values.expressions).map { (target, value) ->
+                    Assignment(target, value, AssignmentOrigin.USERCODE, ctx.toPosition()) as Statement
+                }
+                return AnonymousScope(assigns.toMutableList(), ctx.toPosition())
+            }
+        }
+
         val multiAssign = ctx.multi_assign_target()
         if(multiAssign!=null) {
             return Assignment(multiAssign.accept(this) as AssignTarget, ctx.expression().accept(this) as Expression, AssignmentOrigin.USERCODE, ctx.toPosition())

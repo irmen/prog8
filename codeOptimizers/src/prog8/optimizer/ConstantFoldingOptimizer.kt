@@ -1,10 +1,7 @@
 package prog8.optimizer
 
-import prog8.ast.FatalAstException
-import prog8.ast.Node
-import prog8.ast.Program
+import prog8.ast.*
 import prog8.ast.expressions.*
-import prog8.ast.maySwapOperandOrder
 import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
@@ -383,7 +380,23 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             if(functionCallExpr.args.size==1) {
                 val constArg = functionCallExpr.args[0].constValue(program)?.number?.toLong()
                 if(constArg!=null) {
-                    errors.info("constant lmh expression can be replaced by 3 separate constant byte values", functionCallExpr.position)
+                    val assign = parent as? Assignment
+                    if(assign!=null && assign.target.multi?.size==3) {
+                        val low = constArg and 255
+                        val mid = (constArg shr 8) and 255
+                        val high = (constArg shr 16) and 255
+                        val assignLow = Assignment(assign.target.multi!![0], NumericLiteral(BaseDataType.UBYTE, low.toDouble(), assign.position),AssignmentOrigin.USERCODE, assign.position)
+                        val assignMid = Assignment(assign.target.multi!![1], NumericLiteral(BaseDataType.UBYTE, mid.toDouble(), assign.position), AssignmentOrigin.USERCODE, assign.position)
+                        val assignHigh = Assignment(assign.target.multi!![2], NumericLiteral(BaseDataType.UBYTE, high.toDouble(), assign.position), AssignmentOrigin.USERCODE, assign.position)
+                        return listOf(
+                            IAstModification.InsertAfter(assign, assignHigh, assign.parent as IStatementContainer),
+                            IAstModification.InsertAfter(assign, assignMid, assign.parent as IStatementContainer),
+                            IAstModification.InsertAfter(assign, assignLow, assign.parent as IStatementContainer),
+                            IAstModification.Remove(assign, assign.parent as IStatementContainer)
+                        )
+                    } else {
+                        errors.info("constant lmh expression can be replaced by 3 separate constant byte values", functionCallExpr.position)
+                    }
                     return noModifications
                 }
             }

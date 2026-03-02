@@ -1943,3 +1943,27 @@ fun invertCondition(cond: Expression, program: Program): Expression {
     else
         BinaryExpression(cond, "==", NumericLiteral(BaseDataType.UBYTE, 0.0, cond.position), cond.position)
 }
+
+
+class ExpressionTuple(val expressions: List<Expression>, override val position: Position): Expression() {
+
+    override lateinit var parent: Node
+    override fun linkParents(parent: Node) {
+        this.parent = parent
+        expressions.forEach { it.linkParents(this) }
+    }
+
+    override fun replaceChildNode(node: Node, replacement: Node) {
+        throw FatalAstException("can't replace anything in a ExpressionTuple node")
+    }
+
+    override val isSimple = expressions.all { it.isSimple }
+    override fun referencesIdentifier(nameInSource: List<String>) = expressions.any { it.referencesIdentifier(nameInSource) }
+    override fun copy(): ExpressionTuple = ExpressionTuple(expressions.map { it.copy() }, position)
+
+    override fun constValue(program: Program): NumericLiteral? { throw FatalAstException("should not be called ever") }
+    override fun accept(visitor: IAstVisitor)  { throw FatalAstException("should not be called ever") }
+    override fun accept(visitor: AstWalker, parent: Node)  { throw FatalAstException("should not be called ever") }
+    override fun inferType(program: Program): InferredTypes.InferredType  { throw FatalAstException("should not be called ever") }
+
+}

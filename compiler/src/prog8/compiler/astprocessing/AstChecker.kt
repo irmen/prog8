@@ -738,7 +738,7 @@ internal class AstChecker(private val program: Program,
         // also check the types of the variables vs the types of each return value
         when {
             fcall == null || fcallTarget==null -> {
-                errors.err("expected a function call with multiple return values", assignment.value.position)
+                errors.err("expected a function call with multiple return values, or a chained assignment (a=b=c=value)", assignment.value.position)
             }
             fcallTarget is Subroutine -> {
                 // function calls regular subroutine

@@ -217,6 +217,38 @@ class AstPreprocessor(val program: Program,
         return noModifications
     }
 
+    override fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        val tuple = decl.value as? ExpressionTuple
+        if(tuple!=null) {
+            if(decl.names.size != tuple.expressions.size) {
+                errors.err("number of initialization values does not match number of variables", decl.position)
+                decl.value = null
+            } else {
+                decl.value = null
+
+                // check if all values in the tuple are a NumericLiteral and that they are all the same number
+                // if so replace by vardecl with just this initialization value
+                if (tuple.expressions.all { it is NumericLiteral }) {
+                    val firstValue = (tuple.expressions.first() as NumericLiteral).number
+                    if(tuple.expressions.all { (it as NumericLiteral).number == firstValue }) {
+                        decl.value = tuple.expressions.first()
+                        return noModifications
+                    }
+                }
+
+                val vardecls = decl.names
+                    .zip(tuple.expressions)
+                    .reversed()
+                    .map { (name, value) ->
+                        val decl = VarDecl(decl.type, decl.origin, decl.datatype, decl.zeropage, decl.splitwordarray, decl.arraysize, name, emptyList(), value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
+                        IAstModification.InsertAfter(decl, decl, parent as IStatementContainer)
+                    }
+                return vardecls + IAstModification.Remove(decl, parent as IStatementContainer)
+            }
+        }
+        return noModifications
+    }
+
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         val nextAssignment = decl.nextSibling() as? Assignment
         if(nextAssignment!=null && nextAssignment.origin!=AssignmentOrigin.VARINIT) {

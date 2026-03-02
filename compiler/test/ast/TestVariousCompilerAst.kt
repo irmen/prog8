@@ -596,6 +596,58 @@ main {
             blockassignments[0].target.identifier?.nameInSource shouldBe listOf("globwi")
             blockassignments[1].target.identifier?.nameInSource shouldBe listOf("globfi")
         }
+
+        test("multi value vardecls and assignments") {
+            val src="""
+main {
+    sub start() {
+        ubyte @shared x,y,z  = 11,22,33
+        x,y,z = 99,88,77
+    }
+}"""
+            val result = compileText(VMTarget(), optimize=false, src, outputDir) shouldNotBe null
+            val st = result!!.codegenAst!!.entrypoint()!!.children
+            st.size shouldBe 11
+            (st[1] as PtVariable).name shouldBe "main.start.x"
+            (st[2] as PtVariable).name shouldBe "main.start.y"
+            (st[3] as PtVariable).name shouldBe "main.start.z"
+            (st[4] as PtAssignment).target.identifier!!.name shouldBe "main.start.x"
+            ((st[4] as PtAssignment).value as PtNumber).number shouldBe 11.0
+            (st[5] as PtAssignment).target.identifier!!.name shouldBe "main.start.y"
+            ((st[5] as PtAssignment).value as PtNumber).number shouldBe 22.0
+            (st[6] as PtAssignment).target.identifier!!.name shouldBe "main.start.z"
+            ((st[6] as PtAssignment).value as PtNumber).number shouldBe 33.0
+            (st[7] as PtAssignment).target.identifier!!.name shouldBe "main.start.x"
+            ((st[7] as PtAssignment).value as PtNumber).number shouldBe 99.0
+            (st[8] as PtAssignment).target.identifier!!.name shouldBe "main.start.y"
+            ((st[8] as PtAssignment).value as PtNumber).number shouldBe 88.0
+            (st[9] as PtAssignment).target.identifier!!.name shouldBe "main.start.z"
+            ((st[9] as PtAssignment).value as PtNumber).number shouldBe 77.0
+        }
+
+        test("multivalue vardecls size error") {
+            val src="""
+main {
+    sub start() {
+        ubyte @shared a,b,c = 11,22,33,44
+    }
+}"""
+            val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+            compileText(VMTarget(), optimize=false, src, outputDir, errors=errors) shouldBe null
+            errors.errors.size shouldBe 1
+            errors.errors[0] shouldContain "does not match"
+        }
+
+        test("multivalue assignment size error") {
+            val src="""
+main {
+    sub start() {
+        ubyte @shared a,b,c
+        a,b,c = 99,88,77,66
+    }
+}"""
+            compileText(VMTarget(), optimize=false, src, outputDir) shouldBe null
+        }
     }
 
 context("various") {

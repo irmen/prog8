@@ -5,30 +5,30 @@
 main {
     ; Test the routine
     sub start() {
-        long counter
-        long lv
-        for lv in 4000 to 94000-1 {
-            counter++
-        }
-        for lv in 70000-1 downto 0 {
-            counter++
-        }
-        for lv in 94000-1 downto 4000 {
-            counter++
-        }
 
-        for lv in 4000 to 94000-1 step 10 {
-            counter++
-        }
-        for lv in 70000-1 downto 0 step -10 {
-            counter++
-        }
-        for lv in 94000-1 downto 4000 step -10 {
-            counter++
-        }
+        ubyte x,y,z  = 11,22,33
 
-        txt.print_l(counter)
+        txt.print_ub(x)
+        txt.spc()
+        txt.print_ub(y)
+        txt.spc()
+        txt.print_ub(z)
         txt.nl()
+
+        x,y,z = 99,88,77
+        x,y,z = multi()
+
+        txt.print_ub(x)
+        txt.spc()
+        txt.print_ub(y)
+        txt.spc()
+        txt.print_ub(z)
+        txt.nl()
+    }
+
+    sub multi() -> ubyte, ubyte, ubyte {
+        cx16.r0++
+        return cx16.r0L, cx16.r1L, cx16.r2L
     }
 }
 
