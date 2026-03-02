@@ -134,6 +134,7 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
             // each individual call to the pseudo function structalloc(),
             // needs to generate a separate unique struct instance label.
             // (unlike memory() where the label is not unique and passed as the first argument)
+            // NOTE that this routine is called multiple times for the same nodes during compilation. THe label for the same node must remain the same! So a increasing sequence number cannot be used...
             val scopehash = call.parent.hashCode().toUInt().toString(16)
             val pos = "${call.position.line}_${call.position.startCol}"
             val hash = call.position.file.hashCode().toUInt().toString(16)

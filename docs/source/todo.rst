@@ -39,7 +39,6 @@ Future Things and Ideas
   Can give descriptive error message for old syntax that still includes the type name?
 - improve ANTLR grammar with better error handling (see grammar-changes.md)
 - add documentation for more library modules instead of just linking to the source code
-- can we just use index numbers instead of object hashes for struct instance labels (and other places?)  see labelnameForStructInstance
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
 - Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
