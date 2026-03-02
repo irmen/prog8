@@ -2,11 +2,6 @@
 %zeropage basicsafe
 %option no_sysinit
 
-; TODO fix:
-; long lv
-; lv--
-
-
 main {
     ; Test the routine
     sub start() {

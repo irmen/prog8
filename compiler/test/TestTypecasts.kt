@@ -938,6 +938,17 @@ main {
         BinaryExpression.commonDatatype(DataType.pointer(BaseDataType.BOOL), DataType.BYTE, null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
         BinaryExpression.commonDatatype(DataType.pointer(BaseDataType.BOOL), DataType.WORD, null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
 
+        BinaryExpression.commonDatatype(DataType.LONG, DataType.BYTE, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.LONG, DataType.UBYTE, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.LONG, DataType.WORD, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.LONG, DataType.UWORD, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.LONG, DataType.LONG, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.BYTE, DataType.LONG, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.UBYTE, DataType.LONG, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.WORD, DataType.LONG, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.UWORD, DataType.LONG, null, null).first shouldBe DataType.LONG
+        BinaryExpression.commonDatatype(DataType.LONG, DataType.LONG, null, null).first shouldBe DataType.LONG
+
         BinaryExpression.commonDatatype(DataType.UBYTE, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
         BinaryExpression.commonDatatype(DataType.UWORD, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
         BinaryExpression.commonDatatype(DataType.BYTE, DataType.pointer(BaseDataType.BOOL), null, null).first shouldBe DataType.pointer(BaseDataType.BOOL)
