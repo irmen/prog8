@@ -42,10 +42,9 @@ All have type b or w or f.
 
 load        reg1,         value       - load immediate value into register. If you supply a symbol, loads the *address* of the symbol! (variable values are loaded from memory via the loadm instruction)
 loadm       reg1,         address     - load reg1 with value at memory address
-loadi       reg1, reg2                - load reg1 with value at memory indirect, memory pointed to by reg2
+loadi       reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to read a field from a pointer to a struct, or with offset=0 just straight from the pointer)
 loadx       reg1, reg2,   address     - load reg1 with value at memory address indexed by value in reg2 (0-255, a byte)
 loadr       reg1, reg2                - load reg1 with value in register reg2,  "reg1 = reg2"
-loadfield   reg1, reg2,   value       - load reg1 with value in memory indirect, pointed to by reg2 + value 0-65535 (gets a field from a pointer to a struct, like LOADI with additional field offset 0-65535)
 loadha      reg1                      - load cpu hardware register A into reg1.b
 loadhx      reg1                      - load cpu hardware register X into reg1.b
 loadhy      reg1                      - load cpu hardware register Y into reg1.b
@@ -55,12 +54,11 @@ loadhxy     reg1                      - load cpu hardware register pair XY into 
 loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into freg1.f
 loadhfacone        fpreg1             - load "cpu hardware register" fac1 into freg1.f
 storem      reg1,         address     - store reg1 at memory address
-storei      reg1, reg2                - store reg1 at memory indirect, memory pointed to by reg2
+storei      reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to write a field from a pointer to a struct, or with offset=0 just straight to the pointer)
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
 storezm                   address     - store zero at memory address
 storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
-storefield  reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + value 0-65535 (set a field from a pointer to a struct, like STOREI with additional field offset 0-65535)
 storeha     reg1                      - store reg1.b into cpu hardware register A
 storehx     reg1                      - store reg1.b into cpu hardware register X
 storehy     reg1                      - store reg1.b into cpu hardware register Y
@@ -265,7 +263,6 @@ enum class Opcode {
     NOP,
     LOAD,       // note: LOAD <symbol>  gets you the address of the symbol, whereas LOADM <symbol> would get you the value stored at that location
     LOADM,
-    LOADI,      // the only opcode that allows r1 and r2 to be the same; because this saves a lot of intermediary registers and loads to dereference a pointer chain
     LOADX,
     LOADR,
     LOADHA,
@@ -274,11 +271,10 @@ enum class Opcode {
     LOADHAX,
     LOADHAY,
     LOADHXY,
-    LOADFIELD,
+    LOADI,
     LOADHFACZERO,
     LOADHFACONE,
     STOREM,
-    STOREI,
     STOREX,
     STOREZM,
     STOREZI,
@@ -289,7 +285,7 @@ enum class Opcode {
     STOREHAX,
     STOREHAY,
     STOREHXY,
-    STOREFIELD,
+    STOREI,
     STOREHFACZERO,
     STOREHFACONE,
 
@@ -504,7 +500,6 @@ val OpcodesThatSetStatusbitsIncludingCarry = arrayOf(
 val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOAD,
     Opcode.LOADM,
-    Opcode.LOADI,
     Opcode.LOADX,
     Opcode.LOADR,
     Opcode.LOADHA,
@@ -513,7 +508,7 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.LOADHAX,
     Opcode.LOADHAY,
     Opcode.LOADHXY,
-    Opcode.LOADFIELD,
+    Opcode.LOADI,
     Opcode.NEG,
     Opcode.NEGM,
     Opcode.INC,
@@ -552,7 +547,6 @@ val OpcodesThatDependOnCarry = arrayOf(
 val OpcodesThatLoad = arrayOf(
     Opcode.LOAD,
     Opcode.LOADM,
-    Opcode.LOADI,
     Opcode.LOADX,
     Opcode.LOADR,
     Opcode.LOADHA,
@@ -561,7 +555,7 @@ val OpcodesThatLoad = arrayOf(
     Opcode.LOADHAX,
     Opcode.LOADHAY,
     Opcode.LOADHXY,
-    Opcode.LOADFIELD,
+    Opcode.LOADI,
     Opcode.LOADHFACZERO,
     Opcode.LOADHFACONE
 )
@@ -663,7 +657,6 @@ val instructionFormats = mutableMapOf(
     Opcode.NOP        to InstructionFormat.from("N"),
     Opcode.LOAD       to InstructionFormat.from("BWL,>r1,<i     | F,>fr1,<i"),
     Opcode.LOADM      to InstructionFormat.from("BWL,>r1,<a     | F,>fr1,<a"),
-    Opcode.LOADI      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<r1"),
     Opcode.LOADX      to InstructionFormat.from("BWL,>r1,<r2,<a | F,>fr1,<r1,<a"),
     Opcode.LOADR      to InstructionFormat.from("BWL,>r1,<r2    | F,>fr1,<fr2"),
     Opcode.LOADHA     to InstructionFormat.from("B,>r1"),
@@ -673,11 +666,10 @@ val instructionFormats = mutableMapOf(
     Opcode.LOADHAX    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHAY    to InstructionFormat.from("W,>r1"),
     Opcode.LOADHXY    to InstructionFormat.from("W,>r1"),
-    Opcode.LOADFIELD  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
+    Opcode.LOADI  to InstructionFormat.from("BWL,>r1,<r2,<i | F,>fr1,<r1,<i"),
     Opcode.LOADHFACZERO to InstructionFormat.from("F,>fr1"),
     Opcode.LOADHFACONE  to InstructionFormat.from("F,>fr1"),
     Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
-    Opcode.STOREI     to InstructionFormat.from("BWL,<r1,<r2    | F,<fr1,<r1"),
     Opcode.STOREX     to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
     Opcode.STOREZI    to InstructionFormat.from("BWL,<r1        | F,<r1"),
@@ -689,7 +681,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREHAX   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHAY   to InstructionFormat.from("W,<r1"),
     Opcode.STOREHXY   to InstructionFormat.from("W,<r1"),
-    Opcode.STOREFIELD to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
+    Opcode.STOREI to InstructionFormat.from("BWL,<r1,<r2,<i | F,<fr1,<r1,<i"),
     Opcode.STOREHFACZERO  to InstructionFormat.from("F,<fr1"),
     Opcode.STOREHFACONE  to InstructionFormat.from("F,<fr1"),
     Opcode.JUMP       to InstructionFormat.from("N,<a"),
@@ -905,13 +897,13 @@ data class IRInstruction(
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
             if(type==IRDataType.FLOAT) {
-                if(opcode!=Opcode.LOADFIELD && opcode!=Opcode.STOREFIELD)
+                if(opcode!=Opcode.LOADI && opcode!=Opcode.STOREI)
                     requireNotNull(immediateFp) { "missing immediate fp value" }
             }
             else
                 require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
-        if(opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD) {
+        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI) {
             require(immediate != null) {
                 "missing immediate value for $opcode" }
         }
@@ -921,8 +913,8 @@ data class IRInstruction(
             require(address!=null || labelSymbol!=null) {
                 "missing an address or labelsymbol"}
         if(format.immediate && (immediate!=null || immediateFp!=null)) {
-            if(opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD) {
-                require(immediate in 0..65535) { "immediate value out of range for loadfield/storefield: $immediate" }
+            if(opcode==Opcode.LOADI || opcode==Opcode.STOREI) {
+                require(immediate in 0..65535) { "immediate value out of range for loadi/storei: $immediate" }
             } else if(opcode!=Opcode.SYSCALL) {
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }
@@ -1158,7 +1150,7 @@ data class IRInstruction(
     private fun determineReg2Type(): IRDataType? {
         if(opcode==Opcode.LOADX || opcode==Opcode.STOREX)
             return IRDataType.BYTE
-        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI || opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD)
+        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI)
             return IRDataType.WORD
         if(opcode==Opcode.ASRN || opcode==Opcode.LSRN || opcode==Opcode.LSLN)
             return IRDataType.BYTE

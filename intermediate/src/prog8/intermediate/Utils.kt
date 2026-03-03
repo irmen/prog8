@@ -153,7 +153,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 if (format.immediate) {
                     if (immediateInt == null && immediateFp == null) {
                         when (type) {
-                            IRDataType.FLOAT if opcode != Opcode.LOADFIELD && opcode != Opcode.STOREFIELD -> immediateFp = value
+                            IRDataType.FLOAT if opcode != Opcode.LOADI && opcode != Opcode.STOREI -> immediateFp = value
                             IRDataType.LONG -> {
                                 val immediateLong = value.toLong()
                                 immediateInt = if (immediateLong == 0x80000000L) -2147483648 else immediateLong.toInt()
@@ -204,9 +204,9 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     if(format.immediate && opcode!=Opcode.SYSCALL) {
         if(immediateInt==null && immediateFp==null && labelSymbol==null)
             throw IRParseException("needs value or symbol for $line")
-        if(opcode==Opcode.LOADFIELD || opcode==Opcode.STOREFIELD) {
+        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI) {
             if(immediateInt !in 0..65535)
-                throw IRParseException("immediate value out of range for loadfield/storefield: $immediateInt")
+                throw IRParseException("immediate value out of range for loadi/storei: $immediateInt")
         } else {
             when (type) {
                 IRDataType.BYTE -> {

@@ -146,15 +146,15 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             IRDataType.LONG -> {
                 val intermediateReg = codeGen.registers.next(IRDataType.LONG)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADI, type, reg1=intermediateReg, reg2=trSourceAddr.resultReg)
-                    it += IRInstruction(Opcode.STOREI, type, reg1=intermediateReg, reg2=trTargetAddr.resultReg)
+                    it += IRInstruction(Opcode.LOADI, type, reg1=intermediateReg, reg2=trSourceAddr.resultReg, immediate = 0)
+                    it += IRInstruction(Opcode.STOREI, type, reg1=intermediateReg, reg2=trTargetAddr.resultReg, immediate = 0)
                 }
             }
             IRDataType.FLOAT -> {
                 val intermediateReg = codeGen.registers.next(IRDataType.FLOAT)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADI, type, fpReg1=intermediateReg, reg1=trSourceAddr.resultReg)
-                    it += IRInstruction(Opcode.STOREI, type, fpReg1=intermediateReg, reg1=trTargetAddr.resultReg)
+                    it += IRInstruction(Opcode.LOADI, type, fpReg1=intermediateReg, reg1=trSourceAddr.resultReg, immediate = 0)
+                    it += IRInstruction(Opcode.STOREI, type, fpReg1=intermediateReg, reg1=trTargetAddr.resultReg, immediate = 0)
                 }
             }
             else -> throw AssemblyError("invalid type $type")
@@ -578,12 +578,12 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 if(dt==IRDataType.FLOAT) {
                     addToResult(result, valueTr, -1, valueTr.resultFpReg)
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.STOREI, IRDataType.FLOAT, reg1 = addressTr.resultReg, fpReg1 = valueTr.resultFpReg)
+                        it += IRInstruction(Opcode.STOREI, IRDataType.FLOAT, reg1 = addressTr.resultReg, fpReg1 = valueTr.resultFpReg, immediate = 0)
                     }
                 } else {
                     addToResult(result, valueTr, valueTr.resultReg, -1)
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.STOREI, dt, reg1 = valueTr.resultReg, reg2 = addressTr.resultReg)
+                        it += IRInstruction(Opcode.STOREI, dt, reg1 = valueTr.resultReg, reg2 = addressTr.resultReg, immediate = 0)
                     }
                 }
             }
@@ -606,7 +606,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 addToResult(result, tr, tr.resultReg, -1)
                 val resultFpReg = codeGen.registers.next(IRDataType.FLOAT)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADI, IRDataType.FLOAT, reg1 = tr.resultReg, fpReg1 = resultFpReg)
+                    it += IRInstruction(Opcode.LOADI, IRDataType.FLOAT, reg1 = tr.resultReg, fpReg1 = resultFpReg, immediate = 0)
                 }
                 ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultFpReg)
             }
@@ -623,7 +623,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 addToResult(result, tr, tr.resultReg, -1)
                 val resultReg = codeGen.registers.next(dt)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADI, dt, reg1 = resultReg, reg2 = tr.resultReg)
+                    it += IRInstruction(Opcode.LOADI, dt, reg1 = resultReg, reg2 = tr.resultReg, immediate = 0)
                 }
                 ExpressionCodeResult(result, dt, resultReg, -1)
             }
@@ -657,7 +657,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 val valueTr = exprGen.translateExpression(value)
                 addToResult(result, valueTr, valueTr.resultReg, -1)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = register)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = register, immediate = 0)
                 }
             }
         }
@@ -676,7 +676,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             addToResult(result, addressTr, addressTr.resultReg, -1)
             val resultReg = codeGen.registers.next(IRDataType.BYTE)
             result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = addressTr.resultReg)
+                it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = addressTr.resultReg, immediate = 0)
             }
             // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
             pokeI(result, addressTr.resultReg, call.args[1])
@@ -859,7 +859,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                             else
                                 IRInstruction(Opcode.INC, IRDataType.WORD, reg1 = pointerReg)
                         }
-                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = pointerReg)
+                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = pointerReg, immediate = 0)
                     }
                 }
             }

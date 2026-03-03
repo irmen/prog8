@@ -2045,7 +2045,7 @@ class IRCodeGen(
     }
 
     internal fun evaluatePointerAddressIntoReg(result: MutableList<IRCodeChunkBase>, deref: PtPointerDeref): Pair<Int, UByte> {
-        // calculates the pointer address and returns the register it's in + remaining offset into the struct  (so that LOADFIELD/STOREFIELD instructions can be used)
+        // calculates the pointer address and returns the register it's in + remaining offset into the struct  (so that LOADI/STOREFIELD instructions can be used)
         val pointerTr = expressionEval.translateExpression(deref.startpointer)
         result += pointerTr.chunks
         val (instructions, offset) = expressionEval.traverseRestOfDerefChainToCalculateFinalAddress(deref, pointerTr.resultReg)
@@ -2058,10 +2058,10 @@ class IRCodeGen(
             val irdt = irType(type)
             val instr = if(type.isFloat) {
                 if (valueIsZero) IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = addressReg)
-                else IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = existingValueRegister, reg1 = addressReg)
+                else IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = existingValueRegister, reg1 = addressReg, immediate = 0)
             } else {
                 if (valueIsZero) IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg)
-                else IRInstruction(Opcode.STOREI, irdt, reg1 = existingValueRegister, reg2 = addressReg)
+                else IRInstruction(Opcode.STOREI, irdt, reg1 = existingValueRegister, reg2 = addressReg, immediate = 0)
             }
             addInstr(result, instr, null)
             return
@@ -2080,9 +2080,9 @@ class IRCodeGen(
             }
         }
         val instr = if (type.isFloat)
-            IRInstruction(Opcode.STOREFIELD, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg, immediate = offset.toInt())
+            IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg, immediate = offset.toInt())
         else
-            IRInstruction(Opcode.STOREFIELD, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
+            IRInstruction(Opcode.STOREI, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
         addInstr(result, instr, null)
     }
 

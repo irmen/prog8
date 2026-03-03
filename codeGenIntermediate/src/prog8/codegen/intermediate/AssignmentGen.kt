@@ -179,7 +179,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 if(augAssign.operator!="or=" && augAssign.operator!="and=") {
                     // for everything except the shortcircuit boolean operators, we can evaluate the value here unconditionally
                     operandTr = expressionEval.translateExpression(value)
-                    // note: the instructions to load the value will be placed after the LOADFIELD instruction so that later optimizations about what modification is actually done, are easier
+                    // note: the instructions to load the value will be placed after the LOADI instruction so that later optimizations about what modification is actually done, are easier
                 }
                 if(targetDt== IRDataType.FLOAT) {
 
@@ -271,31 +271,17 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         oldvalueReg: Int
     ) {
         if (targetDt == IRDataType.FLOAT) {
-            if (fieldOffset > 0u)
-                addInstr(
-                    inplaceInstrs,
-                    IRInstruction(Opcode.LOADFIELD, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg, immediate = fieldOffset.toInt()),
-                    null
-                )
-            else
-                addInstr(
-                    inplaceInstrs,
-                    IRInstruction(Opcode.LOADI, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg),
-                    null
-                )
+            addInstr(
+                inplaceInstrs,
+                IRInstruction(Opcode.LOADI, targetDt, fpReg1 = oldvalueReg, reg1 = addressReg, immediate = fieldOffset.toInt()),
+                null
+            )
         } else {
-            if (fieldOffset > 0u)
-                addInstr(
-                    inplaceInstrs,
-                    IRInstruction(Opcode.LOADFIELD, targetDt, reg1 = oldvalueReg, reg2 = addressReg, immediate = fieldOffset.toInt()),
-                    null
-                )
-            else
-                addInstr(
-                    inplaceInstrs,
-                    IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg),
-                    null
-                )
+            addInstr(
+                inplaceInstrs,
+                IRInstruction(Opcode.LOADI, targetDt, reg1 = oldvalueReg, reg2 = addressReg, immediate = fieldOffset.toInt()),
+                null
+            )
         }
     }
 
@@ -338,16 +324,16 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             when(operator) {
                 "-" -> {
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADI, vmDt, reg1=register, reg2=tr.resultReg)
+                        it += IRInstruction(Opcode.LOADI, vmDt, reg1=register, reg2=tr.resultReg, immediate = 0)
                         it += IRInstruction(Opcode.NEG, vmDt, reg1=register)
-                        it += IRInstruction(Opcode.STOREI, vmDt, reg1=register, reg2=tr.resultReg)
+                        it += IRInstruction(Opcode.STOREI, vmDt, reg1=register, reg2=tr.resultReg, immediate = 0)
                     }
                 }
                 "~" -> {
                     result += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADI, vmDt, reg1=register, reg2=tr.resultReg)
+                        it += IRInstruction(Opcode.LOADI, vmDt, reg1=register, reg2=tr.resultReg, immediate = 0)
                         it += IRInstruction(Opcode.INV, vmDt, reg1=register)
-                        it += IRInstruction(Opcode.STOREI, vmDt, reg1=register, reg2=tr.resultReg)
+                        it += IRInstruction(Opcode.STOREI, vmDt, reg1=register, reg2=tr.resultReg, immediate = 0)
                     }
                 }
             }
@@ -583,7 +569,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                                     val pointerReg = codeGen.registers.next(IRDataType.WORD)
                                     result += IRCodeChunk(null, null).also {
                                         it += IRInstruction(Opcode.LOADM, IRDataType.WORD, reg1=pointerReg, labelSymbol = ptrName)
-                                        it += IRInstruction(Opcode.STOREFIELD, IRDataType.BYTE, reg1=valueRegister, reg2=pointerReg, immediate = constOffset)
+                                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=valueRegister, reg2=pointerReg, immediate = constOffset)
                                     }
                                     return result
                                 }
@@ -593,7 +579,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         val tr = expressionEval.translateExpression(memory!!.address)
                         val addressReg = tr.resultReg
                         addToResult(result, tr, tr.resultReg, -1)
-                        addInstr(result, IRInstruction(Opcode.STOREI, targetDt, reg1=valueRegister, reg2=addressReg), null)
+                        addInstr(result, IRInstruction(Opcode.STOREI, targetDt, reg1=valueRegister, reg2=addressReg, immediate = 0), null)
                         return result
                     }
 
@@ -770,9 +756,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 addInstr(
                     result,
                     if (targetDt == IRDataType.FLOAT)
-                        IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueFpRegister, reg1 = pointerReg)
+                        IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueFpRegister, reg1 = pointerReg, immediate = 0)
                     else
-                        IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg), null
+                        IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg, immediate = 0), null
                 )
             }
         } else {
@@ -785,9 +771,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             } else {
                 addInstr(result,
                     if(targetDt== IRDataType.FLOAT)
-                    IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 =valueFpRegister, reg1 = pointerReg)
+                    IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 =valueFpRegister, reg1 = pointerReg, immediate = 0)
                 else
-                    IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg)
+                    IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg, immediate = 0)
                     , null)
             }
         }

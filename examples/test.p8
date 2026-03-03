@@ -3,32 +3,24 @@
 %option no_sysinit
 
 main {
-    ; Test the routine
-    sub start() {
-
-        ubyte x,y,z  = 11,22,33
-
-        txt.print_ub(x)
-        txt.spc()
-        txt.print_ub(y)
-        txt.spc()
-        txt.print_ub(z)
-        txt.nl()
-
-        x,y,z = 99,88,77
-        x,y,z = multi()
-
-        txt.print_ub(x)
-        txt.spc()
-        txt.print_ub(y)
-        txt.spc()
-        txt.print_ub(z)
-        txt.nl()
+    struct Node {
+        uword data1
+        uword data2
+        ^^Node next
     }
 
-    sub multi() -> ubyte, ubyte, ubyte {
-        cx16.r0++
-        return cx16.r0L, cx16.r1L, cx16.r2L
+    sub start() {
+        ^^Node n1 = [1111, 1333,0]
+        ^^Node n2 = [2222, 2333, 0]
+        ^^Node n3 = [3333, 3444, 0]
+
+        n1.next = n2
+        n2.next = n3
+
+        txt.print_uw(n1.next.next)
+        txt.spc()
+        txt.print_uw(n1.next.next.data2)
+        txt.nl()
     }
 }
 

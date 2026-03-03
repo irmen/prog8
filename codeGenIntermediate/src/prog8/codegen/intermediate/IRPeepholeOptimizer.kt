@@ -55,7 +55,6 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || cleanupPushPop(chunk1, indexedInstructions)
                                 || simplifyConstantReturns(chunk1, indexedInstructions)
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
-                                || loadfieldsAndStorefields(chunk1, indexedInstructions)
                                 || removeNops(chunk1, indexedInstructions)   // last time, in case one of the optimizers replaced something with a nop
                     } while (changed)
                 }
@@ -592,24 +591,6 @@ jump p8_label_gen_2
                 }
             }
         }
-        return changed
-    }
-
-    private fun loadfieldsAndStorefields(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
-        var changed = false
-        indexedInstructions.reversed().forEach { (idx, ins) ->
-            if (ins.opcode == Opcode.LOADFIELD && ins.immediate==0) {
-                val loadi = IRInstruction(Opcode.LOADI, ins.type, ins.reg1!!, ins.reg2!!)
-                chunk.instructions[idx] = loadi
-                changed = true
-            }
-            else if (ins.opcode == Opcode.STOREFIELD && ins.immediate==0) {
-                val loadi = IRInstruction(Opcode.STOREI, ins.type, ins.reg1!!, ins.reg2!!)
-                chunk.instructions[idx] = loadi
-                changed = true
-            }
-        }
-
         return changed
     }
 }
