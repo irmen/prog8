@@ -2057,10 +2057,10 @@ class IRCodeGen(
         if(offset<=0u) {
             val irdt = irType(type)
             val instr = if(type.isFloat) {
-                if (valueIsZero) IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = addressReg)
+                if (valueIsZero) IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = addressReg, immediate = 0)
                 else IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = existingValueRegister, reg1 = addressReg, immediate = 0)
             } else {
-                if (valueIsZero) IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg)
+                if (valueIsZero) IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg, immediate = 0)
                 else IRInstruction(Opcode.STOREI, irdt, reg1 = existingValueRegister, reg2 = addressReg, immediate = 0)
             }
             addInstr(result, instr, null)
@@ -2071,19 +2071,14 @@ class IRCodeGen(
         var valueRegister = existingValueRegister
         val irdt = irType(type)
         if(valueIsZero && valueRegister<0) {
-            if(type.isFloat) {
-                valueRegister = registers.next(IRDataType.FLOAT)
-                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = valueRegister, immediateFp = 0.0), null)
-            } else {
-                valueRegister = registers.next(irdt)
-                addInstr(result, IRInstruction(Opcode.LOAD, irdt, reg1 = valueRegister, immediate = 0), null)
-            }
+            addInstr(result, IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg, immediate = offset.toInt()), null)
+        } else {
+            val instr = if (type.isFloat)
+                IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg, immediate = offset.toInt())
+            else
+                IRInstruction(Opcode.STOREI, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
+            addInstr(result, instr, null)
         }
-        val instr = if (type.isFloat)
-            IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg, immediate = offset.toInt())
-        else
-            IRInstruction(Opcode.STOREI, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
-        addInstr(result, instr, null)
     }
 
     internal fun loadIndexReg(index: PtExpression, itemsize: Int, wordIndex: Boolean, arrayIsSplitWords: Boolean): Pair<IRCodeChunks, Int> {

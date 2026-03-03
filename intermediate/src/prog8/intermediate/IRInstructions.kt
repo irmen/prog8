@@ -55,9 +55,9 @@ loadhfaczero       fpreg1             - load "cpu hardware register" fac0 into f
 loadhfacone        fpreg1             - load "cpu hardware register" fac1 into freg1.f
 storem      reg1,         address     - store reg1 at memory address
 storei      reg1, reg2,   value       - store reg1 in memory indirect, pointed to by reg2 + offsetvalue 0-65535 (often used to write a field from a pointer to a struct, or with offset=0 just straight to the pointer)
+storezi     reg1,         value       - store zero at memory pointed to by reg1 + offsetvalue 0-65535  (just like storei, but a shorthand to store a constant 0)
 storex      reg1, reg2,   address     - store reg1 at memory address, indexed by value in reg2 (0-255, a byte)
 storezm                   address     - store zero at memory address
-storezi     reg1                      - store zero at memory pointed to by reg1
 storezx     reg1,         address     - store zero at memory address, indexed by value in reg1 (0-255, a byte)
 storeha     reg1                      - store reg1.b into cpu hardware register A
 storehx     reg1                      - store reg1.b into cpu hardware register X
@@ -491,13 +491,14 @@ val OpcodesThatEndSSAblock = OpcodesThatBranchUnconditionally + setOf(
     Opcode.BLES
 )
 
-val OpcodesThatSetStatusbitsIncludingCarry = arrayOf(
+val OpcodesThatSetStatusbitsIncludingCarry = setOf(
     Opcode.BIT,
     Opcode.CMP,
     Opcode.CMPI,
     Opcode.SGN
 )
-val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
+
+val OpcodesThatSetStatusbitsButNotCarry = setOf(
     Opcode.LOAD,
     Opcode.LOADM,
     Opcode.LOADX,
@@ -533,7 +534,7 @@ val OpcodesThatSetStatusbitsButNotCarry = arrayOf(
     Opcode.CONCAT
 )
 
-val OpcodesThatDependOnCarry = arrayOf(
+val OpcodesThatDependOnCarry = setOf(
     Opcode.BSTCC,
     Opcode.BSTCS,
     Opcode.BSTPOS,
@@ -544,7 +545,7 @@ val OpcodesThatDependOnCarry = arrayOf(
     Opcode.ROXRM
 )
 
-val OpcodesThatLoad = arrayOf(
+val OpcodesThatLoad = setOf(
     Opcode.LOAD,
     Opcode.LOADM,
     Opcode.LOADX,
@@ -559,6 +560,7 @@ val OpcodesThatLoad = arrayOf(
     Opcode.LOADHFACZERO,
     Opcode.LOADHFACONE
 )
+
 val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry
 
 
@@ -672,7 +674,7 @@ val instructionFormats = mutableMapOf(
     Opcode.STOREM     to InstructionFormat.from("BWL,<r1,>a     | F,<fr1,>a"),
     Opcode.STOREX     to InstructionFormat.from("BWL,<r1,<r2,>a | F,<fr1,<r1,>a"),
     Opcode.STOREZM    to InstructionFormat.from("BWL,>a         | F,>a"),
-    Opcode.STOREZI    to InstructionFormat.from("BWL,<r1        | F,<r1"),
+    Opcode.STOREZI    to InstructionFormat.from("BWL,<r1,<i     | F,<r1,<i"),
     Opcode.STOREZX    to InstructionFormat.from("BWL,<r1,>a     | F,<r1,>a"),
     Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
     Opcode.STOREHA    to InstructionFormat.from("B,<r1"),
@@ -897,13 +899,13 @@ data class IRInstruction(
         if(format.fpReg2==OperandDirection.UNUSED) require(fpReg2==null) { "invalid fpReg2" }
         if(format.immediate) {
             if(type==IRDataType.FLOAT) {
-                if(opcode!=Opcode.LOADI && opcode!=Opcode.STOREI)
+                if(opcode !in setOf(Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI))
                     requireNotNull(immediateFp) { "missing immediate fp value" }
             }
             else
                 require(immediate!=null || labelSymbol!=null) {"missing immediate value or labelsymbol"}
         }
-        if(opcode==Opcode.LOADI || opcode==Opcode.STOREI) {
+        if(opcode in setOf(Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI)) {
             require(immediate != null) {
                 "missing immediate value for $opcode" }
         }
@@ -913,8 +915,8 @@ data class IRInstruction(
             require(address!=null || labelSymbol!=null) {
                 "missing an address or labelsymbol"}
         if(format.immediate && (immediate!=null || immediateFp!=null)) {
-            if(opcode==Opcode.LOADI || opcode==Opcode.STOREI) {
-                require(immediate in 0..65535) { "immediate value out of range for loadi/storei: $immediate" }
+            if(opcode in setOf(Opcode.LOADI, Opcode.STOREI, Opcode.STOREZI)) {
+                require(immediate in 0..65535) { "immediate value out of range for loadi/storei/storezi: $immediate" }
             } else if(opcode!=Opcode.SYSCALL) {
                 when (type) {
                     IRDataType.BYTE -> require(immediate in -128..255) { "immediate value out of range for byte: $immediate" }

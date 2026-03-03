@@ -3,24 +3,32 @@
 %option no_sysinit
 
 main {
-    struct Node {
-        uword data1
-        uword data2
-        ^^Node next
-    }
 
     sub start() {
-        ^^Node n1 = [1111, 1333,0]
-        ^^Node n2 = [2222, 2333, 0]
-        ^^Node n3 = [3333, 3444, 0]
-
-        n1.next = n2
-        n2.next = n3
-
-        txt.print_uw(n1.next.next)
-        txt.spc()
-        txt.print_uw(n1.next.next.data2)
+        sprptr = 4000
+        poke(4000+2*sizeof(Sprite), 0)
+        pokew(4000+2*sizeof(Sprite)+1, 4242)
+        txt.print_uw(sprptr[2].y)
         txt.nl()
-    }
-}
+        sprptr[2]^^.y = 9999
+        txt.print_uw(sprptr[2].y)
+        txt.nl()
 
+;        pokew(sprptr as uword + (sizeof(Sprite) as uword)*2 + offsetof(Sprite.y), 99)
+;        sprptr[cx16.r0L]^^.y = 99
+;        pokew(sprptr as uword + (sizeof(Sprite) as uword)*cx16.r0L + offsetof(Sprite.y), 99)
+;
+;        sprites[2]^^.y = 99
+;        pokew(sprites[2] as uword + offsetof(Sprite.y), 99)
+;        sprites[cx16.r0L]^^.y = 99
+;        pokew(sprites[cx16.r0L] as uword + offsetof(Sprite.y), 99)
+    }
+
+    struct Sprite {
+        ubyte x
+        uword y
+    }
+
+    ^^Sprite[4] @shared sprites
+    ^^Sprite @shared sprptr
+}

@@ -93,6 +93,18 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
+    internal fun getAddressAndOffset(expression: PtExpression): Pair<PtExpression?, Int?> {
+        // if the expression is of the form  address + offset (where offset<=65535), return those components
+        if(expression is PtBinaryExpression && expression.operator=="+") {
+            val offset=expression.right as? PtNumber
+            if(offset!=null && offset.number.toInt()<=65535) {
+                return expression.left to offset.number.toInt()
+            }
+        }
+        return null to null
+    }
+
+
     private fun translate(deref: PtPointerDeref): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         var pointerReg: Int

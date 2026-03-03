@@ -9,7 +9,7 @@ import prog8.code.core.*
 import prog8.intermediate.*
 
 
-internal class AssignmentGen(private val codeGen: IRCodeGen, private val expressionEval: ExpressionGen) {
+internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen: ExpressionGen) {
 
     internal fun translate(assignment: PtAssignment): IRCodeChunks {
         if(assignment.multiTarget) {
@@ -17,7 +17,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 ?: throw AssemblyError("only function calls can return multiple values in a multi-assign")
 
             val result = mutableListOf<IRCodeChunkBase>()
-            val funcCall = expressionEval.translate(values)
+            val funcCall = exprGen.translate(values)
             val assignmentTargets = assignment.children.dropLast(1)
             addToResult(result, funcCall, funcCall.resultReg, funcCall.resultFpReg)
 
@@ -178,7 +178,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 var operandTr = ExpressionCodeResult(emptyList(), IRDataType.BYTE, -1, -1)
                 if(augAssign.operator!="or=" && augAssign.operator!="and=") {
                     // for everything except the shortcircuit boolean operators, we can evaluate the value here unconditionally
-                    operandTr = expressionEval.translateExpression(value)
+                    operandTr = exprGen.translateExpression(value)
                     // note: the instructions to load the value will be placed after the LOADI instruction so that later optimizations about what modification is actually done, are easier
                 }
                 if(targetDt== IRDataType.FLOAT) {
@@ -216,7 +216,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         "or=" -> {
                             val shortcutLabel = codeGen.createLabelName()
                             addInstr(inplaceInstrs, IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel), null)
-                            val valueTr = expressionEval.translateExpression(value)
+                            val valueTr = exprGen.translateExpression(value)
                             inplaceInstrs += valueTr.chunks
                             addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
                             inplaceInstrs += IRCodeChunk(shortcutLabel, null)
@@ -224,7 +224,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         "and=" -> {
                             val shortcutLabel = codeGen.createLabelName()
                             addInstr(inplaceInstrs, IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel), null)
-                            val valueTr = expressionEval.translateExpression(value)
+                            val valueTr = exprGen.translateExpression(value)
                             inplaceInstrs += valueTr.chunks
                             addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1=oldvalueReg, reg2=valueTr.resultReg), null)
                             inplaceInstrs += IRCodeChunk(shortcutLabel, null)
@@ -319,7 +319,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val result = mutableListOf<IRCodeChunkBase>()
         if(constAddress==null && memory!=null) {
             val register = codeGen.registers.next(vmDt)
-            val tr = expressionEval.translateExpression(memory.address)
+            val tr = exprGen.translateExpression(memory.address)
             addToResult(result, tr, tr.resultReg, -1)
             when(operator) {
                 "-" -> {
@@ -361,7 +361,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         val constIndex = array.index.asConstInteger()
 
         fun loadIndex(): Int {
-            val tr = expressionEval.translateExpression(array.index)
+            val tr = exprGen.translateExpression(array.index)
             addToResult(result, tr, tr.resultReg, -1)
             if(!array.splitWords && eltSize>1)
                 result += codeGen.multiplyByConst(DataType.UBYTE, tr.resultReg, eltSize)
@@ -492,7 +492,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         if(!zero) {
             // calculate the assignment value
             if (valueDt == IRDataType.FLOAT) {
-                val tr = expressionEval.translateExpression(assignment.value)
+                val tr = exprGen.translateExpression(assignment.value)
                 valueFpRegister = tr.resultFpReg
                 addToResult(result, tr, -1, valueFpRegister)
             } else {
@@ -510,7 +510,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                         addInstr(result, IRInstruction(Opcode.EXT, IRDataType.BYTE, reg1=valueRegister, reg2=(assignment.value as PtIrRegister).register), null)
                     }
                 } else {
-                    val tr = expressionEval.translateExpression(assignment.value)
+                    val tr = exprGen.translateExpression(assignment.value)
                     valueRegister = tr.resultReg
                     addToResult(result, tr, valueRegister, -1)
                     if(extendByteToWord) {
@@ -547,11 +547,15 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                             val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, address = (memory!!.address as PtNumber).number.toInt()) }
                             result += chunk
                         } else {
-                            val tr = expressionEval.translateExpression(memory!!.address)
-                            val addressReg = tr.resultReg
-                            addToResult(result, tr, tr.resultReg, -1)
-                            result += IRCodeChunk(null, null).also {
-                                it += IRInstruction(Opcode.STOREZI, targetDt, reg1=addressReg)
+                            val (address, offset) = exprGen.getAddressAndOffset(memory!!.address)
+                            if(address!=null) {
+                                val tr = exprGen.translateExpression(address)
+                                addToResult(result, tr, tr.resultReg, -1)
+                                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = tr.resultReg, immediate = offset!!), null)
+                            } else {
+                                val tr = exprGen.translateExpression(memory!!.address)
+                                addToResult(result, tr, tr.resultReg, -1)
+                                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = tr.resultReg, immediate = 0), null)
                             }
                         }
                     } else {
@@ -576,7 +580,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                             }
                         }
 
-                        val tr = expressionEval.translateExpression(memory!!.address)
+                        val tr = exprGen.translateExpression(memory!!.address)
                         val addressReg = tr.resultReg
                         addToResult(result, tr, tr.resultReg, -1)
                         addInstr(result, IRInstruction(Opcode.STOREI, targetDt, reg1=valueRegister, reg2=addressReg, immediate = 0), null)
@@ -620,7 +624,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         valueRegister: Int,
         valueFpRegister: Int
     ) {
-        val pointerTr = expressionEval.translateExpression(targetIdent)
+        val pointerTr = exprGen.translateExpression(targetIdent)
         result += pointerTr.chunks
         val pointerReg = pointerTr.resultReg
 
@@ -742,23 +746,22 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
         valueRegister: Int,
         valueFpRegister: Int
     ) {
-        val pointerTr = expressionEval.translateExpression(pointerderef)
+        val pointerTr = exprGen.translateExpression(pointerderef)
         result += pointerTr.chunks
         val pointerReg = pointerTr.resultReg
 
         val fixedIndex = targetArray.index.asConstInteger()
         if(fixedIndex!=null) {
             val offset = fixedIndex*eltSize
-            addInstr(result, IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = offset), null)
             if(zero) {
-                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg), null)
+                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg, immediate = offset), null)
             } else {
                 addInstr(
                     result,
                     if (targetDt == IRDataType.FLOAT)
-                        IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueFpRegister, reg1 = pointerReg, immediate = 0)
+                        IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueFpRegister, reg1 = pointerReg, immediate = offset)
                     else
-                        IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg, immediate = 0), null
+                        IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg, immediate = offset), null
                 )
             }
         } else {
@@ -767,13 +770,12 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             result += code
             addInstr(result, IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = pointerReg, reg2 = indexReg), null)
             if(zero) {
-                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg), null)
+                addInstr(result, IRInstruction(Opcode.STOREZI, targetDt, reg1 = pointerReg, immediate = 0), null)
             } else {
-                addInstr(result,
-                    if(targetDt== IRDataType.FLOAT)
-                    IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 =valueFpRegister, reg1 = pointerReg, immediate = 0)
-                else
-                    IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg, immediate = 0)
+                addInstr(result, if(targetDt== IRDataType.FLOAT)
+                        IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 =valueFpRegister, reg1 = pointerReg, immediate = 0)
+                    else
+                        IRInstruction(Opcode.STOREI, targetDt, reg1 = valueRegister, reg2 = pointerReg, immediate = 0)
                     , null)
             }
         }
@@ -811,7 +813,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return null // TODO("optimized memory in-place &")
 
         val result = mutableListOf<IRCodeChunkBase>()
-        val tr = expressionEval.translateExpression(operand)
+        val tr = exprGen.translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
         addInstr(result, if(constAddress!=null)
             IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = constAddress)
@@ -845,7 +847,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return null // TODO("optimized memory in-place and")
 
         val result = mutableListOf<IRCodeChunkBase>()
-        val tr = expressionEval.translateExpression(operand)
+        val tr = exprGen.translateExpression(operand)
         if(!operand.isSimple()) {
             // short-circuit  LEFT and RIGHT  -->  if LEFT then RIGHT else LEFT   (== if !LEFT then LEFT else RIGHT)
             val inplaceReg = codeGen.registers.next(vmDt)
@@ -906,7 +908,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return null // TODO("optimized memory in-place |")
 
         val result = mutableListOf<IRCodeChunkBase>()
-        val tr = expressionEval.translateExpression(operand)
+        val tr = exprGen.translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
         addInstr(result, if(constAddress!=null)
             IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = constAddress)
@@ -940,7 +942,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return null  // TODO("optimized memory in-place or"")
 
         val result = mutableListOf<IRCodeChunkBase>()
-        val tr = expressionEval.translateExpression(operand)
+        val tr = exprGen.translateExpression(operand)
         if(!operand.isSimple()) {
             // short-circuit  LEFT or RIGHT  -->  if LEFT then LEFT else RIGHT
             val inplaceReg = codeGen.registers.next(vmDt)
@@ -983,7 +985,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val factor = constFactorRight.number
                 result += codeGen.divideByConstFloatInplace(constAddress, symbol, factor)
             } else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 val ins = if(signed) {
                     if(constAddress!=null)
@@ -1004,7 +1006,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val factor = constFactorRight.number.toInt()
                 result += codeGen.divideByConstInplace(vmDt, constAddress, symbol, factor, signed)
             } else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 val ins = if(signed) {
                     if(constAddress!=null)
@@ -1057,7 +1059,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val factor = constFactorRight.number
                 result += codeGen.multiplyByConstFloatInplace(constAddress, symbol, factor)
             } else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if(constAddress!=null)
                     IRInstruction(Opcode.MULSM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
@@ -1070,7 +1072,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 val factor = constFactorRight.number.toInt()
                 result += codeGen.multiplyByConstInplace(vmDt, signed, constAddress, symbol, factor)
             } else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 val opcode = if(signed) Opcode.MULSM else Opcode.MULM
                 addInstr(result, if(constAddress!=null)
@@ -1121,7 +1123,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
             }
             else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if(constAddress!=null)
                     IRInstruction(Opcode.SUBM, vmDt, fpReg1=tr.resultFpReg, address = constAddress)
@@ -1136,7 +1138,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
             }
             else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 addInstr(result, if(constAddress!=null)
                     IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, address = constAddress)
@@ -1217,7 +1219,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
             }
             else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if (constAddress != null)
                     IRInstruction(Opcode.ADDM, vmDt, fpReg1 = tr.resultFpReg, address = constAddress)
@@ -1232,7 +1234,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
             }
             else {
-                val tr = expressionEval.translateExpression(operand)
+                val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 if (constAddress != null)
                     addInstr(result, IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, address = constAddress), null)
@@ -1312,7 +1314,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 IRInstruction(opc, vmDt, labelSymbol = symbol)
             addInstr(result, ins, null)
         } else {
-            val shiftTr = expressionEval.translateExpression(operand)
+            val shiftTr = exprGen.translateExpression(operand)
             addToResult(result, shiftTr, shiftTr.resultReg, -1)
             val shiftReg = shiftTr.resultReg
             val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
@@ -1370,7 +1372,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 IRInstruction(Opcode.LSLM, vmDt, labelSymbol = symbol)
                 , null)
         } else {
-            val shiftTr = expressionEval.translateExpression(operand)
+            val shiftTr = exprGen.translateExpression(operand)
             addToResult(result, shiftTr, shiftTr.resultReg, -1)
             val shiftReg = shiftTr.resultReg
             addInstr(result, if(constAddress!=null)
@@ -1415,7 +1417,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
             return null  // TODO("optimized memory in-place xor"")
 
         val result = mutableListOf<IRCodeChunkBase>()
-        val tr = expressionEval.translateExpression(operand)
+        val tr = exprGen.translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
         addInstr(result, if(constAddress!=null)
             IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, address = constAddress)
@@ -1452,7 +1454,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val express
                 }
             }
         } else {
-            val tr = expressionEval.translateExpression(operand)
+            val tr = exprGen.translateExpression(operand)
             result += tr.chunks
             if (constAddress != null) {
                 // @(address) = @(address) %= operand

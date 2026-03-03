@@ -200,6 +200,7 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.LOADI -> InsLOADI(ins)
             Opcode.STOREM -> InsSTOREM(ins)
             Opcode.STOREX -> InsSTOREX(ins)
+            Opcode.STOREI-> InsSTOREI(ins)
             Opcode.STOREZM -> InsSTOREZM(ins)
             Opcode.STOREZX -> InsSTOREZX(ins)
             Opcode.STOREZI -> InsSTOREZI(ins)
@@ -211,7 +212,6 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.STOREHXY -> InsSTOREHXY(ins)
             Opcode.STOREHFACZERO -> InsSTOREHFACZERO(ins)
             Opcode.STOREHFACONE-> InsSTOREHFACONE(ins)
-            Opcode.STOREI-> InsSTOREFIELD(ins)
             Opcode.JUMP -> InsJUMP(ins)
             Opcode.JUMPI -> InsJUMPI(ins)
             Opcode.CALLI -> throw IllegalArgumentException("VM cannot run code from memory bytes")
@@ -575,7 +575,7 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
-    private fun InsSTOREFIELD(i: IRInstruction) {
+    private fun InsSTOREI(i: IRInstruction) {
         val offset = i.immediate!!
         require(offset in 0..65535)
         when (i.type!!) {
@@ -608,11 +608,13 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsSTOREZI(i: IRInstruction) {
+        val offset = i.immediate!!
+        require(offset in 0..65535)
         when (i.type!!) {
-            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt(), 0u)
-            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt(), 0u)
-            IRDataType.LONG -> memory.setSL(registers.getUW(i.reg1!!).toInt(), 0)
-            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt(), 0.0)
+            IRDataType.BYTE -> memory.setUB(registers.getUW(i.reg1!!).toInt() + offset, 0u)
+            IRDataType.WORD -> memory.setUW(registers.getUW(i.reg1!!).toInt() + offset, 0u)
+            IRDataType.LONG -> memory.setSL(registers.getUW(i.reg1!!).toInt() + offset, 0)
+            IRDataType.FLOAT -> memory.setFloat(registers.getUW(i.reg1!!).toInt() + offset, 0.0)
         }
         nextPc()
     }
