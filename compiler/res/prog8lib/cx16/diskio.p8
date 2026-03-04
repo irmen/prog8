@@ -29,6 +29,12 @@ diskio {
 
     ubyte @shared drivenumber = 8           ; user programs can set this to the drive number they want to load/save to!
 
+
+    sub reuse_last_drive() {
+        ; set the drivenumber to the last used disk drive
+        void, drivenumber, void = cx16.getlfs()
+    }
+
     sub reset_read_channel() {
         void cbm.CHKIN(READ_IO_CHANNEL)
     }

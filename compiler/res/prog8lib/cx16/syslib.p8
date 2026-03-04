@@ -756,10 +756,10 @@ asmsub mouse_get_sprite_offset() clobbers(A,X,Y) -> word @R0, word @R1 {
     }}
 }
 
-asmsub getlfs() -> ubyte @X, ubyte @A, ubyte @Y {
+asmsub getlfs() -> ubyte @A, ubyte @X, ubyte @Y {
     ; -- return the result of the last call to SETLFS:  A=logical, X=device, Y=secondary.
     %asm {{
-        lda  #EXTAPI_mouse_set_position
+        lda  #EXTAPI_getlfs
         jmp  cx16.extapi
     }}
 }

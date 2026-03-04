@@ -8,7 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - Code is in the Public Domain.
 Requirements: Pillow  (pip install pillow)
 """
 
-from PIL import Image
+from PIL import Image, features
 from typing import TypeAlias, Tuple, Optional
 
 RGBList: TypeAlias = list[tuple[int, int, int]]
@@ -189,9 +189,17 @@ class BitmapImage:
         else:
             raise ValueError("only 8,4,2,1 bpp supported")
         image = self.img.convert("RGB")
-        palette_image = image.quantize(colors=num_colors, dither=Image.Dither.NONE, method=Image.Quantize.MAXCOVERAGE)
+        quantize_method = Image.Quantize.MEDIANCUT
+        dither_method = Image.Dither.ORDERED
+        if features.check_feature("libimagequant"):
+            quantize_method = Image.Quantize.LIBIMAGEQUANT
+            dither_method = Image.Dither.FLOYDSTEINBERG
+            print("python PIL: yay, libimagequant is available, using it for high quality and fast conversion.")
+        else:
+            print("python PIL: libimagequant not available, using mediancut+kmeans instead. This is a slightly less accurate conversion, and slow.")
+        palette_image = image.quantize(colors=num_colors, dither=dither_method, method=quantize_method, kmeans=10)
         if len(palette_image.getpalette()) // 3 > num_colors:
-            palette_image = image.quantize(colors=num_colors - 1, dither=Image.Dither.NONE, method=Image.Quantize.MAXCOVERAGE)
+            palette_image = image.quantize(colors=num_colors - 1, dither=dither_method, method=quantize_method, kmeans=10)
         palette_rgb = flat_palette_to_rgb(palette_image.getpalette())
         palette_rgb = list(reversed(sorted(set(palette_8to4(palette_rgb)))))
         if preserve_first_16_colors:
