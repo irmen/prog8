@@ -7,14 +7,14 @@ palette {
     %option ignore_unused
 
     sub set_color(ubyte index, uword color) {
-        cx16.vaddr(1, $fa00+(index as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(index)
         cx16.VERA_DATA0 = lsb(color)
         cx16.VERA_DATA0 = msb(color)
         cx16.VERA_ADDR_H &= 1
     }
 
     sub get_color(ubyte index) -> uword {
-        cx16.vaddr(1, $fa00+(index as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(index)
         cx16.r0L = cx16.VERA_DATA0
         cx16.r0H = cx16.VERA_DATA0
         cx16.VERA_ADDR_H &= 1
@@ -23,7 +23,7 @@ palette {
 
     sub set_rgb_be(uword palette_ptr, uword num_colors, ubyte startindex) {
         ; 1 word per color entry, $0rgb in big endian format (split arrays)
-        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(startindex)
         repeat num_colors {
             cx16.VERA_DATA0 = @(palette_ptr+num_colors)
             cx16.VERA_DATA0 = @(palette_ptr)
@@ -34,7 +34,7 @@ palette {
 
     sub set_rgb_be_nosplit(uword palette_ptr, uword num_colors, ubyte startindex) {
         ; 1 word per color entry, $0rgb in big endian format (linear arrays)
-        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(startindex)
         repeat num_colors {
             cx16.VERA_DATA0 = @(palette_ptr+1)
             cx16.VERA_DATA0 = @(palette_ptr)
@@ -45,7 +45,7 @@ palette {
 
     sub set_rgb(uword palette_words_ptr, uword num_colors, ubyte startindex) {
         ; 1 word per color entry (in little endian format as layed out in video memory, so $gb;$0r)  (split arrays)
-        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(startindex)
         repeat num_colors {
             cx16.VERA_DATA0 = @(palette_words_ptr)
             cx16.VERA_DATA0 = @(palette_words_ptr+num_colors)
@@ -56,7 +56,7 @@ palette {
 
     sub set_rgb_nosplit(uword palette_words_ptr, uword num_colors, ubyte startindex) {
         ; 1 word per color entry (in little endian format as layed out in video memory, so $gb;$0r)  (linear arrays)
-        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(startindex)
         repeat num_colors {
             cx16.VERA_DATA0 = @(palette_words_ptr)
             palette_words_ptr++
@@ -68,7 +68,7 @@ palette {
 
     sub set_rgb8(uword palette_bytes_ptr, uword num_colors, ubyte startindex) {
         ; 3 bytes per color entry, adjust color depth from 8 to 4 bits per channel.
-        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(startindex)
         ubyte red
         ubyte greenblue
         repeat num_colors {
@@ -81,7 +81,7 @@ palette {
     }
 
     sub set_all_black() {
-        cx16.vaddr(1, $fa00, 0, 1)
+        internal_set_vera_palette_addr(0)
         repeat 256 {
             cx16.VERA_DATA0 = 0
             cx16.VERA_DATA0 = 0
@@ -90,7 +90,7 @@ palette {
     }
 
     sub set_all_white() {
-        cx16.vaddr(1, $fa00, 0, 1)
+        internal_set_vera_palette_addr(0)
         repeat 256 {
             cx16.VERA_DATA0 = $ff
             cx16.VERA_DATA0 = $0f
@@ -100,7 +100,7 @@ palette {
 
     sub set_grayscale(ubyte startindex) {
         ; set 16 consecutive colors to a grayscale gradient from black to white
-        cx16.vaddr(1, $fa00+(startindex as uword * 2), 0, 1)
+        internal_set_vera_palette_addr(startindex)
         cx16.r0L=0
         repeat 16 {
             cx16.VERA_DATA0 = cx16.r0L
@@ -285,4 +285,11 @@ palette {
     ; get the bank and address (in A, and XY) of the word-array containing the 256 default palette colors
     ; NOTE: this routine requires rom version 49+
     alias get_default = cx16.get_default_palette
+
+
+    sub internal_set_vera_palette_addr(ubyte index) {
+        cx16.VERA_CTRL = 0
+        cx16.VERA_ADDR_H = %00010001
+        cx16.VERA_ADDR = $fa00+(index *$0002)
+    }
 }

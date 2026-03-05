@@ -3,6 +3,8 @@ bcd {
     ; For CPUs that support BCD mode (binary coded decimal) (not all 6502 variants support this mode...)
     ; This is useful for example for counting decimal score in a game, to avoid costly conversion to a decimal display string. Just print the hex representation.
 
+    %option ignore_unused
+
     sub addb(byte a, byte b) -> byte {
         setbcd()
         a += b
