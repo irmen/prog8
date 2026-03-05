@@ -151,11 +151,10 @@ palette {
         ; Returns true if one or more colors were changed, false if no fade steps were done anymore.
         ; So you usually keep calling this until it returns false.
         bool changed = false
-        ubyte target_index = 0
         while startindex <= endindex {
-            if fade_step(startindex, peekw(target_colors+target_index))
+            if fade_step(startindex, peekw(target_colors))
                 changed=true
-            target_index += 2
+            target_colors += 2
             startindex++
             if_z
                 break
