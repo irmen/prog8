@@ -267,13 +267,17 @@ main {
         a3v.chain shouldBe listOf("matchstate", "next", "next", "ptr")
         a3v.derefLast shouldBe false
 
-        val a4v = (st[6] as Assignment).value as PtrDereference
-        a4v.chain shouldBe listOf("matchstate", "ptr")
-        a4v.derefLast shouldBe true
+        val a4v = (st[6] as Assignment).value as FunctionCallExpression
+        a4v.target.nameInSource shouldBe listOf("peekw")
+        val a4vp=(a4v.args[0] as PtrDereference)
+        a4vp.chain shouldBe listOf("matchstate", "ptr")
+        a4vp.derefLast shouldBe false
 
-        val a5v = (st[7] as Assignment).value as PtrDereference
-        a5v.chain shouldBe listOf("matchstate", "next", "next", "ptr")
-        a5v.derefLast shouldBe true
+        val a5v = (st[7] as Assignment).value as FunctionCallExpression
+        a5v.target.nameInSource shouldBe listOf("peekw")
+        val a5vp=(a5v.args[0] as PtrDereference)
+        a5vp.chain shouldBe listOf("matchstate", "next", "next", "ptr")
+        a5vp.derefLast shouldBe false
 
         val t0 = (st[8] as Assignment).target.pointerDereference!!
         t0.derefLast shouldBe false

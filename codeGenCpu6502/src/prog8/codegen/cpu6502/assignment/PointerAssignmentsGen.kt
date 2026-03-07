@@ -242,7 +242,15 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
     }
 
     internal fun assignPointerDerefExpression(target: AsmAssignTarget, value: PtPointerDeref) {
-        val (zpPtrVar, offset) = deref(value)
+        val (zpPtrVar, offset1) = deref(value)
+        val offset: UByte
+        if(value.derefLast) {
+            asmgen.loadIndirectWordAY(zpPtrVar, offset1)
+            asmgen.out("  sta  $zpPtrVar |  sty  $zpPtrVar+1")
+            offset = 0.toUByte()
+        } else {
+            offset = offset1
+        }
         if(value.type.isByteOrBool) {
             asmgen.loadIndirectByte(zpPtrVar, offset)
             asmgen.assignRegister(RegisterOrPair.A, target)
@@ -274,8 +282,7 @@ internal class PointerAssignmentsGen(private val asmgen: AsmGen6502Internal, pri
                         sta  ${target.asmVarname}+2
                         iny
                         lda  ($zpPtrVar),y
-                        sta  ${target.asmVarname}+3
-                    """)
+                        sta  ${target.asmVarname}+3""")
                 }
                 TargetStorageKind.REGISTER -> {
                     require(target.register!! in CombinedLongRegisters)

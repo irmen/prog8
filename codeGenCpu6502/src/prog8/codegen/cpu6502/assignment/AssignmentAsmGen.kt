@@ -258,7 +258,7 @@ internal class AssignmentAsmGen(
                 val elementDt = assign.source.datatype
                 val valueVar = value.variable
                 if(valueVar==null) {
-                    TODO("translate assignment of pointer ${value.position}")
+                    TODO("translate assignment of indexed ${elementDt} pointer ${value.position}")
                     return
                 }
                 val arrayVarName = asmgen.asmVariableName(valueVar)

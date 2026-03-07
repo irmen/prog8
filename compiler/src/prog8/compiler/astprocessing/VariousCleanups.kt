@@ -572,4 +572,69 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
         return noModifications
     }
+
+    override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
+        fun getPeek(dt: BaseDataType): String? {
+            return when {
+                dt.isByte -> "peek"
+                dt.isBool -> "peekbool"
+                dt.isWord || dt.isPointer -> "peekw"
+                dt.isLong -> "peekl"
+                dt.isFloat -> "peekf"
+                else -> null
+            }
+        }
+
+        if(parent is ArrayIndexedExpression && parent.parent !is AssignTarget && !partOfAugmentedAssignment(deref)) {
+            val index = parent.indexer.constIndex()
+            if(index==0) {
+                // ptr1.field[0]  -->  peek(ptr.field)
+                val dt=deref.inferType(program).getOrUndef()
+                if(dt.sub!=null) {
+                    val peek = getPeek(dt.sub!!)
+                    if(peek!=null) {
+                        val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(makeNewDeref(deref)), deref.position)
+                        return listOf(IAstModification.ReplaceNode(parent, peekF, parent.parent))
+                    }
+                }
+            } else if(index!=null) {
+                // ptr1.field[index]  -->  peek(ptr.field + index)
+                val dt=deref.inferType(program).getOrUndef()
+                if(dt.sub!=null) {
+                    val peek = getPeek(dt.sub!!)
+                    if(peek!=null) {
+                        val plusOffset = BinaryExpression(makeNewDeref(deref), "+", NumericLiteral(BaseDataType.UWORD, index.toDouble(), deref.position), deref.position)
+                        val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(plusOffset), deref.position)
+                        return listOf(IAstModification.ReplaceNode(parent, peekF, parent.parent))
+                    }
+                }
+            }
+        } else if(deref.derefLast && parent !is AssignTarget && !partOfAugmentedAssignment(deref)) {
+            // ptr1.field^^  -->  peek(ptr1.field)
+            val dt=deref.inferType(program).getOrUndef().base
+            val peek = getPeek(dt)
+            if(peek!=null) {
+                val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(makeNewDeref(deref)), deref.position)
+                return listOf(IAstModification.ReplaceNode(deref, peekF, parent))
+            }
+        }
+        return noModifications
+    }
+
+    private fun partOfAugmentedAssignment(deref: PtrDereference): Boolean {
+        var parent = deref.parent
+        while(parent !is Module) {
+            if(parent is Assignment && parent.isAugmentable)
+                return true
+            parent = parent.parent
+        }
+        return false
+    }
+
+    private fun makeNewDeref(deref: PtrDereference): Expression {
+        if(deref.chain.size==1)
+            return IdentifierReference(deref.chain, deref.position)
+        else
+            return PtrDereference(deref.chain, false, deref.position)
+    }
 }
