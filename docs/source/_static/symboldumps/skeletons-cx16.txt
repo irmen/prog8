@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit fedf342c in branch master
+Prerelease version from git commit d720eeae in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -60,6 +60,27 @@ pop
 popw
 popl
 popf
+
+
+LIBRARY MODULE NAME: adpcm
+--------------------------
+
+adpcm  {
+    ubyte @requirezp  index 
+    ubyte @requirezp  index_2 
+    uword @requirezp  predict 
+    uword @requirezp  predict_2 
+    uword @requirezp  pstep 
+    uword @requirezp  pstep_2 
+    byte[]  t_index 
+    uword[]  t_step 
+    decode_block_mono  (uword nibblesptr) 
+    decode_block_stereo  (uword nibblesptr) 
+    decode_nibble  (ubyte nibble) 
+    decode_nibble_second  (ubyte nibble) 
+    init  (uword startPredict, ubyte startIndex) 
+    init_second  (uword startPredict_2, ubyte startIndex_2) 
+}
 
 
 LIBRARY MODULE NAME: bcd
@@ -324,6 +345,7 @@ diskio  {
     rename  (str oldfileptr, str newfileptr) 
     reset_read_channel  () 
     reset_write_channel  () 
+    reuse_last_drive  () 
     rmdir  (str name) 
     save  (str filenameptr, uword startaddress, uword savesize) -> bool 
     save_raw  (str filenameptr, uword startaddress, uword savesize) -> bool 
@@ -683,6 +705,7 @@ palette  {
     fade_step_multi  (ubyte startindex, ubyte endindex, uword target_rgb) -> bool 
     get_color  (ubyte index) -> uword 
     get_default   alias for: cx16.get_default_palette
+    internal_set_vera_palette_addr  (ubyte index) 
     set_all_black  () 
     set_all_white  () 
     set_c64ntsc  () 
@@ -1312,7 +1335,7 @@ cx16  {
     get_default_palette  () -> ubyte @A, uword @XY 
     get_program_args  (^^ubyte buffer @R0, ubyte buf_size @R1, bool binary @Pc) 
     get_screen_mode  () -> ubyte @A, ubyte @X, ubyte @Y 
-    getlfs  () -> ubyte @X, ubyte @A, ubyte @Y 
+    getlfs  () -> ubyte @A, ubyte @X, ubyte @Y 
     getrambank  () -> ubyte @A 
     getrombank  () -> ubyte @A 
     has_machine_property  (ubyte property @X)  clobbers (A,X) -> bool @Pc 
@@ -1596,6 +1619,27 @@ verafx  {
     muls16  (word value1 @R0, word value2 @R1)  clobbers (X) -> word @AY 
     mult16  (uword value1 @R0, uword value2 @R1)  clobbers (X) -> uword @AY 
     transparency  (bool enable) 
+}
+
+
+LIBRARY MODULE NAME: wavfile
+----------------------------
+
+wavfile  {
+    const ubyte  WAVE_FORMAT_ADPCM 
+    const ubyte  WAVE_FORMAT_ALAW 
+    const ubyte  WAVE_FORMAT_DVI_ADPCM 
+    const ubyte  WAVE_FORMAT_IEEE_FLOAT 
+    const ubyte  WAVE_FORMAT_MULAW 
+    const ubyte  WAVE_FORMAT_PCM 
+    ubyte  bits_per_sample 
+    uword  block_align 
+    uword  data_offset 
+    long  data_size 
+    ubyte  nchannels 
+    uword  sample_rate 
+    ubyte  wavefmt 
+    parse_header  (^^ubyte wav_data) -> bool 
 }
 
 

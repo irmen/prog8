@@ -141,28 +141,9 @@ mono {
     sub benchmark() {
         main.nibblesptr = &wavdata.wav_data + wavfile.data_offset
         txt.print("\ndecoding all blocks...\n")
-        repeat main.num_adpcm_blocks
-            decode_block()
-    }
-
-    sub decode_block() {
-        ; refill the fifo buffer with one decoded adpcm block (1010 bytes of pcm data)
-        adpcm.init(peekw(main.nibblesptr), @(main.nibblesptr+2))
-        cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-        cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-        main.nibblesptr += 4
-        ubyte @zp nibble
-        repeat 252/2 {
-            unroll 2 {
-                nibble = @(main.nibblesptr)
-                adpcm.decode_nibble(nibble & 15)     ; first word  (note: upper nibble needs to be zero!)
-                cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-                cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-                adpcm.decode_nibble(nibble>>4)       ; second word  (note: upper nibble is zero, after the shifts.)
-                cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-                cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-                main.nibblesptr++
-            }
+        repeat main.num_adpcm_blocks {
+            adpcm.decode_block_mono(main.nibblesptr)
+            main.nibblesptr += 256
         }
     }
 
@@ -171,7 +152,8 @@ mono {
             ; AFLOW irq.
             ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
 
-            decode_block()
+            adpcm.decode_block_mono(main.nibblesptr)
+            main.nibblesptr += 256
             main.adpcm_blocks_left--
             if main.adpcm_blocks_left==0 {
                 ; restart adpcm data from the beginning
@@ -202,87 +184,10 @@ stereo {
         main.nibblesptr = &wavdata.wav_data + wavfile.data_offset
         txt.print("\n\ndecoding all blocks...\n")
 
-        repeat main.num_adpcm_blocks
-            decode_block()
-    }
-
-    sub decode_block() {
-        ; refill the fifo buffer with one decoded adpcm block (996 bytes of pcm data)
-        adpcm.init(peekw(main.nibblesptr), @(main.nibblesptr+2))            ; left channel
-        cx16.VERA_AUDIO_DATA = lsb(adpcm.predict)
-        cx16.VERA_AUDIO_DATA = msb(adpcm.predict)
-        adpcm.init_second(peekw(main.nibblesptr+4), @(main.nibblesptr+6))   ; right channel
-        cx16.VERA_AUDIO_DATA = lsb(adpcm.predict_2)
-        cx16.VERA_AUDIO_DATA = msb(adpcm.predict_2)
-        main.nibblesptr += 8
-        repeat 248/8
-            decode_nibbles_unrolled()
-    }
-
-    sub decode_nibbles_unrolled() {
-        ; decode 4 left channel nibbles
-        ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
-        uword[8] left
-        uword[8] right
-        ubyte @requirezp nibble = @(main.nibblesptr)
-        adpcm.decode_nibble(nibble & 15)     ; first word
-        left[0] = adpcm.predict
-        adpcm.decode_nibble(nibble>>4)       ; second word
-        left[1] = adpcm.predict
-        nibble = @(main.nibblesptr+1)
-        adpcm.decode_nibble(nibble & 15)     ; first word
-        left[2] = adpcm.predict
-        adpcm.decode_nibble(nibble>>4)       ; second word
-        left[3] = adpcm.predict
-        nibble = @(main.nibblesptr+2)
-        adpcm.decode_nibble(nibble & 15)     ; first word
-        left[4] = adpcm.predict
-        adpcm.decode_nibble(nibble>>4)       ; second word
-        left[5] = adpcm.predict
-        nibble = @(main.nibblesptr+3)
-        adpcm.decode_nibble(nibble & 15)     ; first word
-        left[6] = adpcm.predict
-        adpcm.decode_nibble(nibble>>4)       ; second word
-        left[7] = adpcm.predict
-
-        ; decode 4 right channel nibbles
-        nibble = @(main.nibblesptr+4)
-        adpcm.decode_nibble_second(nibble & 15)     ; first word
-        right[0] = adpcm.predict_2
-        adpcm.decode_nibble_second(nibble>>4)       ; second word
-        right[1] = adpcm.predict_2
-        nibble = @(main.nibblesptr+5)
-        adpcm.decode_nibble_second(nibble & 15)     ; first word
-        right[2] = adpcm.predict_2
-        adpcm.decode_nibble_second(nibble>>4)       ; second word
-        right[3] = adpcm.predict_2
-        nibble = @(main.nibblesptr+6)
-        adpcm.decode_nibble_second(nibble & 15)     ; first word
-        right[4] = adpcm.predict_2
-        adpcm.decode_nibble_second(nibble>>4)       ; second word
-        right[5] = adpcm.predict_2
-        nibble = @(main.nibblesptr+7)
-        adpcm.decode_nibble_second(nibble & 15)     ; first word
-        right[6] = adpcm.predict_2
-        adpcm.decode_nibble_second(nibble>>4)       ; second word
-        right[7] = adpcm.predict_2
-        main.nibblesptr += 8
-
-        %asm {{
-            ; copy to vera PSG fifo buffer
-            ldy  #0
--           lda  p8v_left_lsb,y
-            sta  cx16.VERA_AUDIO_DATA
-            lda  p8v_left_msb,y
-            sta  cx16.VERA_AUDIO_DATA
-            lda  p8v_right_lsb,y
-            sta  cx16.VERA_AUDIO_DATA
-            lda  p8v_right_msb,y
-            sta  cx16.VERA_AUDIO_DATA
-            iny
-            cpy  #8
-            bne  -
-        }}
+        repeat main.num_adpcm_blocks {
+            adpcm.decode_block_stereo(main.nibblesptr)
+            main.nibblesptr += 256
+        }
     }
 
     sub irq_handler() {
@@ -290,7 +195,8 @@ stereo {
             ; AFLOW irq.
     	    ;; cx16.vpoke(1,$fa0c, $a0)    ; paint a screen color
 
-            decode_block()
+            adpcm.decode_block_stereo(main.nibblesptr)
+            main.nibblesptr += 256
             main.adpcm_blocks_left--
             if main.adpcm_blocks_left==0 {
                 ; restart adpcm data from the beginning

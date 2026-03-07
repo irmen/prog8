@@ -8,13 +8,14 @@
 ;
 
 wavfile {
+    %option ignore_unused
 
-    const ubyte WAVE_FORMAT_PCM        =  $1
-    const ubyte WAVE_FORMAT_ADPCM      =  $2
-    const ubyte WAVE_FORMAT_IEEE_FLOAT =  $3
-    const ubyte WAVE_FORMAT_ALAW       =  $6
-    const ubyte WAVE_FORMAT_MULAW      =  $7
-    const ubyte WAVE_FORMAT_DVI_ADPCM  =  $11
+    const ubyte WAVE_FORMAT_PCM        =  1
+    const ubyte WAVE_FORMAT_ADPCM      =  2
+    const ubyte WAVE_FORMAT_IEEE_FLOAT =  3
+    const ubyte WAVE_FORMAT_ALAW       =  6
+    const ubyte WAVE_FORMAT_MULAW      =  7
+    const ubyte WAVE_FORMAT_DVI_ADPCM  =  17
 
     uword sample_rate
     ubyte bits_per_sample
@@ -24,7 +25,7 @@ wavfile {
     uword block_align
     long data_size
 
-    sub parse_header(uword wav_data) -> bool {
+    sub parse_header(^^ubyte wav_data) -> bool {
         ; "RIFF" , filesize (int32) , "WAVE", "fmt ", fmtsize (int32)
         uword @zp header = wav_data
         if header[0]!=iso:'R' or header[1]!=iso:'I' or header[2]!=iso:'F' or header[3]!=iso:'F'
@@ -52,7 +53,7 @@ wavfile {
         }
 
         data_size = mklong2(peekw(header+6), chunksize)
-        data_offset = header + 8 - wav_data
+        data_offset = header + 8 - (wav_data as uword)
         return true
     }
 }

@@ -343,6 +343,34 @@ Grouped per compilation target.
 Library modules
 ---------------
 
+adpcm  (cx16 only)
+^^^^^^^^^^^^^^^^^^
+Routines to decode IMA-ADPCM compressed audio sample data. This is a lossy compression that reduces the
+data size by a factor of 4. Reference info about the compression `here <https://wiki.multimedia.cx/index.php/IMA_ADPCM>`_ and
+`here <https://wiki.multimedia.cx/index.php/Microsoft_IMA_ADPCM>`_ .
+
+The decoder routines in this module support mono and stereo streams, *but only with 256 byte block size*
+The standard allows for other block sizes but this decoder only accepts 256!
+**NOTE:** for speed reasons this implementation doesn't guard against clipping errors.
+If the sound playback sounds distorted, lower the volume of the source waveform a little bit and try again.
+
+**How to create a compatible ADPCM audio file?**
+Use ffmpeg or `adpcm-xq <https://github.com/dbry/adpcm-xq>`_ like so (example):
+``ffmpeg -i source.mp3 -ar 16000 -ac 1 -c:a adpcm_ima_wav -block_size 256 -map_metadata -1 -bitexact out.wav``
+or with adpcm_xq: ``adpcm-xq -4 -b8 -n  uncompressed.wav output.wav``
+
+``sub decode_block_mono(uword nibblesptr)``
+    Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
+    Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes.
+
+``sub decode_block_stereo(uword nibblesptr)``
+    Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
+    Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes.
+
+If you just want to decode the data in memory you can use a few low-level routines directly to decode single nibbles etc.
+Look at the :source:`adpcm source code <compiler/res/prog8lib/cx16/adpcm.p8>` to find out what other routines are available.
+
+
 bcd
 ^^^
 .. index:: pair: Libraries; bcd
@@ -1548,3 +1576,26 @@ Available for the Cx16 target. Routines that use the Vera FX logic to accelerate
 Read the :source:`verafx source code <compiler/res/prog8lib/cx16/verafx.p8>`
 to see what's in there.
 
+
+wavfile
+^^^^^^^
+
+``sub parse_header(^^ubyte wav_data) -> bool``
+    Parses the header of a .wav file. Returns true if it's a valid wav file, false if is invalid.
+
+    These header fields can be read out afterwards::
+
+        uword sample_rate
+        ubyte bits_per_sample
+        uword data_offset
+        ubyte wavefmt           ; WAVE_FORMAT_PCM=1, WAVE_FORMAT_DVI_ADPCM=17, etc
+        ubyte nchannels
+        uword block_align
+        long data_size
+
+.. note::
+    the sample rate in hertz can be converted to a vera rate value via::
+
+        const float vera_freq_factor = 25e6 / 65536.0
+        vera_rate = (wavfile.sample_rate as float / vera_freq_factor) + 1.0 as ubyte
+        vera_rate_hz = (vera_rate as float) * vera_freq_factor as uword

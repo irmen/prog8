@@ -15,3 +15,4 @@
 %import syslib
 %import test_stack
 %import textio
+%import wavfile

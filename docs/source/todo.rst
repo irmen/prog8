@@ -15,6 +15,7 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- if floats are only used in constants and never end up as actual value for a variable or expression, don't complain about the "floats not enabled" if %option enable_floats is missing
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - add @private to variables and subroutines declared in a scope to make them invisible from outside that scope?
 - when implementing unsigned longs: remove the (multiple) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast

@@ -29,6 +29,7 @@ adpcm {
     ; The remaining bytes in the chunk are the IMA nibbles. The first 4 bytes, or 8 nibbles,
     ; belong to the left channel and -if it's stereo- the next 4 bytes belong to the right channel.
 
+    %option ignore_unused
 
     byte[] t_index = [ -1, -1, -1, -1, 2, 4, 6, 8, -1, -1, -1, -1, 2, 4, 6, 8]
     uword[] t_step = [
@@ -51,6 +52,109 @@ adpcm {
     ubyte @requirezp index_2
     uword @requirezp pstep
     uword @requirezp pstep_2
+
+    sub decode_block_mono(uword @requirezp nibblesptr) {
+        ; Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
+        ; Decoded data is 16 bit mono PCM, 505 samples = 1010 bytes.
+        init(peekw(nibblesptr), @(nibblesptr+2))
+        cx16.VERA_AUDIO_DATA = lsb(predict)
+        cx16.VERA_AUDIO_DATA = msb(predict)
+        nibblesptr += 4
+        ubyte @zp nibble
+        repeat 252/2 {
+            unroll 2 {
+                nibble = @(nibblesptr)
+                ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
+                decode_nibble(nibble & 15)     ; first word
+                cx16.VERA_AUDIO_DATA = lsb(predict)
+                cx16.VERA_AUDIO_DATA = msb(predict)
+                decode_nibble(nibble>>4)       ; second word
+                cx16.VERA_AUDIO_DATA = lsb(predict)
+                cx16.VERA_AUDIO_DATA = msb(predict)
+                nibblesptr++
+            }
+        }
+    }
+
+    sub decode_block_stereo(uword @requirezp nibblesptr) {
+        ; Decodes one 256 byte block of adpcm data, into the Vera's PCM FIFO buffer.
+        ; Decoded data is 16 bit stereo PCM, 498 samples = 996 bytes.
+        init(peekw(nibblesptr), @(nibblesptr+2))            ; left channel
+        cx16.VERA_AUDIO_DATA = lsb(predict)
+        cx16.VERA_AUDIO_DATA = msb(predict)
+        init_second(peekw(nibblesptr+4), @(nibblesptr+6))   ; right channel
+        cx16.VERA_AUDIO_DATA = lsb(predict_2)
+        cx16.VERA_AUDIO_DATA = msb(predict_2)
+        nibblesptr += 8
+        repeat 248/8
+            decode_nibbles_unrolled()
+
+        sub decode_nibbles_unrolled() {
+            ; decode 4 left channel nibbles
+            ; note: when calling decode_nibble(), the upper nibble in the argument needs to be zero
+            uword[8] left
+            uword[8] right
+            ubyte @requirezp nibble = @(nibblesptr)
+            decode_nibble(nibble & 15)     ; first word
+            left[0] = predict
+            decode_nibble(nibble>>4)       ; second word
+            left[1] = predict
+            nibble = @(nibblesptr+1)
+            decode_nibble(nibble & 15)     ; first word
+            left[2] = predict
+            decode_nibble(nibble>>4)       ; second word
+            left[3] = predict
+            nibble = @(nibblesptr+2)
+            decode_nibble(nibble & 15)     ; first word
+            left[4] = predict
+            decode_nibble(nibble>>4)       ; second word
+            left[5] = predict
+            nibble = @(nibblesptr+3)
+            decode_nibble(nibble & 15)     ; first word
+            left[6] = predict
+            decode_nibble(nibble>>4)       ; second word
+            left[7] = predict
+
+            ; decode 4 right channel nibbles
+            nibble = @(nibblesptr+4)
+            decode_nibble_second(nibble & 15)     ; first word
+            right[0] = predict_2
+            decode_nibble_second(nibble>>4)       ; second word
+            right[1] = predict_2
+            nibble = @(nibblesptr+5)
+            decode_nibble_second(nibble & 15)     ; first word
+            right[2] = predict_2
+            decode_nibble_second(nibble>>4)       ; second word
+            right[3] = predict_2
+            nibble = @(nibblesptr+6)
+            decode_nibble_second(nibble & 15)     ; first word
+            right[4] = predict_2
+            decode_nibble_second(nibble>>4)       ; second word
+            right[5] = predict_2
+            nibble = @(nibblesptr+7)
+            decode_nibble_second(nibble & 15)     ; first word
+            right[6] = predict_2
+            decode_nibble_second(nibble>>4)       ; second word
+            right[7] = predict_2
+            nibblesptr += 8
+
+            %asm {{
+                ; copy to vera PSG fifo buffer
+                ldy  #0
+    -           lda  p8v_left_lsb,y
+                sta  cx16.VERA_AUDIO_DATA
+                lda  p8v_left_msb,y
+                sta  cx16.VERA_AUDIO_DATA
+                lda  p8v_right_lsb,y
+                sta  cx16.VERA_AUDIO_DATA
+                lda  p8v_right_msb,y
+                sta  cx16.VERA_AUDIO_DATA
+                iny
+                cpy  #8
+                bne  -
+            }}
+        }
+    }
 
     sub init(uword startPredict, ubyte startIndex) {
         ; initialize first decoding channel.

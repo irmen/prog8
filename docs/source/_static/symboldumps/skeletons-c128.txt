@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit fedf342c in branch master
+Prerelease version from git commit d720eeae in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c128.p8
@@ -937,6 +937,27 @@ txt  {
     uppercase  () 
     waitkey  () -> ubyte @A 
     width  ()  clobbers (X,Y) -> ubyte @A 
+}
+
+
+LIBRARY MODULE NAME: wavfile
+----------------------------
+
+wavfile  {
+    const ubyte  WAVE_FORMAT_ADPCM 
+    const ubyte  WAVE_FORMAT_ALAW 
+    const ubyte  WAVE_FORMAT_DVI_ADPCM 
+    const ubyte  WAVE_FORMAT_IEEE_FLOAT 
+    const ubyte  WAVE_FORMAT_MULAW 
+    const ubyte  WAVE_FORMAT_PCM 
+    ubyte  bits_per_sample 
+    uword  block_align 
+    uword  data_offset 
+    long  data_size 
+    ubyte  nchannels 
+    uword  sample_rate 
+    ubyte  wavefmt 
+    parse_header  (^^ubyte wav_data) -> bool 
 }
 
 

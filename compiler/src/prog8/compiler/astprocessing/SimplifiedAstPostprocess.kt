@@ -50,7 +50,17 @@ private fun processSubtypesIntoStReferences(program: PtProgram, st: SymbolTable)
             is PtPointerDeref -> fixSubtypeIntoStType(node.type)
             is PtStructDecl -> node.fields.forEach { fixSubtypeIntoStType(it.first) }
             is PtAsmSub -> node.returns.forEach { fixSubtypeIntoStType(it.second) }
-            is PtExpression -> fixSubtypeIntoStType(node.type)
+            is PtExpression -> {
+                fixSubtypeIntoStType(node.type)
+                if(node is PtTypeCast) {
+                    if(node.type.isUnsignedWord && node.value.type.isPointerToByte) {
+                        // casting a pointer to a byte , to uword, is not required because pointer arithmetic on either of those will be identical
+                        val idx = node.parent.children.indexOf(node)
+                        node.parent.children[idx] = node.value
+                        node.value.parent = node.parent
+                    }
+                }
+            }
             is PtSubSignature -> node.returns.forEach { fixSubtypeIntoStType(it) }
             is PtSubroutineParameter -> fixSubtypeIntoStType(node.type)
             else -> { /* has no datatype */ }

@@ -1,5 +1,6 @@
 ; all library modules for the cx16 compiler target
 
+%import adpcm
 %import bcd
 %import bmx
 %import buffers
@@ -26,3 +27,4 @@
 %import test_stack
 %import textio
 %import verafx
+%import wavfile
