@@ -1903,6 +1903,13 @@ _loop       lda  P8ZP_SCRATCH_W1
         }}
     }
 
+    inline asmsub waitirq()  {
+        ; suspend execution until the next interrupt has occurred (any source).
+        %asm {{
+            wai
+        }}
+    }
+
     asmsub waitrasterline(uword line @AY) {
         ; -- CPU busy wait until the given raster line is reached
         %asm {{

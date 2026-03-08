@@ -1455,6 +1455,9 @@ miscellaneous
     If this is is not possible (for instance because your program is running its own irq handler logic *and* no longer calls
     the kernal's handler routine), you'll have to write your own wait routine instead.
 
+``waitirq ()``   (cx16 only)
+    efficiently wait until the next interrupt has occurred (any source). It uses the 65C02 'wai' instruction for this.
+
 ``waitvsync ()``
     busy wait till the next vsync has occurred (approximately), without depending on custom irq handling.
     can be used to avoid screen flicker/tearing when updating screen contents.

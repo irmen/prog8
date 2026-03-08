@@ -80,7 +80,7 @@ main {
             cx16.VERA_AUDIO_RATE = vera_rate    ; start audio playback
 
             repeat {
-                interrupts.wait()
+                sys.waitirq()
                 if interrupts.vsync {
                     interrupts.vsync=false
                     update_visuals()
@@ -327,12 +327,6 @@ interrupts {
 
     bool aflow
     bool vsync
-
-    inline asmsub wait() {
-        %asm {{
-            wai
-        }}
-    }
 
     sub aflow_handler() -> bool {
         ; Filling the fifo is the only way to clear the Aflow irq.

@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit d720eeae in branch master
+Prerelease version from git commit 3b687412 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -1513,6 +1513,7 @@ sys  {
     set_rasterline  (uword line @AY) 
     update_rasterirq  (uword handler @AY, uword rasterpos @R0)  clobbers (A) 
     wait  (uword jiffies @AY)  clobbers (X) 
+    waitirq  () 
     waitrasterline  (uword line @AY) 
     waitvsync  () 
 }

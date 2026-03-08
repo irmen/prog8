@@ -46,7 +46,7 @@ main {
         }
 
         repeat {
-            interrupts.wait()
+            sys.waitirq()
             if interrupts.aflow {
                 ; read the next 1024 bytes of audio data into the buffer
                 txt.chrout('.')
@@ -69,12 +69,6 @@ interrupts {
         cx16.enable_irq_handlers(true)
         cx16.set_aflow_irq_handler(&aflow_handler)
         ; no other irqs in this example.
-    }
-
-    inline asmsub wait() {
-        %asm {{
-            wai
-        }}
     }
 
     sub aflow_handler() -> bool {

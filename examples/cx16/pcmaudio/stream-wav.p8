@@ -202,8 +202,8 @@ interrupts {
     uword idle_counter
 
     sub wait() {
-        ; NOTE: should be doing a WAI instruction here to wait for the next AFLOW irq
-        ; but we want to gather "idle time" counter statistics.
+        ; NOTE: should just be calling sys.waitirq() here to wait for the next AFLOW irq,
+        ; but for this example program we want to gather "idle time" counter statistics.
         idle_counter = 0
         while not aflow {
             idle_counter++
