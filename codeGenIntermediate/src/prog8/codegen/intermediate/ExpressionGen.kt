@@ -1794,10 +1794,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
     private fun updatePointerFromField(fieldinfo: Pair<DataType, UByte>, pointerReg: Int): IRCodeChunk {
         return IRCodeChunk(null, null).also {
-            if(fieldinfo.second>0u)
-                it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = pointerReg, immediate = fieldinfo.second.toInt())
             // LOADI has an exception to allow reg1 and reg2 to be the same, so we can avoid using extra temporary registers and LOADs
-            it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg, immediate = 0)
+            it += IRInstruction(Opcode.LOADI, IRDataType.WORD, reg1 = pointerReg, reg2 = pointerReg, immediate = fieldinfo.second.toInt())
         }
     }
 }
