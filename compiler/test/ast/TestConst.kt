@@ -572,5 +572,104 @@ main {
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
+    test("enum") {
+        val src = """
+main {
+
+    enum Priority {
+        LOW = 1,
+        NORMAL,
+        HIGH,
+        EXTREME=255
+    }
+
+    sub start() {
+    }
+}"""
+
+        val result = compileText(Cx16Target(), false, src, outputDir, writeAssembly = false)!!
+        val st = result.compilerAst.allBlocks.first { it.name=="main" }.statements
+        st.size shouldBe 5
+        val c1 = st[0] as VarDecl
+        val c2 = st[1] as VarDecl
+        val c3 = st[2] as VarDecl
+        val c4 = st[3] as VarDecl
+        c1.name shouldBe "Priority::LOW"
+        c2.name shouldBe "Priority::NORMAL"
+        c3.name shouldBe "Priority::HIGH"
+        c4.name shouldBe "Priority::EXTREME"
+        c1.type shouldBe VarDeclType.CONST
+        c2.type shouldBe VarDeclType.CONST
+        c3.type shouldBe VarDeclType.CONST
+        c4.type shouldBe VarDeclType.CONST
+        (c1.value as NumericLiteral).number shouldBe 1.0
+        (c2.value as NumericLiteral).number shouldBe 2.0
+        (c3.value as NumericLiteral).number shouldBe 3.0
+        (c4.value as NumericLiteral).number shouldBe 255.0
+    }
+
+    test("enum with invalid numbering") {
+        val src = """
+main {
+
+    enum Priority {
+        LOW = 1,
+        NORMAL,
+        HIGH,
+        EXTREME=1
+    }
+
+    sub start() {
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain ("invalid enum sequence member value EXTREME")
+    }
+
+    test("double colon in name only allowed in desugared enum members") {
+        val src = """
+main {
+
+    enum Priority::zzzz {
+        LOW,
+        NORMAL,
+        HIGH,
+        EXTREME
+    }
+
+    sub start() {
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain ("only enum members")
+    }
+
+
+    test("double colon in name only allowed in desugared enum members 2") {
+        val src = """
+main {
+
+    enum Priority {
+        LOW,
+        NORMAL,
+        HIGH,
+        EXT::REME
+    }
+
+    sub start() {
+    }
+}"""
+
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain ("invalid enum member name")
+    }
 })
 

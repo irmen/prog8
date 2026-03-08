@@ -937,10 +937,11 @@ internal class ProgramAndVarsGen(
             asmgen.out("  ${it.name} = ${it.address.toHex()}")
         }
         consts.sortedBy { it.name }.forEach {
+            val nameWithoutColons = it.name.replace("::", "_")
             if(it.dt.isFloat)
-                asmgen.out("  ${it.name} = ${it.value}")
+                asmgen.out("  ${nameWithoutColons} = ${it.value}")
             else
-                asmgen.out("  ${it.name} = ${it.value.toHex()}")
+                asmgen.out("  ${nameWithoutColons} = ${it.value.toHex()}")
         }
     }
 

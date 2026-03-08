@@ -40,13 +40,16 @@ maze {
     const ubyte finishCy = numCellsVert-1
 
     ; cell properties
-    const ubyte STONE = 128
-    const ubyte WALKED = 64
-    const ubyte BACKTRACKED = 32
-    const ubyte UP = 1
-    const ubyte RIGHT = 2
-    const ubyte DOWN = 4
-    const ubyte LEFT = 8
+    enum Cell {
+        UP = 1,
+        RIGHT = 2,
+        DOWN = 4,
+        LEFT = 8,
+        BACKTRACKED = 32,
+        WALKED = 64,
+        STONE = 128,
+    }
+
     const ubyte WALLCOLOR = 12
     const ubyte EMPTYCOLOR = 0
 
@@ -67,14 +70,14 @@ maze {
         }
     }
 
-    ubyte[4] directionflags = [LEFT,RIGHT,UP,DOWN]
+    ubyte[4] directionflags = [Cell::LEFT,Cell::RIGHT,Cell::UP,Cell::DOWN]
 
     sub generate() {
         ubyte cx = startCx
         ubyte cy = startCy
 
         stackptr = 0
-        @(celladdr(cx,cy)) &= ~STONE
+        @(celladdr(cx,cy)) &= ~Cell::STONE
         drawCell(cx, cy)
         uword cells_to_carve = numCellsHoriz * numCellsVert - 1
 
@@ -110,24 +113,24 @@ carve_restart_after_repath:
                 }
                 @(celladdr(cx,cy)) |= direction
                 when direction {
-                    UP -> {
+                    Cell::UP -> {
                         cy--
-                        @(celladdr(cx,cy)) |= DOWN
+                        @(celladdr(cx,cy)) |= Cell::DOWN
                     }
-                    RIGHT -> {
+                    Cell::RIGHT -> {
                         cx++
-                        @(celladdr(cx,cy)) |= LEFT
+                        @(celladdr(cx,cy)) |= Cell::LEFT
                     }
-                    DOWN -> {
+                    Cell::DOWN -> {
                         cy++
-                        @(celladdr(cx,cy)) |= UP
+                        @(celladdr(cx,cy)) |= Cell::UP
                     }
-                    LEFT -> {
+                    Cell::LEFT -> {
                         cx--
-                        @(celladdr(cx,cy)) |= RIGHT
+                        @(celladdr(cx,cy)) |= Cell::RIGHT
                     }
                 }
-                @(celladdr(cx,cy)) &= ~STONE
+                @(celladdr(cx,cy)) &= ~Cell::STONE
                 cells_to_carve--
                 drawCell(cx, cy)
             }
@@ -141,7 +144,7 @@ carve_restart_after_repath:
                 do {
                     cx = math.rnd() % numCellsHoriz
                     cy = math.rnd() % numCellsVert
-                } until @(celladdr(cx, cy)) & STONE ==0
+                } until @(celladdr(cx, cy)) & Cell::STONE ==0
                 if available_uncarved()!=0
                     return true
             }
@@ -150,14 +153,14 @@ carve_restart_after_repath:
 
         sub available_uncarved() -> ubyte {
             ubyte candidates = 0
-            if cx>0 and @(celladdr(cx-1, cy)) & STONE !=0
-                candidates |= LEFT
-            if cx<numCellsHoriz-1 and @(celladdr(cx+1, cy)) & STONE !=0
-                candidates |= RIGHT
-            if cy>0 and @(celladdr(cx, cy-1)) & STONE !=0
-                candidates |= UP
-            if cy<numCellsVert-1 and @(celladdr(cx, cy+1)) & STONE !=0
-                candidates |= DOWN
+            if cx>0 and @(celladdr(cx-1, cy)) & Cell::STONE !=0
+                candidates |= Cell::LEFT
+            if cx<numCellsHoriz-1 and @(celladdr(cx+1, cy)) & Cell::STONE !=0
+                candidates |= Cell::RIGHT
+            if cy>0 and @(celladdr(cx, cy-1)) & Cell::STONE !=0
+                candidates |= Cell::UP
+            if cy<numCellsVert-1 and @(celladdr(cx, cy+1)) & Cell::STONE !=0
+                candidates |= Cell::DOWN
             return candidates
         }
 
@@ -183,34 +186,34 @@ carve_restart_after_repath:
             do {
                 cx = math.rnd() % (numCellsHoriz-2) + 1
                 cy = math.rnd() % (numCellsVert-2) + 1
-            } until @(celladdr(cx, cy)) & STONE ==0
+            } until @(celladdr(cx, cy)) & Cell::STONE ==0
             ubyte direction = directionflags[math.rnd() & 3]
             if @(celladdr(cx, cy)) & direction == 0 {
                 when direction {
-                    LEFT -> {
-                        if @(celladdr(cx-1,cy)) & STONE == 0 {
-                            @(celladdr(cx,cy)) |= LEFT
+                    Cell::LEFT -> {
+                        if @(celladdr(cx-1,cy)) & Cell::STONE == 0 {
+                            @(celladdr(cx,cy)) |= Cell::LEFT
                             drawCell(cx,cy)
                             numpassages++
                         }
                     }
-                    RIGHT -> {
-                        if @(celladdr(cx+1,cy)) & STONE == 0 {
-                            @(celladdr(cx,cy)) |= RIGHT
+                    Cell::RIGHT -> {
+                        if @(celladdr(cx+1,cy)) & Cell::STONE == 0 {
+                            @(celladdr(cx,cy)) |= Cell::RIGHT
                             drawCell(cx,cy)
                             numpassages++
                         }
                     }
-                    UP -> {
-                        if @(celladdr(cx,cy-1)) & STONE == 0 {
-                            @(celladdr(cx,cy)) |= UP
+                    Cell::UP -> {
+                        if @(celladdr(cx,cy-1)) & Cell::STONE == 0 {
+                            @(celladdr(cx,cy)) |= Cell::UP
                             drawCell(cx,cy)
                             numpassages++
                         }
                     }
-                    DOWN -> {
-                        if @(celladdr(cx,cy+1)) & STONE == 0 {
-                            @(celladdr(cx,cy)) |= DOWN
+                    Cell::DOWN -> {
+                        if @(celladdr(cx,cy+1)) & Cell::STONE == 0 {
+                            @(celladdr(cx,cy)) |= Cell::DOWN
                             drawCell(cx,cy)
                             numpassages++
                         }
@@ -229,7 +232,7 @@ carve_restart_after_repath:
         uword pathstack = memory("pathstack", max_path_length, 0)
         uword pathstackptr = 0
 
-        @(celladdr(cx,cy)) |= WALKED
+        @(celladdr(cx,cy)) |= Cell::WALKED
         txt.setcc(cx*2+1, cy*2+1, 81, 1)
 
         repeat {
@@ -243,23 +246,23 @@ solve_loop:
             }
 
             ubyte cell = @(celladdr(cx,cy))
-            if cell & UP!=0 and @(celladdr(cx,cy-1)) & (WALKED|BACKTRACKED) ==0 {
-                @(pathstack + pathstackptr) = UP
+            if cell & Cell::UP!=0 and @(celladdr(cx,cy-1)) & (Cell::WALKED|Cell::BACKTRACKED) ==0 {
+                @(pathstack + pathstackptr) = Cell::UP
                 txt.setcc(cx*2+1, cy*2, 81, 3)
                 cy--
             }
-            else if cell & DOWN !=0 and @(celladdr(cx,cy+1)) & (WALKED|BACKTRACKED) ==0 {
-                @(pathstack + pathstackptr) = DOWN
+            else if cell & Cell::DOWN !=0 and @(celladdr(cx,cy+1)) & (Cell::WALKED|Cell::BACKTRACKED) ==0 {
+                @(pathstack + pathstackptr) = Cell::DOWN
                 txt.setcc(cx*2+1, cy*2+2, 81, 3)
                 cy++
             }
-            else if cell & LEFT !=0 and @(celladdr(cx-1,cy)) & (WALKED|BACKTRACKED) ==0 {
-                @(pathstack + pathstackptr) = LEFT
+            else if cell & Cell::LEFT !=0 and @(celladdr(cx-1,cy)) & (Cell::WALKED|Cell::BACKTRACKED) ==0 {
+                @(pathstack + pathstackptr) = Cell::LEFT
                 txt.setcc(cx*2, cy*2+1, 81, 3)
                 cx--
             }
-            else if cell & RIGHT !=0 and @(celladdr(cx+1,cy)) & (WALKED|BACKTRACKED) ==0 {
-                @(pathstack + pathstackptr) = RIGHT
+            else if cell & Cell::RIGHT !=0 and @(celladdr(cx+1,cy)) & (Cell::WALKED|Cell::BACKTRACKED) ==0 {
+                @(pathstack + pathstackptr) = Cell::RIGHT
                 txt.setcc(cx*2+2, cy*2+1, 81, 3)
                 cx++
             }
@@ -270,22 +273,22 @@ solve_loop:
                     txt.print("no solution?!")
                     return
                 }
-                @(celladdr(cx,cy)) |= BACKTRACKED
+                @(celladdr(cx,cy)) |= Cell::BACKTRACKED
                 txt.setcc(cx*2+1, cy*2+1, 81, 2)
                 when @(pathstack + pathstackptr) {
-                    UP -> {
+                    Cell::UP -> {
                         txt.setcc(cx*2+1, cy*2+2, 81, 9)
                         cy++
                     }
-                    DOWN -> {
+                    Cell::DOWN -> {
                         txt.setcc(cx*2+1, cy*2, 81, 9)
                         cy--
                     }
-                    LEFT -> {
+                    Cell::LEFT -> {
                         txt.setcc(cx*2+2, cy*2+1, 81, 9)
                         cx++
                     }
-                    RIGHT -> {
+                    Cell::RIGHT -> {
                         txt.setcc(cx*2, cy*2+1, 81, 9)
                         cx--
                     }
@@ -297,7 +300,7 @@ solve_loop:
                 txt.print("stack overflow, path too long")
                 return
             }
-            @(celladdr(cx,cy)) |= WALKED
+            @(celladdr(cx,cy)) |= Cell::WALKED
             txt.setcc(cx*2+1, cy*2+1, 81, 1)
         }
     }
@@ -310,27 +313,27 @@ solve_loop:
         ubyte x = cx * 2 + 1
         ubyte y = cy * 2 + 1
         ubyte doors = @(celladdr(cx,cy))
-        if doors & UP !=0
+        if doors & Cell::UP !=0
             txt.setcc(x, y-1, ' ', EMPTYCOLOR)
-        if doors & RIGHT !=0
+        if doors & Cell::RIGHT !=0
             txt.setcc(x+1, y, ' ', EMPTYCOLOR)
-        if doors & DOWN !=0
+        if doors & Cell::DOWN !=0
             txt.setcc(x, y+1, ' ', EMPTYCOLOR)
-        if doors & LEFT !=0
+        if doors & Cell::LEFT !=0
             txt.setcc(x-1, y, ' ', EMPTYCOLOR)
-        if doors & STONE !=0
+        if doors & Cell::STONE !=0
             txt.setcc(x, y, 160, WALLCOLOR)
         else
             txt.setcc(x, y, 32, EMPTYCOLOR)
 
-        if doors & WALKED !=0
+        if doors & Cell::WALKED !=0
             txt.setcc(x, y, 81, 1)
-        if doors & BACKTRACKED !=0
+        if doors & Cell::BACKTRACKED !=0
             txt.setcc(x, y, 81, 2)
     }
 
     sub initialize() {
-        sys.memset(cells, numCellsHoriz*numCellsVert, STONE)
+        sys.memset(cells, numCellsHoriz*numCellsVert, Cell::STONE)
         txt.fill_screen(160, WALLCOLOR)
         drawStartFinish()
     }

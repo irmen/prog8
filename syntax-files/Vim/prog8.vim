@@ -41,7 +41,7 @@ syn match prog8Type "\<\%(u\?byte\|u\?word\|float\|str\|bool\|long\|\^\^\)\>"
 syn region prog8ArrayType matchgroup=prog8Type
             \ start="\<\%(u\?byte\|u\?word\|float\|str\|bool\)\[" end="\]"
             \ transparent
-syn keyword prog8StorageClass const
+syn keyword prog8StorageClass const enum struct
 syn match prog8StorageClass "\(^\|\s\)\(@zp\|@bank\|@shared\|@nosplit\|@nozp\|@requirezp\|@align64\|@alignword\|@alignpage\|@dirty\)\>"
 
 syn region prog8Block start="{" end="}" transparent

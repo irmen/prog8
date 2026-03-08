@@ -10,12 +10,14 @@
 wavfile {
     %option ignore_unused
 
-    const ubyte WAVE_FORMAT_PCM        =  1
-    const ubyte WAVE_FORMAT_ADPCM      =  2
-    const ubyte WAVE_FORMAT_IEEE_FLOAT =  3
-    const ubyte WAVE_FORMAT_ALAW       =  6
-    const ubyte WAVE_FORMAT_MULAW      =  7
-    const ubyte WAVE_FORMAT_DVI_ADPCM  =  17
+    enum Format {
+        PCM        =  1,
+        ADPCM      =  2,
+        IEEE_FLOAT =  3,
+        ALAW       =  6,
+        MULAW      =  7,
+        DVI_ADPCM  =  17,
+    }
 
     uword sample_rate
     ubyte bits_per_sample
@@ -40,7 +42,7 @@ wavfile {
         sample_rate = peekw(header+24)    ; we assume sample rate <= 65535 so we can ignore the upper word
         block_align = peekw(header+32)
         bits_per_sample = peek(header+34)
-        if wavefmt==WAVE_FORMAT_DVI_ADPCM or wavefmt==WAVE_FORMAT_ADPCM
+        if wavefmt==Format::DVI_ADPCM or wavefmt==Format::ADPCM
             bits_per_sample *= 4
 
         ; skip chunks until we reach the 'data' chunk

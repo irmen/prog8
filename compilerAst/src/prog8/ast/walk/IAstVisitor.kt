@@ -55,6 +55,9 @@ interface IAstVisitor {
         swap.t2.accept(this)
     }
 
+    fun visit(enum: Enumeration) {
+    }
+
     fun visit(subroutine: Subroutine) {
         subroutine.asmAddress?.varbank?.accept(this)
         subroutine.statements.forEach { it.accept(this) }

@@ -112,6 +112,7 @@ Constant         ``p8c_``
 Label            ``p8l_``
 Struct           ``p8t_``
 Struct Field     ``p8v_``
+Enum Member      ``p8c_EnumName_MemberName``
 other            ``p8_``
 ================ ========
 

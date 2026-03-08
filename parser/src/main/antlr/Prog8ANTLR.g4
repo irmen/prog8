@@ -32,8 +32,9 @@ INLINE: 'inline';
 STEP: 'step';
 ELSE: 'else';
 THEN: 'then';
+ENUM: 'enum';
 
-UNICODEDNAME :  [\p{Letter}][\p{Letter}\p{Mark}\p{Digit}_]* ;           // match unicode properties
+UNICODEDNAME :  [\p{Letter}]([\p{Letter}\p{Mark}\p{Digit}_] | '::')* ;           // match unicode properties
 UNDERSCORENAME :  '_' UNICODEDNAME ;           // match unicode properties
 DEC_INTEGER :  DEC_DIGIT (DEC_DIGIT | '_')* ;
 HEX_INTEGER :  '$' HEX_DIGIT (HEX_DIGIT | '_')* ;
@@ -92,6 +93,7 @@ block_statement:
     | inlineasm
     | labeldef
     | alias
+    | enum
     ;
 
 
@@ -121,8 +123,14 @@ statement :
     | labeldef
     | defer
     | alias
+    | enum
     | swap
     ;
+
+
+enum :  ENUM identifier '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}' ;       // you can split the values over several lines, trailing comma allowed
+
+enum_member :  identifier ('=' integerliteral)?  ;
 
 swap: 'swap' '(' assign_target ',' assign_target ')' ;
 

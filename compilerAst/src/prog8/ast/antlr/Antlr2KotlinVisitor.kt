@@ -734,6 +734,19 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         return Swap(t1, t2, ctx.toPosition())
     }
 
+    override fun visitEnum(ctx: EnumContext): Enumeration {
+        val name = getname(ctx.identifier())
+        val members1 = ctx.enum_member().map {
+            getname(it.identifier()) to it.integerliteral()?.accept(this) as NumericLiteral?
+        }
+        val datatypes = members1.mapNotNull { it.second?.type }
+        val largestType = datatypes.fold(BaseDataType.UBYTE) { acc, dt -> if (dt.largerSizeThan(acc)) dt else acc }
+        val members = members1.map {
+            it.first to it.second?.number?.toInt()
+        }.toTypedArray()
+        return Enumeration(name, largestType, members, ctx.toPosition())
+    }
+
 
     override fun visitModule_element(ctx: Module_elementContext): Node = visitChildren(ctx)
     override fun visitBlock_statement(ctx: Block_statementContext): Statement = visitChildren(ctx) as Statement
@@ -742,6 +755,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitVariabledeclaration(ctx: VariabledeclarationContext): VarDecl = visitChildren(ctx) as VarDecl
     override fun visitLiteralvalue(ctx: LiteralvalueContext): Expression = visitChildren(ctx) as Expression
 
+    override fun visitEnum_member(ctx: Enum_memberContext?) = throw FatalAstException("should not be called")
     override fun visitBasedatatype(ctx: BasedatatypeContext) = throw FatalAstException("should not be called")
     override fun visitDirectivenamelist(ctx: DirectivenamelistContext) = throw FatalAstException("should not be called")
     override fun visitAsmsub_decl(ctx: Asmsub_declContext) = throw FatalAstException("should not be called")

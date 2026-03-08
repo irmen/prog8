@@ -180,7 +180,7 @@ Tips for effective profiling
 - A routine with high average time per call may need algorithmic improvements
 - Use the flame graph to quickly identify hot paths in the call stack
 - Compare profiles before and after optimizations to measure improvement
-= **Recompile the program WITHOUT profiling mode after you're done** -- because the profiling logic takes up space and slows down the actual program
+- **Recompile the program WITHOUT profiling mode after you're done** -- because the profiling logic takes up space and slows down the actual program
 
 Limitations
 ^^^^^^^^^^^

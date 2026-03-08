@@ -77,7 +77,7 @@ main {
         txt.print_uw(vera_rate_hz)
         txt.print(" hz\n  bits per sample: ")
         txt.print_uw(wavfile.bits_per_sample)
-        if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
+        if wavfile.wavefmt==wavfile.Format::DVI_ADPCM {
             txt.print("\n adpcm block size: ")
             txt.print_uw(wavfile.block_align)
         }
@@ -85,18 +85,18 @@ main {
         float duration = wavfile.data_size as float / (wavfile.nchannels as float) / (wavfile.sample_rate as float) / bytes_per_sample
         txt.print("\n         duration: ")
         cx16.r0 = duration as uword
-        if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
+        if wavfile.wavefmt==wavfile.Format::DVI_ADPCM
             cx16.r0 *= 4    ; adpcm is 1:4 compression
         txt.print_uw(cx16.r0)
         txt.print(" seconds\n")
 
         if wavfile.nchannels>2 or
-           (wavfile.wavefmt!=wavfile.WAVE_FORMAT_DVI_ADPCM and wavfile.wavefmt!=wavfile.WAVE_FORMAT_PCM) or
+           (wavfile.wavefmt!=wavfile.Format::DVI_ADPCM and wavfile.wavefmt!=wavfile.Format::PCM) or
            wavfile.sample_rate > 48828 or
            wavfile.bits_per_sample>16
                 error("unsupported format!")
 
-        if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
+        if wavfile.wavefmt==wavfile.Format::DVI_ADPCM {
             if(wavfile.block_align!=256) {
                 error("unsupported block alignment!")
             }
@@ -121,7 +121,7 @@ main {
     sub play_stuff() {
         if diskio.f_open(MUSIC_FILENAME) {
             uword block_size = 1024
-            if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM
+            if wavfile.wavefmt==wavfile.Format::DVI_ADPCM
                 block_size = 512      ; read 2 adpcm blocks at a time (2*256 bytes)
             void diskio.f_read(music.buffer, wavfile.data_offset)       ; skip to actual sample data start
             music.pre_buffer(block_size)
@@ -248,7 +248,7 @@ music {
 
     sub aflow_play_block() {
         ; play audio data that is currently in the buffer
-        if wavfile.wavefmt==wavfile.WAVE_FORMAT_DVI_ADPCM {
+        if wavfile.wavefmt==wavfile.Format::DVI_ADPCM {
             ; we have 2 adpcm blocks loaded of 256 bytes each, decode them both
             if wavfile.nchannels==2 {
                 adpcm.decode_block_stereo(buffer)

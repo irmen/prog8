@@ -465,6 +465,61 @@ class AstPreprocessor(val program: Program,
         return noModifications
     }
 
+    override fun after(enum: Enumeration, parent: Node): Iterable<IAstModification> {
+        // first check that there is no name conflict
+        (parent as? IStatementContainer)?.let {
+            val allNamed = it.statements.asSequence()
+                .filterIsInstance<INamedStatement>()
+                .filter { it.name==enum.name && it !== enum }
+                .toList()
+            if(allNamed.isNotEmpty()) {
+                val existing = allNamed.first() as Node
+                errors.err("name conflict '${enum.name}', also defined in ${existing.position.file} line ${existing.position.line}", enum.position)
+                return noModifications
+            }
+        }
+
+        if("::" in enum.name) {
+            errors.err("only enum members can be accessed with '::' syntax", enum.position)
+            return noModifications
+        }
+        for(member in enum.members) {
+            if("::" in member.first) {
+                errors.err("invalid enum member name '${member.first}'", enum.position)
+                return noModifications
+            }
+        }
+
+        // replace enum by a bunch of const vardecls inside a subroutine for scoping
+        val dt = DataType.forDt(enum.type)
+        var value = -1
+        val constants = enum.members.map {
+            val membername = "${enum.name}::${it.first}"
+            if(it.second!=null) {
+                if(it.second!!>value) {
+                    value = it.second!!
+                } else {
+                    errors.err("invalid enum sequence member value ${it.first} = ${it.second}", enum.position)
+                }
+            } else value++
+            val membervalue = NumericLiteral(enum.type, value.toDouble(), enum.position)
+            VarDecl(VarDeclType.CONST, VarDeclOrigin.USERCODE, dt,
+                ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, membername, emptyList(), membervalue,
+                false, 0u, false, enum.position)
+        }
+
+        /*
+            val sub = Subroutine(enum.name, mutableListOf(), mutableListOf(), emptyList(), emptyList(),
+                emptySet(), null, false, false, statements=constants.toMutableList(), position=enum.position)
+         */
+
+        val modifications =
+            constants.map { IAstModification.InsertBefore(enum, it, parent as IStatementContainer) } +
+                IAstModification.Remove(enum, parent as IStatementContainer)
+
+        return modifications
+    }
+
     private fun checkStringParam(call: IFunctionCall, stmt: Statement) {
         val targetStatement = call.target.checkFunctionOrLabelExists(program, stmt, errors)
         if(targetStatement!=null) {

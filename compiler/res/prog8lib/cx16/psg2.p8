@@ -31,10 +31,12 @@ psg2 {
     const ubyte DISABLED = %00000000
 
     ; envelope states:
-    const ubyte E_OFF = 0
-    const ubyte E_ATTACK = 1
-    const ubyte E_SUSTAIN = 2
-    const ubyte E_RELEASE = 3
+    enum EnvelopeState {
+        OFF,
+        ATTACK,
+        SUSTAIN,
+        RELEASE
+    }
 
     struct Voice {
         ubyte channels          ; LEFT,RIGHT,BOTH or DISABLED
@@ -63,7 +65,7 @@ psg2 {
         sys.memset(voices, 16*sizeof(Voice), 0)
         sys.irqsafe_clear_irqd()
         for cx16.r0L in 0 to 15
-            envelope_states[cx16.r0L] = E_OFF
+            envelope_states[cx16.r0L] = EnvelopeState::OFF
     }
 
     sub off() {
@@ -73,7 +75,7 @@ psg2 {
         for cx16.r0L in 0 to 15 {
             vptr.channels = DISABLED
             vptr++
-            envelope_states[cx16.r0L] = E_OFF
+            envelope_states[cx16.r0L] = EnvelopeState::OFF
         }
         sys.irqsafe_clear_irqd()
         void update()
@@ -84,7 +86,7 @@ psg2 {
         if voice_num > 15
             return
         volume &= %00111111
-        envelope_states[voice_num] = E_OFF
+        envelope_states[voice_num] = EnvelopeState::OFF
         sys.irqsafe_set_irqd()
         vptr = &voices[voice_num]
         vptr.channels = channels
@@ -106,7 +108,7 @@ psg2 {
     sub volume(ubyte voice_num, ubyte @nozp vol) {
         ; -- Modifies the volume of this voice, adjusting the envelope as needed.
         ;    voice_num = 0-15, vol = 0-63 where 0=silent, 63=loudest.
-        envelope_states[voice_num] = E_OFF
+        envelope_states[voice_num] = EnvelopeState::OFF
         vptr = &voices[voice_num]
         vptr.volume = vol
         envelope_volumes[voice_num] = mkword(vol, 0)
@@ -115,14 +117,14 @@ psg2 {
 
     sub envelope(ubyte voice_num, ubyte @nozp attack, ubyte @nozp sustain, ubyte @nozp release) {
         ; -- sets ASR envelope parameters for this voice
-        envelope_states[voice_num] = E_OFF
+        envelope_states[voice_num] = EnvelopeState::OFF
         vptr = &voices[voice_num]
         vptr.volume = 0
         envelope_attacks[voice_num] = attack
         envelope_sustains[voice_num] = sustain
         envelope_releases[voice_num] = release
         envelope_volumes[voice_num] = 0
-        envelope_states[voice_num] = E_ATTACK
+        envelope_states[voice_num] = EnvelopeState::ATTACK
     }
 
     sub getvoice(ubyte @nozp voice_num) -> ^^Voice {
@@ -151,7 +153,7 @@ psg2 {
         ; update active envelopes
         for voice in 0 to 15 {
             when envelope_states[voice] {
-                E_ATTACK -> {
+                EnvelopeState::ATTACK -> {
                     ; while current volume is less than max volume, increase volume by maxvolume * (attackspeed /256.0)
                     maxvolume = mkword(envelope_maxvolumes[voice], 0)
                     currentvolume = envelope_volumes[voice]
@@ -161,15 +163,15 @@ psg2 {
                         envelope_volumes[voice] = newvolume
                         vptr.volume = msb(newvolume)
                     } else
-                        envelope_states[voice] = E_SUSTAIN
+                        envelope_states[voice] = EnvelopeState::SUSTAIN
                 }
-                E_SUSTAIN -> {
+                EnvelopeState::SUSTAIN -> {
                     if envelope_sustains[voice] > 0
                         envelope_sustains[voice]--
                     else
-                        envelope_states[voice] = E_RELEASE
+                        envelope_states[voice] = EnvelopeState::RELEASE
                 }
-                E_RELEASE -> {
+                EnvelopeState::RELEASE -> {
                     ; while current volume is not zero, decrease volume by maxvolume * (releasespeed /256.0)
                     currentvolume = envelope_volumes[voice]
                     if currentvolume > 0 {
@@ -181,7 +183,7 @@ psg2 {
                         envelope_volumes[voice] = newvolume
                         vptr.volume = msb(newvolume)
                     } else
-                        envelope_states[voice] = E_OFF
+                        envelope_states[voice] = EnvelopeState::OFF
                 }
             }
 

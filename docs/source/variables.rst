@@ -186,6 +186,42 @@ initializing from a subroutine returning multiple result values: ``ubyte a,b,c =
     into the declared variables in order.  Ofcourse the number of values has to match the number of variables.
 
 
+Constants
+---------
+.. index:: single: Constants
+
+When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
+You'll have to specify the initial value expression. This value is then used
+by the compiler everywhere you refer to the constant (and no memory is allocated
+for the constant itself). Onlythe simple numeric types (byte, word, long, float) can be defined as a constant.
+If something is defined as a constant, very efficient code can usually be generated from it.
+Variables on the other hand can't be optimized as much, need memory, and more code to manipulate them.
+Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
+compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
+
+Enums
+-----
+.. index:: single: Enums
+
+There is a more convenient way to define a bunch of constants that belong togther: a "enum".
+That is a grouped list of constants that get autonumbered for you (unless you override the numeric value yourself).
+It starts numbering from zero by default. Here's an example::
+
+    enum Priority {
+        LOW = 1,
+        NORMAL,
+        HIGH,
+        EXTREME=255
+    }
+
+This will define a bunch of constants like so (the "Enum::Field" syntax is specific for enumeration elements)::
+
+    const ubyte Priority::LOW = 1
+    const ubyte Priority::NORMAL= 2
+    const ubyte Priority::HIGH = 3
+    const ubyte Priority::EXTREME = 255
+
+
 Data Types
 ----------
 .. index:: pair: Data Types; Overview
@@ -579,20 +615,6 @@ the downto variant to avoid having to specify the step as well::
 Range expressions are most often used in for loops, but can be also be used to create array initialization values::
 
 	byte[] array = 100 to 199     ; initialize array with [100, 101, ..., 198, 199]
-
-
-Constants
-^^^^^^^^^
-.. index:: pair: Data Types; Constants
-
-When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
-You'll have to specify the initial value expression. This value is then used
-by the compiler everywhere you refer to the constant (and no memory is allocated
-for the constant itself). Onlythe simple numeric types (byte, word, long, float) can be defined as a constant.
-If something is defined as a constant, very efficient code can usually be generated from it.
-Variables on the other hand can't be optimized as much, need memory, and more code to manipulate them.
-Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in
-compile time expressions. For example, the compiler knows what ``math.sin8u(12)`` is and replaces it with the computed result.
 
 
 Memory-mapped

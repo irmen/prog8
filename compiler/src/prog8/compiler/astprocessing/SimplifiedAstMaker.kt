@@ -81,6 +81,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             is WhileLoop -> throw FatalAstException("while loops must have been converted to jumps")
             is OnGoto -> throw FatalAstException("ongoto must have been converted to array and separate call/goto")
             is StructFieldRef -> throw FatalAstException("should not occur as part of the actual AST")
+            is Enumeration -> throw FatalAstException("should have been converted to recular const vardecls")
         }
     }
 

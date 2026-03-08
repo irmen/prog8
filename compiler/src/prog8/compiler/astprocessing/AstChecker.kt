@@ -53,6 +53,8 @@ internal class AstChecker(private val program: Program,
         super.visit(module)
         if(module.name.startsWith('_'))
             errors.err("identifiers cannot start with an underscore", module.position)
+        if("::" in module.name)
+            errors.err("only enum members can be accessed with '::' syntax", module.position)
         val directives = module.statements.filterIsInstance<Directive>().groupBy { it.directive }
         directives.filter { it.value.size > 1 }.forEach{ entry ->
             when(entry.key) {
@@ -69,9 +71,9 @@ internal class AstChecker(private val program: Program,
             return  // identifiers will be checked over at the BinaryExpression itself
         }
 
-        if(identifier.nameInSource.any { it.startsWith('_') }) {
+        if(identifier.nameInSource.any { it.startsWith('_') })
             errors.err("identifiers cannot start with an underscore", identifier.position)
-        }
+
         if(identifier.nameInSource.any { it=="void" }) {
             // 'void' as "identifier" is only allowed as part of a multi-assignment expression
             if (!(identifier.nameInSource == listOf("void") && (identifier.parent as? AssignTarget)?.multi?.isNotEmpty() == true
@@ -82,6 +84,12 @@ internal class AstChecker(private val program: Program,
         }
 
         val stmt = identifier.targetStatement(program.builtinFunctions)
+        if(identifier.nameInSource.any { "::" in it }) {
+            val vartype = (stmt as? VarDecl)?.type
+            if(vartype!=VarDeclType.CONST) {
+                errors.err("only enum members can be accessed with '::' syntax", identifier.position)
+            }
+        }
         if(stmt==null) {
             if(identifier.parent is ArrayIndexedExpression) {
                 // might be a pointer dereference chain
@@ -319,6 +327,8 @@ internal class AstChecker(private val program: Program,
     override fun visit(block: Block) {
         if(block.name.startsWith('_'))
             errors.err("identifiers cannot start with an underscore", block.position)
+        if("::" in block.name)
+            errors.err("only enum members can be accessed with '::' syntax", block.position)
 
         val addr = block.address
         if (addr!=null) {
@@ -359,6 +369,8 @@ internal class AstChecker(private val program: Program,
     override fun visit(label: Label) {
         if(label.name.startsWith('_'))
             errors.err("identifiers cannot start with an underscore", label.position)
+        if("::" in label.name)
+            errors.err("only enum members can be accessed with '::' syntax", label.position)
 
         // scope check
         if(label.parent !is Block && label.parent !is Subroutine && label.parent !is AnonymousScope) {
@@ -406,6 +418,8 @@ internal class AstChecker(private val program: Program,
 
         if(subroutine.name.startsWith('_'))
             errors.err("identifiers cannot start with an underscore", subroutine.position)
+        if("::" in subroutine.name)
+            errors.err("only enum members can be accessed with '::' syntax", subroutine.position)
 
         if(subroutine.name in BuiltinFunctions)
             err("cannot redefine a built-in function")
@@ -597,6 +611,8 @@ internal class AstChecker(private val program: Program,
 
             if(p.name.startsWith('_'))
                 errors.err("identifiers cannot start with an underscore", p.position)
+            if("::" in p.name)
+                errors.err("only enum members can be accessed with '::' syntax", p.position)
 
             if(p.type.isPassByRef && !p.type.isString && !p.type.isUnsignedByteArray) {
                 errors.err("this pass-by-reference type can't be used as a parameter type.", p.position)
@@ -898,6 +914,9 @@ internal class AstChecker(private val program: Program,
     override fun visit(decl: VarDecl) {
         if(decl.names.size>1)
             throw InternalCompilerException("vardecls with multiple names should have been converted into individual vardecls")
+
+        if(decl.type!=VarDeclType.CONST && "::" in decl.name)
+            errors.err("only enum members can be accessed with '::' syntax", decl.position)
 
         if(decl.type==VarDeclType.MEMORY) {
             if (decl.datatype.isString)
