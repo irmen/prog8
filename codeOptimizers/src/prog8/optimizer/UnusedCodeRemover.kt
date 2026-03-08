@@ -9,14 +9,14 @@ import prog8.ast.statements.*
 import prog8.ast.walk.AstWalker
 import prog8.ast.walk.IAstModification
 import prog8.code.PROG8_CONTAINER_MODULES
-import prog8.code.core.ICompilationTarget
+import prog8.code.core.CompilationOptions
 import prog8.code.core.IErrorReporter
 import prog8.compiler.CallGraph
 
 
 class UnusedCodeRemover(private val program: Program,
                         private val errors: IErrorReporter,
-                        private val compTarget: ICompilationTarget
+                        private val options: CompilationOptions
 ): AstWalker() {
 
     private lateinit var callgraph: CallGraph
@@ -34,7 +34,10 @@ class UnusedCodeRemover(private val program: Program,
 
         program.allBlocks.singleOrNull { it.name=="prog8_lib" } ?.let {
             val subroutines = it.statements.filterIsInstance<Subroutine>()
-            subroutines.filter { s -> s.name in arrayOf("sqrt_long", "profile_sub_entry") }
+            val prog8LibModulesToKeep = mutableListOf("sqrt_long")
+            if(options.profilingInstrumentation)
+                prog8LibModulesToKeep.add("profile_sub_entry")
+            subroutines.filter { s -> s.name in prog8LibModulesToKeep }
                 .forEach { sub -> neverRemoveSubroutines.add(sub) }
         }
     }
@@ -305,7 +308,7 @@ class UnusedCodeRemover(private val program: Program,
                         else -> {}
                     }
                 } else {
-                    if (assign1.target.isSameAs(assign2.target, program) && !assign1.target.isIOAddress(compTarget))  {
+                    if (assign1.target.isSameAs(assign2.target, program) && !assign1.target.isIOAddress(options.compTarget))  {
                         if(assign2.target.identifier==null || !assign2.value.referencesIdentifier(assign2.target.identifier!!.nameInSource))
                             // only remove the second assignment if its value is a simple expression!
                             when(assign2.value) {

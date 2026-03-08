@@ -1,8 +1,6 @@
 TODO
 ====
 
-- shell: a lot of stuff got bigger (ext-command, time, view, hexdump)
-- assembler suddenly much bigger
 - 6502+IR: why is a=peek(struct.ptr)  more efficent than  a=struct.ptr^^  (make sure the optimization for that has been removed temporarily)  Code gen should do the same...?
 
 Known bugs:

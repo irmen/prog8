@@ -512,7 +512,7 @@ private fun processAst(program: Program, errors: IErrorReporter, compilerOptions
 
 private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, errors: IErrorReporter, functions: IBuiltinFunctions) {
     fun removeUnusedCode(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {
-        val remover = UnusedCodeRemover(program, errors, compilerOptions.compTarget)
+        val remover = UnusedCodeRemover(program, errors, compilerOptions)
         remover.visit(program)
         while (errors.noErrors() && remover.applyModifications() > 0) {
             remover.visit(program)
