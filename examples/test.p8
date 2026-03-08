@@ -20,7 +20,7 @@ main {
 
 
         ^^Task tptr = 5000
-        tptr.line = "irmen"
+        tptr.line = "hello"
         tptr.wptr = 6000
         tptr.lptr = 7000
         tptr.fptr = 8000
@@ -80,6 +80,43 @@ main {
         txt.chrout(tptr.line[2])
         txt.chrout(tptr.line[3])
         txt.chrout(tptr.line[4])
+        txt.nl()
+
+        cx16.r0 = 0
+        for cx16.r0 in 0 to 4 {
+            txt.chrout(tptr.line[cx16.r0])
+        }
+        txt.nl()
+
+        cx16.r0 = 1
+        txt.print_uw(tptr.wptr[cx16.r0])
+        txt.chrout(' ')
+        txt.print_uw(peekw(tptr.wptr+cx16.r0))
+        txt.nl()
+
+        txt.print_l(tptr.lptr[cx16.r0])
+        txt.chrout(' ')
+        txt.print_l(peekl(tptr.lptr+cx16.r0))
+        txt.nl()
+
+        txt.print_f(tptr.fptr[cx16.r0])
+        txt.chrout(' ')
+        txt.print_f(peekf(tptr.fptr+cx16.r0))
+        txt.nl()
+
+        txt.print_uw(tptr.wptr[cx16.r0L])
+        txt.chrout(' ')
+        txt.print_uw(peekw(tptr.wptr+cx16.r0L))
+        txt.nl()
+
+        txt.print_l(tptr.lptr[cx16.r0L])
+        txt.chrout(' ')
+        txt.print_l(peekl(tptr.lptr+cx16.r0L))
+        txt.nl()
+
+        txt.print_f(tptr.fptr[cx16.r0L])
+        txt.chrout(' ')
+        txt.print_f(peekf(tptr.fptr+cx16.r0L))
         txt.nl()
     }
 }

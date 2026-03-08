@@ -49,9 +49,13 @@ enum class BaseDataType {
 
 
 val BaseDataType.isByte get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE)
+val BaseDataType.isUnsignedByte get() = this == BaseDataType.UBYTE
+val BaseDataType.isSignedByte get() = this == BaseDataType.BYTE
 val BaseDataType.isBool get() = this == BaseDataType.BOOL
 val BaseDataType.isByteOrBool get() = this in arrayOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.BOOL)
 val BaseDataType.isWord get() = this in arrayOf(BaseDataType.UWORD, BaseDataType.WORD)
+val BaseDataType.isUnsignedWord get() = this == BaseDataType.UWORD
+val BaseDataType.isSignedWord get() = this == BaseDataType.WORD
 val BaseDataType.isLong get() = this == BaseDataType.LONG
 val BaseDataType.isFloat get() = this == BaseDataType.FLOAT
 val BaseDataType.isInteger get() = this in setOf(BaseDataType.UBYTE, BaseDataType.BYTE, BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)

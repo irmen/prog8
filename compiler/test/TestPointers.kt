@@ -2543,9 +2543,16 @@ player {
 
         val ifCond = (test[1] as IfElse).condition as ContainmentCheck
         val cond = ifCond.element as BinaryExpression
-        cond.left shouldBe instanceOf<PtrDereference>()
-        cond.right shouldBe instanceOf<PtrDereference>()
-        (cond.right as PtrDereference).chain shouldBe listOf("cx16", "pword4")
+        val left = cond.left as TypecastExpression
+        val right = cond.right as TypecastExpression
+        left.type shouldBe DataType.WORD
+        right.type shouldBe DataType.WORD
+        val leftpeek = left.expression as FunctionCallExpression
+        val rightpeek = right.expression as FunctionCallExpression
+        leftpeek.target.nameInSource shouldBe listOf("peekw")
+        rightpeek.target.nameInSource shouldBe listOf("peekw")
+        (leftpeek.args[0] as IdentifierReference).nameInSource shouldBe listOf("zxPtr")
+        (rightpeek.args[0] as IdentifierReference).nameInSource shouldBe listOf("cx16","pword4")
     }
 
     test("assigning field with same name should not confuse compiler") {
@@ -2694,5 +2701,103 @@ main {
         v2.operator shouldBe "+"
         v2.left shouldBe instanceOf<IdentifierReference>()
         v2.right shouldBe instanceOf<NumericLiteral>()
+    }
+
+    test("indexed pointer derefs") {
+        val src="""
+%import floats
+
+main {
+
+    struct Task {
+        bool dummy1
+        ^^ubyte line
+        ^^uword wptr
+        ^^long lptr
+        ^^float fptr
+    }
+
+    sub start() {
+        ubyte b1,b2
+        uword w1,w2
+        long l1,l2
+        float f1,f2
+
+        ^^uword g_wptr
+        cx16.r1 = g_wptr^^
+
+
+        ^^Task tptr = 5000
+        tptr.line = "hello"
+        tptr.wptr = 6000
+        tptr.lptr = 7000
+        tptr.fptr = 8000
+
+        pokew(6000, 12345)
+        pokew(6002, 54321)
+        pokel(7000, 9988766)
+        pokel(7004, 22334455)
+        pokef(8000, 111.222)
+        pokef(8000+sizeof(float), 333.444)
+
+        b1 = tptr.line[0]
+        b2 = tptr.line^^
+        b1 = @(tptr.line)
+
+        w1 = tptr.wptr[0]
+        w2 = tptr.wptr^^
+        w1 = peekw(tptr.wptr)
+
+        l1 = tptr.lptr[0]
+        l2 = tptr.lptr^^
+        l1 = peekl(tptr.lptr)
+
+        f1 = tptr.fptr[0]
+        f2 = tptr.fptr^^
+        f1 = peekf(tptr.fptr)
+
+        w1 = tptr.wptr[1]
+        w2 = peekw(tptr.wptr+1)
+
+        l1 = tptr.lptr[1]
+        l2 = peekl(tptr.lptr+1)
+
+        f1 = tptr.fptr[1]
+        f2 = peekf(tptr.fptr+1)
+
+        b1 = tptr.line[0]
+        b2 = tptr.line[1]
+        b1 = tptr.line[2]
+        b2 = tptr.line[3]
+        b1 = tptr.line[4]
+
+        cx16.r0 = 0
+        for cx16.r0 in 0 to 4 {
+            b1 = tptr.line[cx16.r0]
+        }
+
+        cx16.r0 = 1
+        w1 = tptr.wptr[cx16.r0]
+        w2 = peekw(tptr.wptr+cx16.r0)
+
+        l1 = tptr.lptr[cx16.r0]
+        l2 = peekl(tptr.lptr+cx16.r0)
+
+        f1 = tptr.fptr[cx16.r0]
+        f2 = peekf(tptr.fptr+cx16.r0)
+
+        w1 = tptr.wptr[cx16.r0L]
+        w2 = peekw(tptr.wptr+cx16.r0L)
+
+        l1 = tptr.lptr[cx16.r0L]
+        l2 = peekl(tptr.lptr+cx16.r0L)
+
+        f1 = tptr.fptr[cx16.r0L]
+        f2 = peekf(tptr.fptr+cx16.r0L)
+    }
+}"""
+
+        compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 })

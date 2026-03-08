@@ -574,48 +574,57 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     }
 
     override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
-        fun getPeek(dt: BaseDataType): String? {
+        fun peekFunc(dt: BaseDataType): Pair<String, DataType?> {
             return when {
-                dt.isByte -> "peek"
-                dt.isBool -> "peekbool"
-                dt.isWord || dt.isPointer -> "peekw"
-                dt.isLong -> "peekl"
-                dt.isFloat -> "peekf"
-                else -> null
+                dt.isBool -> "peekbool" to null
+                dt.isUnsignedByte -> "peek" to null
+                dt.isSignedByte -> "peek" to DataType.BYTE
+                dt.isUnsignedWord -> "peekw" to null
+                dt.isSignedWord -> "peekw" to DataType.WORD
+                dt.isLong -> "peekl" to null
+                dt.isFloat -> "peekf" to null
+                else -> throw FatalAstException("unexpected peek type $dt")
             }
         }
 
         if(parent is ArrayIndexedExpression && parent.parent !is AssignTarget && !partOfAugmentedAssignment(deref)) {
-            val index = parent.indexer.constIndex()
-            if(index==0) {
+            val constIndex = parent.indexer.constIndex()
+            if(constIndex==0) {
                 // ptr1.field[0]  -->  peek(ptr.field)
                 val dt=deref.inferType(program).getOrUndef()
                 if(dt.sub!=null) {
-                    val peek = getPeek(dt.sub!!)
-                    if(peek!=null) {
-                        val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(makeNewDeref(deref)), deref.position)
-                        return listOf(IAstModification.ReplaceNode(parent, peekF, parent.parent))
-                    }
+                    val (peek, valueCast) = peekFunc(dt.sub!!)
+                    val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(replaceDerefWithIdentifier(deref)), deref.position)
+                    val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
+                    return listOf(IAstModification.ReplaceNode(parent, typedPeek, parent.parent))
                 }
-            } else if(index!=null) {
-                // ptr1.field[index]  -->  peek(ptr.field + index)
+            } else {
+                // ptr1.field[index]  -->  peek(ptr.field + index)    (making sure the index is uword typed)
                 val dt=deref.inferType(program).getOrUndef()
                 if(dt.sub!=null) {
-                    val peek = getPeek(dt.sub!!)
-                    if(peek!=null) {
-                        val plusOffset = BinaryExpression(makeNewDeref(deref), "+", NumericLiteral(BaseDataType.UWORD, index.toDouble(), deref.position), deref.position)
-                        val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(plusOffset), deref.position)
-                        return listOf(IAstModification.ReplaceNode(parent, peekF, parent.parent))
+                    val (peek, valueCast) = peekFunc(dt.sub!!)
+                    val indexer = if(constIndex==null) {
+                        if(parent.indexer.indexExpr.inferType(program).isUnsignedWord)
+                            parent.indexer.indexExpr
+                        else
+                            TypecastExpression(parent.indexer.indexExpr, DataType.UWORD, true, deref.position)
+                    } else {
+                        NumericLiteral(BaseDataType.UWORD, constIndex.toDouble(), deref.position)
                     }
+                    val plusOffset = BinaryExpression(replaceDerefWithIdentifier(deref), "+", indexer, deref.position)
+                    val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(plusOffset), deref.position)
+                    val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
+                    return listOf(IAstModification.ReplaceNode(parent, typedPeek, parent.parent))
                 }
             }
         } else if(deref.derefLast && parent !is AssignTarget && !partOfAugmentedAssignment(deref)) {
             // ptr1.field^^  -->  peek(ptr1.field)
-            val dt=deref.inferType(program).getOrUndef().base
-            val peek = getPeek(dt)
-            if(peek!=null) {
-                val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(makeNewDeref(deref)), deref.position)
-                return listOf(IAstModification.ReplaceNode(deref, peekF, parent))
+            val dt=deref.inferType(program).getOrUndef()
+            if(!dt.isUndefined && dt.base.isNumericOrBool) {
+                val (peek, valueCast) = peekFunc(dt.base)
+                val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(replaceDerefWithIdentifier(deref)), deref.position)
+                val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
+                return listOf(IAstModification.ReplaceNode(deref, typedPeek, parent))
             }
         }
         return noModifications
@@ -631,10 +640,14 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return false
     }
 
-    private fun makeNewDeref(deref: PtrDereference): Expression {
-        if(deref.chain.size==1)
-            return IdentifierReference(deref.chain, deref.position)
-        else
-            return PtrDereference(deref.chain, false, deref.position)
+    private fun replaceDerefWithIdentifier(deref: PtrDereference): IdentifierReference {
+        val ident = IdentifierReference(deref.chain, deref.position)
+        val target = deref.definingScope.lookup(ident.nameInSource)
+        when (target) {
+            is VarDecl -> require(target.datatype.isPointer || target.datatype.isUnsignedWord)
+            is StructFieldRef -> require(target.type.isPointer || target.type.isUnsignedWord)
+            else -> throw FatalAstException("requires pointer or uword dereference target at ${deref.position}")
+        }
+        return ident
     }
 }
