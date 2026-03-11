@@ -284,6 +284,9 @@ class PtIdentifier(val name: String, type: DataType, position: Position) : PtExp
     }
 
     fun copy() = PtIdentifier(name, type, position)
+
+    fun same(other: PtIdentifier?): Boolean = name == other?.name
+    // NOTE: it is prohibited to override equals and/or hashcode here, to compare just the name!!!
 }
 
 

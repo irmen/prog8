@@ -20,6 +20,8 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
         + optimizeBinaryExpressions(program, options) > 0) {
         // keep rolling
     }
+
+    optimizeRedundantVarInits(program)
 }
 
 
@@ -276,3 +278,117 @@ private fun optimizeSgnComparisons(program: PtProgram, errors: IErrorReporter): 
 
     return changes
 }
+
+private fun optimizeRedundantVarInits(program: PtProgram): Int {
+    fun statementsFromVarInitToFirstAssignment(varInit: PtAssignment, variable: PtIdentifier, parent: PtNode): Pair<Int, Int> {
+        val varInitIndex = parent.children.indexOf(varInit)
+        for (stmt in parent.children.asSequence().withIndex().drop(varInitIndex)) {
+            (stmt.value as? PtAssignment)?.let { assignment ->
+                if(!assignment.isVarInitializer) {
+                    if (assignment.multiTarget) {
+                        assignment.children.dropLast(1).forEach { target ->
+                            target as PtAssignTarget
+                            if(!target.void && variable.same(target.identifier))
+                                return varInitIndex to stmt.index
+                        }
+                    } else {
+                        if (!assignment.target.void && variable.same(assignment.target.identifier))
+                            return varInitIndex to stmt.index
+                    }
+                }
+            }
+        }
+        return -1 to -1
+    }
+
+    val removeInitializations = mutableListOf<Pair<PtNode, PtAssignment>>()
+
+    fun potentiallyOptimize(identifier: PtIdentifier, parent: PtNode, initializerIndex: Int, assignIndex: Int) {
+        if (assignIndex>initializerIndex) {
+            val inbetween = parent.children.subList(initializerIndex+1, assignIndex)
+            if(!inbetween.any { stmt -> referencesIdentifier(stmt, identifier) }) {
+                // var initializer is redundant, it will be overwritten by an assignment later. remove the initializer
+                removeInitializations.add(parent to parent.children[initializerIndex] as PtAssignment)
+            }
+        }
+    }
+
+    walkAst(program) { node: PtNode, depth: Int ->
+        if(node is PtAssignment && node.isVarInitializer) {
+            if(node.multiTarget) {
+                node.children.dropLast(1).forEach { target ->
+                    target as PtAssignTarget
+                    if(!target.void) {
+                        target.identifier?.let { identifier ->
+                            val statements = statementsFromVarInitToFirstAssignment(node, identifier, node.parent)
+                            if(statements.first>=0)
+                                potentiallyOptimize(identifier, node.parent, statements.first, statements.second)
+                        }
+                    }
+                }
+            } else {
+                node.target.identifier?.let { identifier ->
+                    val statements = statementsFromVarInitToFirstAssignment(node, identifier, node.parent)
+                    if(statements.first>=0)
+                        potentiallyOptimize(identifier, node.parent, statements.first, statements.second)
+                }
+            }
+        }
+        true
+    }
+
+    removeInitializations.forEach { (parent, varInit) ->
+        println("OPT:REMOVING REDUNDANT VAR INIT: ${varInit.target.identifier?.name} ${varInit.position} (THIS MSG WILL BE REMOVED)")     // TODO remove this debug message
+        parent.children.remove(varInit)
+    }
+
+    return removeInitializations.size
+}
+
+fun referencesIdentifier(node: PtNode, identifier: PtIdentifier): Boolean {
+
+    fun refsIdentifier(expr: PtExpression): Boolean = when(expr) {
+        is PtBool,
+        is PtIrRegister,
+        is PtNumber,
+        is PtString -> false
+        is PtIdentifier -> expr.name==identifier.name
+        is PtAddressOf -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtArray -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtArrayIndexer -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtBinaryExpression -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtBranchCondExpression -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtContainmentCheck -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtIfExpression -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtFunctionCall -> true
+        is PtMemoryByte -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtPointerDeref -> false
+        is PtPrefix -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtRange -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtTypeCast -> expr.children.any { referencesIdentifier(it, identifier) }
+    }
+
+    return when(node) {
+        is PtAssignment -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtAugmentedAssign -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtIdentifier -> node.name==identifier.name
+        is PtVariable -> node.name==identifier.name || node.value!=null && refsIdentifier(node.value)
+        is PtSwap -> referencesIdentifier(node.target1, identifier) || referencesIdentifier(node.target2, identifier)
+        is PtNodeGroup -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtRepeatLoop -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtJmpTable -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtWhen -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtForLoop -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtIfElse -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtWhenChoice -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtAssignTarget -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtConditionalBranch -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtDefer -> node.children.any { referencesIdentifier(it, identifier) }
+        is PtFunctionCall -> true
+        is PtJump -> true           // we cannot tell where the jump is going, that code may depend on the value TODO unfortunately continue and break are also jumps
+        is PtInlineAssembly -> true
+        is PtExpression -> refsIdentifier(node)
+        else -> false   // everything else is a node that cannot ever contain the variable, so false
+    }
+}
+
