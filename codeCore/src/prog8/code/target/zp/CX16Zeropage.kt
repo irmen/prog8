@@ -22,35 +22,35 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
 
         // the addresses 0x02 to 0x21 (inclusive) are taken for sixteen virtual 16-bit api registers.
 
-        synchronized(this) {
-            when (options.zeropage) {
-                ZeropageType.FULL -> {
-                    free.addAll(0x22u..0xffu)
-                }
-                ZeropageType.KERNALSAFE -> {
-                    free.addAll(0x22u..0x7fu)
-                    free.addAll(0xa9u..0xffu)
-                }
-                ZeropageType.FLOATSAFE -> {
-                    free.addAll(0x22u..0x7fu)
-                    free.addAll(0xd4u..0xffu)
-                }
-                ZeropageType.BASICSAFE -> {
-                    free.addAll(0x22u..0x7fu)
-                }
-                ZeropageType.DONTUSE -> {
-                    free.clear() // don't use zeropage at all
-                }
+        // Initialize free list - no synchronization needed during construction
+        // (object reference doesn't escape until fully constructed)
+        when (options.zeropage) {
+            ZeropageType.FULL -> {
+                free.addAll(0x22u..0xffu)
             }
-
-            val distinctFree = free.distinct()
-            free.clear()
-            free.addAll(distinctFree)
-
-            removeReservedFromFreePool()
-            allocateCx16VirtualRegisters()
-            retainAllowed()
+            ZeropageType.KERNALSAFE -> {
+                free.addAll(0x22u..0x7fu)
+                free.addAll(0xa9u..0xffu)
+            }
+            ZeropageType.FLOATSAFE -> {
+                free.addAll(0x22u..0x7fu)
+                free.addAll(0xd4u..0xffu)
+            }
+            ZeropageType.BASICSAFE -> {
+                free.addAll(0x22u..0x7fu)
+            }
+            ZeropageType.DONTUSE -> {
+                free.clear() // don't use zeropage at all
+            }
         }
+
+        val distinctFree = free.distinct()
+        free.clear()
+        free.addAll(distinctFree)
+
+        removeReservedFromFreePool()
+        allocateCx16VirtualRegisters()
+        retainAllowed()
     }
 
     private fun allocateCx16VirtualRegisters() {

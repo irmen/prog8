@@ -3,6 +3,8 @@ package prog8.code.core
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentSkipListSet
 
 
 class MemAllocationError(message: String) : Exception(message)
@@ -28,14 +30,16 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
     abstract val SCRATCH_PTR : UInt     // temp storage for a pointer
 
 
-    // the variables allocated into Zeropage.
+    // Private lock object for compound operations - not exposed externally
+    private val lock = Any()
+    
+    // Thread-safe collections for individual operations
     // name (scoped) ==> pair of address to (Datatype + bytesize)
-    val allocatedVariables = mutableMapOf<String, VarAllocation>()
-
-    val free = mutableListOf<UInt>()     // subclasses must set this to the appropriate free locations.
+    val allocatedVariables = ConcurrentHashMap<String, VarAllocation>()
+    val free = ConcurrentSkipListSet<UInt>()     // subclasses must set this to the appropriate free locations.
 
     fun removeReservedFromFreePool() {
-        synchronized(this) {
+        synchronized(lock) {
             for (reserved in options.zpReserved)
                 reserve(reserved)
 
@@ -44,7 +48,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
     }
 
     fun retainAllowed() {
-        synchronized(this) {
+        synchronized(lock) {
             for(allowed in options.zpAllowed)
                 free.retainAll { it in allowed }
         }
@@ -65,7 +69,7 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
                           position: Position?,
                           errors: IErrorReporter): Result<VarAllocation, MemAllocationError> {
 
-        require(name.isEmpty() || name !in allocatedVariables) {"name can't be allocated twice"}
+        require(name.isEmpty() || !allocatedVariables.containsKey(name)) {"name can't be allocated twice"}
 
         if(options.zeropage== ZeropageType.DONTUSE)
             return Err(MemAllocationError("zero page usage has been disabled"))
@@ -95,14 +99,14 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
                     else -> throw MemAllocationError("weird dt")
                 }
 
-        synchronized(this) {
+        synchronized(lock) {
             if(free.isNotEmpty()) {
                 if(size==1) {
                     for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                         if(oneSeparateByteFree(candidate))
                             return Ok(VarAllocation(makeAllocation(candidate, 1, datatype, name), datatype,1))
                     }
-                    return Ok(VarAllocation(makeAllocation(free[0], 1, datatype, name), datatype,1))
+                    return Ok(VarAllocation(makeAllocation(free.first(), 1, datatype, name), datatype,1))
                 }
                 for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
                     if (sequentialFree(candidate, size))
