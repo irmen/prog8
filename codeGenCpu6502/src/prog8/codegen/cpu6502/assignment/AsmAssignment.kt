@@ -212,7 +212,7 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     if(value.builtin) {
                         AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, value.type, expression = value)
                     } else {
-                        val symbol = asmgen.symbolTable.lookup(value.name) ?: throw AssemblyError("lookup error ${value.name}")
+                        val symbol = asmgen.symbolTable.lookup(value.name) ?: throw AssemblyError("lookup error ${value.name}  ${value.position}")
                         val sub = symbol.astNode as IPtSubroutine
                         val returnType =
                             if(sub is PtSub && sub.signature.returns.size>1)

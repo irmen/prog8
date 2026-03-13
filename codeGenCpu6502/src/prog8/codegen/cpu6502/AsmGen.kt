@@ -66,7 +66,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                         }
                     } else {
                         val stNode = st.lookup(node.name)!!
-                        if (stNode.astNode!!.definingBlock()?.options?.noSymbolPrefixing != true) {
+                        if (stNode.astNode?.definingBlock()?.options?.noSymbolPrefixing != true) {
                             val index = node.parent.children.indexOf(node)
                             functionCallsToPrefix += node.parent to index
                         }

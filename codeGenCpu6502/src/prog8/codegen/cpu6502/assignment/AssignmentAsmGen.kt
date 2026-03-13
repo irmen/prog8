@@ -3632,15 +3632,13 @@ $endLabel""")
                         TODO("ubyte to long var ${target.position}")
                     }
                     DataType.LONG -> {
+                        // Long to long variable copy - use loop
                         asmgen.out("""
-                            lda  $varName
-                            sta  ${target.asmVarname}
-                            lda  $varName+1
-                            sta  ${target.asmVarname}+1
-                            lda  $varName+2
-                            sta  ${target.asmVarname}+2
-                            lda  $varName+3
-                            sta  ${target.asmVarname}+3""")
+                            ldy  #4
+-                           lda  $varName-1,y
+                            sta  ${target.asmVarname}-1,y
+                            dey
+                            bne  -""")
                     }
                     else -> throw AssemblyError("wrong dt ${target.position}")
                 }
@@ -4264,14 +4262,11 @@ $endLabel""")
                 if(pairedRegisters in CombinedLongRegisters) {
                     val startreg = pairedRegisters.startregname()
                     asmgen.out("""
-                        lda  cx16.$startreg
-                        sta  ${target.asmVarname}
-                        lda  cx16.$startreg+1
-                        sta  ${target.asmVarname}+1
-                        lda  cx16.$startreg+2
-                        sta  ${target.asmVarname}+2
-                        lda  cx16.$startreg+3
-                        sta  ${target.asmVarname}+3""")
+                        ldy  #4
+-                       lda  cx16.$startreg-1,y
+                        sta  ${target.asmVarname}-1,y
+                        dey
+                        bne  -""")
                 }
                 else throw AssemblyError("only combined vreg allowed as long target ${target.position}")
             }
@@ -4279,6 +4274,7 @@ $endLabel""")
                 asmgen.loadScaledArrayIndexIntoRegister(target.array!!, CpuRegister.Y)
                 val arrayVarName = asmgen.asmSymbolName(target.array.variable!!)
                 val startreg = pairedRegisters.startregname()
+                // Unrolled copy to preserve array index in Y
                 asmgen.out("""
                     lda  cx16.$startreg
                     sta  $arrayVarName,y
@@ -4296,15 +4292,13 @@ $endLabel""")
                 if(targetreg!=pairedRegisters) {
                     val sourceStartReg = pairedRegisters.startregname()
                     val targetStartReg = targetreg.startregname()
+                    // Loop-based copy between register pairs
                     asmgen.out("""
-                        lda  cx16.$sourceStartReg
-                        sta  cx16.$targetStartReg
-                        lda  cx16.$sourceStartReg+1
-                        sta  cx16.$targetStartReg+1
-                        lda  cx16.$sourceStartReg+2
-                        sta  cx16.$targetStartReg+2
-                        lda  cx16.$sourceStartReg+3
-                        sta  cx16.$targetStartReg+3""")
+                        ldy  #4
+-                       lda  cx16.$sourceStartReg-1,y
+                        sta  cx16.$targetStartReg-1,y
+                        dey
+                        bne  -""")
                 }
             }
             TargetStorageKind.POINTER -> {

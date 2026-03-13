@@ -669,33 +669,27 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sta  $targetVar+3""")
             }
             "*" -> {
-                // long *= variable - use multiplication routine
+                // long *= variable - use multiplication routine with loop-based copies
                 asmgen.out("""
-                    lda  $targetVar
-                    sta  cx16.r12
-                    lda  $targetVar+1
-                    sta  cx16.r12+1
-                    lda  $targetVar+2
-                    sta  cx16.r13
-                    lda  $targetVar+3
-                    sta  cx16.r13+1
-                    lda  $sourceVar
-                    sta  cx16.r14
-                    lda  $sourceVar+1
-                    sta  cx16.r14+1
-                    lda  $sourceVar+2
-                    sta  cx16.r15
-                    lda  $sourceVar+3
-                    sta  cx16.r15+1
+                    ; Copy target to R12R13 (multiplicand)
+                    ldy  #4
+-                   lda  $targetVar-1,y
+                    sta  cx16.r12-1,y
+                    dey
+                    bne  -
+                    ; Copy source to R14R15 (multiplier)
+                    ldy  #4
+-                   lda  $sourceVar-1,y
+                    sta  cx16.r14-1,y
+                    dey
+                    bne  -
                     jsr  prog8_math.multiply_longs
-                    lda  cx16.r14
-                    sta  $targetVar
-                    lda  cx16.r14+1
-                    sta  $targetVar+1
-                    lda  cx16.r15
-                    sta  $targetVar+2
-                    lda  cx16.r15+1
-                    sta  $targetVar+3""")
+                    ; Copy result from R14R15 back to target
+                    ldy  #4
+-                   lda  cx16.r14-1,y
+                    sta  $targetVar-1,y
+                    dey
+                    bne  -""")
             }
             else -> {
                 TODO("in-place modify LONG with variable, operator=$operator")
@@ -1024,18 +1018,17 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 }
             }
             "*" -> {
-                // long *= constant - use multiplication routine
+                // long *= constant - use multiplication routine with loop-based copies
                 val lo = value and 0xFFFF
                 val hi = (value ushr 16) and 0xFFFF
                 asmgen.out("""
-                    lda  $variable
-                    sta  cx16.r12
-                    lda  $variable+1
-                    sta  cx16.r12+1
-                    lda  $variable+2
-                    sta  cx16.r13
-                    lda  $variable+3
-                    sta  cx16.r13+1
+                    ; Copy variable to R12R13 (multiplicand)
+                    ldy  #4
+-                   lda  $variable-1,y
+                    sta  cx16.r12-1,y
+                    dey
+                    bne  -
+                    ; Load constant into R14R15 (multiplier)
                     lda  #<${lo}
                     sta  cx16.r14
                     lda  #>${lo}
@@ -1045,14 +1038,12 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     lda  #>${hi}
                     sta  cx16.r15+1
                     jsr  prog8_math.multiply_longs
-                    lda  cx16.r14
-                    sta  $variable
-                    lda  cx16.r14+1
-                    sta  $variable+1
-                    lda  cx16.r15
-                    sta  $variable+2
-                    lda  cx16.r15+1
-                    sta  $variable+3""")
+                    ; Copy result from R14R15 back to variable
+                    ldy  #4
+-                   lda  cx16.r14-1,y
+                    sta  $variable-1,y
+                    dey
+                    bne  -""")
             }
             "<<" -> if (value > 0) inplaceLongShiftLeft()
             ">>" -> if (value > 0) inplaceLongShiftRight()
