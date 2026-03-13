@@ -668,8 +668,37 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     eor  $sourceVar+3
                     sta  $targetVar+3""")
             }
+            "*" -> {
+                // long *= variable - use multiplication routine
+                asmgen.out("""
+                    lda  $targetVar
+                    sta  cx16.r12
+                    lda  $targetVar+1
+                    sta  cx16.r12+1
+                    lda  $targetVar+2
+                    sta  cx16.r13
+                    lda  $targetVar+3
+                    sta  cx16.r13+1
+                    lda  $sourceVar
+                    sta  cx16.r14
+                    lda  $sourceVar+1
+                    sta  cx16.r14+1
+                    lda  $sourceVar+2
+                    sta  cx16.r15
+                    lda  $sourceVar+3
+                    sta  cx16.r15+1
+                    jsr  prog8_math.multiply_longs
+                    lda  cx16.r14
+                    sta  $targetVar
+                    lda  cx16.r14+1
+                    sta  $targetVar+1
+                    lda  cx16.r15
+                    sta  $targetVar+2
+                    lda  cx16.r15+1
+                    sta  $targetVar+3""")
+            }
             else -> {
-                TODO("in-place modify LONG with variable")
+                TODO("in-place modify LONG with variable, operator=$operator")
             }
         }
     }
@@ -993,6 +1022,37 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                         }
                     }
                 }
+            }
+            "*" -> {
+                // long *= constant - use multiplication routine
+                val lo = value and 0xFFFF
+                val hi = (value ushr 16) and 0xFFFF
+                asmgen.out("""
+                    lda  $variable
+                    sta  cx16.r12
+                    lda  $variable+1
+                    sta  cx16.r12+1
+                    lda  $variable+2
+                    sta  cx16.r13
+                    lda  $variable+3
+                    sta  cx16.r13+1
+                    lda  #<${lo}
+                    sta  cx16.r14
+                    lda  #>${lo}
+                    sta  cx16.r14+1
+                    lda  #<${hi}
+                    sta  cx16.r15
+                    lda  #>${hi}
+                    sta  cx16.r15+1
+                    jsr  prog8_math.multiply_longs
+                    lda  cx16.r14
+                    sta  $variable
+                    lda  cx16.r14+1
+                    sta  $variable+1
+                    lda  cx16.r15
+                    sta  $variable+2
+                    lda  cx16.r15+1
+                    sta  $variable+3""")
             }
             "<<" -> if (value > 0) inplaceLongShiftLeft()
             ">>" -> if (value > 0) inplaceLongShiftRight()

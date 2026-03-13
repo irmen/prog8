@@ -100,6 +100,7 @@ Context and instructions for AI Agents to work on this project.
 ## Key Information
 - never read the files and directories that are ignored via the .aiignore and .gitignore files
 - never perform any git source control write/update/add/commit/branch operations. Read and status operations are allowed.
+- **git log/history queries can be useful** for understanding when/why a feature was added or tracking down when a bug was introduced, but for locating code use grep_search or glob instead.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
 
 # Dev environment tips

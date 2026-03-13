@@ -186,6 +186,126 @@ result		.byte  ?,?,?,?       ; routine could be faster if this were in Zeropage.
 		.pend
 
 
+multiply_longs  .proc
+            ; 32-bit SIGNED multiplication.
+            ; long1 in cx16.r12/r13, long2 in cx16.r14/r15, result in cx16.r14/r15
+            ; clobbers R12+R13.
+
+            lda  cx16.r13+1
+            eor  cx16.r15+1
+            sta  P8ZP_SCRATCH_B1       ; save sign info
+
+            ; Negate l1 if negative
+            lda  cx16.r13+1
+            bpl  _l2_check
+            jsr  _neg_r12r13
+
+_l2_check
+            ; Negate l2 if negative
+            lda  cx16.r15+1
+            bpl  _copy_mult
+            jsr  _neg_r14r15
+
+_copy_mult
+            ; Copy multiplier to scratch (will be shifted)
+            lda  cx16.r14
+            sta  P8ZP_SCRATCH_W1
+            lda  cx16.r14+1
+            sta  P8ZP_SCRATCH_W1+1
+            lda  cx16.r15
+            sta  P8ZP_SCRATCH_W2
+            lda  cx16.r15+1
+            sta  P8ZP_SCRATCH_W2+1
+
+            ; Clear result (R14R15 = 0)
+            lda  #$00
+            sta  cx16.r14
+            sta  cx16.r14+1
+            sta  cx16.r15
+            sta  cx16.r15+1
+
+            ldx  #32
+
+_loop
+            lda  P8ZP_SCRATCH_W1
+            and  #1
+            beq  _shift
+
+            ; Add multiplicand to result
+            clc
+            lda  cx16.r14
+            adc  cx16.r12
+            sta  cx16.r14
+            lda  cx16.r14+1
+            adc  cx16.r12+1
+            sta  cx16.r14+1
+            lda  cx16.r15
+            adc  cx16.r13
+            sta  cx16.r15
+            lda  cx16.r15+1
+            adc  cx16.r13+1
+            sta  cx16.r15+1
+
+_shift
+            ; Shift multiplicand left
+            asl  cx16.r12
+            rol  cx16.r12+1
+            rol  cx16.r13
+            rol  cx16.r13+1
+
+            ; Shift multiplier right
+            lsr  P8ZP_SCRATCH_W2+1
+            ror  P8ZP_SCRATCH_W2
+            ror  P8ZP_SCRATCH_W1+1
+            ror  P8ZP_SCRATCH_W1
+
+            dex
+            bne  _loop
+
+            ; Apply sign if needed
+            lda  P8ZP_SCRATCH_B1
+            bpl  _done
+            jsr  _neg_r14r15
+
+_done
+            rts
+
+            ; Subroutine: negate R12R13 in place
+_neg_r12r13
+            sec
+            lda  #$00
+            sbc  cx16.r12
+            sta  cx16.r12
+            lda  #$00
+            sbc  cx16.r12+1
+            sta  cx16.r12+1
+            lda  #$00
+            sbc  cx16.r13
+            sta  cx16.r13
+            lda  #$00
+            sbc  cx16.r13+1
+            sta  cx16.r13+1
+            rts
+
+            ; Subroutine: negate R14R15 in place
+_neg_r14r15
+            sec
+            lda  #$00
+            sbc  cx16.r14
+            sta  cx16.r14
+            lda  #$00
+            sbc  cx16.r14+1
+            sta  cx16.r14+1
+            lda  #$00
+            sbc  cx16.r15
+            sta  cx16.r15
+            lda  #$00
+            sbc  cx16.r15+1
+            sta  cx16.r15+1
+            rts
+		.pend
+
+
 divmod_b_asm	.proc
 	; signed byte division: make everything positive and fix sign afterwards
 		sta  P8ZP_SCRATCH_B1

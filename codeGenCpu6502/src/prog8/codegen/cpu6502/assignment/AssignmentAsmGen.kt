@@ -857,8 +857,8 @@ internal class AssignmentAsmGen(
         return if(translatedOk)
             true
         else {
-            if(expr.type.isLong && expr.operator in "*/%")
-                TODO("long multiplication or division - use floats for now ${expr.position} ")
+            if(expr.type.isLong && expr.operator in "/%")
+                TODO("long division - use floats for now ${expr.position} ")
 
             anyExprGen.assignAnyExpressionUsingStack(expr, assign)
         }
@@ -1205,6 +1205,13 @@ internal class AssignmentAsmGen(
                     }
                     return true
                 }
+                expr.type.isLong -> {
+                    asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13, true)
+                    asmgen.assignExpressionToRegister(expr.right, RegisterOrPair.R14R15, true)
+                    asmgen.out("  jsr  prog8_math.multiply_longs")
+                    assignRegisterLong(target, RegisterOrPair.R14R15)
+                    return true
+                }
                 else -> return false
             }
         } else {
@@ -1266,6 +1273,17 @@ internal class AssignmentAsmGen(
                         }
                     }
                     assignRegisterpairWord(target, RegisterOrPair.AY)
+                    return true
+                }
+                expr.type.isLong -> {
+                    // long * constant
+                    asmgen.assignExpressionToRegister(expr.left, RegisterOrPair.R12R13, true)
+                    asmgen.out("  lda  #<${value} |  sta  cx16.r14")
+                    asmgen.out("  lda  #>${value} |  sta  cx16.r14+1")
+                    asmgen.out("  lda  #<(${value}>>16) |  sta  cx16.r15")
+                    asmgen.out("  lda  #>(${value}>>16) |  sta  cx16.r15+1")
+                    asmgen.out("  jsr  prog8_math.multiply_longs")
+                    assignRegisterLong(target, RegisterOrPair.R14R15)
                     return true
                 }
                 else -> return false
