@@ -1,6 +1,6 @@
 package prog8.compiler
 
-import com.github.michaelbull.result.onFailure
+import com.github.michaelbull.result.onErr
 import prog8.ast.*
 import prog8.ast.expressions.Expression
 import prog8.ast.expressions.NumericLiteral
@@ -371,7 +371,7 @@ fun parseMainModule(filepath: Path,
 
     val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, quiet)
     val importedModuleResult = importer.importMainModule(filepath)
-    importedModuleResult.onFailure { throw it }
+    importedModuleResult.onErr { throw it }
     errors.report()
 
     val importedFiles = program.modules.map { it.source }

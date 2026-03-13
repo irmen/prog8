@@ -20,7 +20,7 @@ dependencies {
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     // implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")
-    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.1.0")
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.0")
 
     testImplementation(project(":codeCore"))
     testImplementation(project(":intermediate"))
@@ -67,6 +67,14 @@ tasks.shadowJar {
 tasks.test {
     // Enable JUnit 5 (Gradle 4.6+).
     useJUnitPlatform()
+
+    // Enable concurrent test execution for Kotest 6.x
+    // Set parallelism to number of CPU cores
+    jvmArgs("-Dkotest.framework.parallelism=${Runtime.getRuntime().availableProcessors()}")
+    
+    // Enable Gradle's parallel test execution (runs multiple test classes concurrently)
+    // Use 50% of available processors to avoid over-subscription
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
 
     // Show test results.
     testLogging {

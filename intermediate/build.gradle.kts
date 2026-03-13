@@ -30,6 +30,13 @@ tasks.test {
     // Enable JUnit 5 (Gradle 4.6+).
     useJUnitPlatform()
 
+    // Enable concurrent test execution for Kotest 6.x
+    // Set parallelism to number of CPU cores minus 1
+    jvmArgs("-Dkotest.framework.parallelism=${Runtime.getRuntime().availableProcessors()}")
+    
+    // Enable Gradle's parallel test execution (runs multiple test classes concurrently)
+    maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)
+
     // Always run tests, even when nothing changed.
     dependsOn("cleanTest")
 

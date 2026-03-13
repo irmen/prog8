@@ -13,7 +13,7 @@ Context and instructions for AI Agents to work on this project.
 - The prog8 compiler is written mostly in Kotlin, those files have the .kt extension.
 - The standard library is mostly written in Prog8 and assembly code, and can be found in the "compiler" module, in the 'res/prog8lib' directory.
 - Kotlin version 2.3 is used for the compiler implementation.
-- Java 11 is used as Java runtime version.
+- Java 17 is used as Java runtime version.
 - ANTLR4 version 4.13 is used for the parser implementation.
 - Dependent library versions can be found in 'build.gradle.kts' and in the IntelliJ IDEA configuration files in .idea/libraries
 - The compiler main entrypoint is in the "compiler" module, in src/prog8/CompilerMain.kt

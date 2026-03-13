@@ -5,7 +5,7 @@ plugins {
 dependencies {
     implementation(project(":codeCore"))
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.1.0")
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.0")
 }
 
 sourceSets {

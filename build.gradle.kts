@@ -1,7 +1,5 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
-import org.jetbrains.kotlin.gradle.internal.config.LanguageFeature
-import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 
 plugins {
@@ -19,7 +17,7 @@ allprojects {
     kotlin {
         compilerOptions {
             freeCompilerArgs = listOf()
-            jvmTarget = JvmTarget.JVM_11
+            jvmTarget = JvmTarget.JVM_17
             jvmDefault = JvmDefaultMode.NO_COMPATIBILITY
             // languageVersion.set(KotlinVersion.KOTLIN_2_3)
         }
@@ -32,7 +30,7 @@ allprojects {
     }
 
     java {
-        targetCompatibility = JavaVersion.VERSION_11
-        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
     }
 }

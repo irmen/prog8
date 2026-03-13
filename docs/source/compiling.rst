@@ -78,7 +78,7 @@ For normal use, the ``installDist`` task should suffice and after succesful comp
 
 .. hint::
     Development and testing is done on Linux using the IntelliJ IDEA IDE,
-    but the actual prog8 compiler should run on all operating systems that provide a Java runtime (version 11 or newer).
+    but the actual prog8 compiler should run on all operating systems that provide a Java runtime (version 17 or newer).
     If you do have trouble building or running the compiler on your operating system, please let me know!
 
     To successfully build and debug in IDEA, you have to do two things manually first:
@@ -111,8 +111,7 @@ It's easy to compile yourself, but a recent precompiled .exe (only for Windows) 
 *You need at least version 1.58.0 of this assembler.*
 If you are on Linux, there's probably a "64tass" package in the repositories, but check if it is a recent enough version.
 
-A **Java runtime (jre or jdk), version 11 or newer**  is required to run the prog8 compiler itself. Version 17 or higher if you want to
-build the compiler from source.
+A **Java runtime (jre or jdk), version 17 or newer** is required to run the prog8 compiler itself.
 If you're scared of Oracle's licensing terms, get one of the versions of another vendor. Even Microsoft provides their own version.
 Other OpenJDK builds can be found at `Adoptium <https://adoptium.net/temurin/releases>`_ .
 For MacOS you can also use the Homebrew system to install a recent version of OpenJDK.
@@ -410,7 +409,7 @@ ERROR
 
 Compiler doesn't run, complains about "UnsupportedClassVersionError"
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-You need to install and use JDK version 11 or newer to run the prog8 compiler. Check this with "java -version".
+You need to install and use JDK version 17 or newer to run the prog8 compiler. Check this with "java -version".
 See :ref:`requirements`.
 
 The computer resets after running my program
@@ -445,8 +444,7 @@ Gradle error when building the compiler yourself
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 If you get a gradle build error containing the line "No matching toolchains found for requested specification"
 or "Gradle requires JVM 17 or later to run", it means that the Gradle build tool can't locate the correct version of the JDK to use.
-You will need a Java JDK version 17 or higher to build the compiler.
-(the compiler itself only needs Java 11 or higher to run though.)
+You will need a Java JDK version 17 or higher to build and run the compiler.
 
 Strange assembler errors
 ^^^^^^^^^^^^^^^^^^^^^^^^
