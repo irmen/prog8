@@ -59,6 +59,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "prog8_lib_stringcompare" -> funcStringCompare(call)
             "prog8_lib_square_byte" -> funcSquare(call, IRDataType.BYTE)
             "prog8_lib_square_word" -> funcSquare(call, IRDataType.WORD)
+            "prog8_lib_square_long" -> funcSquare(call, IRDataType.LONG)
             "prog8_lib_structalloc" -> funcStructAlloc(call)
             "prog8_lib_copylong" -> funcCopyFromPointer1ToPointer2(call, IRDataType.LONG)
             "prog8_lib_copyfloat" -> funcCopyFromPointer1ToPointer2(call, IRDataType.FLOAT)

@@ -91,6 +91,7 @@ import prog8.codegen.cpu6502.assignment.*
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, firstReturnRegister ?: RegisterOrPair.A)
             "prog8_lib_square_byte" -> funcSquare(fcall, BaseDataType.UBYTE, firstReturnRegister ?: RegisterOrPair.A)
             "prog8_lib_square_word" -> funcSquare(fcall, BaseDataType.UWORD, firstReturnRegister ?: RegisterOrPair.AY)
+            "prog8_lib_square_long" -> funcSquare(fcall, BaseDataType.LONG, firstReturnRegister ?: RegisterOrPair.R14R15)
             "prog8_lib_copylong" -> funcCopyFromPointer1ToPointer2(fcall, BaseDataType.LONG)
             "prog8_lib_copyfloat" -> funcCopyFromPointer1ToPointer2(fcall, BaseDataType.FLOAT)
             "push" -> funcPush(fcall)
@@ -248,6 +249,11 @@ import prog8.codegen.cpu6502.assignment.*
                 asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.AY)
                 asmgen.out("  jsr  prog8_math.square")     // result is in AY
                 return arrayOf(RegisterOrPair.AY)
+            }
+            BaseDataType.LONG -> {
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)
+                asmgen.out("  jsr  prog8_math.square_long")     // result is in R14:R15
+                return arrayOf(RegisterOrPair.R14R15)
             }
             else -> {
                 throw AssemblyError("optimized square only for integer types")

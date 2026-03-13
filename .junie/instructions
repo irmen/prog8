@@ -1,0 +1,5 @@
+# Agent Instructions
+
+- The file `AGENTS.md` MUST be loaded as the very first step of every session, if it isn't already loaded by the system.
+- Follow all project-specific guidelines and information provided in `AGENTS.md`.
+- Ensure all automated tasks and code generations adhere to the language rules and architectural decisions described in `AGENTS.md`.

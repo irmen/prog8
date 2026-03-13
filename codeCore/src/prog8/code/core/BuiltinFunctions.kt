@@ -106,6 +106,7 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "prog8_lib_stringcompare"     to FSignature(true, arrayOf(BaseDataType.BYTE), FParam("str1", BaseDataType.STR), FParam("str2", BaseDataType.STR)),
     "prog8_lib_square_byte"       to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("value", BaseDataType.BYTE, BaseDataType.UBYTE)),
     "prog8_lib_square_word"       to FSignature(true, arrayOf(BaseDataType.UWORD), FParam("value", BaseDataType.WORD, BaseDataType.UWORD)),
+    "prog8_lib_square_long"       to FSignature(true, arrayOf(BaseDataType.LONG), FParam("value", BaseDataType.LONG)),
     "prog8_lib_structalloc"       to FSignature(true, arrayOf(BaseDataType.UWORD)),
     "prog8_lib_copylong"          to FSignature(false, emptyArray(), FParam("pointer1", BaseDataType.UWORD), FParam("pointer2", BaseDataType.UWORD)),
     "prog8_lib_copyfloat"         to FSignature(false, emptyArray(), FParam("pointer1", BaseDataType.UWORD), FParam("pointer2", BaseDataType.UWORD)),

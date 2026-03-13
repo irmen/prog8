@@ -8,27 +8,72 @@ Context and instructions for AI Agents to work on this project.
 - The compiler has a 6502 code generator backend, and an IR code generator.
 - The IR code is meant to be used in a new machine specific code generator backend (primarily 6502 but maybe 68000 as well later)
 - The compiler includes a simple 'virtual machine' that can execute the IR code directly via interpretation.
-- Prog8 source files have .p8 extension
-- Prog8 source files are a "module" that can contain 1 ore more "blocks". They can also import other modules, from internal library files or from source files on the filesystem.
+- Prog8 source files have .p8 extension - these are *not* LUA or PICO-8 source files in this case!
+- Prog8 source files are a "module" that can contain 1 or more "blocks". They can also import other modules, from internal library files or from source files on the filesystem.
 - The prog8 compiler is written mostly in Kotlin, those files have the .kt extension.
+- The standard library is mostly written in Prog8 and assembly code, and can be found in the "compiler" module, in the 'res/prog8lib' directory.
+- Kotlin version 2.3 is used for the compiler implementation.
+- Java 11 is used as Java runtime version.
+- ANTLR4 version 4.13 is used for the parser implementation.
+- Dependent library versions can be found in 'build.gradle.kts' and in the IntelliJ IDEA configuration files in .idea/libraries
+- The compiler main entrypoint is in the "compiler" module, in src/prog8/CompilerMain.kt
 
 ## Prog8 language feature hints
+
+### General & Setup
 - an overview of the language features can be found in the documentation file docs/source/introduction.rst
 - the syntax and grammar is specified in an ANTLR4 grammar file found in the parser directory
-- available primitive datatypes are bool, byte, ubyte, word, uword, long and float.  ubyte and uword are unsigned the others are signed. The long type is 4 bytes and the float type is 5-byte "Microsoft" floating point.
-- there is a str type which is a 0-terminated string consisting of ubytes
-- there are also arrays, and pointers. Pointer notation differs from C.
-- there are also structs which can contain primitive types. Prog8 does not yet have by-value struct variables, only pointer to structs.
-- while there are larger than byte datatypes, the intended compiler target is a 6502 CPU system which is 8 bit so operations on larger datatypes are expensive. Words are still somewhat okay, but longs and floats in particular are very inefficient.
-- the syntax for boolean logical operators is 'and', 'or', 'xor', 'not'. Bitwise operators are '&', '|', '^', '~', and '<<','>>' for bit shifting left and right respectively. All operators are documents in docs/source/programming.rst
-- module imports are done using "%import modulename"
-- subroutines can return 0, 1 or more than one return value(s)
-- all variables including subroutine parameters are statically allocated exactly once; there is no call stack for variables, so recursion and reentrancy are not possible.
-- subroutines can be nested. Nested subroutines have direct access to all variables defined in their parent scope.
 - a program consists of a 'main' block containing the 'start' subroutine entry point, and zero or more other subroutines. Additional blocks and subroutines in those can be present too.
-- text output is done via the 'textio' module which defines routines such as txt.print, txt.chrout, txt.print_uw and so on.
-- math routines are in the 'math' module.
-- string to value and value to string conversion routines are in the 'conv' module.
+- module imports are done using "%import modulename" *note*: this does *not* always mean that the scope "modulename" gets defined! Example: "%import textio" imports the textio module, but it defines the "txt" prefix where all the routines are in.
+
+### Datatypes & Variables
+- available primitive datatypes: bool, byte, ubyte, word, uword, long, float, str. ubyte/uword are unsigned. long=4 bytes (SIGNED only - no unsigned long yet), float=5-byte Microsoft format, str=0-terminated ubytes (max 255 chars).
+- there are also arrays (max 256 bytes, or 512 for split word arrays), pointers, and structs. Prog8 does not yet have by-value struct variables, only pointer to structs. Pointers can point to primitive types or struct types. Use `memory()` + pointers for data larger than array limits.
+- **word arrays split by default**: LSB and MSB bytes stored in separate arrays for efficient 6502 access. With @nosplit this can be overridden to use regular sequential storage.
+- prog8 has C-style pointer arithmetic when adding or subtracting integers from pointers. **pointer syntax differs from C**: Dereference with `@(ptr)` or `ptr[index]`.
+- while there are larger than byte datatypes, the intended compiler target is a 6502 CPU system which is 8 bit so operations on larger datatypes are expensive. Words are still somewhat okay, but longs and floats in particular are very inefficient. Try to avoid them unless needed for correctness.
+- all variables (including parameters) are statically allocated exactly once; there is no call stack, so recursion and reentrancy are not possible by default. All variables are zero-initialized (globals at program start, locals on subroutine entry).
+- variables should not be placed in zeropage (with @zp and @requirezp) often, because there is only limited zeropage memory space, *except* for pointer variables: those should usually be in zeropage.
+
+### Virtual Registers & Stack
+- **Zeropage scratch variables:** The compiler provides these predefined zeropage scratch variables: `P8ZP_SCRATCH_B1` (byte), `P8ZP_SCRATCH_REG` (byte), `P8ZP_SCRATCH_W1` (word), `P8ZP_SCRATCH_W2` (word), `P8ZP_SCRATCH_PTR` (word). **No other zeropage locations can be used** - assembly routines must only use these predefined scratch variables. If additional storage is needed, define regular variables in the BSS section instead. You can also use the cx16 virtual registers (`cx16.r0`-`cx16.r15`) as temporary storage.
+- the 16 'virtual registers' (cx16.r0 - cx16.r15) are available on ALL targets, not just CX16. They're fast 16-bit global variables but NOT preserved across subroutine calls. R12-R15 are especially dangerous: long operations may clobber them without warning. In IRQ handlers, save/restore with cx16.save_virtual_registers() / cx16.restore_virtual_registers(). You can give them descriptive names using aliases: `alias score = cx16.r7` but using regular variables is preferred.
+- the CPU hardware stack can be manipulated via builtin functions: push(), pushw(), pushl(), pushf() and pop(), popw(), popl(), popf(). These can manually implement recursion if needed.
+
+### Logic & Control Flow
+- the syntax for boolean logical operators is 'and', 'or', 'xor', 'not'. Bitwise operators are '&', '|', '^', '~', and '<<','>>' for bit shifting left and right respectively. All operators are documented in docs/source/programming.rst
+- CPU status flags can be tested with if_cs, if_cc, if_z, if_nz, etc. which compile to single 6502 branch instructions but require careful handling of flag state.
+- use 'when' statements with choice blocks to avoid multiple 'if' statements.
+- use 'repeat' statements instead of loops if the iteration count is not needed inside the loop body.
+- use if-expressions instead of if-statements if the goal is to assign a single value to a variable based on a simple choice between two values.
+- there is a 'defer' statement that can be used to defer the execution of a statement(s) until flow returns from the current scope.
+- it is *allowed* to use 'goto' with labels, and jump lists, if needed; because that generates very optimal code
+
+### Subroutines & Return Values
+- **everything is public**: No private/public modifiers. All symbols accessible via fully qualified names from anywhere.
+- **no function overloading**: Each subroutine must have a unique name (except for some builtin functions).
+- subroutines can return 0, 1 or more return value(s). They can be assigned to multiple variables in a single multi-variable assignment: a,b,c = routine(). Values can be skipped using 'void'.
+- **the `void` keyword has two forms:** (1) prefix form `void routine()` suppresses all return values from a subroutine call, (2) assignment form `a, void, c = routine()` skips specific return values in multi-return assignments.
+- subroutines can be nested. Nested subroutines have direct access to all variables defined in their parent scope.
+
+### Standard library
+- **to discover what modules and routines are available in the standard library, FIRST consult docs/source/_static/symboldumps/** - there's a skeleton file per compilation target (e.g., skeletons-cx16.txt, skeletons-c64.txt) listing ALL available modules, subroutines, and builtin functions with their signatures.
+- standard library source code is in the 'res/prog8lib' directory. See docs/source/libraries.rst for detailed descriptions of builtin functions and library routines.
+- text output is done via the 'textio' module (txt.print, txt.chrout, etc.), math routines are in 'math', and string conversion routines are in 'conv'. **Note:** conv module uses `str_<type>` naming for number-to-string (e.g., `str_uword`, `str_long`), NOT `<type>2str`. String-to-number uses `str2<type>` (e.g., `str2uword`, `str2long`). **However, for printing numbers you don't need explicit conversion** - txt module has direct routines: `txt.print_b` (byte), `txt.print_ub` (ubyte), `txt.print_w` (word), `txt.print_uw` (uword), `txt.print_l` (long), `txt.print_bool` (bool).
+
+### Syntax & Formatting
+- **numeric literal syntax**: `$` prefix for hex (`$FF` not `0xFF`), `%` prefix for binary (`%1010` not `0b1010`). Underscores allowed for readability: `25_000_000`. No leading-zero octal notation. **No type suffixes**: long literals are just regular numbers (e.g., `12345678` not `12345678L`), the type is determined by context (variable type or cast).
+- **for loop syntax**: `for i in 0 to 10 { ... }` (use downto when counting down) - NOT `for i = 0 to 10` or C-style `for(i=0; i<10; i++)`
+- **semicolons start comments**: `; this is a comment` - they do NOT end statements. There is NO statement separator (unlike C/Java's `;`). One statement per line only. Multi-line comments use `/* ... */`.
+- **trailing commas allowed**: `[1, 2, 3,]` is valid syntax.
+- Prog8 source files are indented with 4 spaces, no tabs.
+- assembly source files (*.asm) can be indented with either spaces or tabs
+- **The assembly source code uses 64tass syntax, NOT ca65/cc65 or other assemblers.** Key 64tass syntax: `.proc`/`.pend` for procedures, `_label` for local labels, `.byte`/`.word`/`.dword` for data, `= ` for equates, zero-page variables defined with `=`. **Instructions like `rol`, `ror`, `asl`, `lsr` require an explicit operand** - use `rol a`, `ror a`, etc. for the accumulator, not just `rol` or `ror`.
+
+## Other Key differences from other languages (C, Python, etc.)
+- **no automatic type widening**: `byte*byte=byte` (may overflow!), `word*word=word`, etc. Explicitly cast operands: `word result = (bytevar as word) * 1000`. Hex literals with full width (e.g., `$0040`) also promote. Compiler does not warn by default.
+- **no block scope**: `for`, `if/else` blocks do NOT introduce new scope. Only subroutines introduce scope. Variables declared anywhere in a subroutine are hoisted to the top.
+- **qualified names from top level**: Must use full qualified names (e.g., `cx16.r0`), not relative imports.
 
 ## Project Module Descriptions
 - `beanshell` - EXPERIMENTAL/UNFINISHED Contains BeanShell integration for scripting capabilities within the compiler
@@ -54,15 +99,14 @@ Context and instructions for AI Agents to work on this project.
 
 ## Key Information
 - never read the files and directories that are ignored via the .aiignore and .gitignore files
-- never perform any git source control commands
-- Current development focus areas: compiler optimizations, new language features, backend improvements
-- Important project conventions: Kotlin for compiler implementation, modular architecture, IR-based compilation
+- never perform any git source control write/update/add/commit/branch operations. Read and status operations are allowed.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
 
 # Dev environment tips
 
 ## Commands to build the compiler
 - use the system installed gradle command instead of the gradle wrapper.
+- **IMPORTANT: Always run `gradle installdist installshadowdist` to rebuild the compiler after any code modifications.**
 - `gradle build` - Full build of the compiler including running the full test suite
 - `gradle clean` - Clean build artifacts
 - `gradle compileKotlin` - Compile only the Kotlin source code
@@ -79,10 +123,14 @@ Context and instructions for AI Agents to work on this project.
 ## Commands to run tests
 - `gradle test --tests "*TestName*"` - Run specific test classes
 - `gradle build --refresh-dependencies` - Refresh dependencies during development
+- Unit tests are written using KoTest
+- Several modules in the project contain unit tests, but most of them live in the "compiler" module in the 'test' directory.
+- **when writing TEST programs, always add these directives at the top: `%zeropage basicsafe` and `%option no_sysinit`** - this keeps zeropage usage safe and skips system initialization for faster, simpler test programs.
 
 ## Commands to run the Prog8 Compiler after building it
 - the prog8c compiler executable can be found in the compiler/build/install/prog8c/bin folder (this is already added to the shell's path)
 - the `-emu` switch can be used to directly execute the resulting program in an emulator after successful compilation.
+- **the `-check` switch performs a quick syntax/semantic check only - it will NOT produce any output files (no .prg, .asm, etc.)**. Use it only for fast error checking during development.
 - `prog8c -target cx16 input.p8` - Compile a Prog8 source file "input.p8" for the CommanderX16 target
 - `prog8c -target cx16 -check input.p8` - Quickly check a Prog8 source file "input.p8" for compiler errors, no output binary is produced
 - `prog8c -target cx16 -emu  input.p8` - Compile and execute a prog8 file in the CommanderX16 emulator

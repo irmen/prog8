@@ -986,6 +986,36 @@ asl_word_AY     .proc
 		.pend
 
 
+square_long     .proc
+; -- calculate square of 32-bit long in cx16.R14:R15, result as 32-bit long in cx16.R14:R15
+; Input:  cx16.R14:R15 = 32-bit value to square (R14=low word, R15=high word)
+; Output: cx16.R14:R15 = 32-bit square result (R14=low word, R15=high word)
+; Clobbers: A, X, Y
+
+        lda  cx16.r14
+        ldy  cx16.r14+1
+        ldx  cx16.r15+1
+        bpl  +
+        jsr  prog8_lib.abs_w_into_AY
+
++
+        ; Square R14 only
+        sta  multiply_words.multiplier
+        sty  multiply_words.multiplier+1
+        jsr  multiply_words
+
+        ; Copy 4-byte result to cx16.r14:cx16.r15
+        sta  cx16.r14
+        sty  cx16.r14+1
+        lda  multiply_words.result+2
+        sta  cx16.r15
+        lda  multiply_words.result+3
+        sta  cx16.r15+1
+
+        rts
+		.pend
+
+
 square          .proc
 ; -- calculate square of signed word (actually -255..255) in AY, result in AY
 ; routine by Lee Davison, source: http://6502.org/source/integers/square.htm
@@ -999,7 +1029,6 @@ square          .proc
 ; this is so.
 ;
 ; This routine is useful if you are trying to draw circles as for any circle
-;
 ; x^2+y^2=r^2 where x and y are the co-ordinates of any point on the circle and
 ; r is the circle radius
 
