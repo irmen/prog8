@@ -6,9 +6,16 @@ main {
     sub start() {
         long @shared z1, z2
         z1=1111
-
-        z2 = z1*z1
+        z2=z1
+        z2*=z2
         txt.print_l(z2)
+        txt.nl()
+
+        z1=-1111
+        z2=z1
+        z2*=z2
+        txt.print_l(z2)
+        txt.nl()
     }
 }
 

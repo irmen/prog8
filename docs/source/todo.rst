@@ -1,9 +1,6 @@
 TODO
 ====
 
-BUG in unzip: lookup error p8s_pop  [unzip.p8: line 262 col 16-24]
-
-
 Known bugs:
 - fix chained aliasing errors see test "chained aliasing"
 - fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"
