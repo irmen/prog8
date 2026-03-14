@@ -2,6 +2,13 @@ sys {
     ; the sys functions shared across ALL compiler targets (including the custom defined ones)
     %option merge, no_symbol_prefixing, ignore_unused
 
+    asmsub die(ubyte code @A, str message @XY) {
+        ; -- kill the program by jumping into the debugger/monitor (if available). Status code is in register A, a pointer to the death message is in X,Y.
+        %asm {{
+            brk     ; program died, status code in A, message pointer in X,Y
+            ; !notreached!
+        }}
+    }
 
     asmsub save_prog8_internals() {
         %asm {{

@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit daef1828 in branch master
+Prerelease version from git commit 276121bf in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -432,6 +432,7 @@ sys  {
     clear_carry  () 
     clear_irqd  () 
     cpu_is_65816  () -> bool 
+    die  (ubyte code, str message) 
     disable_caseswitch  () 
     enable_caseswitch  () 
     exit  (ubyte returnvalue) 

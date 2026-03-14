@@ -33,6 +33,20 @@ sys {
         }}
     }
 
+    sub die(ubyte code, str message) {
+        ; -- kill the program by jumping into the debugger/monitor (if available). Status code is in register A, a pointer to the death message is in X,Y.
+        str @shared warning = iso:"\n\nPROGRAM DIED: "
+        %ir {{
+            load.w r99000,sys.die.warning
+            syscall 3 (r99000.w)
+            loadm.w r99000,sys.die.message
+            syscall 3 (r99000.w)
+            load.b r99100,10
+            syscall 2 (r99100.b)
+        }}
+        exit(code)
+    }
+
     sub wait(uword jiffies) {
         ; --- wait approximately the given number of jiffies (1/60th seconds)
         %ir {{
