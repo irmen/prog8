@@ -1,7 +1,5 @@
 " Vim syntax file
 " Language: Prog8
-" Maintainer: Elektron72
-" Latest Revision: 23 March 2021
 
 if exists("b:current_syntax")
     finish
@@ -23,8 +21,8 @@ syn region prog8Expression matchgroup=prog8AddressOp start="@(" end=")"
 syn match prog8Function "\(\<\(asm\)\?sub\>\s\+\)\@16<=\<\w\+\>"
 syn match prog8Function "\(extsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
 
-syn keyword prog8Statement break continue goto return asmsub sub inline
-syn match prog8Statement "\<\(asm\|rom\)\?sub\>"
+syn keyword prog8Statement break continue goto return asmsub sub inline extsub clobbers
+syn match prog8Statement "\<\(asm\)\?sub\>"
 syn keyword prog8Conditional if else when then
 syn keyword prog8Conditional if_cs if_cc if_vs if_vc if_eq if_z if_ne if_nz
 syn keyword prog8Conditional if_pl if_pos if_mi if_neg

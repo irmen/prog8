@@ -117,10 +117,8 @@ contexts:
   general__5:
     - include: general
   keywords:
-    - match: (\b(sub|if|if_cs|if_cc|if_eq|if_ne|if_pl|if_mi|if_vs|if_vc|if_z|if_nz|if_pos|if_neg|for|in|to|step|do|while|until|repeat|else|then|when|return|break|as|goto|asmsub|clobbers|alias)\b)
+    - match: (\b(sub|if|if_cs|if_cc|if_eq|if_ne|if_pl|if_mi|if_vs|if_vc|if_z|if_nz|if_pos|if_neg|for|in|to|downto|step|do|while|until|repeat|else|then|when|return|break|continue|as|goto|asmsub|extsub|inline|clobbers|alias|not|and|or|xor|on|void)\b)
       scope: keyword.control.prog8
-    - match: (\b(and|or)\b)
-      scope: keyword.operator.prog8
   label:
     - match: (^\s*\w+\:)
       scope: entity.name.label.prog8
@@ -149,14 +147,16 @@ contexts:
     - match: (\b\w+\.)
       scope: entity.name.namespace.prog8
   storage:
-    - match: (\b(ubyte|byte|word|uword|long|float|str|struct|enum)\b)
+    - match: (\b(ubyte|byte|word|uword|long|float|str|bool|struct|enum)\b)
+      scope: storage.type.prog8
+    - match: (\^\^(ubyte|byte|word|uword|long|float|str|bool)\b)
       scope: storage.type.prog8
     - match: (\^\^)
       scope: storage.modifier.prog8
     - match: (\b(const)\b)
       scope: storage.modifier.prog8
   support:
-    - match: (\b(abs|atan|ceil|cos|cos8u|cos8|cos16u|cos16|deg|floor|ln|log2|rad|round|sin|sgn|sin8u|sin8|sin16u|sin16|sqrt16|sqrt|tan|any|all|len|max|min|reverse|sum|sort|memcopy|memset|memsetw|leftstr|rightstr|strlen|strcmp|strncmp|substr|exit|lsb|msb|lsw|lmh|msw|mkword|setlsb|setmsb|rnd|rndw|rndf|rol|rol2|ror|ror2|rsave|rrestore|read_flags|sizeof|offsetof|set_carry|clear_carry|set_irqd|clear_irqd|swap)\b)
+    - match: (\b(abs|call|callfar|callfar2|clamp|cmp|defer|divmod|len|lsb|lsw|lmh|lsr|memory|mkword|min|max|msb|msw|offsetof|peek|peekw|peekl|peekf|peekbool|poke|pokew|pokel|pokef|pokebool|pop|popw|popl|popf|psg|psg2|push|pushw|pushl|pushf|rsave|rsavex|rrestore|rrestorex|rol|rol2|ror|ror2|setlsb|setmsb|sgn|sizeof|sqrt|sqrtw|swap)\b)
       scope: support.function.prog8
   variable:
     - match: (\b\w+\b)

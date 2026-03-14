@@ -1,7 +1,5 @@
 " Vim syntax file
 " Language: Prog8 (built-in functions)
-" Maintainer: Elektron72
-" Latest Revision: 23 March 2021
 
 
 " Built-in functions
@@ -317,7 +315,6 @@ syn match prog8BuiltInVar "\<cx16\.r12\>"
 syn match prog8BuiltInVar "\<cx16\.r13\>"
 syn match prog8BuiltInVar "\<cx16\.r14\>"
 syn match prog8BuiltInVar "\<cx16\.r15\>"
-
 
 " c64/textio.p8
 syn match prog8BuiltInVar "\<txt\.DEFAULT_WIDTH\>"

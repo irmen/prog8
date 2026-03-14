@@ -7,7 +7,7 @@ To install:
 
 * Open Notepad++
 * Menu `Language` | `User Defined Language` | `Define your language...`
-* Click `Import...`, then choose the xml file `Prog8.xml`
+* Click `Import...`, then choose the xml file `Prog8.xml`  (or Prog8dark.xml for use with a dark desktop theme)
 
 Notes:
 * After an update of Notepad++ you will have to import the xml file again.

@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE language>
+<language name="Prog8" version="1.0" kateversion="5.62" section="Scripts" extensions="*.p8;*.prog8" mimetype="application/x-prog8;text" author="Irmen de Jong" license="MIT">
+  <highlighting>
+    <list name="keywords">
+      <item>alias</item>
+      <item>and</item>
+      <item>as</item>
+      <item>asmsub</item>
+      <item>break</item>
+      <item>clobbers</item>
+      <item>continue</item>
+      <item>do</item>
+      <item>downto</item>
+      <item>else</item>
+      <item>extsub</item>
+      <item>false</item>
+      <item>for</item>
+      <item>goto</item>
+      <item>if</item>
+      <item>if_cc</item>
+      <item>if_cs</item>
+      <item>if_eq</item>
+      <item>if_mi</item>
+      <item>if_ne</item>
+      <item>if_neg</item>
+      <item>if_nz</item>
+      <item>if_pl</item>
+      <item>if_pos</item>
+      <item>if_vc</item>
+      <item>if_vs</item>
+      <item>if_z</item>
+      <item>in</item>
+      <item>inline</item>
+      <item>not</item>
+      <item>on</item>
+      <item>or</item>
+      <item>repeat</item>
+      <item>return</item>
+      <item>step</item>
+      <item>sub</item>
+      <item>then</item>
+      <item>to</item>
+      <item>true</item>
+      <item>unroll</item>
+      <item>until</item>
+      <item>when</item>
+      <item>while</item>
+      <item>xor</item>
+    </list>
+    <list name="directives">
+      <item>%address</item>
+      <item>%align</item>
+      <item>%asm</item>
+      <item>%asmbinary</item>
+      <item>%asminclude</item>
+      <item>%breakpoint</item>
+      <item>%encoding</item>
+      <item>%import</item>
+      <item>%ir</item>
+      <item>%jmptable</item>
+      <item>%launcher</item>
+      <item>%memtop</item>
+      <item>%option</item>
+      <item>%output</item>
+      <item>%zeropage</item>
+      <item>%zpallowed</item>
+      <item>%zpreserved</item>
+    </list>
+    <list name="attributes">
+      <item>@align64</item>
+      <item>@alignpage</item>
+      <item>@alignword</item>
+      <item>@bank</item>
+      <item>@dirty</item>
+      <item>@nosplit</item>
+      <item>@nozp</item>
+      <item>@requirezp</item>
+      <item>@shared</item>
+      <item>@split</item>
+      <item>@zp</item>
+    </list>
+    <list name="types">
+      <item>bool</item>
+      <item>byte</item>
+      <item>const</item>
+      <item>float</item>
+      <item>long</item>
+      <item>str</item>
+      <item>struct</item>
+      <item>ubyte</item>
+      <item>uword</item>
+      <item>void</item>
+      <item>word</item>
+    </list>
+    <list name="builtinfuncs">
+      <item>abs</item>
+      <item>bmx</item>
+      <item>call</item>
+      <item>callfar</item>
+      <item>callfar2</item>
+      <item>cbm</item>
+      <item>clamp</item>
+      <item>cmp</item>
+      <item>conv</item>
+      <item>cx16</item>
+      <item>defer</item>
+      <item>diskio</item>
+      <item>divmod</item>
+      <item>floats</item>
+      <item>len</item>
+      <item>lmh</item>
+      <item>lsb</item>
+      <item>lsw</item>
+      <item>math</item>
+      <item>max</item>
+      <item>memory</item>
+      <item>min</item>
+      <item>mkword</item>
+      <item>msb</item>
+      <item>msw</item>
+      <item>offsetof</item>
+      <item>peek</item>
+      <item>peekbool</item>
+      <item>peekf</item>
+      <item>peekl</item>
+      <item>peekw</item>
+      <item>poke</item>
+      <item>pokebool</item>
+      <item>pokef</item>
+      <item>pokel</item>
+      <item>pokew</item>
+      <item>pop</item>
+      <item>popf</item>
+      <item>popl</item>
+      <item>popw</item>
+      <item>psg</item>
+      <item>psg2</item>
+      <item>push</item>
+      <item>pushf</item>
+      <item>pushl</item>
+      <item>pushw</item>
+      <item>rol</item>
+      <item>rol2</item>
+      <item>ror</item>
+      <item>ror2</item>
+      <item>rrestore</item>
+      <item>rrestorex</item>
+      <item>rsave</item>
+      <item>rsavex</item>
+      <item>setlsb</item>
+      <item>setmsb</item>
+      <item>sgn</item>
+      <item>sizeof</item>
+      <item>sqrt</item>
+      <item>strings</item>
+      <item>swap</item>
+      <item>sys</item>
+      <item>txt</item>
+      <item>verafx</item>
+    </list>
+    <list name="operators">
+      <item>&amp;</item>
+      <item>&amp;&amp;</item>
+      <item>&amp;&lt;</item>
+      <item>&amp;&gt;</item>
+      <item>-&gt;</item>
+      <item>^^</item>
+      <item>~</item>
+    </list>
+    <contexts>
+      <context name="Normal" attribute="Normal Text" lineEndContext="#stay">
+        <DetectSpaces attribute="Normal Text"/>
+        <DetectChar char=";" attribute="Comment" context="LineComment"/>
+        <StringDetect String="/*" attribute="Comment" context="BlockComment" beginRegion="CommentBlock"/>
+        <keyword String="directives" attribute="Directive"/>
+        <keyword String="attributes" attribute="Attribute"/>
+        <keyword String="keywords" attribute="Keyword"/>
+        <keyword String="types" attribute="DataType"/>
+        <keyword String="builtinfuncs" attribute="Builtin Function"/>
+        <keyword String="operators" attribute="Operator"/>
+        <IncludeRules context="Numbers"/>
+        <IncludeRules context="Strings"/>
+        <DetectChar char="@" attribute="Attribute"/>
+        <DetectChar char="%" attribute="Directive"/>
+        <DetectChar char="(" attribute="Normal Text"/>
+        <DetectChar char=")" attribute="Normal Text"/>
+        <DetectChar char="[" attribute="Normal Text"/>
+        <DetectChar char="]" attribute="Normal Text"/>
+        <DetectChar char="{" attribute="Normal Text" beginRegion="Brace"/>
+        <DetectChar char="}" attribute="Normal Text" endRegion="Brace"/>
+        <AnyChar String="+-*/=&lt;&gt;!|^" attribute="Operator"/>
+        <DetectIdentifier attribute="Normal Text"/>
+      </context>
+      <context name="LineComment" attribute="Comment" lineEndContext="#pop">
+        <DetectSpaces attribute="Comment"/>
+        <DetectIdentifier attribute="Comment"/>
+      </context>
+      <context name="BlockComment" attribute="Comment" lineEndContext="#stay">
+        <DetectSpaces attribute="Comment"/>
+        <DetectIdentifier attribute="Comment"/>
+        <StringDetect String="*/" attribute="Comment" context="#pop" endRegion="CommentBlock"/>
+      </context>
+      <context name="Numbers" attribute="Normal Text">
+        <RegExpr String="\$[0-9A-Fa-f][0-9A-Fa-f_]*" attribute="HexNumber"/>
+        <RegExpr String="%[01][01_]*" attribute="BinaryNumber"/>
+        <RegExpr String="\b[0-9][0-9_]*\.[0-9]+([eE][+-]?[0-9]+)?\b" attribute="Float"/>
+        <RegExpr String="\b[0-9][0-9_]*\b" attribute="Number"/>
+      </context>
+      <context name="Strings" attribute="String" lineEndContext="#stay">
+        <RegExpr String="(atascii|c64os|cp437|default|iso16|iso5|iso|kata|petscii|sc):" attribute="String"/>
+        <DetectChar char="&quot;" attribute="String" context="String"/>
+        <DetectChar char="'" attribute="String" context="StringSQ"/>
+      </context>
+      <context name="String" attribute="String" lineEndContext="#stay">
+        <DetectChar char="&quot;" attribute="String" context="#pop"/>
+        <DetectChar char="\" attribute="StringEscape" context="StringEscape"/>
+      </context>
+      <context name="StringSQ" attribute="String" lineEndContext="#stay">
+        <DetectChar char="'" attribute="String" context="#pop"/>
+        <DetectChar char="\" attribute="StringEscape" context="StringEscape"/>
+      </context>
+      <context name="StringEscape" attribute="StringEscape" lineEndContext="#pop">
+        <RegExpr String="\\[\\&quot;'abfnrtv0]" attribute="StringEscape" context="#pop"/>
+        <RegExpr String="\\x[0-9A-Fa-f]{2}" attribute="StringEscape" context="#pop"/>
+        <RegExpr String="\\u[0-9A-Fa-f]{4}" attribute="StringEscape" context="#pop"/>
+        <RegExpr String="\\U[0-9A-Fa-f]{8}" attribute="StringEscape" context="#pop"/>
+      </context>
+    </contexts>
+    <itemDatas>
+      <itemData name="Normal Text" defStyleNum="dsNormal" spellChecking="0"/>
+      <itemData name="Keyword" defStyleNum="dsKeyword" spellChecking="0"/>
+      <itemData name="DataType" defStyleNum="dsDataType" spellChecking="0"/>
+      <itemData name="Builtin Function" defStyleNum="dsBuiltIn" spellChecking="0"/>
+      <itemData name="Operator" defStyleNum="dsOperator" spellChecking="0"/>
+      <itemData name="Directive" defStyleNum="dsPreprocessor" spellChecking="0"/>
+      <itemData name="Attribute" defStyleNum="dsAttribute" spellChecking="0"/>
+      <itemData name="Encoding" defStyleNum="dsImport" spellChecking="0"/>
+      <itemData name="Comment" defStyleNum="dsComment"/>
+      <itemData name="Number" defStyleNum="dsDecVal" spellChecking="0"/>
+      <itemData name="HexNumber" defStyleNum="dsBaseN" spellChecking="0"/>
+      <itemData name="BinaryNumber" defStyleNum="dsBaseN" spellChecking="0"/>
+      <itemData name="Float" defStyleNum="dsFloat" spellChecking="0"/>
+      <itemData name="String" defStyleNum="dsString"/>
+      <itemData name="StringEscape" defStyleNum="dsSpecialChar" spellChecking="0"/>
+    </itemDatas>
+  </highlighting>
+  <general>
+    <folding indentationsensitive="0"/>
+    <emptyLines>
+      <emptyLine regexpr="(?:\s+|\s*;.*|\s*/\*.*)"/>
+    </emptyLines>
+    <comments>
+      <comment name="singleLine" start=";" position="afterwhitespace"/>
+      <comment name="multiLine" start="/*" end="*/"/>
+    </comments>
+    <keywords casesensitive="1"/>
+  </general>
+</language>
