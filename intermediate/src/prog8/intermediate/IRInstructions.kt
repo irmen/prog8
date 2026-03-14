@@ -27,10 +27,8 @@ NOTE: status flags are only affected by the CMP instruction or explicit CLC/SEC,
 
 Instruction set is mostly a load/store architecture, there are few instructions operating on memory directly.
 
-Value types: integers (.b=byte=8 bits, .w=word=16 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
-Currently ther is NO support for 24 or 32 bits integers.
-There is no distinction between signed and unsigned integers.
-Instead, a different instruction is used if a distinction should be made (for example div and divs).
+Value types: integers (.b=byte=8 bits, .w=word=16 bits, .l=long=32 bits) and float (.f=64 bits). Omitting it defaults to b if the instruction requires a type.
+There is no distinction between signed and unsigned. Instead, a different instruction is used if a distinction should be made (for example div and divs).
 Floating point operations are just 'f' typed regular instructions, however there are a few unique fp conversion instructions.
 
 NOTE: Labels in source text should always start with an underscore.

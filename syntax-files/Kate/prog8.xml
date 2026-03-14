@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE language>
-<language name="Prog8" version="1.0" kateversion="5.62" section="Scripts" extensions="*.p8;*.prog8" mimetype="application/x-prog8;text" author="Irmen de Jong" license="MIT">
+<language name="Prog8" version="12.2" kateversion="5.62" section="Scripts" extensions="*.p8;*.prog8" mimetype="application/x-prog8;text" author="Irmen de Jong" license="MIT">
   <highlighting>
     <list name="keywords">
       <item>alias</item>
@@ -180,7 +180,7 @@
         <keyword String="builtinfuncs" attribute="Builtin Function"/>
         <keyword String="operators" attribute="Operator"/>
         <IncludeRules context="Numbers"/>
-        <IncludeRules context="Strings"/>
+        <IncludeRules context="FindStrings"/>
         <DetectChar char="@" attribute="Attribute"/>
         <DetectChar char="%" attribute="Directive"/>
         <DetectChar char="(" attribute="Normal Text"/>
@@ -207,24 +207,28 @@
         <RegExpr String="\b[0-9][0-9_]*\.[0-9]+([eE][+-]?[0-9]+)?\b" attribute="Float"/>
         <RegExpr String="\b[0-9][0-9_]*\b" attribute="Number"/>
       </context>
-      <context name="Strings" attribute="String" lineEndContext="#stay">
-        <RegExpr String="(atascii|c64os|cp437|default|iso16|iso5|iso|kata|petscii|sc):" attribute="String"/>
+      <context name="FindStrings" attribute="Normal Text" lineEndContext="#stay">
         <DetectChar char="&quot;" attribute="String" context="String"/>
         <DetectChar char="'" attribute="String" context="StringSQ"/>
       </context>
-      <context name="String" attribute="String" lineEndContext="#stay">
+      <context name="String" attribute="String">
+        <IncludeRules context="Escape"/>
         <DetectChar char="&quot;" attribute="String" context="#pop"/>
-        <DetectChar char="\" attribute="StringEscape" context="StringEscape"/>
       </context>
-      <context name="StringSQ" attribute="String" lineEndContext="#stay">
+      <context name="StringSQ" attribute="String">
+        <IncludeRules context="Escape"/>
         <DetectChar char="'" attribute="String" context="#pop"/>
-        <DetectChar char="\" attribute="StringEscape" context="StringEscape"/>
       </context>
-      <context name="StringEscape" attribute="StringEscape" lineEndContext="#pop">
-        <RegExpr String="\\[\\&quot;'abfnrtv0]" attribute="StringEscape" context="#pop"/>
-        <RegExpr String="\\x[0-9A-Fa-f]{2}" attribute="StringEscape" context="#pop"/>
-        <RegExpr String="\\u[0-9A-Fa-f]{4}" attribute="StringEscape" context="#pop"/>
-        <RegExpr String="\\U[0-9A-Fa-f]{8}" attribute="StringEscape" context="#pop"/>
+      <context name="Escape" attribute="StringEscape">
+        <LineContinue attribute="StringEscape"/>
+        <RegExpr String="\\(?:x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|u\{[0-9a-fA-F]+\}|[0-3][0-7]{1,2}|[4-7][0-7]|[1-7])" attribute="StringEscape"/>
+        <StringDetect String="\x" attribute="Error"/>
+        <StringDetect String="\u" attribute="Error"/>
+        <DetectChar char="\" attribute="StringEscape" context="Character Escape"/>
+      </context>
+      <context name="Character Escape" attribute="StringEscape">
+        <AnyChar String="0bfnrtv" attribute="StringEscape" context="#pop"/>
+        <RegExpr String="." attribute="StringEscape" context="#pop"/>
       </context>
     </contexts>
     <itemDatas>
@@ -243,6 +247,7 @@
       <itemData name="Float" defStyleNum="dsFloat" spellChecking="0"/>
       <itemData name="String" defStyleNum="dsString"/>
       <itemData name="StringEscape" defStyleNum="dsSpecialChar" spellChecking="0"/>
+      <itemData name="Error" defStyleNum="dsError"/>
     </itemDatas>
   </highlighting>
   <general>

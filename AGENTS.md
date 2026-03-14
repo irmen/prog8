@@ -18,6 +18,11 @@ Context and instructions for AI Agents to work on this project.
 - Dependent library versions can be found in 'build.gradle.kts' and in the IntelliJ IDEA configuration files in .idea/libraries
 - The compiler main entrypoint is in the "compiler" module, in src/prog8/CompilerMain.kt
 
+## CRITICAL: NO FORMATTING
+- NEVER run formatters (black, ruff, prettier, etc.) after edits
+- Preserve my exact indentation, line lengths, and spacing
+- Make ONLY the requested changes, nothing else
+
 ## Prog8 language feature hints
 
 ### General & Setup
