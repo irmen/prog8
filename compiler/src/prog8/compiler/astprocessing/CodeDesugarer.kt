@@ -974,9 +974,18 @@ _after:
             val sourcePtr = assignment.value as PtrDereference
             val targetDt = targetPtr.inferType(program)
             if (targetDt == sourcePtr.inferType(program)) {
-                val sourceAddress = IdentifierReference(sourcePtr.chain, assignment.position)
-                val targetAddress = IdentifierReference(targetPtr.chain, assignment.position)
-
+                val sourceAddress: Expression
+                val targetAddress: Expression
+                if(!targetPtr.derefLast) {
+                    val targetIdentifier = IdentifierReference(targetPtr.chain, assignment.position)
+                    targetAddress = AddressOf(targetIdentifier, null, null, false, false, assignment.position)
+                } else
+                    targetAddress = IdentifierReference(targetPtr.chain, assignment.position)
+                if(!sourcePtr.derefLast) {
+                    val sourceIdentifier = IdentifierReference(sourcePtr.chain, assignment.position)
+                    sourceAddress = AddressOf(sourceIdentifier, null, null, false, false, assignment.position)
+                } else
+                    sourceAddress = IdentifierReference(sourcePtr.chain, assignment.position)
                 val copy = when {
                     targetDt.isLong -> FunctionCallStatement(
                         IdentifierReference(listOf("prog8_lib_copylong"), assignment.position),

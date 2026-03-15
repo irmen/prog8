@@ -212,7 +212,7 @@ class DataType private constructor(val base: BaseDataType, val sub: BaseDataType
     }
 
     fun dereference(): DataType {
-        require(isPointer || isUnsignedWord)
+        require(isPointer || isUnsignedWord) { "cannot dereference non-pointer type ${this}"}
         return when {
             isUnsignedWord -> forDt(BaseDataType.UBYTE)
             sub!=null -> forDt(sub)

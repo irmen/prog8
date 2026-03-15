@@ -26,12 +26,12 @@ Future Things and Ideas
 - structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
-- struct/ptr: optimize the float copying in assignIndexedPointer() (also word and long?)
 - struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - struct/ptr: implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
 - struct/ptr: support @nosplit pointer arrays?
 - struct/ptr: support pointer to pointer?
 - struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)
+- struct/ptr: optimize the long pointer deref in assignPointerDerefExpression() so that it doesnt require a temp assignment all the time
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2 (see github issue #192)
@@ -50,7 +50,6 @@ Future Things and Ideas
 - Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
 - Kotlin: can private setters / backing fields be used? (internal mutableList, external List)
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
-- Improve the SublimeText syntax file for prog8, you can also install this for 'bat': https://github.com/sharkdp/bat?tab=readme-ov-file#adding-new-syntaxes--language-definitions
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
 - Improve register load order in subroutine call args assignments:

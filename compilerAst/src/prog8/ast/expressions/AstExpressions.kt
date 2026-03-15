@@ -553,6 +553,19 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                 require(replacement is ArrayIndex)
                 arrayIndex = replacement
             }
+            node===dereference -> {
+                if(replacement is IdentifierReference) {
+                    identifier = replacement
+                    dereference = null
+                } else if(replacement is ArrayIndex) {
+                    arrayIndex = replacement
+                    dereference = null
+                } else if(replacement is PtrDereference) {
+                    dereference = replacement
+                } else {
+                    throw FatalAstException("invalid replace $node")
+                }
+            }
             else -> {
                 throw FatalAstException("invalid replace, no child node $node")
             }
@@ -1785,7 +1798,18 @@ class PtrDereference(
 
     override fun inferType(program: Program): InferredTypes.InferredType {
 
-        fun resultType(dt: DataType?) = if(dt==null) InferredTypes.unknown() else InferredTypes.knownFor(if(derefLast) dt.dereference() else dt)
+        fun resultType(dt: DataType?): InferredTypes.InferredType {
+            return if (dt == null) InferredTypes.unknown()
+                else {
+                    if(derefLast) {
+                        if(dt.isPointer || dt.isUnsignedWord)
+                            InferredTypes.knownFor(dt.dereference())
+                        else
+                            InferredTypes.unknown()
+                    } else
+                        InferredTypes.knownFor(dt)
+            }
+        }
 
         val target = definingScope.lookup(chain) ?: return InferredTypes.unknown()
         return when (target) {

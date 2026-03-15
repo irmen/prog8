@@ -1,18 +1,30 @@
 %import textio
 %zeropage basicsafe
+%option no_sysinit
 
 main {
 
-    sub start() {
-        long[] larray = [111111, 222222, 333333, 444444]
-        test(larray)
+    struct Node {
+        bool x
+        word y
+        long lvar
     }
 
-    sub test(^^long lv) {
-        txt.print_l(lv^^)
+    sub start() {
+        ^^Node nodeptr1 = ^^Node : [false, 1111, 1111111]
+        ^^Node nodeptr2 = ^^Node : [false, 2222, 2222222]
+        long @shared lvar = 333333
+
+        txt.print_l(nodeptr1^^.lvar)
         txt.spc()
-        lv++
-        txt.print_l(lv^^)
+        txt.print_l(nodeptr2^^.lvar)
+        txt.nl()
+
+        nodeptr1^^.lvar = nodeptr2^^.lvar
+
+        txt.print_l(nodeptr1^^.lvar)
+        txt.spc()
+        txt.print_l(nodeptr2^^.lvar)
         txt.nl()
     }
 }

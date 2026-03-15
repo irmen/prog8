@@ -2254,7 +2254,7 @@ internal class AstChecker(private val program: Program,
             if(symbol==null)
                 errors.undefined(deref.chain.take(1), position=deref.position)
             else
-                errors.err("unable to determine type of dereferenced pointer expression", deref.position)
+                errors.err("unable to determine type of dereferenced pointer expression, make sure it dereferences an actual pointer type", deref.position)
         }
 
         super.visit(deref)
