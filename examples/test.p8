@@ -3,29 +3,22 @@
 %option no_sysinit
 
 main {
+    sub start() {
+        uword @shared w1 = 5555
+        uword @shared w2 = 44
 
-    struct Node {
-        bool x
-        word y
-        long lvar
+        uword division, remainder = mydivmod(w1, w2)
+        division += remainder
+        division, remainder = mydivmod(w1, w2)
+
+        uword division2, remainder2 = divmod(w1, w2)
+        division2 += remainder2
+        division2, remainder2 = divmod(w1, w2)
     }
 
-    sub start() {
-        ^^Node nodeptr1 = ^^Node : [false, 1111, 1111111]
-        ^^Node nodeptr2 = ^^Node : [false, 2222, 2222222]
-        long @shared lvar = 333333
-
-        txt.print_l(nodeptr1^^.lvar)
-        txt.spc()
-        txt.print_l(nodeptr2^^.lvar)
-        txt.nl()
-
-        nodeptr1^^.lvar = nodeptr2^^.lvar
-
-        txt.print_l(nodeptr1^^.lvar)
-        txt.spc()
-        txt.print_l(nodeptr2^^.lvar)
-        txt.nl()
+    sub mydivmod(uword a, uword b) -> uword, uword {
+        a, b = divmod(a, b)
+        return a,b
     }
 }
 

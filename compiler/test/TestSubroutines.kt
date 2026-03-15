@@ -377,4 +377,28 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
     }
+
+    test("multi-value returns from builtin function") {
+        val src= """
+main {
+    sub start() {
+        uword @shared w1 = 5555
+        uword @shared w2 = 44
+
+        uword division, remainder = mydivmod(w1, w2)
+        division += remainder
+        division, remainder = mydivmod(w1, w2)
+
+        uword division2, remainder2 = divmod(w1, w2)
+        division2 += remainder2
+        division2, remainder2 = divmod(w1, w2)
+    }
+
+    sub mydivmod(uword a, uword b) -> uword, uword {
+        a, b = divmod(a, b)
+        return a,b
+    }
+}"""
+        compileText(C64Target(), false, src, outputDir).shouldNotBeNull()
+    }
 })

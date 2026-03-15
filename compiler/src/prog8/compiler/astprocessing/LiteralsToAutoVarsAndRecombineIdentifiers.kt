@@ -80,9 +80,15 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
         if(decl.names.size>1) {
 
-            val fcallTarget = (decl.value as? IFunctionCall)?.target?.targetSubroutine()
-            if(fcallTarget!=null) {
+            val fcall = decl.value as? IFunctionCall
+            val fcallTarget = fcall?.target?.targetSubroutine()
+            val isBuiltinMultiReturn = fcall?.target?.let { target ->
+                val name = target.nameInSource.singleOrNull()
+                name != null && name in program.builtinFunctions.names && program.builtinFunctions.returnTypes(name).size > 1
+            } ?: false
+            if(fcallTarget!=null || isBuiltinMultiReturn) {
                 // ubyte a,b,c = multi() --> ubyte a,b,c / a,b,c = multi()
+                // also handles builtin functions that return multiple values (like divmod)
                 val modifications = mutableListOf<IAstModification>()
                 val variables = decl.names.map {
                     AssignTarget(
