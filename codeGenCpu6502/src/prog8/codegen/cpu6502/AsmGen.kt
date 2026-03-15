@@ -1776,11 +1776,16 @@ $repeatLabel""")
     }
 
     private fun translate(ret: PtReturn) {
-        val returnvalue = ret.children.singleOrNull() as? PtExpression
+        val returnvalue = ret.children.singleOrNull() as? PtExpression      // could be a multi-value returning functioncall
         val sub = ret.definingSub()!!
         val returnRegs = sub.returnsWhatWhere()
 
         if(returnvalue!=null) {
+
+            if(ret.children.size < ret.numReturnValues()) {
+                TODO("return multiple values from a multi-value returning function call (that I couldn't just JMP to). For now assign them to temporary variables first, then return those. ${ret.position}")
+            }
+
             val returnDt = sub.signature.returns.single()
             if (returnDt.isNumericOrBool || returnDt.isPointer) {
                 assignExpressionToRegister(returnvalue, returnRegs.single().first.registerOrPair!!, returnDt.isSigned)
@@ -1794,10 +1799,12 @@ $repeatLabel""")
                 assignmentAsmGen.assignExpressionToRegister(addrofValue, returnRegs.single().first.registerOrPair!!, false)
             }
         }
-        else if(ret.children.size>1) {
+        else if(ret.numReturnValues()>1) {
             // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
             // (this allows unencumbered use of many Rx registers if you don't return that many values)
             // to avoid register clobbering, assign the first return value last in row.
+
+            require(ret.children.size == ret.numReturnValues())
             val assigns = ret.children.zip(returnRegs).map { it.first to it.second }
             assigns.drop(1).forEach {
                 val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, it.second.second, null, it.first.position, register = it.second.first.registerOrPair!!)

@@ -135,13 +135,30 @@ internal class AstChecker(private val program: Program,
         super.visit(unrollLoop)
     }
 
+    private fun countReturnValues(expr: Expression): Int {
+        // Count how many return values an expression contributes
+        // A function call that returns multiple values contributes multiple
+        return if (expr is FunctionCallExpression) {
+            when (val target = expr.target.targetStatement(program.builtinFunctions)) {
+                is Subroutine -> target.returntypes.size
+                is BuiltinFunctionPlaceholder -> {
+                    val types = program.builtinFunctions.returnTypes(expr.target.nameInSource[0])
+                    types.size
+                }
+                else -> 1
+            }
+        }
+        else 1
+    }
+
     override fun visit(returnStmt: Return) {
         val expectedReturnValues = returnStmt.definingSubroutine?.returntypes ?: emptyList()
-        if(returnStmt.values.size<expectedReturnValues.size) {
-            errors.err("too few return values for the subroutine: expected ${expectedReturnValues.size} got ${returnStmt.values.size}", returnStmt.position)
+        val actualReturnCount = returnStmt.values.sumOf { countReturnValues(it) }
+        if(actualReturnCount<expectedReturnValues.size) {
+            errors.err("too few return values for the subroutine: expected ${expectedReturnValues.size} got $actualReturnCount", returnStmt.position)
         }
-        else if(returnStmt.values.size>expectedReturnValues.size) {
-            errors.err("too many return values for the subroutine: expected ${expectedReturnValues.size} got ${returnStmt.values.size}", returnStmt.position)
+        else if(actualReturnCount>expectedReturnValues.size) {
+            errors.err("too many return values for the subroutine: expected ${expectedReturnValues.size} got $actualReturnCount", returnStmt.position)
         }
         for((expectedDt, actual) in expectedReturnValues.zip(returnStmt.values)) {
             val valueDt = actual.inferType(program)

@@ -262,7 +262,14 @@ class PtRepeatLoop(position: Position) : PtNode(position) {
 }
 
 
-class PtReturn(position: Position) : PtNode(position)  // children are all expressions
+class PtReturn(position: Position) : PtNode(position) {
+    fun numReturnValues(): Int {
+        fun countNumberOfValues(expr: PtExpression): Int =
+            if (expr is PtFunctionCall) expr.returntypes.size else 1   // Count how many return values an expression contributes. A function call that returns multiple values contributes multiple
+
+        return children.sumOf { countNumberOfValues(it as PtExpression) }
+    }
+}
 
 
 sealed interface IPtVariable {

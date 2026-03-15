@@ -690,4 +690,51 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true)!!
     }
+
+    test("returning multivalue functioncall that can be short-circuited") {
+        val src= """
+main {
+
+    sub start() {
+        ubyte a,b = multi()
+    }
+
+    sub multi() -> ubyte, ubyte {
+        cx16.r0++
+        return multi2()
+    }
+
+    sub multi2() -> ubyte, ubyte {
+        cx16.r0++
+        return 42, 99
+    }
+}"""
+
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    xtest("returning multivalue functioncall that cannot be short-circuited") {
+        // TODO codegen for this is not built yet
+        val src= """
+main {
+
+    sub start() {
+        ubyte a,b = multi()
+    }
+
+    sub multi() -> ubyte, ubyte {
+        cx16.r0++
+        return multi2(99)
+    }
+
+    sub multi2(ubyte x) -> ubyte, ubyte {
+        x++
+        return 42, 99
+    }
+}"""
+
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
 })

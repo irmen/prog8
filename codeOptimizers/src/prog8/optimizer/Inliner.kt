@@ -97,7 +97,14 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                         inline
                                     }
 
-                                    is Jump -> stmt.target is NumericLiteral || stmt.target is IdentifierReference
+                                    is Jump -> {
+                                        if(stmt.target is IdentifierReference) {
+                                            makeFullyScoped(stmt.target as IdentifierReference)
+                                            true
+                                        }
+                                        else
+                                            stmt.target is NumericLiteral
+                                    }
                                     else -> false
                                 }
                         }

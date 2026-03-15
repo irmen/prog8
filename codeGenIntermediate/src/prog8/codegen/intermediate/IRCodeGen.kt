@@ -1792,12 +1792,17 @@ class IRCodeGen(
 
     private fun translate(ret: PtReturn): IRCodeChunks {
         val result = mutableListOf<IRCodeChunkBase>()
-        if(ret.children.size>1) {
+        if(ret.numReturnValues()>1) {
             // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
             // (this allows unencumbered use of many Rx registers if you don't return that many values)
             // a floating point value is passed via FAC   (just one fp value is possible)
 
             val returnRegs = ret.definingISub()!!.returnsWhatWhere()
+
+            if(ret.children.size < ret.numReturnValues()) {
+                TODO("return multiple values from a multi-value returning function call (that I couldn't just JMP to). For now assign them to temporary variables first, then return those. ${ret.position}")
+            }
+
             val values = ret.children.zip(returnRegs)
             // first all but the first return values
             for ((value, register) in values.drop(1)) {

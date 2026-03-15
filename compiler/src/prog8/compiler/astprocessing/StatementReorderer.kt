@@ -453,4 +453,19 @@ internal class StatementReorderer(
         }
         return mods
     }
+
+    override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
+        val funcValue = returnStmt.values.singleOrNull() as? IFunctionCall
+        if(funcValue!=null) {
+            val targetSub = funcValue.target.targetSubroutine()
+            if(targetSub!=null && !targetSub.isAsmSubroutine) {
+                if(targetSub.parameters.isEmpty()) {
+                    // replace  return func()  -->  goto func
+                    val goto = Jump(funcValue.target, returnStmt.position)
+                    return listOf(IAstModification.ReplaceNode(returnStmt, goto, parent))
+                }
+            }
+        }
+        return noModifications
+    }
 }
