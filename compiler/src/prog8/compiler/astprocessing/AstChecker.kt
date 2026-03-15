@@ -954,8 +954,9 @@ internal class AstChecker(private val program: Program,
         }
 
         // FLOATS enabled?
-        if(!compilerOptions.floats && (decl.datatype.isFloat || decl.datatype.isFloatArray) && decl.type != VarDeclType.MEMORY)
+        if(!compilerOptions.floats && decl.type != VarDeclType.CONST && decl.type != VarDeclType.MEMORY && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
             err("floating point used, but that is not enabled via options")
+        }
         else if(compilerOptions.compTarget.name == C128Target.NAME && decl.type != VarDeclType.CONST && (decl.datatype.isFloat || decl.datatype.isFloatArray)) {
             err("c128 target does not support floating point numbers yet")
         }

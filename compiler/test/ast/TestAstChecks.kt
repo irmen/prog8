@@ -546,4 +546,16 @@ main {
 }"""
         compileText(Cx16Target(), optimize=false, src, outputDir, writeAssembly=false).shouldNotBeNull()
     }
+
+    test("float consts without float option enable is ok") {
+        val src="""
+main {
+    const float zz = 3.33
+    sub start() {
+        uword @shared tmp = (zz+zz) as uword
+        cx16.r0++
+    }
+}"""
+        compileText(C64Target(), optimize=false, src, outputDir) shouldNotBe null
+    }
 })
