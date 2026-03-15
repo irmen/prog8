@@ -4,7 +4,16 @@
 main {
 
     sub start() {
-        sys.die(99, "something bad happened")
+        long[] larray = [111111, 222222, 333333, 444444]
+        test(larray)
+    }
+
+    sub test(^^long lv) {
+        txt.print_l(lv^^)
+        txt.spc()
+        lv++
+        txt.print_l(lv^^)
+        txt.nl()
     }
 }
 

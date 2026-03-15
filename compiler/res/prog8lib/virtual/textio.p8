@@ -6,6 +6,7 @@
 txt {
 
 sub width() -> ubyte {
+    ; syscall 46 returns size encoded in a single uword: MSB=rows, LSB=columns
     %ir {{
         syscall 46 (): r99000.w
         lsigb.w r99100,r99000
@@ -14,6 +15,7 @@ sub width() -> ubyte {
 }
 
 sub height() -> ubyte {
+    ; syscall 46 returns size encoded in a single uword: MSB=rows, LSB=columns
     %ir {{
         syscall 46 (): r99000.w
         msigb.w r99100,r99000

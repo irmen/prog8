@@ -46,4 +46,5 @@ Open source Software :index:`License`
     portingguide.rst
     software.rst
     todo.rst
+    history.rst
     genindex

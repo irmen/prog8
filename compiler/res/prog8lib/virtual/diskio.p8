@@ -18,6 +18,25 @@ diskio {
         }}
     }
 
+    sub diskname() -> str {
+        ; -- Returns the name of the virtual disk/filesystem.
+        return "host-filesystem"
+    }
+
+    sub directory_dirs() -> bool {
+        ; -- Prints all directory entries (subdirectories) to the screen. Returns success.
+        ;    STUB: not implemented in virtual target, just calls directory()
+        txt.print("NOTE: directory_dirs() not yet implemented on virtual target - returning regular directory.\n")
+        return directory()
+    }
+
+    sub directory_files() -> bool {
+        ; -- Prints all file entries to the screen. Returns success.
+        ;    STUB: not implemented in virtual target, just calls directory()
+        txt.print("NOTE: directory_files() not yet implemented on virtual target - returning regular directory.\n")
+        return directory()
+    }
+
     ; the VM version of diskio has no facility to iterate over filenames.
     ; (list_filenames, lf_start_list, lf_next_entry, lf_end_list)
 
@@ -139,7 +158,7 @@ diskio {
         repeat num_bytes {
             %ir {{
                 loadm.w r99000,diskio.f_write.bufferpointer
-                loadi.b r99100,r99000
+                loadi.b r99100,r99000,#0
                 syscall 55 (r99100.b): r99100.b
                 storem.b r99100,$ff02
             }}
@@ -289,5 +308,33 @@ diskio {
             return address
         }
         return 0
+    }
+
+    sub f_seek(long position) -> bool {
+        ; -- seek in the reading file opened with f_open, to the given 32-bits position
+        ;    Returns true if successful, false if the position is invalid or file not open.
+        %ir {{
+            loadm.l r99200,diskio.f_seek.position
+            syscall 63 (r99200.l): r99100.b
+            returnr.b r99100
+        }}
+    }
+
+    sub f_tell() -> long, long {
+        ; -- Returns the current read position of the opened read file, and the file size.
+        long @shared pos, size
+        %ir {{
+            syscall 64 (): r99200.l
+            storem.l r99200,diskio.f_tell.pos
+            syscall 65 (): r99200.l
+            storem.l r99200,diskio.f_tell.size
+        }}
+        return pos, size
+    }
+
+    sub loadlib(str libnameptr, uword libaddress) -> uword {
+        ; -- Load a prog8 compiled library binary blob at the given location into memory.
+        ;    This is a wrapper around load_raw() for loading library binaries.
+        return load_raw(libnameptr, libaddress)
     }
 }

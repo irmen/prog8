@@ -1073,8 +1073,9 @@ io_error:
         return false
     }
 
-    sub f_seek(long position) {
+    sub f_seek(long position) -> bool {
         ; -- seek in the reading file opened with f_open, to the given 32-bits position
+        ;    Returns true if successful, false if the position is invalid or file not open.
         ;    Note: this will not work if you have already read the last byte of the file! Then you must close and reopen the file first.
         ubyte[6] command = ['p',0,0,0,0,0]
         command[1] = READ_IO_CHANNEL       ; f_open uses this secondary address
@@ -1084,10 +1085,11 @@ io_error:
         void cbm.OPEN()
         cbm.CLOSE(15)
         reset_read_channel()       ; back to the read io channel
+        return status_code()==0
     }
 
 
-    sub f_seek_w(long position) {
+    sub f_seek_w(long position) -> bool {
         ; -- seek in the output file opened with f_open_w_seek, to the given 32-bits position
         diskio.f_seek.command[1] = WRITE_IO_CHANNEL       ; f_open_w uses this secondary address
         pokel(&diskio.f_seek.command+2, position)
@@ -1096,6 +1098,7 @@ io_error:
         void cbm.OPEN()
         cbm.CLOSE(15)
         reset_write_channel()    ; back to the write io channel
+        return status_code()==0
     }
 
     sub f_tell() -> long, long {

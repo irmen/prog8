@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 276121bf in branch master
+Prerelease version from git commit fa296388 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-cx16.p8
@@ -316,8 +316,8 @@ diskio  {
     f_read  (uword bufferpointer, uword num_bytes) -> uword 
     f_read_all  (uword bufferpointer) -> uword 
     f_readline  (^^ubyte bufptr @AY)  clobbers (X) -> ubyte @Y, ubyte @A 
-    f_seek  (long position) 
-    f_seek_w  (long position) 
+    f_seek  (long position) -> bool 
+    f_seek_w  (long position) -> bool 
     f_tell  () -> long, long 
     f_write  (uword bufferpointer, uword num_bytes) -> bool 
     fastmode  (ubyte mode) -> bool 

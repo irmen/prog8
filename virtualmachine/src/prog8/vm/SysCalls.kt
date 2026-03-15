@@ -72,6 +72,9 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 60 = i32 to string  ; put string representation of signed 32 bits integer (prog8 long) into memory
 61 = decimal string to prog8 long (i32 signed)
 62 = clamp long
+63 = seek file ; seek in read file to position
+64 = tell file pos ; get current read position (returns long)
+65 = tell file size ; get file size (returns long)
 */
 
 enum class Syscall {
@@ -138,6 +141,9 @@ enum class Syscall {
     I32_TO_STRING,
     STR_TO_LONG,
     CLAMP_LONG,
+    SEEK_FILE,
+    TELL_FILE_POS,
+    TELL_FILE_SIZE,
     ;
 
     companion object {
@@ -158,6 +164,8 @@ object SysCalls {
     }
 
     private fun returnValue(returns: FunctionCallArgs.RegSpec, value: Comparable<Nothing>, vm: VirtualMachine) {
+        // NOTE: currently syscalls can only return A SINGLE VALUE using this routine!
+        // HACKY WORKAROUND: you can use a single UWORD return value to encode two bytes (LSB + MSB), or a single LONG to encode two words (MSW + LSW) and then split those in the calling IR code. It is NOT POSSIBLE to return two longs like this!
         val vv: Double = when(value) {
             is UByte -> value.toDouble()
             is UShort -> value.toDouble()
@@ -594,7 +602,7 @@ object SysCalls {
                 returnValue(callspec.returns.single(), 1u, vm)
             }
             Syscall.GETGONSOLESIZE -> {
-                // no arguments
+                // no arguments, returns size encoded IN ONE WORD (MSB=lines, LSB=columns)
                 if(System.console()==null) {
                     return returnValue(callspec.returns.single(), 30*256 + 80, vm)    // just return some defaults in this case 80*30
                 }
@@ -666,6 +674,19 @@ object SysCalls {
             }
             Syscall.CLOSE_FILE -> vm.close_file_read()
             Syscall.CLOSE_FILE_WRITE -> vm.close_file_write()
+            Syscall.SEEK_FILE -> {
+                val position = getArgValues(callspec.arguments, vm).single() as Int
+                val success = vm.seek_file(position)
+                returnValue(callspec.returns.single(), success, vm)
+            }
+            Syscall.TELL_FILE_POS -> {
+                val position = vm.tell_file_pos()
+                returnValue(callspec.returns.single(), position, vm)
+            }
+            Syscall.TELL_FILE_SIZE -> {
+                val size = vm.tell_file_size()
+                returnValue(callspec.returns.single(), size, vm)
+            }
             Syscall.I32_TO_STRING -> {
                 val (number, stringbuffer) = getArgValues(callspec.arguments, vm)
                 vm.memory.setString((stringbuffer as UShort).toInt(), number.toString(), true)

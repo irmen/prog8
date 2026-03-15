@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 276121bf in branch master
+Prerelease version from git commit 7abb222d in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -187,6 +187,9 @@ diskio  {
     curdir  () -> str 
     delete  (str filenameptr) 
     directory  () -> bool 
+    directory_dirs  () -> bool 
+    directory_files  () -> bool 
+    diskname  () -> str 
     exists  (str filename) -> bool 
     f_close  () 
     f_close_w  () 
@@ -195,10 +198,13 @@ diskio  {
     f_read  (str bufferpointer, uword num_bytes) -> uword 
     f_read_all  (str bufferpointer) -> uword 
     f_readline  (str bufptr) -> ubyte 
+    f_seek  (long position) -> bool 
+    f_tell  () -> long, long 
     f_write  (str bufferpointer, uword num_bytes) -> bool 
     get_loadaddress  (str filename) -> uword 
     load  (str filenameptr, uword address_override) -> uword 
     load_raw  (str filenameptr, uword start_address) -> uword 
+    loadlib  (str libnameptr, uword libaddress) -> uword 
     mkdir  (str name) 
     rename  (str oldfileptr, str newfileptr) 
     rmdir  (str name) 

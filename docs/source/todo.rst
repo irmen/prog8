@@ -18,6 +18,7 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- allow returning multivalue result of a subroutine directly from another multivalue subroutine
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
 - if floats are only used in constants and never end up as actual value for a variable or expression, don't complain about the "floats not enabled" if %option enable_floats is missing
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
@@ -105,6 +106,7 @@ IR/VM
 
 Libraries
 ---------
+- Fix cx16 diskio.f_seek() and f_seek_w() to actually check for failure status
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support?
 
