@@ -56,6 +56,8 @@ import prog8.codegen.cpu6502.assignment.*
             "sqrt__float" -> funcSqrt(fcall, sscope, firstReturnRegister ?: RegisterOrPair.FAC1)
             "divmod__ubyte" -> funcDivmod(fcall, firstReturnRegister ?: RegisterOrPair.A)
             "divmod__uword" -> funcDivmodW(fcall, firstReturnRegister ?: RegisterOrPair.AY)
+            "divmod__byte" -> funcDivmodByte(fcall, firstReturnRegister ?: RegisterOrPair.A)
+            "divmod__word" -> funcDivmodWord(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             "lmh" -> funcLmh(fcall, firstReturnRegister ?: RegisterOrPair.A)
             "rol" -> funcRol(fcall)
             "rol2" -> funcRol2(fcall)
@@ -277,6 +279,16 @@ import prog8.codegen.cpu6502.assignment.*
         //    input:  P8ZP_SCRATCH_W1 in ZP: 16-bit number, A/Y: 16 bit divisor
         //    output: cx16.r15: 16-bit remainder, A/Y: 16 bit division result
         asmgen.out("  jsr  prog8_math.divmod_uw_asm")
+        return arrayOf(RegisterOrPair.AY, RegisterOrPair.R15)
+    }
+
+    private fun funcDivmodByte(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+        asmgen.errors.err("expected all ubyte or all uword arguments (no signed divmod support on 6502 yet)", fcall.position)
+        return arrayOf(RegisterOrPair.Y, RegisterOrPair.A)
+    }
+
+    private fun funcDivmodWord(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+        asmgen.errors.err("expected all ubyte or all uword arguments (no signed divmod support on 6502 yet)", fcall.position)
         return arrayOf(RegisterOrPair.AY, RegisterOrPair.R15)
     }
 

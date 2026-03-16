@@ -305,7 +305,6 @@ _neg_r14r15
             rts
 		.pend
 
-
 divmod_b_asm	.proc
 	; signed byte division: make everything positive and fix sign afterwards
 		sta  P8ZP_SCRATCH_B1
@@ -343,8 +342,13 @@ _remainder	.byte  ?
 
 divmod_ub_asm	.proc
 	; -- divide A by Y, result quotient in Y, remainder in A   (unsigned)
-	;    division by zero will result in quotient = 255 and remainder = original number
-		sty  P8ZP_SCRATCH_REG
+	;    division by zero will result in quotient = 255 and remainder = 0
+		cpy  #0
+		bne  _nonzero
+		ldy  #255
+		lda  #0
+		rts
+_nonzero	sty  P8ZP_SCRATCH_REG
 		sta  P8ZP_SCRATCH_B1
 
 		lda  #0
@@ -426,16 +430,28 @@ divmod_w_asm	.proc
 +		rts
 		.pend
 
+
 divmod_uw_asm	.proc
 	; -- divide two unsigned words (16 bit each) into 16 bit results
 	;    input:  P8ZP_SCRATCH_W1 in ZP: 16 bit number, A/Y: 16 bit divisor
 	;    output: cx16.r15: 16 bit remainder, A/Y: 16 bit division result
-	;    division by zero will result in quotient = 65535 and remainder = divident
+	;    division by zero will result in quotient = 65535 and remainder = 0
 
 dividend = P8ZP_SCRATCH_W1
 remainder = P8ZP_SCRATCH_W2
 result = dividend ;save memory by reusing divident to store the result
 
+		cpy  #0
+		bne  _nonzero
+		ora  #0
+		bne  _nonzero
+		lda  #0		; remainder = 0
+		sta  cx16.r15L
+		sta  cx16.r15H
+		lda  #$ff		; quotient = 65535 (A/Y)
+		tay
+		rts
+_nonzero
 		sta  _divisor
 		sty  _divisor+1
 		lda  #0	        	;preset remainder to 0
