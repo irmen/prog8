@@ -19,8 +19,10 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "cmp" -> funcCmp(call)
             "sgn" -> funcSgn(call)
             "sqrt__ubyte", "sqrt__uword", "sqrt__long", "sqrt__float" -> funcSqrt(call)
-            "divmod__ubyte" -> funcDivmod(call, IRDataType.BYTE)
-            "divmod__uword" -> funcDivmod(call, IRDataType.WORD)
+            "divmod__ubyte" -> funcDivmod(call, IRDataType.BYTE, false)
+            "divmod__uword" -> funcDivmod(call, IRDataType.WORD, false)
+            "divmod__byte" -> funcDivmod(call, IRDataType.BYTE, true)
+            "divmod__word" -> funcDivmod(call, IRDataType.WORD, true)
             "rsave", "rrestore" -> ExpressionCodeResult.EMPTY  // vm doesn't have registers to save/restore
             "callfar" -> funcCallfar(call)
             "callfar2" -> funcCallfar2(call)
@@ -227,16 +229,18 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         return ExpressionCodeResult(result, IRDataType.WORD, addressTr.resultReg, -1)
     }
 
-    private fun funcDivmod(call: PtFunctionCall, type: IRDataType): ExpressionCodeResult {
+    private fun funcDivmod(call: PtFunctionCall, type: IRDataType, signed: Boolean): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val number = call.args[0]
         val divident = call.args[1]
         val divisionReg: Int
         val remainderReg: Int
+        val divmodOpcode = if(signed) Opcode.SDIVMOD else Opcode.DIVMOD
+        val divmodrOpcode = if(signed) Opcode.SDIVMODR else Opcode.DIVMODR
         if(divident is PtNumber) {
             val tr = exprGen.translateExpression(number)
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.DIVMOD, type, reg1 = tr.resultReg, immediate = divident.number.toInt()), null)
+            addInstr(result, IRInstruction(divmodOpcode, type, reg1 = tr.resultReg, immediate = divident.number.toInt()), null)
             divisionReg = tr.resultReg
             remainderReg = codeGen.registers.next(type)
         } else {
@@ -244,7 +248,7 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             addToResult(result, numTr, numTr.resultReg, -1)
             val dividentTr = exprGen.translateExpression(divident)
             addToResult(result, dividentTr, dividentTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.DIVMODR, type, reg1 = numTr.resultReg, reg2=dividentTr.resultReg), null)
+            addInstr(result, IRInstruction(divmodrOpcode, type, reg1 = numTr.resultReg, reg2=dividentTr.resultReg), null)
             divisionReg = numTr.resultReg
             remainderReg = dividentTr.resultReg
         }

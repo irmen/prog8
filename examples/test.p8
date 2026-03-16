@@ -4,21 +4,111 @@
 
 main {
     sub start() {
+        ; unsigned word divmod: 5555 / 44 = 126 remainder 11
+        txt.print("uword: 5555/44 = ")
         uword @shared w1 = 5555
         uword @shared w2 = 44
+        uword division, remainder = divmod(w1, w2)
+        txt.print_uw(division)
+        txt.spc()
+        txt.print_uw(remainder)
+        txt.print("  (expected: 126 11)")
+        txt.nl()
 
-        uword division, remainder = mydivmod(w1, w2)
-        division += remainder
-        division, remainder = mydivmod(w1, w2)
+        ; test with signed word values: -1000 / 7 = -142 remainder -6
+        txt.print("word: -1000/7 = ")
+        word @shared sw1 = -1000
+        word @shared sw2 = 7
+        word sdiv, srem = divmod(sw1, sw2)
+        txt.print_w(sdiv)
+        txt.spc()
+        txt.print_w(srem)
+        txt.print("  (expected: -142 -6)")
+        txt.nl()
 
-        uword division2, remainder2 = divmod(w1, w2)
-        division2 += remainder2
-        division2, remainder2 = divmod(w1, w2)
-    }
+        ; test with signed byte values: -50 / 7 = -7 remainder -1
+        txt.print("byte: -50/7 = ")
+        byte @shared sb1 = -50
+        byte @shared sb2 = 7
+        byte bdiv, brem = divmod(sb1, sb2)
+        txt.print_b(bdiv)
+        txt.spc()
+        txt.print_b(brem)
+        txt.print("  (expected: -7 -1)")
+        txt.nl()
 
-    sub mydivmod(uword a, uword b) -> uword, uword {
-        a, b = divmod(a, b)
-        return a,b
+        ; unsigned byte divmod: 200 / 30 = 6 remainder 20
+        txt.print("ubyte: 200/30 = ")
+        ubyte @shared ub1 = 200
+        ubyte @shared ub2 = 30
+        ubyte udiv, urem = divmod(ub1, ub2)
+        txt.print_ub(udiv)
+        txt.spc()
+        txt.print_ub(urem)
+        txt.print("  (expected: 6 20)")
+        txt.nl()
+
+        ; signed word with negative divisor: 100 / -8 = -12 remainder 4
+        txt.print("word: 100/-8 = ")
+        word @shared sw3 = 100
+        word @shared sw4 = -8
+        word sdiv2, srem2 = divmod(sw3, sw4)
+        txt.print_w(sdiv2)
+        txt.spc()
+        txt.print_w(srem2)
+        txt.print("  (expected: -12 4)")
+        txt.nl()
+
+        ; signed byte with negative divisor: 50 / -7 = -7 remainder 1
+        txt.print("byte: 50/-7 = ")
+        byte @shared sb3 = 50
+        byte @shared sb4 = -7
+        byte bdiv2, brem2 = divmod(sb3, sb4)
+        txt.print_b(bdiv2)
+        txt.spc()
+        txt.print_b(brem2)
+        txt.print("  (expected: -7 1)")
+        txt.nl()
+
+        ; zero dividend (unsigned word): 0 / 5 = 0 remainder 0
+        txt.print("uword: 0/5 = ")
+        uword @shared wz1 = 0
+        uword @shared wz2 = 5
+        uword zdiv, zrem = divmod(wz1, wz2)
+        txt.print_uw(zdiv)
+        txt.spc()
+        txt.print_uw(zrem)
+        txt.print("  (expected: 0 0)")
+        txt.nl()
+
+        ; zero divisor (unsigned byte): 10 / 0 = max remainder 0
+        txt.print("ubyte: 10/0 = ")
+        ubyte @shared ubz1 = 10
+        ubyte @shared ubz2 = 0
+        ubyte udivz, uremz = divmod(ubz1, ubz2)
+        txt.print_ub(udivz)
+        txt.spc()
+        txt.print_ub(uremz)
+        txt.print("  (expected: 255 0)")
+        txt.nl()
+
+        ; test with const args (signed word) - both args must be same type
+        txt.print("word const: -1000/7 = ")
+        word csdiv, csrem = divmod(-1000 as word, 7 as word)
+        txt.print_w(csdiv)
+        txt.spc()
+        txt.print_w(csrem)
+        txt.print("  (expected: -142 -6)")
+        txt.nl()
+
+        ; test with const args (signed byte) - both args must be same type  
+        txt.print("byte const: -50/7 = ")
+        byte cdiv, crem = divmod(-50 as byte, 7 as byte)
+        txt.print_b(cdiv)
+        txt.spc()
+        txt.print_b(crem)
+        txt.print("  (expected: -7 -1)")
+        txt.nl()
     }
 }
 

@@ -127,6 +127,8 @@ val BuiltinFunctions: Map<String, FSignature> = mapOf(
     "divmod"        to FSignature(false, arrayOf(BaseDataType.UNDEFINED, BaseDataType.UNDEFINED), FParam("dividend", BaseDataType.UBYTE, BaseDataType.UWORD), FParam("divisor", BaseDataType.UBYTE, BaseDataType.UWORD)),
     "divmod__ubyte" to FSignature(false, arrayOf(BaseDataType.UBYTE, BaseDataType.UBYTE), FParam("dividend", BaseDataType.UBYTE), FParam("divisor", BaseDataType.UBYTE)),
     "divmod__uword" to FSignature(false, arrayOf(BaseDataType.UWORD, BaseDataType.UWORD), FParam("dividend", BaseDataType.UWORD), FParam("divisor", BaseDataType.UWORD)),
+    "divmod__byte"  to FSignature(false, arrayOf(BaseDataType.BYTE, BaseDataType.BYTE), FParam("dividend", BaseDataType.BYTE), FParam("divisor", BaseDataType.BYTE)),
+    "divmod__word"  to FSignature(false, arrayOf(BaseDataType.WORD, BaseDataType.WORD), FParam("dividend", BaseDataType.WORD), FParam("divisor", BaseDataType.WORD)),
     "lmh"           to FSignature(true, arrayOf(BaseDataType.UBYTE, BaseDataType.UBYTE, BaseDataType.UBYTE), FParam("value", BaseDataType.LONG)),
     "lsb"           to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("value", BaseDataType.UWORD, BaseDataType.WORD, BaseDataType.LONG)),
     "lsb__long"     to FSignature(true, arrayOf(BaseDataType.UBYTE), FParam("value", BaseDataType.LONG)),

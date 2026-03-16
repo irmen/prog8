@@ -278,7 +278,7 @@ class VarConstantValueTypeAdjuster(
         if(func==listOf("divmod")) {
             val argTypes = functionCallExpr.args.map {it.inferType(program)}.toSet()
             if(argTypes.size!=1) {
-                errors.err("expected all ubyte or all uword arguments", functionCallExpr.args[0].position)
+                errors.err("expected all ubyte/uword or all byte/word arguments", functionCallExpr.args[0].position)
                 return noModifications
             }
             val t1 = argTypes.single()
@@ -287,8 +287,10 @@ class VarConstantValueTypeAdjuster(
                 val replaceFunc = when {
                     dt.isUnsignedByte -> "divmod__ubyte"
                     dt.isUnsignedWord -> "divmod__uword"
+                    dt.isSignedByte -> "divmod__byte"
+                    dt.isSignedWord -> "divmod__word"
                     else -> {
-                        errors.err("expected all ubyte or all uword arguments", functionCallExpr.args[0].position)
+                        errors.err("expected all ubyte/uword or all byte/word arguments", functionCallExpr.args[0].position)
                         return noModifications
                     }
                 }

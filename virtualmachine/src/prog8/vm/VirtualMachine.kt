@@ -264,6 +264,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.MOD -> InsMOD(ins)
             Opcode.DIVMODR -> InsDIVMODR(ins)
             Opcode.DIVMOD -> InsDIVMOD(ins)
+            Opcode.SDIVMODR -> InsSDIVMODR(ins)
+            Opcode.SDIVMOD -> InsSDIVMOD(ins)
             Opcode.SGN -> InsSGN(ins)
             Opcode.CMP -> InsCMP(ins)
             Opcode.CMPI -> InsCMPI(ins)
@@ -1345,6 +1347,26 @@ class VirtualMachine(irProgram: IRProgram) {
         nextPc()
     }
 
+    private fun InsSDIVMODR(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> divAndModSByte(i.reg1!!, i.reg2!!)       // signed division+remainder results on value stack
+            IRDataType.WORD -> divAndModSWord(i.reg1!!, i.reg2!!)       // signed division+remainder results on value stack
+            IRDataType.LONG -> throw IllegalArgumentException("divmodr signed long not supported")
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        nextPc()
+    }
+
+    private fun InsSDIVMOD(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> divAndModConstSByte(i.reg1!!, i.immediate!!.toByte())    // signed division+remainder results on value stack
+            IRDataType.WORD -> divAndModConstSWord(i.reg1!!, i.immediate!!.toShort())   // signed division+remainder results on value stack
+            IRDataType.LONG -> throw IllegalArgumentException("divmod signed long not supported")
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        nextPc()
+    }
+
     private fun InsSGN(i: IRInstruction) {
         var sign: Int
         when(i.type!!) {
@@ -1668,6 +1690,40 @@ class VirtualMachine(irProgram: IRProgram) {
         val left = registers.getUW(reg1)
         val division = if(value==0.toUShort()) 0xffffu else left / value
         val remainder = if(value==0.toUShort()) 0u else left % value
+        valueStack.pushw(division.toUShort())
+        valueStack.pushw(remainder.toUShort())
+    }
+
+    private fun divAndModSByte(reg1: Int, reg2: Int) {
+        val left = registers.getSB(reg1)
+        val right = registers.getSB(reg2)
+        val division = if(right==0.toByte()) 127 else left / right
+        val remainder = if(right==0.toByte()) 0 else left % right
+        valueStack.add(division.toUByte())
+        valueStack.add(remainder.toUByte())
+    }
+
+    private fun divAndModConstSByte(reg1: Int, value: Byte) {
+        val left = registers.getSB(reg1)
+        val division = if(value==0.toByte()) 127 else left / value
+        val remainder = if(value==0.toByte()) 0 else left % value
+        valueStack.add(division.toUByte())
+        valueStack.add(remainder.toUByte())
+    }
+
+    private fun divAndModSWord(reg1: Int, reg2: Int) {
+        val left = registers.getSW(reg1)
+        val right = registers.getSW(reg2)
+        val division = if(right==0.toShort()) 32767 else left / right
+        val remainder = if(right==0.toShort()) 0 else left % right
+        valueStack.pushw(division.toUShort())
+        valueStack.pushw(remainder.toUShort())
+    }
+
+    private fun divAndModConstSWord(reg1: Int, value: Short) {
+        val left = registers.getSW(reg1)
+        val division = if(value==0.toShort()) 32767 else left / value
+        val remainder = if(value==0.toShort()) 0 else left % value
         valueStack.pushw(division.toUShort())
         valueStack.pushw(remainder.toUShort())
     }

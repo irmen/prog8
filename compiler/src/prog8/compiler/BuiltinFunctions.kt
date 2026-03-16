@@ -16,6 +16,8 @@ import kotlin.math.*
 // NOTE: at this time this machinery only supports 1 return value
 private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
 
+// Maps builtin functions to constant evaluators for compile-time execution
+// TODO: add support for builtin functions that return multiple return values (such as divmod)
 internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> = mapOf(
     "abs" to ::builtinAbs,
     "len" to ::builtinLen,
