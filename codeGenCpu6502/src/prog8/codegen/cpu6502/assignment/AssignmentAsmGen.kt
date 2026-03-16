@@ -1126,6 +1126,30 @@ internal class AssignmentAsmGen(
                 assignVariableWord(target, "P8ZP_SCRATCH_W2", DataType.UWORD)
                 return true
             }
+            expr.type.isSignedByte -> {
+                asmgen.errors.err("remainder can only be used on unsigned integer operands on 6502 target for now", expr.right.position)
+                return true
+                // TODO implement the signed remainder asm routine
+//                assignExpressionToRegister(expr.left, RegisterOrPair.A, true)
+//                if(!directIntoY(expr.right)) asmgen.out("  pha")
+//                assignExpressionToRegister(expr.right, RegisterOrPair.Y, true)
+//                if(!directIntoY(expr.right)) asmgen.out("  pla")
+//                asmgen.out("  jsr  prog8_math.divmod_b_asm")
+//                if(target.register==RegisterOrPair.A)
+//                    asmgen.out("  cmp  #0")     // fix the status register
+//                else
+//                    assignRegisterByte(target, CpuRegister.A, true, true)
+//                return true
+            }
+            expr.type.isSignedWord -> {
+                asmgen.errors.err("remainder can only be used on unsigned integer operands on 6502 target for now", expr.right.position)
+                return true
+                // TODO implement the signed remainder asm routine
+//                asmgen.assignWordOperandsToAYAndVar(expr.right, expr.left, "P8ZP_SCRATCH_W1")
+//                asmgen.out("  jsr  prog8_math.divmod_w_asm")
+//                assignVariableWord(target, "cx16.r15", DataType.WORD)
+//                return true
+            }
             else -> return false
         }
     }

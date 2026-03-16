@@ -262,6 +262,8 @@ class VirtualMachine(irProgram: IRProgram) {
             Opcode.DIVSM -> InsDIVSM(ins)
             Opcode.MODR -> InsMODR(ins)
             Opcode.MOD -> InsMOD(ins)
+            Opcode.MODSR -> InsMODSR(ins)
+            Opcode.MODS -> InsMODS(ins)
             Opcode.DIVMODR -> InsDIVMODR(ins)
             Opcode.DIVMOD -> InsDIVMOD(ins)
             Opcode.SDIVMODR -> InsSDIVMODR(ins)
@@ -1322,6 +1324,26 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.BYTE -> divOrModConstByteUnsigned("%", i.reg1!!, i.immediate!!.toUByte())
             IRDataType.WORD -> divOrModConstWordUnsigned("%", i.reg1!!, i.immediate!!.toUShort())
             IRDataType.LONG -> throw IllegalArgumentException("mod unsigned long not supported")
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        nextPc()
+    }
+
+    private fun InsMODSR(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> divModByteSigned("%", i.reg1!!, i.reg2!!)
+            IRDataType.WORD -> divModWordSigned("%", i.reg1!!, i.reg2!!)
+            IRDataType.LONG -> throw IllegalArgumentException("mods unsigned long not supported")
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
+        nextPc()
+    }
+
+    private fun InsMODS(i: IRInstruction) {
+        when(i.type!!) {
+            IRDataType.BYTE -> divModConstByteSigned("%", i.reg1!!, i.immediate!!.toByte())
+            IRDataType.WORD -> divModConstWordSigned("%", i.reg1!!, i.immediate!!.toShort())
+            IRDataType.LONG -> throw IllegalArgumentException("mods unsigned long not supported")
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()

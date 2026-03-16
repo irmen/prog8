@@ -858,7 +858,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 "-" -> operatorMinus(binExpr, vmDt)
                 "*" -> operatorMultiply(binExpr, binExpr.left.type)
                 "/" -> operatorDivide(binExpr, binExpr.left.type)
-                "%" -> operatorModulo(binExpr, vmDt)
+                "%" -> operatorModulo(binExpr, vmDt, binExpr.left.type)
                 "|" -> operatorOr(binExpr, vmDt, true)
                 "&" -> operatorAnd(binExpr, vmDt, true)
                 "^", "xor" -> operatorXor(binExpr, vmDt)
@@ -1454,20 +1454,23 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         }
     }
 
-    private fun operatorModulo(binExpr: PtBinaryExpression, vmDt: IRDataType): ExpressionCodeResult {
+    private fun operatorModulo(binExpr: PtBinaryExpression, vmDt: IRDataType, dt: DataType): ExpressionCodeResult {
         require(vmDt!=IRDataType.FLOAT) {"floating-point modulo not supported ${binExpr.position}"}
+        val isSigned = dt.isSigned
         val result = mutableListOf<IRCodeChunkBase>()
         return if(binExpr.right is PtNumber) {
             val tr = translateExpression(binExpr.left)
             addToResult(result, tr, tr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.MOD, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
+            val opcode = if(isSigned) Opcode.MODS else Opcode.MOD
+            addInstr(result, IRInstruction(opcode, vmDt, reg1 = tr.resultReg, immediate = (binExpr.right as PtNumber).number.toInt()), null)
             ExpressionCodeResult(result, vmDt, tr.resultReg, -1)
         } else {
             val leftTr = translateExpression(binExpr.left)
             addToResult(result, leftTr, leftTr.resultReg, -1)
             val rightTr = translateExpression(binExpr.right)
             addToResult(result, rightTr, rightTr.resultReg, -1)
-            addInstr(result, IRInstruction(Opcode.MODR, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
+            val opcode = if(isSigned) Opcode.MODSR else Opcode.MODR
+            addInstr(result, IRInstruction(opcode, vmDt, reg1 = leftTr.resultReg, reg2 = rightTr.resultReg), null)
             ExpressionCodeResult(result, vmDt, leftTr.resultReg, -1)
         }
     }

@@ -44,7 +44,14 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "^=", "xor=" -> inplaceModification(assign.target, "^", assign.source)
             "<<=" -> inplaceModification(assign.target, "<<", assign.source)
             ">>=" -> inplaceModification(assign.target, ">>", assign.source)
-            "%=" -> inplaceModification(assign.target, "%", assign.source)
+            "%=" -> {
+                if(assign.source.datatype.isSigned) {
+                    asmgen.errors.err("remainder can only be used on unsigned integer operands on 6502 target for now", assign.position)
+                    // TODO implement the signed remainder asm routine
+                }
+                else
+                    inplaceModification(assign.target, "%", assign.source)
+            }
             "==" -> inplaceModification(assign.target, "==", assign.source)
             "!=" -> inplaceModification(assign.target, "!=", assign.source)
             "<" -> inplaceModification(assign.target, "<", assign.source)

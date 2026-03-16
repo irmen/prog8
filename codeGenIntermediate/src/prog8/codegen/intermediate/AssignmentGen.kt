@@ -204,7 +204,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                         "-=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.SUBR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "*=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MULR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "/=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.DIVR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
-                        "%=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.MODR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        "%=" -> {
+                            val opc = if(signed) Opcode.MODSR else Opcode.MODR
+                            addInstr(inplaceInstrs, IRInstruction(opc, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
+                        }
                         "|=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "&=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.ANDR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
                         "^=", "xor=" -> addInstr(inplaceInstrs, IRInstruction(Opcode.XORR, targetDt, reg1 = oldvalueReg, reg2 = operandTr.resultReg), null)
@@ -253,7 +256,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 "^=", "xor=" -> operatorXorInplace(symbol, array, constAddress, memTarget, targetDt, value)
                 "<<=" -> operatorShiftLeftInplace(symbol, array, constAddress, memTarget, targetDt, value)
                 ">>=" -> operatorShiftRightInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
-                "%=" -> operatorModuloInplace(symbol, array, constAddress, memTarget, targetDt, value)
+                "%=" -> operatorModuloInplace(symbol, array, constAddress, memTarget, targetDt, value, signed)
                 in PrefixOperators -> inplacePrefix(augAssign.operator, symbol, array, constAddress, memTarget, targetDt)
                 else -> throw AssemblyError("invalid augmented assign operator ${augAssign.operator}")
             } ?: fallbackAssign(augAssign)
@@ -1427,7 +1430,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return result
     }
 
-    private fun operatorModuloInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorModuloInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
             TODO("% in array  ${array.position}")
         }
@@ -1436,20 +1439,22 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
         val result = mutableListOf<IRCodeChunkBase>()
         val resultReg = codeGen.registers.next(vmDt)
+        val modOpcode = if(signed) Opcode.MODS else Opcode.MOD
+        val modROpcode = if(signed) Opcode.MODSR else Opcode.MODR
         if(operand is PtNumber) {
             val number = operand.number.toInt()
             if (constAddress != null) {
                 // @(address) = @(address) %= operand
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = constAddress)
-                    it += IRInstruction(Opcode.MOD, vmDt, reg1 = resultReg, immediate = number)
+                    it += IRInstruction(modOpcode, vmDt, reg1 = resultReg, immediate = number)
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = constAddress)
                 }
             } else {
                 // symbol = symbol %= operand
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, labelSymbol = symbol)
-                    it += IRInstruction(Opcode.MOD, vmDt, reg1 = resultReg, immediate = number)
+                    it += IRInstruction(modOpcode, vmDt, reg1 = resultReg, immediate = number)
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, labelSymbol = symbol)
                 }
             }
@@ -1460,14 +1465,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 // @(address) = @(address) %= operand
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = constAddress)
-                    it += IRInstruction(Opcode.MODR, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
+                    it += IRInstruction(modROpcode, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = constAddress)
                 }
             } else {
                 // symbol = symbol %= operand
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, labelSymbol = symbol)
-                    it += IRInstruction(Opcode.MODR, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
+                    it += IRInstruction(modROpcode, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
                     it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, labelSymbol = symbol)
                 }
             }

@@ -1598,10 +1598,6 @@ internal class AstChecker(private val program: Program,
                 val divisor = constvalRight?.number
                 if(divisor==0.0)
                     errors.err("division by zero", expr.right.position)
-                if(expr.operator=="%") {
-                    if ((!rightDt.isUnsignedByte && !rightDt.isUnsignedWord) || (!leftDt.isUnsignedByte && !leftDt.isUnsignedWord))
-                        errors.err("remainder can only be used on unsigned integer operands", expr.right.position)
-                }
             }
             "in" -> throw FatalAstException("in expression should have been replaced by containmentcheck")
             "<<", ">>" -> {

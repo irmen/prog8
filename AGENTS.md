@@ -120,17 +120,28 @@ Context and instructions for AI Agents to work on this project.
 - never perform any git source control write/update/add/commit/branch operations. Read and status operations are allowed.
 - **git log/history queries can be useful** for understanding when/why a feature was added or tracking down when a bug was introduced, but for locating code use grep_search or glob instead.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
+- **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
 
 # Dev environment tips
 
 ## Commands to build the compiler
 - use the system installed gradle command instead of the gradle wrapper.
-- **IMPORTANT: Always run `gradle installdist installshadowdist` to rebuild the compiler after any code modifications.**
-- `gradle build` - Full build of the compiler including running the full test suite
+- **CRITICAL: After ANY change to Kotlin compiler source code (.kt files) OR library files (compiler/res/prog8lib/**/*.p8 or .asm), you MUST rebuild and reinstall the compiler before testing:**
+  - `gradle installdist installshadowdist` - Rebuilds and reinstalls the compiler with your changes
+  - Without this step, your changes will NOT be reflected when running `prog8c`!
 - `gradle clean` - Clean build artifacts
-- `gradle compileKotlin` - Compile only the Kotlin source code
-- `gradle installdist` - Create the compiler JARs and executable file
-- `gradle installshadowdist` - Create the single "fat" compiler JAR and executable file
+
+### Two different workflows
+
+**1. Testing your own Prog8 programs** (no compiler changes):
+- No rebuild needed - just run `prog8c` directly
+- Edit your `.p8` file → compile/run → check stdout output
+- Example: `prog8c -target virtual -emu myprogram.p8`
+
+**2. Testing compiler or standard library changes**:
+- Rebuild required after every change to `.kt`, `.p8`, or `.asm` files in the compiler project
+- Workflow: edit source → `gradle installdist installshadowdist` → test with `prog8c`
+- Example: fix bug in `CodeGen6502.kt` → rebuild → `prog8c -target cx16 test.p8`
 
 ### Compilation Output Files
 - `*.prg` - The final compiled program file for the target system (e.g., Commander X16)
@@ -139,26 +150,22 @@ Context and instructions for AI Agents to work on this project.
 - `*.p8ir` - Intermediate representation file, can be executed in the Virtual Machine
 - `*.vice-mon-list` - Vice emulator monitor list file for debugging
 
-## Commands to run tests
-- `gradle test --tests "*TestName*"` - Run specific test classes
-- `gradle build --refresh-dependencies` - Refresh dependencies during development
-- Unit tests are written using KoTest
-- Several modules in the project contain unit tests, but most of them live in the "compiler" module in the 'test' directory.
-- **when writing TEST programs, always add these directives at the top: `%zeropage basicsafe` and `%option no_sysinit`** - this keeps zeropage usage safe and skips system initialization for faster, simpler test programs.
-
-## Commands to run the Prog8 Compiler after building it
+## Commands to run the Prog8 Compiler
 - the prog8c compiler executable can be found in the compiler/build/install/prog8c/bin folder (this is already added to the shell's path)
-- the `-emu` switch can be used to directly execute the resulting program in an emulator after successful compilation.
 - **the `-check` switch performs a quick syntax/semantic check only - it will NOT produce any output files (no .prg, .asm, etc.)**. Use it only for fast error checking during development.
-- `prog8c -target cx16 input.p8` - Compile a Prog8 source file "input.p8" for the CommanderX16 target
-- `prog8c -target cx16 -check input.p8` - Quickly check a Prog8 source file "input.p8" for compiler errors, no output binary is produced
-- `prog8c -target cx16 -emu  input.p8` - Compile and execute a prog8 file in the CommanderX16 emulator
-- `prog8c -target c64 -emu input.p8` - Compile and execute a prog8 file in the Commodore-64 emulator
-- `prog8c -target virtual input.p8` - Compile a prog8 file for the IR/Virtual machine target
-- `prog8c -target virtual -emu input.p8` - Compile and directly execute a prog8 file in the Virtual Machine
+- `prog8c -target targetname input.p8` - Compile a Prog8 source file "input.p8" for the given target (cx16, c64, pet32, c128, virtual)
+- `prog8c -target targetname -emu input.p8` - Compile and execute a prog8 file in the emulator for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -vm input.p8ir` - Execute an existing prog8 program, compiled in IR form, in the Virtual Machine
 - `x16emu -scale 2 -prg input.prg` - Just load an existing compiled program in the CommanderX16 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
 - `x64sc input.prg` - run an existing compiled program in the Commodore-64 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
+- **Testing tip**: When writing and testing Prog8 programs, **use the `virtual` target** (e.g., `prog8c -target virtual -emu input.p8` or `prog8c -vm input.p8ir`). This is the preferred way to test because the virtual target can easily write output to stdout, making it simple to verify program behavior and check results.
+
+## Commands to run tests
+- `gradle test --tests "*TestName*"` - Run specific test classes
+- `gradle build` - Full build of the compiler including running the full test suite
+- Unit tests are written using KoTest, using FunSpec
+- Several modules in the project contain unit tests, but most of them live in the "compiler" module in the 'test' directory.
+- **when writing TEST programs, always add these directives at the top: `%zeropage basicsafe` and `%option no_sysinit`** - this keeps zeropage usage safe and skips system initialization for faster, simpler test programs.
 
 ## TODO Items
 The file docs/source/todo.rst contains a comprehensive list of things that still have to be fixed, implemented, or optimized.
