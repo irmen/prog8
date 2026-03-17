@@ -305,6 +305,7 @@ class StStruct(
     name: String,
     val fields: List<Pair<DataType, String>>,
     val size: UInt,
+    val logicalScopedNameString: String,  // The scoped name without symbol prefixes (e.g., "plane.Point" instead of "p8b_plane.p8t_Point") - used for equality checks
     astNode: PtStructDecl?
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
@@ -325,23 +326,12 @@ class StStruct(
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
     override fun sameas(other: ISubType): Boolean {
-        if(other is StStruct && size == other.size && fields == other.fields) {
-            if(scopedNameString == other.scopedNameString)
-                return true
-
-            // TODO this is a HACK: work around difference in struct names caused by symbol prefixing. See https://github.com/irmen/prog8/issues/198
-            fun nameWithoutSymbolPrefixes(name: String): List<String> {
-                return name.split('.')
-                    .map { name ->
-                        if(name.length>4 && name[0]=='p' && name[1]=='8' && name[3]=='_') {
-                            // strip prefix (3 characters followed by underscore,  see Callgraph.prefixes)
-                            name.drop(4)
-                        } else name
-                    }
-            }
-
-            if(nameWithoutSymbolPrefixes(scopedNameString) == (nameWithoutSymbolPrefixes(other.scopedNameString)))
-                return true
+        if(other is StStruct) {
+            // Compare using logical names (without symbol prefixes) for consistency when blocks are merged
+            // See github issue https://github.com/irmen/prog8/issues/198
+            return logicalScopedNameString == other.logicalScopedNameString &&
+                   fields == other.fields &&
+                   size == other.size
         }
         return false
     }
