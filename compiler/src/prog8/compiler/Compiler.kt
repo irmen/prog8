@@ -63,6 +63,7 @@ class CompilerArguments(val filepath: Path,
                         val printAst2: Boolean,
                         val ignoreFootguns: Boolean,
                         val profilingInstrumentation: Boolean,
+                        val nostdlib: Boolean,
                         val symbolDefs: Map<String, String>,
                         val sourceDirs: List<String> = emptyList(),
                         val outputDir: Path = Path(""),
@@ -102,7 +103,8 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     compTarget,
                     args.sourceDirs,
                     libraryDirs,
-                    args.quietAll
+                    args.quietAll,
+                    args.nostdlib
                 )
             }
 
@@ -364,12 +366,13 @@ fun parseMainModule(filepath: Path,
                     compTarget: ICompilationTarget,
                     sourceDirs: List<String>,
                     libraryDirs: List<String>,
-                    quiet: Boolean): Triple<Program, CompilationOptions, List<Path>> {
+                    quiet: Boolean,
+                    nostdlib: Boolean): Triple<Program, CompilationOptions, List<Path>> {
     val bf = BuiltinFunctionsFacade(BuiltinFunctions)
     val program = Program(filepath.nameWithoutExtension, bf, compTarget, compTarget)
     bf.program = program
 
-    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, quiet)
+    val importer = ModuleImporter(program, compTarget.name, errors, sourceDirs, libraryDirs, quiet, nostdlib)
     val importedModuleResult = importer.importMainModule(filepath)
     importedModuleResult.onErr { throw it }
     errors.report()

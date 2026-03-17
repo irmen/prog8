@@ -41,14 +41,15 @@ internal fun compileFile(
         slabsHighBank = slabshigh,
         slabsGolden = false,
         platform.name,
-        symbolDefs = emptyMap(),
-        outputDir = outputDir,
-        errors = errors ?: ErrorReporterForTests(),
         breakpointCpuInstruction = null,
         printAst1 = false,
         printAst2 = false,
         ignoreFootguns = false,
         profilingInstrumentation = false,
+        nostdlib = false,
+        symbolDefs = emptyMap(),
+        outputDir = outputDir,
+        errors = errors ?: ErrorReporterForTests(),
     )
     return compileProgram(args)
 }

@@ -96,7 +96,7 @@ main {
 
         val filepath = outputDir.resolve("$filenameBase.p8")
         filepath.toFile().writeText(sourceText)
-        val (program, options, importedfiles) = parseMainModule(filepath, errors, C64Target(), emptyList(), emptyList(), false)
+        val (program, options, importedfiles) = parseMainModule(filepath, errors, C64Target(), emptyList(), emptyList(), false, false)
 
         program.toplevelModule.name shouldBe filenameBase
         withClue("all imports other than the test source must have been internal resources library files") {

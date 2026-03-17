@@ -45,8 +45,9 @@ class TestCompilerOptionSourcedirs: FunSpec({
             printAst2 = false,
             ignoreFootguns = false,
             profilingInstrumentation = false,
+            nostdlib = false,
             symbolDefs = emptyMap(),
-            sourceDirs,
+            sourceDirs = sourceDirs,
             outputDir = tempdir().toPath()
         )
         return compileProgram(args)

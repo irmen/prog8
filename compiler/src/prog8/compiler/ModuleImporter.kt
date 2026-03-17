@@ -24,7 +24,8 @@ class ModuleImporter(private val program: Program,
                      val errors: IErrorReporter,
                      sourceDirs: List<String>,
                      libraryDirs: List<String>,
-                     val quiet: Boolean) {
+                     val quiet: Boolean,
+                     val nostdlib: Boolean = false) {
 
     private val sourcePaths: List<Path> = sourceDirs.map { Path(it).sanitize() }.toSortedSet().toList()
     private val libraryPaths: List<Path> = libraryDirs.map { Path(it).sanitize() }.toSortedSet().toList()
@@ -92,30 +93,34 @@ class ModuleImporter(private val program: Program,
             return existing
         }
 
-        // try internal library first
-        val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName)
+        // try internal library first (unless --nostdlib is active)
         val importedModule =
-            moduleResourceSrc.fold(
-                success = {
-                    importModule(it)
-                },
-                failure = {
-                    // try filesystem next
-                    val moduleSrc = getModuleFromFile(moduleName, importingModule)
-                    moduleSrc.fold(
-                        success = {
-                            importModule(it)
-                        },
-                        failure = {
-                            errors.err("no module found with name $moduleName. Searched in: $sourcePaths (and internal libraries)", import.position)
-                            return null
-                        }
-                    )
-                }
-            )
+            if(!nostdlib) {
+                val moduleResourceSrc = getModuleFromResource("$moduleName.p8", compilationTargetName)
+                moduleResourceSrc.fold(
+                    success = { importModule(it) },
+                    failure = { getModuleFromFilesystem(moduleName, importingModule, import.position) }
+                )
+            } else {
+                // skip internal libraries, go directly to filesystem
+                getModuleFromFilesystem(moduleName, importingModule, import.position)
+            }
 
-        removeDirectivesFromImportedModule(importedModule)
+        if(importedModule != null)
+            removeDirectivesFromImportedModule(importedModule)
         return importedModule
+    }
+
+    private fun getModuleFromFilesystem(moduleName: String, importingModule: Module?, errorPosition: Position): Module? {
+        val moduleSrc = getModuleFromFile(moduleName, importingModule)
+        return moduleSrc.fold(
+            success = { importModule(it) },
+            failure = {
+                val searchPaths = if(nostdlib) "$sourcePaths (internal libraries disabled)" else "$sourcePaths (and internal libraries)"
+                errors.err("no module found with name $moduleName. Searched in: $searchPaths", errorPosition)
+                null
+            }
+        )
     }
 
     private fun removeDirectivesFromImportedModule(importedModule: Module) {

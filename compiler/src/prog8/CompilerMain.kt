@@ -63,6 +63,7 @@ private fun compileMain(args: Array<String>): Boolean {
     val slabsGolden by cli.option(ArgType.Boolean, fullName = "slabsgolden", description = "put memory() slabs in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val slabsHighBank by cli.option(ArgType.Int, fullName = "slabshigh", description = "put memory() slabs in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
     val dontIncludeSourcelines by cli.option(ArgType.Boolean, fullName = "nosourcelines", description = "do not include original Prog8 source lines in generated asm code")
+    val nostdlib by cli.option(ArgType.Boolean, fullName = "nostdlib", description = "disable loading of builtin standard library files from internal resources")
     val sourceDirs by cli.option(ArgType.String, fullName="srcdirs", description = "list of extra paths, separated with ${File.pathSeparator}, to search in for imported modules").multiple().delimiter(File.pathSeparator)
     val compilationTarget by cli.option(ArgType.String, fullName = "target", description = "target output of the compiler (one of ${CompilationTargets.joinToString(",")} or a custom target properties file) (required)")
     val showTimings by cli.option(ArgType.Boolean, fullName = "timings", description = "show internal compiler timings (for performance analysis)")
@@ -215,6 +216,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     printAst2 == true,
                     ignoreFootguns == true,
                     profilingInstrumentation == true,
+                    nostdlib == true,
                     processedSymbols,
                     srcdirs,
                     outputPath,
@@ -302,6 +304,7 @@ private fun compileMain(args: Array<String>): Boolean {
                     printAst2 == true,
                     ignoreFootguns == true,
                     profilingInstrumentation == true,
+                    nostdlib == true,
                     processedSymbols,
                     srcdirs,
                     outputPath,

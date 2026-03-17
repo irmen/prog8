@@ -217,6 +217,13 @@ One or more .p8 module files
     Don't perform any code optimizations.
     Useful for debugging or faster compilation cycles.
 
+``-nostdlib``
+    Disable loading of builtin standard library files from internal resources.
+    This prevents the compiler from searching its embedded library files when resolving ``%import`` directives.
+    Only user-specified library paths (via ``-srcdirs``) and the target's library path will be searched.
+    The core library modules (``syslib``, ``prog8_math``, ``prog8_lib``) are always loaded regardless of this option.
+    So you have to make sure these are provided somewhere in the alternate source path.
+
 ``-out <directory>``
     sets directory location for output files instead of current directory
 
