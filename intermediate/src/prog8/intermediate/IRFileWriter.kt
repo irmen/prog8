@@ -9,6 +9,8 @@ import kotlin.io.path.absolute
 import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
+private const val StMemorySlabBlockName = "prog8_slabs"
+
 
 class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private val outfile = outfileOverride ?: (irProgram.options.outputDir / ("${irProgram.name}.p8ir"))
@@ -276,10 +278,12 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                 dt.isFloat -> constant.value!!.toString()
                 dt.isPointer -> TODO("constant pointer $constant")
                 dt.isInteger -> {
-                    if(constant.value!=null)
+                    if(constant.value != null)
                         constant.value.toLong().toHex()
+                    else if(constant.memorySlabName != null)
+                        "@$StMemorySlabBlockName.${constant.memorySlabName}"
                     else
-                        TODO("constant memory() alloc '${constant}'")
+                        TODO("constant without value or memory slab: $constant")
                 }
                 else -> throw InternalCompilerException("weird dt")
             }

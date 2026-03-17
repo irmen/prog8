@@ -18,6 +18,21 @@ Context and instructions for AI Agents to work on this project.
 - Dependent library versions can be found in 'build.gradle.kts' and in the IntelliJ IDEA configuration files in .idea/libraries
 - The compiler main entrypoint is in the "compiler" module, in src/prog8/CompilerMain.kt
 
+## Compilation Flow (High-Level)
+```
+Source → parseMainModule() → processAst() → optimizeAst() → postprocessAst() 
+       → Simple AST → Code Generator → Assembly → .prg
+```
+
+**Key phases in `compiler/src/prog8/compiler/Compiler.kt`:**
+- `parseMainModule()` - Import modules, parse to Compiler AST
+- `processAst()` - Semantic analysis, constant folding, type casting, validation
+- `optimizeAst()` - Dead code elimination, inlining, statement optimization
+- `postprocessAst()` - Memory layout, final transformations
+- Code generation - Simple AST → IR or 6502 assembly
+
+**Understanding this order is important:** For example, `ConstantIdentifierReplacer` runs during `processAst()`, so by the time `AstChecker` runs at the end of that phase, identifier references have already been replaced with their actual values.
+
 ## CRITICAL: NO FORMATTING
 - NEVER run formatters (black, ruff, prettier, etc.) after edits
 - Preserve my exact indentation, line lengths, and spacing
@@ -40,6 +55,7 @@ Context and instructions for AI Agents to work on this project.
 - while there are larger than byte datatypes, the intended compiler target is a 6502 CPU system which is 8 bit so operations on larger datatypes are expensive. Words are still somewhat okay, but longs and floats in particular are very inefficient. Try to avoid them unless needed for correctness.
 - all variables (including parameters) are statically allocated exactly once; there is no call stack, so recursion and reentrancy are not possible by default. All variables are zero-initialized (globals at program start, locals on subroutine entry).
 - variables should not be placed in zeropage (with @zp and @requirezp) often, because there is only limited zeropage memory space, *except* for pointer variables: those should usually be in zeropage.
+- **@shared variables**: Use `@shared` to mark a variable as "might be used by some other code that I can't see - so don't optimize it away". This is usually the case when it is used in some assembly code, which the prog8 compiler itself cannot parse to track variable usages.
 
 ### Strings, Arrays & Pointers - Important Peculiarities
 - **size limitation**: `str` and array types are limited to 256 bytes maximum. This means for example that `long[]` is limited to 64 entries (64 × 4 bytes = 256 bytes). For larger data, use `memory()` + pointers.
@@ -50,6 +66,7 @@ Context and instructions for AI Agents to work on this project.
 - **pointer syntax**: The pointer declaration and dereference syntax is similar to Pascal's but Prog8 requires a double `^^` (because single `^` is already a taken operator). Note that `pointer[0]` is equivalent to `pointer^^`.
 - **address-of operators**: The `&` operator returns the *untyped* address of its argument (a `uword`), whereas the `&&` operator returns a *typed pointer* to its argument. Note that `&&` is **NOT** the logical AND operator in Prog8 - that is written as `and`.
 - **static memory allocation only**: Prog8 only has *static* memory allocation. The `memory()` builtin function returns the address of a statically reserved memory block (named with the given name). It is possible to statically initialize struct variables with the syntax `^^StructType pointer = ^^StructType:[1,2,3,4]`. The `^^StructType:` may be omitted from the initializer list if it is easy to infer it from the target variable type. The initializer list may be empty which means the struct instance is zeroed out *but only at program startup*. Real "dynamic" memory allocation is impossible, but it can be emulated with a simplistic "arena allocator" that just keeps track of a large `memory()` slab internally.
+- **poking and peeking**: `@(ptr)` as LHS of an assignment is equivalent to `poke(ptr, RHS)`. `@(ptr)` as RHS of an assignment (i.e. as an *expression*), is equivalent to `peek(ptr)`. This is how you read/write single **byte** values at a memory address. **Note:** `@(ptr)` is strictly for bytes only - for other datatypes you must use the explicit builtin functions: `peekw(ptr)`/`pokew(ptr, value)` for words, `peekl(ptr)`/`pokel(ptr, value)` for longs, `peekf(ptr)`/`pokef(ptr, value)` for floats, and `peekbool(ptr)`/`pokebool(ptr, value)` for booleans. There is no `@()` syntax equivalent for these other datatypes.
 
 ### Virtual Registers & Stack
 - **Zeropage scratch variables:** The compiler provides these predefined zeropage scratch variables: `P8ZP_SCRATCH_B1` (byte), `P8ZP_SCRATCH_REG` (byte), `P8ZP_SCRATCH_W1` (word), `P8ZP_SCRATCH_W2` (word), `P8ZP_SCRATCH_PTR` (word). **No other zeropage locations can be used** - assembly routines must only use these predefined scratch variables. If additional storage is needed, define regular variables in the BSS section instead. You can also use the cx16 virtual registers (`cx16.r0`-`cx16.r15`) as temporary storage.
@@ -57,13 +74,13 @@ Context and instructions for AI Agents to work on this project.
 - the CPU hardware stack can be manipulated via builtin functions: push(), pushw(), pushl(), pushf() and pop(), popw(), popl(), popf(). These can manually implement recursion if needed.
 
 ### Logic & Control Flow
-- the syntax for boolean logical operators is 'and', 'or', 'xor', 'not'. Bitwise operators are '&', '|', '^', '~', and '<<','>>' for bit shifting left and right respectively. All operators are documented in docs/source/programming.rst
-- CPU status flags can be tested with if_cs, if_cc, if_z, if_nz, etc. which compile to single 6502 branch instructions but require careful handling of flag state.
-- use 'when' statements with choice blocks to avoid multiple 'if' statements.
-- use 'repeat' statements instead of loops if the iteration count is not needed inside the loop body.
-- use if-expressions instead of if-statements if the goal is to assign a single value to a variable based on a simple choice between two values.
-- there is a 'defer' statement that can be used to defer the execution of a statement(s) until flow returns from the current scope.
-- it is *allowed* to use 'goto' with labels, and jump lists, if needed; because that generates very optimal code
+- boolean operators: 'and', 'or', 'xor', 'not'. Bitwise: '&', '|', '^', '~', '<<', '>>'. See docs/source/programming.rst.
+- CPU status flags: if_cs, if_cc, if_z, if_nz, etc. compile to single 6502 branch instructions.
+- use 'when' statements with choice blocks instead of multiple 'if' statements.
+- use 'repeat' instead of loops when iteration count is not needed.
+- use if-expressions instead of if-statements for simple value assignments based on a choice.
+- 'defer' defers statement execution until scope exit.
+- 'goto' with labels and jump lists are allowed for optimal code.
 
 ### Subroutines & Return Values
 - **everything is public**: No private/public modifiers. All symbols accessible via fully qualified names from anywhere.
@@ -73,19 +90,16 @@ Context and instructions for AI Agents to work on this project.
 - subroutines can be nested. Nested subroutines have direct access to all variables defined in their parent scope.
 
 ### Standard library
-- **to discover what modules and routines are available in the standard library, FIRST consult docs/source/_static/symboldumps/** - there's a skeleton file per compilation target (e.g., skeletons-cx16.txt, skeletons-c64.txt) listing ALL available modules, subroutines, and builtin functions with their signatures.
-- **when comparing routines between targets or checking if a routine exists**, always use the symboldump skeleton files first - they provide a quick overview without needing to read full source files. Only consult the actual `.p8` source files in `res/prog8lib/<target>/` when you need implementation details or the meaning of routines.
-- **symboldump file structure**: Files start with compiler version info, then list **BUILTIN FUNCTIONS** (just names), followed by **LIBRARY MODULE NAME:** sections for each module. Within each module block `{...}`: variables/constants show `type  name` (with optional `@shared`/`@requirezp`/`@AY` etc. annotations), subroutines show `name  (params) -> returntype` (with optional `clobbers (X,Y)` for asm routines). Use grep/search to quickly find specific modules or routines.
-- standard library source code is in the 'res/prog8lib' directory. See docs/source/libraries.rst for detailed descriptions of builtin functions and library routines.
-- text output is done via the 'textio' module (txt.print, txt.chrout, etc.), math routines are in 'math', and string conversion routines are in 'conv'. **Note:** conv module uses `str_<type>` naming for number-to-string (e.g., `str_uword`, `str_long`), NOT `<type>2str`. String-to-number uses `str2<type>` (e.g., `str2uword`, `str2long`). **However, for printing numbers you don't need explicit conversion** - txt module has direct routines: `txt.print_b` (byte), `txt.print_ub` (ubyte), `txt.print_w` (word), `txt.print_uw` (uword), `txt.print_l` (long), `txt.print_bool` (bool).
+- **to discover what modules and routines are available, FIRST consult docs/source/_static/symboldumps/** - skeleton files per target list ALL modules, subroutines, and builtin functions with their signatures.
+- **symboldump structure**: Compiler version info, then **BUILTIN FUNCTIONS** (names only), then **LIBRARY MODULE NAME:** sections. Within each module `{...}`: variables/constants show `type  name` (with `@shared`/`@requirezp`/`@AY` annotations), subroutines show `name  (params) -> returntype` (with `clobbers (X,Y)` for asm routines).
+- standard library source code is in 'res/prog8lib' directory. See docs/source/libraries.rst for details.
+- text output via 'textio' module (txt.print, txt.chrout, etc.), math in 'math', string conversions in 'conv'. **Note:** conv uses `str_<type>` for number-to-string (e.g., `str_uword`), `str2<type>` for string-to-number. **For printing numbers use txt routines directly**: `txt.print_b` (byte), `txt.print_ub` (ubyte), `txt.print_w` (word), `txt.print_uw` (uword), `txt.print_l` (long), `txt.print_bool` (bool).
 
 ### Syntax & Formatting
 - **numeric literal syntax**: `$` prefix for hex (`$FF` not `0xFF`), `%` prefix for binary (`%1010` not `0b1010`). Underscores allowed for readability: `25_000_000`. No leading-zero octal notation. **No type suffixes**: long literals are just regular numbers (e.g., `12345678` not `12345678L`), the type is determined by context (variable type or cast).
 - **for loop syntax**: `for i in 0 to 10 { ... }` (use downto when counting down) - NOT `for i = 0 to 10` or C-style `for(i=0; i<10; i++)`
 - **semicolons start comments**: `; this is a comment` - they do NOT end statements. There is NO statement separator (unlike C/Java's `;`). One statement per line only. Multi-line comments use `/* ... */`.
-- **trailing commas allowed**: `[1, 2, 3,]` is valid syntax.
-- Prog8 source files are indented with 4 spaces, no tabs.
-- assembly source files (*.asm) can be indented with either spaces or tabs
+- Prog8 source files are indented with 4 spaces, no tabs. Assembly source files (*.asm) can use spaces or tabs.
 - **The assembly source code uses 64tass syntax, NOT ca65/cc65 or other assemblers.** Key 64tass syntax: `.proc`/`.pend` for procedures, `_label` for local labels, `.byte`/`.word`/`.dword` for data, `= ` for equates, zero-page variables defined with `=`. **Instructions like `rol`, `ror`, `asl`, `lsr` require an explicit operand** - use `rol a`, `ror a`, etc. for the accumulator, not just `rol` or `ror`.
 
 ## Other Key differences from other languages (C, Python, etc.)
@@ -94,26 +108,20 @@ Context and instructions for AI Agents to work on this project.
 - **qualified names from top level**: Must use full qualified names (e.g., `cx16.r0`), not relative imports.
 
 ## Project Module Descriptions
-- `beanshell` - EXPERIMENTAL/UNFINISHED Contains BeanShell integration for scripting capabilities within the compiler
-- `benchmark-c` - C implementations for performance comparison and benchmarking
-- `benchmark-program` - Benchmark programs to test compiler output performance
-- `codeCore` - Core code generation utilities and shared components
-- `codeGenCpu6502` - 6502 CPU-specific code generator backend (generates assembly for 6502-based systems)
-- `codeGenExperimental` - Experimental code generators that are under development
+- `compiler` - Main compiler entrypoint (src/prog8/CompilerMain.kt)
+- `compilerAst` - Complex AST where most optimizations run
+- `simpleAst` - Simplified AST used by code generator backends
+- `parser` - ANTLR4 parser implementation
+- `codeCore` - Core code generation utilities
+- `codeGenCpu6502` - 6502 assembly code generator backend
 - `codeGenIntermediate` - Intermediate representation (IR) code generator
 - `codeGenVirtual` - Virtual machine code generator backend
-- `codeOptimizers` - Optimization passes for improving generated code efficiency
-- `compiler` - Main compiler executable and top-level compiler logic
-- `compilerAst` - complicated Abstract Syntax Tree (AST) where most optimizations also run on, is later transformed into the simpleAst
-- `docs` - Documentation files for the Prog8 language and compiler
-- `examples` - Example Prog8 programs demonstrating language features
-- `intermediate` - Components related to the intermediate representation (IR) of Prog8 programs
-- `languageServer` - Language Server Protocol implementation for IDE integration
-- `parser` - ANTLR4 Parser implementation for the Prog8 language syntax
-- `scripts` - Utility scripts for development, testing, and deployment
-- `simpleAst` - Simplified AST that is used to run the code generator backends from
-- `syntax-files` - Syntax definition files for editors and IDEs
-- `virtualmachine` - Virtual machine implementation that can execute IR code
+- `codeOptimizers` - Optimization passes
+- `intermediate` - IR components
+- `virtualmachine` - VM that executes IR code
+- `languageServer` - Language Server Protocol implementation
+- `docs` - Documentation files
+- `examples` - Example Prog8 programs
 
 ## Key Information
 - never read the files and directories that are ignored via the .aiignore and .gitignore files
@@ -166,6 +174,7 @@ Context and instructions for AI Agents to work on this project.
 - Unit tests are written using KoTest, using FunSpec
 - Several modules in the project contain unit tests, but most of them live in the "compiler" module in the 'test' directory.
 - **when writing TEST programs, always add these directives at the top: `%zeropage basicsafe` and `%option no_sysinit`** - this keeps zeropage usage safe and skips system initialization for faster, simpler test programs.
+- **When a test run fails**, the output says "There were failing tests. See the report at:" followed by a path like `file:///home/irmen/Projects/prog8/compiler/build/reports/tests/test/index.html`. **Read that HTML report** to quickly see which tests failed and their error messages!
 
 ## TODO Items
-The file docs/source/todo.rst contains a comprehensive list of things that still have to be fixed, implemented, or optimized.
+The file `docs/source/todo.rst` contains a comprehensive list of things that still have to be fixed, implemented, or optimized. **Use this to understand what features are NOT yet available** in the compiler or Prog8 language - if a user asks for something that's on the TODO list, you'll know it's not implemented yet and can explain the limitation.

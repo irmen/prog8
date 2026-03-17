@@ -95,8 +95,7 @@ class IRStMemorySlab(
 ):  IRStNode(name, IRStNodeType.MEMORYSLAB)
 
 
-class IRStConstant(name: String, val dt: DataType, val value: Double?) : IRStNode(name, IRStNodeType.CONST) {
-    // TODO keep track of memory() slab constant?
+class IRStConstant(name: String, val dt: DataType, val value: Double?, val memorySlabName: String? = null) : IRStNode(name, IRStNodeType.CONST) {
     val typeString: String = dt.irTypeString(null)
 }
 

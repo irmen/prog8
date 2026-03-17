@@ -12,7 +12,14 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
             when(it.value.type) {
                 StNodeType.STATICVAR -> st.add(convert(it.value as StStaticVariable))
                 StNodeType.MEMVAR -> st.add(convert(it.value as StMemVar))
-                StNodeType.CONSTANT -> st.add(convert(it.value as StConstant))
+                StNodeType.CONSTANT -> {
+                    val constant = it.value as StConstant
+                    // If the constant has a memory() slab, add the slab to the IR symbol table first
+                    constant.memorySlab?.let { slab ->
+                        st.add(convert(slab))
+                    }
+                    st.add(convert(constant))
+                }
                 StNodeType.MEMORYSLAB -> st.add(convert(it.value as StMemorySlab))
                 StNodeType.STRUCTINSTANCE -> {
                     val instance = it.value as StStructInstance
@@ -52,6 +59,8 @@ private fun convertArrayElt(elt: StArrayElement): IRStArrayElement {
         IRStArrayElement(elt.boolean, null, null)
     else if(elt.number!=null)
         IRStArrayElement(null, elt.number, null)
+    else if(elt.memorySlabName!=null)
+        IRStArrayElement(null, null, "$StMemorySlabBlockName.${elt.memorySlabName}")
     else {
         val symbol = elt.addressOfSymbol ?: (StStructInstanceBlockName + "." + (elt.structInstance ?: elt.structInstanceUninitialized))
         IRStArrayElement(null, null, symbol)
@@ -131,10 +140,16 @@ private fun convert(constant: StConstant): IRStConstant {
             constant.name
         }
     }
-    if(constant.value!=null)
+    if(constant.value != null)
         return IRStConstant(scopedName, constant.dt, constant.value)
+    else if(constant.memorySlab != null) {
+        // For memory() constants, store reference to slab name
+        // The actual address will be resolved during code generation
+        val slabName = constant.memorySlab!!.name
+        return IRStConstant(scopedName, constant.dt, null, slabName)
+    }
     else
-        TODO("constant with memory()?  $constant")
+        TODO("constant without value or memory slab: $constant")
 }
 
 

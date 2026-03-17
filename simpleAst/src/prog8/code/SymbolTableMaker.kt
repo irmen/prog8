@@ -34,6 +34,20 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         return st
     }
 
+    // Helper function to create a memory slab from a memory() function call
+    private fun createMemorySlabFromCall(memCall: PtFunctionCall, scope: ArrayDeque<StNode>): String {
+        require(memCall.args[0] is PtString) {"memory() first arg must be string"}
+        require(memCall.args[1] is PtNumber) {"memory() second arg must be number"}
+        require(memCall.args[2] is PtNumber) {"memory() third arg must be number"}
+        val slabname = (memCall.args[0] as PtString).value
+        val size = (memCall.args[1] as PtNumber).number.toUInt()
+        val align = (memCall.args[2] as PtNumber).number.toUInt()
+        val slab = StMemorySlab("memory_$slabname", size, align, memCall)
+        // don't add memory slabs in nested scope, just put them in the top level of the ST
+        scope.first().add(slab)
+        return "memory_$slabname"
+    }
+
     // Strip symbol prefixes (p8b_, p8t_, p8s_, etc.) from a scoped name for type comparison
     private fun stripSymbolPrefixes(name: String): String {
         return name.split('.')
@@ -58,10 +72,11 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             }
             is PtConstant -> {
                 require(node.type.isNumericOrBool)
-                if(node.value!=null)
-                    StConstant(node.name, node.type, node.value, node)
-                else if(node.memorySlab!=null) {
-                    TODO("create st constant with memory slab child  $node")
+                if(node.value != null)
+                    StConstant(node.name, node.type, node.value, null, node)
+                else if(node.memorySlab != null) {
+                    // Handle memory() constant - the value will be resolved to the slab's address
+                    StConstant(node.name, node.type, null, node.memorySlab, node)
                 } else {
                     throw InternalCompilerException("constant without value or memory slab ${node.position}")
                 }
@@ -134,12 +149,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 if(node.name=="memory") {
                     // memory slab allocations are a builtin functioncall in the program, but end up named as well in the symboltable
                     require(node.name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
-                    val slabname = (node.args[0] as PtString).value
-                    val size = (node.args[1] as PtNumber).number.toUInt()
-                    val align = (node.args[2] as PtNumber).number.toUInt()
-                    val slab = StMemorySlab("memory_$slabname", size, align, node)
-                    // don't add memory slabs in nested scope, just put them in the top level of the ST
-                    scope.first().add(slab)
+                    createMemorySlabFromCall(node, scope)
                 }
                 else if(node.name=="prog8_lib_structalloc") {
                     val instance = handleStructAllocation(node)
@@ -207,6 +217,10 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             else
                                 StArrayElement(null, null, instance.name, null, null)
                         }
+                    } else if(it.name=="memory") {
+                        // Handle memory() call in array initializer
+                        val slabname = createMemorySlabFromCall(it, scope)
+                        StArrayElement(null, null, null, null, null, slabname)
                     } else
                         TODO("support for initial array element via ${it.name}  ${it.position}")
                 }

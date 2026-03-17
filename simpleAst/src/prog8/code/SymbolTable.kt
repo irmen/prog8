@@ -282,7 +282,7 @@ class StStaticVariable(name: String,
 }
 
 
-class StConstant(name: String, val dt: DataType, val value: Double?, astNode: PtNode?) :
+class StConstant(name: String, val dt: DataType, val value: Double?, val memorySlab: StMemorySlab?, astNode: PtNode?) :
     StNode(name, StNodeType.CONSTANT, astNode)
 
 
@@ -360,13 +360,14 @@ class StExtSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType, val register: RegisterOrPair?)
 class StExtSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?, val structInstance: String?, val structInstanceUninitialized: String?, val boolean: Boolean?) {
+class StArrayElement(val number: Double?, val addressOfSymbol: String?, val structInstance: String?, val structInstanceUninitialized: String?, val boolean: Boolean?, val memorySlabName: String? = null) {
     init {
-        if(number!=null) require(addressOfSymbol==null && boolean==null && structInstance==null && structInstanceUninitialized==null)
-        if(addressOfSymbol!=null) require(number==null && boolean==null && structInstance==null && structInstanceUninitialized==null)
-        if(structInstance!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstanceUninitialized==null)
-        if(structInstanceUninitialized!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstance==null)
-        if(boolean!=null) require(addressOfSymbol==null && number==null &&structInstance==null && structInstanceUninitialized==null)
+        if(number!=null) require(addressOfSymbol==null && boolean==null && structInstance==null && structInstanceUninitialized==null && memorySlabName==null)
+        if(addressOfSymbol!=null) require(number==null && boolean==null && structInstance==null && structInstanceUninitialized==null && memorySlabName==null)
+        if(structInstance!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstanceUninitialized==null && memorySlabName==null)
+        if(structInstanceUninitialized!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstance==null && memorySlabName==null)
+        if(boolean!=null) require(addressOfSymbol==null && number==null &&structInstance==null && structInstanceUninitialized==null && memorySlabName==null)
+        if(memorySlabName!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstance==null && structInstanceUninitialized==null)
     }
 }
 

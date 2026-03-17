@@ -1362,7 +1362,10 @@ internal class AstChecker(private val program: Program,
         }
 
         if(array.parent is VarDecl) {
-            if (!array.value.all { it is NumericLiteral || it is AddressOf || it is StaticStructInitializer }) {
+            if (!array.value.all { 
+                it is NumericLiteral || it is AddressOf || it is StaticStructInitializer ||
+                (it is FunctionCallExpression && it.target.nameInSource == listOf("memory"))
+            }) {
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
             }
 
@@ -2485,6 +2488,15 @@ internal class AstChecker(private val program: Program,
                         cast.valueOrZero().number
                 }
                 is StaticStructInitializer -> it.structname.hashCode() and 0xffff
+                is FunctionCallExpression -> {
+                    // Only "memory" builtin function is allowed as array element
+                    if(it.target.nameInSource == listOf("memory"))
+                        it.args[0].toString().hashCode() and 0xffff  // hash of slab name for range check
+                    else {
+                        errors.err("only memory() function call is allowed as array element", it.position)
+                        -9999999  // invalid
+                    }
+                }
                 else -> -9999999
             }
         }
@@ -2509,7 +2521,10 @@ internal class AstChecker(private val program: Program,
             else -> throw FatalAstException("invalid type $targetDt")
         }
         if (!correct) {
-            if (value.parent is VarDecl && !value.value.all { it is NumericLiteral || it is AddressOf || it is StaticStructInitializer })
+            if (value.parent is VarDecl && !value.value.all { 
+                it is NumericLiteral || it is AddressOf || it is StaticStructInitializer ||
+                (it is FunctionCallExpression && it.target.nameInSource == listOf("memory"))
+            })
                 errors.err("initialization value contains non-constant elements", value.value[0].position)
             else
                 errors.err("array element out of range for type $targetDt", value.position)

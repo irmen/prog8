@@ -6,6 +6,8 @@ import prog8.intermediate.*
 import prog8.left
 import prog8.right
 
+private const val StMemorySlabBlockName = "prog8_slabs"
+
 class VmProgramLoader {
     private val placeholders = mutableMapOf<Pair<IRCodeChunk, Int>, String>()      // program chunk+index to symbolname
     private val subroutines = mutableMapOf<String, IRSubroutine>()                 // label to subroutine node
@@ -20,6 +22,19 @@ class VmProgramLoader {
         val programChunks = mutableListOf<IRCodeChunk>()
 
         varsToMemory(irProgram, allocations, variableAddresses, memory)
+
+        // Resolve constants with memory() slab references to their actual addresses
+        irProgram.st.allConstants().forEach { constant ->
+            if(constant.memorySlabName != null) {
+                // The slab is stored with the full name "prog8_slabs.memory_xxx"
+                val fullSlabName = "$StMemorySlabBlockName.${constant.memorySlabName}"
+                val slabAddress = allocations.allocations[fullSlabName]
+                    ?: throw IRParseException("memory slab '$fullSlabName' not found for constant ${constant.name}")
+                variableAddresses[constant.name] = slabAddress
+            } else if(constant.value != null) {
+                variableAddresses[constant.name] = constant.value!!.toInt()
+            }
+        }
 
         if(irProgram.globalInits.isNotEmpty())
             programChunks += irProgram.globalInits

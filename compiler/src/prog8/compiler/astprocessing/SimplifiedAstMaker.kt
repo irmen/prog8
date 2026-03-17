@@ -782,7 +782,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
         val arr = PtArray(srcArr.inferType(program).getOrElse { throw FatalAstException("array must know its type") }, srcArr.position)
         for (elt in srcArr.value) {
             val child = transformExpression(elt)
-            require(child is PtAddressOf || child is PtBool || child is PtNumber || (child is PtFunctionCall && child.builtin && child.name=="prog8_lib_structalloc")) {"array element invalid type $child" }
+            require(child is PtAddressOf || child is PtBool || child is PtNumber || 
+                    (child is PtFunctionCall && child.builtin && child.name=="prog8_lib_structalloc") ||
+                    (child is PtFunctionCall && child.name == "memory")) {"array element invalid type $child" }
             arr.add(child)
         }
         return arr

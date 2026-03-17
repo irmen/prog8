@@ -11,6 +11,8 @@ import javax.xml.stream.XMLStreamException
 import kotlin.io.path.Path
 import kotlin.io.path.inputStream
 
+private const val StMemorySlabBlockName = "prog8_slabs"
+
 
 class IRFileReader {
 
@@ -220,14 +222,19 @@ class IRFileReader {
             text.lineSequence().forEach { line ->
                 // examples:
                 // uword main.start.qq2=0
+                // uword main.start.ptr=@prog8_slabs.memory_buffer2
                 val match = constantPattern.matchEntire(line) ?: throw IRParseException("invalid CONSTANT $line")
                 val (type, name, valueStr) = match.destructured
                 if('.' !in name)
                     throw IRParseException("unscoped name: $name")
                 val dt = parseDatatype(type, false)
-                val value = parseIRValue(valueStr)
-                constants.add(IRStConstant(name, dt, value))
-                // TODO what about memory() constants?
+                val memorySlabName: String? = if(valueStr.startsWith("@$StMemorySlabBlockName.")) {
+                    valueStr.drop("$StMemorySlabBlockName.".length + 1)  // skip @ and block prefix
+                } else {
+                    null
+                }
+                val value: Double? = if(memorySlabName != null) null else parseIRValue(valueStr)
+                constants.add(IRStConstant(name, dt, value, memorySlabName))
             }
             constants
         }

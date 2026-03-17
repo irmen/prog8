@@ -334,8 +334,30 @@ internal class ConstantIdentifierReplacer(
         if(!dt.isKnown || !dt.isNumeric && !dt.isBool)
             return noModifications
 
+        // Special case: CONST variable holding memory() call - replace with the FunctionCallExpression itself
+        // This must be checked BEFORE constValue() since memory() returns null from constValue()
+        val targetNode = identifier.definingScope.lookup(identifier.nameInSource)
+        if(targetNode is VarDecl && targetNode.type == VarDeclType.CONST &&
+           targetNode.value is FunctionCallExpression &&
+           (targetNode.value as FunctionCallExpression).target.nameInSource == listOf("memory")) {
+            // Replace IdentifierReference with the memory() FunctionCallExpression
+            // Update position to match the identifier's position (where it's used), not the original declaration
+            val memCall = targetNode.value as FunctionCallExpression
+            val memCallWithNewPos = FunctionCallExpression(
+                memCall.target.copy(),
+                memCall.args.map { it.copy() }.toMutableList(),
+                identifier.position  // Use the position where it's referenced, not where it was declared
+            )
+            return listOf(IAstModification.ReplaceNode(
+                identifier,
+                memCallWithNewPos,
+                identifier.parent
+            ))
+        }
+
         val cval = identifier.constValue(program) ?: return noModifications
         val arrayIdx = identifier.parent as? ArrayIndexedExpression
+        
         if(arrayIdx!=null && cval.type.isNumeric) {
             // special case when the identifier is used as a pointer var
             // var = constpointer[x] --> var = @(constvalue+x) [directmemoryread]
