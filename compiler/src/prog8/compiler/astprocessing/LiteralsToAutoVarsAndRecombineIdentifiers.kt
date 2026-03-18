@@ -146,27 +146,32 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         }
 
         if(target==null && identifier.nameInSource.size>1) {
-            // maybe the first component of the scoped name is an alias?
+            // First component might be an alias
             val tgt2 = identifier.definingScope.lookup(identifier.nameInSource.take(1)) as? Alias
             if(tgt2!=null && parent !is Alias) {
-                if(tgt2.target.targetStatement(program.builtinFunctions) !is Alias) {
-                    val actual = IdentifierReference(tgt2.target.nameInSource + identifier.nameInSource.drop(1), identifier.position)
+                val aliasTarget = resolveAliasTarget(tgt2)
+                if(aliasTarget != null) {
+                    val actual = when(aliasTarget) {
+                        is INamedStatement -> IdentifierReference(aliasTarget.scopedName + identifier.nameInSource.drop(1), identifier.position)
+                        else -> IdentifierReference(tgt2.target.nameInSource + identifier.nameInSource.drop(1), identifier.position)
+                    }
                     return listOf(IAstModification.ReplaceNode(identifier, actual, parent))
                 }
             }
         }
 
-        if(target is Alias && parent !is Alias) {     // don't replace an identifier in an Alias
-            val targetStatement = target.target.targetStatement(program.builtinFunctions)
+        if(target is Alias && parent !is Alias) {
+            val targetStatement = resolveAliasTarget(target)
+            if(targetStatement == null) {
+                return noModifications  // alias loop or unresolved
+            }
             val replacement: IdentifierReference =
                 when (targetStatement) {
                     is StructFieldRef -> {
-                        // replace with target struct field reference
                         target.target.copy(position = identifier.position)
                     }
                     is VarDecl -> {
                         val scoped = if (targetStatement.names.isNotEmpty()) {
-                            // points to a vardecl of multiple names in 1 statement
                             (targetStatement.parent as INamedStatement).scopedName + target.target.nameInSource.last()
                         } else {
                             (targetStatement as INamedStatement).scopedName
@@ -175,11 +180,9 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                         IdentifierReference(scoped, identifier.position)
                     }
                     is BuiltinFunctionPlaceholder -> {
-                        // replace with unscoped identifier
                         IdentifierReference(listOf(targetStatement.name), identifier.position)
                     }
                     else -> {
-                        // replace with scoped identifier
                         val scoped = (targetStatement as INamedStatement).scopedName
                         require(scoped.last() != "<multiple>")
                         IdentifierReference(scoped, identifier.position)
@@ -214,15 +217,41 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     }
 
     override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
-        // handle aliases
-        // maybe the first component of the dereference chain is an alias?
         val tgt2 = deref.definingScope.lookup(deref.chain.take(1)) as? Alias
         if(tgt2!=null && parent !is Alias) {
-            if(tgt2.target.targetStatement(program.builtinFunctions) !is Alias) {
-                val unaliased = PtrDereference(tgt2.target.nameInSource + deref.chain.drop(1), deref.derefLast, deref.position)
+            val aliasTarget = resolveAliasTarget(tgt2)
+            if(aliasTarget != null) {
+                val unaliased = when(aliasTarget) {
+                    is INamedStatement -> PtrDereference(aliasTarget.scopedName + deref.chain.drop(1), deref.derefLast, deref.position)
+                    else -> PtrDereference(tgt2.target.nameInSource + deref.chain.drop(1), deref.derefLast, deref.position)
+                }
                 return listOf(IAstModification.ReplaceNode(deref, unaliased, parent))
             }
         }
         return noModifications
+    }
+
+    /** Follows alias chains, returns null on loop or unresolved. */
+    private fun resolveAliasTarget(alias: Alias): Statement? {
+        var currentAlias = alias
+        val visited = mutableSetOf<String>()
+        var hops = 0
+        val maxHops = 100
+
+        while (hops < maxHops) {
+            val aliasKey = currentAlias.alias + "->" + currentAlias.target.nameInSource.joinToString(".")
+            if (aliasKey in visited) {
+                return null  // alias loop detected
+            }
+            visited.add(aliasKey)
+
+            val target = currentAlias.target.targetStatement(program.builtinFunctions) ?: return null
+            if (target !is Alias) {
+                return target  // resolved to non-alias
+            }
+            currentAlias = target
+            hops++
+        }
+        return null  // likely loop
     }
 }

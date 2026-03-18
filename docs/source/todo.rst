@@ -5,7 +5,6 @@ remove the optimization message at "TODO remove this debug message"
 
 
 Known bugs:
-- fix chained aliasing errors see test "chained aliasing"
 - fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"
 
 

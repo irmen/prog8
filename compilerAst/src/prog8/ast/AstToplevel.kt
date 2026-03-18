@@ -173,7 +173,25 @@ interface INameScope: IStatementContainer, INamedStatement {
     }
 
     private fun lookupQualified(scopedName: List<String>): Statement? {
+        return lookupQualified(scopedName, mutableSetOf<String>())
+    }
+
+    private fun lookupQualified(scopedName: List<String>, visitedAliases: MutableSet<String>): Statement? {
         val localSymbol = this.searchSymbol(scopedName[0]) ?: this.lookupUnqualified(scopedName[0])
+
+        // Resolve alias by combining its target with remaining path parts
+        if(localSymbol is Alias) {
+            // Detect alias loops
+            val aliasKey = localSymbol.alias + "->" + localSymbol.target.nameInSource.joinToString(".")
+            if(aliasKey in visitedAliases) {
+                return null  // alias loop detected
+            }
+            visitedAliases.add(aliasKey)
+
+            val combinedName = localSymbol.target.nameInSource + scopedName.drop(1)
+            return lookupQualified(combinedName, visitedAliases)
+        }
+
         val fieldRef = searchStructFieldRef(localSymbol, scopedName.drop(1))
         if(fieldRef!=null)
             return fieldRef

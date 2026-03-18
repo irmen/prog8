@@ -586,7 +586,7 @@ main  {
         }
     }
 
-    xtest("deeply scoped variable references") {
+    test("deeply scoped variable references") {
         val src= $"""
 main {
     sub start() {
