@@ -604,6 +604,6 @@ main {
         compileText(Cx16Target(), true, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), true, src, outputDir)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-        VmRunner().runProgram(virtfile.readText(), true)        // TODO fix vm crash on deeply scoped symbol ref
+        VmRunner().runProgram(virtfile.readText(), true)
     }
 })

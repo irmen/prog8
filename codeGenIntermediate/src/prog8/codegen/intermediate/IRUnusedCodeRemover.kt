@@ -106,12 +106,16 @@ class IRUnusedCodeRemover(
         irprog.blocks.forEach { block ->
             block.children.filterIsInstance<IRSubroutine>().reversed().forEach { sub ->
                 if(sub.isEmpty()) {
-                    if(!block.options.ignoreUnused) {
-                        errors.info("unused subroutine '${sub.label}'", sub.position)
+                    // Don't remove subroutines with @shared variables
+                    val hasVariables = irprog.st.allVariables().any { it.name.startsWith(sub.label + ".") }
+                    if(!hasVariables) {
+                        if(!block.options.ignoreUnused) {
+                            errors.info("unused subroutine '${sub.label}'", sub.position)
+                        }
+                        block.children.remove(sub)
+                        irprog.st.removeTree(sub.label)
+                        numRemoved++
                     }
-                    block.children.remove(sub)
-                    irprog.st.removeTree(sub.label)
-                    numRemoved++
                 }
             }
         }

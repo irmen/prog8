@@ -10,17 +10,12 @@ import prog8.code.core.*
  */
 class SymbolTable(
     astProgram: PtProgram,
-    private val disableCache: Boolean = false  // When true, always rebuild flat map instead of caching
+    private val disableCache: Boolean = false  // Disable caching for -noopt debugging
 ) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
-    /**
-     * The table as a flat mapping of scoped names to the StNode.
-     * This gives the fastest lookup possible (no need to traverse tree nodes)
-     */
 
     private var cachedFlat: Map<String, StNode>? = null
 
     val flat: Map<String, StNode> get() {
-        // Helper function to build the flat map
         fun buildFlatMap(): Map<String, StNode> {
             val result = mutableMapOf<String, StNode>()
             fun collect(node: StNode) {
@@ -33,10 +28,8 @@ class SymbolTable(
             return result
         }
 
-        if(disableCache) {
-            // Cache disabled - always rebuild (useful for debugging with -noopt)
+        if(disableCache)
             return buildFlatMap()
-        }
         if(cachedFlat!=null)
             return cachedFlat!!
 

@@ -4,10 +4,6 @@ TODO
 remove the optimization message at "TODO remove this debug message"
 
 
-Known bugs:
-- fix crash in ir loader/vm for deeply nested symbol reference, see test "deeply scoped variable references"
-
-
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)
