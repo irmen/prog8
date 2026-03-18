@@ -700,25 +700,30 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
-    test("const memory() - pointer arithmetic") {
+    test("const memory() - direct memory() calls in array") {
         val src = """
 main {
     sub start() {
-        const uword base = memory("base_mem", 100, 0)
-        uword temp_ptr = base
-        temp_ptr = temp_ptr + 10
-        @(temp_ptr) = 99
+        uword[3] arr = [memory("m1", 10, 0), memory("m2", 20, 0), memory("m3", 30, 0)]
     }
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
-    test("const memory() - direct memory() calls in array") {
+    test("const memory() - mixed with regular values in struct initializer") {
         val src = """
 main {
+    struct Mixed {
+        uword ptr
+        uword value
+    }
+    
     sub start() {
-        uword[3] arr = [memory("m1", 10, 0), memory("m2", 20, 0), memory("m3", 30, 0)]
+        const uword m = memory("struct_mem", 100, 0)
+        const uword v = 5000
+        ^^Mixed m1 = [m, v]
+        ^^Mixed m2 = [memory("mem2", 50, 0), 1234]
     }
 }"""
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null

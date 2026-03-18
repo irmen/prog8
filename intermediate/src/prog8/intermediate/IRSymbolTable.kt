@@ -122,13 +122,17 @@ class IRStStaticVariable(name: String,
     val typeString: String = dt.irTypeString(length)
 }
 
-class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSymbol: String?) {
+class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSymbol: String?, val memorySlabName: String? = null) {
     init {
-        if(bool!=null) require(number==null && addressOfSymbol==null)
-        if(number!=null) require(bool==null && addressOfSymbol==null)
+        if(bool!=null) require(number==null && addressOfSymbol==null && memorySlabName==null)
+        if(number!=null) require(bool==null && addressOfSymbol==null && memorySlabName==null)
+        if(addressOfSymbol!=null) require(number==null && bool==null && memorySlabName==null)
+        if(memorySlabName!=null) require(number==null && bool==null && addressOfSymbol==null)
         if(addressOfSymbol!=null) {
-            require(number==null || bool==null)
             require('.' in addressOfSymbol) { "addressOfSymbol must be a scoped name" }
+        }
+        if(memorySlabName!=null) {
+            require('.' in memorySlabName) { "memorySlabName must be a scoped name" }
         }
     }
 }

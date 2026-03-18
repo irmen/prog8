@@ -403,6 +403,7 @@ internal class ProgramAndVarsGen(
                                 value.number.toString()
                         }
                         value.addressOfSymbol!=null -> value.addressOfSymbol!!
+                        value.memorySlabName!=null -> "$StMemorySlabBlockName.${value.memorySlabName!!}"
                         value.boolean!=null -> if(value.boolean==true) "1" else "0"
                         else -> throw AssemblyError("weird struct initial value $value")
                     }

@@ -2633,7 +2633,10 @@ internal class AstChecker(private val program: Program,
                     }
                 }
             }
-            if (!args.all { it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral)})
+            if (!args.all { 
+                it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral) ||
+                (it is FunctionCallExpression && it.target.nameInSource == listOf("memory"))
+            })
                 errors.err("initialization value contains non-constant elements", args[0].position)
             val struct = initializer.structname.targetStructDecl()
             if(struct!=null) {

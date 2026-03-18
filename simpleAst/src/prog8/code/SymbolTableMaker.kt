@@ -152,7 +152,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     createMemorySlabFromCall(node, scope)
                 }
                 else if(node.name=="prog8_lib_structalloc") {
-                    val instance = handleStructAllocation(node)
+                    val instance = handleStructAllocation(node, scope)
                     if(instance!=null) {
                         scope.first().add(instance)  // don't add struct instances in nested scope, just put them in the top level of the ST
                     }
@@ -173,7 +173,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             scope.removeLast()
     }
 
-    private fun handleStructAllocation(node: PtFunctionCall): StStructInstance? {
+    private fun handleStructAllocation(node: PtFunctionCall, scope: ArrayDeque<StNode>): StStructInstance? {
         require(node.builtin)
         val struct = node.type.subType as? StStruct ?: return null
         val initialValues = node.args.map {
@@ -181,6 +181,12 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtAddressOf -> StArrayElement(null, it.identifier!!.name, null, null,null)
                 is PtBool -> StArrayElement(null, null, null, null, it.value)
                 is PtNumber -> StArrayElement(it.number, null, null, null, null)
+                is PtFunctionCall -> {
+                    // Handle memory() call in struct initializer
+                    require(it.builtin && it.name == "memory")
+                    val slabname = createMemorySlabFromCall(it, scope)
+                    StArrayElement(null, null, null, null, null, slabname)
+                }
                 else -> throw AssemblyError("invalid structalloc argument type $it")
             }
         }
@@ -203,7 +209,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtFunctionCall -> {
                     require(it.builtin)
                     if(it.name=="prog8_lib_structalloc") {
-                        val instance = handleStructAllocation(it)
+                        val instance = handleStructAllocation(it, scope)
                         if(instance==null) {
                             val label = SymbolTable.labelnameForStructInstance(it)
                             if (it.args.isEmpty())

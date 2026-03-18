@@ -208,6 +208,8 @@ You write a static struct initialization expression like this:
     (without values) Places a 'Node' instance in BSS variable space instead, which gets zeroed out at program startup.
     Returns the address of this empty struct.
 
+The field values in a struct initializer must be constants. You can use numeric literals, ``address-of`` expressions,
+or ``memory()`` calls (either directly or via ``const`` variables).
 It is also possible to put struct initializer inside arrays to make them all statically initialized and accessible via the array::
 
     ^^Node[] allnodes = [

@@ -346,19 +346,22 @@ class IRFileReader {
                     var booleanValue: Boolean? = null
                     var numberValue: Double? = null
                     var addressOfValue: String? = null
+                    var memorySlabValue: String? = null
                     if(dt.isBool)
                         booleanValue = parseIRValue(value) != 0.0
+                    else if(value.startsWith('@')) {
+                        // Handle symbol references (both address-of and memory slabs)
+                        val symbol = value.drop(1)
+                        if(symbol.startsWith("prog8_slabs."))
+                            memorySlabValue = symbol
+                        else
+                            addressOfValue = symbol
+                    }
                     else if(dt.isNumeric)
                         numberValue = parseIRValue(value)
-                    else if(dt.isPointer) {
-                        if(value.startsWith('@'))
-                            addressOfValue = value.drop(1)
-                        else
-                            numberValue = parseIRValue(value)
-                    }
                     else
                         throw IRParseException("unexpected field datatype $dt")
-                    IRStructInitValue(dt.base, IRStArrayElement(booleanValue, numberValue, addressOfValue))
+                    IRStructInitValue(dt.base, IRStArrayElement(booleanValue, numberValue, addressOfValue, memorySlabValue))
                 }
 
                 IRStStructInstance(name, structName, values, size)

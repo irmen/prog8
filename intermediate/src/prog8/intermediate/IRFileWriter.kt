@@ -412,6 +412,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                             value.value.number.toInt().toHex()
                         else if(value.value.addressOfSymbol!=null)
                             "@${value.value.addressOfSymbol}"
+                        else if(value.value.memorySlabName!=null)
+                            "@${value.value.memorySlabName}"
                         else
                             throw InternalCompilerException("weird field value")
                     }

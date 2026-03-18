@@ -302,6 +302,12 @@ class VmProgramLoader {
                                 ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
                             symbolAddress.toDouble()
                         }
+                        else if(it.value.memorySlabName!=null) {
+                            val name = it.value.memorySlabName!!
+                            val symbolAddress = symbolAddresses[name]
+                                ?: throw IRParseException("vm cannot load memory slab address: $name")
+                            symbolAddress.toDouble()
+                        }
                         else throw IRParseException("invalid initializer value")
 
                     when {
