@@ -35,6 +35,12 @@ class BreakpointException(val pcChunk: IRCodeChunk, val pcIndex: Int): Exception
 class VirtualMachine(irProgram: IRProgram) {
     class CallSiteContext(val returnChunk: IRCodeChunk, val returnIndex: Int, val fcallSpec: FunctionCallArgs)
 
+    // Constants for performance and maintainability
+    private companion object {
+        private const val VALUE_STACK_MAX = 128
+        private const val MIPS_COUNTER_MASK = 0xffffff
+    }
+
     private var fileOutputStream: java.io.RandomAccessFile? = null
     private var fileInputStream: java.io.RandomAccessFile? = null
     val memory = Memory()
@@ -43,7 +49,7 @@ class VirtualMachine(irProgram: IRProgram) {
     val artificialLabelAddresses: Map<Int, IRCodeChunk>
     val registers = Registers()
     val callStack = ArrayDeque<CallSiteContext>()
-    val valueStack = ArrayDeque<UByte>()       // max 128 entries
+    val valueStack = ArrayDeque<UByte>()       // max VALUE_STACK_MAX entries
     var breakpointHandler: ((pcChunk: IRCodeChunk, pcIndex: Int) -> Unit)? = null       // can set custom breakpoint handler
     var pcChunk = IRCodeChunk(null, null)
     var pcIndex = 0
@@ -85,7 +91,7 @@ class VirtualMachine(irProgram: IRProgram) {
 //                    Thread.sleep(1)  // avoid 100% cpu core usage
 //                }
 
-                if(stepCount and 0xffffff == 0) {
+                if(stepCount and MIPS_COUNTER_MASK == 0) {
                     val now = System.nanoTime()
                     val duration = now-before
                     before = now
@@ -151,8 +157,8 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun nextPc() {
-        pcIndex ++
-        if(pcIndex>=pcChunk.instructions.size)
+        pcIndex++
+        if(pcIndex >= pcChunk.instructions.size)
             stepNextChunk()
     }
 
@@ -349,30 +355,30 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
-    private inline fun setResultReg(reg: Int, value: Int, type: IRDataType) {
+    private fun setResultReg(reg: Int, value: Int, type: IRDataType) {
         when(type) {
             IRDataType.BYTE -> {
                 registers.setUB(reg, value.toUByte())
-                statusZero = value==0
+                statusZero = value == 0
                 statusNegative = value !in 0..<0x80
             }
             IRDataType.WORD -> {
                 registers.setUW(reg, value.toUShort())
-                statusZero = value==0
+                statusZero = value == 0
                 statusNegative = value !in 0..<0x8000
             }
             IRDataType.LONG -> {
                 registers.setSL(reg, value)
-                statusZero = value==0
-                statusNegative = value<0
+                statusZero = value == 0
+                statusNegative = value < 0
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("attempt to set integer result register but float type")
         }
     }
 
     private fun InsPUSH(i: IRInstruction) {
-        if(valueStack.size>=128)
-            throw StackOverflowError("valuestack limit 128 exceeded")
+        if(valueStack.size >= VALUE_STACK_MAX)
+            throw StackOverflowError("valuestack limit $VALUE_STACK_MAX exceeded")
 
         when(i.type!!) {
             IRDataType.BYTE -> {
@@ -1515,11 +1521,11 @@ class VirtualMachine(irProgram: IRProgram) {
 
 
     private fun statusbitsNZ(value: Int, type: IRDataType) {
-        statusZero = value==0
+        statusZero = value == 0
         when(type) {
-            IRDataType.BYTE -> statusNegative = (value and 0x80)==0x80
-            IRDataType.WORD -> statusNegative = (value and 0x8000)==0x8000
-            IRDataType.LONG -> statusNegative = value<0
+            IRDataType.BYTE -> statusNegative = (value and 0x80) == 0x80
+            IRDataType.WORD -> statusNegative = (value and 0x8000) == 0x8000
+            IRDataType.LONG -> statusNegative = value < 0
             IRDataType.FLOAT -> { /* floats don't change the status bits */ }
         }
     }
