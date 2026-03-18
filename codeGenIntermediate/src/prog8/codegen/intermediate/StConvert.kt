@@ -90,6 +90,9 @@ private fun convert(variable: StStaticVariable): IRStStaticVariable {
                     val target = variable.lookup(it.addressOfSymbol!!) ?:
                         throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
                     newArray.add(IRStArrayElement(null, null, target.scopedNameString))
+                } else if(it.memorySlabName!=null) {
+                    // memory() slab references don't need fixup, just convert directly
+                    newArray.add(convertArrayElt(it))
                 } else {
                     newArray.add(convertArrayElt(it))
                 }

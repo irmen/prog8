@@ -943,6 +943,8 @@ internal class ProgramAndVarsGen(
             else {
                 if(it.value!=null)
                     asmgen.out("  ${nameWithoutColons} = ${it.value!!.toHex()}")
+                else if(it.memorySlab!=null)
+                    asmgen.out("  ${nameWithoutColons} = ${StMemorySlabBlockName}.${it.memorySlab!!.name}")
                 else
                     TODO("asm gen for ${nameWithoutColons} = memory alloc?")
             }
@@ -1001,6 +1003,10 @@ internal class ProgramAndVarsGen(
                         asmgen.asmSymbolName(addrOfSymbol+"_lsb")  // the _lsb split array comes first in memory
                     else
                         asmgen.asmSymbolName(addrOfSymbol)
+                }
+                else if(it.memorySlabName!=null) {
+                    // memory() slab reference in array initializer
+                    asmgen.asmSymbolName("$StMemorySlabBlockName.${it.memorySlabName!!}")
                 }
                 else if(it.structInstance!=null) {
                     asmgen.asmSymbolName("${StStructInstanceBlockName}.${it.structInstance!!}")

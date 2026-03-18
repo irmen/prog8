@@ -671,5 +671,58 @@ main {
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain ("invalid enum member name")
     }
+
+    test("const memory() - in array initializer") {
+        val src = """
+main {
+    sub start() {
+        const uword mem1 = memory("mem1", 10, 0)
+        const uword mem2 = memory("mem2", 10, 0)
+        uword[2] arr = [mem1, mem2]
+        @(arr[0]) = 111
+        @(arr[1]) = 222
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("const memory() - mixed with regular constants in array") {
+        val src = """
+main {
+    sub start() {
+        const uword mem1 = memory("mem1", 10, 0)
+        const uword const1 = 1000
+        uword[3] arr = [mem1, const1, memory("mem2", 20, 0)]
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("const memory() - pointer arithmetic") {
+        val src = """
+main {
+    sub start() {
+        const uword base = memory("base_mem", 100, 0)
+        uword temp_ptr = base
+        temp_ptr = temp_ptr + 10
+        @(temp_ptr) = 99
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("const memory() - direct memory() calls in array") {
+        val src = """
+main {
+    sub start() {
+        uword[3] arr = [memory("m1", 10, 0), memory("m2", 20, 0), memory("m3", 30, 0)]
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
 })
 
