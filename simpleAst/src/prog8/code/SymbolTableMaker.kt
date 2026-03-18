@@ -7,7 +7,8 @@ import prog8.code.target.VMTarget
 
 class SymbolTableMaker(private val program: PtProgram, private val options: CompilationOptions) {
     fun make(): SymbolTable {
-        val st = SymbolTable(program)
+        // Disable cache when optimizations are disabled (-noopt flag) for easier debugging
+        val st = SymbolTable(program, disableCache = !options.optimize)
         BuiltinFunctions.forEach {
             st.add(StNode(it.key, StNodeType.BUILTINFUNC, null))
         }

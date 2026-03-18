@@ -20,7 +20,7 @@ Context and instructions for AI Agents to work on this project.
 
 ## Compilation Flow (High-Level)
 ```
-Source → parseMainModule() → processAst() → optimizeAst() → postprocessAst() 
+Source → parseMainModule() → processAst() → optimizeAst() → postprocessAst()
        → Simple AST → Code Generator → Assembly → .prg
 ```
 
@@ -32,6 +32,51 @@ Source → parseMainModule() → processAst() → optimizeAst() → postprocessA
 - Code generation - Simple AST → IR or 6502 assembly
 
 **Understanding this order is important:** For example, `ConstantIdentifierReplacer` runs during `processAst()`, so by the time `AstChecker` runs at the end of that phase, identifier references have already been replaced with their actual values.
+
+## DEBUGGING TIP: Use `-noopt` to isolate problems
+When debugging compiler issues, **FIRST try compiling with the `-noopt` switch** (e.g., `prog8c -noopt -target virtual test.p8`):
+- **If the problem does NOT occur with `-noopt`**: The issue is in the **optimization phases** (`optimizeAst()`, `UnusedCodeRemover`, `Inliner`, `ConstantIdentifierReplacer`, etc.)
+- **If the problem STILL occurs with `-noopt`**: The issue is in **parsing, semantic analysis, symbol table building, or code generation** (NOT in optimizations)
+
+This helps you quickly narrow down which part of the compiler to investigate!
+
+## IMPORTANT: SymbolTable cachedFlat cache
+The `SymbolTable` class (in `simpleAst/src/prog8/code/SymbolTable.kt`) has a **cached `flat` property** that provides fast symbol lookups without tree traversal:
+```kotlin
+val flat: Map<String, StNode> get() {
+    if(cachedFlat!=null)
+        return cachedFlat!!
+    // ... builds flat map from tree ...
+}
+```
+
+**CRITICAL:** If you modify the AST structure **after** the SymbolTable has been constructed, you **MUST** call `symbolTable.resetCachedFlat()` to clear the cache, otherwise lookups will return stale/missing symbols!
+
+**Consequence:** If you fail to reset the cache after program structure changes, it will cause **symbol lookup failures** - symbols that exist in the modified AST won't be found because the cached flat map still references the old structure.
+
+Example pattern when modifying AST after SymbolTable creation:
+```kotlin
+val symbolTable = SymbolTableMaker(program, options).make()
+// ... modify program AST structure ...
+symbolTable.resetCachedFlat()  // Clear cache!
+val updatedSymbolTable = SymbolTableMaker(program, options).make()  // Rebuild
+```
+
+This is a common source of bugs when the IR codegen or other phases modify the AST!
+
+## IMPORTANT: Virtual Target (IR Codegen) Issues
+When analyzing a problem that **ONLY OCCURS WITH THE 'virtual' TARGET** (IR code generation), **ONLY consider these modules**:
+- `codeGenIntermediate` - IR code generator
+- `intermediate` - IR representation and file I/O
+- `virtualmachine` - VM that executes IR code
+
+**DO NOT make changes in other modules** (such as `compilerAst`, `simpleAst`, `codeGenCpu6502`, etc.) when debugging virtual-target-only issues. The IR codegen has its own:
+- Symbol table handling (`SymbolTableMaker`, `SymbolTable`)
+- AST transformations (`moveAllNestedSubroutinesToBlockScope`, `makeAllNodenamesScoped`)
+- Unused code removal (`IRUnusedCodeRemover`)
+- Code generation (`IRCodeGen`)
+
+These are separate from the 6502 codegen path and have different requirements (e.g., flattened AST structure, different symbol scoping rules).
 
 ## CRITICAL: NO FORMATTING
 - NEVER run formatters (black, ruff, prettier, etc.) after edits

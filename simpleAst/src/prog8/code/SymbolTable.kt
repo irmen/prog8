@@ -8,7 +8,10 @@ import prog8.code.core.*
  * Tree structure containing all symbol definitions in the program
  * (blocks, subroutines, variables (all types), memoryslabs, and labels).
  */
-class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
+class SymbolTable(
+    astProgram: PtProgram,
+    private val disableCache: Boolean = false  // When true, always rebuild flat map instead of caching
+) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
     /**
      * The table as a flat mapping of scoped names to the StNode.
      * This gives the fastest lookup possible (no need to traverse tree nodes)
@@ -16,24 +19,33 @@ class SymbolTable(astProgram: PtProgram) : StNode(astProgram.name, StNodeType.GL
 
     private var cachedFlat: Map<String, StNode>? = null
 
-    val flat: Map<String, StNode> get()  {
+    val flat: Map<String, StNode> get() {
+        // Helper function to build the flat map
+        fun buildFlatMap(): Map<String, StNode> {
+            val result = mutableMapOf<String, StNode>()
+            fun collect(node: StNode) {
+                for(child in node.children) {
+                    result[child.value.scopedNameString] = child.value
+                    collect(child.value)
+                }
+            }
+            collect(this)
+            return result
+        }
+
+        if(disableCache) {
+            // Cache disabled - always rebuild (useful for debugging with -noopt)
+            return buildFlatMap()
+        }
         if(cachedFlat!=null)
             return cachedFlat!!
 
-        val result = mutableMapOf<String, StNode>()
-        fun collect(node: StNode) {
-            for(child in node.children) {
-                result[child.value.scopedNameString] = child.value
-                collect(child.value)
-            }
-        }
-        collect(this)
-        cachedFlat = result
-        return result
+        cachedFlat = buildFlatMap()
+        return cachedFlat!!
     }
 
     fun resetCachedFlat() {
-        cachedFlat = null
+        if(!disableCache) cachedFlat = null
     }
 
     val allVariables: Collection<StStaticVariable> by lazy {

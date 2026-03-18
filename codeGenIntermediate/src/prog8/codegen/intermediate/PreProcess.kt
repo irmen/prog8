@@ -26,8 +26,10 @@ internal fun moveAllNestedSubroutinesToBlockScope(program: PtProgram) {
     }
 
     fun moveToBlock(block: PtBlock, parent: PtSub, sub: PtSub) {
+        // First recursively move nested subroutines
         sub.children.filterIsInstance<PtSub>().forEach { subsub -> moveToBlock(block, sub, subsub) }
         sub.children.filterIsInstance<PtAsmSub>().forEach { asmsubsub -> moveToBlock(block, sub, asmsubsub) }
+
         movedSubs += Pair(block, sub)
         removedSubs += Pair(parent, sub)
     }
