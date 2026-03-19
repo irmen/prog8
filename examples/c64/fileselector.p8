@@ -5,7 +5,7 @@
 
 ; A "TUI" for an interactive file selector, that scrolls the selection list if it doesn't fit on the screen.
 
-; TODO sort entries alphabetically? Or not, because C64/C128 directories tend to be not very large.
+; We don't sort entries alphabetically, because C64/C128 directories tend to be not very large.
 
 
 main {

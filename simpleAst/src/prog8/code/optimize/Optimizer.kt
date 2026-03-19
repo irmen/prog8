@@ -338,8 +338,6 @@ private fun optimizeRedundantVarInits(program: PtProgram): Int {
     }
 
     removeInitializations.forEach { (parent, varInit) ->
-        val varinitname = if(varInit.multiTarget) "<multiple>" else varInit.target.identifier?.name ?: "???"
-        println("OPT:REMOVING REDUNDANT VAR INIT: $varinitname ${varInit.position} (THIS MSG WILL BE REMOVED)")     // TODO remove this debug message
         parent.children.remove(varInit)
     }
 
