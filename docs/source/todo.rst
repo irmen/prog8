@@ -1,6 +1,9 @@
 TODO
 ====
 
+BUG? The while loop condition mantissa == 0 and @(stringptr) == '0' is being evaluated incorrectly with -noopt. The loop body executes even when mantissa=1.
+
+
 Weird Heisenbug
 ^^^^^^^^^^^^^^^
 - BUG: examples/cube3d-float crashes with div by zero error on C64 (works on cx16. ALready broken in v11, v10 still worked)

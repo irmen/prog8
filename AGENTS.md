@@ -93,6 +93,7 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 ### Logic & Control Flow
 - boolean operators: 'and', 'or', 'xor', 'not'. Bitwise: '&', '|', '^', '~', '<<', '>>'. See docs/source/programming.rst.
+- **Short-circuit evaluation**: Logical `and` and `or` use short-circuit evaluation! In `a and b`, if `a` is false, `b` is NOT evaluated. In `a or b`, if `a` is true, `b` is NOT evaluated. This is important when `b` has side effects or could cause errors.
 - CPU status flags: if_cs, if_cc, if_z, if_nz, etc. compile to single 6502 branch instructions.
 - use 'when' statements with choice blocks instead of multiple 'if' statements.
 - use 'repeat' instead of loops when iteration count is not needed.
@@ -183,6 +184,9 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - `prog8c -target targetname -emu input.p8` - Compile and execute a prog8 file in the emulator for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -vm input.p8ir` - Execute an existing prog8 program, compiled in IR form, in the Virtual Machine
 - `x16emu -scale 2 -prg input.prg` - Just load an existing compiled program in the CommanderX16 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
+- **CX16 debugging tip**: Use `x16emu -echo iso -prg input.prg` to make the emulator echo screen output (ISO-8859-16 encoded) to stdout. This allows you to see program output and debug messages in the terminal. You can pipe through `strings` or `iconv` to decode: `x16emu -echo iso -prg input.prg 2>&1 | strings` or `x16emu -echo iso -prg input.prg 2>&1 | grep -E "(PASS|FAIL|ERROR)"`.
+- **IMPORTANT: Always use `sys.poweroff_system()` to exit the CX16 emulator cleanly!** Add `sys.poweroff_system()` at the end of your main program block - this exits x16emu automatically in most cases.
+  **Note:** The `sys` module is always available, there is no need to import it ever.
 - `x64sc input.prg` - run an existing compiled program in the Commodore-64 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
 - **Testing tip**: When writing and testing Prog8 programs, **use the `virtual` target** (e.g., `prog8c -target virtual -emu input.p8` or `prog8c -vm input.p8ir`). This is the preferred way to test because the virtual target can easily write output to stdout, making it simple to verify program behavior and check results.
 

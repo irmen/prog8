@@ -262,6 +262,8 @@ class ConstExprEvaluator {
             "round" -> round(args[0].number)
             "floor" -> floor(args[0].number)
             "ceil" -> ceil(args[0].number)
+            "sqrt" -> sqrt(args[0].number)
+            "abs" -> abs(args[0].number)
             "minf", "min" -> min(args[0].number, args[1].number)
             "maxf", "max" -> max(args[0].number, args[1].number)
             "clampf", "clamp" -> {

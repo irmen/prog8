@@ -27,10 +27,14 @@ sys {
 
 
     sub  reset_system()  {
-        ; Soft-reset the system back to initial power-on Basic prompt.
+        ; exit the vm
         %ir {{
             syscall 0 ()
         }}
+    }
+
+    sub poweroff_system() {
+        exit(0)          ; exit the vm
     }
 
     sub die(ubyte code, str message) {

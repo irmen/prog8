@@ -19,7 +19,10 @@ private typealias ConstExpressionCaller = (args: List<Expression>, position: Pos
 // Maps builtin functions to constant evaluators for compile-time execution
 // TODO: add support for builtin functions that return multiple return values (such as divmod)
 internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> = mapOf(
-    "abs" to ::builtinAbs,
+    "abs__byte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() } },
+    "abs__word" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() } },
+    "abs__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() } },
+    "abs__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) { abs(it) } },
     "len" to ::builtinLen,
     "sizeof" to ::builtinSizeof,
     "offsetof" to ::builtinOffsetof,
@@ -52,6 +55,7 @@ internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> 
     "clamp__byte" to ::builtinClampByte,
     "clamp__uword" to ::builtinClampUWord,
     "clamp__word" to ::builtinClampWord,
+    "clamp__long" to ::builtinClampLong,
     "min__ubyte" to ::builtinMinUByte,
     "min__byte" to ::builtinMinByte,
     "min__uword" to ::builtinMinUWord,
@@ -105,16 +109,6 @@ private fun oneFloatArgOutputFloat(args: List<Expression>, position: Position, p
     if(result.isNaN())
         throw CannotEvaluateException("built-in function", "result is NaN $position")
     return NumericLiteral(BaseDataType.FLOAT, result, args[0].position)
-}
-
-private fun builtinAbs(args: List<Expression>, position: Position, program: Program): NumericLiteral {
-    // 1 arg, type = int, result type= uword
-    if(args.size!=1)
-        throw SyntaxError("abs requires one integer argument", position)
-
-    val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
-    return if (constval.type.isInteger) NumericLiteral.optimalInteger(abs(constval.number.toInt()), args[0].position)
-    else throw SyntaxError("abs requires one integer argument", position)
 }
 
 private fun builtinOffsetof(args: List<Expression>, position: Position, program: Program): NumericLiteral {
@@ -391,5 +385,15 @@ private fun builtinClampWord(args: List<Expression>, position: Position, program
     val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
     val result = min(max(value.number, minimum.number), maximum.number)
     return NumericLiteral(BaseDataType.WORD, result, position)
+}
+
+private fun builtinClampLong(args: List<Expression>, position: Position, program: Program): NumericLiteral {
+    if(args.size!=3)
+        throw SyntaxError("clamp requires 3 arguments", position)
+    val value = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val minimum = args[1].constValue(program) ?: throw NotConstArgumentException()
+    val maximum = args[2].constValue(program) ?: throw NotConstArgumentException()
+    val result = min(max(value.number, minimum.number), maximum.number)
+    return NumericLiteral(BaseDataType.LONG, result, position)
 }
 

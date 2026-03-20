@@ -2374,9 +2374,6 @@ import prog8.codegen.cpu6502.assignment.*
                     addr.parent = call
                     AsmAssignSource.fromAstSource(addr, program, asmgen)
                 }
-                is PtNumber -> {
-                    throw AssemblyError("float literals should have been converted into autovar")
-                }
                 else -> {
                     if(scope==null)
                         throw AssemblyError("cannot use float arguments outside of a subroutine scope")
