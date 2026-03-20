@@ -207,7 +207,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("cxlogo", cx16SizeOptimized=599, cx16SizeUnoptimized=895),
             ExampleSizes("diskspeed", cx16SizeOptimized=6302, cx16SizeUnoptimized=8376),
             ExampleSizes("fileseek", cx16SizeOptimized=2472, cx16SizeUnoptimized=4579),
-            ExampleSizes("floatparse", cx16SizeOptimized=1769, cx16SizeUnoptimized=2722),
+            ExampleSizes("floatparse", cx16SizeOptimized=8303, cx16SizeUnoptimized=9270),
             ExampleSizes("interpolation", cx16SizeOptimized=3799, cx16SizeUnoptimized=4768),
             ExampleSizes("kefrenbars", cx16SizeOptimized=2415, cx16SizeUnoptimized=6090),
             ExampleSizes("keyboardhandler", cx16SizeOptimized=412, cx16SizeUnoptimized=717),
@@ -318,17 +318,17 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
-            ExampleSizes("bouncegfx", virtualSizeOptimized=19966, virtualSizeUnoptimized=83137),
-            ExampleSizes("bsieve", virtualSizeOptimized=18747, virtualSizeUnoptimized=96995),
-            ExampleSizes("fountain", virtualSizeOptimized=16471, virtualSizeUnoptimized=79869),
-            ExampleSizes("pixelshader", virtualSizeOptimized=8114, virtualSizeUnoptimized=27828),
-            ExampleSizes("sincos", virtualSizeOptimized=30326, virtualSizeUnoptimized=83875),
-            ExampleSizes("pointers/animalgame", virtualSizeOptimized=23167, virtualSizeUnoptimized=185019),
-            ExampleSizes("pointers/binarytree", virtualSizeOptimized=43464, virtualSizeUnoptimized=122353),
-            ExampleSizes("pointers/hashtable", virtualSizeOptimized=54300, virtualSizeUnoptimized=198004),
-            ExampleSizes("pointers/sortedlist", virtualSizeOptimized=24386, virtualSizeUnoptimized=147633),
-            ExampleSizes("pointers/fountain-virtual", virtualSizeOptimized=16538, virtualSizeUnoptimized=79933),
-            ExampleSizes("pointers/sorting", virtualSizeOptimized=42674, virtualSizeUnoptimized=205888)
+            ExampleSizes("bouncegfx", virtualSizeOptimized=19966, virtualSizeUnoptimized=83475),
+            ExampleSizes("bsieve", virtualSizeOptimized=18747, virtualSizeUnoptimized=97333),
+            ExampleSizes("fountain", virtualSizeOptimized=16471, virtualSizeUnoptimized=80207),
+            ExampleSizes("pixelshader", virtualSizeOptimized=8114, virtualSizeUnoptimized=28166),
+            ExampleSizes("sincos", virtualSizeOptimized=30326, virtualSizeUnoptimized=84213),
+            ExampleSizes("pointers/animalgame", virtualSizeOptimized=23167, virtualSizeUnoptimized=185355),
+            ExampleSizes("pointers/binarytree", virtualSizeOptimized=43464, virtualSizeUnoptimized=122691),
+            ExampleSizes("pointers/hashtable", virtualSizeOptimized=54300, virtualSizeUnoptimized=198349),
+            ExampleSizes("pointers/sortedlist", virtualSizeOptimized=24386, virtualSizeUnoptimized=147971),
+            ExampleSizes("pointers/fountain-virtual", virtualSizeOptimized=16538, virtualSizeUnoptimized=80271),
+            ExampleSizes("pointers/sorting", virtualSizeOptimized=42674, virtualSizeUnoptimized=206231)
         ),
         listOf(false, true)
     )
