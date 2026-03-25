@@ -9,7 +9,7 @@ dependencies {
     implementation(project(":codeGenIntermediate"))
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     // implementation "org.jetbrains.kotlin:kotlin-reflect"
-    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.0")
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
 }
 
 sourceSets {

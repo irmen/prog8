@@ -452,6 +452,7 @@ sys  {
     memcopy  (uword source, uword tgt, uword count) 
     memset  (uword mem, uword numbytes, ubyte value) 
     memsetw  (uword mem, uword numwords, uword value) 
+    poweroff_system  () 
     progend  () -> uword 
     progstart  () -> uword 
     push_returnaddress  (uword w) 

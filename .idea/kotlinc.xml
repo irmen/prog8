@@ -14,6 +14,6 @@
     <option name="additionalArguments" value="-Xwhen-guards -jvm-default=no-compatibility" />
   </component>
   <component name="KotlinJpsPluginSettings">
-    <option name="version" value="2.3.10" />
+    <option name="version" value="2.3.20" />
   </component>
 </project>

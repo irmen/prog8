@@ -20,7 +20,7 @@ dependencies {
     // implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     // implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("org.jetbrains.kotlinx:kotlinx-cli:0.3.6")
-    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.0")
+    implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
 
     testImplementation(project(":codeCore"))
     testImplementation(project(":intermediate"))
