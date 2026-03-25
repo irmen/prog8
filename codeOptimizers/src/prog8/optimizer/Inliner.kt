@@ -38,7 +38,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                             // subroutine is possible candidate to be inlined
                             subroutine.inline =
                                 when (val stmt = subroutine.statements[0]) {
-                                    // TODO consider multi-value returns as well
+                                    // TODO consider multi-value returns as well for possible inlining
                                     is Return -> stmt.values.isEmpty() || stmt.values.size==1 &&
                                         if (stmt.values[0] is NumericLiteral)
                                             true

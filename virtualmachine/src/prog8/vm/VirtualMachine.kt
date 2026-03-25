@@ -3055,6 +3055,11 @@ class VirtualMachine(irProgram: IRProgram) {
         }
     }
 
+    fun gfx_text(xx: UShort, yy: UShort, textptr: UShort, color: UByte) {
+        val text = memory.getString(textptr.toInt())
+        window?.drawText(xx.toInt(), yy.toInt(), text, color.toInt())
+    }
+
     fun gfx_close() {
         window?.close()
     }

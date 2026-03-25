@@ -75,6 +75,7 @@ SYSCALLS:     DO NOT RENUMBER THESE OR YOU WILL BREAK EXISTING CODE
 63 = seek file ; seek in read file to position
 64 = tell file pos ; get current read position (returns long)
 65 = tell file size ; get file size (returns long)
+66 = gfx_text ; draw text in graphics window
 */
 
 enum class Syscall {
@@ -144,6 +145,7 @@ enum class Syscall {
     SEEK_FILE,
     TELL_FILE_POS,
     TELL_FILE_SIZE,
+    GFX_TEXT,
     ;
 
     companion object {
@@ -686,6 +688,10 @@ object SysCalls {
             Syscall.TELL_FILE_SIZE -> {
                 val size = vm.tell_file_size()
                 returnValue(callspec.returns.single(), size, vm)
+            }
+            Syscall.GFX_TEXT -> {
+                val (xV, yV, textAddrV, colorV) = getArgValues(callspec.arguments, vm)
+                vm.gfx_text(xV as UShort, yV as UShort, textAddrV as UShort, colorV as UByte)
             }
             Syscall.I32_TO_STRING -> {
                 val (number, stringbuffer) = getArgValues(callspec.arguments, vm)

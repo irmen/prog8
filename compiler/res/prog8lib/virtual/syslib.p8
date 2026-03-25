@@ -195,6 +195,16 @@ sys {
         }}
     }
 
+    sub gfx_text(uword xx, uword yy, str textptr, ubyte color) {
+        %ir {{
+            loadm.w r99000,sys.gfx_text.xx
+            loadm.w r99001,sys.gfx_text.yy
+            loadm.w r99002,sys.gfx_text.textptr
+            loadm.b r99100,sys.gfx_text.color
+            syscall 66 (r99000.w, r99001.w, r99002.w, r99100.b)
+        }}
+    }
+
 
     sub push_returnaddress(uword w) {
         ; note: this actually doesn't do anything useful on the VM because the code execution doesn't use the simulated cpu stack

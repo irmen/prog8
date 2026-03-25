@@ -7,7 +7,8 @@
     "allow": [
       "Bash(prog8c *)",
       "Bash(git checkout *)",
-      "Bash(gradle *)"
+      "Bash(gradle *)",
+      "Bash(rm *)"
     ]
   }
 }

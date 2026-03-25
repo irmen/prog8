@@ -452,9 +452,12 @@ skip:
         ; This is a dummy operation for the VM; always uses the same charset for simplicity
     }
 
-    sub text(uword @zp xx, uword yy, bool draw, str sctextptr) {
+    sub text(uword xx, uword yy, bool draw, str sctextptr) {
         ; -- Write some text at the given pixel position. The text string must be in screencode encoding (not petscii!).
         ;    You must also have called text_charset() first to select and prepare the character set to use.
-        ; TODO vm bitmap charset
+        ubyte color = 255
+        if not draw
+            color = 0
+        sys.gfx_text(xx, yy, sctextptr, color)
     }
 }

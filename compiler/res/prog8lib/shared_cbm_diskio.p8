@@ -525,7 +525,7 @@ _end        jsr  cbm.READST
     sub status() -> str {
         ; -- retrieve the disk drive's current status message
 
-; TODO this doesn't seem to work reliably, sometimes READST returns 128 when the drive is just fine
+; TODO this code below doesn't seem to work reliably, sometimes READST returns 128 when the drive is just fine
 ;        str device_not_present_error = "device not present #xx"
 ;        if cbm.READST()==128 {
 ;            device_not_present_error[len(device_not_present_error)-2] = 0

@@ -1,23 +1,19 @@
+%import math
+%import monogfx
+%option no_sysinit
+%zeropage basicsafe
+
+
 main {
     sub start() {
-        alias s1 = testblock.sub1
-        alias s2 = s1.sub2
-        alias vx = s2.var2
-        vx = 99
+        monogfx.lores()
+        monogfx.text_charset(1)
 
-        alias tb = testblock
-        alias vv = tb.variable
-        vv = 99
-    }
-}
-
-
-testblock {
-    ubyte @shared variable
-
-    sub sub1() {
-        sub sub2() {
-            ubyte @shared var2
+        ubyte angle
+        for angle in 0 to 255 step 10 {
+            monogfx.text(math.sin8u(angle), math.cos8u(angle)/2,true, iso:"Hello!")
+        }
+        repeat {
         }
     }
 }
