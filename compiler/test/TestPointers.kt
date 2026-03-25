@@ -745,7 +745,7 @@ main {
 
     class Struct(override val scopedNameString: String) : ISubType {
         override fun memsize(sizer: IMemSizer): Int {
-            TODO("Not yet implemented")
+            throw NotImplementedError("no memsize for this struct type in unit test")
         }
 
         override fun sameas(other: ISubType): Boolean {

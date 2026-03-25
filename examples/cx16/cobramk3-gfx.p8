@@ -5,7 +5,6 @@
 %import verafx
 %import floats
 
-; TODO add FPS counter
 ; TODO add all other Elite's ships, show their name, advance to next ship on keypress
 
 main {
@@ -13,12 +12,18 @@ main {
         uword anglex
         uword angley
         uword anglez
+        uword last_time
+        uword frame_count
+        uword fps
 
         monogfx.lores()
         monogfx.text_charset(1)
         monogfx.clear_screen(false)
         print_ship_name()
         monogfx.enable_doublebuffer()
+        last_time = cbm.RDTIM16()
+        frame_count = 0
+        fps = 0
         monogfx.clear_screen(false)
         print_ship_name()
 
@@ -33,6 +38,20 @@ main {
             draw_lines_hiddenremoval()
             ; draw_lines()
             monogfx.swap_buffers(true)
+
+            ; FPS counter - updated every second
+            frame_count++
+            uword current_time = cbm.RDTIM16()
+            uword elapsed = current_time - last_time
+            if elapsed >= 60 {
+                fps = frame_count
+                frame_count = 0
+                last_time = current_time
+                ; clear previous FPS text area and draw new value
+                monogfx.fillrect(268, 0, 52, 8, false)
+                monogfx.text(268, 0, true, "fps:")
+                monogfx.text(298, 0, true, conv.str_uw(fps))
+            }
 
             anglex += 317
             angley -= 505

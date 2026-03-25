@@ -2,5 +2,12 @@
   "context": {
     "fileName": "AGENTS.md"
   },
-  "$version": 3
+  "$version": 3,
+  "permissions": {
+    "allow": [
+      "Bash(prog8c *)",
+      "Bash(git checkout *)",
+      "Bash(gradle *)"
+    ]
+  }
 }

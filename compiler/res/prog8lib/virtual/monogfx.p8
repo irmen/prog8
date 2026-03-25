@@ -449,10 +449,7 @@ skip:
     }
 
     sub text_charset(ubyte charset) {
-        ; -- select the text charset to use with the text() routine
-        ;    the charset number is the same as for the cx16.screen_set_charset() ROM function.
-        ;    1 = ISO charset, 2 = PETSCII uppercase+graphs, 3= PETSCII uppercase+lowercase.
-        ; TODO vm bitmap charset
+        ; This is a dummy operation for the VM; always uses the same charset for simplicity
     }
 
     sub text(uword @zp xx, uword yy, bool draw, str sctextptr) {

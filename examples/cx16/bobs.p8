@@ -6,19 +6,18 @@
 ; "unlimited sprites / bobs" demo effect.
 ; Note that everything is prog8, no inline assembly used/required.
 ; Note2: these aren't actual sprites, it's a bitmap backbuffer display trick.
-; TODO don't add bobs in pairs of 2 make them appear individually
 
 main {
     sub start() {
         cx16.set_screen_mode(3)
         txt.print("\n\n how many sprites does\n    the commander x16 have?\n")
-        sys.wait(120)
+        sys.wait(60)
         txt.print("\n\n the manual says: '128'.\n")
-        sys.wait(80)
+        sys.wait(40)
         txt.print("\n\n but that's just a manual...\n")
-        sys.wait(80)
+        sys.wait(40)
         txt.print("\n\n let's find out for ourselves,\n        shall we?")
-        sys.wait(180)
+        sys.wait(200)
 
         ; enable bitmap mode 320x240, 1 bpp, only layer 1
         cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000
@@ -51,6 +50,7 @@ main {
     uword num_bobs = 0
     ubyte backbuffer = num_backbuffers-1
     ubyte blitbuffer = 0
+    ubyte frame_count = 0
     uword anim1 = $0432
     uword anim2 = $f123
     uword anim3 = $e321
@@ -72,7 +72,15 @@ main {
         backbuffer++
         if backbuffer==num_backbuffers {
             backbuffer=0
-            num_bobs+=4
+        }
+        ; increment bob counter every 3 frames:
+        ; with 12 backbuffers and 4 bobs drawn per frame,
+        ; each backbuffer only receives a new bob once every 3 frames (12/4=3).
+        ; so the visible bob count increases by 1 every 3 frames.
+        frame_count++
+        if frame_count >= 3 {
+            frame_count = 0
+            num_bobs++
         }
 
         vmembase = backbuffer*4                     ; 2048 * 4 per backbuffer
