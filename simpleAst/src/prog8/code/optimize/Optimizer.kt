@@ -7,10 +7,22 @@ import prog8.code.core.*
 import prog8.code.target.VMTarget
 import kotlin.math.log2
 
+/**
+ * Simple AST optimizer for the simplified AST.
+ *
+ * **Design note:** This optimizer uses simple tree-walks and pattern matching.
+ * **No Control Flow Analysis (CFA) or dataflow analysis is (or will be) done** to keep
+ * the implementation simple. This means some optimization opportunities may be missed
+ * (e.g., jumps like break/continue are treated conservatively, function calls are assumed
+ * to potentially reference any variable), but the generated code remains correct.
+ */
 
 fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: SymbolTable, errors: IErrorReporter) {
     if (!options.optimize)
         return
+    // Run optimizations in a fixpoint loop until no more changes occur.
+    // These optimizations can create opportunities for each other (e.g., simplifying expressions
+    // can enable more assign target optimizations).
     while (errors.noErrors() &&
         optimizeAssignTargets(program, st)
         + optimizeFloatComparesToZero(program)
@@ -21,6 +33,9 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
         // keep rolling
     }
 
+    // optimizeRedundantVarInits runs only once at the end. It removes variable initializations
+    // that are overwritten before first use. This is a cleanup pass that doesn't create new
+    // optimization opportunities for the other passes, so it doesn't need to be in the fixpoint loop.
     optimizeRedundantVarInits(program)
 }
 
@@ -384,7 +399,7 @@ fun referencesIdentifier(node: PtNode, identifier: PtIdentifier): Boolean {
         is PtConditionalBranch -> node.children.any { referencesIdentifier(it, identifier) }
         is PtDefer -> node.children.any { referencesIdentifier(it, identifier) }
         is PtFunctionCall -> true
-        is PtJump -> true           // we cannot tell where the jump is going, that code may depend on the value TODO unfortunately continue and break are also jumps
+        is PtJump -> true           // Conservative: jump target may depend on the value
         is PtInlineAssembly -> true
         is PtExpression -> refsIdentifier(node)
         else -> false   // everything else is a node that cannot ever contain the variable, so false
