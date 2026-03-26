@@ -606,4 +606,177 @@ main {
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runProgram(virtfile.readText(), true)
     }
+
+    test("uninitialized struct instance is zeroed out in BSS") {
+        val src = """
+main {
+    struct Point {
+        word x
+        word y
+    }
+
+    sub start() {
+        ; Create an uninitialized struct instance - should be zeroed out at startup
+        ^^Point emptyPoint = ^^Point : []
+        
+        ; Copy struct fields to shared variables so we can verify them
+        main.xval = emptyPoint.x
+        main.yval = emptyPoint.y
+    }
+    
+    ; Shared variables to store results
+    word @shared xval
+    word @shared yval  
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        
+        // Verify the IR file contains STRUCTINSTANCESNOINIT section
+        irContent.shouldContain("<STRUCTINSTANCESNOINIT>")
+        irContent.shouldContain("</STRUCTINSTANCESNOINIT>")
+        
+        // Parse the IR to get variable allocations and verify memory
+        val irProgram = IRFileReader().read(irContent)
+        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // Get the addresses of the shared variables
+            val xvalAddr = allocations["main.xval"]!!
+            val yvalAddr = allocations["main.yval"]!!
+            
+            // These should be 0 because they were copied from the zeroed-out struct
+            vm.memory.getUW(xvalAddr) shouldBe 0u
+            vm.memory.getUW(yvalAddr) shouldBe 0u
+            
+            // Also verify the struct instance itself is zeroed
+            val structAddr = allocations.values.first { addr -> 
+                addr > xvalAddr && addr > yvalAddr 
+            }
+            vm.memory.getUW(structAddr) shouldBe 0u      // x field
+            vm.memory.getUW(structAddr + 2) shouldBe 0u  // y field
+        }
+    }
+
+    test("uninitialized struct instance with more fields is zeroed out") {
+        val src = """
+main {
+    struct Data {
+        byte a
+        byte b
+        word c
+        ubyte d
+        uword e
+    }
+
+    sub start() {
+        ; Create an uninitialized struct instance with multiple fields
+        ^^Data empty = ^^Data : []
+        
+        ; Copy all fields to shared variables to verify they are zeroed
+        main.a_result = empty.a
+        main.b_result = empty.b
+        main.c_result = empty.c
+        main.d_result = empty.d
+        main.e_result = empty.e
+    }
+    
+    ; Shared variables at known addresses to store results
+    byte @shared a_result
+    byte @shared b_result
+    word @shared c_result
+    ubyte @shared d_result
+    uword @shared e_result
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        
+        // Verify the IR file contains STRUCTINSTANCESNOINIT section
+        irContent.shouldContain("<STRUCTINSTANCESNOINIT>")
+        
+        // Parse the IR to get variable allocations and verify memory
+        val irProgram = IRFileReader().read(irContent)
+        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        
+        // Run the program and verify all struct fields were zeroed
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // Check all shared variables are 0
+            vm.memory.getUB(allocations["main.a_result"]!!) shouldBe 0u
+            vm.memory.getUB(allocations["main.b_result"]!!) shouldBe 0u
+            vm.memory.getUW(allocations["main.c_result"]!!) shouldBe 0u
+            vm.memory.getUB(allocations["main.d_result"]!!) shouldBe 0u
+            vm.memory.getUW(allocations["main.e_result"]!!) shouldBe 0u
+        }
+    }
+
+    test("mix of initialized and uninitialized struct instances") {
+        val src = """
+main {
+    struct Point {
+        word x
+        word y
+    }
+
+    sub start() {
+        ; Initialized struct instance
+        ^^Point initPoint = ^^Point : [100, 200]
+        
+        ; Uninitialized struct instance - should be zeroed
+        ^^Point emptyPoint = ^^Point : []
+        
+        ; Another initialized one
+        ^^Point initPoint2 = ^^Point : [300, 400]
+        
+        ; Another uninitialized one
+        ^^Point emptyPoint2 = ^^Point : []
+        
+        ; Copy values to shared variables for verification
+        main.x1 = initPoint.x
+        main.y1 = initPoint.y
+        main.ex1 = emptyPoint.x
+        main.ey1 = emptyPoint.y
+        main.x2 = initPoint2.x
+        main.y2 = initPoint2.y
+        main.ex2 = emptyPoint2.x
+        main.ey2 = emptyPoint2.y
+    }
+    
+    ; Shared variables to store results
+    word @shared x1
+    word @shared y1
+    word @shared ex1
+    word @shared ey1
+    word @shared x2
+    word @shared y2
+    word @shared ex2
+    word @shared ey2
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+        
+        // Verify the IR file contains both sections
+        irContent.shouldContain("<STRUCTINSTANCESNOINIT>")
+        irContent.shouldContain("<STRUCTINSTANCES>")
+        
+        // Parse the IR to get variable allocations
+        val irProgram = IRFileReader().read(irContent)
+        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        
+        // Run the program and verify both initialized and uninitialized values
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // Check initialized struct values
+            vm.memory.getUW(allocations["main.x1"]!!) shouldBe 100u
+            vm.memory.getUW(allocations["main.y1"]!!) shouldBe 200u
+            vm.memory.getUW(allocations["main.x2"]!!) shouldBe 300u
+            vm.memory.getUW(allocations["main.y2"]!!) shouldBe 400u
+            
+            // Check uninitialized struct values (should be zeroed)
+            vm.memory.getUW(allocations["main.ex1"]!!) shouldBe 0u
+            vm.memory.getUW(allocations["main.ey1"]!!) shouldBe 0u
+            vm.memory.getUW(allocations["main.ex2"]!!) shouldBe 0u
+            vm.memory.getUW(allocations["main.ey2"]!!) shouldBe 0u
+        }
+    }
 })

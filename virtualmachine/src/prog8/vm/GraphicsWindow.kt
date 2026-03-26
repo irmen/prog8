@@ -77,8 +77,8 @@ class GraphicsWindow(val pixelWidth: Int, val pixelHeight: Int, val pixelScaling
     fun drawText(x: Int, y: Int, text: String, color: Int) {
         var charX = x
         for (char in text) {
-            val charCode = char.toInt()
-            if (charCode < 32 || charCode > 255) {
+            val charCode = char.code
+            if (charCode !in 32..255) {
                 charX += 8
                 continue
             }

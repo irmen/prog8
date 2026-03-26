@@ -8,7 +8,21 @@
       "Bash(prog8c *)",
       "Bash(git checkout *)",
       "Bash(gradle *)",
-      "Bash(rm *)"
+      "Bash(rm *)",
+      "Bash(cat)",
+      "Bash(main *)",
+      "Bash(struct *)",
+      "Bash(word *)",
+      "Bash(})",
+      "Bash(sub *)",
+      "Bash(^^point *)",
+      "Bash(main.xval *)",
+      "Bash(main.yval *)",
+      "Bash(eof)",
+      "Bash(mkdir *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(find *)"
     ]
   }
 }

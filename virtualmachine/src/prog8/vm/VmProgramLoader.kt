@@ -286,7 +286,6 @@ class VmProgramLoader {
             var a = address
             if(instance.values.isEmpty()) {
                 // Zero out BSS for this uninitialized instance
-                // TODO doesn't work yet????
                 repeat(instance.size.toInt()) {
                     memory.setUB(a, 0u)
                     a++

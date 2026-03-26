@@ -6,9 +6,9 @@ import prog8.code.core.IStringEncoding
 import prog8.code.core.InternalCompilerException
 import prog8.intermediate.IRSymbolTable
 
-internal class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
+class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
 
-    internal val allocations = mutableMapOf<String, Int>()
+    val allocations = mutableMapOf<String, Int>()
     private var freeMemoryStart: Int
 
     val freeMem: Int

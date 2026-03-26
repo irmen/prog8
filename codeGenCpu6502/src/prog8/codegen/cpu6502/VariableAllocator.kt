@@ -1,7 +1,7 @@
 package prog8.codegen.cpu6502
 
 import com.github.michaelbull.result.fold
-import com.github.michaelbull.result.onSuccess
+import com.github.michaelbull.result.onOk
 import prog8.code.*
 import prog8.code.core.*
 
@@ -85,7 +85,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                     variable.astNode?.position ?: Position.DUMMY,
                     errors
                 )
-                result.onSuccess { numVariablesAllocatedInZP++ }
+                result.onOk { numVariablesAllocatedInZP++ }
                 //  no need to check for allocation error, if there is one, just allocate in normal system ram.
             }
 
@@ -105,7 +105,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
                                 variable.astNode?.position ?: Position.DUMMY,
                                 errors
                             )
-                            result.onSuccess { numVariablesAllocatedInZP++ }
+                            result.onOk { numVariablesAllocatedInZP++ }
                         }
                     } else
                         numberOfNonIntegerVariables++

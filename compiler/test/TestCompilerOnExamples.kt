@@ -209,13 +209,13 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("automatons", cx16SizeOptimized=1037, cx16SizeUnoptimized=1342),
             ExampleSizes("balloonflight", cx16SizeOptimized=3187, cx16SizeUnoptimized=4163),
             ExampleSizes("bdmusic", cx16SizeOptimized=2390, cx16SizeUnoptimized=2766),
-            ExampleSizes("bobs", cx16SizeOptimized=2818, cx16SizeUnoptimized=3433),
+            ExampleSizes("bobs", cx16SizeOptimized=2825, cx16SizeUnoptimized=3440),
             ExampleSizes("boingball", cx16SizeOptimized=1486, cx16SizeUnoptimized=1962),
             ExampleSizes("bubbleuniverse", cx16SizeOptimized=1449, cx16SizeUnoptimized=1958),
             ExampleSizes("charfade", cx16SizeOptimized=1054, cx16SizeUnoptimized=1371),
             ExampleSizes("charsets", cx16SizeOptimized=1125, cx16SizeUnoptimized=1417),
             ExampleSizes("circles", cx16SizeOptimized=2432, cx16SizeUnoptimized=5883),
-            ExampleSizes("cobramk3-gfx", cx16SizeOptimized=7231, cx16SizeUnoptimized=10383),
+            ExampleSizes("cobramk3-gfx", cx16SizeOptimized=7799, cx16SizeUnoptimized=10984),
             ExampleSizes("colorbars", cx16SizeOptimized=1606, cx16SizeUnoptimized=1904),
             ExampleSizes("cube3d", cx16SizeOptimized=2381, cx16SizeUnoptimized=2712),
             ExampleSizes("cxlogo", cx16SizeOptimized=599, cx16SizeUnoptimized=895),
@@ -332,17 +332,17 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
-            ExampleSizes("bouncegfx", virtualLineCountOptimized=831, virtualLineCountUnoptimized=3180),
-            ExampleSizes("bsieve", virtualLineCountOptimized=703, virtualLineCountUnoptimized=3929),
-            ExampleSizes("fountain", virtualLineCountOptimized=659, virtualLineCountUnoptimized=3023),
-            ExampleSizes("pixelshader", virtualLineCountOptimized=330, virtualLineCountUnoptimized=1094),
-            ExampleSizes("sincos", virtualLineCountOptimized=968, virtualLineCountUnoptimized=3196),
-            ExampleSizes("pointers/animalgame", virtualLineCountOptimized=774, virtualLineCountUnoptimized=7598),
-            ExampleSizes("pointers/binarytree", virtualLineCountOptimized=1705, virtualLineCountUnoptimized=4922),
-            ExampleSizes("pointers/hashtable", virtualLineCountOptimized=1928, virtualLineCountUnoptimized=8066),
-            ExampleSizes("pointers/sortedlist", virtualLineCountOptimized=953, virtualLineCountUnoptimized=5814),
-            ExampleSizes("pointers/fountain-virtual", virtualLineCountOptimized=679, virtualLineCountUnoptimized=3045),
-            ExampleSizes("pointers/sorting", virtualLineCountOptimized=1369, virtualLineCountUnoptimized=8337)
+            ExampleSizes("bouncegfx", virtualLineCountOptimized=846, virtualLineCountUnoptimized=3210),
+            ExampleSizes("bsieve", virtualLineCountOptimized=718, virtualLineCountUnoptimized=3959),
+            ExampleSizes("fountain", virtualLineCountOptimized=674, virtualLineCountUnoptimized=3053),
+            ExampleSizes("pixelshader", virtualLineCountOptimized=345, virtualLineCountUnoptimized=1124),
+            ExampleSizes("sincos", virtualLineCountOptimized=983, virtualLineCountUnoptimized=3226),
+            ExampleSizes("pointers/animalgame", virtualLineCountOptimized=774, virtualLineCountUnoptimized=7628),
+            ExampleSizes("pointers/binarytree", virtualLineCountOptimized=1705, virtualLineCountUnoptimized=4952),
+            ExampleSizes("pointers/hashtable", virtualLineCountOptimized=1943, virtualLineCountUnoptimized=8096),
+            ExampleSizes("pointers/sortedlist", virtualLineCountOptimized=953, virtualLineCountUnoptimized=5844),
+            ExampleSizes("pointers/fountain-virtual", virtualLineCountOptimized=694, virtualLineCountUnoptimized=3075),
+            ExampleSizes("pointers/sorting", virtualLineCountOptimized=1369, virtualLineCountUnoptimized=8367)
         ),
         listOf(false, true)
     )
