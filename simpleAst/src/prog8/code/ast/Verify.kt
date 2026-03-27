@@ -35,5 +35,6 @@ fun verifyFinalAstBeforeAsmGen(program: PtProgram, options: CompilationOptions, 
                 }
             }
         }
+        true  // Continue traversal
     }
 }

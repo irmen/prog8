@@ -153,10 +153,32 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 ## Commands to build the compiler
 - use the system installed gradle command instead of the gradle wrapper.
-- **CRITICAL: After ANY change to Kotlin compiler source code (.kt files) OR library files (compiler/res/prog8lib/**/*.p8 or .asm), you MUST rebuild and reinstall the compiler before testing:**
-  - `gradle installdist installshadowdist` - Rebuilds and reinstalls the compiler with your changes
-  - Without this step, your changes will NOT be reflected when running `prog8c`!
-- `gradle clean` - Clean build artifacts
+
+### Quick compile check (NO tests)
+- **After changing compiler Kotlin source (.kt files)**: Use `gradle :compiler:compileKotlin` to quickly check for syntax/compile errors
+- This compiles the compiler but **skips running tests** - much faster than `gradle build`
+- Takes ~10-20s instead of ~45-60s for full build
+- **Note:** This does NOT install the compiler - use `gradle installdist installshadowdist` after to actually use your changes
+
+### When you MUST rebuild AND reinstall the compiler
+**After ANY change to Kotlin compiler source code (.kt files) OR library files (compiler/res/prog8lib/**/*.p8 or .asm):**
+- `gradle installdist installshadowdist` - Rebuilds and reinstalls the compiler with your changes
+- **Without this step, your changes will NOT be reflected when running `prog8c`!**
+- This compiles AND installs, but still skips running tests (faster than `gradle build`)
+
+### When to run full build with tests
+- **Before committing changes**: Always run `gradle build` to ensure all tests pass
+- **After major refactoring**: Run `gradle build` to catch regressions
+- **When debugging test failures**: Use `gradle test --tests "*TestName*"` for specific tests
+
+### Build command summary
+| Command | When to use | Time |
+|---------|-------------|------|
+| `gradle :compiler:compileKotlin` | Quick syntax check of compiler .kt files | ~10-20s |
+| `gradle installdist installshadowdist` | After compiler/library changes (to use them) | ~10-20s |
+| `gradle build` | Before commits, after major changes | ~45-60s |
+| `gradle test --tests "*Name*"` | Debug specific test failures | ~5-30s |
+- `gradle clean` - Clean build artifacts (use if you suspect stale build artifacts)
 
 ### Two different workflows
 
@@ -180,6 +202,11 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 ## Commands to run the Prog8 Compiler
 - the prog8c compiler executable can be found in the compiler/build/install/prog8c/bin folder (this is already added to the shell's path)
 - **the `-check` switch performs a quick syntax/semantic check only - it will NOT produce any output files (no .prg, .asm, etc.)**. Use it only for fast error checking during development.
+- **the `-noopt` switch DISABLES all optimizations** - useful for debugging to determine if a problem is caused by the optimizer. **Optimizations are ENABLED by default** (no flag needed).
+- **prog8c uses single-dash command line options** (e.g., `-target`, `-noopt`, `-check`), NOT double-dash (`--target` is invalid).
+- **the `-printast1` switch prints out the internal Compiler AST** after parsing and semantic analysis.
+- **the `-printast2` switch prints out the optimized Simple AST** just before it goes to the code generator. This is useful for debugging optimizer issues.
+- **the `-out outdir` switch sets an alternative output directory** for compiled files (.prg, .asm, .list, etc.). **By default, output files are written to the same directory as the source file**.
 - `prog8c -target targetname input.p8` - Compile a Prog8 source file "input.p8" for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -target targetname -emu input.p8` - Compile and execute a prog8 file in the emulator for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -vm input.p8ir` - Execute an existing prog8 program, compiled in IR form, in the Virtual Machine

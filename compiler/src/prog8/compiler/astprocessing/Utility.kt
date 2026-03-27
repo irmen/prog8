@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.FatalAstException
 import prog8.code.ast.PtExpression
 import prog8.code.ast.PtFunctionCall
+import prog8.code.ast.PtNode
 import prog8.code.ast.PtTypeCast
 import prog8.code.core.DataType
 
@@ -56,5 +57,29 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
         PtFunctionCall(popFunc, true, false, arrayOf(value.type), value.position)
 
     return Pair(pushCall, popCall)
+}
+
+/**
+ * Transfer all children from source node to target node.
+ * @param source The node to take children from
+ * @param target The node to add children to
+ * @param keepExisting If true, keep target's existing children; if false, clear them first
+ */
+internal fun transferChildren(source: PtNode, target: PtNode, keepExisting: Boolean = false) {
+    if(!keepExisting)
+        target.children.clear()
+    for(c in source.children)
+        target.add(c)
+}
+
+/**
+ * Replace an AST node with a new node, preserving parent relationship.
+ * @param oldNode The node to replace
+ * @param newNode The replacement node
+ */
+internal fun replaceNode(oldNode: PtNode, newNode: PtNode) {
+    newNode.parent = oldNode.parent
+    val idx = oldNode.parent.children.indexOf(oldNode)
+    oldNode.parent.children[idx] = newNode
 }
 

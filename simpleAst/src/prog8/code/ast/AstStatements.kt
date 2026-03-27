@@ -44,6 +44,8 @@ class PtSub(name: String, position: Position) : PtNamedNode(name, position), IPt
 
     val signature: PtSubSignature
         get() = children[0] as PtSubSignature
+    
+    override fun copy(): PtNode = PtSub(name, position)
 }
 
 
@@ -186,9 +188,13 @@ sealed interface IPtAssignment {
         get() = children.size>2
 }
 
-class PtAssignment(position: Position, val isVarInitializer: Boolean=false) : PtNode(position), IPtAssignment
+class PtAssignment(position: Position, val isVarInitializer: Boolean=false) : PtNode(position), IPtAssignment {
+    override fun copy(): PtNode = PtAssignment(position, isVarInitializer)
+}
 
-class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment
+class PtAugmentedAssign(val operator: String, position: Position) : PtNode(position), IPtAssignment {
+    override fun copy(): PtNode = PtAugmentedAssign(operator, position)
+}
 
 
 class PtAssignTarget(val void: Boolean, position: Position) : PtNode(position) {
@@ -234,6 +240,8 @@ class PtForLoop(position: Position) : PtNode(position) {
         get() = children[1] as PtExpression
     val statements: PtNodeGroup
         get() = children[2] as PtNodeGroup
+    
+    override fun copy(): PtNode = PtForLoop(position)
 }
 
 
@@ -246,6 +254,8 @@ class PtIfElse(position: Position) : PtNode(position) {
         get() = children[2] as PtNodeGroup
 
     fun hasElse(): Boolean = children.size==3 && elseScope.children.isNotEmpty()
+    
+    override fun copy(): PtNode = PtIfElse(position)
 }
 
 
@@ -260,6 +270,8 @@ class PtRepeatLoop(position: Position) : PtNode(position) {
         get() = children[0] as PtExpression
     val statements: PtNodeGroup
         get() = children[1] as PtNodeGroup
+    
+    override fun copy(): PtNode = PtRepeatLoop(position)
 }
 
 

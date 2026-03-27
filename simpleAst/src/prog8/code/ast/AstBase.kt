@@ -18,7 +18,7 @@ sealed class PtNode(val position: Position) {
     fun parentHasBeenSet() = ::parent.isInitialized
 
     override fun toString(): String = "${super.toString()} at $position"
-    
+
     fun add(child: PtNode) {
         children.add(child)
         child.parent = this
@@ -29,6 +29,15 @@ sealed class PtNode(val position: Position) {
         child.parent = this
     }
 
+    /**
+     * Create a shallow copy of this node (without children).
+     * Subclasses that need to support copying must override this.
+     * The new node's children list is empty - caller must populate it.
+     * 
+     * Default implementation throws UnsupportedOperationException.
+     */
+    open fun copy(): PtNode = throw UnsupportedOperationException("copy() not implemented for ${this::class.simpleName}")
+
     fun definingBlock() = findParentNode<PtBlock>(this)
     fun definingSub() = findParentNode<PtSub>(this)
     fun definingAsmSub() = findParentNode<PtAsmSub>(this)
@@ -36,7 +45,9 @@ sealed class PtNode(val position: Position) {
 }
 
 
-class PtNodeGroup : PtNode(Position.DUMMY)
+class PtNodeGroup : PtNode(Position.DUMMY) {
+    override fun copy(): PtNode = PtNodeGroup()
+}
 
 
 sealed class PtNamedNode(initialName: String, position: Position): PtNode(position) {
@@ -74,6 +85,8 @@ class PtProgram(
     val memsizer: IMemSizer,
     val encoding: IStringEncoding
 ) : PtNode(Position.DUMMY) {
+    // Root node is never transformed - return self
+    override fun copy(): PtNode = this
 
 //    fun allModuleDirectives(): Sequence<PtDirective> =
 //        children.asSequence().flatMap { it.children }.filterIsInstance<PtDirective>().distinct()
@@ -111,6 +124,8 @@ class PtBlock(name: String,
                   val noSymbolPrefixing: Boolean = false,
                   val veraFxMuls: Boolean = false,
                   val ignoreUnused: Boolean = false)
+    
+    override fun copy(): PtNode = PtBlock(name, library, source, options, position)
 }
 
 

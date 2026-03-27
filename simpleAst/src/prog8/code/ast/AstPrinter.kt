@@ -220,6 +220,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                         output("    ".repeat(depth) + txt(node))
                     }
                 }
+                true  // Continue traversal
             }
         }
         println()
@@ -231,14 +232,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                 if (txt.isNotEmpty())
                     output("    ".repeat(depth) + txt(node))
             }
+            true  // Continue traversal
         }
     }
-}
-
-fun walkAst(root: PtNode, act: (node: PtNode, depth: Int) -> Unit) {
-    fun recurse(node: PtNode, depth: Int) {
-        act(node, depth)
-        node.children.forEach { recurse(it, depth+1) }
-    }
-    recurse(root, 0)
 }
