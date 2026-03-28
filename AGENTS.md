@@ -172,65 +172,31 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - **When debugging test failures**: Use `gradle test --tests "*TestName*"` for specific tests
 
 ### Build command summary
+
 | Command | When to use | Time |
 |---------|-------------|------|
-| `gradle :compiler:compileKotlin` | Quick syntax check of compiler .kt files | ~10-20s |
-| `gradle installdist installshadowdist` | After compiler/library changes (to use them) | ~10-20s |
+| `gradle :compiler:compileKotlin` | Quick syntax check (no tests) | ~10-20s |
+| `gradle installdist installshadowdist` | After compiler changes (to use them) | ~10-20s |
 | `gradle build` | Before commits, after major changes | ~45-60s |
-| `gradle test --tests "*Name*"` | Debug specific test failures | ~5-30s |
-- `gradle clean` - Clean build artifacts (use if you suspect stale build artifacts)
+| `gradle test --tests "*Name*"` | Run specific tests | ~5-30s |
 
-### Gradle Output Tips
+**Note:** Use system `gradle` command, not wrapper. Run `gradle clean` if you suspect stale artifacts.
 
-**For clean error messages:** Use `-q` (quiet) or `--console=plain` to suppress progress bars:
+### Running Tests
+
+**For detailed error output (always use these):**
 ```bash
-gradle :compiler:compileKotlin -q 2>&1     # Shows only errors
-gradle :compiler:compileKotlin --console=plain 2>&1 | grep "^e:"  # Filter Kotlin errors
-```
+# Specific test class with full error details
+gradle :compiler:test --tests "*TestName*" --info 2>&1 | grep -E "FAILED|AssertionError"
 
-**Gradle Daemon:** The daemon (background process) makes builds faster but can buffer output. For CI or debugging, use `--no-daemon` for cleaner output, but it's slower due to JVM startup.
+# Test filtering across all modules
+gradle test -PtestFilter="*TestLookup*"
 
-### Running Unit Tests - IMPORTANT
-
-**When running unit tests, ALWAYS use these switches from the start to see detailed error output:**
-
-```bash
-# For specific test class - shows full error details immediately
-gradle :compiler:test --tests "*TestName*" --info 2>&1 | grep -E "FAILED|error:|AssertionError|at Test"
-
-# For specific test method - shows full error details immediately  
-gradle :compiler:test --tests "*TestName.testMethodName*" --info 2>&1 | grep -E "FAILED|error:|AssertionError|at Test"
-
-# Alternative: use --stacktrace for full stack traces
-gradle :compiler:test --tests "*TestName*" --stacktrace 2>&1 | grep -A 5 "FAILED"
-```
-
-**Why these switches matter:**
-- `--info` - Shows detailed test execution info including assertion errors
-- `--stacktrace` - Shows full stack traces for failures
-- `grep -E "FAILED|error:|AssertionError"` - Filters to show only failure details
-- Without these, you'll see "there were failing tests" but NOT why they failed, requiring a second run
-
-**Example workflow:**
-```bash
-# WRONG - will fail but won't show why:
-gradle :compiler:test --tests "*TestLookupSemantics*"
-
-# RIGHT - shows failure reasons immediately:
-gradle :compiler:test --tests "*TestLookupSemantics*" --info 2>&1 | grep -E "FAILED|AssertionError"
-```
-
-**For compilation errors in tests:**
-```bash
-# Shows Kotlin compilation errors with file/line numbers
+# For compilation errors in tests
 gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 ```
 
-**HTML Test Report:**
-After a test run, check the HTML report for a nice overview:
-```bash
-firefox /home/irmen/Projects/prog8/compiler/build/reports/tests/test/index.html
-```
+**Note:** Test config is centralized in root `build.gradle.kts`. Tests run in parallel. Only failures are shown.
 
 ### Two different workflows
 

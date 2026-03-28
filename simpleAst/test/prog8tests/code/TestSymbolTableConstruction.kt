@@ -1,13 +1,10 @@
-package prog8tests.compiler
+package prog8tests.code
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.code.*
-import prog8.code.ast.PtBlock
-import prog8.code.ast.PtLabel
-import prog8.code.ast.PtProgram
-import prog8.code.ast.PtStructDecl
+import prog8.code.ast.*
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.ZeropageWish
@@ -21,6 +18,9 @@ import prog8tests.helpers.DummyStringEncoder
  * These tests verify that SymbolTables are built correctly from ASTs,
  * that duplicate handling works as expected, and that parent linkage
  * is maintained properly.
+ * 
+ * These tests work directly with SymbolTable objects and do NOT require
+ * compiling Prog8 source code.
  */
 class TestSymbolTableConstruction: FunSpec({
 
@@ -139,16 +139,16 @@ class TestSymbolTableConstruction: FunSpec({
         val astBlock = PtBlock("block1", false, SourceCode.Generated("block1"), PtBlock.Options(), Position.DUMMY)
         astProgram.add(astBlock)
         val st = SymbolTable(astProgram)
-
+        
         val blockNode = StNode("block1", StNodeType.BLOCK, astBlock)
         st.add(blockNode)
-
+        
         val label1 = StNode("label1", StNodeType.LABEL, PtLabel("label1", Position.DUMMY))
         val label2 = StNode("label1", StNodeType.LABEL, PtLabel("label1", Position.DUMMY))  // Same name!
-
+        
         blockNode.add(label1)
         blockNode.add(label2)  // Should be ignored
-
+        
         blockNode.children["label1"] shouldBeSameInstanceAs label1
         blockNode.children.size shouldBe 1
     }
