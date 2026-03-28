@@ -1,9 +1,7 @@
 TODO
 ====
 
-BUG? The while loop condition mantissa == 0 and @(stringptr) == '0' is being evaluated incorrectly with -noopt. The loop body executes even when mantissa=1.
-
-Dead Code Elimination bug with nested subroutines
+Dead Code Elimination BUG with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
   the outer subroutine if ANY symbol from within it is referenced elsewhere (even if the outer subroutine itself is never called).

@@ -286,6 +286,26 @@ internal class IfElseAsmGen(private val program: PtProgram,
     private fun translateIfByte(stmt: PtIfElse, jumpAfterIf: PtJump?) {
         val condition = stmt.condition as PtBinaryExpression
         val signed = condition.left.type.isSigned
+        
+        // Check for logical operators first before checking for constant values
+        if (condition.operator in LogicalOperators) {
+            val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, stmt.definingISub(), condition.position, register=RegisterOrPair.A)
+            if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
+                if (jumpAfterIf != null)
+                    translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("beq", stmt)
+            } else {
+                errors.info("SLOW FALLBACK FOR 'IF' CODEGEN - ask for support", stmt.position)      //  should not occur ;-)
+                asmgen.assignConditionValueToRegisterAndTest(stmt.condition)
+                if(jumpAfterIf!=null)
+                    translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
+                else
+                    translateIfElseBodies("beq", stmt)
+            }
+            return
+        }
+        
         val constValue = condition.right.asConstInteger()
         if(constValue==0) {
             return translateIfCompareWithZeroByte(stmt, signed, jumpAfterIf)
@@ -314,23 +334,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             "<=" -> translateByteLessEqual(stmt, signed, jumpAfterIf)
             ">" -> translateByteGreater(stmt, signed, jumpAfterIf)
             ">=" -> translateByteGreaterEqual(stmt, signed, jumpAfterIf)
-            in LogicalOperators -> {
-                val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, stmt.definingISub(), condition.position, register=RegisterOrPair.A)
-                if (assignmentAsmGen.optimizedLogicalExpr(condition, regAtarget)) {
-                    if (jumpAfterIf != null)
-                        translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
-                    else
-                        translateIfElseBodies("beq", stmt)
-                } else {
-                    errors.info("SLOW FALLBACK FOR 'IF' CODEGEN - ask for support", stmt.position)      //  should not occur ;-)
-                    asmgen.assignConditionValueToRegisterAndTest(stmt.condition)
-                    if(jumpAfterIf!=null)
-                        translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
-                    else
-                        translateIfElseBodies("beq", stmt)
-                }
-            }
-            else -> throw AssemblyError("expected comparison or logical operator")
+            else -> throw AssemblyError("expected comparison operator '${condition.operator}' at ${stmt.position}")
         }
     }
 
@@ -469,7 +473,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                         translateIfElseBodies("bne", stmt)
                 }
             }
-            else -> throw AssemblyError("expected comparison operator")
+            else -> throw AssemblyError("expected comparison operator in 'if' condition, got '${condition.operator}' at ${stmt.position}")
         }
     }
 
@@ -586,7 +590,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 "<=" -> longLessZero(condition.left, true, jumpAfterIf, stmt)
                 ">" -> longGreaterZero(condition.left, false, jumpAfterIf, stmt)
                 ">=" -> longGreaterZero(condition.left, true, jumpAfterIf, stmt)
-                else -> throw AssemblyError("expected comparison operator")
+                else -> throw AssemblyError("expected comparison operator for long, got '${condition.operator}' at ${stmt.position}")
             }
         }
 
@@ -594,7 +598,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             "==" -> longEqualsValue(condition.left, condition.right, false, jumpAfterIf, stmt)
             "!=" -> longEqualsValue(condition.left, condition.right, true, jumpAfterIf, stmt)
             "<", "<=", ">", ">=" -> compareLongValues(condition.left, condition.operator, condition.right, jumpAfterIf, stmt)
-            else -> throw AssemblyError("expected comparison operator")
+            else -> throw AssemblyError("expected comparison operator for long, got '${condition.operator}' at ${stmt.position}")
         }
     }
 
@@ -610,7 +614,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 "<=" -> wordLessEqualsZero(condition.left, signed, jumpAfterIf, stmt)
                 ">" -> wordGreaterZero(condition.left, signed, jumpAfterIf, stmt)
                 ">=" -> wordGreaterEqualsZero(condition.left, signed, jumpAfterIf, stmt)
-                else -> throw AssemblyError("expected comparison operator")
+                else -> throw AssemblyError("expected comparison operator for word, got '${condition.operator}' at ${stmt.position}")
             }
         }
 
@@ -622,7 +626,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             "<=" -> throw AssemblyError("X<=Y should have been replaced by Y>=X")
             ">" -> throw AssemblyError("X>Y should have been replaced by Y<X")
             ">=" -> wordGreaterEqualsValue(condition.left, condition.right, signed, jumpAfterIf, stmt)
-            else -> throw AssemblyError("expected comparison operator")
+            else -> throw AssemblyError("expected comparison operator for word, got '${condition.operator}' at ${stmt.position}")
         }
     }
 
@@ -2163,7 +2167,7 @@ _jump                       jmp  (${target.asmLabel})
                 else
                     translateIfElseBodies("bne", stmt)
             }
-            else -> throw AssemblyError("expected comparison operator")
+            else -> throw AssemblyError("expected comparison operator for float, got '${condition.operator}' at ${stmt.position}")
         }
     }
 }

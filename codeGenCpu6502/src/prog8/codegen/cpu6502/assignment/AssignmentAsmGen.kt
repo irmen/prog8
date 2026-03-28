@@ -2274,7 +2274,32 @@ internal class AssignmentAsmGen(
 
             assignExpressionToRegister(left, RegisterOrPair.A, false)
             when(right) {
-                is PtBool -> throw AssemblyError("bool literal in logical expr should have been optimized away")
+                is PtBool -> {
+                    // Handle boolean literals that weren't optimized away (e.g., with -noopt)
+                    when {
+                        operator == "and" && right.value -> {
+                            // left AND true = left (already in A, do nothing)
+                        }
+                        operator == "and" && !right.value -> {
+                            // left AND false = false
+                            asmgen.out("  lda  #0")
+                        }
+                        operator == "or" && right.value -> {
+                            // left OR true = true
+                            asmgen.out("  lda  #1")
+                        }
+                        operator == "or" && !right.value -> {
+                            // left OR false = left (already in A, do nothing)
+                        }
+                        operator == "xor" && right.value -> {
+                            // left XOR true = NOT left (invert low bit)
+                            asmgen.out("  eor  #1")
+                        }
+                        operator == "xor" && !right.value -> {
+                            // left XOR false = left (already in A, do nothing)
+                        }
+                    }
+                }
                 is PtIdentifier -> {
                     val varname = asmgen.asmVariableName(right)
                     when (operator) {
