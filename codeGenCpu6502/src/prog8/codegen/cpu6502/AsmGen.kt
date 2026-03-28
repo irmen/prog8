@@ -826,6 +826,90 @@ class AsmGen6502Internal (
         }
     }
 
+    internal fun moveValueBetweenCpuRegisters(fromReg: RegisterOrStatusflag, fromType: DataType, toReg: RegisterOrStatusflag, toType: DataType) {
+        require(fromType == toType) { "moveValueBetweenCpuRegisters: type mismatch" }
+        
+        // Optimize for direct register-to-register transfers when possible
+        val fromRegPair = fromReg.registerOrPair
+        val toRegPair = toReg.registerOrPair
+        
+        when {
+            // Same register - nothing to do
+            fromReg == toReg -> return
+            
+            // Direct 8-bit transfers
+            fromRegPair == RegisterOrPair.A && toRegPair == RegisterOrPair.X -> out("  tax")
+            fromRegPair == RegisterOrPair.A && toRegPair == RegisterOrPair.Y -> out("  tay")
+            fromRegPair == RegisterOrPair.X && toRegPair == RegisterOrPair.A -> out("  txa")
+            fromRegPair == RegisterOrPair.Y && toRegPair == RegisterOrPair.A -> out("  tya")
+            fromRegPair == RegisterOrPair.X && toRegPair == RegisterOrPair.Y -> out("  txa | tay")
+            fromRegPair == RegisterOrPair.Y && toRegPair == RegisterOrPair.X -> out("  tya | tax")
+            
+            // Word transfers (AX, AY, XY)
+            fromRegPair == RegisterOrPair.AX && toRegPair == RegisterOrPair.AY -> out("  tay")  // X already in A, Y gets X
+            fromRegPair == RegisterOrPair.AY && toRegPair == RegisterOrPair.AX -> out("  tax")  // Y already in A, X gets Y
+            fromRegPair == RegisterOrPair.AX && toRegPair == RegisterOrPair.XY -> out("  tay")  // A->X (already there), X->Y
+            fromRegPair == RegisterOrPair.AY && toRegPair == RegisterOrPair.XY -> out("  tax")  // A->Y (already there), Y->X
+            
+            // For everything else, use temp register
+            else -> {
+                val tempReg = "P8ZP_SCRATCH_REG"
+                
+                // Load from source register to temp
+                when(fromRegPair) {
+                    RegisterOrPair.A -> out("  sta  $tempReg")
+                    RegisterOrPair.X -> out("  stx  $tempReg")
+                    RegisterOrPair.Y -> out("  sty  $tempReg")
+                    RegisterOrPair.AX -> out("  sta  ${tempReg} |  stx  ${tempReg}+1")
+                    RegisterOrPair.AY -> out("  sta  ${tempReg} |  sty  ${tempReg}+1")
+                    RegisterOrPair.XY -> out("  stx  ${tempReg} |  sty  ${tempReg}+1")
+                    in Cx16VirtualRegisters -> {
+                        out("  lda  cx16.${fromRegPair.toString().lowercase()} |  sta  $tempReg")
+                        if(fromType.isWord) out("  lda  cx16.${fromRegPair.toString().lowercase()}+1 |  sta  ${tempReg}+1")
+                    }
+                    in CombinedLongRegisters -> {
+                        val startreg = fromRegPair!!.startregname()
+                        out("  lda  cx16.${startreg} |  sta  $tempReg")
+                        out("  lda  cx16.${startreg}+1 |  sta  ${tempReg}+1")
+                        out("  lda  cx16.${startreg}+2 |  sta  ${tempReg}+2")
+                        out("  lda  cx16.${startreg}+3 |  sta  ${tempReg}+3")
+                    }
+                    null -> when(fromReg.statusflag) {
+                        Statusflag.Pc -> out("  lda  #0 |  rol  a |  sta  $tempReg")
+                        else -> throw AssemblyError("unsupported statusflag ${fromReg.statusflag}")
+                    }
+                    else -> throw AssemblyError("weird CPU register ${fromReg}")
+                }
+                
+                // Store from temp to destination register
+                when(toRegPair) {
+                    RegisterOrPair.A -> out("  lda  $tempReg")
+                    RegisterOrPair.X -> out("  ldx  $tempReg")
+                    RegisterOrPair.Y -> out("  ldy  $tempReg")
+                    RegisterOrPair.AX -> out("  lda  $tempReg |  ldx  ${tempReg}+1")
+                    RegisterOrPair.AY -> out("  lda  $tempReg |  ldy  ${tempReg}+1")
+                    RegisterOrPair.XY -> out("  ldx  $tempReg |  ldy  ${tempReg}+1")
+                    in Cx16VirtualRegisters -> {
+                        out("  lda  $tempReg |  sta  cx16.${toRegPair.toString().lowercase()}")
+                        if(toType.isWord) out("  lda  ${tempReg}+1 |  sta  cx16.${toRegPair.toString().lowercase()}+1")
+                    }
+                    in CombinedLongRegisters -> {
+                        val startreg = toRegPair!!.startregname()
+                        out("  lda  $tempReg |  sta  cx16.${startreg}")
+                        out("  lda  ${tempReg}+1 |  sta  cx16.${startreg}+1")
+                        out("  lda  ${tempReg}+2 |  sta  cx16.${startreg}+2")
+                        out("  lda  ${tempReg}+3 |  sta  cx16.${startreg}+3")
+                    }
+                    null -> when(toReg.statusflag) {
+                        Statusflag.Pc -> out("  lda  $tempReg |  asl  a")
+                        else -> throw AssemblyError("unsupported statusflag ${toReg.statusflag}")
+                    }
+                    else -> throw AssemblyError("weird CPU register ${toReg}")
+                }
+            }
+        }
+    }
+
     internal fun assignExpressionTo(value: PtExpression, target: AsmAssignTarget) {
 
         // this is basically the fallback assignment routine, it is RARELY called
@@ -1783,7 +1867,38 @@ $repeatLabel""")
         if(returnvalue!=null) {
 
             if(ret.children.size < ret.numReturnValues()) {
-                TODO("return multiple values from a multi-value returning function call (that I couldn't just JMP to). For now assign them to temporary variables first, then return those. ${ret.position}")
+                // Return values come from a multi-value function call (e.g., "return multi2(99)")
+                // We need to call the function and then move its return values to our return registers
+                val fcall = ret.children.single() as? PtFunctionCall
+                    ?: throw AssemblyError("expected function call for multi-value return ${ret.position}")
+                
+                // Get the return register specs for the called function
+                val calledSub = symbolTable.lookup(fcall.name)
+                val calledReturnRegs = when(calledSub) {
+                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere()
+                    is StExtSub -> calledSub.returns.map { it.register to it.type }
+                    else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
+                }
+                
+                // Generate the function call (this writes directly to assembly)
+                translateFunctionCall(fcall)
+                
+                // Move each return value from the called function's return registers to our return registers
+                calledReturnRegs.zip(returnRegs).forEachIndexed { index, (fromRegTo, toRegTo) ->
+                    val (fromReg, fromType) = fromRegTo
+                    val (toReg, toType) = toRegTo
+                    require(fromType == toType) { "return type mismatch at position $index" }
+
+                    if(fromType.isFloat) {
+                        // For float returns, use FAC1
+                        require(fromReg.registerOrPair == RegisterOrPair.FAC1 && toReg.registerOrPair == RegisterOrPair.FAC1)
+                        // FAC1 already contains the result, no move needed if both use FAC1
+                    } else {
+                        moveValueBetweenCpuRegisters(fromReg, fromType, toReg, toType)
+                    }
+                }
+                out("  rts")
+                return
             }
 
             val returnDt = sub.signature.returns.single()

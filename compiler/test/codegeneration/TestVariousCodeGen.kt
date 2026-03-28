@@ -714,8 +714,7 @@ main {
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
     }
 
-    xtest("returning multivalue functioncall that cannot be short-circuited") {
-        // TODO codegen for this is not built yet
+    test("returning multivalue functioncall that cannot be short-circuited") {
         val src= """
 main {
 

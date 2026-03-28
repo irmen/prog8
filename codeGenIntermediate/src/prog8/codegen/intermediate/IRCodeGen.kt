@@ -1800,7 +1800,51 @@ class IRCodeGen(
             val returnRegs = ret.definingISub()!!.returnsWhatWhere()
 
             if(ret.children.size < ret.numReturnValues()) {
-                TODO("return multiple values from a multi-value returning function call (that I couldn't just JMP to). For now assign them to temporary variables first, then return those. ${ret.position}")
+                // Return values come from a multi-value function call (e.g., "return multi2(99)")
+                // We need to call the function and then move its return values to our return registers
+                val fcall = ret.children.single() as? PtFunctionCall
+                    ?: throw AssemblyError("expected function call for multi-value return ${ret.position}")
+                
+                // Translate the function call (this generates the CALL instruction)
+                val callResult = expressionEval.translate(fcall)
+                result += callResult.chunks
+                
+                // Get the return register specs for the called function
+                val calledSub = symbolTable.lookup(fcall.name)
+                val calledReturnRegs = when(calledSub) {
+                    is StSub -> (calledSub.astNode!! as IPtSubroutine).returnsWhatWhere()
+                    is StExtSub -> calledSub.returns.map { it.register to it.type }
+                    else -> throw AssemblyError("unexpected subroutine type for multi-value return ${ret.position}")
+                }
+                
+                // Move each return value from the called function's return registers to our return registers
+                calledReturnRegs.zip(returnRegs).forEachIndexed { index, (fromRegTo, toRegTo) ->
+                    val (fromReg, fromType) = fromRegTo
+                    val (toReg, toType) = toRegTo
+                    require(fromType == toType) { "return type mismatch at position $index" }
+
+                    if(fromType.isFloat) {
+                        // For float returns, use FAC1/FAC2
+                        val tempFpReg = registers.next(IRDataType.FLOAT)
+                        when(fromReg.registerOrPair) {
+                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
+                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
+                            else -> throw AssemblyError("unexpected FP return register ${fromReg}")
+                        }
+                        when(toReg.registerOrPair) {
+                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
+                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
+                            else -> throw AssemblyError("unexpected FP return register ${toReg}")
+                        }
+                    } else {
+                        // For non-float returns, load from source to temp IR register, then store to destination
+                        val tempReg = registers.next(irType(fromType))
+                        result += loadFromCpuRegister(fromReg, fromType, tempReg)
+                        result += setCpuRegister(toReg, irType(toType), tempReg, -1)
+                    }
+                }
+                addInstr(result, IRInstruction(Opcode.RETURN), null)
+                return result
             }
 
             val values = ret.children.zip(returnRegs)
@@ -2045,6 +2089,38 @@ class IRCodeGen(
                 else -> throw AssemblyError("unsupported statusflag as param")
             }
             else -> throw AssemblyError("unsupported register arg $registerOrFlag")
+        }
+        return chunk
+    }
+
+    internal fun loadFromCpuRegister(registerOrFlag: RegisterOrStatusflag, fromType: DataType, tempReg: Int): IRCodeChunk {
+        val chunk = IRCodeChunk(null, null)
+        val irType = irType(fromType)
+        when(registerOrFlag.registerOrPair) {
+            RegisterOrPair.A -> chunk += IRInstruction(Opcode.LOADHA, IRDataType.BYTE, reg1=tempReg)
+            RegisterOrPair.X -> chunk += IRInstruction(Opcode.LOADHX, IRDataType.BYTE, reg1=tempReg)
+            RegisterOrPair.Y -> chunk += IRInstruction(Opcode.LOADHY, IRDataType.BYTE, reg1=tempReg)
+            RegisterOrPair.AX -> chunk += IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=tempReg)
+            RegisterOrPair.AY -> chunk += IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=tempReg)
+            RegisterOrPair.XY -> chunk += IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=tempReg)
+            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = tempReg)
+            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = tempReg)
+            in Cx16VirtualRegisters -> {
+                chunk += IRInstruction(Opcode.LOADM, irType, reg1=tempReg, labelSymbol = "cx16.${registerOrFlag.registerOrPair.toString().lowercase()}")
+            }
+            in CombinedLongRegisters -> {
+                require(fromType.isLong)
+                val startreg = registerOrFlag.registerOrPair!!.startregname()
+                chunk += IRInstruction(Opcode.LOADM, IRDataType.LONG, reg1=tempReg, labelSymbol = "cx16.${startreg}")
+            }
+            null -> when(registerOrFlag.statusflag) {
+                Statusflag.Pc -> {
+                    chunk += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=tempReg, immediate = 0)
+                    chunk += IRInstruction(Opcode.ROXL, IRDataType.BYTE, reg1=tempReg)
+                }
+                else -> throw AssemblyError("unsupported statusflag ${registerOrFlag.statusflag}")
+            }
+            else -> throw AssemblyError("weird CPU register ${registerOrFlag}")
         }
         return chunk
     }

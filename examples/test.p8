@@ -1,18 +1,23 @@
-%import math
-%import monogfx
+%import textio
+%zeropage basicsafe
+
 
 main {
     sub start() {
-        byte @shared cos_a = math.cos8(angle)
-        byte @shared sin_a = math.sin8(angle)
+        ubyte a,b = multi()
+        txt.print_ub(a)
+        txt.nl()
+        txt.print_ub(b)
+        txt.nl()
+    }
 
-        monogfx.lores()
-        ubyte angle
-        for angle in 0 to 255 step 10 {
-            monogfx.text(math.sin8u(angle), math.cos8u(angle)/2,true, iso:"Hello!")
-        }
+    sub multi() -> ubyte, ubyte {
+        cx16.r0++
+        return multi2(99)
+    }
 
-        repeat {
-        }
+    sub multi2(ubyte x) -> ubyte, ubyte {
+        x++
+        return 42, 99
     }
 }
