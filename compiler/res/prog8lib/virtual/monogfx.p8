@@ -131,7 +131,6 @@ monogfx {
             return
         }
 
-        word @zp d = 0
         cx16.r1L = 1  ; true      ; 'positive_ix'
         if dx < 0 {
             dx = -dx
@@ -139,9 +138,11 @@ monogfx {
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
+        word @zp d        ; error term (initialized below based on shallow/steep)
         cx16.r14 = x1       ; internal plot X
 
         if dx >= dy {
+            d = dx >> 1   ; Initialize error to DX/2 for shallow lines
             if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, draw)
@@ -169,6 +170,7 @@ monogfx {
             }
         }
         else {
+            d = dy >> 1   ; Initialize error to DY/2 for steep lines
             if cx16.r1L!=0 {
                 repeat {
                     plot(cx16.r14, y1, draw)

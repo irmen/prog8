@@ -48,6 +48,65 @@ graphics {
         ; This code special-cases various quadrant loops to allow simple ++ and -- operations.
         ; TODO implement this as optimized assembly, for instance https://github.com/EgonOlsen71/bresenham/blob/main/src/asm/graphics.asm  ??
         ;      or from here https://retro64.altervista.org/blog/an-introduction-to-vector-based-graphics-the-commodore-64-rotating-simple-3d-objects/
+        ;
+        ; =========================================================================
+        ; ASMSUB IMPLEMENTATION CONSTRAINTS & OBSERVATIONS (for future reference)
+        ; =========================================================================
+        ; 
+        ; 1. PARAMETER PASSING (asmsub calling convention):
+        ;    - uword x1 @R0    ; cx16.r0 (word)
+        ;    - ubyte y1 @A     ; accumulator
+        ;    - uword x2 @R1    ; cx16.r1 (word)
+        ;    - ubyte y2 @Y     ; Y register
+        ;    - Parameter names in asmsub are DOCUMENTATION ONLY - they don't create variables!
+        ;    - Must use registers directly or create symbolic aliases (x1 = cx16.r0)
+        ;    - Store parameters to variables IMMEDIATELY before they're overwritten
+        ;
+        ; 2. REGISTER CONFLICTS - CRITICAL:
+        ;    - internal_plot() CLOBBERS P8ZP_SCRATCH_W2 for bitmap address calculation
+        ;    - Cannot use P8ZP_SCRATCH_W2 for persistent storage across plot calls
+        ;    - Solutions:
+        ;      a) Use BSS section for dx2, dy2, d (slower but safe)
+        ;      b) Use different ZP locations that don't conflict with internal_plot
+        ;      c) Inline the pixel plotting code (+72 bytes, avoids JSR overhead)
+        ;
+        ; 3. BRESSENHAM ALGORITHM - EXISTING PROG8 CODE IS CORRECT:
+        ;    - All 6 line() implementations in prog8lib use correct Bresenham:
+        ;      * Shallow loops (|dx| >= |dy|): error += 2*dy, adjust Y when error > dx ✓
+        ;      * Steep loops (|dy| > |dx|): error += 2*dx, adjust X when error > dy ✓
+        ;    - Error term initialization: D = 0 works, but D = DX/2 gives better symmetry
+        ;    - Common bug to AVOID: comparing error against wrong delta!
+        ;
+        ; 4. ENDPOINT SWAPPING:
+        ;    - Swap to ensure y1 <= y2 (reduces 8 octants to 4 quadrants)
+        ;    - CRITICAL: Save internal_plotx AFTER swap, not before!
+        ;    - After swap: x1,y1 contains the starting point, x2,y2 the ending point
+        ;
+        ; 5. VARIABLE ALLOCATION STRATEGY (Prog8-specific):
+        ;    - Use prog8 safe scratch locations for inner-loop variables:
+        ;      * P8ZP_SCRATCH_W1 - error term D (most accessed)
+        ;      * P8ZP_SCRATCH_PTR - dy2
+        ;      * P8ZP_SCRATCH_B1 - direction flag, tmp
+        ;      * P8ZP_SCRATCH_REG - dy
+        ;    - Use BSS section for variables that conflict with called routines
+        ;    - Access word variables as: var (low byte), var+1 (high byte)
+        ;      DO NOT use _lo/_hi suffixes - 64tass doesn't auto-generate these!
+        ;    - Use virtual register aliases: x1 = cx16.r0 (cleaner than x1_lo/x1_hi)
+        ;    - NOTE: Unlike pure 6502 asm, you cannot use fixed ZP addresses arbitrarily
+        ;
+        ; 6. PIXEL PLOTTING CONSIDERATIONS:
+        ;    - internal_plot: ~18 instructions (no bounds checking - fast!)
+        ;    - Inlining saves ~10 cycles per pixel but adds ~72 bytes for 4 loops
+        ;    - Address calculation dominates: bitmap address math is expensive
+        ;    - internal_plot uses P8ZP_SCRATCH_W2 - plan accordingly!
+        ;
+        ; 7. KNOWN PITFALLS:
+        ;    - Don't try to use fixed ZP addresses like pure 6502 code - Prog8 manages ZP
+        ;    - Don't split words into _lo/_hi bytes - use var/var+1 idiom instead
+        ;    - Error term initialization: D=0 works, D=DX/2 is optional refinement
+        ;    - Always rebuild compiler after changing .p8/.asm library files!
+        ;    - Test all 8 octants: horizontal, vertical, and both diagonal directions
+        ; =========================================================================
 
         if y1>y2 {
             ; make sure dy is always positive to have only 4 instead of 8 special cases
@@ -72,7 +131,6 @@ graphics {
             return
         }
 
-        word @zp d = 0
         bool positive_ix = true
         if dx < 0 {
             dx = -dx
@@ -80,9 +138,11 @@ graphics {
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
+        word @zp d        ; error term (initialized below based on shallow/steep)
         internal_plotx = x1
 
         if dx >= dy {
+            d = dx >> 1   ; Initialize error to DX/2 for shallow lines
             if positive_ix {
                 repeat {
                     internal_plot(y1)
@@ -110,6 +170,7 @@ graphics {
             }
         }
         else {
+            d = dy >> 1   ; Initialize error to DY/2 for steep lines
             if positive_ix {
                 repeat {
                     internal_plot(y1)

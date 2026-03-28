@@ -303,7 +303,6 @@ gfx_lores {
             return
         }
 
-        word @zp d = 0
         bool positive_ix = true
         if dx < 0 {
             dx = -dx
@@ -311,12 +310,14 @@ gfx_lores {
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
+        word @zp d        ; error term (initialized below based on shallow/steep)
 
         cx16.r0  = x1    ; ensure zeropage
         cx16.r2  = x2    ; ensure zeropage
 
         cx16.VERA_CTRL = 0
         if dx >= dy {
+            d = dx >> 1   ; Initialize error to DX/2 for shallow lines
             if positive_ix {
                 repeat {
                     plot()
@@ -344,6 +345,7 @@ gfx_lores {
             }
         }
         else {
+            d = dy >> 1   ; Initialize error to DY/2 for steep lines
             if positive_ix {
                 repeat {
                     plot()

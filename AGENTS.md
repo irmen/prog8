@@ -62,7 +62,7 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - an overview of the language features can be found in the documentation file docs/source/introduction.rst
 - the syntax and grammar is specified in an ANTLR4 grammar file found in the parser directory
 - a program consists of a 'main' block containing the 'start' subroutine entry point, and zero or more other subroutines. Additional blocks and subroutines in those can be present too.
-- module imports are done using "%import modulename" *note*: this does *not* always mean that the scope "modulename" gets defined! Example: "%import textio" imports the textio module, but it defines the "txt" prefix where all the routines are in.
+- module imports are done using "%import modulename" - there is NO "as" aliasing (e.g., don't write "%import foo as bar"). Use the module's defined prefix (e.g., textio defines "txt", diskio defines "diskio"). Example: "%import textio" imports the textio module, but it defines the "txt" prefix where all the routines are in.
 
 ### Datatypes & Variables
 - available primitive datatypes: bool, byte, ubyte, word, uword, long, float, str. ubyte/uword are unsigned. long=4 bytes (SIGNED only - no unsigned long yet), float=5-byte Microsoft format, str=0-terminated ubytes (max 255 chars).
@@ -108,6 +108,34 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - **the `void` keyword has two forms:** (1) prefix form `void routine()` suppresses all return values from a subroutine call, (2) assignment form `a, void, c = routine()` skips specific return values in multi-return assignments.
 - subroutines can be nested. Nested subroutines have direct access to all variables defined in their parent scope.
 
+### Assembly Subroutines (asmsub)
+- **Purpose**: For kernel (ROM) routines or low-level assembly routines that get arguments via specific registers (sometimes even via processor status flags like Carry)
+- **parameter passing**: Parameters MUST specify which CPU register or virtual register receives them:
+  - `@A` - Accumulator (8-bit)
+  - `@X` - X register (8-bit)
+  - `@Y` - Y register (8-bit)
+  - `@AX` - A (low) and X (high) combined (16-bit word)
+  - `@AY` - A (low) and Y (high) combined (16-bit word)
+  - `@R0`-`@R15` - CX16 virtual registers (16-bit), e.g., `@R0` = cx16.r0
+  - `@FAC1`, `@FAC2` - Floating point registers
+  - `@Pc` - Carry flag (for bool parameters)
+  - `@Pz` - Zero flag (for bool parameters)
+- **return values**: Specify register for return value after `->`, e.g., `-> ubyte @A` or `-> uword @AY`. Return values can also be via processor status flags (e.g., `-> bool @Pz`), allowing immediate use of branch instructions like `if_z` or `if_cs`
+- **clobbers**: List all registers modified by the routine: `clobbers (A, X, Y)` or `clobbers (A, Y)`
+- **IMPORTANT: Parameter names in asmsub are NOT variables** - unlike regular subroutines, asmsub parameter names do NOT create subroutine parameter variables. The caller does NOT store values into variables - values are passed directly in registers. The parameter names are only for documentation. In the assembly code, you MUST use the registers specified in the signature.
+- **Symbolic aliases**: For clarity, create aliases at the start of assembly: `x1 = cx16.r0` or `x1_lo = cx16.r0L`. If you need to preserve register values, store them explicitly in BSS variables or zero-page locations.
+- **Example**: 
+  ```prog8
+  asmsub line(uword x1 @R0, ubyte y1 @A, uword x2 @R1, ubyte y2 @Y) clobbers (A, X, Y) {
+      %asm {{
+          x1 = cx16.r0      ; alias for parameter
+          x2 = cx16.r1      ; alias for parameter
+          ; MUST use registers (or aliases), NOT parameter names directly
+          lda  x1           ; NOT "lda _x1" - there is no _x1 variable!
+      }}
+  }
+  ```
+
 ### Standard library
 - **to discover what modules and routines are available, FIRST consult docs/source/_static/symboldumps/** - skeleton files per target list ALL modules, subroutines, and builtin functions with their signatures.
 - **symboldump structure**: Compiler version info, then **BUILTIN FUNCTIONS** (names only), then **LIBRARY MODULE NAME:** sections. Within each module `{...}`: variables/constants show `type  name` (with `@shared`/`@requirezp`/`@AY` annotations), subroutines show `name  (params) -> returntype` (with `clobbers (X,Y)` for asm routines).
@@ -122,7 +150,8 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - **The assembly source code uses 64tass syntax, NOT ca65/cc65 or other assemblers.** Key 64tass syntax: `.proc`/`.pend` for procedures, `_label` for local labels, `.byte`/`.word`/`.dword` for data, `= ` for equates, zero-page variables defined with `=`. **Instructions like `rol`, `ror`, `asl`, `lsr` require an explicit operand** - use `rol a`, `ror a`, etc. for the accumulator, not just `rol` or `ror`.
 
 ## Other Key differences from other languages (C, Python, etc.)
-- **no automatic type widening**: `byte*byte=byte` (may overflow!), `word*word=word`, etc. Explicitly cast operands: `word result = (bytevar as word) * 1000`. Hex literals with full width (e.g., `$0040`) also promote. Compiler does not warn by default.
+- **type casting syntax**: Use `expression as <type>` to cast (e.g., `bytevar as word`, `(a+b) as uword`). This is required for type conversions.
+- **no automatic type widening**: `byte*byte=byte` (may overflow!), `word*word=word`, etc. Explicitly cast operands: `word result = (bytevar as word) * 1000`. Hex literals with full width (e.g., `$0040`) also promote. Compiler does not warn by default. **Use `as <type>` for all casts.**
 - **no block scope**: `for`, `if/else` blocks do NOT introduce new scope. Only subroutines introduce scope. Variables declared anywhere in a subroutine are hoisted to the top.
 - **qualified names from top level**: Must use full qualified names (e.g., `cx16.r0`), not relative imports.
 
@@ -161,9 +190,17 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - **Note:** This does NOT install the compiler - use `gradle installdist installshadowdist` after to actually use your changes
 
 ### When you MUST rebuild AND reinstall the compiler
-**After ANY change to Kotlin compiler source code (.kt files) OR library files (compiler/res/prog8lib/**/*.p8 or .asm):**
-- `gradle installdist installshadowdist` - Rebuilds and reinstalls the compiler with your changes
-- **Without this step, your changes will NOT be reflected when running `prog8c`!**
+
+**After ANY change to:**
+1. **Kotlin compiler source code** (`.kt` files in any module)
+2. **Standard library Prog8 files** (`compiler/res/prog8lib/**/*.p8`)
+3. **Standard library assembly files** (`compiler/res/prog8lib/**/*.asm`)
+
+**Run:** `gradle installdist installshadowdist`
+
+**Why:** The standard library files (.p8 and .asm) are embedded into the compiler JAR during the build. Changes to these files are NOT picked up by simply running `prog8c` - you MUST rebuild and reinstall for your changes to take effect.
+
+**Without this step, your changes will NOT be reflected when running `prog8c`!**
 - This compiles AND installs, but still skips running tests (faster than `gradle build`)
 
 ### When to run full build with tests

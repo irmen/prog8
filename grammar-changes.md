@@ -198,6 +198,14 @@ expression
     ;
 ```
 
+> **ATTEMPTED AND FAILED (2026-03-28)**: Multiple approaches were tried to fix this:
+> - Moving `not in` to a parser rule alternative using `'not' 'in'` sequence
+> - Placing the alternative at different positions in the expression rule (before/after 'in', at top)
+> - All approaches failed because ANTLR's lexer always tokenizes `not` and `in` as separate tokens first
+> - The parser rule approach creates ambiguity that prevents parsing `not in` correctly
+> - The original lexer rule with token `NOT_IN` is fragile but works; any fix attempt causes more problems than it solves
+> - **Conclusion**: Leave the lexer rule as-is; the fragility is acceptable
+
 ### B. Identifier Rule Improvement
 
 **Current Problem**: Must manually list keywords that can be identifiers (line 266)
@@ -218,6 +226,13 @@ keywordAsIdentifier
     : 'on' | 'call' | 'inline' | 'step' | 'else' | 'then' | 'goto' | 'void' | 'struct'
     ;
 ```
+
+> **ATTEMPTED AND FAILED (2026-03-28)**: This approach was tried but creates severe parsing ambiguity.
+> - Adding many keywords as alternatives in a parser rule creates ambiguity with other grammar rules
+> - The parser cannot distinguish between a keyword used as an identifier vs. as actual syntax
+> - Tests showed ~300+ failures due to parse errors in various contexts (function calls, expressions, etc.)
+> - The manual token listing approach is fragile but works correctly
+> - **Conclusion**: Keep the current approach of explicitly listing keywords that can be used as identifiers
 
 ### C. Float Number Rules Simplification
 

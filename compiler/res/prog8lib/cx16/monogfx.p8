@@ -424,7 +424,6 @@ drawmode:               ora  cx16.r15L
             return
         }
 
-        word @zp d = 0
         cx16.r1L = 1 ;; true      ; 'positive_ix'
         if dx < 0 {
             dx = -dx
@@ -432,8 +431,10 @@ drawmode:               ora  cx16.r15L
         }
         word @zp dx2 = dx*2
         word @zp dy2 = dy*2
+        word @zp d        ; error term (initialized below based on shallow/steep)
 
         if dx >= dy {
+            d = dx >> 1   ; Initialize error to DX/2 for shallow lines
             if cx16.r1L!=0 {
                 repeat {
                     plot(x1, y1, draw)
@@ -461,6 +462,7 @@ drawmode:               ora  cx16.r15L
             }
         }
         else {
+            d = dy >> 1   ; Initialize error to DY/2 for steep lines
             if cx16.r1L!=0 {
                 repeat {
                     plot(x1, y1, draw)
