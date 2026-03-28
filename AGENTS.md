@@ -180,6 +180,58 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 | `gradle test --tests "*Name*"` | Debug specific test failures | ~5-30s |
 - `gradle clean` - Clean build artifacts (use if you suspect stale build artifacts)
 
+### Gradle Output Tips
+
+**For clean error messages:** Use `-q` (quiet) or `--console=plain` to suppress progress bars:
+```bash
+gradle :compiler:compileKotlin -q 2>&1     # Shows only errors
+gradle :compiler:compileKotlin --console=plain 2>&1 | grep "^e:"  # Filter Kotlin errors
+```
+
+**Gradle Daemon:** The daemon (background process) makes builds faster but can buffer output. For CI or debugging, use `--no-daemon` for cleaner output, but it's slower due to JVM startup.
+
+### Running Unit Tests - IMPORTANT
+
+**When running unit tests, ALWAYS use these switches from the start to see detailed error output:**
+
+```bash
+# For specific test class - shows full error details immediately
+gradle :compiler:test --tests "*TestName*" --info 2>&1 | grep -E "FAILED|error:|AssertionError|at Test"
+
+# For specific test method - shows full error details immediately  
+gradle :compiler:test --tests "*TestName.testMethodName*" --info 2>&1 | grep -E "FAILED|error:|AssertionError|at Test"
+
+# Alternative: use --stacktrace for full stack traces
+gradle :compiler:test --tests "*TestName*" --stacktrace 2>&1 | grep -A 5 "FAILED"
+```
+
+**Why these switches matter:**
+- `--info` - Shows detailed test execution info including assertion errors
+- `--stacktrace` - Shows full stack traces for failures
+- `grep -E "FAILED|error:|AssertionError"` - Filters to show only failure details
+- Without these, you'll see "there were failing tests" but NOT why they failed, requiring a second run
+
+**Example workflow:**
+```bash
+# WRONG - will fail but won't show why:
+gradle :compiler:test --tests "*TestLookupSemantics*"
+
+# RIGHT - shows failure reasons immediately:
+gradle :compiler:test --tests "*TestLookupSemantics*" --info 2>&1 | grep -E "FAILED|AssertionError"
+```
+
+**For compilation errors in tests:**
+```bash
+# Shows Kotlin compilation errors with file/line numbers
+gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
+```
+
+**HTML Test Report:**
+After a test run, check the HTML report for a nice overview:
+```bash
+firefox /home/irmen/Projects/prog8/compiler/build/reports/tests/test/index.html
+```
+
 ### Two different workflows
 
 **1. Testing your own Prog8 programs** (no compiler changes):
@@ -227,3 +279,6 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 ## TODO Items
 The file `docs/source/todo.rst` contains a comprehensive list of things that still have to be fixed, implemented, or optimized. **Use this to understand what features are NOT yet available** in the compiler or Prog8 language - if a user asks for something that's on the TODO list, you'll know it's not implemented yet and can explain the limitation.
+
+## Code Style Guidelines
+- **Minimal comments when making changes**: When modifying existing code, add only essential comments that explain *why* a change was made or document non-obvious behavior. **Do not add verbose comments** that restate what the code does - let the code speak for itself. Existing extensive comments should be preserved, but new changes should have minimal commentary.

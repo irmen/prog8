@@ -5,6 +5,20 @@ import prog8.code.core.*
 import prog8.code.target.VMTarget
 
 
+/**
+ * Helper to execute a block with a symbol pushed onto the scope stack,
+ * ensuring proper cleanup even if an exception occurs.
+ */
+private inline fun <T> withScope(scope: ArrayDeque<StNode>, symbol: StNode, action: () -> T): T {
+    scope.addLast(symbol)
+    try {
+        return action()
+    } finally {
+        scope.removeLast()
+    }
+}
+
+
 class SymbolTableMaker(private val program: PtProgram, private val options: CompilationOptions) {
     fun make(): SymbolTable {
         // Disable cache with -noopt for easier debugging
@@ -148,14 +162,13 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             }
             is PtFunctionCall if node.builtin -> {
                 if(node.name=="memory") {
-                    // memory slab allocations are a builtin functioncall in the program, but end up named as well in the symboltable
                     require(node.name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
                     createMemorySlabFromCall(node, scope)
                 }
                 else if(node.name=="prog8_lib_structalloc") {
                     val instance = handleStructAllocation(node, scope)
                     if(instance!=null) {
-                        scope.first().add(instance)  // don't add struct instances in nested scope, just put them in the top level of the ST
+                        scope.first().add(instance)
                     }
                 }
                 null
@@ -165,13 +178,16 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 
         if(stNode!=null) {
             scope.last().add(stNode)
-            scope.add(stNode)
+            withScope(scope, stNode) {
+                node.children.forEach {
+                    addToSt(it, scope)
+                }
+            }
+        } else {
+            node.children.forEach {
+                addToSt(it, scope)
+            }
         }
-        node.children.forEach {
-            addToSt(it, scope)
-        }
-        if(stNode!=null)
-            scope.removeLast()
     }
 
     private fun handleStructAllocation(node: PtFunctionCall, scope: ArrayDeque<StNode>): StStructInstance? {
@@ -179,21 +195,37 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         val struct = node.type.subType as? StStruct ?: return null
         val initialValues = node.args.map {
             when(it) {
-                is PtAddressOf -> StArrayElement(null, it.identifier!!.name, null, null,null)
-                is PtBool -> StArrayElement(null, null, null, null, it.value)
-                is PtNumber -> StArrayElement(it.number, null, null, null, null)
+                is PtAddressOf -> StArrayElement.AddressOf(it.identifier!!.name)
+                is PtBool -> StArrayElement.BoolValue(it.value)
+                is PtNumber -> StArrayElement.Number(it.number)
                 is PtFunctionCall -> {
-                    // Handle memory() call in struct initializer
                     require(it.builtin && it.name == "memory")
                     val slabname = createMemorySlabFromCall(it, scope)
-                    StArrayElement(null, null, null, null, null, slabname)
+                    StArrayElement.MemorySlab(slabname)
                 }
                 else -> throw AssemblyError("invalid structalloc argument type $it")
             }
         }
-        val label =  SymbolTable.labelnameForStructInstance(node)
+        val label = SymbolTable.labelnameForStructInstance(node)
         val scopedStructName = if(struct.astNode!=null) (struct.astNode as PtNamedNode).scopedName else struct.scopedNameString
         return StStructInstance(label, scopedStructName, initialValues, struct.size, null)
+    }
+
+    private fun handleStructallocAsArrayElement(call: PtFunctionCall, scope: ArrayDeque<StNode>): StArrayElement {
+        val instance = handleStructAllocation(call, scope)
+        return if(instance==null) {
+            val label = SymbolTable.labelnameForStructInstance(call)
+            if (call.args.isEmpty())
+                StArrayElement.StructInstance(label, uninitialized = true)
+            else
+                StArrayElement.StructInstance(label)
+        } else {
+            scope.first().add(instance)
+            if (call.args.isEmpty())
+                StArrayElement.StructInstance(instance.name, uninitialized = true)
+            else
+                StArrayElement.StructInstance(instance.name)
+        }
     }
 
     private fun makeInitialArray(value: PtArray, scope: ArrayDeque<StNode>): List<StArrayElement> {
@@ -202,32 +234,18 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtAddressOf -> {
                     when {
                         it.isFromArrayElement -> TODO("address-of array element $it in initial array value  ${it.position}")
-                        else -> StArrayElement(null, it.identifier!!.name, null, null,null)
+                        else -> StArrayElement.AddressOf(it.identifier!!.name)
                     }
                 }
-                is PtNumber -> StArrayElement(it.number, null, null,null,null)
-                is PtBool -> StArrayElement(null, null, null,null,it.value)
+                is PtNumber -> StArrayElement.Number(it.number)
+                is PtBool -> StArrayElement.BoolValue(it.value)
                 is PtFunctionCall -> {
                     require(it.builtin)
                     if(it.name=="prog8_lib_structalloc") {
-                        val instance = handleStructAllocation(it, scope)
-                        if(instance==null) {
-                            val label = SymbolTable.labelnameForStructInstance(it)
-                            if (it.args.isEmpty())
-                                StArrayElement(null, null, null, label, null)
-                            else
-                                StArrayElement(null, null, label, null, null)
-                        } else {
-                            scope.first().add(instance)  // don't add struct instances in nested scope, just put them in the top level of the ST
-                            if (it.args.isEmpty())
-                                StArrayElement(null, null, null, instance.name, null)
-                            else
-                                StArrayElement(null, null, instance.name, null, null)
-                        }
+                        handleStructallocAsArrayElement(it, scope)
                     } else if(it.name=="memory") {
-                        // Handle memory() call in array initializer
                         val slabname = createMemorySlabFromCall(it, scope)
-                        StArrayElement(null, null, null, null, null, slabname)
+                        StArrayElement.MemorySlab(slabname)
                     } else
                         TODO("support for initial array element via ${it.name}  ${it.position}")
                 }
@@ -237,69 +255,3 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
     }
 
 }
-
-//    override fun visit(decl: VarDecl) {
-//        val node =
-//            when(decl.type) {
-//                VarDeclType.VAR -> {
-//                    var initialNumeric = (decl.value as? NumericLiteral)?.number
-//                    if(initialNumeric==0.0)
-//                        initialNumeric=null     // variable will go into BSS and this will be set to 0
-//                    val initialStringLit = decl.value as? StringLiteral
-//                    val initialString = if(initialStringLit==null) null else Pair(initialStringLit.value, initialStringLit.encoding)
-//                    val initialArrayLit = decl.value as? ArrayLiteral
-//                    val initialArray = makeInitialArray(initialArrayLit)
-//                    if(decl.isArray && decl.datatype !in ArrayDatatypes)
-//                        throw FatalAstException("array vardecl has mismatched dt ${decl.datatype}")
-//                    val numElements =
-//                        if(decl.isArray)
-//                            decl.arraysize!!.constIndex()
-//                        else if(initialStringLit!=null)
-//                            initialStringLit.value.length+1  // include the terminating 0-byte
-//                        else
-//                            null
-//                    val bss = if(decl.datatype==DataType.STR)
-//                        false
-//                    else if(decl.isArray)
-//                        initialArray.isNullOrEmpty()
-//                    else
-//                        initialNumeric == null
-//                    val astNode = PtVariable(decl.name, decl.datatype, null, null, decl.position)
-//                    StStaticVariable(decl.name, decl.datatype, bss, initialNumeric, initialString, initialArray, numElements, decl.zeropage, astNode, decl.position)
-//                }
-//                VarDeclType.CONST -> {
-//                    val astNode = PtVariable(decl.name, decl.datatype, null, null, decl.position)
-//                    StConstant(decl.name, decl.datatype, (decl.value as NumericLiteral).number, astNode, decl.position)
-//                }
-//                VarDeclType.MEMORY -> {
-//                    val numElements =
-//                        if(decl.isArray)
-//                            decl.arraysize!!.constIndex()
-//                        else null
-//                    val astNode = PtVariable(decl.name, decl.datatype, null, null, decl.position)
-//                    StMemVar(decl.name, decl.datatype, (decl.value as NumericLiteral).number.toUInt(), numElements, astNode, decl.position)
-//                }
-//            }
-//        scopestack.peek().add(node)
-//        // st.origAstLinks[decl] = node
-//    }
-//
-//    private fun makeInitialArray(arrayLit: ArrayLiteral?): StArray? {
-//        if(arrayLit==null)
-//            return null
-//        return arrayLit.value.map {
-//            when(it){
-//                is AddressOf -> {
-//                    val scopedName = it.identifier.targetNameAndType(program).first
-//                    StArrayElement(null, scopedName)
-//                }
-//                is IdentifierReference -> {
-//                    val scopedName = it.targetNameAndType(program).first
-//                    StArrayElement(null, scopedName)
-//                }
-//                is NumericLiteral -> StArrayElement(it.number, null)
-//                else -> throw FatalAstException("weird element dt in array literal")
-//            }
-//        }.toList()
-//    }
-//

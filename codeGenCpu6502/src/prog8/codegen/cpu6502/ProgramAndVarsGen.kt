@@ -391,21 +391,23 @@ internal class ProgramAndVarsGen(
             val structtype: StStruct = symboltable.lookup(instance.structName) as StStruct
             return structtype.fields.zip(instance.initialValues).map { (field, value) ->
                 if(field.first.isFloat) {
-                    "["+compTarget.getFloatAsmBytes(value.number!!)+"]"
+                    val numValue = (value as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for float field")
+                    "["+compTarget.getFloatAsmBytes(numValue)+"]"
                 } else {
-                    when {
-                        value.number!=null -> {
+                    when (value) {
+                        is StArrayElement.Number -> {
                             if(field.first.isPointer)
-                                "$"+value.number!!.toInt().toString(16)
+                                "$"+value.value.toInt().toString(16)
                             else if(field.first.isInteger)
-                                value.number!!.toInt().toString()
+                                value.value.toInt().toString()
                             else
-                                value.number.toString()
+                                value.value.toString()
                         }
-                        value.addressOfSymbol!=null -> value.addressOfSymbol!!
-                        value.memorySlabName!=null -> "$StMemorySlabBlockName.${value.memorySlabName!!}"
-                        value.boolean!=null -> if(value.boolean==true) "1" else "0"
-                        else -> throw AssemblyError("weird struct initial value $value")
+                        is StArrayElement.AddressOf -> value.symbol
+                        is StArrayElement.MemorySlab -> "$StMemorySlabBlockName.${value.name}"
+                        is StArrayElement.BoolValue -> if(value.value) "1" else "0"
+                        is StArrayElement.StructInstance -> throw AssemblyError("struct instance in struct initializer")
                     }
                 }
             }
@@ -915,7 +917,9 @@ internal class ProgramAndVarsGen(
             dt.isFloatArray -> {
                 val array = value ?: zeroFilledArray(orNumberOfZeros!!)
                 val floatFills = array.map {
-                    compTarget.getFloatAsmBytes(it.number!!)
+                    val numValue = (it as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for float array")
+                    compTarget.getFloatAsmBytes(numValue)
                 }
                 asmgen.out(varname)
                 for (f in array.zip(floatFills))
@@ -926,11 +930,7 @@ internal class ProgramAndVarsGen(
     }
 
     private fun zeroFilledArray(numElts: Int): StArray {
-        val values = mutableListOf<StArrayElement>()
-        repeat(numElts) {
-            values.add(StArrayElement(0.0, null, null,null,null))
-        }
-        return values
+        return List(numElts) { StArrayElement.Number(0.0) }
     }
 
     private fun memdefsAndConsts2asm(memvars: Collection<StMemVar>, consts: Collection<StConstant>) {
@@ -978,45 +978,35 @@ internal class ProgramAndVarsGen(
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when {
             dt.isBoolArray ->
-                // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    if(it.boolean!=null)
-                        if(it.boolean==true) "1" else "0"
-                    else {
-                        val number = it.number!!
-                        if(number==0.0) "0" else "1"
+                    when(it) {
+                        is StArrayElement.BoolValue -> if(it.value) "1" else "0"
+                        is StArrayElement.Number -> if(it.value==0.0) "0" else "1"
+                        else -> throw AssemblyError("unexpected array element type for bool array")
                     }
                 }
             dt.isUnsignedByteArray ->
-                // byte array can never contain pointer-to types, so treat values as all integers
                 array.map {
-                    val number = it.number!!.toInt()
-                    "$"+number.toString(16).padStart(2, '0')
+                    val numValue = (it as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for ubyte array")
+                    "$"+numValue.toInt().toString(16).padStart(2, '0')
                 }
             dt.isArray && (dt.elementType().isUnsignedWord || dt.elementType().isPointer) -> array.map {
-                if(it.number!=null) {
-                    "$" + it.number!!.toInt().toString(16).padStart(4, '0')
-                }
-                else if(it.addressOfSymbol!=null) {
-                    val addrOfSymbol = it.addressOfSymbol!!
-                    val symbol = symboltable.lookup(addrOfSymbol)!!
-                    if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
-                        asmgen.asmSymbolName(addrOfSymbol+"_lsb")  // the _lsb split array comes first in memory
-                    else
-                        asmgen.asmSymbolName(addrOfSymbol)
-                }
-                else if(it.memorySlabName!=null) {
-                    // memory() slab reference in array initializer
-                    asmgen.asmSymbolName("$StMemorySlabBlockName.${it.memorySlabName!!}")
-                }
-                else if(it.structInstance!=null) {
-                    asmgen.asmSymbolName("${StStructInstanceBlockName}.${it.structInstance!!}")
-                }
-                else if(it.structInstanceUninitialized!=null) {
-                    asmgen.asmSymbolName("${StStructInstanceBlockName}_bss.${it.structInstanceUninitialized!!}")
-                }
-                else {
-                    throw AssemblyError("weird array elt")
+                when(it) {
+                    is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
+                    is StArrayElement.AddressOf -> {
+                        val symbol = symboltable.lookup(it.symbol)!!
+                        if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
+                            asmgen.asmSymbolName(it.symbol+"_lsb")
+                        else
+                            asmgen.asmSymbolName(it.symbol)
+                    }
+                    is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
+                    is StArrayElement.StructInstance -> {
+                        val prefix = if(it.uninitialized) "${StStructInstanceBlockName}_bss" else StStructInstanceBlockName
+                        asmgen.asmSymbolName("$prefix.${it.name}")
+                    }
+                    is StArrayElement.BoolValue -> throw AssemblyError("bool in word array")
                 }
             }
             else -> throw AssemblyError("invalid dt")
@@ -1026,41 +1016,44 @@ internal class ProgramAndVarsGen(
     private fun makeArrayFillDataSigned(dt: DataType, value: StArray?, orNumberOfZeros: Int?): List<String> {
         val array = value ?: zeroFilledArray(orNumberOfZeros!!)
         return when {
-            // byte array can never contain pointer-to types, so treat values as all integers
             dt.isUnsignedByteArray ->
                 array.map {
-                    val number = it.number!!.toInt()
+                    val numValue = (it as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for ubyte array")
+                    val number = numValue.toInt()
                     "$"+number.toString(16).padStart(2, '0')
                 }
             dt.isSignedByteArray ->
                 array.map {
-                    val number = it.number!!.toInt()
+                    val numValue = (it as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for byte array")
+                    val number = numValue.toInt()
                     val hexnum = number.absoluteValue.toString(16).padStart(2, '0')
-                    if(number>=0)
-                        "$$hexnum"
-                    else
-                        "-$$hexnum"
+                    if(number>=0) "$$hexnum" else "-$$hexnum"
                 }
-            dt.isArray && (dt.elementType().isUnsignedWord || dt.elementType().isPointer) -> array.map {
-                val number = it.number!!.toInt()
-                "$" + number.toString(16).padStart(4, '0')
-            }
-            dt.isSignedWordArray -> array.map {
-                val number = it.number!!.toInt()
-                val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
-                if(number>=0)
-                    "$$hexnum"
-                else
-                    "-$$hexnum"
-            }
-            dt.isLongArray -> array.map {
-                val number = it.number!!.toInt()
-                val hexnum = number.absoluteValue.toLongHex()
-                if(number>=0)
-                    "$$hexnum"
-                else
-                    "-$$hexnum"
-            }
+            dt.isArray && (dt.elementType().isUnsignedWord || dt.elementType().isPointer) ->
+                array.map {
+                    val numValue = (it as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for uword array")
+                    val number = numValue.toInt()
+                    "$" + number.toString(16).padStart(4, '0')
+                }
+            dt.isSignedWordArray ->
+                array.map {
+                    val numValue = (it as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for word array")
+                    val number = numValue.toInt()
+                    val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
+                    if(number>=0) "$$hexnum" else "-$$hexnum"
+                }
+            dt.isLongArray ->
+                array.map {
+                    val numValue = (it as? StArrayElement.Number)?.value 
+                        ?: throw AssemblyError("expected number for long array")
+                    val number = numValue.toInt()
+                    val hexnum = number.absoluteValue.toLongHex()
+                    if(number>=0) "$$hexnum" else "-$$hexnum"
+                }
             else -> throw AssemblyError("invalid dt")
         }
     }

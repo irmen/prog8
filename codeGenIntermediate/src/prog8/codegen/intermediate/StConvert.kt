@@ -13,15 +13,15 @@ private object StToIrConverter {
         IRStStructDef(struct.scopedNameString, struct.fields, struct.size)
 
     private fun convertArrayElt(elt: StArrayElement): IRStArrayElement {
-        return if (elt.boolean != null)
-            IRStArrayElement(elt.boolean, null, null)
-        else if(elt.number!=null)
-            IRStArrayElement(null, elt.number, null)
-        else if(elt.memorySlabName!=null)
-            IRStArrayElement(null, null, "$StMemorySlabBlockName.${elt.memorySlabName}")
-        else {
-            val symbol = elt.addressOfSymbol ?: (StStructInstanceBlockName + "." + (elt.structInstance ?: elt.structInstanceUninitialized))
-            IRStArrayElement(null, null, symbol)
+        return when(elt) {
+            is StArrayElement.BoolValue -> IRStArrayElement(elt.value, null, null)
+            is StArrayElement.Number -> IRStArrayElement(null, elt.value, null)
+            is StArrayElement.MemorySlab -> IRStArrayElement(null, null, "$StMemorySlabBlockName.${elt.name}")
+            is StArrayElement.AddressOf -> IRStArrayElement(null, null, elt.symbol)
+            is StArrayElement.StructInstance -> {
+                val symbol = StStructInstanceBlockName + "." + (if(elt.uninitialized) elt.name else elt.name)
+                IRStArrayElement(null, null, symbol)
+            }
         }
     }
 
@@ -43,15 +43,18 @@ private object StToIrConverter {
                     return null
                 val newArray = mutableListOf<IRStArrayElement>()
                 array.forEach {
-                    if(it.addressOfSymbol!=null) {
-                        val target = variable.lookup(it.addressOfSymbol!!) ?:
-                            throw NoSuchElementException("can't find variable ${it.addressOfSymbol}")
-                        newArray.add(IRStArrayElement(null, null, target.scopedNameString))
-                    } else if(it.memorySlabName!=null) {
-                        // memory() slab references don't need fixup, just convert directly
-                        newArray.add(convertArrayElt(it))
-                    } else {
-                        newArray.add(convertArrayElt(it))
+                    when(it) {
+                        is StArrayElement.AddressOf -> {
+                            val target = variable.lookup(it.symbol) ?:
+                                throw NoSuchElementException("can't find variable ${it.symbol}")
+                            newArray.add(IRStArrayElement(null, null, target.scopedNameString))
+                        }
+                        is StArrayElement.MemorySlab -> {
+                            newArray.add(convertArrayElt(it))
+                        }
+                        else -> {
+                            newArray.add(convertArrayElt(it))
+                        }
                     }
                 }
                 return newArray

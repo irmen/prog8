@@ -41,78 +41,27 @@ class SymbolTable(
         if(!disableCache) cachedFlat = null
     }
 
-    val allVariables: Collection<StStaticVariable> by lazy {
-        // can't be done with a generic function because those don't support local recursive functions yet
-        val vars = mutableListOf<StStaticVariable>()
-        fun collect(node: StNode) {
-            for(child in node.children) {
-                if(child.value.type== StNodeType.STATICVAR)
-                    vars.add(child.value as StStaticVariable)
-                else
-                    collect(child.value)
+    private fun <T : StNode> collectAll(node: StNode, clazz: Class<T>): List<T> {
+        val result = mutableListOf<T>()
+        fun collect(n: StNode) {
+            for(child in n.children) {
+                if(clazz.isInstance(child.value)) result.add(clazz.cast(child.value))
+                else collect(child.value)
             }
         }
-        collect(this)
-        vars
+        collect(node)
+        return result
     }
 
-    val allMemMappedVariables: Collection<StMemVar> by lazy {
-        // can't be done with a generic function because those don't support local recursive functions yet
-        val vars = mutableListOf<StMemVar>()
-        fun collect(node: StNode) {
-            for(child in node.children) {
-                if(child.value.type== StNodeType.MEMVAR)
-                    vars.add(child.value as StMemVar)
-                else
-                    collect(child.value)
-            }
-        }
-        collect(this)
-        vars
-    }
+    val allVariables: Collection<StStaticVariable> by lazy { collectAll(this, StStaticVariable::class.java) }
 
-    val allMemorySlabs: Collection<StMemorySlab> by lazy {
-        // can't be done with a generic function because those don't support local recursive functions yet
-        val vars = mutableListOf<StMemorySlab>()
-        fun collect(node: StNode) {
-            for(child in node.children) {
-                if(child.value.type== StNodeType.MEMORYSLAB)
-                    vars.add(child.value as StMemorySlab)
-                else
-                    collect(child.value)
-            }
-        }
-        collect(this)
-        vars
-    }
+    val allMemMappedVariables: Collection<StMemVar> by lazy { collectAll(this, StMemVar::class.java) }
 
-    fun allStructInstances(): Collection<StStructInstance> {
-        val vars = mutableListOf<StStructInstance>()
-        fun collect(node: StNode) {
-            for(child in node.children) {
-                if(child.value.type == StNodeType.STRUCTINSTANCE)
-                    vars.add(child.value as StStructInstance)
-                else
-                    collect(child.value)
-            }
-        }
-        collect(this)
-        return vars
-    }
+    val allMemorySlabs: Collection<StMemorySlab> by lazy { collectAll(this, StMemorySlab::class.java) }
 
-    fun allStructTypes(): Collection<StStruct> {
-        val vars = mutableListOf<StStruct>()
-        fun collect(node: StNode) {
-            for(child in node.children) {
-                if(child.value.type == StNodeType.STRUCT)
-                    vars.add(child.value as StStruct)
-                else
-                    collect(child.value)
-            }
-        }
-        collect(this)
-        return vars
-    }
+    fun allStructInstances(): Collection<StStructInstance> = collectAll(this, StStructInstance::class.java)
+
+    fun allStructTypes(): Collection<StStruct> = collectAll(this, StStruct::class.java)
 
     override fun lookup(scopedName: String) = flat[scopedName]
 
@@ -133,13 +82,8 @@ class SymbolTable(
             val parts = structname.split('.')
             val prefixed = parts.all { it.length>5 && it.startsWith("p8") && it[3]=='_' }
             if(prefixed) {
-                // the struct label name cannot contain prefixed parts because elsewhere it was already generated *before* the prefixing was done
                 structname = parts.joinToString(".") { it.substring(4) }
             }
-            // each individual call to the pseudo function structalloc(),
-            // needs to generate a separate unique struct instance label.
-            // (unlike memory() where the label is not unique and passed as the first argument)
-            // NOTE that this routine is called multiple times for the same nodes during compilation. THe label for the same node must remain the same! So a increasing sequence number cannot be used...
             val scopehash = call.parent.hashCode().toUInt().toString(16)
             val pos = "${call.position.line}_${call.position.startCol}"
             val hash = call.position.file.hashCode().toUInt().toString(16)
@@ -177,16 +121,15 @@ open class StNode(val name: String,
     val scopedNameString: String by lazy { scopedNameList.joinToString(".") }
 
     open fun lookup(scopedName: String) =
-        lookup(scopedName.split('.'))
+        lookupScoped(scopedName.split('.'))
 
     fun lookupUnscopedOrElse(name: String, default: () -> StNode) =
         lookupUnscoped(name) ?: default()
 
     fun lookupOrElse(scopedName: String, default: () -> StNode): StNode =
-        lookup(scopedName.split('.')) ?: default()
+        lookupScoped(scopedName.split('.')) ?: default()
 
     fun lookupUnscoped(name: String): StNode? {
-        // first consider the builtin functions
         var globalscope = this
         while(globalscope.type!= StNodeType.GLOBAL)
             globalscope = globalscope.parent
@@ -194,7 +137,6 @@ open class StNode(val name: String,
         if(globalNode!=null && globalNode.type== StNodeType.BUILTINFUNC)
             return globalNode
 
-        // search for the unqualified name in the current scope or its parent scopes
         var scope=this
         while(true) {
             val node = scope.children[name]
@@ -208,8 +150,10 @@ open class StNode(val name: String,
     }
 
     fun add(child: StNode) {
-        children[child.name] = child
-        child.parent = this
+        if(child.name !in children) {
+            children[child.name] = child
+            child.parent = this
+        }
     }
 
     private val scopedNameList: List<String> by lazy {
@@ -219,8 +163,7 @@ open class StNode(val name: String,
             parent.scopedNameList + name
     }
 
-    private fun lookup(scopedName: List<String>): StNode? {
-        // a scoped name refers to a name in another namespace, and always starts from the root.
+    private fun lookupScoped(scopedName: List<String>): StNode? {
         var node = this
         while(node.type!=StNodeType.GLOBAL)
             node = node.parent
@@ -249,12 +192,6 @@ class StStaticVariable(name: String,
         private set
 
     fun setOnetimeInitNumeric(number: Double) {
-        // In certain cases the init value of an existing var should be updated,
-        // so we can't ask this as a constructor parameter.
-        // This has to do with the way Prog8 does the (re)initialization of such variables: via code assignment statements.
-        // Certain codegens might want to put them back into the variable directly.
-        // For strings and arrays this doesn't occur - these are always already specced at creation time.
-
         require(number!=0.0 || zpwish!=ZeropageWish.NOT_IN_ZEROPAGE) { "non-zp variable should not be initialized with 0, it will already be zeroed as part of BSS clear" }
         initializationNumericValue = number
     }
@@ -332,11 +269,8 @@ class StStruct(
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
     override fun sameas(other: ISubType): Boolean {
         if(other is StStruct) {
-            // Compare using logical names (without symbol prefixes) for consistency when blocks are merged
-            // See github issue https://github.com/irmen/prog8/issues/198
             return logicalScopedNameString == other.logicalScopedNameString &&
-                   fields == other.fields &&
-                   size == other.size
+                   fields == other.fields
         }
         return false
     }
@@ -365,15 +299,13 @@ class StExtSub(name: String,
 
 class StSubroutineParameter(val name: String, val type: DataType, val register: RegisterOrPair?)
 class StExtSubParameter(val register: RegisterOrStatusflag, val type: DataType)
-class StArrayElement(val number: Double?, val addressOfSymbol: String?, val structInstance: String?, val structInstanceUninitialized: String?, val boolean: Boolean?, val memorySlabName: String? = null) {
-    init {
-        if(number!=null) require(addressOfSymbol==null && boolean==null && structInstance==null && structInstanceUninitialized==null && memorySlabName==null)
-        if(addressOfSymbol!=null) require(number==null && boolean==null && structInstance==null && structInstanceUninitialized==null && memorySlabName==null)
-        if(structInstance!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstanceUninitialized==null && memorySlabName==null)
-        if(structInstanceUninitialized!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstance==null && memorySlabName==null)
-        if(boolean!=null) require(addressOfSymbol==null && number==null &&structInstance==null && structInstanceUninitialized==null && memorySlabName==null)
-        if(memorySlabName!=null) require(number==null && boolean==null && addressOfSymbol==null && structInstance==null && structInstanceUninitialized==null)
-    }
+
+sealed class StArrayElement {
+    data class Number(val value: Double) : StArrayElement()
+    data class AddressOf(val symbol: String) : StArrayElement()
+    data class StructInstance(val name: String, val uninitialized: Boolean = false) : StArrayElement()
+    data class BoolValue(val value: Boolean) : StArrayElement()
+    data class MemorySlab(val name: String) : StArrayElement()
 }
 
 typealias StString = Pair<String, Encoding>

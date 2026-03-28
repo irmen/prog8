@@ -289,7 +289,7 @@ class PtFunctionCall(val name: String,
     companion object {
         fun singletype(types: Array<DataType>) = types.singleOrNull() ?: DataType.UNDEFINED
     }
-    
+
     override fun copy() = PtFunctionCall(name, builtin, hasNoSideEffects, returntypes, position)
 }
 

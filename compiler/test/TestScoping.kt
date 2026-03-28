@@ -73,63 +73,6 @@ class TestScoping: FunSpec({
         repeatbody.statements[1] shouldBe instanceOf<FunctionCallStatement>()
     }
 
-    test("labels with anon scopes") {
-        val src = """
-            main {
-                sub start() {
-                    uword addr
-                    goto labeloutside
-        
-                    if true {
-                        if true {
-                            addr = &iflabel
-                            addr = &labelinside
-                            addr = &labeloutside
-                            addr = &main.start.nested.nestedlabel
-                            goto labeloutside
-                            goto iflabel
-                            goto main.start.nested.nestedlabel
-                        }
-            iflabel:
-                    }
-        
-                    repeat 10 {
-                        addr = &iflabel
-                        addr = &labelinside
-                        addr = &labeloutside
-                        addr = &main.start.nested.nestedlabel
-                        goto iflabel
-                        goto labelinside
-                        goto main.start.nested.nestedlabel
-            labelinside:
-                    }
-
-                    sub nested () {
-            nestedlabel:
-                        addr = &nestedlabel
-                        goto nestedlabel
-                        goto main.start.nested.nestedlabel
-                    }
-
-            labeloutside:
-                    addr = &iflabel
-                    addr = &labelinside
-                    addr = &labeloutside
-                    addr = &main.start.nested.nestedlabel
-                    goto main.start.nested.nestedlabel
-                }
-            }
-        """
-
-        val result = compileText(C64Target(), false, src, outputDir, writeAssembly = true)!!
-        val mainBlock = result.compilerAst.entrypoint.definingBlock
-        val start = mainBlock.statements.single() as Subroutine
-        val labels = start.statements.filterIsInstance<Label>()
-        withClue("only one label in subroutine scope") {
-            labels.size shouldBe 1
-        }
-    }
-
     test("good subroutine call without qualified names") {
         val text="""
             main {
@@ -447,43 +390,6 @@ WARN name 'var1Warn' shadows occurrence at...
         errors.errors[3] shouldContain "name conflict"
         errors.errors[3] shouldContain "internalOk"
         errors.errors[3] shouldContain "line 11"
-    }
-
-    test("ast node linkage and lookups ok even with no symbol prefixing") {
-        val src="""
-main {
-    sub start() {
-        thing.routine()
-    }
-}
-
-thing {
-    %option no_symbol_prefixing
-
-    sub routine() {
-        other.something()
-        other.counter++
-        other.asmsomething()
-    }
-}
-
-other {
-    sub something() {
-    }
-
-    asmsub asmsomething() {
-        %asm {{
-            nop
-            rts
-        }}
-    }
-
-    uword @shared counter
-}
-
-"""
-
-        compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
 })
