@@ -275,6 +275,7 @@ gfx_lores {
         ;
         ; NOTE:  is currently still a regular 6502 routine, could likely be made much faster with the VeraFX line helper.
 
+        cx16.r4L = color   ; cache color in r4L for internal_line_plot
         cx16.r3L = y2    ; ensure zeropage
         cx16.r1L = y1    ; ensure zeropage
 
@@ -320,7 +321,7 @@ gfx_lores {
             d = dx >> 1   ; Initialize error to DX/2 for shallow lines
             if positive_ix {
                 repeat {
-                    plot()
+                    internal_line_plot()
                     if cx16.r0==cx16.r2
                         return
                     cx16.r0++
@@ -332,7 +333,7 @@ gfx_lores {
                 }
             } else {
                 repeat {
-                    plot()
+                    internal_line_plot()
                     if cx16.r0==cx16.r2
                         return
                     cx16.r0--
@@ -348,7 +349,7 @@ gfx_lores {
             d = dy >> 1   ; Initialize error to DY/2 for steep lines
             if positive_ix {
                 repeat {
-                    plot()
+                    internal_line_plot()
                     if cx16.r1L == cx16.r3L
                         return
                     cx16.r1L++
@@ -360,7 +361,7 @@ gfx_lores {
                 }
             } else {
                 repeat {
-                    plot()
+                    internal_line_plot()
                     if cx16.r1L == cx16.r3L
                         return
                     cx16.r1L++
@@ -372,33 +373,35 @@ gfx_lores {
                 }
             }
         }
+    }
 
-        asmsub plot() {
-            ; internal plot routine for the line algorithm: x in r0,  y in r1,  color in variable.
-            %asm {{
-                ldy  cx16.r1L
-                clc
-                lda  times320_lo,y
-                adc  cx16.r0L
-                sta  cx16.VERA_ADDR_L
-                lda  times320_mid,y
-                adc  cx16.r0H
-                sta  cx16.VERA_ADDR_M
-                lda  #0
-                adc  times320_hi,y
-                sta  cx16.VERA_ADDR_H
+    asmsub internal_line_plot() {
+        ; Internal plot routine for line algorithm.
+        ; Uses: x in cx16.r0, y in cx16.r1L, color in cx16.r4L
+        ; Checks eor_mode flag for XOR vs normal drawing.
+        %asm {{
+            ldy  cx16.r1L
+            clc
+            lda  times320_lo,y
+            adc  cx16.r0L
+            sta  cx16.VERA_ADDR_L
+            lda  times320_mid,y
+            adc  cx16.r0H
+            sta  cx16.VERA_ADDR_M
+            lda  #0
+            adc  times320_hi,y
+            sta  cx16.VERA_ADDR_H
 
-                lda  p8v_eor_mode
-                bne  +
-                lda  p8v_color
-                sta  cx16.VERA_DATA0
-                rts
-+               lda  p8v_color
-                eor  cx16.VERA_DATA0
-                sta  cx16.VERA_DATA0
-                rts
-            }}
-        }
+            lda  p8v_eor_mode
+            bne  +
+            lda  cx16.r4L
+            sta  cx16.VERA_DATA0
+            rts
++           lda  cx16.r4L
+            eor  cx16.VERA_DATA0
+            sta  cx16.VERA_DATA0
+            rts
+        }}
     }
 
     sub circle(uword @zp xcenter, ubyte @zp ycenter, ubyte radius, ubyte color) {

@@ -22,7 +22,8 @@
       "Bash(mkdir *)",
       "Bash(ls *)",
       "Bash(cat *)",
-      "Bash(find *)"
+      "Bash(find *)",
+      "Bash(sed *)"
     ]
   }
 }
