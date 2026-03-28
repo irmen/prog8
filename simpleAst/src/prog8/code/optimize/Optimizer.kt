@@ -41,6 +41,31 @@ import prog8.code.core.Position
  * - [ControlFlowOptimizers] - If/else, when statements
  * - [MemoryOptimizers] - Address-of, struct field access
  * - [VariableOptimizers] - Assignment targets, redundant initializations
+ *
+ * **Implementation approach:**
+ *
+ * The optimizer functions use direct tree manipulation with `walkAst()` rather than a
+ * tree-rewriting base class. This was a deliberate design decision after attempting
+ * to use an `AstRewriter` class (see AstWalker.kt for details).
+ *
+ * Key lessons learned:
+ *
+ * 1. **In-place modifications are common**: The code generator's `prefixSymbols()` function
+ *    modifies node names in-place. Tree-rewriting approaches that create copies can conflict
+ *    with this, causing bugs like double-prefixing of symbol names.
+ *
+ * 2. **Pattern matching needs original structure**: Some optimizations (like pointer arithmetic)
+ *    need to see specific AST patterns including typecasts. Removing these patterns too early
+ *    (e.g., in a postprocess phase before optimization) prevents the optimizer from matching
+ *    and improving the code.
+ *
+ * 3. **Order matters**: The compilation pipeline has a specific order that must be maintained:
+ *    - postprocessSimplifiedAst() - subtype resolution only (no typecast removal)
+ *    - optimizeSimplifiedAst() - all optimizations (needs to see original patterns)
+ *    - removeRedundantPointerCasts() - cleanup typecasts (after optimizer is done)
+ *    - code generation - produces final assembly
+ *
+ * See Compiler.kt for the full pipeline with detailed comments.
  */
 
 /**

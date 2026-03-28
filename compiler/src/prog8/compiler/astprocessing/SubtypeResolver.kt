@@ -9,7 +9,7 @@ import prog8.code.core.ISubType
 
 /**
  * Resolves subtype references in the simplified AST.
- * 
+ *
  * After parsing, struct type references may be stored as generic ISubType instances.
  * This postprocessing pass converts them to proper StStruct references from the
  * symbol table, which is required for later code generation phases.
@@ -23,6 +23,42 @@ internal object SubtypeResolver {
         walkAst(program) { node, _ ->
             fixSubtypes(node, st)
             true  // Continue traversal
+        }
+    }
+
+    /**
+     * Removes redundant typecasts from pointer to uword.
+     * 
+     * **IMPORTANT: This must run AFTER optimizeSimplifiedAst(), not before!**
+     * 
+     * The optimizer needs to see typecast patterns like `(pointer as uword)` to match
+     * optimization rules. For example, pointer arithmetic optimizations look for patterns
+     * like `ptr + (value as uword)` to convert them to more efficient forms like
+     * `ptr + (value << 1)` for word-sized pointers.
+     * 
+     * If we remove these typecasts too early (e.g., during resolve()), the optimizer
+     * won't see the patterns it needs, resulting in less efficient code.
+     * 
+     * However, the typecasts MUST be removed before code generation, because leaving
+     * them in would generate inefficient assembly (extra loads/stores to temporary
+     * variables for what should be simple pointer operations).
+     * 
+     * Call order in Compiler.kt:
+     * 1. postprocessSimplifiedAst() - calls resolve() for subtype resolution only
+     * 2. optimizeSimplifiedAst() - runs all optimizations (needs to see typecasts)
+     * 3. removeRedundantPointerCasts() - removes typecasts (after optimizer is done)
+     */
+    fun removeRedundantPointerCasts(program: PtProgram) {
+        walkAst(program) { node, _ ->
+            if(node is PtTypeCast) {
+                if(node.type.isUnsignedWord && node.value.type.isPointerToByte) {
+                    // casting a pointer to a byte , to uword, is not required because pointer arithmetic on either of those will be identical
+                    val idx = node.parent.children.indexOf(node)
+                    node.parent.children[idx] = node.value
+                    node.value.parent = node.parent
+                }
+            }
+            true
         }
     }
 
@@ -58,14 +94,6 @@ internal object SubtypeResolver {
             is PtAsmSub -> node.returns.forEach { fixSubtypeIntoStType(it.second, st) }
             is PtExpression -> {
                 fixSubtypeIntoStType(node.type, st)
-                if(node is PtTypeCast) {
-                    if(node.type.isUnsignedWord && node.value.type.isPointerToByte) {
-                        // casting a pointer to a byte , to uword, is not required because pointer arithmetic on either of those will be identical
-                        val idx = node.parent.children.indexOf(node)
-                        node.parent.children[idx] = node.value
-                        node.value.parent = node.parent
-                    }
-                }
             }
             is PtSubSignature -> node.returns.forEach { fixSubtypeIntoStType(it, st) }
             is PtSubroutineParameter -> fixSubtypeIntoStType(node.type, st)

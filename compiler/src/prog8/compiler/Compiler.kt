@@ -195,11 +195,34 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     args.errors.report()
                     symbolTable = stMaker.make()        // need an updated ST because the postprocessing changes stuff
 
+                    /*
+                     * IMPORTANT: Optimization order matters!
+                     * 
+                     * 1. optimizeSimplifiedAst() - Runs the main optimization passes (algebraic identities,
+                     *    boolean simplifications, comparison optimizations, etc.). These optimizations
+                     *    need to see the original AST patterns including typecasts to create optimization
+                     *    opportunities (e.g., pointer arithmetic patterns like `ptr + (value as uword)`).
+                     * 
+                     * 2. removeRedundantPointerCasts() - Removes redundant (pointer as uword) typecasts.
+                     *    This MUST run AFTER optimizeSimplifiedAst() because:
+                     *    - The optimizer needs to see typecast patterns to match optimization rules
+                     *    - Removing typecasts too early prevents pattern matching in the optimizer
+                     *    - But typecasts must be removed before code generation to produce efficient code
+                     *    
+                     *    This step runs regardless of the -noopt flag because redundant pointer typecasts
+                     *    would otherwise generate inefficient assembly code (extra loads/stores to temp vars).
+                     */
+
                     if (compilationOptions.optimize) {
                         optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable!!, args.errors)
                         args.errors.report()
                         symbolTable = stMaker.make()        // need an updated ST because the optimization changes stuff
                     }
+
+                    // Remove redundant pointer typecasts - must run AFTER optimization, BEFORE code generation
+                    SubtypeResolver.removeRedundantPointerCasts(intermediateAst)
+                    args.errors.report()
+                    symbolTable = stMaker.make()        // need an updated ST because the typecast removal changes stuff
 
                     if (compilationOptions.profilingInstrumentation) {
                         require(compilationOptions.compTarget.name == Cx16Target.NAME)

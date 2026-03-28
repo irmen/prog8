@@ -232,12 +232,20 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                             }
                         } else {
                             if(structSize>1) {
-                                val multiplication = PtBinaryExpression("*", DataType.UWORD, srcAssign.position)
-                                multiplication.add(transformExpression(augmentedValue))
-                                multiplication.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), srcAssign.position))
+                                val offset: PtBinaryExpression
+                                if(structSize in powersOfTwoInt) {
+                                    // use shift instead of multiply for powers of two
+                                    offset = PtBinaryExpression("<<", DataType.UWORD, srcAssign.position)
+                                    offset.add(transformExpression(augmentedValue))
+                                    offset.add(PtNumber(BaseDataType.UBYTE, kotlin.math.log2(structSize.toDouble()), srcAssign.position))
+                                } else {
+                                    offset = PtBinaryExpression("*", DataType.UWORD, srcAssign.position)
+                                    offset.add(transformExpression(augmentedValue))
+                                    offset.add(PtNumber(BaseDataType.UWORD, structSize.toDouble(), srcAssign.position))
+                                }
                                 val assign = PtAugmentedAssign(operator, srcAssign.position)
                                 assign.add(transform(srcAssign.target))
-                                assign.add(multiplication)
+                                assign.add(offset)
                                 return assign
                             } else {
                                 // size = 1, no multiplication needed
