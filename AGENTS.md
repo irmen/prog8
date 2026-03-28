@@ -266,7 +266,13 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - `prog8c -target targetname -emu input.p8` - Compile and execute a prog8 file in the emulator for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -vm input.p8ir` - Execute an existing prog8 program, compiled in IR form, in the Virtual Machine
 - `x16emu -scale 2 -prg input.prg` - Just load an existing compiled program in the CommanderX16 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
-- **CX16 debugging tip**: Use `x16emu -echo iso -prg input.prg` to make the emulator echo screen output (ISO-8859-16 encoded) to stdout. This allows you to see program output and debug messages in the terminal. You can pipe through `strings` or `iconv` to decode: `x16emu -echo iso -prg input.prg 2>&1 | strings` or `x16emu -echo iso -prg input.prg 2>&1 | grep -E "(PASS|FAIL|ERROR)"`.
+- **CX16 debugging tip**: Use `x16emu -echo iso -prg input.prg` to echo screen output to stdout. Pipe through `strings` or `grep` to filter: `x16emu -echo iso -prg input.prg 2>&1 | grep -E "(PASS|FAIL)"`.
+  **IMPORTANT**: For readable output, add `%encoding iso` at the top of your source and call `txt.iso()` in `start()`. This prevents PETSCII→ISO charset translation errors that garble uppercase/special characters:
+  ```prog8
+  %encoding iso
+  %import textio
+  main { sub start() { txt.iso(); txt.print("PASS\n") } }
+  ```
 - **IMPORTANT: Always use `sys.poweroff_system()` to exit the CX16 emulator cleanly!** Add `sys.poweroff_system()` at the end of your main program block - this exits x16emu automatically in most cases.
   **Note:** The `sys` module is always available, there is no need to import it ever.
 - `x64sc input.prg` - run an existing compiled program in the Commodore-64 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.

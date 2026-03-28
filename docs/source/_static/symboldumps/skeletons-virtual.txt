@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 7abb222d in branch master
+Prerelease version from git commit 7666b72f in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-virtual.p8
@@ -447,6 +447,7 @@ sys  {
     gfx_enable  (ubyte mode) 
     gfx_getpixel  (uword xx, uword yy) -> ubyte 
     gfx_plot  (uword xx, uword yy, ubyte color) 
+    gfx_text  (uword xx, uword yy, str textptr, ubyte color) 
     internal_stringcopy  (str source, str tgt) 
     memcmp  (uword address1, uword address2, uword size) -> byte 
     memcopy  (uword source, uword tgt, uword count) 
@@ -629,8 +630,10 @@ txt  {
     height  () -> ubyte 
     home  () 
     input_chars  (str buffer) -> ubyte 
+    iso  () 
     iso2petscii  (ubyte iso_char) -> ubyte 
     iso2petscii_str  (str iso_string) 
+    iso_off  () 
     lowercase  () 
     nl  () 
     petscii2scr  (ubyte petscii_char) -> ubyte 

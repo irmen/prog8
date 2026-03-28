@@ -60,6 +60,14 @@ sub uppercase() {
     ; not supported
 }
 
+sub iso() {
+    ; virtual target is iso always, this is just for code compatibility
+}
+
+sub iso_off() {
+    ; virtual target is iso always, this is just for code compatibility
+}
+
 sub rvs_on() {
     print("\x1b[7m")
 }
