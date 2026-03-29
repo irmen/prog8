@@ -389,6 +389,10 @@ whenstmt: 'when' expression EOL? '{' EOL? (when_choice | EOL) * '}' EOL? ;
 
 when_choice:  (expression_list | ELSE ) '->' (statement | statement_block ) ;
 
+// ON...GOTO/ON...CALL with optional else clause - classic BASIC-style multi-way branch.
+// This is intentional retro syntax appropriate for 6502/BASIC target audience.
+// The else_part handles out-of-range indices (useful for menu dispatch with error handling).
+// Compiles efficiently to 6502 jump tables. NOT a design flaw - fits the retro platform.
 ongoto: ON expression kind=(GOTO | CALL) directivenamelist EOL? else_part? ;
 
 staticstructinitializer: POINTER? scoped_identifier ':' arrayliteral ;

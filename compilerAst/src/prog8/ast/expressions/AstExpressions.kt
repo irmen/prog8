@@ -1506,7 +1506,10 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             val vardecl = definingScope.lookup(nameInSource.take(1)) as? VarDecl
             if (vardecl?.datatype?.isPointer != true)
                 return DataType.UNDEFINED
-            require(vardecl.datatype.subType!=null) { "pointer type should point to a struct ${vardecl.position}" }
+            if(vardecl.datatype.subType==null) {
+                // Pointer to primitive type - return the pointer type itself
+                return vardecl.datatype
+            }
             struct = vardecl.datatype.subType!!
             fieldDt = vardecl.datatype
         }
@@ -1519,7 +1522,8 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
                 // was last path element
                 return fieldDt
             }
-            struct = fieldDt.subType ?: return DataType.UNDEFINED
+            // If field is pointer to primitive (like str), we can't deref further
+            struct = fieldDt.subType ?: return fieldDt
         }
         return fieldDt ?: DataType.UNDEFINED
     }

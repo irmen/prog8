@@ -1555,7 +1555,7 @@ class IRCodeGen(
             addToResult(result, leftTr, leftTr.resultReg, -1)
             if (number!=null) {
                 val elseBranch: Opcode
-                var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
+                var useCmpi: Boolean      // for the branch opcodes that have been converted to CMPI + BSTxx form already
                 
                 // Optimization: when comparing signed integer with 0, we can use direct status flag branches
                 // instead of CMPI #0 + branch, because the previous LOAD instruction already sets the N and Z flags.
@@ -2186,7 +2186,7 @@ class IRCodeGen(
         }
 
         // store with field offset
-        var valueRegister = existingValueRegister
+        val valueRegister = existingValueRegister
         val irdt = irType(type)
         if(valueIsZero && valueRegister<0) {
             addInstr(result, IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg, immediate = offset.toInt()), null)

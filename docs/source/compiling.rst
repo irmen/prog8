@@ -173,6 +173,12 @@ One or more .p8 module files
 ``-check``
     Quickly check the program for errors. No actual compilation will be performed.
 
+``-compareir <baseline.p8ir>``
+    Compare the generated IR file with a baseline IR file.
+    Shows a summary of differences including instruction count, chunk count, register usage, and file size.
+    Also displays the first 10 instruction differences to help identify what changed.
+    Useful for comparing optimized vs non-optimized builds, or tracking changes between compiler versions.
+
 ``-D SYMBOLNAME=VALUE``
     Add this user-defined symbol directly to the beginning of the generated assembly file.
     Can be repeated to define multiple symbols.
@@ -297,6 +303,11 @@ One or more .p8 module files
 
 ``-vm``
     load and run a 'p8ir' intermediate representation file in the internal VirtualMachine instead of compiling a prog8 program file.
+
+``-vmtrace``
+    Enable instruction-by-instruction tracing when running the virtual machine (use with ``-vm`` or ``-emu`` on the virtual target).
+    Prints each executed IR instruction with its location (chunk name and instruction index).
+    Useful for debugging program behavior and understanding control flow in the IR code.
 
 ``-warnimplicitcasts``
     Give warnings for lines where a silent (implicit) type cast is done from a smaller to a larger type.

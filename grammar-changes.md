@@ -4,6 +4,252 @@
 
 This document outlines recommended improvements to the `Prog8ANTLR.g4` grammar file, focusing on clearer parse errors, rule optimization, and maintainability.
 
+---
+
+# Language Design Inconsistencies
+
+These are **not** ANTLR implementation issues - they are **language design inconsistencies** in the grammar itself that would confuse users and make the language harder to learn.
+
+## 1. Inconsistent Statement Terminators
+
+**Current Grammar:**
+```antlr
+statement_block : '{' EOL? (statement | EOL) * '}';
+module: EOL* (module_element (EOL+ module_element)*)? EOL* EOF;
+```
+
+**Problem:** 
+- Module elements **require** `EOL+` between them
+- Statements inside blocks **do not require** EOL separation
+
+This means:
+```prog8
+{ a=1 b=2 }     ; valid - no EOL between statements
+{ a=1
+  b=2 }         ; valid - with EOL
+```
+
+But at module level:
+```prog8
+block1 { } block2 { }   ; INVALID - needs EOL between blocks
+```
+
+**Recommendation:** Make EOL requirements consistent - either require EOL everywhere or make it optional everywhere.
+
+---
+
+## 2. `enum` and `alias` as Statements (Semantically Wrong)
+
+**Current Grammar:**
+```antlr
+block_statement: enum | alias;
+statement: enum | alias;
+```
+
+**Problem:** Enums and aliases can be defined inside subroutine bodies:
+```prog8
+myblock {
+    enum Status { OK, FAIL }    ; block level - makes sense
+    
+    sub foo() {
+        enum Status2 { A, B }   ; inside subroutine - weird!
+        alias x = y             ; also weird inside subroutine
+    }
+}
+```
+
+**Recommendation:** Remove `enum` and `alias` from the `statement` rule. They should only be allowed in `block_statement`.
+
+---
+
+## 3. Inconsistent Optional EOL Before Braces
+
+**Current Grammar:**
+```antlr
+block: identifier integerliteral? EOL? '{' EOL? ...
+statement_block : '{' EOL? ...
+enum: ENUM identifier '{' EOL? ...
+structdeclaration: STRUCT identifier '{' EOL? ...
+```
+
+**Problem:** Some constructs allow optional EOL before `{`, but there's no clear pattern. Why is it `EOL?` everywhere instead of consistent?
+
+**Recommendation:** Either require EOL before `{` everywhere for consistency, or document why it varies.
+
+---
+
+## 4. `VOID` Used in Multiple Incompatible Contexts
+
+**Current Grammar:**
+```antlr
+assign_target: VOID #VoidTarget;
+functioncall_stmt: VOID? scoped_identifier '(' ...;
+```
+
+**Problem:** `VOID` is used as:
+1. An assignment target (to discard return values): `void, x = func()`
+2. A statement prefix (to discard return values): `void func()`
+
+These are different use cases but use the same keyword. The grammar allows:
+```prog8
+void = func()      ; ??? Is this valid? What does this mean?
+```
+
+**Recommendation:** Consider different syntax for discarding return values in different contexts, or clarify the semantics.
+
+---
+
+## 5. `repeat` Loop Optional Expression - Unclear Semantics
+
+**Current Grammar:**
+```antlr
+repeatloop: 'repeat' expression? EOL? (statement | statement_block);
+unrollloop: 'unroll' expression EOL? (statement | statement_block);
+```
+
+**Problem:** 
+- `repeat` has optional `expression?` - what does it mean when omitted?
+- `unroll` **requires** an expression
+- Why the inconsistency?
+
+```prog8
+repeat 5 { ... }      ; repeat 5 times?
+repeat { ... }        ; repeat forever? What's the difference from 'while true'?
+unroll 5 { ... }      ; must specify count
+```
+
+**Recommendation:** Either make the expression required for `repeat`, or document clearly what omission means. Make `repeat` and `unroll` consistent.
+
+---
+
+## 6. Pointer Dereference Grammar is Admittedly "Cursed"
+
+**Current Grammar:**
+```antlr
+pointerdereference: (prefix = scoped_identifier '.')? derefchain ('.' field = identifier)?;
+derefchain: singlederef ('.' singlederef)*;
+singlederef: identifier arrayindex? POINTER;
+```
+
+**Comment in grammar:**
+> "This is a cursed mix of IdentifierReference and binary expressions with '.' dereference operators."
+
+**Problems:**
+1. The grammar allows `foo.bar^^.baz` but what about `foo^^.bar`?
+2. Array indexing on pointers: `ptr[0]^^` vs `ptr^^[0]` - which is valid?
+3. The comment admits this is a hack that needs rewriting
+
+**Recommendation:** This needs a proper redesign. Consider treating `^^` as a postfix operator with clear precedence rules.
+
+---
+
+## 7. `sizeof` Allows Arbitrary Expressions
+
+**Current Grammar:**
+```antlr
+expression: 'sizeof' '(' sizeof_argument ')';
+sizeof_argument: basedatatype | expression | pointertype;
+```
+
+**Problem:** You can do `sizeof(5)` (expression) but what does that mean? Shouldn't it be `sizeof(byte)` or `sizeof(myvar)` only?
+
+```prog8
+sizeof(5)           ; ??? Returns size of what type?
+sizeof(3 + 4)       ; ??? 
+sizeof(byte)        ; Makes sense
+sizeof(myvar)       ; Makes sense
+```
+
+**Recommendation:** Restrict `sizeof_argument` to `basedatatype | scoped_identifier | pointertype` - remove arbitrary `expression`.
+
+---
+
+## 8. Trailing Commas Inconsistency
+
+**Current Grammar:**
+```antlr
+enum: '{' EOL? enum_member? (',' EOL? enum_member)* ','? EOL? '}';  ; trailing comma allowed
+arrayliteral: '[' EOL? expression? (',' EOL? expression)* ','? EOL? ']';  ; trailing comma allowed
+```
+
+**Problem:** Some constructs allow trailing commas, others don't:
+- ✅ `enum` - trailing comma allowed
+- ✅ `arrayliteral` - trailing comma allowed  
+- ❌ Function parameters - no trailing comma shown
+- ❌ Expression lists - no trailing comma shown
+- ❌ Multi-assign targets - no trailing comma shown
+
+**Recommendation:** Make trailing commas consistently allowed (or consistently disallowed) across all list constructs.
+
+---
+
+## 9. `const` Declaration - Optional Type is Confusing
+
+**Current Grammar:**
+```antlr
+constdecl: 'const' datatype? identifierlist '=' expression;
+```
+
+**Problem:** `datatype?` is optional, but then how is this different from a regular variable declaration? What happens if you omit the type?
+
+```prog8
+const x = 5         ; What type is x? Inferred?
+const byte y = 5    ; Explicit type
+```
+
+**Recommendation:** Either make `datatype` required, or document clearly how type inference works for constants.
+
+---
+
+## 10. `inline` Keyword Only for `asmsub`
+
+**Current Grammar:**
+```antlr
+asmsubroutine: INLINE? 'asmsub' asmsub_decl ...
+```
+
+**Problem:** `inline` can only prefix `asmsub`, not regular `sub`. But the documentation mentions inline functions - are they different from inline assembly?
+
+```prog8
+inline asmsub foo() { ... }   ; Valid
+inline sub bar() { ... }      ; Invalid - syntax error
+```
+
+**Recommendation:** Either allow `inline` on regular subroutines too, or rename to `inlineasm` to clarify it's assembly-specific.
+
+---
+
+## Summary of Language Design Issues
+
+**Note on evaluation criteria:** Issues are evaluated with Prog8's **retro 6502/BASIC target** in mind. Features that would be "archaic" in modern languages (like `ON...GOTO`) are **intentional and appropriate** for this platform. Issues listed here are about **internal consistency** and **clarity**, not about being "modern" vs "retro".
+
+| Issue | Severity | Recommendation |
+|-------|----------|----------------|
+| `enum`/`alias` as statements | High | Remove from `statement` rule |
+| Pointer dereference grammar | High | Proper redesign needed |
+| `repeat` optional expression | Medium | Clarify semantics or require expression |
+| `sizeof` allows expressions | Medium | Restrict to types and identifiers |
+| Inconsistent EOL requirements | Medium | Make consistent |
+| Trailing commas inconsistency | Low | Make consistent |
+| `const` optional type | Low | Require or document inference |
+| `inline` only for `asmsub` | Low | Extend or rename |
+| `VOID` in multiple contexts | Low | Clarify or differentiate |
+
+**Removed from list (retro-appropriate features):**
+- `ON...GOTO` with `else` clause - **NOT a flaw**. Classic BASIC syntax appropriate for 6502 target. The `else` clause provides useful error handling for out-of-range indices (e.g., menu dispatch). Compiles efficiently to 6502 jump tables. See comment in `.g4` file.
+
+**Issues that may also be retro-appropriate (needs further review):**
+- **Inconsistent EOL requirements** - May be intentional flexibility for different contexts (module vs block level)
+- **`VOID` in multiple contexts** - May be intentional overloading for convenience (discard return value in different positions)
+- **`inline` only for `asmsub`** - May be intentional distinction (inline assembly vs inline function expansion are different concepts)
+- **Trailing commas inconsistency** - May reflect different use cases (enums/arrays are data, function calls are execution)
+
+These should be evaluated based on **what makes sense for 6502 programmers** coming from BASIC/assembly, not modern language conventions.
+
+---
+
+# ANTLR4 Implementation Improvements
+
 ## Current Issues Summary
 
 The Prog8 ANTLR4 grammar has several areas that could be improved:

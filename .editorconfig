@@ -1,0 +1,45 @@
+# EditorConfig for Prog8 projects
+# Ensures consistent formatting across editors and team members
+# See https://editorconfig.org
+
+root = true
+
+# All files
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Prog8 source files (.p8)
+[*.p8]
+indent_style = space
+indent_size = 4
+
+# Assembly files (.asm) - 64tass syntax
+[*.asm]
+indent_style = space
+indent_size = 4
+
+# Kotlin compiler source files
+[*.kt]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = false
+
+# Documentation files
+[*.md]
+trim_trailing_whitespace = false
+
+[*.rst]
+trim_trailing_whitespace = false
+
+# Gradle build files
+[*.gradle.kts]
+indent_style = space
+indent_size = 4
+
+# Git ignore files
+[.gitignore]
+indent_style = space
+indent_size = 2

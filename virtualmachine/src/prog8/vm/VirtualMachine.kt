@@ -51,6 +51,7 @@ class VirtualMachine(irProgram: IRProgram) {
     val callStack = ArrayDeque<CallSiteContext>()
     val valueStack = ArrayDeque<UByte>()       // max VALUE_STACK_MAX entries
     var breakpointHandler: ((pcChunk: IRCodeChunk, pcIndex: Int) -> Unit)? = null       // can set custom breakpoint handler
+    var traceEnabled: Boolean = false        // enable instruction tracing
     var pcChunk = IRCodeChunk(null, null)
     var pcIndex = 0
     var stepCount = 0
@@ -184,6 +185,10 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun dispatch(ins: IRInstruction) {
+        if (traceEnabled) {
+            val chunkLabel = pcChunk.label ?: "?"
+            println("[$chunkLabel:$pcIndex] $ins")
+        }
         when(ins.opcode) {
             Opcode.NOP -> nextPc()
             Opcode.LOAD -> InsLOAD(ins)
@@ -3239,13 +3244,14 @@ internal fun ArrayDeque<UByte>.popf(): Double {
 
 // probably called via reflection
 class VmRunner: IVirtualMachineRunner {
-    override fun runProgram(irSource: String, quiet: Boolean) {
-        runAndTestProgram(irSource, quiet) { /* no tests */ }
+    override fun runProgram(irSource: String, quiet: Boolean, traceEnabled: Boolean) {
+        runAndTestProgram(irSource, quiet, traceEnabled) { /* no tests */ }
     }
 
-    fun runAndTestProgram(irSource: String, quiet: Boolean = false, test: (VirtualMachine) -> Unit) {
+    fun runAndTestProgram(irSource: String, quiet: Boolean = false, traceEnabled: Boolean = false, test: (VirtualMachine) -> Unit = {}) {
         val irProgram = IRFileReader().read(irSource)
         val vm = VirtualMachine(irProgram)
+        vm.traceEnabled = traceEnabled
 //        vm.breakpointHandler = { pcChunk, pcIndex ->
 //            println("UNHANDLED BREAKPOINT")
 //            println("  IN CHUNK: $pcChunk(${pcChunk.label})  INDEX: $pcIndex = INSTR ${pcChunk.instructions[pcIndex]}")

@@ -38,6 +38,38 @@ When debugging compiler issues, **FIRST try compiling with the `-noopt` switch**
 - **Problem gone with `-noopt`**: Issue is in **optimization phases** (`optimizeAst()`, `UnusedCodeRemover`, `Inliner`, etc.)
 - **Problem persists with `-noopt`**: Issue is in **parsing, semantic analysis, symbol table, or code generation**
 
+## DEBUGGING TIP: Use `-compareir` to see what changed
+When investigating optimization-related issues or tracking regressions:
+```bash
+# Compile without optimizations (baseline)
+prog8c -target virtual -noopt -out dir program.p8
+
+# Compile with optimizations and compare
+prog8c -target virtual -compareir dir/program_noopt.p8ir program.p8
+```
+**Output shows:**
+- Instruction/chunk/register count changes with percentages
+- First 10 actual instruction differences
+- Helps identify which optimization transformed the code
+
+## DEBUGGING TIP: Use `-vmtrace` to trace execution
+When debugging VM execution or control flow issues:
+```bash
+prog8c -target virtual -vm program.p8ir -vmtrace
+prog8c -target virtual -emu -vmtrace program.p8
+```
+**Output format:** `[chunkName:instructionIndex] instruction`
+- Shows each executed IR instruction with location
+- Useful for understanding control flow and finding where execution diverges
+- **Only works on virtual target**
+
+## Typical debugging workflow:
+1. **Quick check:** `-check` for syntax errors
+2. **Isolate:** `-noopt` to determine if problem is optimizer-related
+3. **Compare:** `-compareir` to see what instructions changed
+4. **Trace:** `-vmtrace` to watch actual execution flow
+5. **Deep dive:** `-printast1` / `-printast2` for compiler internals
+
 ## IMPORTANT: SymbolTable cachedFlat cache
 The `SymbolTable` class has a **cached `flat` property** for fast symbol lookups.
 
@@ -52,9 +84,9 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 **DO NOT modify** `compilerAst`, `simpleAst`, `codeGenCpu6502`, etc. The IR codegen has its own separate handling for symbol tables, AST transformations, and unused code removal.
 
 ## CRITICAL: NO FORMATTING
-- NEVER run formatters (black, ruff, prettier, etc.) after edits
-- Preserve my exact indentation, line lengths, and spacing
-- Make ONLY the requested changes, nothing else
+- DO NOT change indentation and formatting of lines that are not being modified. NEVER run formatters (black, ruff, prettier, etc.) after edits,
+- .editorconfig handles basic formatting (indentation, line endings, whitespace)
+- Make ONLY the requested changes, touch nothing else
 
 ## Prog8 language feature hints
 
@@ -92,8 +124,14 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - the CPU hardware stack can be manipulated via builtin functions: push(), pushw(), pushl(), pushf() and pop(), popw(), popl(), popf(). These can manually implement recursion if needed.
 
 ### Logic & Control Flow
-- boolean operators: 'and', 'or', 'xor', 'not'. Bitwise: '&', '|', '^', '~', '<<', '>>'. See docs/source/programming.rst.
-- **Short-circuit evaluation**: Logical `and` and `or` use short-circuit evaluation! In `a and b`, if `a` is false, `b` is NOT evaluated. In `a or b`, if `a` is true, `b` is NOT evaluated. This is important when `b` has side effects or could cause errors.
+- **Logical operators** (short-circuit, boolean only): `and`, `or`, `xor`, `not`
+  - Use in conditions: `if x == 0 or y > 10 { ... }`
+  - Short-circuit: In `a and b`, if `a` is false, `b` is NOT evaluated. In `a or b`, if `a` is true, `b` is NOT evaluated.
+  - This is important when `b` has side effects or could cause errors.
+- **Bitwise operators** (work on integer bits): `&`, `|`, `^`, `~`, `<<`, `>>`
+  - Use for bit manipulation: `mask = mask | FLAG_ACTIVE`
+  - Test bits: `if (mask & FLAG) != 0 { ... }`
+  - **Common mistake**: Don't use `and`/`or` for bitmask operations - use `&`/`|` instead!
 - CPU status flags: if_cs, if_cc, if_z, if_nz, etc. compile to single 6502 branch instructions.
 - use 'when' statements with choice blocks instead of multiple 'if' statements.
 - use 'repeat' instead of loops when iteration count is not needed.
@@ -144,10 +182,96 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 ### Syntax & Formatting
 - **numeric literal syntax**: `$` prefix for hex (`$FF` not `0xFF`), `%` prefix for binary (`%1010` not `0b1010`). Underscores allowed for readability: `25_000_000`. No leading-zero octal notation. **No type suffixes**: long literals are just regular numbers (e.g., `12345678` not `12345678L`), the type is determined by context (variable type or cast).
-- **for loop syntax**: `for i in 0 to 10 { ... }` (use downto when counting down) - NOT `for i = 0 to 10` or C-style `for(i=0; i<10; i++)`
+- **for loop syntax**: `for i in 0 to 10 { ... }` (use downto when counting down) - NOT `for i = 0 to 10` or C-style `for(i=0; i<10; i++)`. Loop variables must be declared separately before the loop - inline declaration like `for ubyte i in 0 to 10` is not supported.
 - **semicolons start comments**: `; this is a comment` - they do NOT end statements. There is NO statement separator (unlike C/Java's `;`). One statement per line only. Multi-line comments use `/* ... */`.
-- Prog8 source files are indented with 4 spaces, no tabs. Assembly source files (*.asm) can use spaces or tabs.
+- **Indentation**: See `.editorconfig` (4 spaces for .p8 and .asm files, no tabs).
 - **The assembly source code uses 64tass syntax, NOT ca65/cc65 or other assemblers.** Key 64tass syntax: `.proc`/`.pend` for procedures, `_label` for local labels, `.byte`/`.word`/`.dword` for data, `= ` for equates, zero-page variables defined with `=`. **Instructions like `rol`, `ror`, `asl`, `lsr` require an explicit operand** - use `rol a`, `ror a`, etc. for the accumulator, not just `rol` or `ror`.
+- **Character encoding**: 6502 targets use **PETSCII** by default. The `virtual` target uses **ISO** encoding.
+  - **6502 targets**: Use `txt.lowercase()` at program start for lowercase display.
+  - **Virtual target**: Use `%encoding iso` directive and call `txt.iso()` at program start.
+  - **Exception for x16emu debugging**: When running with `x16emu -echo iso` to see console output, use ISO encoding even on 6502 targets so the echoed text is readable.
+- **String arrays**: Use `str[N]` for arrays of strings (e.g., `str[12] types = ["sword", "axe", ...]`). Access with `types[i]`.
+- **String buffer pre-allocation**: **CRITICAL** - Empty strings don't allocate space! Always pre-allocate:
+  - WRONG: `str buffer = ""` (no space allocated, `strings.append()` will fail)
+  - RIGHT: `str buffer = "." * 50` (allocates 50 characters)
+- **String concatenation pattern**: Use `strings` module functions with pre-allocated buffers:
+  ```prog8
+  %import strings
+  str buffer = "." * 50          ; pre-allocate
+  void strings.copy(source, buffer)   ; initialize
+  void strings.append(buffer, "text") ; concatenate
+  ```
+  **WARNING**: String concatenation is EXPENSIVE on 6502! Only use when you truly need a combined string. If fragments can be handled separately (e.g., printing multiple strings in sequence), do NOT concatenate - just process each fragment separately:
+  ```prog8
+  ; EXPENSIVE - don't do this unless necessary
+  void strings.append(buffer, prefix)
+  void strings.append(buffer, suffix)
+  txt.print(buffer)
+  
+  ; CHEAP - prefer this when possible
+  txt.print(prefix)
+  txt.print(suffix)
+  ```
+- **Use `len()` for array sizes**: Don't hardcode array lengths - use `len(array)`:
+  ```prog8
+  ; WRONG: magic number
+  ubyte i = math.rnd() % 20
+
+  ; RIGHT: self-documenting
+  ubyte i = math.rnd() % len(weapons.prefixes)
+  ```
+- **Enums**: Prog8 enums are declared inside a block and use `Enum::Value` syntax (double colon, not dot):
+  ```prog8
+  enum Priority {
+      LOW = 1,
+      NORMAL,      ; auto-numbered to 2
+      HIGH,        ; auto-numbered to 3
+      EXTREME = 255
+  }
+
+  ; Generates these constants:
+  const ubyte Priority::LOW = 1
+  const ubyte Priority::NORMAL = 2
+  const ubyte Priority::HIGH = 3
+  const ubyte Priority::EXTREME = 255
+
+  ; Usage:
+  ubyte p = Priority::HIGH  ; NOT Priority.HIGH
+  ```
+  **When to use enums vs const**: Use enums for sets of related named values (states, types, classes). Use `const` for standalone values:
+  ```prog8
+  ; GOOD: enum for related choices
+  enum CharClass {
+      FIGHTER = 1,
+      MAGE = 2,
+      CLERIC = 3
+  }
+
+  ; GOOD: const for standalone values
+  const ubyte MIN_HP = 1
+  const ubyte BASE_AC = 10
+  ```
+  **Note**: Enum values are accessed directly by name within their block. For values needed across multiple blocks, use `const` in a shared block instead.
+- **Avoid `globals.XXXX` code smell**: If you find yourself prefixing many constants with `globals.`, consider:
+  1. Moving constants closer to where they're used (inside the relevant block)
+  2. Using literals directly for obvious values (like `3` for 3d6)
+- **Array size inference**: When declaring an array with an initializer list, you don't need to specify the size - Prog8 infers it automatically:
+  ```prog8
+  ; Explicit size (works but verbose)
+  ubyte[12] types = ["sword", "axe", "bow", ...]
+  
+  ; Inferred size (cleaner, preferred)
+  str[] types = ["sword", "axe", "bow", "staff", "mace", "dagger"]
+  ```
+  This is especially useful for string arrays and lookup tables. Use `len(array)` to get the size when needed.
+- **Use strings library for character operations**: The `strings` module has functions for character manipulation and checks (case conversion, character class tests, etc.). Use these instead of manual ASCII/PETSCII arithmetic.
+- **String functions return useful lengths**: Several `strings` library routines return the length of the string they operated on. This return value is often voided, but capturing it avoids redundant `len()` calls:
+  ```prog8
+  ; returning length, Useful for: repeated appends, tracking buffer usage, avoiding redundant len() calls
+  len = strings.copy(dest, src)     ; returns copied length
+  len = strings.append(buf, text)   ; returns resulting length
+  len = strings.upper(mystr)        ; returns string length
+  ```
 
 ## Other Key differences from other languages (C, Python, etc.)
 - **type casting syntax**: Use `expression as <type>` to cast (e.g., `bytevar as word`, `(a+b) as uword`). This is required for type conversions.
@@ -192,7 +316,7 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 ### When you MUST rebuild AND reinstall the compiler
 
 **After ANY change to:**
-1. **Kotlin compiler source code** (`.kt` files in any module)
+1. **Kotlin compiler source code** (`.kt` files in any module, or the `.g4` grammar file)
 2. **Standard library Prog8 files** (`compiler/res/prog8lib/**/*.p8`)
 3. **Standard library assembly files** (`compiler/res/prog8lib/**/*.asm`)
 

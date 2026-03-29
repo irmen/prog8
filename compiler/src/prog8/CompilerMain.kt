@@ -12,6 +12,8 @@ import prog8.compiler.CompilationResult
 import prog8.compiler.CompilerArguments
 import prog8.compiler.ErrorReporter
 import prog8.compiler.compileProgram
+import prog8.intermediate.IRFileReader
+import prog8.intermediate.Opcode
 import java.io.File
 import java.net.URI
 import java.nio.file.*
@@ -70,10 +72,12 @@ private fun compileMain(args: Array<String>): Boolean {
     val varsGolden by cli.option(ArgType.Boolean, fullName = "varsgolden", description = "put uninitialized variables in 'golden ram' memory area instead of at the end of the program. On the cx16 target this is $0400-07ff. This is unavailable on other systems.")
     val varsHighBank by cli.option(ArgType.Int, fullName = "varshigh", description = "put uninitialized variables in high memory area instead of at the end of the program. On the cx16 target the value specifies the HIRAM bank to use, on other systems this value is ignored.")
     val startVm by cli.option(ArgType.Boolean, fullName = "vm", description = "run a .p8ir IR source file in the embedded VM")
+    val vmTrace by cli.option(ArgType.Boolean, fullName = "vmtrace", description = "trace VM execution instruction by instruction (use with -vm or -emu)")
     val warnSymbolShadowing by cli.option(ArgType.Boolean, fullName = "warnshadow", description="show assembler warnings about symbol shadowing")
     val warnImplicitTypeCasts by cli.option(ArgType.Boolean, fullName = "warnimplicitcasts", description="show compiler warnings about implicit casts from a smaller to a larger type")
     val watchMode by cli.option(ArgType.Boolean, fullName = "watch", description = "continuous compilation mode (watch for file changes)")
     val version by cli.option(ArgType.Boolean, fullName = "version", description = "print compiler version and exit")
+    val compareIR by cli.option(ArgType.String, fullName = "compareir", description = "compare generated .p8ir file with existing .p8ir file")
     val moduleFiles by cli.argument(ArgType.String, fullName = "modules", description = "main module file(s) to compile").optional().multiple(999)
 
     try {
@@ -176,7 +180,7 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     if(startVm==true) {
-        runVm(moduleFiles.first(), quietAll==true)
+        runVm(moduleFiles.first(), quietAll==true, vmTrace==true)
         return true
     }
 
@@ -332,9 +336,18 @@ private fun compileMain(args: Array<String>): Boolean {
 
             val programNameInPath = outputPath.resolve(compilationResult.compilerAst.name)
 
-            if (startEmulator1 == true)
-                compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath, quietAll==true)
-            else if (startEmulator2 == true)
+            if (compareIR != null) {
+                compareIrFiles(outputPath.resolve("${compilationResult.compilerAst.name}.p8ir"), Path(compareIR!!))
+            }
+
+            if (startEmulator1 == true) {
+                if (compilationResult.compilationOptions.compTarget is VMTarget) {
+                    (compilationResult.compilationOptions.compTarget as VMTarget).launchEmulatorWithTrace(
+                        programNameInPath, quietAll==true, vmTrace==true)
+                } else {
+                    compilationResult.compilationOptions.compTarget.launchEmulator(1, programNameInPath, quietAll==true)
+                }
+            } else if (startEmulator2 == true)
                 compilationResult.compilationOptions.compTarget.launchEmulator(2, programNameInPath, quietAll==true)
         }
     }
@@ -380,10 +393,149 @@ private fun processSymbolDefs(symbolDefs: List<String>): Map<String, String>? {
     return result
 }
 
-fun runVm(irFilename: String, quiet: Boolean) {
+fun runVm(irFilename: String, quiet: Boolean, traceEnabled: Boolean = false) {
     val irFile = Path(irFilename)
     val vmdef = VMTarget()
-    vmdef.launchEmulator(0, irFile, quiet)
+    vmdef.launchEmulatorWithTrace(irFile, quiet, traceEnabled)
+}
+
+private fun compareIrFiles(newFile: Path, baselineFile: Path) {
+    if (!baselineFile.toFile().exists()) {
+        System.err.println("Compare error: baseline file not found: $baselineFile")
+        return
+    }
+    if (!newFile.toFile().exists()) {
+        System.err.println("Compare error: generated file not found: $newFile")
+        return
+    }
+
+    // Parse both IR files properly using IRFileReader
+    val baselineProgram = IRFileReader().read(baselineFile)
+    val newProgram = IRFileReader().read(newFile)
+
+    // Extract metrics from parsed IR programs
+    val baselineMetrics = extractIrMetrics(baselineProgram)
+    val newMetrics = extractIrMetrics(newProgram)
+
+    println("\nIR File Comparison: ${newFile.fileName} vs ${baselineFile.fileName}")
+    println("=".repeat(70))
+    
+    println("\nSummary:")
+    println("  Instructions:  ${formatMetric(newMetrics.instructions, baselineMetrics.instructions)}")
+    println("  Chunks:        ${formatMetric(newMetrics.chunks, baselineMetrics.chunks)}")
+    println("  Registers:     ${formatMetric(newMetrics.registers, baselineMetrics.registers)}")
+    println("  File size:     ${formatMetric(newFile.toFile().length(), baselineFile.toFile().length())}")
+    
+    // Compare instruction sequences
+    val baselineCode = extractCodeInstructions(baselineProgram)
+    val newCode = extractCodeInstructions(newProgram)
+    
+    if (baselineCode == newCode) {
+        println("\n✓ No code differences (generated IR instructions are identical).")
+    } else {
+        val differences = findCodeDifferences(baselineCode, newCode)
+        println("\n✗ Found ${differences.size} instruction difference(s) in code chunks.")
+        
+        // Show first few differences
+        if (differences.isNotEmpty()) {
+            println("\nFirst differences:")
+            differences.take(10).forEach { (index, baselineIns, newIns) ->
+                println("  [$index] $baselineIns  →  $newIns")
+            }
+            if (differences.size > 10) {
+                println("  ... and ${differences.size - 10} more differences")
+            }
+        }
+        println("\n  (Use 'diff' command on the .p8ir files for detailed comparison)")
+    }
+    println()
+}
+
+private fun formatMetric(newVal: Int, baselineVal: Int): String {
+    val delta = newVal - baselineVal
+    val pct = if (baselineVal != 0) (delta * 100.0 / baselineVal) else 0.0
+    val deltaStr = if (delta == 0) "(no change)" else if (delta > 0) "(+${delta}, +${pct.toInt()}%)" else "(${delta}, ${pct.toInt()}%)"
+    return "$newVal (new) vs $baselineVal (baseline)  $deltaStr"
+}
+
+private fun formatMetric(newVal: Long, baselineVal: Long): String {
+    val delta = newVal - baselineVal
+    val pct = if (baselineVal != 0L) (delta * 100.0 / baselineVal) else 0.0
+    val deltaStr = if (delta == 0L) "(no change)" else if (delta > 0L) "(+${delta}, +${pct.toInt()}%)" else "(${delta}, ${pct.toInt()}%)"
+    return "$newVal bytes (new) vs $baselineVal bytes (baseline)  $deltaStr"
+}
+
+data class InstructionDiff(val index: Int, val baseline: String, val new: String)
+
+private fun findCodeDifferences(baseline: List<String>, new: List<String>): List<InstructionDiff> {
+    val diffs = mutableListOf<InstructionDiff>()
+    val maxLines = maxOf(baseline.size, new.size)
+    for (i in 0 until maxLines) {
+        val newLine = if (i < new.size) new[i] else "<end>"
+        val baselineLine = if (i < baseline.size) baseline[i] else "<end>"
+        if (newLine != baselineLine) {
+            diffs.add(InstructionDiff(i, baselineLine, newLine))
+        }
+    }
+    return diffs
+}
+
+data class IrMetrics(val instructions: Int, val chunks: Int, val registers: Int)
+
+private fun extractIrMetrics(program: prog8.intermediate.IRProgram): IrMetrics {
+    var instructions = 0
+    var chunks = 0
+    val readRegs = mutableSetOf<Int>()
+    val writeRegs = mutableSetOf<Int>()
+    
+    // Count chunks and instructions from all subroutines
+    program.allSubs().forEach { sub ->
+        sub.chunks.forEach { chunk ->
+            chunks++
+            instructions += chunk.instructions.size
+            
+            // Extract register usage from each chunk
+            chunk.instructions.forEach { ins ->
+                ins.reg1?.let { readRegs.add(it) }
+                ins.reg2?.let { readRegs.add(it) }
+                ins.reg3?.let { 
+                    if (ins.opcode == Opcode.CONCAT || ins.opcode == Opcode.EXT || 
+                        ins.opcode == Opcode.EXTS) {
+                        readRegs.add(it)
+                    } else {
+                        writeRegs.add(it)
+                    }
+                }
+                ins.fpReg1?.let { readRegs.add(it) }
+                ins.fpReg2?.let { readRegs.add(it) }
+            }
+        }
+    }
+    
+    // Also count global init chunks
+    program.globalInits.instructions.forEach { ins ->
+        ins.reg1?.let { readRegs.add(it) }
+        ins.reg2?.let { readRegs.add(it) }
+        ins.reg3?.let { writeRegs.add(it) }
+    }
+    
+    val registers = readRegs.size + writeRegs.size
+    return IrMetrics(instructions, chunks, registers)
+}
+
+private fun extractCodeInstructions(program: prog8.intermediate.IRProgram): List<String> {
+    val code = mutableListOf<String>()
+    
+    // Get all instructions from all subroutines
+    program.allSubs().forEach { sub ->
+        sub.chunks.forEach { chunk ->
+            chunk.instructions.forEach { ins ->
+                code.add(ins.toString())
+            }
+        }
+    }
+    
+    return code
 }
 
 

@@ -31,7 +31,8 @@
       "Bash(xargs *)",
       "Bash(wc *)",
       "Bash(do *)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(diff *)"
     ]
   }
 }

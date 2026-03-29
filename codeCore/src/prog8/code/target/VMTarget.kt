@@ -69,6 +69,10 @@ class VMTarget: ICompilationTarget,
     }
 
     override fun launchEmulator(selectedEmulator: Int, programNameWithPath: Path, quiet: Boolean) {
+        launchEmulatorWithTrace(programNameWithPath, quiet, traceEnabled = false)
+    }
+
+    fun launchEmulatorWithTrace(programNameWithPath: Path, quiet: Boolean, traceEnabled: Boolean) {
         if(!quiet)
             println("\nStarting Virtual Machine...")
 
@@ -76,7 +80,7 @@ class VMTarget: ICompilationTarget,
         val vm = Class.forName("prog8.vm.VmRunner").getDeclaredConstructor().newInstance() as IVirtualMachineRunner
         val withExt = if(programNameWithPath.extension=="p8ir") programNameWithPath else programNameWithPath.resolveSibling("${programNameWithPath.name}.p8ir")
         if(withExt.isReadable())
-            vm.runProgram(withExt.readText(), quiet)
+            vm.runProgram(withExt.readText(), quiet, traceEnabled)
         else
             throw java.nio.file.NoSuchFileException(withExt.name, null, "not a .p8ir file")
     }
@@ -92,7 +96,7 @@ class VMTarget: ICompilationTarget,
 
 
 interface IVirtualMachineRunner {
-    fun runProgram(irSource: String, quiet: Boolean)
+    fun runProgram(irSource: String, quiet: Boolean, traceEnabled: Boolean = false)
 }
 
 private class VirtualZeropage(options: CompilationOptions): Zeropage(options) {
