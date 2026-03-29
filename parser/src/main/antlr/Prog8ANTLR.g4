@@ -85,6 +85,9 @@ module_element:
 
 block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}';
 
+// Note: enum and alias appear in both block_statement and statement rules.
+// This is intentional - they are declaration statements like variabledeclaration,
+// and can appear at block level or inside subroutines (local enums/aliases).
 block_statement:
     directive
     | variabledeclaration
@@ -204,6 +207,7 @@ augassignment :
     assign_target operator=('+=' | '-=' | '/=' | '*=' | '&=' | '|=' | '^=' | '%=' | '<<=' | '>>=' ) expression
     ;
 
+// Note: VOID can be used in multiple ways but a semantic AST check takes care of any mistakes there later.
 assign_target:
     scoped_identifier               #IdentifierTarget
     | arrayindexed                  #ArrayindexedTarget
@@ -253,7 +257,7 @@ expression :
 
 tuple_expression: expression (',' EOL? expression)+  ;
 
-sizeof_argument: basedatatype | expression | pointertype ;
+sizeof_argument: basedatatype | scoped_identifier | pointertype | addressof ;
 
 
 arrayindexed:

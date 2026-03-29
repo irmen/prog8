@@ -34,18 +34,36 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitExpression(ctx: ExpressionContext): Expression {
         if(ctx.sizeof_expression!=null) {
+            // Handle pointer type argument: sizeof(^^float)
             if(ctx.sizeof_argument().pointertype()!=null)
                 return IdentifierReference(listOf("sys", "SIZEOF_POINTER"), ctx.toPosition())
 
-            val sdt = ctx.sizeof_argument().basedatatype()
-            val datatype = baseDatatypeFor(sdt)
-            val expression = ctx.sizeof_argument().expression()?.accept(this) as Expression?
-            val sizeof = IdentifierReference(listOf("sizeof"), ctx.toPosition())
-            val arg = if (expression != null) expression else {
-                require(datatype != null)
-                IdentifierReference(listOf(datatype.name.lowercase()), ctx.toPosition())
+            // Handle address-of argument: sizeof(&var) or sizeof(&&var)
+            val addressofCtx = ctx.sizeof_argument().addressof()
+            if(addressofCtx != null) {
+                val addressof = addressofCtx.accept(this) as AddressOf
+                val sizeof = IdentifierReference(listOf("sizeof"), ctx.toPosition())
+                return FunctionCallExpression(sizeof, mutableListOf(addressof), ctx.toPosition())
             }
-            return FunctionCallExpression(sizeof, mutableListOf(arg), ctx.toPosition())
+
+            // Handle basedatatype argument: sizeof(byte)
+            val sdt = ctx.sizeof_argument().basedatatype()
+            val datatype = if(sdt != null) baseDatatypeFor(sdt) else null
+            if(datatype != null) {
+                val arg = IdentifierReference(listOf(datatype.name.lowercase()), ctx.toPosition())
+                val sizeof = IdentifierReference(listOf("sizeof"), ctx.toPosition())
+                return FunctionCallExpression(sizeof, mutableListOf(arg), ctx.toPosition())
+            }
+
+            // Handle scoped_identifier argument: sizeof(myvar) or sizeof(MyStruct)
+            val identifier = ctx.sizeof_argument().scoped_identifier()?.accept(this) as IdentifierReference?
+            if(identifier != null) {
+                val sizeof = IdentifierReference(listOf("sizeof"), ctx.toPosition())
+                return FunctionCallExpression(sizeof, mutableListOf(identifier), ctx.toPosition())
+            }
+
+            // Should not reach here - grammar should ensure one of the above cases matches
+            throw FatalAstException("invalid sizeof argument at ${ctx.toPosition()}")
         }
 
         if(ctx.bop!=null) {

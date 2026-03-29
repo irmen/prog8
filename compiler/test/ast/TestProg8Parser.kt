@@ -1058,8 +1058,9 @@ main {
         st.size shouldBe 3
     }
 
-    test("allow type name as argument for sizeof()") {
-        val src="""
+    test("sizeof() builtin function argument validation") {
+        // Valid sizeof arguments should compile successfully
+        val validSrc = """
 %option enable_floats
 
 main {
@@ -1085,42 +1086,45 @@ main {
         ub2 = sys.SIZEOF_FLOAT
         ub1 = sys.SIZEOF_POINTER
         ub2 = sys.SIZEOF_UBYTE
-
-        ub1 = sizeof(true)
-        ub2 = sizeof(1234)
-        ub1 = sizeof(12345678)
-        ub2 = sizeof(9.999)
-
         ub1 = sizeof(b)
         ub2 = sizeof(w)
         ub1 = sizeof(ll)
         ub2 = sizeof(f)
         ub1 = sizeof(lptr)
         ub2 = sizeof(fptr)
-        ub1 = sizeof(lptr^^)
-        ub2 = sizeof(fptr^^)
-
         ub1 = sizeof(bool)
         ub2 = sizeof(word)
         ub1 = sizeof(long)
         ub2 = sizeof(float)
         ub1 = sizeof(List)
         ub2 = sizeof(main.start.List)
-        
         ub1 = sizeof(&w)
+        ub1 = sizeof(&b)
+        ub2 = sizeof(&&w)
+        ub1 = sizeof(&&lptr)
         ub2 = sizeof(^^float)
+        ub1 = sizeof(^^word)
         ub1 = sizeof(^^List)
     }
 }"""
-
-        val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!
+        val result = compileText(VMTarget(), false, validSrc, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 43
-        val assignments = st.drop(14).dropLast(1)
-        assignments.all { it is Assignment } shouldBe true
-        assignments.forEach { a ->
-            (a as Assignment).value shouldBe instanceOf<NumericLiteral>()
+        // Check that all sizeof calls compiled to numeric literals
+        val sizeofAssignments = st.filterIsInstance<Assignment>().filter { 
+            it.value is NumericLiteral 
         }
+        sizeofAssignments.size shouldBe 29  // 6 SIZEOF_* + 23 sizeof() calls
+    }
+
+    test("sizeof() rejects invalid argument types") {
+        // Invalid sizeof arguments should fail to compile
+        compileText(VMTarget(), false, "main { sub start() { uword x = sizeof(42) } }", outputDir, writeAssembly = false) shouldBe null
+        compileText(VMTarget(), false, "main { sub start() { uword x = sizeof(3 + 4) } }", outputDir, writeAssembly = false) shouldBe null
+        compileText(VMTarget(), false, """main { sub start() { uword x = sizeof("hello") } }""", outputDir, writeAssembly = false) shouldBe null
+        compileText(VMTarget(), false, "main { sub start() { uword x = sizeof([1,2,3]) } }", outputDir, writeAssembly = false) shouldBe null
+        compileText(VMTarget(), false, "main { sub foo()->byte{return 1} sub start() { uword x = sizeof(foo()) } }", outputDir, writeAssembly = false) shouldBe null
+        compileText(VMTarget(), false, "main { sub start() { uword x = sizeof(if true then 1 else 2) } }", outputDir, writeAssembly = false) shouldBe null
+        compileText(VMTarget(), false, "main { ^^byte p sub start() { uword x = sizeof(p^^) } }", outputDir, writeAssembly = false) shouldBe null
     }
 
 })

@@ -266,12 +266,14 @@ Miscellaneous
 :index:`setmsb` (x, value)
     Sets the most significant byte of word or long variable x to a new value.
 
-sizeof (name)  ;  sizeof (number)  ;  sizeof(datatype)
-    The constant number of bytes that the object 'name', the number 'number' or the type 'datatype' occupies in memory.
+sizeof (name)  ;  sizeof(datatype)  ;  sizeof(&name)  ;  sizeof(&&name)  ;  sizeof(^^type)
+    The constant number of bytes that the object 'name', the type 'datatype', or a pointer occupies in memory.
     For instance, for a variable of type uword, the sizeof is 2.
-    For an 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
-    For a string, it returns the size of the string in memory (which includes the 0-byte terminator at the end)
-    Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use len() for that.
+    For a 10 element array of floats, it is 50 (on the C64, where a float is 5 bytes).
+    For a string, it returns the size of the string in memory (which includes the 0-byte terminator at the end).
+    For address-of expressions like ``&variable`` or ``&&variable``, it returns the size of a pointer (2 bytes).
+    For pointer types like ``^^float`` or ``^^MyStruct``, it returns the size of a pointer (2 bytes).
+    Note: usually you will be interested in the number of elements in an array, or the number of characters in the string; use ``len()`` for that.
 
 :index:`swap` (var1, var2)
     Swaps the values in var1 and var2 without the need of a temporary variable. Supports booleans and all other numeric datatypes including pointers.

@@ -929,17 +929,6 @@ main {
     }
 
 
-    test("sizeof number const evaluation in vardecl") {
-        val src="""
-main {
-    sub start() {
-        uword @shared size1 = sizeof(22222)
-        uword @shared size2 = sizeof(2.2)
-    }
-}"""
-        compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=false) shouldNotBe null
-    }
-
     test("'not in' operator parsing") {
         val src="""
 main {

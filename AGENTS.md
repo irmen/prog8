@@ -87,6 +87,7 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - DO NOT change indentation and formatting of lines that are not being modified. NEVER run formatters (black, ruff, prettier, etc.) after edits,
 - .editorconfig handles basic formatting (indentation, line endings, whitespace)
 - Make ONLY the requested changes, touch nothing else
+- **NO EMOJI in user documentation** - Do not use emoji or decorative unicode symbols in documentation files. Functional unicode symbols are acceptable when they serve a clear purpose (e.g., → for arrows, ± for plus-minus, × for multiplication, ° for degrees). Avoid decorative emoji like ❌ ✅ ⚠️ 🎉 etc.
 
 ## Prog8 language feature hints
 

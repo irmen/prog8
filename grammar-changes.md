@@ -38,31 +38,7 @@ block1 { } block2 { }   ; INVALID - needs EOL between blocks
 
 ---
 
-## 2. `enum` and `alias` as Statements (Semantically Wrong)
-
-**Current Grammar:**
-```antlr
-block_statement: enum | alias;
-statement: enum | alias;
-```
-
-**Problem:** Enums and aliases can be defined inside subroutine bodies:
-```prog8
-myblock {
-    enum Status { OK, FAIL }    ; block level - makes sense
-    
-    sub foo() {
-        enum Status2 { A, B }   ; inside subroutine - weird!
-        alias x = y             ; also weird inside subroutine
-    }
-}
-```
-
-**Recommendation:** Remove `enum` and `alias` from the `statement` rule. They should only be allowed in `block_statement`.
-
----
-
-## 3. Inconsistent Optional EOL Before Braces
+## 2. Inconsistent Optional EOL Before Braces
 
 **Current Grammar:**
 ```antlr
@@ -78,51 +54,7 @@ structdeclaration: STRUCT identifier '{' EOL? ...
 
 ---
 
-## 4. `VOID` Used in Multiple Incompatible Contexts
-
-**Current Grammar:**
-```antlr
-assign_target: VOID #VoidTarget;
-functioncall_stmt: VOID? scoped_identifier '(' ...;
-```
-
-**Problem:** `VOID` is used as:
-1. An assignment target (to discard return values): `void, x = func()`
-2. A statement prefix (to discard return values): `void func()`
-
-These are different use cases but use the same keyword. The grammar allows:
-```prog8
-void = func()      ; ??? Is this valid? What does this mean?
-```
-
-**Recommendation:** Consider different syntax for discarding return values in different contexts, or clarify the semantics.
-
----
-
-## 5. `repeat` Loop Optional Expression - Unclear Semantics
-
-**Current Grammar:**
-```antlr
-repeatloop: 'repeat' expression? EOL? (statement | statement_block);
-unrollloop: 'unroll' expression EOL? (statement | statement_block);
-```
-
-**Problem:** 
-- `repeat` has optional `expression?` - what does it mean when omitted?
-- `unroll` **requires** an expression
-- Why the inconsistency?
-
-```prog8
-repeat 5 { ... }      ; repeat 5 times?
-repeat { ... }        ; repeat forever? What's the difference from 'while true'?
-unroll 5 { ... }      ; must specify count
-```
-
-**Recommendation:** Either make the expression required for `repeat`, or document clearly what omission means. Make `repeat` and `unroll` consistent.
-
----
-
-## 6. Pointer Dereference Grammar is Admittedly "Cursed"
+## 3. Pointer Dereference Grammar is Admittedly "Cursed"
 
 **Current Grammar:**
 ```antlr
@@ -143,28 +75,7 @@ singlederef: identifier arrayindex? POINTER;
 
 ---
 
-## 7. `sizeof` Allows Arbitrary Expressions
-
-**Current Grammar:**
-```antlr
-expression: 'sizeof' '(' sizeof_argument ')';
-sizeof_argument: basedatatype | expression | pointertype;
-```
-
-**Problem:** You can do `sizeof(5)` (expression) but what does that mean? Shouldn't it be `sizeof(byte)` or `sizeof(myvar)` only?
-
-```prog8
-sizeof(5)           ; ??? Returns size of what type?
-sizeof(3 + 4)       ; ??? 
-sizeof(byte)        ; Makes sense
-sizeof(myvar)       ; Makes sense
-```
-
-**Recommendation:** Restrict `sizeof_argument` to `basedatatype | scoped_identifier | pointertype` - remove arbitrary `expression`.
-
----
-
-## 8. Trailing Commas Inconsistency
+## 4. Trailing Commas Inconsistency
 
 **Current Grammar:**
 ```antlr
@@ -183,7 +94,7 @@ arrayliteral: '[' EOL? expression? (',' EOL? expression)* ','? EOL? ']';  ; trai
 
 ---
 
-## 9. `const` Declaration - Optional Type is Confusing
+## 5. `const` Declaration - Optional Type is Confusing
 
 **Current Grammar:**
 ```antlr
@@ -201,7 +112,7 @@ const byte y = 5    ; Explicit type
 
 ---
 
-## 10. `inline` Keyword Only for `asmsub`
+## 6. `inline` Keyword Only for `asmsub`
 
 **Current Grammar:**
 ```antlr
@@ -225,22 +136,22 @@ inline sub bar() { ... }      ; Invalid - syntax error
 
 | Issue | Severity | Recommendation |
 |-------|----------|----------------|
-| `enum`/`alias` as statements | High | Remove from `statement` rule |
 | Pointer dereference grammar | High | Proper redesign needed |
-| `repeat` optional expression | Medium | Clarify semantics or require expression |
-| `sizeof` allows expressions | Medium | Restrict to types and identifiers |
 | Inconsistent EOL requirements | Medium | Make consistent |
 | Trailing commas inconsistency | Low | Make consistent |
 | `const` optional type | Low | Require or document inference |
 | `inline` only for `asmsub` | Low | Extend or rename |
-| `VOID` in multiple contexts | Low | Clarify or differentiate |
 
 **Removed from list (retro-appropriate features):**
 - `ON...GOTO` with `else` clause - **NOT a flaw**. Classic BASIC syntax appropriate for 6502 target. The `else` clause provides useful error handling for out-of-range indices (e.g., menu dispatch). Compiles efficiently to 6502 jump tables. See comment in `.g4` file.
 
+**Removed from list (incorrect assessment):**
+- `enum`/`alias` as statements - **NOT a flaw**. These are declaration statements like `vardecl` and can appear inside subroutines as local type definitions. See comment in `.g4` file.
+- `VOID` in multiple contexts - **NOT a flaw**. `void = func()` is rejected with helpful error message "cannot assign to 'void', perhaps a void function call was intended". `void func()` is the correct syntax for discarding return values.
+- `repeat` optional expression - **NOT a flaw**. Documentation clearly explains that `repeat { ... }` without expression is an infinite loop, while `repeat N { ... }` repeats N times. This is intentional design.
+
 **Issues that may also be retro-appropriate (needs further review):**
 - **Inconsistent EOL requirements** - May be intentional flexibility for different contexts (module vs block level)
-- **`VOID` in multiple contexts** - May be intentional overloading for convenience (discard return value in different positions)
 - **`inline` only for `asmsub`** - May be intentional distinction (inline assembly vs inline function expansion are different concepts)
 - **Trailing commas inconsistency** - May reflect different use cases (enums/arrays are data, function calls are execution)
 
