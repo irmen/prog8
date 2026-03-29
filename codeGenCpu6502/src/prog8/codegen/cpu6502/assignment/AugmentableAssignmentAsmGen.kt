@@ -1193,9 +1193,9 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             val assignValue = AsmAssignment(value,
                 listOf(
                     AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.UBYTE,
-                    address.definingISub(), Position.DUMMY, register = RegisterOrPair.A)
+                    address.definingISub(), address.position, register = RegisterOrPair.A)
                 ),
-                program.memsizer, Position.DUMMY)
+                program.memsizer, address.position)
             assignmentAsmGen.translateNormalAssignment(assignValue, address.definingISub())   // calculate value into A
         }
 

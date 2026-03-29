@@ -333,7 +333,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                 // we need to sign extend the source, do this via temporary word variable
                 asmgen.assignExpressionToVariable(value, "P8ZP_SCRATCH_W1", DataType.UBYTE)
                 asmgen.signExtendVariableLsb("P8ZP_SCRATCH_W1", value.type.base)
-                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, Position.DUMMY)
+                asmgen.assignVariableToRegister("P8ZP_SCRATCH_W1", register, null, value.position)
             } else {
                 val scope = value.definingISub()
                 val target: AsmAssignTarget =
@@ -344,7 +344,7 @@ internal class FunctionCallAsmGen(private val program: PtProgram, private val as
                     }
                 val src = if(value.type.isPassByRef) {
                     if(value is PtIdentifier) {
-                        val addr = PtAddressOf(value.type.typeForAddressOf(false), false, Position.DUMMY)
+                        val addr = PtAddressOf(value.type.typeForAddressOf(false), false, value.position)
                         addr.add(value)
                         addr.parent = scope as PtNode
                         AsmAssignSource.fromAstSource(addr, program, asmgen).adjustSignedUnsigned(target)

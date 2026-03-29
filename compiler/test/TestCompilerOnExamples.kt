@@ -332,17 +332,17 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
-            ExampleSizes("bouncegfx", virtualLineCountOptimized=890, virtualLineCountUnoptimized=3552),
-            ExampleSizes("bsieve", virtualLineCountOptimized=800, virtualLineCountUnoptimized=4486),
-            ExampleSizes("fountain", virtualLineCountOptimized=720, virtualLineCountUnoptimized=3397),
-            ExampleSizes("pixelshader", virtualLineCountOptimized=368, virtualLineCountUnoptimized=1216),
-            ExampleSizes("sincos", virtualLineCountOptimized=1075, virtualLineCountUnoptimized=3600),
-            ExampleSizes("pointers/animalgame", virtualLineCountOptimized=879, virtualLineCountUnoptimized=8556),
-            ExampleSizes("pointers/binarytree", virtualLineCountOptimized=1998, virtualLineCountUnoptimized=5657),
-            ExampleSizes("pointers/hashtable", virtualLineCountOptimized=2232, virtualLineCountUnoptimized=9107),
-            ExampleSizes("pointers/sortedlist", virtualLineCountOptimized=1102, virtualLineCountUnoptimized=6642),
-            ExampleSizes("pointers/fountain-virtual", virtualLineCountOptimized=757, virtualLineCountUnoptimized=3436),
-            ExampleSizes("pointers/sorting", virtualLineCountOptimized=1532, virtualLineCountUnoptimized=9329)
+            ExampleSizes("bouncegfx", virtualLineCountOptimized=916, virtualLineCountUnoptimized=3604),
+            ExampleSizes("bsieve", virtualLineCountOptimized=828, virtualLineCountUnoptimized=4546),
+            ExampleSizes("fountain", virtualLineCountOptimized=746, virtualLineCountUnoptimized=3449),
+            ExampleSizes("pixelshader", virtualLineCountOptimized=390, virtualLineCountUnoptimized=1260),
+            ExampleSizes("sincos", virtualLineCountOptimized=1103, virtualLineCountUnoptimized=3654),
+            ExampleSizes("pointers/animalgame", virtualLineCountOptimized=894, virtualLineCountUnoptimized=8629),
+            ExampleSizes("pointers/binarytree", virtualLineCountOptimized=2023, virtualLineCountUnoptimized=5732),
+            ExampleSizes("pointers/hashtable", virtualLineCountOptimized=2267, virtualLineCountUnoptimized=9178),
+            ExampleSizes("pointers/sortedlist", virtualLineCountOptimized=1117, virtualLineCountUnoptimized=6713),
+            ExampleSizes("pointers/fountain-virtual", virtualLineCountOptimized=786, virtualLineCountUnoptimized=3491),
+            ExampleSizes("pointers/sorting", virtualLineCountOptimized=1548, virtualLineCountUnoptimized=9401)
         ),
         listOf(false, true)
     )

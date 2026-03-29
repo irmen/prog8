@@ -169,7 +169,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
         functionCallsToPrefix.reversed().forEach { (parent, index) ->
             val node = parent.children[index]
             if(node is PtFunctionCall) {
-                val prefixedName = PtIdentifier(node.name, DataType.UNDEFINED, Position.DUMMY).prefix(parent, st)
+                val prefixedName = PtIdentifier(node.name, DataType.UNDEFINED, node.position).prefix(parent, st)
                 val prefixedNode = node.withNewName(prefixedName.name)
                 parent.children[index] = prefixedNode
             } else {

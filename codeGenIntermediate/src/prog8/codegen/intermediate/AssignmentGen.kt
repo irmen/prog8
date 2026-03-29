@@ -60,7 +60,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
                     // (this allows unencumbered use of many Rx registers if you don't return that many values)
                     val returntypes = BuiltinFunctions.getValue(thing.name).returnTypes
-                    val signature = PtSubSignature(returntypes.map { DataType.forDt(it) }, Position.DUMMY)
+                    val signature = PtSubSignature(returntypes.map { DataType.forDt(it) }, values.position)
                     val returnregs = signature.returnsWhatWhere()
                     assignmentTargets.zip(returnregs).forEach {
                         val target = it.first as PtAssignTarget

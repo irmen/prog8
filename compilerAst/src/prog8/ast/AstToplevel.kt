@@ -229,8 +229,8 @@ interface INameScope: IStatementContainer, INamedStatement {
                         return null
                     if (idx == scopedName.size - 1) {
                         // was last path element
-                        val pointer = IdentifierReference(scopedName, Position.DUMMY)
-                        val ref = StructFieldRef(pointer, struct as StructDecl, fieldDt, field, Position.DUMMY)
+                        val pointer = IdentifierReference(scopedName, localSymbol.position)
+                        val ref = StructFieldRef(pointer, struct as StructDecl, fieldDt, field, localSymbol.position)
                         ref.linkParents(this as Node)
                         return ref
                     }

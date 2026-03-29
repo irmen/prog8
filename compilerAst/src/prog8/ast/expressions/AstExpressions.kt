@@ -798,7 +798,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
     operator fun compareTo(other: NumericLiteral): Int = number.compareTo(other.number)
 
     class ValueAfterCast(val isValid: Boolean, val whyFailed: String?, private val value: NumericLiteral?) {
-        fun valueOrZero() = if(isValid) value!! else NumericLiteral(BaseDataType.UBYTE, 0.0, Position.DUMMY)
+        fun valueOrZero() = if(isValid) value!! else NumericLiteral(BaseDataType.UBYTE, 0.0, value?.position ?: Position.DUMMY)
         fun linkParent(parent: Node) {
             value?.linkParents(parent)
         }

@@ -5434,7 +5434,7 @@ $endLabel""")
     internal fun assignVariableToRegister(asmVarName: String, register: RegisterOrPair, signed: Boolean, scope: IPtSubroutine?, pos: Position) {
         val tgt = AsmAssignTarget.fromRegisters(register, signed, pos, null, asmgen)
         val src = AsmAssignSource(SourceStorageKind.VARIABLE, program, asmgen, tgt.datatype, variableAsmName = asmVarName)
-        val assign = AsmAssignment(src, listOf(tgt), program.memsizer, Position.DUMMY)
+        val assign = AsmAssignment(src, listOf(tgt), program.memsizer, pos)
         translateNormalAssignment(assign, scope)
     }
 

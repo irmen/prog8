@@ -170,33 +170,33 @@ internal object DeferProcessor {
 
         for( (sub, defers) in subdefers) {
             // create the routine that calls the enabled defers in reverse order
-            val defersRoutine = PtSub(invokeDefersRoutineName, emptyList(), emptyList(), Position.DUMMY)
+            val defersRoutine = PtSub(invokeDefersRoutineName, emptyList(), emptyList(), sub.position)
             defersRoutine.parent=sub
             for((idx, defer) in defers.reversed().withIndex()) {
-                val shift = PtAugmentedAssign(">>=", Position.DUMMY)
-                shift.add(PtAssignTarget(false, sub.position).also {
-                    it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, sub.position))
+                val shift = PtAugmentedAssign(">>=", defer.position)
+                shift.add(PtAssignTarget(false, defer.position).also {
+                    it.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, defer.position))
                 })
-                shift.add(PtNumber(BaseDataType.UBYTE, 1.0, sub.position))
+                shift.add(PtNumber(BaseDataType.UBYTE, 1.0, defer.position))
                 defersRoutine.add(shift)
                 val skiplabel = "prog8_defer_skip_${idx+1}"
-                val branchcc = PtConditionalBranch(BranchCondition.CC, Position.DUMMY)
+                val branchcc = PtConditionalBranch(BranchCondition.CC, defer.position)
                 branchcc.add(PtNodeGroup().also {
-                    val jump = PtJump(Position.DUMMY)
-                    jump.add(PtIdentifier(defersRoutine.scopedName+"."+skiplabel, DataType.UBYTE, Position.DUMMY))
+                    val jump = PtJump(defer.position)
+                    jump.add(PtIdentifier(defersRoutine.scopedName+"."+skiplabel, DataType.UBYTE, defer.position))
                     it.add(jump)
                 })
                 branchcc.add(PtNodeGroup())
                 defersRoutine.add(branchcc)
                 transferChildren(defer, defersRoutine, true)
-                defersRoutine.add(PtLabel(skiplabel, Position.DUMMY))
+                defersRoutine.add(PtLabel(skiplabel, defer.position))
             }
-//        val printMask = PtFunctionCall("txt.print_ubbin", true, DataType.UNDEFINED, Position.DUMMY)
-//        printMask.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, Position.DUMMY))
-//        printMask.add(PtBool(true, Position.DUMMY))
+//        val printMask = PtFunctionCall("txt.print_ubbin", true, DataType.UNDEFINED, sub.position)
+//        printMask.add(PtIdentifier(sub.scopedName+"."+maskVarName, DataType.UBYTE, sub.position))
+//        printMask.add(PtBool(true, sub.position))
 //        defersRoutine.add(printMask)
 
-            defersRoutine.add(PtReturn(Position.DUMMY))
+            defersRoutine.add(PtReturn(sub.position))
             sub.add(defersRoutine)
         }
     }

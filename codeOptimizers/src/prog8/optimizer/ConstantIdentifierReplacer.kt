@@ -452,7 +452,7 @@ internal class ConstantIdentifierReplacer(
             if(targetDatatype.isArray) {
                 val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, targetDatatype.getOrUndef(),
                     ZeropageWish.DONTCARE, SplitWish.NOSPLIT, null, "dummy", emptyList(),
-                    assignment.value, false, 0u, false, Position.DUMMY)
+                    assignment.value, false, 0u, false, assignment.value.position)
                 val replaceValue = createConstArrayInitializerValue(decl)
                 if(replaceValue!=null) {
                     return listOf(IAstModification.ReplaceNode(assignment.value, replaceValue, assignment))

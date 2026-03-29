@@ -742,7 +742,7 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.second,
                     it.initializationStringValue!!.first
                 )
-                asmgen.romableError("string (${it.dt} ${it.name}) can only be used as read-only in ROMable code", Position.DUMMY, false)     // TODO print warning with position of the var
+                asmgen.romableError("string (${it.dt} ${it.name}) can only be used as read-only in ROMable code", it.astNode?.position ?: Position.DUMMY, false)
             }
             alignedStrings.sortedBy { it.align }.forEach {
                 outputStringvar(
@@ -751,22 +751,22 @@ internal class ProgramAndVarsGen(
                     it.initializationStringValue!!.second,
                     it.initializationStringValue!!.first
                 )
-                asmgen.romableError("string (${it.dt} ${it.name}) can only be used as read-only in ROMable code", Position.DUMMY, false)     // TODO print warning with position of the var
+                asmgen.romableError("string (${it.dt} ${it.name}) can only be used as read-only in ROMable code", it.astNode?.position ?: Position.DUMMY, false)
             }
 
             notAlignedOther.sortedBy { it.type }.forEach {
                 staticVariable2asm(it)
                 if(it.dt.isArray)
-                    asmgen.romableError("array (${it.dt} ${it.name}) can only be used as read-only in ROMable code", Position.DUMMY, false)     // TODO print warning with position of the var
+                    asmgen.romableError("array (${it.dt} ${it.name}) can only be used as read-only in ROMable code", it.astNode?.position ?: Position.DUMMY, false)
                 else
-                    asmgen.romableError("inlined variable (${it.dt} ${it.name})", Position.DUMMY)       // TODO print warning with position of the var
+                    asmgen.romableError("inlined variable (${it.dt} ${it.name})", it.astNode?.position ?: Position.DUMMY)
             }
             alignedOther.sortedBy { it.align }.sortedBy { it.type }.forEach {
                 staticVariable2asm(it)
                 if(it.dt.isArray)
-                    asmgen.romableError("array (${it.dt} ${it.name}) can only be used as read-only in ROMable code", Position.DUMMY, false)     // TODO print warning with position of the var
+                    asmgen.romableError("array (${it.dt} ${it.name}) can only be used as read-only in ROMable code", it.astNode?.position ?: Position.DUMMY, false)
                 else
-                    asmgen.romableError("inlined variable (${it.dt} ${it.name})", Position.DUMMY)       // TODO print warning with position of the var
+                    asmgen.romableError("inlined variable (${it.dt} ${it.name})", it.astNode?.position ?: Position.DUMMY)
             }
         }
     }

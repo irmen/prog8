@@ -56,7 +56,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                 if(subroutine.returntypes.isNotEmpty())
                     errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                 else {
-                    val returnStmt = Return(arrayOf(), Position.DUMMY)
+                    val returnStmt = Return(arrayOf(), subroutine.position)
                     mods += IAstModification.InsertLast(returnStmt, subroutine)
                 }
             } else {
@@ -68,7 +68,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                             // .... we cannot return this as an error, because that also breaks legitimate cases where the return is done from within a nested scope somewhere
                             // errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                         } else {
-                            val returnStmt = Return(arrayOf(), Position.DUMMY)
+                            val returnStmt = Return(arrayOf(), lastStatement?.position ?: subroutine.position)
                             mods += IAstModification.InsertLast(returnStmt, subroutine)
                         }
                     }
@@ -92,7 +92,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                         if(outerScope.returntypes.size>1 || !(outerScope.returntypes[0].isNumericOrBool || outerScope.returntypes[0].isPointer)) {
                             errors.err("subroutine is missing a return statement to avoid falling through into nested subroutine", outerStatements[subroutineStmtIdx-1].position)
                         } else {
-                            val zero = defaultZero(outerScope.returntypes[0].base, Position.DUMMY)
+                            val zero = defaultZero(outerScope.returntypes[0].base, outerStatements[subroutineStmtIdx-1].position)
                             val returnStmt = Return(arrayOf(zero), outerStatements[subroutineStmtIdx - 1].position)
                             mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
                         }
