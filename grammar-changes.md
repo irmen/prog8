@@ -94,42 +94,6 @@ arrayliteral: '[' EOL? expression? (',' EOL? expression)* ','? EOL? ']';  ; trai
 
 ---
 
-## 5. `const` Declaration - Optional Type is Confusing
-
-**Current Grammar:**
-```antlr
-constdecl: 'const' datatype? identifierlist '=' expression;
-```
-
-**Problem:** `datatype?` is optional, but then how is this different from a regular variable declaration? What happens if you omit the type?
-
-```prog8
-const x = 5         ; What type is x? Inferred?
-const byte y = 5    ; Explicit type
-```
-
-**Recommendation:** Either make `datatype` required, or document clearly how type inference works for constants.
-
----
-
-## 6. `inline` Keyword Only for `asmsub`
-
-**Current Grammar:**
-```antlr
-asmsubroutine: INLINE? 'asmsub' asmsub_decl ...
-```
-
-**Problem:** `inline` can only prefix `asmsub`, not regular `sub`. But the documentation mentions inline functions - are they different from inline assembly?
-
-```prog8
-inline asmsub foo() { ... }   ; Valid
-inline sub bar() { ... }      ; Invalid - syntax error
-```
-
-**Recommendation:** Either allow `inline` on regular subroutines too, or rename to `inlineasm` to clarify it's assembly-specific.
-
----
-
 ## Summary of Language Design Issues
 
 **Note on evaluation criteria:** Issues are evaluated with Prog8's **retro 6502/BASIC target** in mind. Features that would be "archaic" in modern languages (like `ON...GOTO`) are **intentional and appropriate** for this platform. Issues listed here are about **internal consistency** and **clarity**, not about being "modern" vs "retro".
@@ -139,8 +103,6 @@ inline sub bar() { ... }      ; Invalid - syntax error
 | Pointer dereference grammar | High | Proper redesign needed |
 | Inconsistent EOL requirements | Medium | Make consistent |
 | Trailing commas inconsistency | Low | Make consistent |
-| `const` optional type | Low | Require or document inference |
-| `inline` only for `asmsub` | Low | Extend or rename |
 
 **Removed from list (retro-appropriate features):**
 - `ON...GOTO` with `else` clause - **NOT a flaw**. Classic BASIC syntax appropriate for 6502 target. The `else` clause provides useful error handling for out-of-range indices (e.g., menu dispatch). Compiles efficiently to 6502 jump tables. See comment in `.g4` file.
@@ -152,7 +114,6 @@ inline sub bar() { ... }      ; Invalid - syntax error
 
 **Issues that may also be retro-appropriate (needs further review):**
 - **Inconsistent EOL requirements** - May be intentional flexibility for different contexts (module vs block level)
-- **`inline` only for `asmsub`** - May be intentional distinction (inline assembly vs inline function expansion are different concepts)
 - **Trailing commas inconsistency** - May reflect different use cases (enums/arrays are data, function calls are execution)
 
 These should be evaluated based on **what makes sense for 6502 programmers** coming from BASIC/assembly, not modern language conventions.

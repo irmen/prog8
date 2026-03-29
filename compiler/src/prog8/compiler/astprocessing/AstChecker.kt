@@ -465,7 +465,15 @@ internal class AstChecker(private val program: Program,
                 err("bank variable must be ubyte")
         }
         if(subroutine.inline && subroutine.asmAddress!=null)
-            throw FatalAstException("extsub cannot be inline")
+            throw FatalAstException("extsub can never be inline")
+
+        if(subroutine.inline && !subroutine.isAsmSubroutine) {
+            errors.info(
+                "inline keyword on regular prog8 subroutines currently has no effect",
+                position = subroutine.position
+            )
+            subroutine.inline = false   // not supported yet o
+        }
 
         val address = subroutine.asmAddress?.address
         if(address != null && address !is NumericLiteral)

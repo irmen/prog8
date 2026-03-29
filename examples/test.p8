@@ -28,7 +28,7 @@ main {
         return 42, 99
     }
 
-    sub test_negative_comparisons() {
+    inline sub test_negative_comparisons() {
         ubyte passed = 0
         ubyte failed = 0
 

@@ -181,7 +181,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 sub.hasBeenInlined=true
                 listOf(IAstModification.ReplaceNode(origNode, sub.statements.single().copy(), parent))
             } else {
-                // note that we don't have to process any args, because we online inline parameterless subroutines.
+                // note that we don't have to process any args, because we only inline parameterless subroutines.
                 when (val toInline = sub.statements.first()) {
                     is Return -> {
                         // TODO consider multi-value returns as well
@@ -226,7 +226,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 "invalid inline sub at ${sub.position}"
             }
             return if(sub.isAsmSubroutine) {
-                // cannot inline assembly directly in the Ast here as an Asm node is not an expression....
+                // cannot inline assembly directly in the Ast here as an Asm node is not an expression... it will be done later.
                 noModifications
             } else {
                 when (val toInline = sub.statements.first()) {

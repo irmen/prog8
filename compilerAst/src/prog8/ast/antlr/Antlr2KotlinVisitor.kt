@@ -219,7 +219,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitConstdecl(ctx: ConstdeclContext): VarDecl {
-        if(ctx.datatype()==null)
+        if(ctx.datatype()==null)  // semantic check instead of grammar rule to have a better error message
             throw SyntaxError("datatype missing", ctx.identifierlist().toPosition())
         val datatype = dataTypeFor(ctx.datatype()) ?: DataType.LONG
         val identifiers = ctx.identifierlist().identifier().map { getname(it) }
@@ -554,7 +554,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             emptySet(),
             asmAddress = null,
             isAsmSubroutine = false,
-            inline = false,
+            inline = ctx.INLINE() != null,
             statements = statements.statements,
             position = ctx.toPosition()
         )

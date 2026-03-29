@@ -316,7 +316,7 @@ literalvalue :
 inlineasm :  directivename EOL? INLINEASMBLOCK;         // directive name should be '%asm' or '%ir'
 
 subroutine :
-    'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
+    INLINE? 'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
     ;
 
 sub_return_part : '->' datatype (',' datatype)*  ;
