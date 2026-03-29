@@ -72,6 +72,23 @@ class IRProgram(val name: String,
         allAsmSubs().forEach { operation(it.asmChunk) }
         operation(globalInits)
     }
+
+    fun countCodeElements(): Pair<Int, Int> {
+        var numInstr = 0
+        var numChunks = 0
+        foreachCodeChunk { chunk ->
+            numChunks++
+            numInstr += chunk.instructions.size
+        }
+        return Pair(numInstr, numChunks)
+    }
+
+    fun countUsedRegisters(): Int {
+        val used = registersUsed()
+        return (used.readRegs.keys + used.writeRegs.keys).size +
+               (used.readFpRegs.keys + used.writeFpRegs.keys).size
+    }
+
     fun getChunkWithLabel(label: String): IRCodeChunkBase {
         for(sub in allSubs()) {
             for(chunk in sub.chunks) {

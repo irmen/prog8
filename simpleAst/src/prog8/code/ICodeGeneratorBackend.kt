@@ -15,5 +15,8 @@ interface ICodeGeneratorBackend {
 
 interface IAssemblyProgram {
     val name: String
+    val irInstructionCount: Int
+    val irChunkCount: Int
+    val irRegisterCount: Int
     fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean
 }

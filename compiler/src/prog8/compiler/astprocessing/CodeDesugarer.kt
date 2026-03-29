@@ -616,7 +616,7 @@ _after:
             assignIndex = null
             conditionVar = null
         } else {
-            conditionVar = VarDecl.createAuto(indexDt)
+            conditionVar = VarDecl.createAuto(indexDt, ongoto.index.position)
             indexValue = IdentifierReference(listOf(conditionVar.name), conditionVar.position)
             val varTarget = AssignTarget(indexValue, null, null, null, false, position=conditionVar.position)
             assignIndex = Assignment(varTarget, ongoto.index, AssignmentOrigin.USERCODE, ongoto.position)

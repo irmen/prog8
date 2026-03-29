@@ -203,7 +203,7 @@ class Return(val values: Array<Expression>, override val position: Position) : S
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = values.any{ it.referencesIdentifier(nameInSource) }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
-    override fun toString() = "Return($values, pos=$position)"
+    override fun toString() = "Return(${values.contentToString()}, pos=$position)"
 }
 
 class Break(override val position: Position) : Statement() {
@@ -321,11 +321,11 @@ class VarDecl(
                 sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
         }
 
-        fun createAuto(dt: DataType): VarDecl {
+        fun createAuto(dt: DataType, position: Position): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val vardecl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, dt, ZeropageWish.NOT_IN_ZEROPAGE,
                 SplitWish.DONTCARE, null, autoVarName, emptyList(), null,
-                sharedWithAsm = false, alignment = 0u, dirty = false, position = Position.DUMMY)
+                sharedWithAsm = false, alignment = 0u, dirty = false, position = position)
             return vardecl
         }
     }

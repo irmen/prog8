@@ -32,6 +32,15 @@ internal class VmAssemblyProgram(
     internal val irProgram: IRProgram
 ): IAssemblyProgram {
 
+    override val irInstructionCount: Int
+        get() = irProgram.countCodeElements().first
+
+    override val irChunkCount: Int
+        get() = irProgram.countCodeElements().second
+
+    override val irRegisterCount: Int
+        get() = irProgram.countUsedRegisters()
+
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
         // the VM reads the IR file from disk.
         IRFileWriter(irProgram, null).write()

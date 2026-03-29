@@ -34,11 +34,17 @@ import kotlin.time.measureTime
 import kotlin.time.measureTimedValue
 
 
+private data class AssemblyResult(val success: Boolean, val irInstructionCount: Int, val irChunkCount: Int, val irRegisterCount: Int)
+
+
 class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAst instead
                         val codegenAst: PtProgram?,
                         val codegenSymboltable: SymbolTable?,
                         val compilationOptions: CompilationOptions,
-                        val importedFiles: List<Path>)
+                        val importedFiles: List<Path>,
+                        val irInstructionCount: Int = 0,
+                        val irChunkCount: Int = 0,
+                        val irRegisterCount: Int = 0)
 
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
@@ -76,6 +82,9 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     var ast: PtProgram? = null
     var resultingProgram: Program? = null
     var importedFiles: List<Path>
+    var irInstructionCount = 0
+    var irChunkCount = 0
+    var irRegisterCount = 0
 
     val targetConfigFile = expandTilde(Path(args.compilationTarget))
     val compTarget = if(targetConfigFile.isRegularFile()) {
@@ -216,7 +225,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     if (compilationOptions.optimize) {
                         optimizeSimplifiedAst(intermediateAst, compilationOptions, symbolTable!!, args.errors)
                         args.errors.report()
-                        symbolTable = stMaker.make()        // need an updated ST because the optimization changes stuff
+                        // symbolTable = stMaker.make()        // need an updated ST because the optimization changes stuff
                     }
 
                     // Remove redundant pointer typecasts - must run AFTER optimization, BEFORE code generation
@@ -243,17 +252,22 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                 simplifiedAstDuration = simplifiedAstDuration2
 
                 createAssemblyDuration = measureTime {
-                    if (!createAssemblyAndAssemble(
+                    val result = createAssemblyAndAssemble(
                             intermediateAst,
                             symbolTable!!,
                             args.errors,
                             compilationOptions,
                             program.generatedLabelSequenceNumber
                         )
-                    ) {
+                    irInstructionCount = result.irInstructionCount
+                    irChunkCount = result.irChunkCount
+                    irRegisterCount = result.irRegisterCount
+                    if (!result.success) {
                         System.err.println("Error in codegeneration or assembler")
-                        return null
                     }
+                }
+                if (irInstructionCount < 0) {
+                    return null
                 }
                 ast = intermediateAst
             } else {
@@ -286,7 +300,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         if(!args.quietAll) {
             println("\nTotal compilation+assemble time: ${totalTime.toString(DurationUnit.SECONDS, 3)}.")
         }
-        return CompilationResult(resultingProgram!!, ast, symbolTable, compilationOptions, importedFiles)
+        return CompilationResult(resultingProgram!!, ast, symbolTable, compilationOptions, importedFiles, irInstructionCount, irChunkCount, irRegisterCount)
     } catch (px: ParseError) {
         args.errors.printSingleError("ERROR ${px.position.toClickableStr()} parse error: ${px.message}".trim())
     } catch (ac: ErrorsReportedException) {
@@ -617,7 +631,7 @@ private fun createAssemblyAndAssemble(program: PtProgram,
                                       errors: IErrorReporter,
                                       compilerOptions: CompilationOptions,
                                       lastGeneratedLabelSequenceNr: Int
-): Boolean {
+): AssemblyResult {
 
     val retainSSAforIR = true
 
@@ -633,9 +647,14 @@ private fun createAssemblyAndAssemble(program: PtProgram,
     val assembly = asmgen.generate(program, symbolTable, compilerOptions, errors)
     errors.report()
 
-    return if(assembly!=null && errors.noErrors()) {
+    val instructionCount = assembly?.irInstructionCount ?: 0
+    val chunkCount = assembly?.irChunkCount ?: 0
+    val registerCount = assembly?.irRegisterCount ?: 0
+
+    val success = if(assembly!=null && errors.noErrors()) {
         assembly.assemble(compilerOptions, errors)
     } else {
         false
     }
+    return AssemblyResult(success, instructionCount, chunkCount, registerCount)
 }

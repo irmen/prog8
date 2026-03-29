@@ -34,6 +34,9 @@ class ExperiCodeGen(val retainSSA: Boolean): ICodeGeneratorBackend {
 
 private object EmptyProgram : IAssemblyProgram {
     override val name = "<Empty Program>"
+    override val irInstructionCount: Int = 0
+    override val irChunkCount: Int = 0
+    override val irRegisterCount: Int = 0
     override fun assemble(options: CompilationOptions, errors: IErrorReporter): Boolean {
         if(!options.quiet)
             println("** nothing assembled **")

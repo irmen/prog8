@@ -37,8 +37,10 @@ private data class ExampleSizes(
     val cx16SizeUnoptimized: Int = 0,
     val pet32SizeOptimized: Int = 0,
     val pet32SizeUnoptimized: Int = 0,
-    val virtualLineCountOptimized: Int = 0,
-    val virtualLineCountUnoptimized: Int = 0
+    val virtualInstrCountOptimized: Int = 0,
+    val virtualInstrCountUnoptimized: Int = 0,
+    val virtualRegCountOptimized: Int = 0,
+    val virtualRegCountUnoptimized: Int = 0
 )
 
 private val examplesDir = assumeDirectory(workingDir, "../examples")
@@ -112,16 +114,23 @@ private fun verifyOutputFileSize(result: CompilationResult, expectedSize: Int) {
 }
 
 /**
- * Verifies the line count of the compiled .p8ir file against an expected value.
- * This is used for the virtual target where file size can be unstable due to non-deterministic formatting.
- * A small tolerance of ±5 lines is allowed for minor non-deterministic variations.
+ * Verifies the IR instruction count of the compiled .p8ir file against an expected value.
+ * This is a stable metric that doesn't change based on source position comments.
+ * A small tolerance of ±5 instructions is allowed for minor non-deterministic variations.
  */
-private fun verifyOutputFileLineCount(result: CompilationResult, expectedLineCount: Int) {
-    val outputFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
-    val lineCount = Files.lines(outputFile).count().toInt()
-    val tolerance = 2  // Allow ±2 lines for minor non-deterministic variations
-    if (lineCount < expectedLineCount - tolerance || lineCount > expectedLineCount + tolerance) {
-        lineCount shouldBe expectedLineCount
+private fun verifyIrInstructionCount(result: CompilationResult, expectedCount: Int) {
+    val actualCount = result.irInstructionCount
+    val tolerance = 5  // Allow ±5 instructions for minor non-deterministic variations
+    if (actualCount < expectedCount - tolerance || actualCount > expectedCount + tolerance) {
+        actualCount shouldBe expectedCount
+    }
+}
+
+private fun verifyIrRegisterCount(result: CompilationResult, expectedCount: Int) {
+    val actualCount = result.irRegisterCount
+    val tolerance = 5  // Allow ±5 registers for minor non-deterministic variations
+    if (actualCount < expectedCount - tolerance || actualCount > expectedCount + tolerance) {
+        actualCount shouldBe expectedCount
     }
 }
 
@@ -292,11 +301,11 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             ExampleSizes("swirl-float", c64SizeOptimized=708, c64SizeUnoptimized=735, cx16SizeOptimized=595, cx16SizeUnoptimized=906),
             ExampleSizes("tehtriz", c64SizeOptimized=4339, c64SizeUnoptimized=4504, cx16SizeOptimized=6215, cx16SizeUnoptimized=6747),
             ExampleSizes("textelite", c64SizeOptimized=11455, c64SizeUnoptimized=12778, cx16SizeOptimized=10789, cx16SizeUnoptimized=13505),
-            ExampleSizes("pointers/animalgame", c64SizeOptimized=1570, c64SizeUnoptimized=2208, cx16SizeOptimized=1605, cx16SizeUnoptimized=2492, virtualLineCountOptimized=774, virtualLineCountUnoptimized=7598),
-            ExampleSizes("pointers/binarytree", c64SizeOptimized=2562, c64SizeUnoptimized=2640, cx16SizeOptimized=2085, cx16SizeUnoptimized=2389, virtualLineCountOptimized=1705, virtualLineCountUnoptimized=4922),
-            ExampleSizes("pointers/hashtable", c64SizeOptimized=3294, c64SizeUnoptimized=4266, cx16SizeOptimized=2832, cx16SizeUnoptimized=3866, virtualLineCountOptimized=1928, virtualLineCountUnoptimized=8066),
-            ExampleSizes("pointers/sortedlist", c64SizeOptimized=1274, c64SizeUnoptimized=1319, cx16SizeOptimized=1223, cx16SizeUnoptimized=1532, virtualLineCountOptimized=953, virtualLineCountUnoptimized=5814),
-            ExampleSizes("pointers/sorting", c64SizeOptimized=1776, c64SizeUnoptimized=2802, cx16SizeOptimized=1788, cx16SizeUnoptimized=2739, virtualLineCountOptimized=1369, virtualLineCountUnoptimized=8337),
+            ExampleSizes("pointers/animalgame", c64SizeOptimized=1570, c64SizeUnoptimized=2208, cx16SizeOptimized=1605, cx16SizeUnoptimized=2492),
+            ExampleSizes("pointers/binarytree", c64SizeOptimized=2562, c64SizeUnoptimized=2640, cx16SizeOptimized=2085, cx16SizeUnoptimized=2389),
+            ExampleSizes("pointers/hashtable", c64SizeOptimized=3294, c64SizeUnoptimized=4266, cx16SizeOptimized=2832, cx16SizeUnoptimized=3866),
+            ExampleSizes("pointers/sortedlist", c64SizeOptimized=1274, c64SizeUnoptimized=1319, cx16SizeOptimized=1223, cx16SizeUnoptimized=1532),
+            ExampleSizes("pointers/sorting", c64SizeOptimized=1776, c64SizeUnoptimized=2802, cx16SizeOptimized=1788, cx16SizeUnoptimized=2739),
         ),
         listOf(false, true),
         listOf(C64Target(), Cx16Target())
@@ -332,17 +341,17 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
-            ExampleSizes("bouncegfx", virtualLineCountOptimized=916, virtualLineCountUnoptimized=3604),
-            ExampleSizes("bsieve", virtualLineCountOptimized=828, virtualLineCountUnoptimized=4546),
-            ExampleSizes("fountain", virtualLineCountOptimized=746, virtualLineCountUnoptimized=3449),
-            ExampleSizes("pixelshader", virtualLineCountOptimized=390, virtualLineCountUnoptimized=1260),
-            ExampleSizes("sincos", virtualLineCountOptimized=1103, virtualLineCountUnoptimized=3654),
-            ExampleSizes("pointers/animalgame", virtualLineCountOptimized=894, virtualLineCountUnoptimized=8629),
-            ExampleSizes("pointers/binarytree", virtualLineCountOptimized=2023, virtualLineCountUnoptimized=5732),
-            ExampleSizes("pointers/hashtable", virtualLineCountOptimized=2267, virtualLineCountUnoptimized=9178),
-            ExampleSizes("pointers/sortedlist", virtualLineCountOptimized=1117, virtualLineCountUnoptimized=6713),
-            ExampleSizes("pointers/fountain-virtual", virtualLineCountOptimized=786, virtualLineCountUnoptimized=3491),
-            ExampleSizes("pointers/sorting", virtualLineCountOptimized=1548, virtualLineCountUnoptimized=9401)
+            ExampleSizes("bouncegfx", virtualInstrCountOptimized=208, virtualInstrCountUnoptimized=883, virtualRegCountOptimized=100, virtualRegCountUnoptimized=396),
+            ExampleSizes("bsieve", virtualInstrCountOptimized=158, virtualInstrCountUnoptimized=1141, virtualRegCountOptimized=66, virtualRegCountUnoptimized=468),
+            ExampleSizes("fountain", virtualInstrCountOptimized=152, virtualInstrCountUnoptimized=829, virtualRegCountOptimized=77, virtualRegCountUnoptimized=371),
+            ExampleSizes("pixelshader", virtualInstrCountOptimized=43, virtualInstrCountUnoptimized=291, virtualRegCountOptimized=15, virtualRegCountUnoptimized=109),
+            ExampleSizes("sincos", virtualInstrCountOptimized=276, virtualInstrCountUnoptimized=935, virtualRegCountOptimized=133, virtualRegCountUnoptimized=411),
+            ExampleSizes("pointers/animalgame", virtualInstrCountOptimized=221, virtualInstrCountUnoptimized=2167, virtualRegCountOptimized=103, virtualRegCountUnoptimized=943),
+            ExampleSizes("pointers/binarytree", virtualInstrCountOptimized=510, virtualInstrCountUnoptimized=1455, virtualRegCountOptimized=251, virtualRegCountUnoptimized=628),
+            ExampleSizes("pointers/hashtable", virtualInstrCountOptimized=578, virtualInstrCountUnoptimized=2349, virtualRegCountOptimized=293, virtualRegCountUnoptimized=1055),
+            ExampleSizes("pointers/sortedlist", virtualInstrCountOptimized=267, virtualInstrCountUnoptimized=1643, virtualRegCountOptimized=118, virtualRegCountUnoptimized=702),
+            ExampleSizes("pointers/fountain-virtual", virtualInstrCountOptimized=146, virtualInstrCountUnoptimized=824, virtualRegCountOptimized=71, virtualRegCountUnoptimized=365),
+            ExampleSizes("pointers/sorting", virtualInstrCountOptimized=369, virtualInstrCountUnoptimized=2336, virtualRegCountOptimized=173, virtualRegCountUnoptimized=1020)
         ),
         listOf(false, true)
     )
@@ -354,11 +363,13 @@ class TestCompilerOnExamplesVirtual: FunSpec({
     ) { (params, prep) ->
         val filepath = prep.second
         val optimize = params.second
-        val expectedLineCount = if (optimize) params.first.virtualLineCountOptimized else params.first.virtualLineCountUnoptimized
+        val expectedInstrCount = if (optimize) params.first.virtualInstrCountOptimized else params.first.virtualInstrCountUnoptimized
+        val expectedRegCount = if (optimize) params.first.virtualRegCountOptimized else params.first.virtualRegCountUnoptimized
         val result = compileTheThing(filepath, optimize, target, outputDir)
         result shouldNotBe null
-        if (expectedLineCount > 0) {
-            verifyOutputFileLineCount(result!!, expectedLineCount)
+        if (expectedInstrCount > 0) {
+            verifyIrInstructionCount(result!!, expectedInstrCount)
+            verifyIrRegisterCount(result, expectedRegCount)
         }
     }
 })

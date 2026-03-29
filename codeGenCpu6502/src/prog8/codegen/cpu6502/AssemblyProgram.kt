@@ -17,6 +17,10 @@ internal class AssemblyProgram(
         outputDir: Path,
         private val compTarget: ICompilationTarget) : IAssemblyProgram {
 
+    override val irInstructionCount: Int = 0
+    override val irChunkCount: Int = 0
+    override val irRegisterCount: Int = 0
+
     private val assemblyFile = outputDir.resolve("$name.asm")
     private val prgFile = outputDir.resolve("$name.prg")        // CBM prg executable program
     private val xexFile = outputDir.resolve("$name.xex")        // Atari xex executable program
