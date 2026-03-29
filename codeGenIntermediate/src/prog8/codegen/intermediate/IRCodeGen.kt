@@ -1556,6 +1556,10 @@ class IRCodeGen(
             if (number!=null) {
                 val elseBranch: Opcode
                 var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
+                
+                // Optimization: when comparing signed integer with 0, we can use direct status flag branches
+                // instead of CMPI #0 + branch, because the previous LOAD instruction already sets the N and Z flags.
+                val isComparingWithZero = number == 0
                 when (condition.operator) {
                     "==" -> {
                         elseBranch = Opcode.BSTNE
@@ -1565,10 +1569,34 @@ class IRCodeGen(
                         elseBranch = Opcode.BSTEQ
                         useCmpi = true
                     }
-                    "<" -> elseBranch = if(signed) Opcode.BGES else Opcode.BGE
-                    ">" -> elseBranch = if(signed) Opcode.BLES else Opcode.BLE
-                    "<=" -> elseBranch = if(signed) Opcode.BGTS else Opcode.BGT
-                    ">=" -> elseBranch = if(signed) Opcode.BLTS else Opcode.BLT
+                    "<" -> {
+                        if (isComparingWithZero && signed) {
+                            // x < 0 → skip when x >= 0 (positive or zero, N flag clear)
+                            elseBranch = Opcode.BSTPOS
+                            useCmpi = false
+                        } else {
+                            elseBranch = if(signed) Opcode.BGES else Opcode.BGE
+                            useCmpi = false  // BGES/BGE do their own comparison
+                        }
+                    }
+                    ">" -> {
+                        elseBranch = if(signed) Opcode.BLES else Opcode.BLE
+                        useCmpi = false  // BLES/BLE do their own comparison
+                    }
+                    "<=" -> {
+                        elseBranch = if(signed) Opcode.BGTS else Opcode.BGT
+                        useCmpi = false  // BGTS/BGT do their own comparison
+                    }
+                    ">=" -> {
+                        if (isComparingWithZero && signed) {
+                            // x >= 0 → skip when x < 0 (negative, N flag set)
+                            elseBranch = Opcode.BSTNEG
+                            useCmpi = false
+                        } else {
+                            elseBranch = if(signed) Opcode.BLTS else Opcode.BLT
+                            useCmpi = false  // BLTS/BLT do their own comparison
+                        }
+                    }
                     else -> throw AssemblyError("invalid comparison operator")
                 }
 
@@ -1581,7 +1609,11 @@ class IRCodeGen(
                             it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
                             it += IRInstruction(elseBranch, labelSymbol = elseLabel)
                         }
+                    } else if(elseBranch in setOf(Opcode.BSTEQ, Opcode.BSTNE, Opcode.BSTPOS, Opcode.BSTNEG, Opcode.BSTCS, Opcode.BSTCC, Opcode.BSTVS, Opcode.BSTVC)) {
+                        // Direct status flag branch (BSTxx) - only needs labelSymbol, flags set by previous instruction
+                        addInstr(result, IRInstruction(elseBranch, labelSymbol = elseLabel), null)
                     } else {
+                        // Comparison branch (BGx/BLx etc.) - does its own comparison, needs full params
                         addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = leftTr.resultReg, immediate = number, labelSymbol = elseLabel), null)
                     }
                     result += translateNode(ifElse.ifScope)
@@ -1596,8 +1628,13 @@ class IRCodeGen(
                             it += IRInstruction(Opcode.CMPI, branchDt, reg1 = leftTr.resultReg, immediate = number)
                             it += IRInstruction(elseBranch, labelSymbol = afterIfLabel)
                         }
-                    } else
+                    } else if(elseBranch in setOf(Opcode.BSTEQ, Opcode.BSTNE, Opcode.BSTPOS, Opcode.BSTNEG, Opcode.BSTCS, Opcode.BSTCC, Opcode.BSTVS, Opcode.BSTVC)) {
+                        // Direct status flag branch (BSTxx) - only needs labelSymbol, flags set by previous instruction
+                        addInstr(result, IRInstruction(elseBranch, labelSymbol = afterIfLabel), null)
+                    } else {
+                        // Comparison branch (BGx/BLx etc.) - does its own comparison, needs full params
                         addInstr(result, IRInstruction(elseBranch, branchDt, reg1 = leftTr.resultReg, immediate = number, labelSymbol = afterIfLabel), null)
+                    }
                     result += translateNode(ifElse.ifScope)
                     result += IRCodeChunk(afterIfLabel, null)
                 }

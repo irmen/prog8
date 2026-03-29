@@ -71,7 +71,6 @@ IR/VM
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - if instruction has both integer and float registers, the sequence of the registers is sometimes weird in the .p8ir file (float regs always at the end even when otherwise the target -integer- register is the first one in the list, for example.)
 - maybe change all branch instructions to have 2 exits (label if branch condition ture, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
-- **optimize negative comparisons**: Code like ``if x < 0`` generates ``SGN`` or ``LOAD`` followed by ``CMPI #0`` and ``BGT #0``, but ``SGN`` and ``LOAD`` already set the status flags (N, Z). Should use ``BSTNEG``/``BSTPOS`` directly instead, eliminating the redundant ``CMPI`` instruction.
 - make multiple classes of registers and maybe also categorize by life time? , to prepare for better register allocation in the future
     SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
     FUNCTION_PARAMS,     // For passing function parameters

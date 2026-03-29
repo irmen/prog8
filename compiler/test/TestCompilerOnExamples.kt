@@ -54,7 +54,7 @@ private fun compileTheThing(filepath: Path, optimize: Boolean, target: ICompilat
         quietAssembler = true,
         showTimings = false,
         asmListfile = false,
-        includeSourcelines = false,
+        includeSourcelines = true,
         experimentalCodegen = false,
         dumpVariables = false,
         dumpSymbols = false,
@@ -332,17 +332,17 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
-            ExampleSizes("bouncegfx", virtualLineCountOptimized=846, virtualLineCountUnoptimized=3210),
-            ExampleSizes("bsieve", virtualLineCountOptimized=718, virtualLineCountUnoptimized=3959),
-            ExampleSizes("fountain", virtualLineCountOptimized=674, virtualLineCountUnoptimized=3053),
-            ExampleSizes("pixelshader", virtualLineCountOptimized=345, virtualLineCountUnoptimized=1124),
-            ExampleSizes("sincos", virtualLineCountOptimized=983, virtualLineCountUnoptimized=3226),
-            ExampleSizes("pointers/animalgame", virtualLineCountOptimized=774, virtualLineCountUnoptimized=7628),
-            ExampleSizes("pointers/binarytree", virtualLineCountOptimized=1705, virtualLineCountUnoptimized=4952),
-            ExampleSizes("pointers/hashtable", virtualLineCountOptimized=1943, virtualLineCountUnoptimized=8096),
-            ExampleSizes("pointers/sortedlist", virtualLineCountOptimized=953, virtualLineCountUnoptimized=5844),
-            ExampleSizes("pointers/fountain-virtual", virtualLineCountOptimized=694, virtualLineCountUnoptimized=3075),
-            ExampleSizes("pointers/sorting", virtualLineCountOptimized=1369, virtualLineCountUnoptimized=8367)
+            ExampleSizes("bouncegfx", virtualLineCountOptimized=890, virtualLineCountUnoptimized=3552),
+            ExampleSizes("bsieve", virtualLineCountOptimized=800, virtualLineCountUnoptimized=4486),
+            ExampleSizes("fountain", virtualLineCountOptimized=720, virtualLineCountUnoptimized=3397),
+            ExampleSizes("pixelshader", virtualLineCountOptimized=368, virtualLineCountUnoptimized=1216),
+            ExampleSizes("sincos", virtualLineCountOptimized=1075, virtualLineCountUnoptimized=3600),
+            ExampleSizes("pointers/animalgame", virtualLineCountOptimized=879, virtualLineCountUnoptimized=8556),
+            ExampleSizes("pointers/binarytree", virtualLineCountOptimized=1998, virtualLineCountUnoptimized=5657),
+            ExampleSizes("pointers/hashtable", virtualLineCountOptimized=2232, virtualLineCountUnoptimized=9107),
+            ExampleSizes("pointers/sortedlist", virtualLineCountOptimized=1102, virtualLineCountUnoptimized=6642),
+            ExampleSizes("pointers/fountain-virtual", virtualLineCountOptimized=757, virtualLineCountUnoptimized=3436),
+            ExampleSizes("pointers/sorting", virtualLineCountOptimized=1532, virtualLineCountUnoptimized=9329)
         ),
         listOf(false, true)
     )

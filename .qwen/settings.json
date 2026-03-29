@@ -23,7 +23,15 @@
       "Bash(ls *)",
       "Bash(cat *)",
       "Bash(find *)",
-      "Bash(sed *)"
+      "Bash(sed *)",
+      "Bash(force *)",
+      "Bash(txt.print)",
+      "Bash(git stash)",
+      "Bash(grep *)",
+      "Bash(xargs *)",
+      "Bash(wc *)",
+      "Bash(do *)",
+      "Bash(done)"
     ]
   }
 }
