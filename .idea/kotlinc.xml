@@ -11,7 +11,7 @@
     <option name="languageVersion" value="2.3" />
   </component>
   <component name="KotlinCompilerSettings">
-    <option name="additionalArguments" value="-Xwhen-guards -jvm-default=no-compatibility" />
+    <option name="additionalArguments" value="-jvm-default=no-compatibility" />
   </component>
   <component name="KotlinJpsPluginSettings">
     <option name="version" value="2.3.20" />

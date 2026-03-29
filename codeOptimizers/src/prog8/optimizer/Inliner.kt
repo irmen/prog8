@@ -30,81 +30,88 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         override fun visit(subroutine: Subroutine) {
+            
+            fun shouldInline(stmt: Return): Boolean {
+                // TODO consider multi-value returns as well for possible inlining
+                return stmt.values.isEmpty() || stmt.values.size==1 &&
+                    if (stmt.values[0] is NumericLiteral)
+                        true
+                    else if (stmt.values[0] is IdentifierReference) {
+                        makeFullyScoped(stmt.values[0] as IdentifierReference)
+                        true
+                    } else if (stmt.values[0] is IFunctionCall && (stmt.values[0] as IFunctionCall).args.size <= 1 && (stmt.values[0] as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
+                        if (stmt.values[0] is FunctionCallExpression) {
+                            makeFullyScoped(stmt.values[0] as FunctionCallExpression)
+                            true
+                        } else false
+                    } else
+                        false
+            }
+            
+            fun shouldInline(stmt: Assignment): Boolean {
+                return if (stmt.value.isSimple) {
+                    val targetInline =
+                        if (stmt.target.identifier != null) {
+                            makeFullyScoped(stmt.target.identifier!!)
+                            true
+                        } else if (stmt.target.memoryAddress?.addressExpression is NumericLiteral || stmt.target.memoryAddress?.addressExpression is IdentifierReference) {
+                            if (stmt.target.memoryAddress?.addressExpression is IdentifierReference)
+                                makeFullyScoped(stmt.target.memoryAddress?.addressExpression as IdentifierReference)
+                            true
+                        } else
+                            false
+                    val valueInline =
+                        if (stmt.value is IdentifierReference) {
+                            makeFullyScoped(stmt.value as IdentifierReference)
+                            true
+                        } else if ((stmt.value as? DirectMemoryRead)?.addressExpression is NumericLiteral || (stmt.value as? DirectMemoryRead)?.addressExpression is IdentifierReference) {
+                            if ((stmt.value as? DirectMemoryRead)?.addressExpression is IdentifierReference)
+                                makeFullyScoped((stmt.value as? DirectMemoryRead)?.addressExpression as IdentifierReference)
+                            true
+                        } else
+                            false
+                    targetInline || valueInline
+                } else if (stmt.target.identifier != null && stmt.isAugmentable) {
+                    val binExpr = stmt.value as BinaryExpression
+                    if (binExpr.operator in "+-" && binExpr.right.constValue(program)?.number == 1.0) {
+                        makeFullyScoped(stmt.target.identifier!!)
+                        makeFullyScoped(binExpr.left as IdentifierReference)
+                        true
+                    } else
+                        false
+                } else
+                    false
+            }
+            
+            fun shouldInline(stmt: FunctionCallStatement): Boolean {
+                val inline =
+                    stmt.args.size <= 1 && stmt.args.all { it is NumericLiteral || it is IdentifierReference }
+                if (inline)
+                    makeFullyScoped(stmt)
+                return inline
+            }
+            
+            fun shouldInline(stmt: Jump): Boolean {
+                return if(stmt.target is IdentifierReference) {
+                    makeFullyScoped(stmt.target as IdentifierReference)
+                    true
+                }
+                else
+                    stmt.target is NumericLiteral
+            }
+            
             if (!subroutine.isAsmSubroutine && !subroutine.inline && subroutine.parameters.isEmpty()) {
                 val containsSubsOrVariables = subroutine.statements.any { it is VarDecl || it is Subroutine }
                 if (!containsSubsOrVariables) {
                     if (subroutine.statements.size == 1 || (subroutine.statements.size == 2 && isEmptyReturn(subroutine.statements[1]))) {
                         if (subroutine !== program.entrypoint) {
-                            // subroutine is possible candidate to be inlined
+                            // subroutine is possible candidate to be inlined: evaluate what is in it and if we can inline that
                             subroutine.inline =
                                 when (val stmt = subroutine.statements[0]) {
-                                    // TODO consider multi-value returns as well for possible inlining
-                                    is Return -> stmt.values.isEmpty() || stmt.values.size==1 &&
-                                        if (stmt.values[0] is NumericLiteral)
-                                            true
-                                        else if (stmt.values[0] is IdentifierReference) {
-                                            makeFullyScoped(stmt.values[0] as IdentifierReference)
-                                            true
-                                        } else if (stmt.values[0] is IFunctionCall && (stmt.values[0] as IFunctionCall).args.size <= 1 && (stmt.values[0] as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
-                                            if (stmt.values[0] is FunctionCallExpression) {
-                                                makeFullyScoped(stmt.values[0] as FunctionCallExpression)
-                                                true
-                                            }
-                                            else false
-                                        } else
-                                            false
-
-                                    is Assignment -> {
-                                        if (stmt.value.isSimple) {
-                                            val targetInline =
-                                                if (stmt.target.identifier != null) {
-                                                    makeFullyScoped(stmt.target.identifier!!)
-                                                    true
-                                                } else if (stmt.target.memoryAddress?.addressExpression is NumericLiteral || stmt.target.memoryAddress?.addressExpression is IdentifierReference) {
-                                                    if (stmt.target.memoryAddress?.addressExpression is IdentifierReference)
-                                                        makeFullyScoped(stmt.target.memoryAddress?.addressExpression as IdentifierReference)
-                                                    true
-                                                } else
-                                                    false
-                                            val valueInline =
-                                                if (stmt.value is IdentifierReference) {
-                                                    makeFullyScoped(stmt.value as IdentifierReference)
-                                                    true
-                                                } else if ((stmt.value as? DirectMemoryRead)?.addressExpression is NumericLiteral || (stmt.value as? DirectMemoryRead)?.addressExpression is IdentifierReference) {
-                                                    if ((stmt.value as? DirectMemoryRead)?.addressExpression is IdentifierReference)
-                                                        makeFullyScoped((stmt.value as? DirectMemoryRead)?.addressExpression as IdentifierReference)
-                                                    true
-                                                } else
-                                                    false
-                                            targetInline || valueInline
-                                        } else if (stmt.target.identifier != null && stmt.isAugmentable) {
-                                            val binExpr = stmt.value as BinaryExpression
-                                            if (binExpr.operator in "+-" && binExpr.right.constValue(program)?.number == 1.0) {
-                                                makeFullyScoped(stmt.target.identifier!!)
-                                                makeFullyScoped(binExpr.left as IdentifierReference)
-                                                true
-                                            } else
-                                                false
-                                        } else
-                                            false
-                                    }
-
-                                    is FunctionCallStatement -> {
-                                        val inline =
-                                            stmt.args.size <= 1 && stmt.args.all { it is NumericLiteral || it is IdentifierReference }
-                                        if (inline)
-                                            makeFullyScoped(stmt)
-                                        inline
-                                    }
-
-                                    is Jump -> {
-                                        if(stmt.target is IdentifierReference) {
-                                            makeFullyScoped(stmt.target as IdentifierReference)
-                                            true
-                                        }
-                                        else
-                                            stmt.target is NumericLiteral
-                                    }
+                                    is Return -> shouldInline(stmt)
+                                    is Assignment -> shouldInline(stmt)
+                                    is FunctionCallStatement -> shouldInline(stmt)
+                                    is Jump -> shouldInline(stmt)
                                     else -> false
                                 }
                         }
@@ -171,7 +178,73 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return super.before(program)
     }
 
-    private fun possibleInlineFcallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>  {
+        val sub = functionCallStatement.target.targetStatement(program.builtinFunctions) as? Subroutine
+        return if(sub==null || !canInline(sub, functionCallStatement))
+            noModifications
+        else
+            possiblyInlineFunctioncallStmt(sub, functionCallStatement, parent)
+    }
+
+    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+        val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine
+        
+        fun inlineFunctionBody(toInline: Return): Iterable<IAstModification> {
+            // call site is an expression, so we have to have a Return here in the inlined sub to provide the values
+            // note that we don't have to process any args, because we are currently only inlining parameterless subroutines.
+            // TODO consider multi-value returns as well, but the values can be anything...
+            return if(toInline.values.size==1 && functionCallExpr!==toInline.values[0]) {
+                sub?.hasBeenInlined=true
+                listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.values[0].copy(), parent))
+            }
+            else
+                noModifications
+        }
+        
+        if(sub!=null && sub.inline && sub.parameters.isEmpty() && canInline(sub, functionCallExpr)) {
+            require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
+                "invalid inline sub at ${sub.position}"
+            }
+            return if(sub.isAsmSubroutine) {
+                // cannot inline assembly directly in the Ast here as an Asm node is not an expression... it will be done later.
+                noModifications
+            } else {
+                when (val toInline = sub.statements.first()) {
+                    is Return -> inlineFunctionBody(toInline)
+                    else -> noModifications
+                }
+            }
+        }
+
+        return noModifications
+    }
+
+    private fun possiblyInlineFunctioncallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<IAstModification> {
+        
+        fun possiblyShortCircuitFunctionCall(toInline: Return): Iterable<IAstModification> {
+            return if(toInline.values.size!=1)
+                noModifications  // TODO consider multi-value return statements as well, but those could contain anything in each value...
+            else {
+                val fcall = toInline.values[0] as? FunctionCallExpression
+                if(fcall!=null) {
+                    // insert the returned function call expression as a void function call statement directly 
+                    // (at the call site there is no target to put any return values into when inlining such calls as part of a function call statement)
+                    sub.hasBeenInlined=true
+                    val call = FunctionCallStatement(fcall.target.copy(), fcall.args.map { it.copy() }.toMutableList(), true, fcall.position)
+                    listOf(IAstModification.ReplaceNode(origNode, call, parent))
+                } else
+                    noModifications
+            }
+        }
+        
+        fun possiblyInlineFunctionBody(toInline: Statement): Iterable<IAstModification> {
+            return if(origNode !== toInline) {
+                sub.hasBeenInlined = true
+                listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
+            } else
+                noModifications
+        }
+        
         if(sub.inline && sub.parameters.isEmpty()) {
             require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
                 "invalid inline sub at ${sub.position}"
@@ -183,69 +256,11 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             } else {
                 // note that we don't have to process any args, because we only inline parameterless subroutines.
                 when (val toInline = sub.statements.first()) {
-                    is Return -> {
-                        // TODO consider multi-value returns as well
-                        if(toInline.values.size!=1)
-                            noModifications
-                        else {
-                            val fcall = toInline.values[0] as? FunctionCallExpression
-                            if(fcall!=null) {
-                                // insert the function call expression as a void function call directly
-                                sub.hasBeenInlined=true
-                                val call = FunctionCallStatement(fcall.target.copy(), fcall.args.map { it.copy() }.toMutableList(), true, fcall.position)
-                                listOf(IAstModification.ReplaceNode(origNode, call, parent))
-                            } else
-                                noModifications
-                        }
-                    }
-                    else -> {
-                        if(origNode !== toInline) {
-                            sub.hasBeenInlined = true
-                            listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
-                        } else
-                            noModifications
-                    }
+                    is Return -> possiblyShortCircuitFunctionCall(toInline)
+                    else -> possiblyInlineFunctionBody(toInline)
                 }
             }
         }
-        return noModifications
-    }
-
-    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>  {
-        val sub = functionCallStatement.target.targetStatement(program.builtinFunctions) as? Subroutine
-        return if(sub==null || !canInline(sub, functionCallStatement))
-            noModifications
-        else
-            possibleInlineFcallStmt(sub, functionCallStatement, parent)
-    }
-
-    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
-        val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine
-        if(sub!=null && sub.inline && sub.parameters.isEmpty() && canInline(sub, functionCallExpr)) {
-            require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
-                "invalid inline sub at ${sub.position}"
-            }
-            return if(sub.isAsmSubroutine) {
-                // cannot inline assembly directly in the Ast here as an Asm node is not an expression... it will be done later.
-                noModifications
-            } else {
-                when (val toInline = sub.statements.first()) {
-                    is Return -> {
-                        // is an expression, so we have to have a Return here in the inlined sub
-                        // note that we don't have to process any args, because we online inline parameterless subroutines.
-                        // TODO consider multi-value returns as well
-                        if(toInline.values.size==1 && functionCallExpr!==toInline.values[0]) {
-                            sub.hasBeenInlined=true
-                            listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.values[0].copy(), parent))
-                        }
-                        else
-                            noModifications
-                    }
-                    else -> noModifications
-                }
-            }
-        }
-
         return noModifications
     }
 
