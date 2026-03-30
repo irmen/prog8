@@ -404,12 +404,46 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - **Testing tip**: When writing and testing Prog8 programs, **use the `virtual` target** (e.g., `prog8c -target virtual -emu input.p8` or `prog8c -vm input.p8ir`). This is the preferred way to test because the virtual target can easily write output to stdout, making it simple to verify program behavior and check results.
 
 ## Commands to run tests
-- `gradle test --tests "*TestName*"` - Run specific test classes
 - `gradle build` - Full build of the compiler including running the full test suite
 - Unit tests are written using KoTest, using FunSpec
 - Several modules in the project contain unit tests, but most of them live in the "compiler" module in the 'test' directory.
 - **when writing TEST programs, always add these directives at the top: `%zeropage basicsafe` and `%option no_sysinit`** - this keeps zeropage usage safe and skips system initialization for faster, simpler test programs.
 - **When a test run fails**, the output says "There were failing tests. See the report at:" followed by a path like `file:///home/irmen/Projects/prog8/compiler/build/reports/tests/test/index.html`. **Read that HTML report** to quickly see which tests failed and their error messages!
+
+### Test Filtering Tips
+
+**✅ DO use these patterns:**
+```bash
+# Exact fully qualified class name (most reliable)
+gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"
+
+# Wildcard at END of class name works
+gradle :compiler:test --tests "prog8tests.compiler.TestOptimiz*"
+gradle :compiler:test --tests "prog8tests.compiler.Test*"
+
+# Wildcard on package name works
+gradle :compiler:test --tests "prog8tests.compiler.*"
+
+# Alternative using project property (supports wildcards)
+gradle :compiler:test -PtestFilter="*Optimization"
+```
+
+**❌ DO NOT use these patterns:**
+```bash
+# Wildcard at START of class name doesn't work
+gradle :compiler:test --tests "*TestOptimization"     # FAILS
+
+# Cannot filter by test description (KoTest uses descriptions, not method names)
+gradle test --tests "*Optimization*inline*"           # FAILS
+```
+
+**Why?** Gradle's `--tests` filter requires the **fully qualified class name**. Wildcards work as **suffixes** (e.g., `Test*`) but not as **prefixes** (e.g., `*Test`). KoTest test names like `"inline multi-value void - literals"` are test _descriptions_, not method names, so you cannot filter by them.
+
+**To run specific tests:**
+1. Run a specific test class: `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"`
+2. Run multiple test classes with wildcard: `gradle :compiler:test --tests "prog8tests.compiler.Test*"`
+3. Check the HTML report at `compiler/build/reports/tests/test/index.html` for failures
+4. Or temporarily comment out other tests in the source file
 
 ## TODO Items
 The file `docs/source/todo.rst` contains a comprehensive list of things that still have to be fixed, implemented, or optimized. **Use this to understand what features are NOT yet available** in the compiler or Prog8 language - if a user asks for something that's on the TODO list, you'll know it's not implemented yet and can explain the limitation.

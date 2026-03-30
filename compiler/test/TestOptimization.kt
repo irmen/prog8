@@ -1262,4 +1262,206 @@ main {
         ifelseCond.operator shouldBe "not"
         (ifelseCond.expression as IdentifierReference).nameInSource shouldBe listOf("ans")
     }
+
+    test("inline multi-value returns in void statement context") {
+        // Tests that subroutines with multi-value returns are inlined when called with 'void'
+        // The void calls should be removed entirely if return values are simple (no side effects)
+        val src="""
+main {
+    ubyte @shared v1 = 10
+    ubyte @shared v2 = 20
+    ubyte @shared v3 = 30
+    
+    sub start() {
+        ubyte @shared tmp
+        
+        ; These void calls should be removed by the inliner
+        void get_single()
+        void multi_literals()
+        void multi_vars()
+        
+        ; These expression calls should remain (but may be inlined)
+        tmp = get_single()
+        tmp, tmp = multi_literals()
+        tmp, tmp, tmp = multi_vars()
+    }
+    
+    sub get_single() -> ubyte {
+        return 42
+    }
+    
+    sub multi_literals() -> ubyte, ubyte {
+        return 10, 20
+    }
+    
+    sub multi_vars() -> ubyte, ubyte, ubyte {
+        return v1, v2, v3
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
+        val startSub = mainBlock.statements.find { it is Subroutine && it.name == "start" }!! as Subroutine
+        
+        // Count FunctionCallStatement nodes in start() - the void calls should be removed
+        // Only the expression context calls should remain
+        val voidCalls = startSub.statements.filterIsInstance<FunctionCallStatement>()
+        
+        // All 3 void calls should have been removed
+        voidCalls.size shouldBe 0
+    }
+
+    test("multi-value returns inlined in expression context") {
+        // Tests that multi-value returns ARE inlined when values are captured (for simple cases)
+        val src="""
+main {
+    ubyte @shared gv1 = 10
+    ubyte @shared gv2 = 20
+    
+    sub start() {
+        ubyte result_a, result_b
+        result_a, result_b = get_globals()
+        cx16.r0 = result_a + result_b  ; use the variables to prevent removal
+    }
+
+    sub get_globals() -> ubyte, ubyte {
+        return gv1, gv2
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
+        val startSub = mainBlock.statements.find { it is Subroutine && it.name == "start" }!! as Subroutine
+        val stmts = startSub.statements
+
+        // Multi-value assignment should be split into separate assignments (no multi-target)
+        val multiAssigns = stmts.filterIsInstance<Assignment>().filter {
+            it.target.multi?.isNotEmpty() == true
+        }
+        multiAssigns.size shouldBe 0
+        
+        // Should have separate single assignments for result_a and result_b (not the cx16.r0 assignment)
+        val resultAssigns = stmts.filterIsInstance<Assignment>().filter {
+            it.target.identifier?.nameInSource?.lastOrNull() in listOf("result_a", "result_b")
+        }
+        resultAssigns.size shouldBe 2
+
+        // Check the values are identifier references (to gv1 and gv2)
+        val idAssigns = resultAssigns.filter { it.value is IdentifierReference }
+        idAssigns.size shouldBe 2
+    }
+
+    test("inline zero-return void calls are removed") {
+        // Tests that subroutines with empty return statements are inlined when called with 'void'
+        // Only safe when there are no side effects in the subroutine body
+        val src = """
+main {
+    sub start() {
+        void empty_return()
+        cx16.r0++
+    }
+    sub empty_return() {
+        return
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // Void call should be removed entirely (no side effects)
+        val voidCalls = startSub.statements.filterIsInstance<FunctionCallStatement>()
+        voidCalls.size shouldBe 0
+    }
+
+    test("void calls with side effects preserve the side effects through inlining") {
+        // Tests that void calls containing function calls (side effects) preserve the side effects
+        // The inliner recursively inlines the entire call chain, preserving all side effects
+        val src = """
+main {
+    sub start() {
+        void with_side_effect()
+        cx16.r0++
+    }
+    sub with_side_effect() {
+        helper()  ; this is a side effect
+        return
+    }
+    sub helper() {
+        cx16.r1++
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // The void call is inlined along with helper(), and the side effect (cx16.r1++) is preserved
+        // Check that cx16.r1++ appears in the start() subroutine (proving side effect was preserved)
+        val hasSideEffect = startSub.statements.any { stmt ->
+            if (stmt is Assignment) {
+                stmt.target.identifier?.nameInSource?.lastOrNull() == "r1" &&
+                stmt.value is BinaryExpression
+            } else false
+        }
+        hasSideEffect shouldBe true
+    }
+
+    test("inline single-value returns in expression context") {
+        // Tests that single-value returns are inlined in expression context (parameterless subs only)
+        val src = """
+main {
+    ubyte @shared gv = 100
+    
+    sub start() {
+        ubyte result
+        result = get_global()
+        cx16.r0 = result + gv  ; use result to prevent optimization
+    }
+    sub get_global() -> ubyte {
+        return gv
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
+        val startSub = mainBlock.statements.filterIsInstance<Subroutine>().find { it.name == "start" }!!
+        val stmts = startSub.statements
+
+        // Should have single assignment with identifier reference (gv), not function call
+        val assigns = stmts.filterIsInstance<Assignment>()
+            .filter { it.target.identifier?.nameInSource?.lastOrNull() == "result" }
+        assigns.size shouldBe 1
+        assigns[0].value shouldBe instanceOf<IdentifierReference>()
+    }
+
+    test("inline three-value returns in expression context") {
+        // Tests that three-value returns are inlined when values are captured
+        val src = """
+main {
+    ubyte @shared gv1 = 10
+    ubyte @shared gv2 = 20
+    ubyte @shared gv3 = 30
+
+    sub start() {
+        ubyte result_a, result_b, result_c
+        result_a, result_b, result_c = get_globals()
+        cx16.r0 = result_a + result_b + result_c
+    }
+    sub get_globals() -> ubyte, ubyte, ubyte {
+        return gv1, gv2, gv3
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val mainBlock = result.compilerAst.entrypoint.definingBlock
+        val startSub = mainBlock.statements.filterIsInstance<Subroutine>().find { it.name == "start" }!!
+        val stmts = startSub.statements
+
+        // Multi-assignment should be split into separate assignments (no multi-target)
+        val multiAssigns = stmts.filterIsInstance<Assignment>()
+            .filter { it.target.multi?.isNotEmpty() == true }
+        multiAssigns.size shouldBe 0
+
+        // Should have 3 separate single assignments
+        val resultAssigns = stmts.filterIsInstance<Assignment>()
+            .filter { it.target.identifier?.nameInSource?.lastOrNull() in listOf("result_a", "result_b", "result_c") }
+        resultAssigns.size shouldBe 3
+
+        // All should be identifier references
+        val idAssigns = resultAssigns.filter { it.value is IdentifierReference }
+        idAssigns.size shouldBe 3
+    }
 })

@@ -1,6 +1,7 @@
 package prog8.optimizer
 
 import prog8.ast.IFunctionCall
+import prog8.ast.IStatementContainer
 import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
@@ -15,9 +16,6 @@ import prog8.code.target.VMTarget
 
 private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.values.isEmpty()
 
-
-// inliner potentially enables *ONE LINED* subroutines, without to be inlined.
-
 class Inliner(private val program: Program, private val options: CompilationOptions): AstWalker() {
 
     class DetermineInlineSubs(val program: Program): IAstVisitor {
@@ -30,25 +28,34 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
 
         override fun visit(subroutine: Subroutine) {
-            
-            fun shouldInline(stmt: Return): Boolean {
-                // TODO consider multi-value returns as well for possible inlining
-                return stmt.values.isEmpty() || stmt.values.size==1 &&
-                    if (stmt.values[0] is NumericLiteral)
-                        true
-                    else if (stmt.values[0] is IdentifierReference) {
-                        makeFullyScoped(stmt.values[0] as IdentifierReference)
-                        true
-                    } else if (stmt.values[0] is IFunctionCall && (stmt.values[0] as IFunctionCall).args.size <= 1 && (stmt.values[0] as IFunctionCall).args.all { it is NumericLiteral || it is IdentifierReference }) {
-                        if (stmt.values[0] is FunctionCallExpression) {
-                            makeFullyScoped(stmt.values[0] as FunctionCallExpression)
+
+            fun isBodyInlineable(stmt: Return): Boolean {
+                if (stmt.values.isEmpty())
+                    return true
+
+                return stmt.values.all { value ->
+                    when (value) {
+                        is NumericLiteral -> true
+                        is IdentifierReference -> {
+                            makeFullyScoped(value)
                             true
-                        } else false
-                    } else
-                        false
+                        }
+                        is FunctionCallExpression -> {
+                            if (value.args.size <= 1 && value.args.all {
+                                    it is NumericLiteral || it is IdentifierReference
+                                }) {
+                                makeFullyScoped(value)
+                                true
+                            } else {
+                                false
+                            }
+                        }
+                        else -> false
+                    }
+                }
             }
-            
-            fun shouldInline(stmt: Assignment): Boolean {
+
+            fun isBodyInlineable(stmt: Assignment): Boolean {
                 return if (stmt.value.isSimple) {
                     val targetInline =
                         if (stmt.target.identifier != null) {
@@ -82,16 +89,17 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 } else
                     false
             }
-            
-            fun shouldInline(stmt: FunctionCallStatement): Boolean {
+
+            fun isBodyInlineable(stmt: FunctionCallStatement): Boolean {
+                // Allow inlining if arguments are simple (function calls will be inlined too)
                 val inline =
                     stmt.args.size <= 1 && stmt.args.all { it is NumericLiteral || it is IdentifierReference }
                 if (inline)
                     makeFullyScoped(stmt)
                 return inline
             }
-            
-            fun shouldInline(stmt: Jump): Boolean {
+
+            fun isBodyInlineable(stmt: Jump): Boolean {
                 return if(stmt.target is IdentifierReference) {
                     makeFullyScoped(stmt.target as IdentifierReference)
                     true
@@ -99,19 +107,18 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 else
                     stmt.target is NumericLiteral
             }
-            
+
             if (!subroutine.isAsmSubroutine && !subroutine.inline && subroutine.parameters.isEmpty()) {
                 val containsSubsOrVariables = subroutine.statements.any { it is VarDecl || it is Subroutine }
                 if (!containsSubsOrVariables) {
                     if (subroutine.statements.size == 1 || (subroutine.statements.size == 2 && isEmptyReturn(subroutine.statements[1]))) {
                         if (subroutine !== program.entrypoint) {
-                            // subroutine is possible candidate to be inlined: evaluate what is in it and if we can inline that
                             subroutine.inline =
                                 when (val stmt = subroutine.statements[0]) {
-                                    is Return -> shouldInline(stmt)
-                                    is Assignment -> shouldInline(stmt)
-                                    is FunctionCallStatement -> shouldInline(stmt)
-                                    is Jump -> shouldInline(stmt)
+                                    is Return -> isBodyInlineable(stmt)
+                                    is Assignment -> isBodyInlineable(stmt)
+                                    is FunctionCallStatement -> isBodyInlineable(stmt)
+                                    is Jump -> isBodyInlineable(stmt)
                                     else -> false
                                 }
                         }
@@ -180,7 +187,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
     override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>  {
         val sub = functionCallStatement.target.targetStatement(program.builtinFunctions) as? Subroutine
-        return if(sub==null || !canInline(sub, functionCallStatement))
+        return if(sub==null || !canInlineAtCallSite(sub, functionCallStatement))
             noModifications
         else
             possiblyInlineFunctioncallStmt(sub, functionCallStatement, parent)
@@ -188,11 +195,10 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
     override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
         val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine
-        
+
         fun inlineFunctionBody(toInline: Return): Iterable<IAstModification> {
             // call site is an expression, so we have to have a Return here in the inlined sub to provide the values
             // note that we don't have to process any args, because we are currently only inlining parameterless subroutines.
-            // TODO consider multi-value returns as well, but the values can be anything...
             return if(toInline.values.size==1 && functionCallExpr!==toInline.values[0]) {
                 sub?.hasBeenInlined=true
                 listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.values[0].copy(), parent))
@@ -200,8 +206,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             else
                 noModifications
         }
-        
-        if(sub!=null && sub.inline && sub.parameters.isEmpty() && canInline(sub, functionCallExpr)) {
+
+        if(sub!=null && sub.inline && sub.parameters.isEmpty() && canInlineAtCallSite(sub, functionCallExpr)) {
             require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
                 "invalid inline sub at ${sub.position}"
             }
@@ -220,23 +226,33 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     private fun possiblyInlineFunctioncallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<IAstModification> {
-        
+
         fun possiblyShortCircuitFunctionCall(toInline: Return): Iterable<IAstModification> {
-            return if(toInline.values.size!=1)
-                noModifications  // TODO consider multi-value return statements as well, but those could contain anything in each value...
-            else {
-                val fcall = toInline.values[0] as? FunctionCallExpression
-                if(fcall!=null) {
-                    // insert the returned function call expression as a void function call statement directly 
-                    // (at the call site there is no target to put any return values into when inlining such calls as part of a function call statement)
-                    sub.hasBeenInlined=true
-                    val call = FunctionCallStatement(fcall.target.copy(), fcall.args.map { it.copy() }.toMutableList(), true, fcall.position)
-                    listOf(IAstModification.ReplaceNode(origNode, call, parent))
-                } else
-                    noModifications
+            val functionCalls = toInline.values.filterIsInstance<FunctionCallExpression>()
+
+            if (functionCalls.isEmpty()) {
+                // No function calls in the return values - the void call has no side effects and can be removed.
+                sub.hasBeenInlined = true
+                return listOf(IAstModification.Remove(origNode as Statement, parent as IStatementContainer))
             }
+
+            // There are function calls in the return values - convert each to a void statement.
+            sub.hasBeenInlined = true
+
+            val voidStatements: MutableList<Statement> = functionCalls.map { fcall ->
+                FunctionCallStatement(
+                    fcall.target.copy(),
+                    fcall.args.map { it.copy() }.toMutableList(),
+                    true,
+                    fcall.position
+                )
+            }.toMutableList()
+
+            // Wrap multiple statements in AnonymousScope and replace the original call node.
+            val scope = AnonymousScope(voidStatements, origNode.position)
+            return listOf(IAstModification.ReplaceNode(origNode, scope, parent))
         }
-        
+
         fun possiblyInlineFunctionBody(toInline: Statement): Iterable<IAstModification> {
             return if(origNode !== toInline) {
                 sub.hasBeenInlined = true
@@ -244,13 +260,12 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             } else
                 noModifications
         }
-        
+
         if(sub.inline && sub.parameters.isEmpty()) {
             require(sub.statements.size == 1 || (sub.statements.size == 2 && isEmptyReturn(sub.statements[1]))) {
                 "invalid inline sub at ${sub.position}"
             }
             return if(sub.isAsmSubroutine) {
-                // simply insert the asm for the argument-less routine
                 sub.hasBeenInlined=true
                 listOf(IAstModification.ReplaceNode(origNode, sub.statements.single().copy(), parent))
             } else {
@@ -264,7 +279,51 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return noModifications
     }
 
-    private fun canInline(sub: Subroutine, fcall: IFunctionCall): Boolean {
+    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+        // Handle multi-value assignments: split `a, b = func()` into separate assignments
+        val multiTargets = assignment.target.multi ?: return noModifications
+        val fcall = assignment.value as? FunctionCallExpression ?: return noModifications
+
+        val sub = fcall.target.targetStatement(program.builtinFunctions) as? Subroutine
+            ?: return noModifications
+
+        // Only handle parameterless subroutines with simple returns
+        if (!sub.inline || sub.parameters.isNotEmpty() || !canInlineAtCallSite(sub, fcall))
+            return noModifications
+
+        val toInline = sub.statements.firstOrNull() as? Return ?: return noModifications
+
+        // Check return count matches target count
+        if (toInline.values.size != multiTargets.size)
+            return noModifications
+
+        // Only allow simple return values (literals or identifiers, no function calls)
+        if (!toInline.values.all { it is NumericLiteral || it is IdentifierReference })
+            return noModifications
+
+        // Create multiple single assignments
+        val newAssignments = multiTargets.zip(toInline.values).map { (target, value) ->
+            Assignment(
+                target = AssignTarget(
+                    identifier = target.identifier!!.copy(),
+                    arrayindexed = null,
+                    memoryAddress = null,
+                    multi = null,
+                    void = false,
+                    position = target.position
+                ),
+                value = value.copy(),
+                origin = assignment.origin,
+                position = assignment.position
+            )
+        }
+
+        sub.hasBeenInlined = true
+        val scope = AnonymousScope(newAssignments.toMutableList(), assignment.position)
+        return listOf(IAstModification.ReplaceNode(assignment, scope, parent))
+    }
+
+    private fun canInlineAtCallSite(sub: Subroutine, fcall: IFunctionCall): Boolean {
         if (!sub.inline)
             return false
         if (options.compTarget.name != VMTarget.NAME) {
@@ -277,4 +336,3 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return true
     }
 }
-

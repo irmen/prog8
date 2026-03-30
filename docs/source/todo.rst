@@ -109,7 +109,7 @@ Libraries
 Optimizations
 -------------
 
-- there is still this todo about inlining subroutines: TODO consider multi-value returns as well for possible inlining
+- inliner: extend multi-value return inlining to support parameterized subroutines (parameter forwarding). Currently only works for parameterless subroutines returning literals or identifiers.
 - for loops where the counter variable is unused in the loop body and count is constant -> simple repeat loops
 - optimize the endless sequences of lda/sta's to juggle round longs for example when calling prog8_math.multiply_longs -> shorter to use a loop?
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?

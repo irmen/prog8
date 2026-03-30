@@ -1239,23 +1239,43 @@ main {
 }"""
         val result1 = compileText(VMTarget(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st1 = result1.codegenAst!!.entrypoint()!!.children
-        st1.size shouldBe 6
+        // After inlining, the multi-value assignment is split into 3 separate assignments with literal values
+        st1.size shouldBe 8
         (st1[1] as PtVariable).name shouldBe "main.start.x"
         (st1[2] as PtVariable).name shouldBe "main.start.y"
         (st1[3] as PtVariable).name shouldBe "main.start.z"
-        st1[4].children.size shouldBe 4
-        st1[4].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("main.start.x", "main.start.y", "main.start.z")
-        ((st1[4] as PtAssignment).value as PtFunctionCall).name shouldBe "main.multi"
+        // Check first split assignment - value should be inlined literal
+        st1[4].children.size shouldBe 2
+        (st1[4].children.first() as PtAssignTarget).identifier!!.name shouldBe "main.start.x"
+        ((st1[4] as PtAssignment).value as PtNumber).number shouldBe 1.0
+        // Check second split assignment - value should be inlined literal
+        st1[5].children.size shouldBe 2
+        (st1[5].children.first() as PtAssignTarget).identifier!!.name shouldBe "main.start.y"
+        ((st1[5] as PtAssignment).value as PtNumber).number shouldBe 2.0
+        // Check third split assignment - value should be inlined literal
+        st1[6].children.size shouldBe 2
+        (st1[6].children.first() as PtAssignTarget).identifier!!.name shouldBe "main.start.z"
+        ((st1[6] as PtAssignment).value as PtNumber).number shouldBe 3.0
 
         val result2 = compileText(Cx16Target(), optimize=true, src, outputDir, writeAssembly=true)!!
         val st2 = result2.codegenAst!!.entrypoint()!!.children
-        st2.size shouldBe 6
+        // After inlining, the multi-value assignment is split into 3 separate assignments with literal values
+        st2.size shouldBe 8
         (st2[1] as PtVariable).name shouldBe "p8v_x"
         (st2[2] as PtVariable).name shouldBe "p8v_y"
         (st2[3] as PtVariable).name shouldBe "p8v_z"
-        st2[4].children.size shouldBe 4
-        st2[4].children.dropLast(1).map { (it as PtAssignTarget).identifier!!.name } shouldBe listOf("p8b_main.p8s_start.p8v_x", "p8b_main.p8s_start.p8v_y", "p8b_main.p8s_start.p8v_z")
-        ((st2[4] as PtAssignment).value as PtFunctionCall).name shouldBe "p8b_main.p8s_multi"
+        // Check first split assignment - value should be inlined literal
+        st2[4].children.size shouldBe 2
+        (st2[4].children.first() as PtAssignTarget).identifier!!.name shouldBe "p8b_main.p8s_start.p8v_x"
+        ((st2[4] as PtAssignment).value as PtNumber).number shouldBe 1.0
+        // Check second split assignment - value should be inlined literal
+        st2[5].children.size shouldBe 2
+        (st2[5].children.first() as PtAssignTarget).identifier!!.name shouldBe "p8b_main.p8s_start.p8v_y"
+        ((st2[5] as PtAssignment).value as PtNumber).number shouldBe 2.0
+        // Check third split assignment - value should be inlined literal
+        st2[6].children.size shouldBe 2
+        (st2[6].children.first() as PtAssignTarget).identifier!!.name shouldBe "p8b_main.p8s_start.p8v_z"
+        ((st2[6] as PtAssignment).value as PtNumber).number shouldBe 3.0
     }
 
     test("address-of a uword pointer with word index should not overflow") {
