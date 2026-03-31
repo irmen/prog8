@@ -1,23 +1,34 @@
 package prog8tests.ast
 
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.core.spec.style.AnnotationSpec
+import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.code.source.ImportFileSystem
 import prog8.code.source.SourceCode
-import prog8tests.helpers.*
+import prog8tests.helpers.assumeNotExists
+import prog8tests.helpers.assumeReadableFile
+import prog8tests.helpers.fixturesDir
+import prog8tests.helpers.resourcesDir
 import kotlin.io.path.Path
 
 
-class TestSourceCode: AnnotationSpec() {
+class TestSourceCode: FunSpec({
 
     val outputDir = tempdir().toPath()
 
-    @Test
-    fun testFromString() {
+    // Helper function for normalizing line endings
+    fun normalizeLineEndings(text: String): String {
+        return text.replace("\\R".toRegex(), "\n")
+    }
+
+    // ============================================================================
+    // SourceCode.Text Tests
+    // ============================================================================
+
+    test("testFromString") {
         val text = """
             main { }
         """
@@ -30,40 +41,34 @@ class TestSourceCode: AnnotationSpec() {
         src.toString().startsWith(SourceCode::class.qualifiedName!!) shouldBe true
     }
 
-    @Test
-    fun testFromStringDOSLineEndings() {
+    test("testFromStringDOSLineEndings") {
         val text = "main {\r\nline2\r\nline3\r\n}\r\n"
         val src = SourceCode.Text(text)
         src.text shouldNotBe text     // because normalized line endings!
         src.text.split('\r', '\n').size shouldBe 5
     }
 
-    @Test
-    fun testFromPathWithNonExistingPath() {
+    // ============================================================================
+    // SourceCode.File Tests (via ImportFileSystem)
+    // ============================================================================
+
+    test("testFromPathWithNonExistingPath") {
         val filename = "i_do_not_exist.p8"
         val path = assumeNotExists(fixturesDir, filename)
         shouldThrow<NoSuchFileException> { ImportFileSystem.getFile(path) }
     }
 
-    @Test
-    fun testFromPathWithMissingExtension_p8() {
+    test("testFromPathWithMissingExtension_p8") {
         val pathWithoutExt = assumeNotExists(fixturesDir,"simple_main")
         assumeReadableFile(fixturesDir,"ast_simple_main.p8")
         shouldThrow<NoSuchFileException> { ImportFileSystem.getFile(pathWithoutExt) }
     }
 
-    @Test
-    fun testFromPathWithDirectory() {
+    test("testFromPathWithDirectory") {
         shouldThrow<FileSystemException> { ImportFileSystem.getFile(fixturesDir) }
     }
 
-
-    private fun normalizeLineEndings(text: String): String {
-    	return text.replace("\\R".toRegex(), "\n")
-    }
-
-    @Test
-    fun testFromPathWithExistingPath() {
+    test("testFromPathWithExistingPath") {
         val filename = "ast_simple_main.p8"
         val path = assumeReadableFile(fixturesDir, filename)
         val src = ImportFileSystem.getFile(path)
@@ -74,8 +79,7 @@ class TestSourceCode: AnnotationSpec() {
         src.isFromFilesystem shouldBe true
     }
 
-    @Test
-    fun testFromPathWithExistingPathDOSLineEndings() {
+    test("testFromPathWithExistingPathDOSLineEndings") {
         val text = "main {\r\nline2\r\nline3\r\n}\r"
         val filePath = outputDir.resolve("on_the_fly_test_" + text.hashCode().toUInt().toString(16) + ".p8")
         filePath.toFile().writeText(text)
@@ -85,8 +89,7 @@ class TestSourceCode: AnnotationSpec() {
         src.text.split('\r', '\n').size shouldBe 5
     }
 
-    @Test
-    fun testFromPathWithExistingNonNormalizedPath() {
+    test("testFromPathWithExistingNonNormalizedPath") {
         val filename = "ast_simple_main.p8"
         val path = Path(".", "test", "..", "test", "fixtures", filename)
         val srcFile = assumeReadableFile(path).toFile()
@@ -96,8 +99,11 @@ class TestSourceCode: AnnotationSpec() {
         src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
-    @Test
-    fun testFromResourcesWithExistingP8File_withoutLeadingSlash() {
+    // ============================================================================
+    // SourceCode.Resource Tests (via ImportFileSystem)
+    // ============================================================================
+
+    test("testFromResourcesWithExistingP8File_withoutLeadingSlash") {
         val pathString = "prog8lib/math.p8"
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = ImportFileSystem.getResource(pathString)
@@ -108,8 +114,7 @@ class TestSourceCode: AnnotationSpec() {
         src.isFromFilesystem shouldBe false
     }
 
-    @Test
-    fun testFromResourcesWithExistingP8File_withLeadingSlash() {
+    test("testFromResourcesWithExistingP8File_withLeadingSlash") {
         val pathString = "/prog8lib/math.p8"
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = ImportFileSystem.getResource(pathString)
@@ -118,8 +123,7 @@ class TestSourceCode: AnnotationSpec() {
         src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
-    @Test
-    fun testFromResourcesWithExistingAsmFile_withoutLeadingSlash() {
+    test("testFromResourcesWithExistingAsmFile_withoutLeadingSlash") {
         val pathString = "prog8lib/math.asm"
         val srcFile = assumeReadableFile(resourcesDir, pathString).toFile()
         val src = ImportFileSystem.getResource(pathString)
@@ -129,8 +133,7 @@ class TestSourceCode: AnnotationSpec() {
         src.isFromResources shouldBe true
     }
 
-    @Test
-    fun testFromResourcesWithExistingAsmFile_withLeadingSlash() {
+    test("testFromResourcesWithExistingAsmFile_withLeadingSlash") {
         val pathString = "/prog8lib/math.asm"
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = ImportFileSystem.getResource(pathString)
@@ -139,8 +142,7 @@ class TestSourceCode: AnnotationSpec() {
         src.text shouldBe normalizeLineEndings(srcFile.readText())
     }
 
-    @Test
-    fun testFromResourcesWithNonNormalizedPath() {
+    test("testFromResourcesWithNonNormalizedPath") {
         val pathString = "/prog8lib/../prog8lib/math.p8"
         val srcFile = assumeReadableFile(resourcesDir, pathString.substring(1)).toFile()
         val src = ImportFileSystem.getResource(pathString)
@@ -151,18 +153,17 @@ class TestSourceCode: AnnotationSpec() {
     }
 
 
-    @Test
-    fun testFromResourcesWithNonExistingFile_withLeadingSlash() {
+    test("testFromResourcesWithNonExistingFile_withLeadingSlash") {
         val pathString = "/prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString.substring(1))
 
         shouldThrow<NoSuchFileException> { ImportFileSystem.getResource(pathString) }
     }
-    @Test
-    fun testFromResourcesWithNonExistingFile_withoutLeadingSlash() {
+
+    test("testFromResourcesWithNonExistingFile_withoutLeadingSlash") {
         val pathString = "prog8lib/i_do_not_exist"
         assumeNotExists(resourcesDir, pathString)
 
         shouldThrow<NoSuchFileException> { ImportFileSystem.getResource(pathString) }
     }
-}
+})

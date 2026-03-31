@@ -19,6 +19,7 @@ dependencies {
     implementation("com.michael-bull.kotlin-result:kotlin-result-jvm:2.3.1")
 
     testImplementation(project(":codeCore"))
+    testImplementation(testFixtures(project(":codeCore")))
     testImplementation(project(":intermediate"))
     testImplementation("io.kotest:kotest-runner-junit5")
     testImplementation("io.kotest:kotest-framework-datatest")

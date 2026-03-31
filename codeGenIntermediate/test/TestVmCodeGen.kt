@@ -10,6 +10,9 @@ import prog8.codegen.vm.VmAssemblyProgram
 import prog8.codegen.vm.VmCodeGen
 import prog8.intermediate.IRSubroutine
 import prog8.intermediate.Opcode
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.ErrorReporterForTests
 
 class TestVmCodeGen: FunSpec({
 

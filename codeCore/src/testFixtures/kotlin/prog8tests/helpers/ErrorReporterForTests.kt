@@ -3,7 +3,17 @@ package prog8tests.helpers
 import prog8.code.core.IErrorReporter
 import prog8.code.core.Position
 
-internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors: Boolean=true, private val keepMessagesAfterReporting: Boolean=false): IErrorReporter {
+
+/**
+ * Test implementation of IErrorReporter that collects errors/warnings/infos in memory.
+ * 
+ * @param throwExceptionAtReportIfErrors If true, report() will throw an exception when errors exist
+ * @param keepMessagesAfterReporting If false, clear() is called after report()
+ */
+class ErrorReporterForTests(
+    private val throwExceptionAtReportIfErrors: Boolean = true,
+    private val keepMessagesAfterReporting: Boolean = false
+) : IErrorReporter {
 
     val errors = mutableListOf<String>()
     val warnings = mutableListOf<String>()
@@ -11,19 +21,19 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
 
     override fun err(msg: String, position: Position) {
         val text = "${position.toClickableStr()} $msg"
-        if(text !in errors)
+        if (text !in errors)
             errors.add(text)
     }
 
     override fun warn(msg: String, position: Position) {
         val text = "${position.toClickableStr()} $msg"
-        if(text !in warnings)
+        if (text !in warnings)
             warnings.add(text)
     }
 
     override fun info(msg: String, position: Position) {
         val text = "${position.toClickableStr()} $msg"
-        if(text !in infos)
+        if (text !in infos)
             infos.add(text)
     }
 
@@ -31,17 +41,22 @@ internal class ErrorReporterForTests(private val throwExceptionAtReportIfErrors:
         err("undefined symbol: ${symbol.joinToString(".")}", position)
     }
 
-    override fun noErrors(): Boolean  = errors.isEmpty()
-    override fun noErrorForLine(position: Position) = !errors.any { ":${position.line}:" in it }
-    override fun printSingleError(errormessage: String) { /* prints nothing in tests */ }
+    override fun noErrors(): Boolean = errors.isEmpty()
+    
+    override fun noErrorForLine(position: Position): Boolean =
+        !errors.any { ":${position.line}:" in it }
+    
+    override fun printSingleError(errormessage: String) {
+        // prints nothing in tests
+    }
 
     override fun report() {
         infos.forEach { println("UNITTEST COMPILATION REPORT: INFO: $it") }
         warnings.forEach { println("UNITTEST COMPILATION REPORT: WARNING: $it") }
         errors.forEach { println("UNITTEST COMPILATION REPORT: ERROR: $it") }
-        if(throwExceptionAtReportIfErrors)
+        if (throwExceptionAtReportIfErrors)
             finalizeNumErrors(errors.size, warnings.size, infos.size)
-        if(!keepMessagesAfterReporting) {
+        if (!keepMessagesAfterReporting) {
             clear()
         }
     }

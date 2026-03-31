@@ -4,6 +4,7 @@ import prog8.code.core.*
 import prog8.code.target.VMTarget
 import prog8.codegen.intermediate.IRPeepholeOptimizer
 import prog8.intermediate.*
+import prog8tests.helpers.ErrorReporterForTests
 
 class TestIRPeepholeOpt: FunSpec({
     fun makeIRProgram(chunks: List<IRCodeChunkBase>): IRProgram {

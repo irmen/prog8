@@ -18,7 +18,9 @@
       "Bash(wc *)",
       "Bash(diff *)",
       "Bash(paste *)",
-      "Bash(echo *)"
+      "Bash(echo *)",
+      "Bash(cp *)",
+      "Bash(mv *)"
     ]
   }
 }

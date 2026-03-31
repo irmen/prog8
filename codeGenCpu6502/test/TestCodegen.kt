@@ -14,6 +14,9 @@ import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.codegen.cpu6502.AsmGen6502
 import prog8.codegen.cpu6502.VariableAllocator
+import prog8tests.helpers.DummyMemsizer
+import prog8tests.helpers.DummyStringEncoder
+import prog8tests.helpers.ErrorReporterForTests
 import java.nio.file.Files
 import kotlin.io.path.Path
 
