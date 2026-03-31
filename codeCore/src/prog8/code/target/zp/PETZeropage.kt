@@ -46,7 +46,9 @@ class PETZeropage(options: CompilationOptions) : Zeropage(options) {
         removeReservedFromFreePool()
 
         if(options.zeropage==ZeropageType.FULL || options.zeropage==ZeropageType.KERNALSAFE) {
-            // in these cases there is enough space on the zero page to stick the cx16 virtual registers in there as well.
+            // PET DESIGN: Virtual registers are ONLY allocated when sufficient zeropage space exists.
+            // PET has very limited zeropage space in BASICSAFE/FLOATSAFE modes (only 0xB1-0xBA).
+            // Virtual registers are only allocated in FULL and KERNALSAFE modes where space permits.
             allocateCx16VirtualRegisters()
         }
 

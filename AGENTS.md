@@ -445,6 +445,28 @@ gradle test --tests "*Optimization*inline*"           # FAILS
 3. Check the HTML report at `compiler/build/reports/tests/test/index.html` for failures
 4. Or temporarily comment out other tests in the source file
 
+## Git Operations for File Moves/Deletes
+
+**When renaming or moving git-tracked files, ALWAYS use `git mv`:**
+```bash
+# ✅ CORRECT - preserves git history
+git mv old/path/File.kt new/path/File.kt
+
+# ❌ WRONG - git sees this as delete + add (loses history)
+mv old/path/File.kt new/path/File.kt
+```
+
+**When deleting git-tracked files, ALWAYS use `git rm`:**
+```bash
+# ✅ CORRECT - properly stages the deletion
+git rm path/to/File.kt
+
+# ❌ WRONG - git sees this as unstaged deletion
+rm path/to/File.kt
+```
+
+**Why this matters:** `git mv` and `git rm` properly stage the changes and preserve file history. Plain `mv`/`rm` requires git to detect renames heuristically, which may not always work correctly.
+
 ## TODO Items
 The file `docs/source/todo.rst` contains a comprehensive list of things that still have to be fixed, implemented, or optimized. **Use this to understand what features are NOT yet available** in the compiler or Prog8 language - if a user asks for something that's on the TODO list, you'll know it's not implemented yet and can explain the limitation.
 

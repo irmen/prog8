@@ -41,8 +41,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 PtMemMapped("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.zeropage.SCRATCH_W1, null, Position.DUMMY),
                 PtMemMapped("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.zeropage.SCRATCH_W2, null, Position.DUMMY),
             ).forEach {
-                it.parent = program
-                st.add(StMemVar(it.name, it.type, it.address, it.arraySize, it))
+                st.add(StMemVar(it.name, it.type, it.address, it.arraySize, it))  // add() sets parent automatically
             }
         }
 
@@ -51,14 +50,22 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
 
     // Helper function to create a memory slab from a memory() function call
     private fun createMemorySlabFromCall(memCall: PtFunctionCall, scope: ArrayDeque<StNode>): String {
-        require(memCall.args[0] is PtString) {"memory() first arg must be string"}
-        require(memCall.args[1] is PtNumber) {"memory() second arg must be number"}
-        require(memCall.args[2] is PtNumber) {"memory() third arg must be number"}
+        require(memCall.args[0] is PtString) {
+            "memory() first argument must be a string name at ${memCall.position}"
+        }
+        require(memCall.args[1] is PtNumber) {
+            "memory() second argument must be a number (size) at ${memCall.position}"
+        }
+        require(memCall.args[2] is PtNumber) {
+            "memory() third argument must be a number (alignment) at ${memCall.position}"
+        }
         val slabname = (memCall.args[0] as PtString).value
         val size = (memCall.args[1] as PtNumber).number.toUInt()
         val align = (memCall.args[2] as PtNumber).number.toUInt()
         val slab = StMemorySlab("memory_$slabname", size, align, memCall)
-        // don't add memory slabs in nested scope, just put them in the top level of the ST
+        // Memory slabs are global memory regions, not scope-bound symbols.
+        // They must be added at the top level of the symbol table regardless of where
+        // the memory() call appears in the source code.
         scope.first().add(slab)
         return "memory_$slabname"
     }
@@ -86,14 +93,18 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StNode(node.name, StNodeType.BLOCK, node)
             }
             is PtConstant -> {
-                require(node.type.isNumericOrBool)
+                require(node.type.isNumericOrBool) {
+                    "Constant '${node.name}' must have numeric or bool type at ${node.position}"
+                }
                 if(node.value != null)
                     StConstant(node.name, node.type, node.value, null, node)
                 else if(node.memorySlab != null) {
                     // Handle memory() constant - the value will be resolved to the slab's address
                     StConstant(node.name, node.type, null, node.memorySlab, node)
                 } else {
-                    throw InternalCompilerException("constant without value or memory slab ${node.position}")
+                    throw InternalCompilerException(
+                        "Constant '${node.name}' has no value or memory slab at ${node.position}"
+                    )
                 }
             }
             is PtLabel -> {
@@ -135,7 +146,9 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                             initialString = null
                             initialNumeric = null
                             numElements = initialArray.size.toUInt()
-                            require(node.arraySize==numElements)
+                            require(node.arraySize==numElements) {
+                                "Array size mismatch for '${node.name}': declared ${node.arraySize} but initialized with $numElements elements at ${node.position}"
+                            }
                         }
                         else -> {
                             require(value is PtNumber)
@@ -162,7 +175,6 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             }
             is PtFunctionCall if node.builtin -> {
                 if(node.name=="memory") {
-                    require(node.name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name"}
                     createMemorySlabFromCall(node, scope)
                 }
                 else if(node.name=="prog8_lib_structalloc") {
@@ -199,11 +211,15 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtBool -> StArrayElement.BoolValue(it.value)
                 is PtNumber -> StArrayElement.Number(it.number)
                 is PtFunctionCall -> {
-                    require(it.builtin && it.name == "memory")
+                    require(it.builtin && it.name == "memory") {
+                        "prog8_lib_structalloc() argument must be memory() call at ${it.position}"
+                    }
                     val slabname = createMemorySlabFromCall(it, scope)
                     StArrayElement.MemorySlab(slabname)
                 }
-                else -> throw AssemblyError("invalid structalloc argument type $it")
+                else -> throw InternalCompilerException(
+                    "Invalid argument type '${it::class.simpleName}' for prog8_lib_structalloc() at ${it.position}"
+                )
             }
         }
         val label = SymbolTable.labelnameForStructInstance(node)
@@ -249,7 +265,9 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     } else
                         TODO("support for initial array element via ${it.name}  ${it.position}")
                 }
-                else -> throw AssemblyError("invalid array element $it")
+                else -> throw InternalCompilerException(
+                    "Invalid array element type '${it::class.simpleName}' at ${it.position}"
+                )
             }
         }
     }

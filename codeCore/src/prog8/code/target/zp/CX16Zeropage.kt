@@ -54,9 +54,15 @@ class CX16Zeropage(options: CompilationOptions) : Zeropage(options) {
     }
 
     private fun allocateCx16VirtualRegisters() {
-        // Note: the 16 virtual registers R0-R15 are not regular allocated variables, they're *memory mapped* elsewhere to fixed addresses.
-        // However, to be able for the compiler to "see" them as zeropage variables, we have to register them here as well.
-        // This is important because the compiler sometimes treats ZP variables more efficiently (for example if it's a pointer)
+        // CX16 DESIGN: Virtual registers are ALWAYS allocated in zeropage for all ZeropageType modes.
+        // The Commander X16 has ample zeropage space (0x22-0x7F in BASICSAFE, up to 0x22-0xFF in FULL),
+        // so virtual registers can always fit. This ensures consistent behavior across all modes.
+        // Virtual registers occupy addresses 0x02-0x21 (32 bytes for r0-r15 variants).
+        //
+        // Note: the 16 virtual registers R0-R15 are not regular allocated variables, they're *memory mapped*
+        // elsewhere to fixed addresses. However, to be able for the compiler to "see" them as zeropage
+        // variables, we have to register them here as well. This is important because the compiler
+        // sometimes treats ZP variables more efficiently (for example if it's a pointer).
         for(reg in 0..15) {
             allocatedVariables["cx16.r${reg}"]   = VarAllocation((2+reg*2).toUInt(), DataType.UWORD, 2)       // cx16.r0 .. cx16.r15
             allocatedVariables["cx16.r${reg}s"]  = VarAllocation((2+reg*2).toUInt(), DataType.WORD, 2)        // cx16.r0s .. cx16.r15s

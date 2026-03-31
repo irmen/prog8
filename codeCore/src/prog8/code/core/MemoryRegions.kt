@@ -3,8 +3,6 @@ package prog8.code.core
 import com.github.michaelbull.result.Err
 import com.github.michaelbull.result.Ok
 import com.github.michaelbull.result.Result
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.ConcurrentSkipListSet
 
 
 class MemAllocationError(message: String) : Exception(message)
@@ -30,28 +28,21 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
     abstract val SCRATCH_PTR : UInt     // temp storage for a pointer
 
 
-    // Private lock object for compound operations - not exposed externally
-    private val lock = Any()
-    
-    // Thread-safe collections for individual operations
+    // Collections for zeropage allocation (single-threaded usage)
     // name (scoped) ==> pair of address to (Datatype + bytesize)
-    val allocatedVariables = ConcurrentHashMap<String, VarAllocation>()
-    val free = ConcurrentSkipListSet<UInt>()     // subclasses must set this to the appropriate free locations.
+    val allocatedVariables = mutableMapOf<String, VarAllocation>()
+    val free = mutableSetOf<UInt>()     // subclasses must set this to the appropriate free locations.
 
     fun removeReservedFromFreePool() {
-        synchronized(lock) {
-            for (reserved in options.zpReserved)
-                reserve(reserved)
+        for (reserved in options.zpReserved)
+            reserve(reserved)
 
-            free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u, SCRATCH_PTR, SCRATCH_PTR+1u))
-        }
+        free.removeAll(setOf(SCRATCH_B1, SCRATCH_REG, SCRATCH_W1, SCRATCH_W1 + 1u, SCRATCH_W2, SCRATCH_W2 + 1u, SCRATCH_PTR, SCRATCH_PTR+1u))
     }
 
     fun retainAllowed() {
-        synchronized(lock) {
-            for(allowed in options.zpAllowed)
-                free.retainAll { it in allowed }
-        }
+        for(allowed in options.zpAllowed)
+            free.retainAll { it in allowed }
     }
 
     fun availableBytes() = if(options.zeropage== ZeropageType.DONTUSE) 0 else free.size
@@ -99,19 +90,17 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
                     else -> throw MemAllocationError("weird dt")
                 }
 
-        synchronized(lock) {
-            if(free.isNotEmpty()) {
-                if(size==1) {
-                    for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
-                        if(oneSeparateByteFree(candidate))
-                            return Ok(VarAllocation(makeAllocation(candidate, 1, datatype, name), datatype,1))
-                    }
-                    return Ok(VarAllocation(makeAllocation(free.first(), 1, datatype, name), datatype,1))
-                }
+        if(free.isNotEmpty()) {
+            if(size==1) {
                 for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
-                    if (sequentialFree(candidate, size))
-                        return Ok(VarAllocation(makeAllocation(candidate, size, datatype, name), datatype, size))
+                    if(oneSeparateByteFree(candidate))
+                        return Ok(VarAllocation(makeAllocation(candidate, 1, datatype, name), datatype,1))
                 }
+                return Ok(VarAllocation(makeAllocation(free.first(), 1, datatype, name), datatype,1))
+            }
+            for(candidate in free.minOrNull()!! .. free.maxOrNull()!!+1u) {
+                if (sequentialFree(candidate, size))
+                    return Ok(VarAllocation(makeAllocation(candidate, size, datatype, name), datatype, size))
             }
         }
 
@@ -135,7 +124,10 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
         return address
     }
 
-    private fun oneSeparateByteFree(address: UInt) = address in free && address-1u !in free && address+1u !in free
+    private fun oneSeparateByteFree(address: UInt) = 
+        address in free && 
+        (address == 0u || address-1u !in free) && 
+        address+1u !in free
     private fun sequentialFree(address: UInt, size: Int): Boolean {
         require(size>0)
         return free.containsAll((address until address+size.toUInt()).toList())

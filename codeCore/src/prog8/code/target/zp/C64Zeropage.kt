@@ -72,7 +72,10 @@ class C64Zeropage(options: CompilationOptions) : Zeropage(options) {
         removeReservedFromFreePool()
 
         if(options.zeropage==ZeropageType.FULL || options.zeropage==ZeropageType.KERNALSAFE) {
-            // in these cases there is enough space on the zero page to stick the cx16 virtual registers in there as well.
+            // C64 DESIGN: Virtual registers are ONLY allocated when sufficient zeropage space exists.
+            // C64 has limited zeropage space compared to CX16. In BASICSAFE and FLOATSAFE modes,
+            // there isn't enough contiguous space for all 32 bytes of virtual register variants.
+            // Virtual registers are only allocated in FULL and KERNALSAFE modes where space permits.
             allocateCx16VirtualRegisters()
         }
 

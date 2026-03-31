@@ -14,6 +14,12 @@ class SymbolTable(
 ) : StNode(astProgram.name, StNodeType.GLOBAL, astProgram) {
 
     private var cachedFlat: Map<String, StNode>? = null
+    private var modificationCount: Int = 0
+    private var lastCacheModCount: Int = 0
+
+    private fun markModified() {
+        modificationCount++
+    }
 
     val flat: Map<String, StNode> get() {
         fun buildFlatMap(): Map<String, StNode> {
@@ -30,15 +36,33 @@ class SymbolTable(
 
         if(disableCache)
             return buildFlatMap()
-        if(cachedFlat!=null)
-            return cachedFlat!!
-
-        cachedFlat = buildFlatMap()
+        
+        // Auto-invalidate cache if tree was modified
+        if(cachedFlat == null || lastCacheModCount != modificationCount) {
+            cachedFlat = buildFlatMap()
+            lastCacheModCount = modificationCount
+        }
         return cachedFlat!!
     }
 
     fun resetCachedFlat() {
-        if(!disableCache) cachedFlat = null
+        cachedFlat = null
+        lastCacheModCount = modificationCount
+    }
+
+    override fun add(child: StNode) {
+        if(child.name !in children) {
+            children[child.name] = child
+            child.parent = this
+            markModified()
+        }
+    }
+
+    fun remove(name: String): StNode? {
+        return children.remove(name)?.also {
+            it.parent = it  // Clear parent reference
+            markModified()
+        }
     }
 
     private fun <T : StNode> collectAll(node: StNode, clazz: Class<T>): List<T> {
@@ -149,7 +173,8 @@ open class StNode(val name: String,
         }
     }
 
-    fun add(child: StNode) {
+    // Note: open to allow SymbolTable to track modifications for cache invalidation
+    open fun add(child: StNode) {
         if(child.name !in children) {
             children[child.name] = child
             child.parent = this
