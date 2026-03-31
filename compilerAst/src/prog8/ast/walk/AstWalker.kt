@@ -295,18 +295,6 @@ abstract class AstWalker {
             }
         }
 
-        // Log conflicts if any are found (helps identify optimizer bugs)
-        val conflicts = nodeToModifications.filterValues { it.size > 1 }
-        if (conflicts.isNotEmpty()) {
-            println("WARNING: ${conflicts.size} nodes affected by multiple modifications:")
-            conflicts.forEach { (node, mods) ->
-                println("  ${node::class.simpleName} at ${node.position}:")
-                mods.forEach { mod ->
-                    println("    - ${mod::class.simpleName}")
-                }
-            }
-        }
-
         // check if there are double removes, keep only the last one
         val removals = modifications.filter { it.first is AstRemove }
         if(removals.isNotEmpty()) {

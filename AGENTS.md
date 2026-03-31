@@ -344,22 +344,6 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 **Note:** Use system `gradle` command, not wrapper. Run `gradle clean` if you suspect stale artifacts.
 
-### Running Tests
-
-**For detailed error output (always use these):**
-```bash
-# Specific test class with full error details
-gradle :compiler:test --tests "*TestName*" --info 2>&1 | grep -E "FAILED|AssertionError"
-
-# Test filtering across all modules
-gradle test -PtestFilter="*TestLookup*"
-
-# For compilation errors in tests
-gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
-```
-
-**Note:** Test config is centralized in root `build.gradle.kts`. Tests run in parallel. Only failures are shown.
-
 ### Two different workflows
 
 **1. Testing your own Prog8 programs** (no compiler changes):
@@ -404,46 +388,47 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - **Testing tip**: When writing and testing Prog8 programs, **use the `virtual` target** (e.g., `prog8c -target virtual -emu input.p8` or `prog8c -vm input.p8ir`). This is the preferred way to test because the virtual target can easily write output to stdout, making it simple to verify program behavior and check results.
 
 ## Commands to run tests
-- `gradle build` - Full build of the compiler including running the full test suite
-- Unit tests are written using KoTest, using FunSpec
-- Several modules in the project contain unit tests, but most of them live in the "compiler" module in the 'test' directory.
-- **when writing TEST programs, always add these directives at the top: `%zeropage basicsafe` and `%option no_sysinit`** - this keeps zeropage usage safe and skips system initialization for faster, simpler test programs.
-- **When a test run fails**, the output says "There were failing tests. See the report at:" followed by a path like `file:///home/irmen/Projects/prog8/compiler/build/reports/tests/test/index.html`. **Read that HTML report** to quickly see which tests failed and their error messages!
 
-### Test Filtering Tips
+**Basic commands:**
+- `gradle build` - Full build including all tests (~45-60s)
+- `gradle :compiler:test` - Run only compiler tests (faster)
+- `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"` - Run specific test class
 
-**✅ DO use these patterns:**
+**Test filtering patterns:**
+
+| Pattern | Example | Works? |
+|---------|---------|--------|
+| Full class name | `--tests "prog8tests.compiler.TestOptimization"` | ✅ Yes |
+| Wildcard at END | `--tests "prog8tests.compiler.Test*"` | ✅ Yes |
+| Wildcard on package | `--tests "prog8tests.compiler.*"` | ✅ Yes |
+| Wildcard at START | `--tests "*TestOptimization"` | ❌ No |
+| Test description | `--tests "*Optimization*inline*"` | ❌ No |
+
+**Alternative with `-PtestFilter`** (supports wildcards anywhere):
 ```bash
-# Exact fully qualified class name (most reliable)
-gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"
-
-# Wildcard at END of class name works
-gradle :compiler:test --tests "prog8tests.compiler.TestOptimiz*"
-gradle :compiler:test --tests "prog8tests.compiler.Test*"
-
-# Wildcard on package name works
-gradle :compiler:test --tests "prog8tests.compiler.*"
-
-# Alternative using project property (supports wildcards)
-gradle :compiler:test -PtestFilter="*Optimization"
+gradle test -PtestFilter="*Optimization"
 ```
 
-**❌ DO NOT use these patterns:**
-```bash
-# Wildcard at START of class name doesn't work
-gradle :compiler:test --tests "*TestOptimization"     # FAILS
+**Why the restrictions?** Gradle's `--tests` filter requires the **fully qualified class name**. Wildcards work as **suffixes** only. KoTest test names like `"inline multi-value void"` are _descriptions_, not method names, so you cannot filter by them.
 
-# Cannot filter by test description (KoTest uses descriptions, not method names)
-gradle test --tests "*Optimization*inline*"           # FAILS
+**To find failing tests after a run:**
+```bash
+# Check XML results (reliable)
+grep "<failure" compiler/build/test-results/test/*.xml
+
+# Or check HTML report (most reliable)
+firefox compiler/build/reports/tests/test/index.html
+
+# For test compilation errors
+gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 ```
 
-**Why?** Gradle's `--tests` filter requires the **fully qualified class name**. Wildcards work as **suffixes** (e.g., `Test*`) but not as **prefixes** (e.g., `*Test`). KoTest test names like `"inline multi-value void - literals"` are test _descriptions_, not method names, so you cannot filter by them.
-
-**To run specific tests:**
-1. Run a specific test class: `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"`
-2. Run multiple test classes with wildcard: `gradle :compiler:test --tests "prog8tests.compiler.Test*"`
-3. Check the HTML report at `compiler/build/reports/tests/test/index.html` for failures
-4. Or temporarily comment out other tests in the source file
+**Additional notes:**
+- Unit tests use KoTest (FunSpec style)
+- Tests are in the "compiler" module's `test` directory (and some other modules)
+- Test config is in root `build.gradle.kts`; tests run in parallel
+- **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit`
+- When a test fails, the output shows "There were failing tests. See the report at:" - **read that HTML report**
 
 ## Git Operations for File Moves/Deletes
 

@@ -279,14 +279,6 @@ class Prog8TextDocumentService: TextDocumentService {
                         // TODO: Add actual TextEdit to fix the issue
                         actions.add(Either.forRight(action))
                     }
-                    "InvalidCharacter" -> {
-                        val action = CodeAction()
-                        action.title = "Remove invalid characters"
-                        action.kind = CodeActionKind.QuickFix
-                        action.diagnostics = listOf(diagnostic)
-                        // TODO: Add actual TextEdit to fix the issue
-                        actions.add(Either.forRight(action))
-                    }
                 }
             }
             
@@ -342,20 +334,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 )
                 diagnostics.add(diagnostic)
             }
-            
-            // Check for invalid characters
-            if (line.contains(Regex("[^\\u0000-\\u007F]"))) {
-                val range = Range(Position(lineNumber, 0), Position(lineNumber, line.length))
-                val diagnostic = Diagnostic(
-                    range,
-                    "Invalid character found",
-                    DiagnosticSeverity.Error,
-                    "prog8-lsp",
-                    "InvalidCharacter"
-                )
-                diagnostics.add(diagnostic)
-            }
-            
+
             // Check for common Prog8 syntax issues
             // For example, check if a line starts with a keyword but doesn't follow proper syntax
             if (line.trim().startsWith("sub ") && !line.contains("(")) {

@@ -43,7 +43,6 @@ class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAs
                         val compilationOptions: CompilationOptions,
                         val importedFiles: List<Path>,
                         val irInstructionCount: Int = 0,
-                        val irChunkCount: Int = 0,
                         val irRegisterCount: Int = 0)
 
 class CompilerArguments(val filepath: Path,
@@ -83,7 +82,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
     var resultingProgram: Program? = null
     var importedFiles: List<Path>
     var irInstructionCount = 0
-    var irChunkCount = 0
     var irRegisterCount = 0
 
     val targetConfigFile = expandTilde(Path(args.compilationTarget))
@@ -260,7 +258,6 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                             program.generatedLabelSequenceNumber
                         )
                     irInstructionCount = result.irInstructionCount
-                    irChunkCount = result.irChunkCount
                     irRegisterCount = result.irRegisterCount
                     if (!result.success) {
                         System.err.println("Error in codegeneration or assembler")
@@ -300,7 +297,7 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
         if(!args.quietAll) {
             println("\nTotal compilation+assemble time: ${totalTime.toString(DurationUnit.SECONDS, 3)}.")
         }
-        return CompilationResult(resultingProgram!!, ast, symbolTable, compilationOptions, importedFiles, irInstructionCount, irChunkCount, irRegisterCount)
+        return CompilationResult(resultingProgram!!, ast, symbolTable, compilationOptions, importedFiles, irInstructionCount, irRegisterCount)
     } catch (px: ParseError) {
         args.errors.printSingleError("ERROR ${px.position.toClickableStr()} parse error: ${px.message}".trim())
     } catch (ac: ErrorsReportedException) {
@@ -566,8 +563,8 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         // keep optimizing expressions and statements until no more steps remain
         val optsDone1 = program.simplifyExpressions(errors)
         val optsDone2 = program.optimizeStatements(errors, functions, compilerOptions)
-        val optsDone3 = program.inlineSubroutines(compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
+        val optsDone3 = program.inlineSubroutines(compilerOptions)  // inlining can expose new calls to inline
         if(!errors.noErrors()) {
             errors.report()
             break
@@ -580,9 +577,10 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
             throw InternalCompilerException("optimizeAst() is looping endlessly, numOpts = $numOpts")
         }
     }
+    
     removeUnusedCode(program, errors, compilerOptions)
     if(errors.noErrors()) {
-        // last round of optimizations because constFold may have enabled more...
+        // last round of optimizations because inlining may have enabled more...
         program.simplifyExpressions(errors)
         program.optimizeStatements(errors, functions, compilerOptions)
         program.constantFold(errors, compilerOptions) // because simplified statements and expressions can result in more constants that can be folded away
