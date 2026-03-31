@@ -12,7 +12,8 @@ import java.nio.file.Path
 
 sealed class PtNode(val position: Position) {
 
-    val children = mutableListOf<PtNode>()
+    private val _children = mutableListOf<PtNode>()
+    val children: List<PtNode> get() = _children  // Read-only view
     lateinit var parent: PtNode
 
     fun parentHasBeenSet() = ::parent.isInitialized
@@ -20,13 +21,53 @@ sealed class PtNode(val position: Position) {
     override fun toString(): String = "${super.toString()} at $position"
 
     fun add(child: PtNode) {
-        children.add(child)
+        _children.add(child)
         child.parent = this
     }
 
     fun add(index: Int, child: PtNode) {
-        children.add(index, child)
+        _children.add(index, child)
         child.parent = this
+    }
+
+    /**
+     * Replace child at given index with a new child.
+     * Updates the new child's parent pointer.
+     */
+    fun setChild(index: Int, child: PtNode) {
+        _children[index] = child
+        child.parent = this
+    }
+
+    /**
+     * Remove a child node.
+     * Does NOT clear the removed child's parent pointer (caller should do that if needed).
+     */
+    fun removeChild(child: PtNode): Boolean {
+        return _children.remove(child)
+    }
+
+    /**
+     * Remove child at given index.
+     * Does NOT clear the removed child's parent pointer (caller should do that if needed).
+     */
+    fun removeChildAt(index: Int): PtNode {
+        return _children.removeAt(index)
+    }
+
+    /**
+     * Add multiple children at once.
+     */
+    fun addAll(children: Collection<PtNode>) {
+        children.forEach { add(it) }
+    }
+
+    /**
+     * Remove all children.
+     * Does NOT clear the removed children's parent pointers (caller should do that if needed).
+     */
+    fun clearChildren() {
+        _children.clear()
     }
 
     /**
@@ -41,7 +82,16 @@ sealed class PtNode(val position: Position) {
     fun definingBlock() = findParentNode<PtBlock>(this)
     fun definingSub() = findParentNode<PtSub>(this)
     fun definingAsmSub() = findParentNode<PtAsmSub>(this)
-    fun definingISub() = findParentNode<IPtSubroutine>(this)
+    fun definingISub(): IPtSubroutine? {
+        // Find parent that implements IPtSubroutine
+        var candidate: PtNode? = parent
+        while (candidate != null) {
+            if (candidate is IPtSubroutine) return candidate
+            if (candidate is PtProgram) return null
+            candidate = candidate.parent
+        }
+        return null
+    }
 }
 
 
@@ -154,12 +204,12 @@ class PtNop(position: Position): PtNode(position)
 
 // find the parent node of a specific type or interface
 // (useful to figure out in what namespace/block something is defined, etc.)
-inline fun <reified T> findParentNode(node: PtNode): T? {
-    var candidate = node.parent
-    while(candidate !is T && candidate !is PtProgram)
+inline fun <reified T : PtNode> findParentNode(node: PtNode): T? {
+    var candidate: PtNode? = node.parent
+    while (candidate != null) {
+        if (candidate is T) return candidate
+        if (candidate is PtProgram) return null
         candidate = candidate.parent
-    return if(candidate is PtProgram)
-        null
-    else
-        candidate as T
+    }
+    return null
 }

@@ -33,8 +33,7 @@ internal object ComparisonOptimizers {
                         replacement.add(left)
                         replacement.add(PtNumber(rightType.base, 0.0, right.position))
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = replacement
-                        replacement.parent = node.parent
+                        node.parent.setChild(index, replacement)
                         changes++
                     }
                     // x < 1 -> x <= 0 (for integers)
@@ -43,8 +42,7 @@ internal object ComparisonOptimizers {
                         replacement.add(left)
                         replacement.add(PtNumber(rightType.base, 0.0, right.position))
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = replacement
-                        replacement.parent = node.parent
+                        node.parent.setChild(index, replacement)
                         changes++
                     }
                     // x <= -1 -> x < 0 (for signed integers only, NOT float)
@@ -53,8 +51,7 @@ internal object ComparisonOptimizers {
                         replacement.add(left)
                         replacement.add(PtNumber(rightType.base, 0.0, right.position))
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = replacement
-                        replacement.parent = node.parent
+                        node.parent.setChild(index, replacement)
                         changes++
                     }
                     // x > -1 -> x >= 0 (for signed integers only, NOT float)
@@ -63,8 +60,7 @@ internal object ComparisonOptimizers {
                         replacement.add(left)
                         replacement.add(PtNumber(rightType.base, 0.0, right.position))
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = replacement
-                        replacement.parent = node.parent
+                        node.parent.setChild(index, replacement)
                         changes++
                     }
                 }
@@ -76,16 +72,14 @@ internal object ComparisonOptimizers {
                             // unsigned >= 0 -> true
                             val index = node.parent.children.indexOf(node)
                             val replacement = PtBool(true, node.position)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                         "<" -> {
                             // unsigned < 0 -> false
                             val index = node.parent.children.indexOf(node)
                             val replacement = PtBool(false, node.position)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                         "<=" -> {
@@ -94,8 +88,7 @@ internal object ComparisonOptimizers {
                             replacement.add(left)
                             replacement.add(right)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                         ">" -> {
@@ -104,8 +97,7 @@ internal object ComparisonOptimizers {
                             replacement.add(left)
                             replacement.add(right)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                     }
@@ -122,16 +114,14 @@ internal object ComparisonOptimizers {
                                 replacement.add(left)
                                 replacement.add(rightExpr.left)
                                 val index = node.parent.children.indexOf(node)
-                                node.parent.children[index] = replacement
-                                replacement.parent = node.parent
+                                node.parent.setChild(index, replacement)
                                 changes++
                             } else if (node.operator == ">=" && rightExpr.operator == "+") {
                                 val replacement = PtBinaryExpression(">", node.type, node.position)
                                 replacement.add(left)
                                 replacement.add(rightExpr.left)
                                 val index = node.parent.children.indexOf(node)
-                                node.parent.children[index] = replacement
-                                replacement.parent = node.parent
+                                node.parent.setChild(index, replacement)
                                 changes++
                             }
                         }
@@ -167,8 +157,7 @@ internal object ComparisonOptimizers {
                     }
                     val index = node.parent.children.indexOf(node)
                     val replacement = PtBool(result, node.position)
-                    node.parent.children[index] = replacement
-                    replacement.parent = node.parent
+                    node.parent.setChild(index, replacement)
                     changes++
                 }
             }
@@ -191,9 +180,8 @@ internal object ComparisonOptimizers {
                     val replacement = PtBinaryExpression(comparison.operator, DataType.BOOL, comparison.position)
                     replacement.add(node.args[0])
                     replacement.add(PtNumber(node.args[0].type.base, 0.0, comparison.position))
-                    replacement.parent = comparison.parent
                     val index = comparison.parent.children.indexOf(comparison)
-                    comparison.parent.children[index] = replacement
+                    comparison.parent.setChild(index, replacement)
                     changes++
                 }
             }
@@ -217,9 +205,8 @@ internal object ComparisonOptimizers {
                     val replacement = PtBinaryExpression(node.operator, DataType.BOOL, node.position)
                     replacement.add(sign)
                     replacement.add(PtNumber(BaseDataType.BYTE, 0.0, node.position))
-                    replacement.parent = node.parent
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = replacement
+                    node.parent.setChild(index, replacement)
                     changes++
                 }
             }

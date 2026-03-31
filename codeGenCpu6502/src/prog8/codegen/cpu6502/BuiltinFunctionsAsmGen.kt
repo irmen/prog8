@@ -1077,8 +1077,7 @@ import prog8.codegen.cpu6502.assignment.*
                 val msbAdd: Int
                 if(indexer.splitWords) {
                     val arrayVariable = indexer.variable ?: TODO("ptr indexing ${indexer.position}")
-                    indexer.children[0] = PtIdentifier(arrayVariable.name + if(msb) "_msb" else "_lsb", DataType.arrayFor(BaseDataType.UBYTE, false), arrayVariable.position)
-                    indexer.children[0].parent = indexer
+                    indexer.setChild(0, PtIdentifier(arrayVariable.name + (if(msb) "_msb" else "_lsb"), DataType.arrayFor(BaseDataType.UBYTE, false), arrayVariable.position))
                     elementSize = 1
                     msbAdd = 0
                 } else {
@@ -1089,8 +1088,7 @@ import prog8.codegen.cpu6502.assignment.*
                 // double the index because of word array (if not split), add one if msb (if not split)
                 val constIndexNum = (indexer.index as? PtNumber)?.number
                 if(constIndexNum!=null) {
-                    indexer.children[1] = PtNumber(indexer.index.type.base, constIndexNum*elementSize + msbAdd, indexer.position)
-                    indexer.children[1].parent = indexer
+                    indexer.setChild(1, PtNumber(indexer.index.type.base, constIndexNum*elementSize + msbAdd, indexer.position))
                 } else {
                     val multipliedIndex: PtExpression
                     when (elementSize) {
@@ -1112,11 +1110,9 @@ import prog8.codegen.cpu6502.assignment.*
                         val msbIndex = PtBinaryExpression("+", indexer.index.type, indexer.position)
                         msbIndex.add(multipliedIndex)
                         msbIndex.add(PtNumber(BaseDataType.UBYTE, msbAdd.toDouble(), indexer.position))
-                        indexer.children[1] = msbIndex
-                        msbIndex.parent = indexer
+                        indexer.setChild(1, msbIndex)
                     } else {
-                        indexer.children[1] = multipliedIndex
-                        multipliedIndex.parent=indexer
+                        indexer.setChild(1, multipliedIndex)
                     }
                 }
                 target = AsmAssignTarget(TargetStorageKind.ARRAY, asmgen, DataType.UBYTE, fcall.definingSub(), fcall.position, array = indexer)

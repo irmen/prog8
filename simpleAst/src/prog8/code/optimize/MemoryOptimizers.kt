@@ -23,7 +23,7 @@ internal object MemoryOptimizers {
                     val identifier = addressOf.identifier!!
                     if (identifier.type.isByteOrBool) {
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = identifier
+                        node.parent.setChild(index, identifier)
                         changes++
                     }
                 }
@@ -60,7 +60,7 @@ internal object MemoryOptimizers {
                         memread.add(address)
                         memread.parent = node.parent
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = memread
+                        node.parent.setChild(index, memread)
                         changes++
                     }
                 }

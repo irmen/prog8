@@ -54,7 +54,7 @@ internal object SubtypeResolver {
                 if(node.type.isUnsignedWord && node.value.type.isPointerToByte) {
                     // casting a pointer to a byte , to uword, is not required because pointer arithmetic on either of those will be identical
                     val idx = node.parent.children.indexOf(node)
-                    node.parent.children[idx] = node.value
+                    node.parent.setChild(idx, node.value)
                     node.value.parent = node.parent
                 }
             }

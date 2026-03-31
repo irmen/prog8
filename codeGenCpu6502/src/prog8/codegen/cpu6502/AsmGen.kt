@@ -158,9 +158,9 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
 
         nodesToPrefix.forEach { (parent, index) ->
             when(val node = parent.children[index]) {
-                is PtIdentifier -> parent.children[index] = node.prefix(parent, st)
+                is PtIdentifier -> parent.setChild(index, node.prefix(parent, st))
                 is PtFunctionCall ->  throw AssemblyError("PtFunctionCall should be processed in their own list, last")
-                is PtVariable -> parent.children[index] = node.prefix(parent, st)
+                is PtVariable -> parent.setChild(index, node.prefix(parent, st))
                 else -> throw AssemblyError("weird node to prefix $node")
             }
         }
@@ -171,7 +171,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
             if(node is PtFunctionCall) {
                 val prefixedName = PtIdentifier(node.name, DataType.UNDEFINED, node.position).prefix(parent, st)
                 val prefixedNode = node.withNewName(prefixedName.name)
-                parent.children[index] = prefixedNode
+                parent.setChild(index, prefixedNode)
             } else {
                 throw AssemblyError("expected PtFunctionCall")
             }
@@ -276,7 +276,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
 
 private fun PtFunctionCall.withNewName(name: String): PtFunctionCall {
     val call = PtFunctionCall(name, builtin, hasNoSideEffects, returntypes, position)
-    call.children.addAll(children)
+    call.addAll(children)
     call.children.forEach { it.parent = call }
     call.parent = parent
     return call

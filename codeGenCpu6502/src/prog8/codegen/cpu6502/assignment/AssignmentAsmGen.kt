@@ -993,12 +993,12 @@ internal class AssignmentAsmGen(
                 && expr.right.type.isWord) {
                 // word X>Y -> X<Y, X<=Y -> Y>=X  , easier to do in 6502  (codegen also expects these to no longe exist!)
                 exprClone = PtBinaryExpression(if(expr.operator==">") "<" else ">=", expr.type, expr.position)
-                exprClone.children.add(expr.children[1]) // doesn't seem to need a deep clone
-                exprClone.children.add(expr.children[0]) // doesn't seem to need a deep clone
+                exprClone.add(expr.children[1]) // doesn't seem to need a deep clone
+                exprClone.add(expr.children[0]) // doesn't seem to need a deep clone
             } else {
                 exprClone = PtBinaryExpression(expr.operator, expr.type, expr.position)
-                exprClone.children.add(expr.children[0]) // doesn't seem to need a deep clone
-                exprClone.children.add(expr.children[1]) // doesn't seem to need a deep clone
+                exprClone.add(expr.children[0]) // doesn't seem to need a deep clone
+                exprClone.add(expr.children[1]) // doesn't seem to need a deep clone
             }
             ifelse.add(exprClone)
             ifelse.add(ifPart)
@@ -1081,12 +1081,12 @@ internal class AssignmentAsmGen(
             && expr.right.type.isWord) {
             // word X>Y -> X<Y, X<=Y -> Y>=X  , easier to do in 6502  (codegen also expects these to no longe exist!)
             exprClone = PtBinaryExpression(if(expr.operator==">") "<" else ">=", expr.type, expr.position)
-            exprClone.children.add(expr.children[1]) // doesn't seem to need a deep clone
-            exprClone.children.add(expr.children[0]) // doesn't seem to need a deep clone
+            exprClone.add(expr.children[1]) // doesn't seem to need a deep clone
+            exprClone.add(expr.children[0]) // doesn't seem to need a deep clone
         } else {
             exprClone = PtBinaryExpression(expr.operator, expr.type, expr.position)
-            exprClone.children.add(expr.children[0]) // doesn't seem to need a deep clone
-            exprClone.children.add(expr.children[1]) // doesn't seem to need a deep clone
+            exprClone.add(expr.children[0]) // doesn't seem to need a deep clone
+            exprClone.add(expr.children[1]) // doesn't seem to need a deep clone
         }
         ifelse.add(exprClone)
         ifelse.add(ifPart)

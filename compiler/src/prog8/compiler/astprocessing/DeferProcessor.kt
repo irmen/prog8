@@ -86,8 +86,7 @@ internal object DeferProcessor {
                 enableDefer.add(target)
                 // enable the bit for this defer (beginning with high bits so the handler can simply shift right to check them in reverse order)
                 enableDefer.add(PtNumber(BaseDataType.UBYTE, (1 shl (defers.size-1 - deferIndex)).toDouble(), defer.position))
-                enableDefer.parent = scope
-                scope.children[idx] = enableDefer
+                scope.setChild(idx, enableDefer)
             }
         }
 

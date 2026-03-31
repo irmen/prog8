@@ -28,10 +28,10 @@ internal object ControlFlowOptimizers {
                 if (trueConst == 1.0 || (condition is PtBool && condition.value)) {
                     val ifScope = node.ifScope
                     // Replace if-else with the true part statements
-                    parent.children.removeAt(index)
+                    parent.removeChildAt(index)
                     // Insert the if scope statements in reverse order to maintain order
                     ifScope.children.reversed().forEach { stmt ->
-                        parent.children.add(index, stmt)
+                        parent.add(index, stmt)
                         stmt.parent = parent
                     }
                     changes++
@@ -40,10 +40,10 @@ internal object ControlFlowOptimizers {
                 else if (trueConst == 0.0 || (condition is PtBool && !condition.value)) {
                     val elseScope = node.elseScope
                     // Replace if-else with the false part statements
-                    parent.children.removeAt(index)
+                    parent.removeChildAt(index)
                     // Insert the else scope statements in reverse order to maintain order
                     elseScope.children.reversed().forEach { stmt ->
-                        parent.children.add(index, stmt)
+                        parent.add(index, stmt)
                         stmt.parent = parent
                     }
                     changes++
@@ -67,10 +67,10 @@ internal object ControlFlowOptimizers {
                     val elseChoice = choices[0] as PtWhenChoice
                     val index = node.parent.children.indexOf(node)
                     val parent = node.parent
-                    parent.children.removeAt(index)
+                    parent.removeChildAt(index)
                     // Insert the else part statements
                     elseChoice.statements.children.reversed().forEach { stmt ->
-                        parent.children.add(index, stmt)
+                        parent.add(index, stmt)
                         stmt.parent = parent
                     }
                     changes++
@@ -114,7 +114,7 @@ internal object ControlFlowOptimizers {
                     ifelse.add(elsescope)
                     ifelse.parent = node.parent
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = ifelse
+                    node.parent.setChild(index, ifelse)
                     changes++
                 }
             }

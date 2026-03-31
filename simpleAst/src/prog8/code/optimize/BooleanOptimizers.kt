@@ -24,7 +24,7 @@ internal object BooleanOptimizers {
                 // Double negation: not(not(x)) -> x
                 if (value is PtPrefix && value.operator == "not" && value.type.isBool) {
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = value.value
+                    node.parent.setChild(index, value.value)
                     changes++
                 }
                 // Negated comparisons: not(x == y) -> x != y, etc.
@@ -35,8 +35,7 @@ internal object BooleanOptimizers {
                         replacement.add(value.left)
                         replacement.add(value.right)
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = replacement
-                        replacement.parent = node.parent
+                        node.parent.setChild(index, replacement)
                         changes++
                     }
                 }
@@ -44,8 +43,7 @@ internal object BooleanOptimizers {
                 else if (value is PtBool) {
                     val replacement = PtBool(!value.value, node.position)
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = replacement
-                    replacement.parent = node.parent
+                    node.parent.setChild(index, replacement)
                     changes++
                 }
             }
@@ -60,43 +58,40 @@ internal object BooleanOptimizers {
                         // x and true -> x
                         if (right is PtBool && right.value) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // true and x -> x
                         else if (left is PtBool && left.value) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                         // x and false -> false
                         else if (right is PtBool && !right.value) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                         // false and x -> false
                         else if (left is PtBool && !left.value) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                         // x and x -> x (idempotent)
                         else if (left isSameAs right) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // x and not(x) -> false (complement)
                         else if (Helpers.isNegationOf(left, right) || Helpers.isNegationOf(right, left)) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                     }
@@ -105,42 +100,39 @@ internal object BooleanOptimizers {
                         if (right is PtBool && right.value) {
                             val replacement = PtBool(true, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                         // true or x -> true
                         else if (left is PtBool && left.value) {
                             val replacement = PtBool(true, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                         // x or false -> x
                         else if (right is PtBool && !right.value) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // false or x -> x
                         else if (left is PtBool && !left.value) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                         // x or x -> x (idempotent)
                         else if (left isSameAs right) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // x or not(x) -> true (complement)
                         else if (Helpers.isNegationOf(left, right) || Helpers.isNegationOf(right, left)) {
                             val replacement = PtBool(true, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                     }
@@ -150,7 +142,7 @@ internal object BooleanOptimizers {
                             val negation = PtPrefix("not", DataType.BOOL, node.position)
                             negation.add(left)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = negation
+                            node.parent.setChild(index, negation)
                             negation.parent = node.parent
                             changes++
                         }
@@ -159,28 +151,27 @@ internal object BooleanOptimizers {
                             val negation = PtPrefix("not", DataType.BOOL, node.position)
                             negation.add(right)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = negation
+                            node.parent.setChild(index, negation)
                             negation.parent = node.parent
                             changes++
                         }
                         // x xor false -> x
                         else if (right is PtBool && !right.value) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // false xor x -> x
                         else if (left is PtBool && !left.value) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                         // x xor x -> false (idempotent)
                         else if (left isSameAs right) {
                             val replacement = PtBool(false, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                     }
@@ -203,7 +194,7 @@ internal object BooleanOptimizers {
                 // Double bitwise NOT: ~~x -> x
                 if (value is PtPrefix && value.operator == "~" && value.type.isInteger) {
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = value.value
+                    node.parent.setChild(index, value.value)
                     changes++
                 }
             }
@@ -228,8 +219,7 @@ internal object BooleanOptimizers {
                     if (Helpers.isBitwiseNegationOf(left, right) || Helpers.isBitwiseNegationOf(right, left)) {
                         val zero = PtNumber(node.type.base, 0.0, node.position)
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = zero
-                        zero.parent = node.parent
+                        node.parent.setChild(index, zero)
                         changes++
                     }
                 } else if (node.operator == "|") {
@@ -245,7 +235,7 @@ internal object BooleanOptimizers {
                         }
                         val allOnes = PtNumber(node.type.base, allOnesValue, node.position)
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = allOnes
+                        node.parent.setChild(index, allOnes)
                         allOnes.parent = node.parent
                         changes++
                     }

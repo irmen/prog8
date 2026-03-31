@@ -89,7 +89,7 @@ fun profilingInstrumentation(program: PtProgram, st: SymbolTable, errors: IError
         if(newInternededStringBlock) {
             if(internedStringsBlock.children.isEmpty()) {
                 // no interned strings, remove the block again
-                program.children.remove(internedStringsBlock)
+                program.removeChild(internedStringsBlock)
             }
         }
     }

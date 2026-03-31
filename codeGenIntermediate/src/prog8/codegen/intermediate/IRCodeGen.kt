@@ -91,7 +91,7 @@ class IRCodeGen(
         }
 
         for((block, assign) in initsToRemove) {
-            block.children.remove(assign)
+            block.removeChild(assign)
         }
     }
 
@@ -1753,7 +1753,7 @@ class IRCodeGen(
             1 -> return translateGroup(repeat.children)
             256 -> {
                 // 256 iterations can still be done with just a byte counter if you set it to zero as starting value.
-                repeat.children[0] = PtNumber(BaseDataType.UBYTE, 0.0, repeat.count.position)
+                repeat.setChild(0, PtNumber(BaseDataType.UBYTE, 0.0, repeat.count.position))
             }
         }
 
@@ -2037,9 +2037,9 @@ class IRCodeGen(
         require(target.type.isFloat)
         val assignment = PtAssignment(target.position)
         val assignTarget = PtAssignTarget(false, target.position)
-        assignTarget.children.add(target)
-        assignment.children.add(assignTarget)
-        assignment.children.add(PtIrRegister(fpRegister, DataType.FLOAT, target.position))
+        assignTarget.add(target)
+        assignment.add(assignTarget)
+        assignment.add(PtIrRegister(fpRegister, DataType.FLOAT, target.position))
         val result = mutableListOf<IRCodeChunkBase>()
         result += translateNode(assignment)
         return result
@@ -2048,9 +2048,9 @@ class IRCodeGen(
     internal fun assignRegisterTo(target: PtExpression, register: Int): IRCodeChunks {
         val assignment = PtAssignment(target.position)
         val assignTarget = PtAssignTarget(false, target.position)
-        assignTarget.children.add(target)
-        assignment.children.add(assignTarget)
-        assignment.children.add(PtIrRegister(register, target.type, target.position))
+        assignTarget.add(target)
+        assignment.add(assignTarget)
+        assignment.add(PtIrRegister(register, target.type, target.position))
         val result = mutableListOf<IRCodeChunkBase>()
         result += translateNode(assignment)
         return result

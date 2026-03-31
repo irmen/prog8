@@ -33,7 +33,7 @@ internal object VariableOptimizers {
                                 if(Helpers.isSame(target.identifier!!, xx.second.type, returnedRegister)) {
                                     // output register is already identical to target register, so it can become void
                                     val voidTarget = PtAssignTarget(true, target.position)
-                                    node.children[index] = voidTarget
+                                    node.setChild(index, voidTarget)
                                     voidTarget.parent = node
                                     changes++
                                 }
@@ -45,7 +45,7 @@ internal object VariableOptimizers {
                         val index = node.parent.children.indexOf(node)
                         val voidCall = PtFunctionCall(functionName, false, false, emptyArray(), value.position)
                         value.children.forEach { voidCall.add(it) }
-                        node.parent.children[index] = voidCall
+                        node.parent.setChild(index, voidCall)
                         voidCall.parent = node.parent
                         changes++
                     }
@@ -119,7 +119,7 @@ internal object VariableOptimizers {
         }
 
         removeInitializations.forEach { (parent, varInit) ->
-            parent.children.remove(varInit)
+            parent.removeChild(varInit)
         }
 
         return removeInitializations.size

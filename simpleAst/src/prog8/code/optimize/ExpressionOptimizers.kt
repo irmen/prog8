@@ -39,7 +39,7 @@ internal object ExpressionOptimizers {
                             addFirst.add(typecast)
                             addSecond.add(addFirst)
                             addSecond.add(typecast.copy())
-                            parent.children[index] = addSecond
+                            parent.setChild(index, addSecond)
                             addSecond.parent = parent
                             changes++
                         }
@@ -54,7 +54,7 @@ internal object ExpressionOptimizers {
                         shift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
                         shift.parent = node.parent
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = shift
+                        node.parent.setChild(index, shift)
                         changes++
                     } else if(constvalue in negativePowersOfTwoFloat) {
                         TODO("x * negative power-of-two -> bitshift  ${node.position}")
@@ -85,13 +85,13 @@ internal object ExpressionOptimizers {
                         // x + 0 -> x
                         if (rightConst == 0.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // 0 + x -> x
                         else if (leftConst == 0.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                     }
@@ -99,7 +99,7 @@ internal object ExpressionOptimizers {
                         // x - 0 -> x
                         if (rightConst == 0.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // 0 - x -> -x
@@ -107,7 +107,7 @@ internal object ExpressionOptimizers {
                             val negation = PtPrefix("-", right.type, node.position)
                             negation.add(right)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = negation
+                            node.parent.setChild(index, negation)
                             negation.parent = node.parent
                             changes++
                         }
@@ -117,28 +117,26 @@ internal object ExpressionOptimizers {
                         if (rightConst == 0.0) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = zero
-                            zero.parent = node.parent
+                            node.parent.setChild(index, zero)
                             changes++
                         }
                         // 0 * x -> 0
                         else if (leftConst == 0.0) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = zero
-                            zero.parent = node.parent
+                            node.parent.setChild(index, zero)
                             changes++
                         }
                         // x * 1 -> x
                         else if (rightConst == 1.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // 1 * x -> x
                         else if (leftConst == 1.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                     }
@@ -146,7 +144,7 @@ internal object ExpressionOptimizers {
                         // x / 1 -> x
                         if (rightConst == 1.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // 0 / x -> 0 (when x is not zero - but we can't check that here safely)
@@ -154,8 +152,7 @@ internal object ExpressionOptimizers {
                         if (leftConst == 0.0 && !node.type.isFloat) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = zero
-                            zero.parent = node.parent
+                            node.parent.setChild(index, zero)
                             changes++
                         }
                     }
@@ -164,8 +161,7 @@ internal object ExpressionOptimizers {
                         if (left isSameAs right) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = zero
-                            zero.parent = node.parent
+                            node.parent.setChild(index, zero)
                             changes++
                         }
                     }
@@ -174,34 +170,32 @@ internal object ExpressionOptimizers {
                         if (rightConst == 0.0) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = zero
-                            zero.parent = node.parent
+                            node.parent.setChild(index, zero)
                             changes++
                         }
                         // 0 & x -> 0
                         else if (leftConst == 0.0) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = zero
-                            zero.parent = node.parent
+                            node.parent.setChild(index, zero)
                             changes++
                         }
                         // x & -1 -> x (all bits set = identity for AND)
                         else if (Helpers.isAllOnesForType(right, node.type)) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // -1 & x -> x
                         else if (Helpers.isAllOnesForType(left, node.type)) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                         // x & x -> x (idempotent)
                         else if (left isSameAs right) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                     }
@@ -209,33 +203,33 @@ internal object ExpressionOptimizers {
                         // x | 0 -> x
                         if (rightConst == 0.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // 0 | x -> x
                         else if (leftConst == 0.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                         // x | -1 -> -1 (all bits set = absorbing element for OR)
                         else if (Helpers.isAllOnesForType(right, node.type)) {
                             val allOnes = right
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = allOnes
+                            node.parent.setChild(index, allOnes)
                             changes++
                         }
                         // -1 | x -> -1
                         else if (Helpers.isAllOnesForType(left, node.type)) {
                             val allOnes = left
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = allOnes
+                            node.parent.setChild(index, allOnes)
                             changes++
                         }
                         // x | x -> x (idempotent)
                         else if (left isSameAs right) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                     }
@@ -243,13 +237,13 @@ internal object ExpressionOptimizers {
                         // x ^ 0 -> x
                         if (rightConst == 0.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = left
+                            node.parent.setChild(index, left)
                             changes++
                         }
                         // 0 ^ x -> x
                         else if (leftConst == 0.0) {
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = right
+                            node.parent.setChild(index, right)
                             changes++
                         }
                         // x ^ -1 -> ~x (XOR with all 1s = bitwise NOT)
@@ -257,7 +251,7 @@ internal object ExpressionOptimizers {
                             val negation = PtPrefix("~", node.type, node.position)
                             negation.add(left)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = negation
+                            node.parent.setChild(index, negation)
                             negation.parent = node.parent
                             changes++
                         }
@@ -266,7 +260,7 @@ internal object ExpressionOptimizers {
                             val negation = PtPrefix("~", node.type, node.position)
                             negation.add(right)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = negation
+                            node.parent.setChild(index, negation)
                             negation.parent = node.parent
                             changes++
                         }
@@ -274,8 +268,7 @@ internal object ExpressionOptimizers {
                         else if (left isSameAs right) {
                             val zero = PtNumber(node.type.base, 0.0, node.position)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = zero
-                            zero.parent = node.parent
+                            node.parent.setChild(index, zero)
                             changes++
                         }
                     }
@@ -304,8 +297,7 @@ internal object ExpressionOptimizers {
                     replacement.add(right)
                     replacement.add(negated)
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = replacement
-                    replacement.parent = node.parent
+                    node.parent.setChild(index, replacement)
                     changes++
                 }
                 // x + (-y) -> x - y
@@ -314,8 +306,7 @@ internal object ExpressionOptimizers {
                     replacement.add(left)
                     replacement.add(right.value)
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = replacement
-                    replacement.parent = node.parent
+                    node.parent.setChild(index, replacement)
                     changes++
                 }
                 // x - (-y) -> x + y
@@ -324,8 +315,7 @@ internal object ExpressionOptimizers {
                     replacement.add(left)
                     replacement.add(right.value)
                     val index = node.parent.children.indexOf(node)
-                    node.parent.children[index] = replacement
-                    replacement.parent = node.parent
+                    node.parent.setChild(index, replacement)
                     changes++
                 }
 
@@ -345,8 +335,7 @@ internal object ExpressionOptimizers {
                             replacement.add(x)
                             replacement.add(factor)
                             val index = node.parent.children.indexOf(node)
-                            node.parent.children[index] = replacement
-                            replacement.parent = node.parent
+                            node.parent.setChild(index, replacement)
                             changes++
                         }
                     }
@@ -364,8 +353,7 @@ internal object ExpressionOptimizers {
                                 replacement.add(x)
                                 replacement.add(factor)
                                 val index = node.parent.children.indexOf(node)
-                                node.parent.children[index] = replacement
-                                replacement.parent = node.parent
+                                node.parent.setChild(index, replacement)
                                 changes++
                             }
                         }
@@ -395,7 +383,7 @@ internal object ExpressionOptimizers {
                         shift.add(node.left)
                         shift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = shift
+                        node.parent.setChild(index, shift)
                         shift.parent = node.parent
                         changes++
                     }
@@ -409,7 +397,7 @@ internal object ExpressionOptimizers {
                         andExpr.add(node.left)
                         andExpr.add(PtNumber(node.type.base, mask, node.position))
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = andExpr
+                        node.parent.setChild(index, andExpr)
                         andExpr.parent = node.parent
                         changes++
                     }
@@ -417,8 +405,7 @@ internal object ExpressionOptimizers {
                     else if (rightConst == 1.0) {
                         val zero = PtNumber(node.type.base, 0.0, node.position)
                         val index = node.parent.children.indexOf(node)
-                        node.parent.children[index] = zero
-                        zero.parent = node.parent
+                        node.parent.setChild(index, zero)
                         changes++
                     }
                 }

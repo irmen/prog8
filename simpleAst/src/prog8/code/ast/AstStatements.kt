@@ -172,7 +172,7 @@ class PtSubroutineParameter(name: String, val type: DataType, val register: Regi
 
 
 sealed interface IPtAssignment {
-    val children: MutableList<PtNode>
+    val children: List<PtNode>
     val target: PtAssignTarget
         get() {
             if(children.size==2)

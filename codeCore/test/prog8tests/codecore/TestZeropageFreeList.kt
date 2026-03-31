@@ -423,13 +423,6 @@ class TestZeropageFreeList: FunSpec({
     context("Cross-Target Comparisons") {
         
         test("all targets should have empty free list for DONTUSE") {
-            val targets = listOf(
-                C64Target() to { zp: Zeropage -> zp },
-                Cx16Target() to { zp: Zeropage -> zp },
-                PETTarget() to { zp: Zeropage -> zp },
-                C128Target() to { zp: Zeropage -> zp }
-            )
-            
             // C64
             val c64Options = createOptions(C64Target(), ZeropageType.DONTUSE)
             C64Zeropage(c64Options).free.shouldBeEmpty()

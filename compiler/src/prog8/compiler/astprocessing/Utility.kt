@@ -67,7 +67,7 @@ internal fun makePushPopFunctionCalls(value: PtExpression): Pair<PtFunctionCall,
  */
 internal fun transferChildren(source: PtNode, target: PtNode, keepExisting: Boolean = false) {
     if(!keepExisting)
-        target.children.clear()
+        target.clearChildren()
     for(c in source.children)
         target.add(c)
 }
@@ -80,6 +80,6 @@ internal fun transferChildren(source: PtNode, target: PtNode, keepExisting: Bool
 internal fun replaceNode(oldNode: PtNode, newNode: PtNode) {
     newNode.parent = oldNode.parent
     val idx = oldNode.parent.children.indexOf(oldNode)
-    oldNode.parent.children[idx] = newNode
+    oldNode.parent.setChild(idx, newNode)
 }
 

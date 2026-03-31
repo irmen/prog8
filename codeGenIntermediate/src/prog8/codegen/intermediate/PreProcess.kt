@@ -22,7 +22,7 @@ internal fun moveAllNestedSubroutinesToBlockScope(program: PtProgram) {
 
     fun moveToBlock(block: PtBlock, parent: PtSub, asmsub: PtAsmSub) {
         block.add(asmsub)
-        parent.children.remove(asmsub)
+        parent.removeChild(asmsub)
     }
 
     fun moveToBlock(block: PtBlock, parent: PtSub, sub: PtSub) {
@@ -44,6 +44,6 @@ internal fun moveAllNestedSubroutinesToBlockScope(program: PtProgram) {
         }
     }
 
-    removedSubs.forEach { (parent, sub) -> parent.children.remove(sub) }
+    removedSubs.forEach { (parent, sub) -> parent.removeChild(sub) }
     movedSubs.forEach { (block, sub) -> block.add(sub) }
 }
