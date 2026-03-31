@@ -5,8 +5,10 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.walk.AstModification
+import prog8.ast.walk.AstRemove
+import prog8.ast.walk.AstReplaceNode
 import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 import java.io.CharConversionException
@@ -47,11 +49,11 @@ internal fun Program.changeNotExpressionAndIfComparisonExpr(errors: IErrorReport
 
 internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, errors: IErrorReporter) {
     val walker = object : AstWalker() {
-        override fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> {
+        override fun after(char: CharLiteral, parent: Node): Iterable<AstModification> {
             require(char.encoding != Encoding.DEFAULT)
             return try {
                 val encoded = target.encodeString(char.value.toString(), char.encoding)
-                listOf(IAstModification.ReplaceNode(
+                listOf(AstReplaceNode(
                     char,
                     NumericLiteral(BaseDataType.UBYTE, encoded[0].toDouble(), char.position),
                     parent
@@ -62,7 +64,7 @@ internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, err
             }
         }
 
-        override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
+        override fun after(string: StringLiteral, parent: Node): Iterable<AstModification> {
             // this only *checks* for errors for string encoding. The actual encoding is done much later
             require(string.encoding != Encoding.DEFAULT)
             try {
@@ -73,7 +75,7 @@ internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, err
             return noModifications
         }
 
-        override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+        override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
             if(decl.datatype.isString) {
                 val initvalue = decl.value
                 if(initvalue!=null && initvalue is BinaryExpression) {
@@ -85,9 +87,9 @@ internal fun Program.charLiteralsToUByteLiterals(target: ICompilationTarget, err
             return noModifications
         }
 
-        override fun after(alias: Alias, parent: Node): Iterable<IAstModification> {
+        override fun after(alias: Alias, parent: Node): Iterable<AstModification> {
             // remove all alias nodes, every aliased identifier should have been replaced in the previous step
-            return listOf(IAstModification.Remove(alias, parent as IStatementContainer))
+            return listOf(AstRemove(alias, parent as IStatementContainer))
         }
 
     }

@@ -6,9 +6,7 @@ import prog8.ast.Node
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
-import prog8.ast.walk.IAstVisitor
+import prog8.ast.walk.*
 import prog8.code.core.CompilationOptions
 import prog8.code.core.InternalCompilerException
 import prog8.code.target.VMTarget
@@ -19,7 +17,7 @@ private  fun isEmptyReturn(stmt: Statement): Boolean = stmt is Return && stmt.va
 class Inliner(private val program: Program, private val options: CompilationOptions): AstWalker() {
 
     class DetermineInlineSubs(val program: Program): IAstVisitor {
-        private val modifications = mutableListOf<IAstModification>()
+        private val modifications = mutableListOf<AstModification>()
 
         init {
             visit(program)
@@ -137,7 +135,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             identifier.targetStatement()?.let { target ->
                 val scoped = (target as INamedStatement).scopedName
                 val scopedIdent = IdentifierReference(scoped, identifier.position)
-                modifications += IAstModification.ReplaceNode(identifier, scopedIdent, identifier.parent)
+                modifications += AstReplaceNode(identifier, scopedIdent, identifier.parent)
             }
         }
 
@@ -148,7 +146,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 val scopedArgs = makeScopedArgs(call.args)
                 if(scopedArgs.any()) {
                     val scopedCall = FunctionCallStatement(scopedName, scopedArgs.toMutableList(), call.void, call.position)
-                    modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+                    modifications += AstReplaceNode(call, scopedCall, call.parent)
                 }
             }
         }
@@ -160,7 +158,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                 val scopedArgs = makeScopedArgs(call.args)
                 if(scopedArgs.any()) {
                     val scopedCall = FunctionCallExpression(scopedName, scopedArgs.toMutableList(), call.position)
-                    modifications += IAstModification.ReplaceNode(call, scopedCall, call.parent)
+                    modifications += AstReplaceNode(call, scopedCall, call.parent)
                 }
             }
         }
@@ -180,12 +178,12 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         }
     }
 
-    override fun before(program: Program): Iterable<IAstModification> {
+    override fun before(program: Program): Iterable<AstModification> {
         DetermineInlineSubs(program)
         return super.before(program)
     }
 
-    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification>  {
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification>  {
         val sub = functionCallStatement.target.targetStatement(program.builtinFunctions) as? Subroutine
         return if(sub==null || !canInlineAtCallSite(sub, functionCallStatement))
             noModifications
@@ -193,15 +191,15 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             possiblyInlineFunctioncallStmt(sub, functionCallStatement, parent)
     }
 
-    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+    override fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
         val sub = functionCallExpr.target.targetStatement(program.builtinFunctions) as? Subroutine
 
-        fun inlineFunctionBody(toInline: Return): Iterable<IAstModification> {
+        fun inlineFunctionBody(toInline: Return): Iterable<AstModification> {
             // call site is an expression, so we have to have a Return here in the inlined sub to provide the values
             // note that we don't have to process any args, because we are currently only inlining parameterless subroutines.
             return if(toInline.values.size==1 && functionCallExpr!==toInline.values[0]) {
                 sub?.hasBeenInlined=true
-                listOf(IAstModification.ReplaceNode(functionCallExpr, toInline.values[0].copy(), parent))
+                listOf(AstReplaceNode(functionCallExpr, toInline.values[0].copy(), parent))
             }
             else
                 noModifications
@@ -225,15 +223,15 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return noModifications
     }
 
-    private fun possiblyInlineFunctioncallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<IAstModification> {
+    private fun possiblyInlineFunctioncallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<AstModification> {
 
-        fun possiblyShortCircuitFunctionCall(toInline: Return): Iterable<IAstModification> {
+        fun possiblyShortCircuitFunctionCall(toInline: Return): Iterable<AstModification> {
             val functionCalls = toInline.values.filterIsInstance<FunctionCallExpression>()
 
             if (functionCalls.isEmpty()) {
                 // No function calls in the return values - the void call has no side effects and can be removed.
                 sub.hasBeenInlined = true
-                return listOf(IAstModification.Remove(origNode as Statement, parent as IStatementContainer))
+                return listOf(AstRemove(origNode as Statement, parent as IStatementContainer))
             }
 
             // There are function calls in the return values - convert each to a void statement.
@@ -250,13 +248,13 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
             // Wrap multiple statements in AnonymousScope and replace the original call node.
             val scope = AnonymousScope(voidStatements, origNode.position)
-            return listOf(IAstModification.ReplaceNode(origNode, scope, parent))
+            return listOf(AstReplaceNode(origNode, scope, parent))
         }
 
-        fun possiblyInlineFunctionBody(toInline: Statement): Iterable<IAstModification> {
+        fun possiblyInlineFunctionBody(toInline: Statement): Iterable<AstModification> {
             return if(origNode !== toInline) {
                 sub.hasBeenInlined = true
-                listOf(IAstModification.ReplaceNode(origNode, toInline.copy(), parent))
+                listOf(AstReplaceNode(origNode, toInline.copy(), parent))
             } else
                 noModifications
         }
@@ -267,7 +265,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             }
             return if(sub.isAsmSubroutine) {
                 sub.hasBeenInlined=true
-                listOf(IAstModification.ReplaceNode(origNode, sub.statements.single().copy(), parent))
+                listOf(AstReplaceNode(origNode, sub.statements.single().copy(), parent))
             } else {
                 // note that we don't have to process any args, because we only inline parameterless subroutines.
                 when (val toInline = sub.statements.first()) {
@@ -279,7 +277,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         return noModifications
     }
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+    override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
         // Handle multi-value assignments: split `a, b = func()` into separate assignments
         val multiTargets = assignment.target.multi ?: return noModifications
         val fcall = assignment.value as? FunctionCallExpression ?: return noModifications
@@ -320,7 +318,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
         sub.hasBeenInlined = true
         val scope = AnonymousScope(newAssignments.toMutableList(), assignment.position)
-        return listOf(IAstModification.ReplaceNode(assignment, scope, parent))
+        return listOf(AstReplaceNode(assignment, scope, parent))
     }
 
     private fun canInlineAtCallSite(sub: Subroutine, fcall: IFunctionCall): Boolean {

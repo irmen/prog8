@@ -3,8 +3,7 @@ package prog8.optimizer
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
+import prog8.ast.walk.*
 import prog8.code.core.*
 import prog8.compiler.CallGraph
 
@@ -18,12 +17,12 @@ class VarConstantValueTypeAdjuster(
 
     private lateinit var callGraph : CallGraph
 
-    override fun before(program: Program) : Iterable<IAstModification> {
+    override fun before(program: Program) : Iterable<AstModification> {
         callGraph = CallGraph(program)
         return noModifications
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+    override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
 
         if(decl.parent is AnonymousScope)
             throw FatalAstException("vardecl may no longer occur in anonymousscope ${decl.position}")
@@ -76,7 +75,7 @@ class VarConstantValueTypeAdjuster(
                             // variable is never used AT ALL so we just remove it altogether
                             if ("ignore_unused" !in decl.definingBlock.options())
                                 errors.info("removing unused variable '${decl.name}'", decl.position)
-                            return listOf(IAstModification.Remove(decl, parent as IStatementContainer))
+                            return listOf(AstRemove(decl, parent as IStatementContainer))
                         }
                     }
                     val declValue = decl.value?.constValue(program)
@@ -86,7 +85,7 @@ class VarConstantValueTypeAdjuster(
                         val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.splitwordarray, decl.arraysize, decl.name, decl.names, declValue, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
                         decl.value = null
                         return listOf(
-                            IAstModification.ReplaceNode(decl, const, parent)
+                            AstReplaceNode(decl, const, parent)
                         )
                     }
                 }
@@ -100,8 +99,8 @@ class VarConstantValueTypeAdjuster(
                             if("ignore_unused" !in decl.definingBlock.options())
                                 errors.info("removing unused variable '${decl.name}'", decl.position)
                             return listOf(
-                                IAstModification.Remove(decl, parent as IStatementContainer),
-                                IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                                AstRemove(decl, parent as IStatementContainer),
+                                AstRemove(singleAssignment, singleAssignment.parent as IStatementContainer)
                             )
                         }
                     }
@@ -110,8 +109,8 @@ class VarConstantValueTypeAdjuster(
                     errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
                     val const = VarDecl(VarDeclType.CONST, decl.origin, decl.datatype, decl.zeropage, decl.splitwordarray, decl.arraysize, decl.name, decl.names, singleAssignment.value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
                     return listOf(
-                        IAstModification.ReplaceNode(decl, const, parent),
-                        IAstModification.Remove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                        AstReplaceNode(decl, const, parent),
+                        AstRemove(singleAssignment, singleAssignment.parent as IStatementContainer)
                     )
                 }
             }
@@ -130,7 +129,7 @@ class VarConstantValueTypeAdjuster(
         return noModifications
     }
 
-    override fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(range: RangeExpression, parent: Node): Iterable<AstModification> {
         val from = range.from.constValue(program)?.number
         val to = range.to.constValue(program)?.number
         val step = range.step.constValue(program)?.number
@@ -160,7 +159,7 @@ class VarConstantValueTypeAdjuster(
         return noModifications
     }
 
-    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
         // choose specific builtin function for the given types
         val func = functionCallExpr.target.nameInSource
         if(func==listOf("clamp")) {
@@ -179,7 +178,7 @@ class VarConstantValueTypeAdjuster(
                     errors.err("clamp builtin not supported for floats, use floats.clamp", functionCallExpr.position)
                     return noModifications
                 }
-                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                return listOf(AstSetExpression({functionCallExpr.target = it as IdentifierReference},
                     IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
                     functionCallExpr))
             }
@@ -209,7 +208,7 @@ class VarConstantValueTypeAdjuster(
                     errors.err("expected numeric arguments", functionCallExpr.args[0].position)
                     return noModifications
                 }
-                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                return listOf(AstSetExpression({functionCallExpr.target = it as IdentifierReference},
                     IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
                     functionCallExpr))
             }
@@ -224,14 +223,14 @@ class VarConstantValueTypeAdjuster(
                     dt.isLong -> "abs__long"
                     dt.isFloat -> "abs__float"
                     dt.isUnsignedByte || dt.isUnsignedWord -> {
-                        return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
+                        return listOf(AstReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
                     }
                     else -> {
                         errors.err("expected numeric argument", functionCallExpr.args[0].position)
                         return noModifications
                     }
                 }
-                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                return listOf(AstSetExpression({functionCallExpr.target = it as IdentifierReference},
                     IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
                     functionCallExpr))
             }
@@ -261,7 +260,7 @@ class VarConstantValueTypeAdjuster(
                         return noModifications
                     }
                 }
-                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                return listOf(AstSetExpression({functionCallExpr.target = it as IdentifierReference},
                     IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
                     functionCallExpr))
             }
@@ -270,7 +269,7 @@ class VarConstantValueTypeAdjuster(
             val t1 = functionCallExpr.args[0].inferType(program)
             if(t1.isLong) {
                 val replaceFunc = func[0]+"__long"
-                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                return listOf(AstSetExpression({functionCallExpr.target = it as IdentifierReference},
                     IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
                     functionCallExpr))
             }
@@ -294,7 +293,7 @@ class VarConstantValueTypeAdjuster(
                         return noModifications
                     }
                 }
-                return listOf(IAstModification.SetExpression({functionCallExpr.target = it as IdentifierReference},
+                return listOf(AstSetExpression({functionCallExpr.target = it as IdentifierReference},
                     IdentifierReference(listOf(replaceFunc), functionCallExpr.target.position),
                     functionCallExpr))
             }
@@ -311,15 +310,15 @@ internal class ConstantIdentifierReplacer(
     private val errors: IErrorReporter
 ) : AstWalker() {
 
-    override fun before(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
+    override fun before(addressOf: AddressOf, parent: Node): Iterable<AstModification> {
         val constValue = addressOf.constValue(program)
         if(constValue!=null) {
-            return listOf(IAstModification.ReplaceNode(addressOf, constValue, parent))
+            return listOf(AstReplaceNode(addressOf, constValue, parent))
         }
         return noModifications
     }
 
-    override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
+    override fun after(identifier: IdentifierReference, parent: Node): Iterable<AstModification> {
         // replace identifiers that refer to const value, with the value itself
         // if it's a simple type and if it's not a left hand side variable
         if(identifier.parent is AssignTarget || identifier.parent is Alias)
@@ -348,7 +347,7 @@ internal class ConstantIdentifierReplacer(
                 memCall.args.map { it.copy() }.toMutableList(),
                 identifier.position  // Use the position where it's referenced, not where it was declared
             )
-            return listOf(IAstModification.ReplaceNode(
+            return listOf(AstReplaceNode(
                 identifier,
                 memCallWithNewPos,
                 identifier.parent
@@ -366,10 +365,10 @@ internal class ConstantIdentifierReplacer(
             return if(arrayIdx.parent is AssignTarget) {
                 val memwrite = DirectMemoryWrite(add, identifier.position)
                 val assignTarget = AssignTarget(null, null, memwrite, null, false, position = identifier.position)
-                listOf(IAstModification.ReplaceNode(arrayIdx.parent, assignTarget, arrayIdx.parent.parent))
+                listOf(AstReplaceNode(arrayIdx.parent, assignTarget, arrayIdx.parent.parent))
             } else {
                 val memread = DirectMemoryRead(add, identifier.position)
-                listOf(IAstModification.ReplaceNode(arrayIdx, memread, arrayIdx.parent))
+                listOf(AstReplaceNode(arrayIdx, memread, arrayIdx.parent))
             }
         }
         when {
@@ -377,7 +376,7 @@ internal class ConstantIdentifierReplacer(
                 if(parent is AddressOf)
                     return noModifications      // cannot replace the identifier INSIDE the addr-of here, let's do it later.
                 return listOf(
-                    IAstModification.ReplaceNode(
+                    AstReplaceNode(
                         identifier,
                         NumericLiteral(cval.type, cval.number, identifier.position),
                         identifier.parent
@@ -389,7 +388,7 @@ internal class ConstantIdentifierReplacer(
         }
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+    override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         // the initializer value can't refer to the variable itself (recursive definition)
         if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true) {
             errors.err("recursive var declaration", decl.position)
@@ -399,7 +398,7 @@ internal class ConstantIdentifierReplacer(
         if(decl.isArray && decl.type==VarDeclType.MEMORY && decl.value !is IdentifierReference) {
             val memaddr = decl.value?.constValue(program)
             if(memaddr!=null && memaddr !== decl.value) {
-                return listOf(IAstModification.SetExpression(
+                return listOf(AstSetExpression(
                     { decl.value = it }, memaddr, decl
                 ))
             }
@@ -412,7 +411,7 @@ internal class ConstantIdentifierReplacer(
                     // for arrays that have no size specifier attempt to deduce the size
                     val arrayval = decl.value as? ArrayLiteral
                     if(arrayval!=null) {
-                        return listOf(IAstModification.SetExpression(
+                        return listOf(AstSetExpression(
                                 { decl.arraysize = ArrayIndex(it, decl.position) },
                                 NumericLiteral.optimalInteger(arrayval.value.size, decl.position),
                                 decl
@@ -427,13 +426,13 @@ internal class ConstantIdentifierReplacer(
                     val litval = decl.value as? NumericLiteral
                     if (litval!=null && litval.type.isIntegerOrBool) {
                         val newValue = NumericLiteral(BaseDataType.FLOAT, litval.number, litval.position)
-                        return listOf(IAstModification.ReplaceNode(decl.value!!, newValue, decl))
+                        return listOf(AstReplaceNode(decl.value!!, newValue, decl))
                     }
                 }
                 decl.datatype.isArray -> {
                     val replacedArrayInitializer = createConstArrayInitializerValue(decl)
                     if(replacedArrayInitializer!=null)
-                        return listOf(IAstModification.ReplaceNode(decl.value!!, replacedArrayInitializer, decl))
+                        return listOf(AstReplaceNode(decl.value!!, replacedArrayInitializer, decl))
                 }
                 else -> {
                     // nothing to do for this type
@@ -444,7 +443,7 @@ internal class ConstantIdentifierReplacer(
         return noModifications
     }
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+    override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
         // convert a range expression that is assigned to an array, to an array literal instead.
         val range = assignment.value as? RangeExpression
         if(range!=null) {
@@ -455,7 +454,7 @@ internal class ConstantIdentifierReplacer(
                     assignment.value, false, 0u, false, assignment.value.position)
                 val replaceValue = createConstArrayInitializerValue(decl)
                 if(replaceValue!=null) {
-                    return listOf(IAstModification.ReplaceNode(assignment.value, replaceValue, assignment))
+                    return listOf(AstReplaceNode(assignment.value, replaceValue, assignment))
                 }
             }
         }

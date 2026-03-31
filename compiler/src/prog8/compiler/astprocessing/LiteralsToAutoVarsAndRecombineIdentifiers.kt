@@ -3,15 +3,14 @@ package prog8.compiler.astprocessing
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
+import prog8.ast.walk.*
 import prog8.code.ast.PtContainmentCheck
 import prog8.code.core.IErrorReporter
 
 
 internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Program, private val errors: IErrorReporter) : AstWalker() {
 
-    override fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> {
+    override fun after(string: StringLiteral, parent: Node): Iterable<AstModification> {
         if(string.parent !is VarDecl && string.parent !is WhenChoice) {
             val binExpr = string.parent as? BinaryExpression
             if(binExpr!=null &&(binExpr.operator=="+" || binExpr.operator=="*"))
@@ -27,12 +26,12 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             }
             val scopedName = program.internString(string)
             val identifier = IdentifierReference(scopedName, string.position)
-            return listOf(IAstModification.ReplaceNode(string, identifier, parent))
+            return listOf(AstReplaceNode(string, identifier, parent))
         }
         return noModifications
     }
 
-    override fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> {
+    override fun after(array: ArrayLiteral, parent: Node): Iterable<AstModification> {
         val vardecl = array.parent as? VarDecl
         if(vardecl!=null) {
             // adjust the datatype of the array (to an educated guess from the vardecl type)
@@ -40,7 +39,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             if(!(arrayDt istype vardecl.datatype)) {
                 val cast = array.cast(vardecl.datatype)
                 if(cast!=null && cast !== array)
-                    return listOf(IAstModification.ReplaceNode(vardecl.value!!, cast, vardecl))
+                    return listOf(AstReplaceNode(vardecl.value!!, cast, vardecl))
             }
         } else {
             val arrayDt = array.guessDatatype(program)
@@ -66,8 +65,8 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                         val vardecl2 = VarDecl.createAuto(litval2)
                         val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                         return listOf(
-                            IAstModification.ReplaceNode(array, identifier, parent),
-                            IAstModification.InsertFirst(vardecl2, array.definingScope)
+                            AstReplaceNode(array, identifier, parent),
+                            AstInsertFirst(array.definingScope, vardecl2)
                         )
                     }
                 }
@@ -77,7 +76,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         return noModifications
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+    override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         if(decl.names.size>1) {
 
             val fcall = decl.value as? IFunctionCall
@@ -89,7 +88,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             if(fcallTarget!=null || isBuiltinMultiReturn) {
                 // ubyte a,b,c = multi() --> ubyte a,b,c / a,b,c = multi()
                 // also handles builtin functions that return multiple values (like divmod)
-                val modifications = mutableListOf<IAstModification>()
+                val modifications = mutableListOf<AstModification>()
                 val variables = decl.names.map {
                     AssignTarget(
                         IdentifierReference(listOf(it), decl.position),
@@ -109,7 +108,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     position = decl.position
                 ), decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                 decl.value = null
-                modifications += IAstModification.InsertAfter(decl, multiassignFuncCall, parent as IStatementContainer)
+                modifications += AstInsertAfter(parent as IStatementContainer, multiassignFuncCall, decl)
                 return modifications
             }
 
@@ -125,14 +124,14 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             if(errors.noErrors()) {
                 // desugar into individual vardecl per name.
                 return decl.desugarMultiDecl().map {
-                    IAstModification.InsertBefore(decl, it, parent as IStatementContainer)
-                } + IAstModification.Remove(decl, parent as IStatementContainer)
+                    AstInsertBefore(parent as IStatementContainer, it, decl)
+                } + AstRemove(decl, parent as IStatementContainer)
             }
         }
         return noModifications
     }
 
-    override fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> {
+    override fun after(identifier: IdentifierReference, parent: Node): Iterable<AstModification> {
         val target = identifier.targetStatement(program.builtinFunctions)
 
         if(target is StructFieldRef) {
@@ -141,7 +140,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             if(parent !is Alias && (parent !is BinaryExpression || parent.operator != ".")) {
                 val chain = identifier.nameInSource
                 val deref = PtrDereference(chain, false, identifier.position)
-                return listOf(IAstModification.ReplaceNode(identifier, deref, parent))
+                return listOf(AstReplaceNode(identifier, deref, parent))
             }
         }
 
@@ -155,7 +154,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                         is INamedStatement -> IdentifierReference(aliasTarget.scopedName + identifier.nameInSource.drop(1), identifier.position)
                         else -> IdentifierReference(tgt2.target.nameInSource + identifier.nameInSource.drop(1), identifier.position)
                     }
-                    return listOf(IAstModification.ReplaceNode(identifier, actual, parent))
+                    return listOf(AstReplaceNode(identifier, actual, parent))
                 }
             }
         }
@@ -189,12 +188,12 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     }
                 }
 
-            return listOf(IAstModification.ReplaceNode(identifier, replacement, parent))
+            return listOf(AstReplaceNode(identifier, replacement, parent))
         }
         return noModifications
     }
 
-    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
         if(expr.operator==".") {
             val leftIdent = expr.left as? IdentifierReference
             val rightIndex = expr.right as? ArrayIndexedExpression
@@ -206,7 +205,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                         val combinedName = leftIdent.nameInSource + rightIndex.plainarrayvar!!.nameInSource
                         val combined = IdentifierReference(combinedName, leftIdent.position)
                         val indexer = ArrayIndexedExpression(combined, null, rightIndex.indexer, leftIdent.position)
-                        return listOf(IAstModification.ReplaceNode(expr, indexer, parent))
+                        return listOf(AstReplaceNode(expr, indexer, parent))
                     } else {
                         throw FatalAstException("didn't expect pointer[idx] in this phase already")
                     }
@@ -216,7 +215,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
         return noModifications
     }
 
-    override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
+    override fun after(deref: PtrDereference, parent: Node): Iterable<AstModification> {
         val tgt2 = deref.definingScope.lookup(deref.chain.take(1)) as? Alias
         if(tgt2!=null && parent !is Alias) {
             val aliasTarget = resolveAliasTarget(tgt2)
@@ -225,7 +224,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     is INamedStatement -> PtrDereference(aliasTarget.scopedName + deref.chain.drop(1), deref.derefLast, deref.position)
                     else -> PtrDereference(tgt2.target.nameInSource + deref.chain.drop(1), deref.derefLast, deref.position)
                 }
-                return listOf(IAstModification.ReplaceNode(deref, unaliased, parent))
+                return listOf(AstReplaceNode(deref, unaliased, parent))
             }
         }
         return noModifications

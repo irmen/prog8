@@ -8,26 +8,25 @@ import prog8.ast.expressions.BinaryExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.expressions.TypecastExpression
 import prog8.ast.statements.*
-import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
+import prog8.ast.walk.*
 import prog8.code.core.*
 import prog8.code.target.VMTarget
 
 internal class BeforeAsmAstChanger(val program: Program, private val options: CompilationOptions, private val errors: IErrorReporter) : AstWalker() {
 
-    override fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> {
+    override fun before(breakStmt: Break, parent: Node): Iterable<AstModification> {
         throw InternalCompilerException("break should have been replaced by goto $breakStmt")
     }
 
-    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<AstModification> {
         throw InternalCompilerException("while should have been converted to jumps")
     }
 
-    override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+    override fun before(untilLoop: UntilLoop, parent: Node): Iterable<AstModification> {
         throw InternalCompilerException("do..until should have been converted to jumps")
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+    override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         if (decl.type == VarDeclType.VAR && decl.value != null && decl.datatype.isNumericOrBool) {
             throw InternalCompilerException("vardecls with initial numerical value, should have been rewritten as plain vardecl + assignment $decl")
         }
@@ -35,19 +34,19 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         return noModifications
     }
 
-    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
+    override fun after(scope: AnonymousScope, parent: Node): Iterable<AstModification> {
         if(scope.statements.any { it is VarDecl || it is IStatementContainer })
             throw InternalCompilerException("anonymousscope may no longer contain any vardecls or subscopes")
         return noModifications
     }
 
-    override fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
+    override fun after(subroutine: Subroutine, parent: Node): Iterable<AstModification> {
         // Most code generation targets only support subroutine inlining on asmsub subroutines
         // So we reset the flag here to be sure it doesn't cause problems down the line in the codegen.
         if(!subroutine.isAsmSubroutine && options.compTarget.name != VMTarget.NAME)
             subroutine.inline = false
 
-        val mods = mutableListOf<IAstModification>()
+        val mods = mutableListOf<AstModification>()
 
         // add the implicit return statement at the end (if it's not there yet), but only if it's not a kernal routine.
         // and if an assembly block doesn't contain a rts/rti.  AND if there's no return value(s) because we can't make one up!
@@ -57,7 +56,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                 else {
                     val returnStmt = Return(arrayOf(), subroutine.position)
-                    mods += IAstModification.InsertLast(returnStmt, subroutine)
+                    mods += AstInsertLast(subroutine, returnStmt)
                 }
             } else {
                 val last = subroutine.statements.last()
@@ -69,7 +68,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                             // errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                         } else {
                             val returnStmt = Return(arrayOf(), lastStatement?.position ?: subroutine.position)
-                            mods += IAstModification.InsertLast(returnStmt, subroutine)
+                            mods += AstInsertLast(subroutine, returnStmt)
                         }
                     }
                 }
@@ -94,11 +93,11 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                         } else {
                             val zero = defaultZero(outerScope.returntypes[0].base, outerStatements[subroutineStmtIdx-1].position)
                             val returnStmt = Return(arrayOf(zero), outerStatements[subroutineStmtIdx - 1].position)
-                            mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
+                            mods += AstInsertAfter(outerScope, returnStmt, outerStatements[subroutineStmtIdx - 1])
                         }
                     } else {
                         val returnStmt = Return(arrayOf(), outerStatements[subroutineStmtIdx - 1].position)
-                        mods += IAstModification.InsertAfter(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
+                        mods += AstInsertAfter(outerScope, returnStmt, outerStatements[subroutineStmtIdx - 1])
                     }
                 }
             }
@@ -117,14 +116,14 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
             // maybe the last return can be removed because there is a fall-through prevention above it
             val lastStatementBefore = subroutine.statements.reversed().drop(1).firstOrNull { it !is Subroutine }
             if(lastStatementBefore is Return) {
-                mods += IAstModification.Remove(subroutine.statements.last(), subroutine)
+                mods += AstRemove(subroutine.statements.last(), subroutine)
             }
         }
 
         return mods
     }
 
-    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+    override fun after(ifElse: IfElse, parent: Node): Iterable<AstModification> {
         val binExpr = ifElse.condition as? BinaryExpression ?: return noModifications
         if(binExpr.operator !in ComparisonOperators) {
             val constRight = binExpr.right.constValue(program)
@@ -133,13 +132,13 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     // if x+5  ->  if x != -5
                     val number = NumericLiteral(constRight.type, -constRight.number, constRight.position)
                     val booleanExpr = BinaryExpression(binExpr.left,"!=", number, ifElse.condition.position)
-                    return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
+                    return listOf(AstReplaceNode(ifElse.condition, booleanExpr, ifElse))
                 }
                 else if (binExpr.operator == "-") {
                     // if x-5  ->  if x != 5
                     val number = NumericLiteral(constRight.type, constRight.number, constRight.position)
                     val booleanExpr = BinaryExpression(binExpr.left,"!=", number, ifElse.condition.position)
-                    return listOf(IAstModification.ReplaceNode(ifElse.condition, booleanExpr, ifElse))
+                    return listOf(AstReplaceNode(ifElse.condition, booleanExpr, ifElse))
                 }
             }
         }
@@ -152,7 +151,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
         return noModifications
     }
 
-    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
         if(expr.operator==".")
             return noModifications
         if (options.compTarget.name == VMTarget.NAME)
@@ -195,7 +194,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, ">=", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        return listOf(AstReplaceNode(expr, newExpr, parent))
                     }
                 }
                 "<=" -> {
@@ -208,7 +207,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     if(rightNum.number<maximum) {
                         val numPlusOne = rightNum.number.toInt()+1
                         val newExpr = BinaryExpression(expr.left, "<", NumericLiteral(rightNum.type, numPlusOne.toDouble(), rightNum.position), expr.position)
-                        return listOf(IAstModification.ReplaceNode(expr, newExpr, parent))
+                        return listOf(AstReplaceNode(expr, newExpr, parent))
                     }
                 }
             }
@@ -225,7 +224,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                         val ptrCast = TypecastExpression(expr.left, DataType.UWORD, true, expr.left.position)
                         val multiply = BinaryExpression(expr.right, "*", NumericLiteral(BaseDataType.UWORD, structsize.toDouble(), expr.right.position), expr.right.position)
                         val replacement = BinaryExpression(ptrCast, expr.operator, multiply, expr.position)
-                        return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
+                        return listOf(AstReplaceNode(expr, replacement, parent))
                     }
                 }
             }

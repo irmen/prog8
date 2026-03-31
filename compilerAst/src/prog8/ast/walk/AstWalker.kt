@@ -6,206 +6,230 @@ import prog8.ast.statements.*
 import prog8.code.core.AssociativeOperators
 
 
-interface IAstModification {
-    fun perform()
+sealed class AstModification {
+    open fun perform() {}
+}
 
-    class Remove(val node: Node, val parent: IStatementContainer) : IAstModification {
-        override fun perform() {
-            if (!parent.statements.remove(node)) {
-                val glob = parent as? GlobalNamespace
-                if(glob!=null && !glob.modules.remove(node))
-                    throw FatalAstException("attempt to remove non-existing node $node")
-            }
+open class AstRemove(val node: Node, val parent: IStatementContainer) : AstModification() {
+    override fun perform() {
+        if (!parent.statements.remove(node)) {
+            val glob = parent as? GlobalNamespace
+            if(glob!=null && !glob.modules.remove(node))
+                throw FatalAstException("attempt to remove non-existing node $node")
         }
     }
+}
 
-    class SetExpression(private val setter: (newExpr: Expression) -> Unit, private val newExpr: Expression, private val parent: Node) :
-        IAstModification {
-        override fun perform() {
-            setter(newExpr)
-            newExpr.linkParents(parent)
-        }
+open class AstSetExpression(private val setter: (newExpr: Expression) -> Unit, private val newExpr: Expression, private val parent: Node) : AstModification() {
+    override fun perform() {
+        setter(newExpr)
+        newExpr.linkParents(parent)
     }
+}
 
-    class InsertFirst(private val stmt: Statement, private val parent: IStatementContainer) : IAstModification {
-        override fun perform() {
-            parent.statements.add(0, stmt)
-            stmt.linkParents(parent as Node)
-        }
+open class AstInsertFirst(private val parent: IStatementContainer, private val stmt: Statement) : AstModification() {
+    override fun perform() {
+        parent.statements.add(0, stmt)
+        stmt.linkParents(parent as Node)
     }
+}
 
-    class InsertLast(private val stmt: Statement, private val parent: IStatementContainer) : IAstModification {
-        override fun perform() {
-            parent.statements.add(stmt)
-            stmt.linkParents(parent as Node)
-        }
+open class AstInsertLast(private val parent: IStatementContainer, private val stmt: Statement) : AstModification() {
+    override fun perform() {
+        parent.statements.add(stmt)
+        stmt.linkParents(parent as Node)
     }
+}
 
-    class InsertAfter(private val after: Statement, private val stmt: Statement, private val parent: IStatementContainer) :
-        IAstModification {
-        override fun perform() {
-            val idx = parent.statements.indexOfFirst { it===after } + 1
-            parent.statements.add(idx, stmt)
-            stmt.linkParents(parent as Node)
-        }
+open class AstInsertAfter(private val parent: IStatementContainer, private val stmt: Statement, private val after: Statement) : AstModification() {
+    override fun perform() {
+        val idx = parent.statements.indexOfFirst { it===after } + 1
+        parent.statements.add(idx, stmt)
+        stmt.linkParents(parent as Node)
     }
+}
 
-    class InsertBefore(private val before: Statement, private val stmt: Statement, private val parent: IStatementContainer) :
-        IAstModification {
-        override fun perform() {
-            val idx = parent.statements.indexOfFirst { it===before }
-            parent.statements.add(idx, stmt)
-            stmt.linkParents(parent as Node)
-        }
+open class AstInsertBefore(private val parent: IStatementContainer, private val stmt: Statement, private val before: Statement) : AstModification() {
+    override fun perform() {
+        val idx = parent.statements.indexOfFirst { it===before }
+        parent.statements.add(idx, stmt)
+        stmt.linkParents(parent as Node)
     }
+}
 
-    class ReplaceNode(val node: Node, private val replacement: Node, private val parent: Node) :
-        IAstModification {
-        override fun perform() {
+open class AstReplaceNode(val node: Node, private val replacement: Node, private val parent: Node) : AstModification() {
+    override fun perform() {
+        parent.replaceChildNode(node, replacement)
+        replacement.linkParents(parent)
+    }
+}
+
+open class AstReplaceNodeSafe(val node: Node, private val replacement: Node, private val parent: Node) : AstModification() {
+    override fun perform() {
+        try {
             parent.replaceChildNode(node, replacement)
             replacement.linkParents(parent)
+        } catch (_: FatalAstException) {
+            // possibly because of another replacement. Ignore here, we try again later.
         }
     }
+}
 
-    class ReplaceNodeSafe(val node: Node, private val replacement: Node, private val parent: Node) :
-        IAstModification {
-        override fun perform() {
-            try {
-                parent.replaceChildNode(node, replacement)
-                replacement.linkParents(parent)
-            } catch (_: FatalAstException) {
-                // possibly because of another replacement. Ignore here, we try again later.
-            }
-        }
+open class AstSwapOperands(private val expr: BinaryExpression): AstModification() {
+    override fun perform() {
+        require(expr.operator in AssociativeOperators)
+        val tmp = expr.left
+        expr.left = expr.right
+        expr.right = tmp
     }
+}
 
-    class SwapOperands(private val expr: BinaryExpression): IAstModification {
-        override fun perform() {
-            require(expr.operator in AssociativeOperators)
-            val tmp = expr.left
-            expr.left = expr.right
-            expr.right = tmp
+open class AstShuffleOperands(
+    val expr: BinaryExpression,
+    val exprOperator: String?,
+    val subExpr: BinaryExpression,
+    val newExprLeft: Expression?,
+    val newExprRight: Expression?,
+    val newSubexprLeft: Expression?,
+    val newSubexprRight: Expression?
+) : AstModification() {
+    override fun perform() {
+        if(exprOperator!=null) expr.operator = exprOperator
+        if(newExprLeft!=null) expr.left = newExprLeft
+        if(newExprRight!=null) expr.right = newExprRight
+        if(newSubexprLeft!=null) subExpr.left = newSubexprLeft
+        if(newSubexprRight!=null) subExpr.right = newSubexprRight
+    }
+}
+
+open class AstScopeFlatten(val scope: AnonymousScope, val into: IStatementContainer) : AstModification() {
+    override fun perform() {
+        val idx = into.statements.indexOf(scope)
+        if(idx>=0) {
+            into.statements.addAll(idx+1, scope.statements)
+            scope.statements.forEach { it.parent = into as Node }
+            into.statements.remove(scope)
         }
     }
 }
 
 
 abstract class AstWalker {
-    protected val noModifications = emptyList<IAstModification>()
+    protected val noModifications = emptyList<AstModification>()
 
-    open fun before(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(chainedAssignment: ChainedAssignment, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(block: Block, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(initializer: StaticStructInitializer, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(branchExpr: BranchConditionExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(label: Label, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(alias: Alias, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(program: Program): Iterable<IAstModification> = noModifications
-    open fun before(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(defer: Defer, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(ongoto: OnGoto, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(swap: Swap, parent: Node): Iterable<IAstModification> = noModifications
-    open fun before(enum: Enumeration, parent: Node): Iterable<IAstModification> = noModifications
+    open fun before(addressOf: AddressOf, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(array: ArrayLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(assignTarget: AssignTarget, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(assignment: Assignment, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(chainedAssignment: ChainedAssignment, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(block: Block, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(branch: ConditionalBranch, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(breakStmt: Break, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(continueStmt: Continue, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(containment: ContainmentCheck, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(decl: VarDecl, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(deref: PtrDereference, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(struct: StructDecl, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(field: StructFieldRef, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(initializer: StaticStructInitializer, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(directive: Directive, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(expr: BinaryExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(expr: PrefixExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(ifExpr: IfExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(branchExpr: BranchConditionExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(forLoop: ForLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(repeatLoop: RepeatLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(identifier: IdentifierReference, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(ifElse: IfElse, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(inlineAssembly: InlineAssembly, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(jump: Jump, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(label: Label, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(alias: Alias, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(memread: DirectMemoryRead, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(memwrite: DirectMemoryWrite, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(module: Module, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(numLiteral: NumericLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(program: Program): Iterable<AstModification> = noModifications
+    open fun before(range: RangeExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(untilLoop: UntilLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(returnStmt: Return, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(scope: AnonymousScope, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(defer: Defer, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(char: CharLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(string: StringLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(subroutine: Subroutine, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(typecast: TypecastExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(whenChoice: WhenChoice, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(whenStmt: When, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(whileLoop: WhileLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(ongoto: OnGoto, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(swap: Swap, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(enum: Enumeration, parent: Node): Iterable<AstModification> = noModifications
 
-    open fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(array: ArrayLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(assignTarget: AssignTarget, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(chainedAssignment: ChainedAssignment, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(block: Block, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(breakStmt: Break, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(continueStmt: Continue, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(struct: StructDecl, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(field: StructFieldRef, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(initializer: StaticStructInitializer, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(directive: Directive, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(ifExpr: IfExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(branchExpr: BranchConditionExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(identifier: IdentifierReference, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(inlineAssembly: InlineAssembly, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(jump: Jump, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(label: Label, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(alias: Alias, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(memread: DirectMemoryRead, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(module: Module, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(numLiteral: NumericLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(program: Program): Iterable<IAstModification> = noModifications
-    open fun after(range: RangeExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(defer: Defer, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(char: CharLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(string: StringLiteral, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(subroutine: Subroutine, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(whenChoice: WhenChoice, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(whenStmt: When, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(ongoto: OnGoto, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(swap: Swap, parent: Node): Iterable<IAstModification> = noModifications
-    open fun after(enum: Enumeration, parent: Node): Iterable<IAstModification> = noModifications
+    open fun after(addressOf: AddressOf, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(array: ArrayLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(assignTarget: AssignTarget, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(assignment: Assignment, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(chainedAssignment: ChainedAssignment, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(block: Block, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(branch: ConditionalBranch, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(breakStmt: Break, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(continueStmt: Continue, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(containment: ContainmentCheck, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(decl: VarDecl, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(deref: PtrDereference, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(struct: StructDecl, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(field: StructFieldRef, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(initializer: StaticStructInitializer, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(directive: Directive, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(expr: PrefixExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(ifExpr: IfExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(branchExpr: BranchConditionExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(forLoop: ForLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(unrollLoop: UnrollLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(identifier: IdentifierReference, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(ifElse: IfElse, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(inlineAssembly: InlineAssembly, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(jump: Jump, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(label: Label, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(alias: Alias, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(memread: DirectMemoryRead, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(memwrite: DirectMemoryWrite, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(module: Module, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(numLiteral: NumericLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(program: Program): Iterable<AstModification> = noModifications
+    open fun after(range: RangeExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(untilLoop: UntilLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(returnStmt: Return, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(scope: AnonymousScope, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(defer: Defer, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(char: CharLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(string: StringLiteral, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(subroutine: Subroutine, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(typecast: TypecastExpression, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(whenChoice: WhenChoice, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(whenStmt: When, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(whileLoop: WhileLoop, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(ongoto: OnGoto, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(swap: Swap, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(enum: Enumeration, parent: Node): Iterable<AstModification> = noModifications
 
-    protected val modifications = mutableListOf<Triple<IAstModification, Node, Node>>()
+    protected val modifications = mutableListOf<Triple<AstModification, Node, Node>>()
 
-    private fun track(mods: Iterable<IAstModification>, node: Node, parent: Node) {
+    private fun track(mods: Iterable<AstModification>, node: Node, parent: Node) {
         for (it in mods) {
-//            if(it is IAstModification.ReplaceNode) {
+//            if(it is AstModification.ReplaceNode) {
 //                val replaceKey = Pair(it.node, it.node.position)
 //                if(replaceKey in modificationsReplacedNodes)
 //                    throw FatalAstException("there already is a node replacement for $replaceKey - optimizer can't deal with multiple replacements for same node yet. Split the ast modification?")
@@ -218,9 +242,9 @@ abstract class AstWalker {
 
     open fun applyModifications(): Int {
         // check if there are double removes, keep only the last one
-        val removals = modifications.filter { it.first is IAstModification.Remove }
+        val removals = modifications.filter { it.first is AstRemove }
         if(removals.isNotEmpty()) {
-            val doubles = removals.groupBy { (it.first as IAstModification.Remove).node }.filter { it.value.size>1 }
+            val doubles = removals.groupBy { (it.first as AstRemove).node }.filter { it.value.size>1 }
             doubles.forEach {
                 for(doubleRemove in it.value.dropLast(1)) {
                     if(!modifications.removeIf { mod-> mod.first === doubleRemove.first })

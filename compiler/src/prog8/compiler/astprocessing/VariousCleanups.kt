@@ -3,24 +3,23 @@ package prog8.compiler.astprocessing
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
+import prog8.ast.walk.*
 import prog8.code.core.*
 
 
 internal class VariousCleanups(val program: Program, val errors: IErrorReporter, val options: CompilationOptions): AstWalker() {
 
-    override fun after(block: Block, parent: Node): Iterable<IAstModification> {
+    override fun after(block: Block, parent: Node): Iterable<AstModification> {
         val inheritOptions = block.definingModule.options() intersect setOf("no_symbol_prefixing", "ignore_unused") subtract block.options()
         if(inheritOptions.isNotEmpty()) {
             val directive = Directive("%option", inheritOptions.map{ DirectiveArg(it, null, block.position) }, block.position)
-            return listOf(IAstModification.InsertFirst(directive, block))
+            return listOf(AstInsertFirst(block, directive))
         }
 
         return noModifications
     }
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+    override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         // check and possibly adjust value datatype vs decl datatype
         val valueType = decl.value?.inferType(program)
         if(valueType!=null && !valueType.istype(decl.datatype)) {
@@ -59,7 +58,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                                 errors.err("value '${constValue.number}' out of range for ${decl.datatype}", constValue.position)
                             } else {
                                 val changed = decl.copy(valueDt)
-                                return listOf(IAstModification.ReplaceNode(decl, changed, parent))
+                                return listOf(AstReplaceNode(decl, changed, parent))
                             }
                         }
                     }
@@ -100,15 +99,15 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 val newDecl = VarDecl(decl.type, decl.origin, changeDataType, decl.zeropage,
                     decl.splitwordarray, decl.arraysize, decl.name, decl.names,
                     value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
-                return listOf(IAstModification.ReplaceNode(decl, newDecl, parent))
+                return listOf(AstReplaceNode(decl, newDecl, parent))
             }
         }
         return noModifications
     }
 
-    override fun after(scope: AnonymousScope, parent: Node): Iterable<IAstModification> {
+    override fun after(scope: AnonymousScope, parent: Node): Iterable<AstModification> {
         return if(parent is IStatementContainer)
-            listOf(ScopeFlatten(scope, parent as IStatementContainer))
+            listOf(AstScopeFlatten(scope, parent as IStatementContainer))
         else {
             if(scope.statements.any {it is VarDecl}) {
                 throw FatalAstException("there are leftover vardecls in the nested scope at ${scope.position}, they should have been moved/placed in the declaration scope (subroutine) by now")
@@ -117,40 +116,29 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         }
     }
 
-    private class ScopeFlatten(val scope: AnonymousScope, val into: IStatementContainer) : IAstModification {
-        override fun perform() {
-            val idx = into.statements.indexOf(scope)
-            if(idx>=0) {
-                into.statements.addAll(idx+1, scope.statements)
-                scope.statements.forEach { it.parent = into as Node }
-                into.statements.remove(scope)
-            }
-        }
-    }
-
-    override fun after(typecast: TypecastExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(typecast: TypecastExpression, parent: Node): Iterable<AstModification> {
         val constValue = typecast.constValue(program)
         if(constValue!=null)
-            return listOf(IAstModification.ReplaceNode(typecast, constValue, parent))
+            return listOf(AstReplaceNode(typecast, constValue, parent))
 
         val number = typecast.expression as? NumericLiteral
         if(number!=null) {
             if(typecast.type.isBasic) {
                 val value = number.cast(typecast.type.base, typecast.implicit)
                 if (value.isValid)
-                    return listOf(IAstModification.ReplaceNode(typecast, value.valueOrZero(), parent))
+                    return listOf(AstReplaceNode(typecast, value.valueOrZero(), parent))
             }
         }
 
         val sourceDt = typecast.expression.inferType(program)
         if(sourceDt istype typecast.type)
-            return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+            return listOf(AstReplaceNode(typecast, typecast.expression, parent))
 
         if(parent is Assignment) {
             val targetDt = parent.target.inferType(program).getOrUndef()
             if(!targetDt.isUndefined && sourceDt istype targetDt) {
                 // we can get rid of this typecast because the type is already the target type
-                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+                return listOf(AstReplaceNode(typecast, typecast.expression, parent))
             }
         }
 
@@ -160,11 +148,11 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if (et.isNumeric) {
                 if(typecast.expression is NumericLiteral) {
                     val boolean = NumericLiteral.fromBoolean((typecast.expression as NumericLiteral).asBooleanValue, typecast.expression.position)
-                    return listOf(IAstModification.ReplaceNode(typecast, boolean, parent))
+                    return listOf(AstReplaceNode(typecast, boolean, parent))
                 } else {
                     val zero = defaultZero(et.getOrUndef().base, typecast.position)
                     val cmp = BinaryExpression(typecast.expression, "!=", zero, typecast.position)
-                    return listOf(IAstModification.ReplaceNode(typecast, cmp, parent))
+                    return listOf(AstReplaceNode(typecast, cmp, parent))
                 }
             }
         }
@@ -172,23 +160,23 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if(typecast.type.isWord && parent is Assignment && typecast.expression.inferType(program).isPointer) {
             // a cast to uword can be removed if the assignment target type is uword (because any pointer can be assigned to uword)
             if(parent.target.inferType(program).isUnsignedWord)
-                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+                return listOf(AstReplaceNode(typecast, typecast.expression, parent))
         }
 
         // remove typecasts of arguments to builtin function like swap()
         if(parent is IFunctionCall) {
             if(parent.target.nameInSource.singleOrNull() in InplaceModifyingBuiltinFunctions) {
-                return listOf(IAstModification.ReplaceNode(typecast, typecast.expression, parent))
+                return listOf(AstReplaceNode(typecast, typecast.expression, parent))
             }
         }
 
         return noModifications
     }
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+    override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
         if(assignment.target isSameAs assignment.value) {
             // remove assignment to self
-            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+            return listOf(AstRemove(assignment, parent as IStatementContainer))
         }
 
         // remove duplicated assignments, but not if it's a memory mapped IO register
@@ -201,24 +189,24 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             val nextAssign = assignment.nextSibling() as? Assignment
             if (nextAssign != null && nextAssign.target.isSameAs(assignment.target, program)) {
                 if (!nextAssign.isAugmentable && nextAssign.value isSameAs assignment.value && assignment.value !is IFunctionCall)    // don't remove function calls even when they're duplicates
-                    return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                    return listOf(AstRemove(assignment, parent as IStatementContainer))
             }
         }
 
         return noModifications
     }
 
-    override fun after(expr: PrefixExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(expr: PrefixExpression, parent: Node): Iterable<AstModification> {
         if(expr.operator=="+") {
             // +X --> X
-            return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
+            return listOf(AstReplaceNode(expr, expr.expression, parent))
         }
 
         if(expr.operator=="<<") {
             // << X --> X   (X is long or word or byte)
             val valueDt = expr.expression.inferType(program)
             if(valueDt.isInteger) {
-                return listOf(IAstModification.ReplaceNode(expr, expr.expression, parent))
+                return listOf(AstReplaceNode(expr, expr.expression, parent))
             }
         }
 
@@ -227,13 +215,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             val valueDt = expr.expression.inferType(program)
             if(valueDt.isInteger) {
                 val zero = NumericLiteral(BaseDataType.UBYTE, 0.0, expr.expression.position)
-                return listOf(IAstModification.ReplaceNode(expr, zero, parent))
+                return listOf(AstReplaceNode(expr, zero, parent))
             }
         }
         return noModifications
     }
 
-    override fun before(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+    override fun before(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
 
         if(expr.operator in ComparisonOperators) {
             if((expr.right as? NumericLiteral)?.number?.toInt() in -128..255 && expr.right.inferType(program).isWords) {
@@ -242,8 +230,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val small = (expr.right as NumericLiteral).cast(cast.expression.inferType(program).getOrUndef().base, true)
                     if(small.isValid) {
                         return listOf(
-                            IAstModification.ReplaceNode(expr.left, cast.expression, expr),
-                            IAstModification.ReplaceNode(expr.right, small.valueOrZero(), expr)
+                            AstReplaceNode(expr.left, cast.expression, expr),
+                            AstReplaceNode(expr.right, small.valueOrZero(), expr)
                         )
                     }
                 }
@@ -254,8 +242,8 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val small = (expr.left as NumericLiteral).cast(cast.expression.inferType(program).getOrUndef().base, true)
                     if(small.isValid) {
                         return listOf(
-                            IAstModification.ReplaceNode(expr.right, cast.expression, expr),
-                            IAstModification.ReplaceNode(expr.left, small.valueOrZero(), expr)
+                            AstReplaceNode(expr.right, cast.expression, expr),
+                            AstReplaceNode(expr.left, small.valueOrZero(), expr)
                         )
                     }
                 }
@@ -304,12 +292,12 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         if(numbers == setOf(0.0, 1.0)) {
                             // we can replace unsigned  x==0 or x==1 with x<2
                             val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.base, 2.0, expr.position), expr.position)
-                            return listOf(IAstModification.ReplaceNode(expr, compare, parent))
+                            return listOf(AstReplaceNode(expr, compare, parent))
                         }
                         if(numbers == setOf(0.0, 1.0, 2.0)) {
                             // we can replace unsigned  x==0 or x==1 or x==2 with x<3
                             val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.base, 3.0, expr.position), expr.position)
-                            return listOf(IAstModification.ReplaceNode(expr, compare, parent))
+                            return listOf(AstReplaceNode(expr, compare, parent))
                         }
                     }
                     if(values.size<2)
@@ -320,7 +308,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val arrayType = DataType.arrayFor(elementType.base)
                     val valuesArray = ArrayLiteral(InferredTypes.InferredType.known(arrayType), valueCopies.toTypedArray(), expr.position)
                     val containment = ContainmentCheck(needle, valuesArray, expr.position)
-                    return listOf(IAstModification.ReplaceNode(expr, containment, parent))
+                    return listOf(AstReplaceNode(expr, containment, parent))
                 }
             }
         }
@@ -328,7 +316,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return noModifications
     }
 
-    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
         if(expr.operator in ComparisonOperators) {
             val leftConstVal = expr.left.constValue(program)
             val rightConstVal = expr.right.constValue(program)
@@ -343,7 +331,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         else -> expr.operator
                     }
                 val replacement = BinaryExpression(expr.right, newOperator, expr.left, expr.position)
-                return listOf(IAstModification.ReplaceNode(expr, replacement, parent))
+                return listOf(AstReplaceNode(expr, replacement, parent))
             }
 
 
@@ -354,7 +342,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if(rightDt.isBool && leftDt.isBool) {
                     val rightConstBool = rightConstVal?.asBooleanValue
                     if(rightConstBool==true) {
-                        return listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                        return listOf(AstReplaceNode(expr, expr.left, parent))
                     }
                 }
                 if (rightConstVal?.number == 1.0) {
@@ -362,7 +350,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
                         if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
-                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                            return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
@@ -371,7 +359,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
                         if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
-                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                            return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
@@ -380,7 +368,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if(rightDt.isBool && leftDt.isBool) {
                     val rightConstBool = rightConstVal?.asBooleanValue
                     if(rightConstBool==false) {
-                        listOf(IAstModification.ReplaceNode(expr, expr.left, parent))
+                        listOf(AstReplaceNode(expr, expr.left, parent))
                     }
                 }
                 if (rightConstVal?.number == 1.0) {
@@ -388,7 +376,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
                         if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
-                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                            return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
@@ -397,7 +385,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         val dt = if(leftDt.isPointer) BaseDataType.UWORD else leftDt.base
                         if(!dt.isLong && dt!=BaseDataType.UNDEFINED) {
                             val right = NumericLiteral(dt, rightConstVal.number, rightConstVal.position)
-                            return listOf(IAstModification.ReplaceNode(expr.right, right, expr))
+                            return listOf(AstReplaceNode(expr.right, right, expr))
                         }
                     }
                 }
@@ -406,20 +394,20 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return noModifications
     }
 
-    override fun after(containment: ContainmentCheck, parent: Node): Iterable<IAstModification> {
+    override fun after(containment: ContainmentCheck, parent: Node): Iterable<AstModification> {
         // replace trivial containment checks with just false or a single comparison
-        fun replaceWithEquals(value: NumericLiteral): Iterable<IAstModification> {
+        fun replaceWithEquals(value: NumericLiteral): Iterable<AstModification> {
             errors.info("containment could be written as just a single comparison", containment.position)
             val equals = BinaryExpression(containment.element, "==", value, containment.position)
-            return listOf(IAstModification.ReplaceNode(containment, equals, parent))
+            return listOf(AstReplaceNode(containment, equals, parent))
         }
 
-        fun replaceWithFalse(): Iterable<IAstModification> {
+        fun replaceWithFalse(): Iterable<AstModification> {
             errors.warn("condition is always false", containment.position)
-            return listOf(IAstModification.ReplaceNode(containment, NumericLiteral(BaseDataType.UBYTE, 0.0, containment.position), parent))
+            return listOf(AstReplaceNode(containment, NumericLiteral(BaseDataType.UBYTE, 0.0, containment.position), parent))
         }
 
-        fun checkArray(array: Array<Expression>): Iterable<IAstModification> {
+        fun checkArray(array: Array<Expression>): Iterable<AstModification> {
             if(array.isEmpty())
                 return replaceWithFalse()
             if(array.size==1) {
@@ -430,7 +418,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             return noModifications
         }
 
-        fun checkString(stringVal: StringLiteral): Iterable<IAstModification> {
+        fun checkString(stringVal: StringLiteral): Iterable<AstModification> {
             if(stringVal.value.isEmpty())
                 return replaceWithFalse()
             if(stringVal.value.length==1) {
@@ -463,24 +451,24 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return noModifications
     }
 
-    override fun after(branch: ConditionalBranch, parent: Node): Iterable<IAstModification> {
+    override fun after(branch: ConditionalBranch, parent: Node): Iterable<AstModification> {
         if(branch.truepart.isEmpty() && branch.elsepart.isEmpty()) {
             errors.info("removing empty conditional branch", branch.position)
-            return listOf(IAstModification.Remove(branch, parent as IStatementContainer))
+            return listOf(AstRemove(branch, parent as IStatementContainer))
         }
 
         return noModifications
     }
 
-    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+    override fun after(ifElse: IfElse, parent: Node): Iterable<AstModification> {
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isEmpty()) {
             errors.info("removing empty if-else statement", ifElse.position)
-            return listOf(IAstModification.Remove(ifElse, parent as IStatementContainer))
+            return listOf(AstRemove(ifElse, parent as IStatementContainer))
         }
         return noModifications
     }
 
-    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<AstModification> {
         val index = arrayIndexedExpression.indexer.constIndex()
         if(index!=null && index<0) {
             if(arrayIndexedExpression.plainarrayvar!=null) {
@@ -513,21 +501,21 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return noModifications
     }
 
-    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
         val name = functionCallExpr.target.nameInSource
         if(name==listOf("msw")) {
             val valueDt = functionCallExpr.args[0].inferType(program)
             if(valueDt.isWords || valueDt.isBytes || valueDt.isPointer) {
                 val zero = NumericLiteral(BaseDataType.UWORD, 0.0, functionCallExpr.position)
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, zero, parent))
+                return listOf(AstReplaceNode(functionCallExpr, zero, parent))
             }
         } else if(name==listOf("lsw")) {
             val valueDt = functionCallExpr.args[0].inferType(program)
             if(valueDt.isWords || valueDt.isPointer)
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
+                return listOf(AstReplaceNode(functionCallExpr, functionCallExpr.args[0], parent))
             if(valueDt.isBytes) {
                 val cast = TypecastExpression(functionCallExpr.args[0], DataType.UWORD, true, functionCallExpr.position)
-                return listOf(IAstModification.ReplaceNode(functionCallExpr, cast, parent))
+                return listOf(AstReplaceNode(functionCallExpr, cast, parent))
             }
         }
 
@@ -535,13 +523,13 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             val targetStruct = functionCallExpr.target.targetStructDecl()
             if (targetStruct != null) {
                 // static struct instance allocation can only occur as an initializer for a pointer variable
-                return listOf(IAstModification.Remove(functionCallExpr, parent as IStatementContainer))
+                return listOf(AstRemove(functionCallExpr, parent as IStatementContainer))
             }
         }
         return noModifications
     }
 
-    override fun after(addressOf: AddressOf, parent: Node): Iterable<IAstModification> {
+    override fun after(addressOf: AddressOf, parent: Node): Iterable<AstModification> {
         if(addressOf.arrayIndex!=null) {
             val tgt = addressOf.identifier
             if(tgt!=null) {
@@ -554,7 +542,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     else
                         TypecastExpression(indexExpr, DataType.forDt(constAddress.type), true, indexExpr.position)
                     val add = BinaryExpression(constAddress, "+", right, addressOf.position)
-                    return listOf(IAstModification.ReplaceNode(addressOf, add, parent))
+                    return listOf(AstReplaceNode(addressOf, add, parent))
                 } else {
                     val decl = tgt.targetVarDecl()
                     if(decl!=null && decl.datatype.isInteger) {
@@ -565,7 +553,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                         else
                             TypecastExpression(indexExpr, decl.datatype, true, indexExpr.position)
                         val add = BinaryExpression(tgt, "+", right, addressOf.position)
-                        return listOf(IAstModification.ReplaceNode(addressOf, add, parent))
+                        return listOf(AstReplaceNode(addressOf, add, parent))
                     }
                 }
             }
@@ -573,7 +561,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         return noModifications
     }
 
-    override fun after(deref: PtrDereference, parent: Node): Iterable<IAstModification> {
+    override fun after(deref: PtrDereference, parent: Node): Iterable<AstModification> {
         fun peekFunc(dt: BaseDataType): Pair<String, DataType?> {
             return when {
                 dt.isBool -> "peekbool" to null
@@ -596,7 +584,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val (peek, valueCast) = peekFunc(dt.sub!!)
                     val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(replaceDerefWithIdentifier(deref)), deref.position)
                     val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
-                    return listOf(IAstModification.ReplaceNode(parent, typedPeek, parent.parent))
+                    return listOf(AstReplaceNode(parent, typedPeek, parent.parent))
                 }
             } else {
                 // ptr1.field[index]  -->  peek(ptr.field + index)    (making sure the index is uword typed)
@@ -614,7 +602,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     val plusOffset = BinaryExpression(replaceDerefWithIdentifier(deref), "+", indexer, deref.position)
                     val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(plusOffset), deref.position)
                     val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
-                    return listOf(IAstModification.ReplaceNode(parent, typedPeek, parent.parent))
+                    return listOf(AstReplaceNode(parent, typedPeek, parent.parent))
                 }
             }
         } else if(deref.derefLast && parent !is AssignTarget && !partOfAugmentedAssignment(deref)) {
@@ -624,7 +612,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 val (peek, valueCast) = peekFunc(dt.base)
                 val peekF = FunctionCallExpression(IdentifierReference(listOf(peek), deref.position), mutableListOf(replaceDerefWithIdentifier(deref)), deref.position)
                 val typedPeek = if(valueCast==null) peekF else TypecastExpression(peekF, valueCast, true, deref.position)
-                return listOf(IAstModification.ReplaceNode(deref, typedPeek, parent))
+                return listOf(AstReplaceNode(deref, typedPeek, parent))
             }
         }
         return noModifications

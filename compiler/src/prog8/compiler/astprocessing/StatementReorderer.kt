@@ -3,8 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
+import prog8.ast.walk.*
 import prog8.code.core.*
 
 internal class StatementReorderer(
@@ -26,7 +25,7 @@ internal class StatementReorderer(
 
     private val directivesToMove = setOf("%output", "%launcher", "%zeropage", "%zpreserved", "%zpallowed", "%address", "%memtop", "%option", "%encoding")
 
-    override fun after(module: Module, parent: Node): Iterable<IAstModification> {
+    override fun after(module: Module, parent: Node): Iterable<AstModification> {
         val (blocks, other) = module.statements.partition { it is Block }
         module.statements.clear()
         module.statements.addAll(other.asSequence().plus(blocks.sortedBy { (it as Block).address ?: UInt.MIN_VALUE }))
@@ -44,7 +43,7 @@ internal class StatementReorderer(
 
     private val declsProcessedWithInitAssignment = mutableSetOf<VarDecl>()
 
-    override fun after(decl: VarDecl, parent: Node): Iterable<IAstModification> {
+    override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
         if (decl.type == VarDeclType.VAR) {
             if(decl.dirty && decl.value!=null)
                 errors.err("dirty variable can't have initialization value", decl.position)
@@ -76,9 +75,7 @@ internal class StatementReorderer(
                                     position = decl.position
                                 ),
                                     decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
-                                return listOf(IAstModification.InsertAfter(
-                                    decl, assignzero, parent as IStatementContainer
-                                ))
+                                return listOf(AstInsertAfter(parent as IStatementContainer, assignzero, decl))
                             }
                         }
                     } else {
@@ -90,9 +87,7 @@ internal class StatementReorderer(
                         val assign = Assignment(AssignTarget(identifier, null, null, null, false, position = pos),
                             decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
-                        return listOf(IAstModification.InsertAfter(
-                            decl, assign, parent as IStatementContainer
-                        ))
+                        return listOf(AstInsertAfter(parent as IStatementContainer, assign, decl))
                     }
                 }
             }
@@ -109,9 +104,7 @@ internal class StatementReorderer(
                         val assign = Assignment(AssignTarget(identifier, null, null, null, false, position = pos),
                             decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
-                        return listOf(IAstModification.InsertAfter(
-                            decl, assign, parent as IStatementContainer
-                        ))
+                        return listOf(AstInsertAfter(parent as IStatementContainer, assign, decl))
                     }
                 }
             }
@@ -205,21 +198,21 @@ internal class StatementReorderer(
         statements.addAll(0, directives)
     }
 
-    override fun before(block: Block, parent: Node): Iterable<IAstModification> {
+    override fun before(block: Block, parent: Node): Iterable<AstModification> {
         directivesToTheTop(block.statements)
         return noModifications
     }
 
-    override fun before(subroutine: Subroutine, parent: Node): Iterable<IAstModification> {
-        val modifications = mutableListOf<IAstModification>()
+    override fun before(subroutine: Subroutine, parent: Node): Iterable<AstModification> {
+        val modifications = mutableListOf<AstModification>()
 
         val subs = subroutine.statements.filterIsInstance<Subroutine>()
         if(subs.isNotEmpty()) {
             // all subroutines defined within this subroutine are moved to the end
             // NOTE: this doesn't check if this has already been done!!!
             modifications +=
-                subs.map { IAstModification.Remove(it, subroutine) } +
-                subs.map { IAstModification.InsertLast(it, subroutine) }
+                subs.map { AstRemove(it, subroutine) } +
+                subs.map { AstInsertLast(subroutine, it) }
         }
 
         // change 'str' and 'ubyte[]' parameters or return types into ^^ubyte
@@ -227,14 +220,14 @@ internal class StatementReorderer(
         val replacementForStrDt = DataType.pointer(BaseDataType.UBYTE)
         val parameterChanges = stringParams.map {
             val uwordParam = SubroutineParameter(it.name, replacementForStrDt, it.zp, it.registerOrPair, it.position)
-            IAstModification.ReplaceNode(it, uwordParam, subroutine)
+            AstReplaceNode(it, uwordParam, subroutine)
         }
         subroutine.returntypes.withIndex().forEach { (index, type) ->
             if(type.isString || type.isUnsignedByteArray)
                 subroutine.returntypes[index] = replacementForStrDt
         }
 
-        val varsChanges = mutableListOf<IAstModification>()
+        val varsChanges = mutableListOf<AstModification>()
         if(!subroutine.isAsmSubroutine) {
             val stringParamsByNames = stringParams.associateBy { it.name }
             varsChanges +=
@@ -256,7 +249,7 @@ internal class StatementReorderer(
                                 it.dirty,
                                 it.position
                             )
-                            IAstModification.ReplaceNode(it, newvar, subroutine)
+                            AstReplaceNode(it, newvar, subroutine)
                         }
                 }
                 else emptySequence()
@@ -265,7 +258,7 @@ internal class StatementReorderer(
         return modifications + parameterChanges + varsChanges
     }
 
-    override fun after(expr: BinaryExpression, parent: Node): Iterable<IAstModification> {
+    override fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
         // simplething <associative> X -> X <associative> simplething
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
         //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)
@@ -273,7 +266,7 @@ internal class StatementReorderer(
             if(expr.left is IdentifierReference || expr.left is NumericLiteral || expr.left is DirectMemoryRead || (expr.left as? ArrayIndexedExpression)?.indexer?.constIndex()!=null) {
                 if(expr.right !is IdentifierReference && expr.right !is NumericLiteral && expr.right !is DirectMemoryRead) {
                     if(maySwapOperandOrder(expr)) {
-                        return listOf(IAstModification.SwapOperands(expr))
+                        return listOf(AstSwapOperands(expr))
                     }
                 }
             }
@@ -281,7 +274,7 @@ internal class StatementReorderer(
         return noModifications
     }
 
-    override fun after(whenStmt: When, parent: Node): Iterable<IAstModification> {
+    override fun after(whenStmt: When, parent: Node): Iterable<AstModification> {
         val lastChoiceValues = whenStmt.choices.lastOrNull()?.values
         if(lastChoiceValues?.isNotEmpty()==true) {
             val elseChoice = whenStmt.choices.indexOfFirst { it.values==null || it.values?.isEmpty()==true }
@@ -292,7 +285,7 @@ internal class StatementReorderer(
         return noModifications
     }
 
-    override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+    override fun before(assignment: Assignment, parent: Node): Iterable<AstModification> {
         val valueType = assignment.value.inferType(program)
         val targetType = assignment.target.inferType(program)
 
@@ -303,7 +296,7 @@ internal class StatementReorderer(
         return noModifications
     }
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+    override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
         val isIO = try {
             assignment.target.isIOAddress(options.compTarget)
         } catch (_: FatalAstException) {
@@ -326,7 +319,7 @@ internal class StatementReorderer(
                         (assignment.value as BinaryExpression).right = totalNumber
                         totalNumber.parent = assignment.value
                         return allAssignments.drop(1).map {
-                            IAstModification.Remove(it, parent as IStatementContainer)
+                            AstRemove(it, parent as IStatementContainer)
                         }
                     }
                 }
@@ -344,7 +337,7 @@ internal class StatementReorderer(
             if(binExpr.operator in AssociativeOperators && maySwapOperandOrder(binExpr)) {
                 if (binExpr.right isSameAs assignment.target) {
                     // A = v <associative-operator> A  ==>  A = A <associative-operator> v
-                    return listOf(IAstModification.SwapOperands(binExpr))
+                    return listOf(AstSwapOperands(binExpr))
                 }
             }
         }
@@ -369,12 +362,12 @@ internal class StatementReorderer(
         return result
     }
 
-    override fun after(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+    override fun after(whileLoop: WhileLoop, parent: Node): Iterable<AstModification> {
         if(whileLoop.body.isEmpty()) {
             // convert   while C {}   to   do {} until not C    (because codegen of the latter is more optimized)
             val invertedCondition = invertCondition(whileLoop.condition, program)
             val until = UntilLoop(whileLoop.body, invertedCondition, whileLoop.position)
-            return listOf(IAstModification.ReplaceNode(whileLoop, until, parent))
+            return listOf(AstReplaceNode(whileLoop, until, parent))
         }
 
         return noModifications
@@ -411,7 +404,7 @@ internal class StatementReorderer(
         }
     }
 
-    override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<IAstModification> {
+    override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<AstModification> {
         if(parent is AssignTarget) {
             val zeroIndexer = deref.chain.firstOrNull { it.second?.constIndex()==0 }
             if(zeroIndexer!=null) {
@@ -424,7 +417,7 @@ internal class StatementReorderer(
                         val noindexer = zeroIndexer.first to null
                         val newchain = deref.chain.take(position) + noindexer + rest
                         val newDeref = PtrDereference(newchain.map { it.first }, false, deref.position)
-                        return listOf(IAstModification.ReplaceNode(deref, newDeref, parent))
+                        return listOf(AstReplaceNode(deref, newDeref, parent))
                     }
                 }
             }
@@ -432,8 +425,8 @@ internal class StatementReorderer(
         return noModifications
     }
 
-    override fun after(swap: Swap, parent: Node): Iterable<IAstModification> {
-        val mods = mutableListOf<IAstModification>()
+    override fun after(swap: Swap, parent: Node): Iterable<AstModification> {
+        val mods = mutableListOf<AstModification>()
         val dt = swap.t1.inferType(program).getOrUndef()
         if(dt.isByteOrBool) {
             // replace  swap(ptr^^, ...)   by  swap(@(ptr), ...)    when ptr is byte/ubyte/bool
@@ -443,18 +436,18 @@ internal class StatementReorderer(
             if(deref1!=null) {
                 val identifier = IdentifierReference(deref1.chain, deref1.position)
                 val memwrite = DirectMemoryWrite(identifier, deref1.position)
-                mods.add(IAstModification.ReplaceNode(deref1, memwrite, swap.t1))
+                mods.add(AstReplaceNode(deref1, memwrite, swap.t1))
             }
             if(deref2!=null) {
                 val identifier = IdentifierReference(deref2.chain, deref2.position)
                 val memwrite = DirectMemoryWrite(identifier, deref2.position)
-                mods.add(IAstModification.ReplaceNode(deref2, memwrite, swap.t2))
+                mods.add(AstReplaceNode(deref2, memwrite, swap.t2))
             }
         }
         return mods
     }
 
-    override fun after(returnStmt: Return, parent: Node): Iterable<IAstModification> {
+    override fun after(returnStmt: Return, parent: Node): Iterable<AstModification> {
         val funcValue = returnStmt.values.singleOrNull() as? IFunctionCall
         if(funcValue!=null) {
             val targetSub = funcValue.target.targetSubroutine()
@@ -462,7 +455,7 @@ internal class StatementReorderer(
                 if(targetSub.parameters.isEmpty()) {
                     // replace  return func()  -->  goto func
                     val goto = Jump(funcValue.target, returnStmt.position)
-                    return listOf(IAstModification.ReplaceNode(returnStmt, goto, parent))
+                    return listOf(AstReplaceNode(returnStmt, goto, parent))
                 }
             }
         }

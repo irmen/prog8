@@ -3,8 +3,7 @@ package prog8.optimizer
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.ast.walk.AstWalker
-import prog8.ast.walk.IAstModification
+import prog8.ast.walk.*
 import prog8.code.core.*
 
 
@@ -14,13 +13,13 @@ class StatementOptimizer(private val program: Program,
                          private val options: CompilationOptions
 ) : AstWalker() {
 
-    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<IAstModification> {
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification> {
         if(functionCallStatement.target.nameInSource.size==1) {
             val functionName = functionCallStatement.target.nameInSource[0]
             if (functionName in functions.purefunctionNames) {
                 if("ignore_unused" !in parent.definingBlock.options())
                     errors.warn("statement has no effect (function return value is discarded)", functionCallStatement.position)
-                return listOf(IAstModification.Remove(functionCallStatement, parent as IStatementContainer))
+                return listOf(AstRemove(functionCallStatement, parent as IStatementContainer))
             }
 
             when (functionName) {
@@ -30,7 +29,7 @@ class StatementOptimizer(private val program: Program,
                         // poke(&bytevar, x) --> bytevar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
-                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                        return listOf(AstReplaceNode(functionCallStatement, assign, parent))
                     }
                 }
                 "pokew" -> {
@@ -39,7 +38,7 @@ class StatementOptimizer(private val program: Program,
                         // pokew(&wordvar, x) --> wordvar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
-                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                        return listOf(AstReplaceNode(functionCallStatement, assign, parent))
                     }
                 }
                 "pokel" -> {
@@ -48,7 +47,7 @@ class StatementOptimizer(private val program: Program,
                         // pokel(&longvar, x) --> longvar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
-                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                        return listOf(AstReplaceNode(functionCallStatement, assign, parent))
                     }
                 }
                 "pokef" -> {
@@ -57,7 +56,7 @@ class StatementOptimizer(private val program: Program,
                         // pokef(&floatvar, x) --> floatvar=x
                         val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = functionCallStatement.position)
                         val assign = Assignment(target, functionCallStatement.args[1], AssignmentOrigin.OPTIMIZER, functionCallStatement.position)
-                        return listOf(IAstModification.ReplaceNode(functionCallStatement, assign, parent))
+                        return listOf(AstReplaceNode(functionCallStatement, assign, parent))
                     }
                 }
             }
@@ -90,7 +89,7 @@ class StatementOptimizer(private val program: Program,
                             mutableListOf(NumericLiteral(BaseDataType.UBYTE, firstCharEncoded.toDouble(), pos)),
                             functionCallStatement.void, pos
                         )
-                        return listOf(IAstModification.ReplaceNode(functionCallStatement, chrout, parent))
+                        return listOf(AstReplaceNode(functionCallStatement, chrout, parent))
                     } else if (string.value.length == 2) {
                         val firstTwoCharsEncoded = options.compTarget.encodeString(string.value.take(2), string.encoding)
                         val chrout1 = FunctionCallStatement(
@@ -104,8 +103,8 @@ class StatementOptimizer(private val program: Program,
                             functionCallStatement.void, pos
                         )
                         return listOf(
-                            IAstModification.InsertBefore(functionCallStatement, chrout1, parent as IStatementContainer),
-                            IAstModification.ReplaceNode(functionCallStatement, chrout2, parent)
+                            AstInsertBefore(parent as IStatementContainer, chrout1, functionCallStatement),
+                            AstReplaceNode(functionCallStatement, chrout2, parent)
                         )
                     }
                 }
@@ -115,7 +114,7 @@ class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun after(ifElse: IfElse, parent: Node): Iterable<IAstModification> {
+    override fun after(ifElse: IfElse, parent: Node): Iterable<AstModification> {
         val constvalue = ifElse.condition.constValue(program)
         if(constvalue!=null) {
             errors.warn("condition is always ${constvalue.asBooleanValue}", ifElse.condition.position)
@@ -123,26 +122,26 @@ class StatementOptimizer(private val program: Program,
 
         // remove empty if statements
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isEmpty())
-            return listOf(IAstModification.Remove(ifElse, parent as IStatementContainer))
+            return listOf(AstRemove(ifElse, parent as IStatementContainer))
 
         // empty true part? switch with the else part
         if(ifElse.truepart.isEmpty() && ifElse.elsepart.isNotEmpty()) {
             val invertedCondition = invertCondition(ifElse.condition, program)
             val truepart = AnonymousScope(ifElse.elsepart.statements, ifElse.truepart.position)
             return listOf(
-                    IAstModification.ReplaceNode(ifElse.condition, invertedCondition, ifElse),
-                    IAstModification.ReplaceNode(ifElse.truepart, truepart, ifElse),
-                    IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope.empty(), ifElse)
+                    AstReplaceNode(ifElse.condition, invertedCondition, ifElse),
+                    AstReplaceNode(ifElse.truepart, truepart, ifElse),
+                    AstReplaceNode(ifElse.elsepart, AnonymousScope.empty(), ifElse)
             )
         }
 
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue){
                 // always true -> keep only if-part
-                listOf(IAstModification.ReplaceNode(ifElse, ifElse.truepart, parent))
+                listOf(AstReplaceNode(ifElse, ifElse.truepart, parent))
             } else {
                 // always false -> keep only else-part
-                listOf(IAstModification.ReplaceNode(ifElse, ifElse.elsepart, parent))
+                listOf(AstReplaceNode(ifElse, ifElse.elsepart, parent))
             }
         }
 
@@ -151,8 +150,8 @@ class StatementOptimizer(private val program: Program,
             if(ifElse.truepart.statements.singleOrNull() is Return) {
                 val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
                 return listOf(
-                    IAstModification.ReplaceNode(ifElse.elsepart, AnonymousScope.empty(), ifElse),
-                    IAstModification.InsertAfter(ifElse, elsePart, parent as IStatementContainer)
+                    AstReplaceNode(ifElse.elsepart, AnonymousScope.empty(), ifElse),
+                    AstInsertAfter(parent as IStatementContainer, elsePart, ifElse)
                 )
             }
 
@@ -163,9 +162,9 @@ class StatementOptimizer(private val program: Program,
                     val newTruePart = AnonymousScope(mutableListOf(jump), ifElse.elsepart.position)
                     val newElsePart = AnonymousScope(ifElse.truepart.statements, ifElse.truepart.position)
                     return listOf(
-                        IAstModification.ReplaceNode(ifElse.elsepart, newElsePart, ifElse),
-                        IAstModification.ReplaceNode(ifElse.truepart, newTruePart, ifElse),
-                        IAstModification.ReplaceNode(ifElse.condition, invertCondition(ifElse.condition, program), ifElse)
+                        AstReplaceNode(ifElse.elsepart, newElsePart, ifElse),
+                        AstReplaceNode(ifElse.truepart, newTruePart, ifElse),
+                        AstReplaceNode(ifElse.condition, invertCondition(ifElse.condition, program), ifElse)
                     )
                 }
             }
@@ -174,15 +173,15 @@ class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun after(forLoop: ForLoop, parent: Node): Iterable<IAstModification> {
+    override fun after(forLoop: ForLoop, parent: Node): Iterable<AstModification> {
         if(forLoop.body.isEmpty()) {
             errors.info("removing empty for loop", forLoop.position)
-            return listOf(IAstModification.Remove(forLoop, parent as IStatementContainer))
+            return listOf(AstRemove(forLoop, parent as IStatementContainer))
         } else if(forLoop.body.statements.size==1) {
             val loopvar = forLoop.body.statements[0] as? VarDecl
             if(loopvar!=null && loopvar.name==forLoop.loopVar.nameInSource.singleOrNull()) {
                 // remove empty for loop (only loopvar decl in it)
-                return listOf(IAstModification.Remove(forLoop, parent as IStatementContainer))
+                return listOf(AstRemove(forLoop, parent as IStatementContainer))
             }
         }
 
@@ -194,7 +193,7 @@ class StatementOptimizer(private val program: Program,
                 val scope = AnonymousScope.empty(forLoop.position)
                 scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, position=forLoop.position), range.from, AssignmentOrigin.OPTIMIZER, forLoop.position))
                 scope.statements.addAll(forLoop.body.statements)
-                return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
+                return listOf(AstReplaceNode(forLoop, scope, parent))
             }
         }
         val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl()
@@ -209,7 +208,7 @@ class StatementOptimizer(private val program: Program,
                     val scope = AnonymousScope.empty(forLoop.position)
                     scope.statements.add(Assignment(AssignTarget(forLoop.loopVar, null, null, null, false, position=forLoop.position), byte, AssignmentOrigin.OPTIMIZER, forLoop.position))
                     scope.statements.addAll(forLoop.body.statements)
-                    return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
+                    return listOf(AstReplaceNode(forLoop, scope, parent))
                 }
             }
             else if(iterable.isArray) {
@@ -223,7 +222,7 @@ class StatementOptimizer(private val program: Program,
                                 AssignTarget(forLoop.loopVar, null, null, null, false, position = forLoop.position), NumericLiteral.optimalInteger(av.toInt(), iterable.position),
                                 AssignmentOrigin.OPTIMIZER, forLoop.position))
                         scope.statements.addAll(forLoop.body.statements)
-                        return listOf(IAstModification.ReplaceNode(forLoop, scope, parent))
+                        return listOf(AstReplaceNode(forLoop, scope, parent))
                     }
                 }
             }
@@ -232,59 +231,59 @@ class StatementOptimizer(private val program: Program,
         return noModifications
     }
 
-    override fun before(untilLoop: UntilLoop, parent: Node): Iterable<IAstModification> {
+    override fun before(untilLoop: UntilLoop, parent: Node): Iterable<AstModification> {
         val constvalue = untilLoop.condition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue) {
                 // always true -> keep only the statement block
                 errors.warn("condition is always true", untilLoop.condition.position)
-                listOf(IAstModification.ReplaceNode(untilLoop, untilLoop.body, parent))
+                listOf(AstReplaceNode(untilLoop, untilLoop.body, parent))
             } else {
                 // always false
                 val forever = RepeatLoop(null, untilLoop.body, untilLoop.position)
-                listOf(IAstModification.ReplaceNode(untilLoop, forever, parent))
+                listOf(AstReplaceNode(untilLoop, forever, parent))
             }
         }
         return noModifications
     }
 
-    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<IAstModification> {
+    override fun before(whileLoop: WhileLoop, parent: Node): Iterable<AstModification> {
         val constvalue = whileLoop.condition.constValue(program)
         if(constvalue!=null) {
             return if(constvalue.asBooleanValue) {
                 // always true
                 val forever = RepeatLoop(null, whileLoop.body, whileLoop.position)
-                listOf(IAstModification.ReplaceNode(whileLoop, forever, parent))
+                listOf(AstReplaceNode(whileLoop, forever, parent))
             } else {
                 // always false -> remove the while statement altogether
                 errors.warn("condition is always false", whileLoop.condition.position)
-                listOf(IAstModification.Remove(whileLoop, parent as IStatementContainer))
+                listOf(AstRemove(whileLoop, parent as IStatementContainer))
             }
         }
         return noModifications
     }
 
-    override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<IAstModification> {
+    override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<AstModification> {
         val iter = repeatLoop.iterations
         if(iter!=null) {
             if(repeatLoop.body.isEmpty()) {
                 errors.info("empty loop removed", repeatLoop.position)
-                return listOf(IAstModification.Remove(repeatLoop, parent as IStatementContainer))
+                return listOf(AstRemove(repeatLoop, parent as IStatementContainer))
             }
             val iterations = iter.constValue(program)?.number?.toInt()
             if (iterations == 0) {
                 errors.warn("iterations is always 0, removed loop", iter.position)
-                return listOf(IAstModification.Remove(repeatLoop, parent as IStatementContainer))
+                return listOf(AstRemove(repeatLoop, parent as IStatementContainer))
             }
             if (iterations == 1) {
                 errors.warn("iterations is always 1", iter.position)
-                return listOf(IAstModification.ReplaceNode(repeatLoop, repeatLoop.body, parent))
+                return listOf(AstReplaceNode(repeatLoop, repeatLoop.body, parent))
             }
         }
         return noModifications
     }
 
-    override fun before(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+    override fun before(assignment: Assignment, parent: Node): Iterable<AstModification> {
 
         val binExpr = assignment.value as? BinaryExpression
         if(binExpr!=null) {
@@ -296,7 +295,7 @@ class StatementOptimizer(private val program: Program,
 
                     if(rExpr.left is NumericLiteral && op2 in AssociativeOperators && maySwapOperandOrder(binExpr)) {
                         // associative operator, make sure the constant numeric value is second (right)
-                        return listOf(IAstModification.SwapOperands(rExpr))
+                        return listOf(AstSwapOperands(rExpr))
                     }
 
                     val rNum = (rExpr.right as? NumericLiteral)?.number
@@ -311,8 +310,8 @@ class StatementOptimizer(private val program: Program,
                                         AssignmentOrigin.OPTIMIZER, assignment.position
                                 )
                                 return listOf(
-                                        IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
-                                        IAstModification.InsertAfter(assignment, addConstant, parent as IStatementContainer))
+                                        AstReplaceNode(binExpr, expr2, binExpr.parent),
+                                        AstInsertAfter(parent as IStatementContainer, addConstant, assignment))
                             } else if (op2 == "-") {
                                 // A = A +/- B - N  --->  A = A +/- B  ;  A = A - N
                                 val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
@@ -322,8 +321,8 @@ class StatementOptimizer(private val program: Program,
                                         AssignmentOrigin.OPTIMIZER, assignment.position
                                 )
                                 return listOf(
-                                        IAstModification.ReplaceNode(binExpr, expr2, binExpr.parent),
-                                        IAstModification.InsertAfter(assignment, subConstant, parent as IStatementContainer))
+                                        AstReplaceNode(binExpr, expr2, binExpr.parent),
+                                        AstInsertAfter(parent as IStatementContainer, subConstant, assignment))
                             }
                         }
                     }
@@ -334,7 +333,7 @@ class StatementOptimizer(private val program: Program,
                 // associative operator, swap the operands so that the assignment target is first (left)
                 // unless the other operand is the same in which case we don't swap (endless loop!)
                 if (!(binExpr.left isSameAs binExpr.right) && maySwapOperandOrder(binExpr))
-                    return listOf(IAstModification.SwapOperands(binExpr))
+                    return listOf(AstSwapOperands(binExpr))
             }
 
         }
@@ -346,17 +345,17 @@ class StatementOptimizer(private val program: Program,
                 // @(&bytevar) = x --> bytevar = x
                 val target = AssignTarget(addrOfIdentifier, null, null, null, false, position = assignment.position)
                 val assign = Assignment(target, assignment.value, AssignmentOrigin.OPTIMIZER, assignment.position)
-                return listOf(IAstModification.ReplaceNode(assignment, assign, parent))
+                return listOf(AstReplaceNode(assignment, assign, parent))
             }
         }
 
         return noModifications
     }
 
-    override fun after(assignment: Assignment, parent: Node): Iterable<IAstModification> {
+    override fun after(assignment: Assignment, parent: Node): Iterable<AstModification> {
         if(assignment.target isSameAs assignment.value) {
             // remove assignment to self
-            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+            return listOf(AstRemove(assignment, parent as IStatementContainer))
         }
 
         val targetIDt = assignment.target.inferType(program)
@@ -375,25 +374,25 @@ class StatementOptimizer(private val program: Program,
                 when (bexpr.operator) {
                     "+" -> {
                         if (rightCv == 0.0) {
-                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                            return listOf(AstRemove(assignment, parent as IStatementContainer))
                         }
                     }
                     "-" -> {
                         if (rightCv == 0.0) {
-                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                            return listOf(AstRemove(assignment, parent as IStatementContainer))
                         }
                     }
-                    "*" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
-                    "/" -> if (rightCv == 1.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
-                    "|" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
-                    "^" -> if (rightCv == 0.0) return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                    "*" -> if (rightCv == 1.0) return listOf(AstRemove(assignment, parent as IStatementContainer))
+                    "/" -> if (rightCv == 1.0) return listOf(AstRemove(assignment, parent as IStatementContainer))
+                    "|" -> if (rightCv == 0.0) return listOf(AstRemove(assignment, parent as IStatementContainer))
+                    "^" -> if (rightCv == 0.0) return listOf(AstRemove(assignment, parent as IStatementContainer))
                     "<<" -> {
                         if (rightCv == 0.0)
-                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                            return listOf(AstRemove(assignment, parent as IStatementContainer))
                     }
                     ">>" -> {
                         if (rightCv == 0.0)
-                            return listOf(IAstModification.Remove(assignment, parent as IStatementContainer))
+                            return listOf(AstRemove(assignment, parent as IStatementContainer))
                     }
                 }
 
@@ -418,7 +417,7 @@ class StatementOptimizer(private val program: Program,
                             setSizedValue(assignment, bexpr.right, size)
                             val pointerAdd = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
                             val a2 = Assignment(assignment.target.copy(), pointerAdd, assignment.origin, assignment.position)
-                            return listOf(IAstModification.InsertAfter(assignment, a2, parent as IStatementContainer))
+                            return listOf(AstInsertAfter(parent as IStatementContainer, a2, assignment))
                         } else if (rightDt.isPointer && !rightDt.isPointerToByte) {
                             // uword x = value + pointer  -->  x=value * sizeof,  x += pointer
                             val size = rightDt.size(options.compTarget)
@@ -426,7 +425,7 @@ class StatementOptimizer(private val program: Program,
                             assignment.linkParents(parent)
                             val pointerAdd = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
                             val a2 = Assignment(assignment.target.copy(), pointerAdd, assignment.origin, assignment.position)
-                            return listOf(IAstModification.InsertAfter(assignment, a2, parent as IStatementContainer))
+                            return listOf(AstInsertAfter(parent as IStatementContainer, a2, assignment))
                         }
                     }
                 }
@@ -443,7 +442,7 @@ class StatementOptimizer(private val program: Program,
                     // optimize word=lsb(word) ==>  word &= $00ff
                     val and255 = BinaryExpression(fcall.args[0], "&", NumericLiteral(BaseDataType.UWORD, 255.0, fcall.position), fcall.position)
                     val newAssign = Assignment(assignment.target, and255, AssignmentOrigin.OPTIMIZER, fcall.position)
-                    return listOf(IAstModification.ReplaceNode(assignment, newAssign, parent))
+                    return listOf(AstReplaceNode(assignment, newAssign, parent))
                 }
             }
         }
@@ -468,7 +467,7 @@ class StatementOptimizer(private val program: Program,
                                 stmts.add(incrdecr)
                             }
                             val incrdecrs = AnonymousScope(stmts, assignment.position)
-                            return listOf(IAstModification.ReplaceNode(assignment, incrdecrs, parent))
+                            return listOf(AstReplaceNode(assignment, incrdecrs, parent))
                         }
                     }
                 }
@@ -484,11 +483,11 @@ class StatementOptimizer(private val program: Program,
                 if ((v1 is NumericLiteral || v1 is IdentifierReference) && v2 isSameAs assignment.target) {
                     // x = min(100, x)  ->  if x>100  x=100
                     val ifstmt = makeMinMaxCheckAndAssignRight(v2, ">", v1, assignment.target, assignment.position)
-                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                    return listOf(AstReplaceNode(assignment, ifstmt, parent))
                 } else if ((v2 is NumericLiteral || v2 is IdentifierReference) && v1 isSameAs assignment.target) {
                     // x = min(x, 100)  ->  if x>100  x=100
                     val ifstmt = makeMinMaxCheckAndAssignRight(v1, ">", v2, assignment.target, assignment.position)
-                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                    return listOf(AstReplaceNode(assignment, ifstmt, parent))
                 }
 
                 if(v2 is NumericLiteral || v2 is IdentifierReference) {
@@ -496,16 +495,16 @@ class StatementOptimizer(private val program: Program,
                     val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v2, assignment.target, assignment.position)
                     return listOf(
-                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(assignment, assign, parent)
+                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstReplaceNode(assignment, assign, parent)
                     )
                 } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
                     // x = min(100, expression)  ->  x=expression,  if x>100  x=100
                     val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v1, assignment.target, assignment.position)
                     return listOf(
-                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(assignment, assign, parent)
+                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstReplaceNode(assignment, assign, parent)
                     )
                 }
 
@@ -517,11 +516,11 @@ class StatementOptimizer(private val program: Program,
                 if ((v1 is NumericLiteral || v1 is IdentifierReference) && v2 isSameAs assignment.target) {
                     // x = max(100, x)  ->  if x<100  x=100
                     val ifstmt = makeMinMaxCheckAndAssignRight(v2, "<", v1, assignment.target, assignment.position)
-                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                    return listOf(AstReplaceNode(assignment, ifstmt, parent))
                 } else if ((v2 is NumericLiteral || v2 is IdentifierReference) && v1 isSameAs assignment.target) {
                     // x = max(x, 100)  ->  if x<100  x=100
                     val ifstmt = makeMinMaxCheckAndAssignRight(v1, "<", v2, assignment.target, assignment.position)
-                    return listOf(IAstModification.ReplaceNode(assignment, ifstmt, parent))
+                    return listOf(AstReplaceNode(assignment, ifstmt, parent))
                 }
 
                 if(v2 is NumericLiteral || v2 is IdentifierReference) {
@@ -529,16 +528,16 @@ class StatementOptimizer(private val program: Program,
                     val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v2, assignment.target, assignment.position)
                     return listOf(
-                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(assignment, assign, parent)
+                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstReplaceNode(assignment, assign, parent)
                     )
                 } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
                     // x = max(100, expression)  ->  x=expression,  if x<100  x=100
                     val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v1, assignment.target, assignment.position)
                     return listOf(
-                        IAstModification.InsertAfter(assignment, ifstmt, parent as IStatementContainer),
-                        IAstModification.ReplaceNode(assignment, assign, parent)
+                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstReplaceNode(assignment, assign, parent)
                     )
                 }
 
@@ -560,15 +559,15 @@ class StatementOptimizer(private val program: Program,
         )
     }
 
-    override fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<IAstModification> {
+    override fun before(unrollLoop: UnrollLoop, parent: Node): Iterable<AstModification> {
         val iterations = unrollLoop.iterations.constValue(program)?.number?.toInt()
         return if(iterations!=null && iterations<1)
-            listOf(IAstModification.Remove(unrollLoop, parent as IStatementContainer))
+            listOf(AstRemove(unrollLoop, parent as IStatementContainer))
         else
             noModifications
     }
 
-    override fun after(whenStmt: When, parent: Node): Iterable<IAstModification> {
+    override fun after(whenStmt: When, parent: Node): Iterable<AstModification> {
 
         val constantValue = whenStmt.condition.constValue(program)?.number
         if(constantValue!=null) {
@@ -586,7 +585,7 @@ class StatementOptimizer(private val program: Program,
                 matchingChoice = whenStmt.choices.singleOrNull { it.values==null }
             if(matchingChoice!=null) {
                 // get rid of the whole when-statement and just leave the matching choice
-                return listOf(IAstModification.ReplaceNode(whenStmt, matchingChoice.statements, parent))
+                return listOf(AstReplaceNode(whenStmt, matchingChoice.statements, parent))
             }
         }
 
@@ -608,7 +607,7 @@ class StatementOptimizer(private val program: Program,
 
             val elsePart = if(elseJump==null) null else AnonymousScope(mutableListOf(elseJump), elseJump.position)
             val onGoto = OnGoto(false, whenStmt.condition, jumpLabels, elsePart, whenStmt.position)
-            return listOf(IAstModification.ReplaceNode(whenStmt, onGoto, parent))
+            return listOf(AstReplaceNode(whenStmt, onGoto, parent))
         }
 
         return noModifications
