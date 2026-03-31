@@ -1464,4 +1464,149 @@ main {
         val idAssigns = resultAssigns.filter { it.value is IdentifierReference }
         idAssigns.size shouldBe 3
     }
+
+    test("inline void call with one parameter") {
+        // Tests that void calls with one parameter are inlined when args are simple
+        val src = """
+main {
+    sub start() {
+        void take_one(1)
+        cx16.r0++
+    }
+    sub take_one(ubyte p) {
+        return
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // Void call should be removed entirely
+        val hasVoidCall = startSub.statements.any { stmt ->
+            stmt is FunctionCallStatement && 
+            stmt.target.nameInSource.last() == "take_one" &&
+            stmt.void
+        }
+        hasVoidCall shouldBe false
+    }
+
+    test("inline void call with two parameters") {
+        // Tests that void calls with two parameters are inlined when args are simple
+        val src = """
+main {
+    sub start() {
+        void take_two(1, 2)
+        cx16.r0++
+    }
+    sub take_two(ubyte a, ubyte b) {
+        return
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // Void call should be removed entirely
+        val hasVoidCall = startSub.statements.any { stmt ->
+            stmt is FunctionCallStatement && 
+            stmt.target.nameInSource.last() == "take_two" &&
+            stmt.void
+        }
+        hasVoidCall shouldBe false
+    }
+
+    test("inline call with one return value and one parameter") {
+        // Tests that function calls returning one value with one parameter are inlined
+        // and that the parameter is correctly substituted with the argument
+        val src = """
+main {
+    ubyte @shared gv = 100
+    
+    sub start() {
+        ubyte result
+        result = get_value(42)
+        cx16.r0 = result + gv
+    }
+    sub get_value(ubyte x) -> ubyte {
+        return gv + x
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // Should have assignment with binary expression (parameter substituted with literal 42)
+        val assigns = startSub.statements.filterIsInstance<Assignment>()
+            .filter { it.target.identifier?.nameInSource?.lastOrNull() == "result" }
+        assigns.size shouldBe 1
+        val value = assigns[0].value
+        value shouldBe instanceOf<BinaryExpression>()
+        // Verify the parameter x was replaced with argument 42
+        val binExpr = value as BinaryExpression
+        binExpr.right shouldBe instanceOf<NumericLiteral>()
+    }
+
+    test("inline call with two return values and two parameters") {
+        // Tests that function calls returning two values with two parameters are inlined
+        // and that both parameters are correctly substituted
+        val src = """
+main {
+    ubyte @shared v1 = 10
+    ubyte @shared v2 = 20
+
+    sub start() {
+        ubyte a, b
+        a, b = get_two(1, 2)
+        cx16.r0 = a + b
+    }
+    sub get_two(ubyte x, ubyte y) -> ubyte, ubyte {
+        return v1 + x, v2 + y
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+        val stmts = startSub.statements
+
+        // Multi-assignment should be split into separate assignments
+        val multiAssigns = stmts.filterIsInstance<Assignment>()
+            .filter { it.target.multi?.isNotEmpty() == true }
+        multiAssigns.size shouldBe 0
+
+        // Should have 2 separate single assignments
+        val resultAssigns = stmts.filterIsInstance<Assignment>()
+            .filter { it.target.identifier?.nameInSource?.lastOrNull() in listOf("a", "b") }
+        resultAssigns.size shouldBe 2
+
+        // All should be binary expressions (parameter substitution occurred)
+        val binAssigns = resultAssigns.filter { it.value is BinaryExpression }
+        binAssigns.size shouldBe 2
+
+        // Verify parameters were replaced with arguments (1 and 2)
+        // The right side of each binary expression should be a NumericLiteral
+        binAssigns.forEach { assign ->
+            val binExpr = assign.value as BinaryExpression
+            binExpr.right shouldBe instanceOf<NumericLiteral>()
+        }
+    }
+
+    test("inline void call with six parameters") {
+        // Tests that void calls with six parameters are inlined when args are simple
+        val src = """
+main {
+    sub start() {
+        void take_six(1, 2, 3, 4, 5, 6)
+        cx16.r0++
+    }
+    sub take_six(ubyte a, ubyte b, ubyte c, ubyte d, ubyte e, ubyte f) {
+        return
+    }
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // Void call should be removed entirely
+        val hasVoidCall = startSub.statements.any { stmt ->
+            stmt is FunctionCallStatement && 
+            stmt.target.nameInSource.last() == "take_six" &&
+            stmt.void
+        }
+        hasVoidCall shouldBe false
+    }
 })
