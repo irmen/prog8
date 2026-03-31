@@ -32,7 +32,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
             val label = program.makeLabel("after", breakStmt.position)
             return listOf(
                 AstReplaceNode(breakStmt, program.jumpLabel(label), parent),
-                AstInsertAfter(stmt.parent as IStatementContainer, label, stmt)
+                AstInsert.after(stmt, label, stmt.parent as IStatementContainer)
             )
         }
 
@@ -57,7 +57,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
             val label = program.makeLabel("cont", continueStmt.position)
             return listOf(
                 AstReplaceNode(continueStmt, program.jumpLabel(label), parent),
-                AstInsertLast(scope, label)
+                AstInsert.last(scope, label)
             )
         }
 
@@ -65,7 +65,7 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
             val label = program.makeLabel("cont", continueStmt.position)
             return listOf(
                 AstReplaceNode(continueStmt, program.jumpLabel(label), parent),
-                AstInsertBefore(loop.parent as IStatementContainer, label, loop)
+                AstInsert.before(loop, label, loop.parent as IStatementContainer)
             )
         }
 
@@ -249,14 +249,14 @@ _after:
             val subroutines = repeatLoop.body.statements.filterIsInstance<Subroutine>()
             subroutines.forEach { sub ->
                 subroutineMovements += AstRemove(sub, sub.parent as IStatementContainer)
-                subroutineMovements += AstInsertLast(sub.parent as IStatementContainer, sub)
+                subroutineMovements += AstInsert.last(sub.parent as IStatementContainer, sub)
             }
 
             val label = program.makeLabel("repeat", repeatLoop.position)
             val jump = program.jumpLabel(label)
             return listOf(
-                AstInsertFirst(repeatLoop.body, label),
-                AstInsertLast(repeatLoop.body, jump),
+                AstInsert.first(repeatLoop.body, label),
+                AstInsert.last(repeatLoop.body, jump),
                 AstReplaceNode(repeatLoop, repeatLoop.body, parent)
             ) + subroutineMovements
         }
@@ -646,7 +646,7 @@ _after:
             , ongoto.position)
         return listOf(
             AstReplaceNode(ongoto, replacementScope, parent),
-            AstInsertFirst(ongoto.definingScope, jumplistArray)
+            AstInsert.first(ongoto.definingScope, jumplistArray)
         )
     }
 

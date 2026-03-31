@@ -48,7 +48,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if(truepart.isNotEmpty() && elsepart.isNotEmpty()) {
             if(truepart.statements.singleOrNull() is Jump) {
                 return listOf(
-                    AstInsertAfter(parent as IStatementContainer, elsepart, ifElse),
+                    AstInsert.after(ifElse, elsepart, parent as IStatementContainer),
                     AstReplaceNode(elsepart, AnonymousScope.empty(), ifElse)
                 )
             }
@@ -56,7 +56,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
                 val invertedCondition = invertCondition(ifElse.condition, program)
                 return listOf(
                     AstReplaceNode(ifElse.condition, invertedCondition, ifElse),
-                    AstInsertAfter(parent as IStatementContainer, truepart, ifElse),
+                    AstInsert.after(ifElse, truepart, parent as IStatementContainer),
                     AstReplaceNode(elsepart, AnonymousScope.empty(), ifElse),
                     AstReplaceNode(truepart, elsepart, ifElse)
                 )

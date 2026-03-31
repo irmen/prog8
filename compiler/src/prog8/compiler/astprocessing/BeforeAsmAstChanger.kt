@@ -56,7 +56,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                 else {
                     val returnStmt = Return(arrayOf(), subroutine.position)
-                    mods += AstInsertLast(subroutine, returnStmt)
+                    mods += AstInsert.last(subroutine, returnStmt)
                 }
             } else {
                 val last = subroutine.statements.last()
@@ -68,7 +68,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                             // errors.err("subroutine is missing a return statement with value(s)", subroutine.position)
                         } else {
                             val returnStmt = Return(arrayOf(), lastStatement?.position ?: subroutine.position)
-                            mods += AstInsertLast(subroutine, returnStmt)
+                            mods += AstInsert.last(subroutine, returnStmt)
                         }
                     }
                 }
@@ -93,11 +93,11 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                         } else {
                             val zero = defaultZero(outerScope.returntypes[0].base, outerStatements[subroutineStmtIdx-1].position)
                             val returnStmt = Return(arrayOf(zero), outerStatements[subroutineStmtIdx - 1].position)
-                            mods += AstInsertAfter(outerScope, returnStmt, outerStatements[subroutineStmtIdx - 1])
+                            mods += AstInsert.after(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
                         }
                     } else {
                         val returnStmt = Return(arrayOf(), outerStatements[subroutineStmtIdx - 1].position)
-                        mods += AstInsertAfter(outerScope, returnStmt, outerStatements[subroutineStmtIdx - 1])
+                        mods += AstInsert.after(outerStatements[subroutineStmtIdx - 1], returnStmt, outerScope)
                     }
                 }
             }

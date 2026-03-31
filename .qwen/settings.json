@@ -20,7 +20,8 @@
       "Bash(paste *)",
       "Bash(echo *)",
       "Bash(cp *)",
-      "Bash(mv *)"
+      "Bash(mv *)",
+      "Bash(git stash *)"
     ]
   }
 }

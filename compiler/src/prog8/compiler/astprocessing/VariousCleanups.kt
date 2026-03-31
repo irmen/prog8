@@ -13,7 +13,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         val inheritOptions = block.definingModule.options() intersect setOf("no_symbol_prefixing", "ignore_unused") subtract block.options()
         if(inheritOptions.isNotEmpty()) {
             val directive = Directive("%option", inheritOptions.map{ DirectiveArg(it, null, block.position) }, block.position)
-            return listOf(AstInsertFirst(block, directive))
+            return listOf(AstInsert.first(block, directive))
         }
 
         return noModifications

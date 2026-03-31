@@ -75,7 +75,7 @@ internal class StatementReorderer(
                                     position = decl.position
                                 ),
                                     decl.zeroElementValue(), AssignmentOrigin.VARINIT, decl.position)
-                                return listOf(AstInsertAfter(parent as IStatementContainer, assignzero, decl))
+                                return listOf(AstInsert.after(decl, assignzero, parent as IStatementContainer))
                             }
                         }
                     } else {
@@ -87,7 +87,7 @@ internal class StatementReorderer(
                         val assign = Assignment(AssignTarget(identifier, null, null, null, false, position = pos),
                             decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
-                        return listOf(AstInsertAfter(parent as IStatementContainer, assign, decl))
+                        return listOf(AstInsert.after(decl, assign, parent as IStatementContainer))
                     }
                 }
             }
@@ -104,7 +104,7 @@ internal class StatementReorderer(
                         val assign = Assignment(AssignTarget(identifier, null, null, null, false, position = pos),
                             decl.value!!, AssignmentOrigin.VARINIT, pos)
                         decl.value = null
-                        return listOf(AstInsertAfter(parent as IStatementContainer, assign, decl))
+                        return listOf(AstInsert.after(decl, assign, parent as IStatementContainer))
                     }
                 }
             }
@@ -212,7 +212,7 @@ internal class StatementReorderer(
             // NOTE: this doesn't check if this has already been done!!!
             modifications +=
                 subs.map { AstRemove(it, subroutine) } +
-                subs.map { AstInsertLast(subroutine, it) }
+                subs.map { AstInsert.last(subroutine, it) }
         }
 
         // change 'str' and 'ubyte[]' parameters or return types into ^^ubyte

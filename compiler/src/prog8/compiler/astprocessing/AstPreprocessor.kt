@@ -144,7 +144,7 @@ class AstPreprocessor(val program: Program,
 
             for(decl in vars) {
                 if(decl.type != VarDeclType.VAR) {
-                    movements.add(AstInsertFirst(parentscope, decl))
+                    movements.add(AstInsert.first(parentscope, decl))
                     replacements.add(AstRemove(decl, scope))
                 } else {
                     val declToInsert: VarDecl
@@ -161,7 +161,7 @@ class AstPreprocessor(val program: Program,
                                     position = decl.position
                                 )
                                 val assign = Assignment(target.copy(), decl.value!!.copy(), AssignmentOrigin.VARINIT, decl.position)
-                                replacements.add(AstInsertAfter(scope, assign, decl))
+                                replacements.add(AstInsert.after(decl, assign, scope))
                             }
                             replacements.add(AstRemove(decl, scope))
                             decl.value = null
@@ -193,7 +193,7 @@ class AstPreprocessor(val program: Program,
                             declToInsert = decl
                         }
                     }
-                    movements.add(AstInsertFirst(parentscope, declToInsert))
+                    movements.add(AstInsert.first(parentscope, declToInsert))
                 }
             }
             return movements + replacements
@@ -240,7 +240,7 @@ class AstPreprocessor(val program: Program,
                     .reversed()
                     .map { (name, value) ->
                         val decl = VarDecl(decl.type, decl.origin, decl.datatype, decl.zeropage, decl.splitwordarray, decl.arraysize, name, emptyList(), value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
-                        AstInsertAfter(parent as IStatementContainer, decl, decl)
+                        AstInsert.after(decl, decl, parent as IStatementContainer)
                     }
                 return vardecls + AstRemove(decl, parent as IStatementContainer)
             }
@@ -304,7 +304,7 @@ class AstPreprocessor(val program: Program,
                         .filter { it.name !in namesInSub && it.name !in existingVars }
                         .forEach {
                             val vardecl = VarDecl.fromParameter(it)
-                            mods += AstInsertFirst(subroutine, vardecl)
+                            mods += AstInsert.first(subroutine, vardecl)
                         }
                 }
                 if(registerParams.isNotEmpty()) {
@@ -315,7 +315,7 @@ class AstPreprocessor(val program: Program,
                             if (it.registerOrPair in Cx16VirtualRegisters || it.registerOrPair in CombinedLongRegisters) {
                                 if(it.type.isInteger || it.type.isBool || it.type.isPointer) {
                                     val mappedParamVar = VarDecl.fromParameter(it)
-                                    mods += AstInsertFirst(subroutine, mappedParamVar)
+                                    mods += AstInsert.first(subroutine, mappedParamVar)
                                 } else {
                                     errors.err("using R0-R15 as register param requires integer or boolean type", it.position)
                                 }
@@ -513,7 +513,7 @@ class AstPreprocessor(val program: Program,
          */
 
         val modifications =
-            constants.map { AstInsertBefore(parent as IStatementContainer, it, enum) } +
+            constants.map { AstInsert.before(enum, it, parent as IStatementContainer) } +
                 AstRemove(enum, parent as IStatementContainer)
 
         return modifications

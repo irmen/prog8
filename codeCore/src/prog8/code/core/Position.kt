@@ -4,13 +4,12 @@ import prog8.code.sanitize
 import prog8.code.source.SourceCode
 import java.nio.file.InvalidPathException
 import kotlin.io.path.Path
-import kotlin.io.path.toPath
 
 data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
     override fun toString(): String = "[$file: line $line col ${startCol}-${endCol}]"
 
     init {
-        if(!file.startsWith('~') ||!file.endsWith('~'))
+        if(!file.startsWith('~'))
             require(line>0 && startCol>=0 && endCol>=startCol) {
                 "Invalid position: $this"
             }

@@ -388,9 +388,9 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                         val assignMid = Assignment(assign.target.multi!![1], NumericLiteral(BaseDataType.UBYTE, mid.toDouble(), assign.position), AssignmentOrigin.USERCODE, assign.position)
                         val assignHigh = Assignment(assign.target.multi!![2], NumericLiteral(BaseDataType.UBYTE, high.toDouble(), assign.position), AssignmentOrigin.USERCODE, assign.position)
                         return listOf(
-                            AstInsertAfter(assign.parent as IStatementContainer, assignHigh, assign),
-                            AstInsertAfter(assign.parent as IStatementContainer, assignMid, assign),
-                            AstInsertAfter(assign.parent as IStatementContainer, assignLow, assign),
+                            AstInsert.after(assign, assignHigh, assign.parent as IStatementContainer),
+                            AstInsert.after(assign, assignMid, assign.parent as IStatementContainer),
+                            AstInsert.after(assign, assignLow, assign.parent as IStatementContainer),
                             AstRemove(assign, assign.parent as IStatementContainer)
                         )
                     } else {
@@ -721,5 +721,29 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
 
             return null
         }
+    }
+}
+
+/**
+ * Custom modification to shuffle operands in binary expressions.
+ * This is specific to constant folding optimization.
+ */
+private class AstShuffleOperands(
+    val expr: BinaryExpression,
+    val exprOperator: String?,
+    val subExpr: BinaryExpression,
+    val newExprLeft: Expression?,
+    val newExprRight: Expression?,
+    val newSubexprLeft: Expression?,
+    val newSubexprRight: Expression?
+) : AstModification() {
+    override val affectedNodes = listOf(expr, subExpr)
+
+    override fun perform() {
+        if(exprOperator!=null) expr.operator = exprOperator
+        if(newExprLeft!=null) expr.left = newExprLeft
+        if(newExprRight!=null) expr.right = newExprRight
+        if(newSubexprLeft!=null) subExpr.left = newSubexprLeft
+        if(newSubexprRight!=null) subExpr.right = newSubexprRight
     }
 }

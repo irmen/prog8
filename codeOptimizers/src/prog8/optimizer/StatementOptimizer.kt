@@ -103,7 +103,7 @@ class StatementOptimizer(private val program: Program,
                             functionCallStatement.void, pos
                         )
                         return listOf(
-                            AstInsertBefore(parent as IStatementContainer, chrout1, functionCallStatement),
+                            AstInsert.before(functionCallStatement, chrout1, parent as IStatementContainer),
                             AstReplaceNode(functionCallStatement, chrout2, parent)
                         )
                     }
@@ -151,7 +151,7 @@ class StatementOptimizer(private val program: Program,
                 val elsePart = AnonymousScope(ifElse.elsepart.statements, ifElse.elsepart.position)
                 return listOf(
                     AstReplaceNode(ifElse.elsepart, AnonymousScope.empty(), ifElse),
-                    AstInsertAfter(parent as IStatementContainer, elsePart, ifElse)
+                    AstInsert.after(ifElse, elsePart, parent as IStatementContainer)
                 )
             }
 
@@ -311,7 +311,7 @@ class StatementOptimizer(private val program: Program,
                                 )
                                 return listOf(
                                         AstReplaceNode(binExpr, expr2, binExpr.parent),
-                                        AstInsertAfter(parent as IStatementContainer, addConstant, assignment))
+                                        AstInsert.after(assignment, addConstant, parent as IStatementContainer))
                             } else if (op2 == "-") {
                                 // A = A +/- B - N  --->  A = A +/- B  ;  A = A - N
                                 val expr2 = BinaryExpression(binExpr.left, binExpr.operator, rExpr.left, binExpr.position)
@@ -322,7 +322,7 @@ class StatementOptimizer(private val program: Program,
                                 )
                                 return listOf(
                                         AstReplaceNode(binExpr, expr2, binExpr.parent),
-                                        AstInsertAfter(parent as IStatementContainer, subConstant, assignment))
+                                        AstInsert.after(assignment, subConstant, parent as IStatementContainer))
                             }
                         }
                     }
@@ -417,7 +417,7 @@ class StatementOptimizer(private val program: Program,
                             setSizedValue(assignment, bexpr.right, size)
                             val pointerAdd = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.left, bexpr.position)
                             val a2 = Assignment(assignment.target.copy(), pointerAdd, assignment.origin, assignment.position)
-                            return listOf(AstInsertAfter(parent as IStatementContainer, a2, assignment))
+                            return listOf(AstInsert.after(assignment, a2, parent as IStatementContainer))
                         } else if (rightDt.isPointer && !rightDt.isPointerToByte) {
                             // uword x = value + pointer  -->  x=value * sizeof,  x += pointer
                             val size = rightDt.size(options.compTarget)
@@ -425,7 +425,7 @@ class StatementOptimizer(private val program: Program,
                             assignment.linkParents(parent)
                             val pointerAdd = BinaryExpression(assignment.target.toExpression(), bexpr.operator, bexpr.right, bexpr.position)
                             val a2 = Assignment(assignment.target.copy(), pointerAdd, assignment.origin, assignment.position)
-                            return listOf(AstInsertAfter(parent as IStatementContainer, a2, assignment))
+                            return listOf(AstInsert.after(assignment, a2, parent as IStatementContainer))
                         }
                     }
                 }
@@ -495,7 +495,7 @@ class StatementOptimizer(private val program: Program,
                     val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v2, assignment.target, assignment.position)
                     return listOf(
-                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstInsert.after(assignment, ifstmt, parent as IStatementContainer),
                         AstReplaceNode(assignment, assign, parent)
                     )
                 } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
@@ -503,7 +503,7 @@ class StatementOptimizer(private val program: Program,
                     val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), ">", v1, assignment.target, assignment.position)
                     return listOf(
-                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstInsert.after(assignment, ifstmt, parent as IStatementContainer),
                         AstReplaceNode(assignment, assign, parent)
                     )
                 }
@@ -528,7 +528,7 @@ class StatementOptimizer(private val program: Program,
                     val assign = Assignment(assignment.target.copy(), v1, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v2, assignment.target, assignment.position)
                     return listOf(
-                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstInsert.after(assignment, ifstmt, parent as IStatementContainer),
                         AstReplaceNode(assignment, assign, parent)
                     )
                 } else if(v1 is NumericLiteral || v1 is IdentifierReference) {
@@ -536,7 +536,7 @@ class StatementOptimizer(private val program: Program,
                     val assign = Assignment(assignment.target.copy(), v2, AssignmentOrigin.OPTIMIZER, assignment.position)
                     val ifstmt = makeMinMaxCheckAndAssignRight(assign.target.toExpression(), "<", v1, assignment.target, assignment.position)
                     return listOf(
-                        AstInsertAfter(parent as IStatementContainer, ifstmt, assignment),
+                        AstInsert.after(assignment, ifstmt, parent as IStatementContainer),
                         AstReplaceNode(assignment, assign, parent)
                     )
                 }

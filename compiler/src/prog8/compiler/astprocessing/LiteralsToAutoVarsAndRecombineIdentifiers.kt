@@ -66,7 +66,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                         val identifier = IdentifierReference(listOf(vardecl2.name), vardecl2.position)
                         return listOf(
                             AstReplaceNode(array, identifier, parent),
-                            AstInsertFirst(array.definingScope, vardecl2)
+                            AstInsert.first(array.definingScope, vardecl2)
                         )
                     }
                 }
@@ -108,7 +108,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     position = decl.position
                 ), decl.value!!, AssignmentOrigin.VARINIT, decl.position)
                 decl.value = null
-                modifications += AstInsertAfter(parent as IStatementContainer, multiassignFuncCall, decl)
+                modifications += AstInsert.after(decl, multiassignFuncCall, parent as IStatementContainer)
                 return modifications
             }
 
@@ -124,7 +124,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
             if(errors.noErrors()) {
                 // desugar into individual vardecl per name.
                 return decl.desugarMultiDecl().map {
-                    AstInsertBefore(parent as IStatementContainer, it, decl)
+                    AstInsert.before(decl, it, parent as IStatementContainer)
                 } + AstRemove(decl, parent as IStatementContainer)
             }
         }

@@ -3,79 +3,134 @@ package prog8.ast.walk
 import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
+import prog8.ast.walk.AstInsert.Companion.after
+import prog8.ast.walk.AstInsert.Companion.before
+import prog8.ast.walk.AstInsert.Companion.first
+import prog8.ast.walk.AstInsert.Companion.last
 import prog8.code.core.AssociativeOperators
 
 
-sealed class AstModification {
+/**
+ * Sealed interface for specifying where to insert a statement in [AstInsert].
+ */
+sealed interface InsertPosition {
+    object First : InsertPosition
+    object Last : InsertPosition
+    data class After(val statement: Statement) : InsertPosition
+    data class Before(val statement: Statement) : InsertPosition
+}
+
+/**
+ * Base class for AST modifications.
+ *
+ * Modifications are created during AST traversal and applied afterwards via
+ * [AstWalker.applyModifications]. The [perform] method is not thread-safe.
+ */
+open class AstModification {
+    /** Nodes that will be affected when [perform] is called. */
+    open val affectedNodes: List<Node> = emptyList()
+
+    /** Apply the modification to the AST. */
     open fun perform() {}
 }
 
+/**
+ * Removes a node from its parent statement container.
+ */
 open class AstRemove(val node: Node, val parent: IStatementContainer) : AstModification() {
+    init {
+        require(node.parent === parent) {
+            "node's parent (${node.parent}) must match provided parent ($parent)"
+        }
+    }
+
+    override val affectedNodes = listOf(node)
+
     override fun perform() {
         if (!parent.statements.remove(node)) {
             val glob = parent as? GlobalNamespace
-            if(glob!=null && !glob.modules.remove(node))
+            if (glob != null && !glob.modules.remove(node))
                 throw FatalAstException("attempt to remove non-existing node $node")
         }
     }
 }
 
-open class AstSetExpression(private val setter: (newExpr: Expression) -> Unit, private val newExpr: Expression, private val parent: Node) : AstModification() {
+/**
+ * Replaces an expression by calling a setter function.
+ */
+open class AstSetExpression(
+    private val setter: (newExpr: Expression) -> Unit,
+    private val newExpr: Expression,
+    private val parent: Node
+) : AstModification() {
+    override val affectedNodes = listOf(newExpr)
+
     override fun perform() {
         setter(newExpr)
         newExpr.linkParents(parent)
     }
 }
 
-open class AstInsertFirst(private val parent: IStatementContainer, private val stmt: Statement) : AstModification() {
-    override fun perform() {
-        parent.statements.add(0, stmt)
-        stmt.linkParents(parent as Node)
-    }
-}
+/**
+ * Inserts a statement at a specific position in a statement container.
+ * Use factory methods [first], [last], [after], or [before] to create instances.
+ */
+open class AstInsert private constructor(
+    private val parent: IStatementContainer,
+    private val stmt: Statement,
+    private val position: InsertPosition
+) : AstModification() {
+    override val affectedNodes = listOf(stmt)
 
-open class AstInsertLast(private val parent: IStatementContainer, private val stmt: Statement) : AstModification() {
     override fun perform() {
-        parent.statements.add(stmt)
-        stmt.linkParents(parent as Node)
-    }
-}
-
-open class AstInsertAfter(private val parent: IStatementContainer, private val stmt: Statement, private val after: Statement) : AstModification() {
-    override fun perform() {
-        val idx = parent.statements.indexOfFirst { it===after } + 1
+        val idx = when (position) {
+            InsertPosition.First -> 0
+            InsertPosition.Last -> parent.statements.size
+            is InsertPosition.After -> parent.statements.indexOfFirst { it === position.statement } + 1
+            is InsertPosition.Before -> parent.statements.indexOfFirst { it === position.statement }
+        }
         parent.statements.add(idx, stmt)
         stmt.linkParents(parent as Node)
     }
-}
 
-open class AstInsertBefore(private val parent: IStatementContainer, private val stmt: Statement, private val before: Statement) : AstModification() {
-    override fun perform() {
-        val idx = parent.statements.indexOfFirst { it===before }
-        parent.statements.add(idx, stmt)
-        stmt.linkParents(parent as Node)
+    companion object {
+        fun first(parent: IStatementContainer, stmt: Statement) =
+            AstInsert(parent, stmt, InsertPosition.First)
+
+        fun last(parent: IStatementContainer, stmt: Statement) =
+            AstInsert(parent, stmt, InsertPosition.Last)
+
+        fun after(after: Statement, stmt: Statement, parent: IStatementContainer) =
+            AstInsert(parent, stmt, InsertPosition.After(after))
+
+        fun before(before: Statement, stmt: Statement, parent: IStatementContainer) =
+            AstInsert(parent, stmt, InsertPosition.Before(before))
     }
 }
 
-open class AstReplaceNode(val node: Node, private val replacement: Node, private val parent: Node) : AstModification() {
+/**
+ * Replaces a node with another node.
+ */
+open class AstReplaceNode(
+    val node: Node,
+    private val replacement: Node,
+    private val parent: Node
+) : AstModification() {
+    override val affectedNodes = listOf(node, replacement)
+
     override fun perform() {
         parent.replaceChildNode(node, replacement)
         replacement.linkParents(parent)
     }
 }
 
-open class AstReplaceNodeSafe(val node: Node, private val replacement: Node, private val parent: Node) : AstModification() {
-    override fun perform() {
-        try {
-            parent.replaceChildNode(node, replacement)
-            replacement.linkParents(parent)
-        } catch (_: FatalAstException) {
-            // possibly because of another replacement. Ignore here, we try again later.
-        }
-    }
-}
+/**
+ * Swaps the left and right operands of a binary expression.
+ * Only valid for associative operators (e.g., `+`, `*`, `and`, `or`).
+ */
+open class AstSwapOperands(private val expr: BinaryExpression) : AstModification() {
+    override val affectedNodes = listOf(expr)
 
-open class AstSwapOperands(private val expr: BinaryExpression): AstModification() {
     override fun perform() {
         require(expr.operator in AssociativeOperators)
         val tmp = expr.left
@@ -84,29 +139,19 @@ open class AstSwapOperands(private val expr: BinaryExpression): AstModification(
     }
 }
 
-open class AstShuffleOperands(
-    val expr: BinaryExpression,
-    val exprOperator: String?,
-    val subExpr: BinaryExpression,
-    val newExprLeft: Expression?,
-    val newExprRight: Expression?,
-    val newSubexprLeft: Expression?,
-    val newSubexprRight: Expression?
+/**
+ * Flattens a nested scope by moving its statements into the parent container.
+ */
+open class AstScopeFlatten(
+    val scope: AnonymousScope,
+    val into: IStatementContainer
 ) : AstModification() {
-    override fun perform() {
-        if(exprOperator!=null) expr.operator = exprOperator
-        if(newExprLeft!=null) expr.left = newExprLeft
-        if(newExprRight!=null) expr.right = newExprRight
-        if(newSubexprLeft!=null) subExpr.left = newSubexprLeft
-        if(newSubexprRight!=null) subExpr.right = newSubexprRight
-    }
-}
+    override val affectedNodes = listOf(scope) + scope.statements
 
-open class AstScopeFlatten(val scope: AnonymousScope, val into: IStatementContainer) : AstModification() {
     override fun perform() {
         val idx = into.statements.indexOf(scope)
-        if(idx>=0) {
-            into.statements.addAll(idx+1, scope.statements)
+        if (idx >= 0) {
+            into.statements.addAll(idx + 1, scope.statements)
             scope.statements.forEach { it.parent = into as Node }
             into.statements.remove(scope)
         }
@@ -241,6 +286,27 @@ abstract class AstWalker {
     }
 
     open fun applyModifications(): Int {
+        // Build conflict map for debugging - detect nodes affected by multiple modifications
+        val nodeToModifications = mutableMapOf<Node, MutableList<AstModification>>()
+        modifications.forEach { (mod: AstModification, _, _) ->
+            mod.affectedNodes.forEach { node: Node ->
+                val list = nodeToModifications.getOrPut(node) { mutableListOf<AstModification>() }
+                list.add(mod)
+            }
+        }
+
+        // Log conflicts if any are found (helps identify optimizer bugs)
+        val conflicts = nodeToModifications.filterValues { it.size > 1 }
+        if (conflicts.isNotEmpty()) {
+            println("WARNING: ${conflicts.size} nodes affected by multiple modifications:")
+            conflicts.forEach { (node, mods) ->
+                println("  ${node::class.simpleName} at ${node.position}:")
+                mods.forEach { mod ->
+                    println("    - ${mod::class.simpleName}")
+                }
+            }
+        }
+
         // check if there are double removes, keep only the last one
         val removals = modifications.filter { it.first is AstRemove }
         if(removals.isNotEmpty()) {
