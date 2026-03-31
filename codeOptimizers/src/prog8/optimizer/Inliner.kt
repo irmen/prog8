@@ -107,7 +107,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             }
 
             if (!subroutine.isAsmSubroutine && !subroutine.inline && subroutine.parameters.isEmpty()) {
-                val containsSubsOrVariables = subroutine.statements.any { it is VarDecl || it is Subroutine }
+                val containsSubsOrVariables = subroutine.statements.any {
+                    it is Subroutine || (it is VarDecl && it.origin != VarDeclOrigin.SUBROUTINEPARAM)
+                }
                 if (!containsSubsOrVariables) {
                     if (subroutine.statements.size == 1 || (subroutine.statements.size == 2 && isEmptyReturn(subroutine.statements[1]))) {
                         if (subroutine !== program.entrypoint) {
