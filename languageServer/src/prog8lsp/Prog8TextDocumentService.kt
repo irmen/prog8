@@ -63,7 +63,7 @@ class Prog8TextDocumentService: TextDocumentService {
         
         // Parse and cache AST for the document
         astCache[params.textDocument.uri] = AstCache(
-            module = Prog8Parser.parseModule(params.textDocument.text),
+            module = Prog8Parser.parseModule(params.textDocument.text).module,
             isStale = false
         )
 
@@ -129,7 +129,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 
                 // Reparse if AST is missing or stale
                 if (cache.module == null || cache.isStale) {
-                    cache.module = Prog8Parser.parseModule(document.text)
+                    cache.module = Prog8Parser.parseModule(document.text).module
                     cache.isStale = false
                 }
                 
@@ -158,7 +158,7 @@ class Prog8TextDocumentService: TextDocumentService {
                     AstCache(module = null, isStale = true)
                 }
                 if (cache.module == null || cache.isStale) {
-                    cache.module = Prog8Parser.parseModule(document.text)
+                    cache.module = Prog8Parser.parseModule(document.text).module
                     cache.isStale = false
                 }
 
@@ -302,7 +302,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text)
+                cache.module = Prog8Parser.parseModule(document.text).module
                 cache.isStale = false
             }
 
@@ -370,7 +370,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text)
+                cache.module = Prog8Parser.parseModule(document.text).module
                 cache.isStale = false
             }
 
@@ -405,7 +405,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text)
+                cache.module = Prog8Parser.parseModule(document.text).module
                 cache.isStale = false
             }
 
@@ -423,6 +423,110 @@ class Prog8TextDocumentService: TextDocumentService {
         locations
     }
 
+    override fun documentHighlight(params: DocumentHighlightParams): CompletableFuture<MutableList<out DocumentHighlight>> = async.compute {
+        logger.config("Document highlight for ${params.textDocument.uri} at ${params.position}")
+        val highlights = mutableListOf<DocumentHighlight>()
+
+        val document = documents[params.textDocument.uri]
+        if (document != null) {
+            // Get or parse AST
+            val cache = astCache.getOrPut(params.textDocument.uri) {
+                AstCache(module = null, isStale = true)
+            }
+            if (cache.module == null || cache.isStale) {
+                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.isStale = false
+            }
+
+            cache.module?.let { module ->
+                // Find the symbol at the cursor position
+                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character)
+                if (symbol != null) {
+                    // Find all references in the document
+                    val allRefs = SymbolLookup.findAllReferences(module, symbol.name, true, params.textDocument.uri)
+                    // Convert locations to document highlights
+                    for (location in allRefs) {
+                        highlights.add(DocumentHighlight(location.range))
+                    }
+                }
+            }
+        }
+
+        highlights
+    }
+
+    // Folding range support - LSP4J 1.0.0 doesn't have the TextDocumentService.foldingRange() method
+    // The implementation is ready but requires LSP4J 0.12.0+ for the handler interface
+    // override fun foldingRange(params: FoldingRangeParams): CompletableFuture<MutableList<out FoldingRange>> = async.compute {
+    //     logger.config("Folding ranges for ${params.textDocument.uri}")
+    //     val ranges = mutableListOf<FoldingRange>()
+
+    //     val document = documents[params.textDocument.uri]
+    //     if (document != null) {
+    //         // Get or parse AST
+    //         val cache = astCache.getOrPut(params.textDocument.uri) {
+    //             AstCache(module = null, isStale = true)
+    //         }
+    //         if (cache.module == null || cache.isStale) {
+    //             cache.module = Prog8Parser.parseModule(document.text).module
+    //             cache.isStale = false
+    //         }
+
+    //         cache.module?.let { module ->
+    //             // Collect folding ranges from AST
+    //             collectFoldingRangesFromStatements(module.statements, ranges)
+    //         }
+    //     }
+
+    //     ranges
+    // }
+
+    // /**
+    //  * Recursively collect folding ranges from AST nodes.
+    //  */
+    // private fun collectFoldingRangesFromStatements(
+    //     statements: List<prog8.ast.statements.Statement>,
+    //     ranges: MutableList<FoldingRange>
+    // ) {
+    //     for (stmt in statements) {
+    //         when (stmt) {
+    //             is prog8.ast.statements.Block -> {
+    //                 // Add folding range for the block
+    //                 val startLine = stmt.position.line - 1  // Convert to 0-based
+    //                 // Estimate end line from position (simplified - uses last statement)
+    //                 val endLine = if (stmt.statements.isNotEmpty()) {
+    //                     stmt.statements.last().position.line - 1
+    //                 } else {
+    //                     startLine + 1
+    //                 }
+    //                 if (endLine > startLine) {
+    //                     ranges.add(FoldingRange(startLine, endLine, FoldingRangeKind.Region))
+    //                 }
+    //                 // Recursively collect from block's statements
+    //                 collectFoldingRangesFromStatements(stmt.statements, ranges)
+    //             }
+    //             is prog8.ast.statements.Subroutine -> {
+    //                 // Add folding range for the subroutine
+    //                 val startLine = stmt.position.line - 1  // Convert to 0-based
+    //                 // Estimate end line from position
+    //                 val endLine = if (stmt.statements.isNotEmpty()) {
+    //                     stmt.statements.last().position.line - 1
+    //                 } else {
+    //                     startLine + 1
+    //                 }
+    //                 if (endLine > startLine) {
+    //                     ranges.add(FoldingRange(startLine, endLine, FoldingRangeKind.Region))
+    //                 }
+    //                 // Recursively collect from subroutine body
+    //                 collectFoldingRangesFromStatements(stmt.statements, ranges)
+    //             }
+    //             else -> {
+    //                 // Other statements don't get folding ranges
+    //             }
+    //         }
+    //     }
+    // }
+
     override fun signatureHelp(params: SignatureHelpParams): CompletableFuture<SignatureHelp?> = async.compute {
         logger.config("Signature help for ${params.textDocument.uri} at ${params.position}")
 
@@ -433,7 +537,7 @@ class Prog8TextDocumentService: TextDocumentService {
                 AstCache(module = null, isStale = true)
             }
             if (cache.module == null || cache.isStale) {
-                cache.module = Prog8Parser.parseModule(document.text)
+                cache.module = Prog8Parser.parseModule(document.text).module
                 cache.isStale = false
             }
 
@@ -614,38 +718,34 @@ class Prog8TextDocumentService: TextDocumentService {
     private fun validateDocument(document: Prog8Document) {
         logger.config("Validating document: ${document.uri}")
         val diagnostics = mutableListOf<Diagnostic>()
-        
-        // Split text into lines for easier processing
-        val lines = document.text.lines()
-        
-        // Check for syntax errors
-        for ((lineNumber, line) in lines.withIndex()) {
-            // Check for unmatched quotes
-            val quoteCount = line.count { it == '"' }
-            if (quoteCount % 2 != 0) {
-                val range = Range(Position(lineNumber, 0), Position(lineNumber, line.length))
-                val diagnostic = Diagnostic(
-                    range,
-                    "Unmatched quotes",
-                    DiagnosticSeverity.Error,
-                    "prog8-lsp",
-                    "UnmatchedQuotes"
-                )
-                diagnostics.add(diagnostic)
-            }
 
-            // Check for common Prog8 syntax issues
-            // For example, check if a line starts with a keyword but doesn't follow proper syntax
-            if (line.trim().startsWith("sub ") && !line.contains("(")) {
-                val range = Range(Position(lineNumber, 0), Position(lineNumber, line.length))
-                val diagnostic = Diagnostic(
-                    range,
-                    "Subroutine declaration missing parentheses",
-                    DiagnosticSeverity.Error,
-                    "prog8-lsp",
-                    "InvalidSubroutine"
-                )
-                diagnostics.add(diagnostic)
+        // Parse the document and collect parser errors
+        val parseResult = Prog8Parser.parseModule(document.text)
+        
+        // Convert parse errors to diagnostics
+        for (error in parseResult.errors) {
+            diagnostics.add(error.toDiagnostic(document.uri))
+        }
+
+        // If parsing succeeded, we can do additional semantic checks
+        // For now, keep the unmatched quotes check as a fast pre-parse validation
+        // (though the parser will also catch this)
+        if (parseResult.errors.isEmpty()) {
+            val lines = document.text.lines()
+            for ((lineNumber, line) in lines.withIndex()) {
+                // Check for unmatched quotes (quick check without full parse)
+                val quoteCount = line.count { it == '"' }
+                if (quoteCount % 2 != 0) {
+                    val range = Range(Position(lineNumber, 0), Position(lineNumber, line.length))
+                    val diagnostic = Diagnostic(
+                        range,
+                        "Unmatched quotes",
+                        DiagnosticSeverity.Error,
+                        "prog8-lsp",
+                        "UnmatchedQuotes"
+                    )
+                    diagnostics.add(diagnostic)
+                }
             }
         }
 

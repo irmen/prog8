@@ -1,8 +1,7 @@
 package prog8lsp
 
-import org.eclipse.lsp4j.Location
-import org.eclipse.lsp4j.Position
-import org.eclipse.lsp4j.Range
+import org.eclipse.lsp4j.*
+import prog8.parser.ParseError
 import prog8.code.core.Position as Prog8Position
 
 /**
@@ -28,4 +27,17 @@ fun Prog8Position.toLspRange(): Range {
  */
 fun Prog8Position.toLspLocation(uri: String): Location {
     return Location(uri, toLspRange())
+}
+
+/**
+ * Convert a ParseError to an LSP Diagnostic.
+ */
+fun ParseError.toDiagnostic(uri: String): Diagnostic {
+    return Diagnostic(
+        this.position.toLspRange(),
+        this.message,
+        DiagnosticSeverity.Error,
+        "prog8-parser",
+        "SyntaxError"
+    )
 }

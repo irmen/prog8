@@ -2,27 +2,45 @@ package prog8lsp
 
 import prog8.ast.Module
 import prog8.ast.statements.Block
+import prog8.code.core.Position
 import prog8.code.source.SourceCode
+import prog8.parser.ParseError
 import prog8.parser.Prog8Parser as InternalParser
 
 /**
+ * Result of parsing that may contain errors.
+ */
+data class ParseResult(
+    val module: Module?,
+    val errors: List<ParseError>
+)
+
+/**
  * Wrapper around the internal Prog8 parser for use in the language server.
- * Provides safe parsing that returns null on errors instead of throwing exceptions.
+ * Provides safe parsing that captures errors instead of throwing exceptions.
  */
 object Prog8Parser {
 
     /**
      * Parse Prog8 source text into a Module AST.
-     * Returns null if parsing fails (syntax errors, etc.).
+     * Returns a ParseResult containing the module (if successful) and any parse errors.
      */
-    fun parseModule(text: String): Module? {
+    fun parseModule(text: String): ParseResult {
         return try {
             val sourceCode = SourceCode.Text(text)
-            InternalParser.parseModule(sourceCode)
+            val module = InternalParser.parseModule(sourceCode)
+            ParseResult(module, emptyList())
+        } catch (e: ParseError) {
+            // Capture the parse error with position and message
+            ParseResult(null, listOf(e))
         } catch (e: Exception) {
-            // Parsing failed - return null
-            // In a real implementation, we might want to collect and report these errors
-            null
+            // Wrap unexpected exceptions as parse errors
+            val parseError = ParseError(
+                message = e.message ?: "Unknown parsing error",
+                position = Position.DUMMY,
+                cause = RuntimeException(e)
+            )
+            ParseResult(null, listOf(parseError))
         }
     }
 

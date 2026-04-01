@@ -171,6 +171,15 @@ class LspTestHarness {
     }
 
     /**
+     * Request document highlights at a position.
+     */
+    fun documentHighlight(uri: String, line: Int, character: Int): List<DocumentHighlight> {
+        val params = DocumentHighlightParams(TextDocumentIdentifier(uri), Position(line, character))
+        val result = textDocumentService.documentHighlight(params).get()
+        return result
+    }
+
+    /**
      * Get diagnostics for a document.
      * Returns the most recently published diagnostics for the given URI.
      */

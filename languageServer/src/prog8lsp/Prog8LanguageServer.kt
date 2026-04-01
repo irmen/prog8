@@ -42,6 +42,14 @@ class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
         // Definition support
         capabilities.definitionProvider = Either.forLeft(true)
 
+        // Document highlight support (highlight all occurrences of symbol under cursor)
+        capabilities.documentHighlightProvider = Either.forLeft(true)
+
+        // Folding range support (code folding for blocks and subroutines)
+        // Note: LSP4J 1.0.0 has FoldingRangeRegistrationOptions but not the handler interface
+        // Folding ranges require LSP4J 0.12.0+ for full support
+        // capabilities.foldingRangeProvider = Either.forRight(FoldingRangeRegistrationOptions())
+
         // References support
         capabilities.referencesProvider = Either.forLeft(true)
 
