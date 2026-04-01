@@ -6,6 +6,7 @@ import org.eclipse.lsp4j.services.*
 import java.io.Closeable
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CompletableFuture.completedFuture
+import java.util.logging.Level
 import java.util.logging.Logger
 
 class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
@@ -13,10 +14,12 @@ class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
     private val textDocuments = Prog8TextDocumentService()
     private val workspaces = Prog8WorkspaceService()
     private val async = AsyncExecutor()
-    private val logger = Logger.getLogger(Prog8LanguageServer::class.simpleName)
+    private val logger = Logger.getLogger(Prog8LanguageServer::class.simpleName).apply {
+        level = if (isLspVerbose) Level.CONFIG else Level.INFO
+    }
 
     override fun initialize(params: InitializeParams): CompletableFuture<InitializeResult> = async.compute {
-        logger.info("Initializing LanguageServer")
+        logger.config("Initializing LanguageServer")
 
         val result = InitializeResult()
         val capabilities = ServerCapabilities()
@@ -38,7 +41,15 @@ class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
         
         // Definition support
         capabilities.definitionProvider = Either.forLeft(true)
-        
+
+        // References support
+        capabilities.referencesProvider = Either.forLeft(true)
+
+        // Signature help support
+        val signatureHelpOptions = SignatureHelpOptions()
+        signatureHelpOptions.triggerCharacters = listOf("(", ",")
+        capabilities.signatureHelpProvider = signatureHelpOptions
+
         // Code action support
         val codeActionOptions = CodeActionOptions()
         codeActionOptions.codeActionKinds = listOf(CodeActionKind.QuickFix)
@@ -72,14 +83,14 @@ class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
     override fun getWorkspaceService(): WorkspaceService = workspaces
 
     override fun connect(client: LanguageClient) {
-        logger.info("connecting to language client")
+        logger.config("connecting to language client")
         this.client = client
         workspaces.connect(client)
         textDocuments.connect(client)
     }
 
     override fun close() {
-        logger.info("closing down")
+        logger.config("closing down")
         async.shutdown(awaitTermination = true)
     }
 }

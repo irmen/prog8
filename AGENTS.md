@@ -394,6 +394,21 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - `gradle :compiler:test` - Run only compiler tests (faster)
 - `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"` - Run specific test class
 
+**Language Server test logging:**
+The languageServer tests have two verbosity levels:
+```bash
+# Normal mode - only shows test failures (silent on success)
+gradle :languageServer:test
+
+# Quiet mode - only shows failures (same as normal for tests)
+gradle :languageServer:test --quiet
+
+# Verbose mode - shows detailed LSP operation logs
+gradle :languageServer:test -Dlsp.verbose=true
+```
+
+Note: By default, Gradle only shows failed tests. Passed and skipped tests are silent.
+
 **Test filtering patterns:**
 
 | Pattern | Example | Works? |

@@ -214,6 +214,15 @@ If multiple options are listed above, you can select which one you want to launc
 **Syntax highlighting:** for a few different editors, syntax highlighting definition files are provided.
 Look in the :source:`syntax-files <syntax-files>` directory in the github repository to find them.
 
+.. index:: pair: Tools; Language Server Protocol
+
+**Language Server Protocol (LSP):** Prog8 has a dedicated language server that provides IDE-like features
+for editors that support LSP (such as Kate, Vim, VS Code, and many others).
+The language server currently supports a few limited things such as document symbol overview and go to definition.
+Other features will be added in the future.
+The language server is located in the :source:`languageServer <languageServer>` directory.
+To use it, configure your editor to launch ``prog8-language-server`` as the LSP server for ``.p8`` files.
+
 .. index:: pair: Tools; CTags
 
 **CTags:** for editors that support them, such as Vim, there is an effort by a member of the cummunity to provide "ctags" files for Prog8.

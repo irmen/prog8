@@ -73,6 +73,9 @@ subprojects {
         // Enable concurrent test execution for Kotest
         // Set parallelism to number of CPU cores
         jvmArgs("-Dkotest.framework.parallelism=${Runtime.getRuntime().availableProcessors()}")
+        
+        // Disable Kotest autoscan warning
+        jvmArgs("-Dkotest.framework.classpath.scanning.autoscan.disable=true")
 
         // Enable Gradle's parallel test execution (runs multiple test classes concurrently)
         // Use 50% of available processors to avoid over-subscription
@@ -87,9 +90,9 @@ subprojects {
             }
         }
 
-        // Show test results - only show skipped and failed to reduce noise
+        // Show test results - only show failures to reduce noise
         testLogging {
-            events("skipped", "failed")
+            events("failed")
             // Show full exception details for failures
             exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
             showExceptions = true
