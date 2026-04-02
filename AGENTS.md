@@ -409,22 +409,37 @@ gradle :languageServer:test -Dlsp.verbose=true
 
 Note: By default, Gradle only shows failed tests. Passed and skipped tests are silent.
 
-**Test filtering patterns:**
+**⚠️ CRITICAL: Test Filtering Patterns - Read This First!**
+
+Gradle's `--tests` filter has **strict rules** that are easy to get wrong:
 
 | Pattern | Example | Works? |
 |---------|---------|--------|
-| Full class name | `--tests "prog8tests.compiler.TestOptimization"` | ✅ Yes |
+| **Full class name** | `--tests "prog8tests.compiler.TestOptimization"` | ✅ **USE THIS** |
 | Wildcard at END | `--tests "prog8tests.compiler.Test*"` | ✅ Yes |
 | Wildcard on package | `--tests "prog8tests.compiler.*"` | ✅ Yes |
-| Wildcard at START | `--tests "*TestOptimization"` | ❌ No |
-| Test description | `--tests "*Optimization*inline*"` | ❌ No |
+| **Wildcard at START** | `--tests "*TestOptimization"` | ❌ **FAILS SILENTLY** |
+| Test description | `--tests "*Optimization*inline*"` | ❌ **FAILS SILENTLY** |
+
+**✅ CORRECT - Always use exact fully qualified class name:**
+```bash
+gradle :compiler:test --tests "prog8tests.vm.TestCompilerVirtual"
+gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"
+```
+
+**❌ WRONG - These patterns FAIL (tests won't run, but gradle reports success):**
+```bash
+gradle :compiler:test --tests "*TestCompilerVirtual"        # FAILS
+gradle :compiler:test --tests "*TestOptimization*"          # FAILS
+gradle :compiler:test --tests "*Optimization*inline*"       # FAILS
+```
 
 **Alternative with `-PtestFilter`** (supports wildcards anywhere):
 ```bash
-gradle test -PtestFilter="*Optimization"
+gradle test -PtestFilter="*Optimization"    # Works with wildcards
 ```
 
-**Why the restrictions?** Gradle's `--tests` filter requires the **fully qualified class name**. Wildcards work as **suffixes** only. KoTest test names like `"inline multi-value void"` are _descriptions_, not method names, so you cannot filter by them.
+**Why the restrictions?** Gradle's `--tests` filter matches **fully qualified class names only**. Wildcards work as **suffixes** (e.g., `Test*`) but NOT as prefixes (e.g., `*Test`). KoTest test names like `"inline multi-value void"` are _descriptions_, not method names, so you cannot filter by them.
 
 **To find failing tests after a run:**
 ```bash

@@ -4,6 +4,7 @@ import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.collections.shouldBeIn
+import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.ints.shouldBeLessThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
@@ -366,6 +367,75 @@ main {
         val instructions = start.chunks.flatMap { c->c.instructions }
         instructions.size shouldBe 11
         instructions.last().opcode shouldBe Opcode.RETURN
+    }
+
+    test("if-expression skips redundant CMPI when condition sets flags") {
+        val src = """
+main {
+    sub start() {
+        bool flag = true
+        cx16.r0L = if flag then 1 else 0
+    }
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val start = irProgram.blocks[0].children[0] as IRSubroutine
+        val instructions = start.chunks.flatMap { c->c.instructions }
+
+        // Find LOADM for 'flag' variable - use contains match since scoped name may vary
+        val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.labelSymbol?.contains("flag") == true }
+        loadmIdx shouldBeGreaterThan -1
+
+        // After LOADM, there should be a BSTEQ/BSTNE branch, not CMPI #0
+        val nextInstr = instructions[loadmIdx + 1]
+        nextInstr.opcode shouldBeIn setOf(Opcode.BSTEQ, Opcode.BSTNE)
+    }
+
+    test("if-statement skips redundant CMPI when condition sets flags") {
+        val src = """
+main {
+    sub start() {
+        bool flag = true
+        if flag {
+            cx16.r0L = 1
+        } else {
+            cx16.r0L = 0
+        }
+    }
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val start = irProgram.blocks[0].children[0] as IRSubroutine
+        val instructions = start.chunks.flatMap { c->c.instructions }
+
+        // Find LOADM for 'flag' variable - use contains match since scoped name may vary
+        val loadmIdx = instructions.indexOfFirst { it.opcode == Opcode.LOADM && it.labelSymbol?.contains("flag") == true }
+        loadmIdx shouldBeGreaterThan -1
+
+        // After LOADM, there should be a BSTEQ/BSTNE branch, not CMPI #0
+        val nextInstr = instructions[loadmIdx + 1]
+        nextInstr.opcode shouldBeIn setOf(Opcode.BSTEQ, Opcode.BSTNE)
+    }
+
+    test("if-expression keeps CMPI when condition doesn't set flags") {
+        val src = """
+main {
+    sub start() {
+        sub getflag() -> bool { return true }
+        cx16.r0L = if getflag() then 1 else 0
+    }
+}"""
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly=true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irProgram = IRFileReader().read(virtfile)
+        val start = irProgram.blocks[0].children[0] as IRSubroutine
+        val instructions = start.chunks.flatMap { c->c.instructions }
+
+        // Should contain CMPI #0 after function call (since CALL doesn't set flags)
+        val cmpiInstr = instructions.find { it.opcode == Opcode.CMPI && it.immediate == 0 }
+        cmpiInstr shouldNotBe null
     }
 
     test("repeat counts (const)") {

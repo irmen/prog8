@@ -3,6 +3,14 @@ package prog8.codegen.intermediate
 import prog8.code.core.IErrorReporter
 import prog8.intermediate.*
 
+/**
+ * Represents what value a register currently holds for LOADR forwarding optimization.
+ */
+private sealed class RegisterContent {
+    data class Constant(val value: Any) : RegisterContent()  // Int or Double
+    data class Register(val originalReg: Int) : RegisterContent()
+}
+
 class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: Boolean) {
     fun optimize(optimizationsEnabled: Boolean, errors: IErrorReporter) {
         if(!optimizationsEnabled)
@@ -55,6 +63,8 @@ class IRPeepholeOptimizer(private val irprog: IRProgram, private val retainSSA: 
                                 || cleanupPushPop(chunk1, indexedInstructions)
                                 || simplifyConstantReturns(chunk1, indexedInstructions)
                                 || removeNeedlessLoads(chunk1, indexedInstructions)
+                                || removeDeadStores(chunk1, indexedInstructions)
+                                // || removeLoadrForwarding(chunk1, indexedInstructions)  // DISABLED - needs debugging
                                 || removeNops(chunk1, indexedInstructions)   // last time, in case one of the optimizers replaced something with a nop
                     } while (changed)
                 }
@@ -521,11 +531,11 @@ jump p8_label_gen_2
                 Opcode.ADDR -> optimizeImmediateLoadAssociative(Opcode.ADD)
                 Opcode.MULR -> optimizeImmediateLoadAssociative(Opcode.MUL)
                 Opcode.MULSR -> optimizeImmediateLoadAssociative(Opcode.MULS)
-//                Opcode.SUBR -> TODO("ir peephole Subr")
-//                Opcode.DIVR -> TODO("ir peephole Divr")
-//                Opcode.DIVSR -> TODO("ir peephole Divsr")
-//                Opcode.MODR -> TODO("ir peephole Modr")
-//                Opcode.DIVMODR -> TODO("ir peephole DivModr")
+                Opcode.SUBR -> optimizeImmediateLoadAssociative(Opcode.SUB)
+                Opcode.DIVR -> optimizeImmediateLoadAssociative(Opcode.DIV)
+                Opcode.DIVSR -> optimizeImmediateLoadAssociative(Opcode.DIVS)
+                Opcode.MODR -> optimizeImmediateLoadAssociative(Opcode.MOD)
+                // Opcode.DIVMODR - skipped, no immediate DIVMOD variant exists
                 else -> {}
             }
         }
@@ -593,4 +603,103 @@ jump p8_label_gen_2
         }
         return changed
     }
+
+    private fun removeDeadStores(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        // Detect and remove dead stores: when a register is written but never read before being overwritten.
+        // Example:
+        //   LOAD r1, #5      <- dead store (r1 overwritten before use)
+        //   LOAD r1, #10
+        //   USE r1
+        
+        // Track for each register: (index of last write, whether value was read since)
+        val pendingWrites = mutableMapOf<Int, Pair<Int, Boolean>>()  // reg -> (writeIdx, wasRead)
+        val deadStores = mutableSetOf<Int>()
+
+        indexedInstructions.forEach { (idx, ins) ->
+            val formats = instructionFormats.getValue(ins.opcode)
+            val format = formats[ins.type] ?: formats[null]
+
+            // First, check if this instruction READS any registers
+            if(format?.reg1 == OperandDirection.READ || format?.reg1 == OperandDirection.READWRITE) {
+                val reg = ins.reg1 ?: ins.fpReg1
+                if(reg != null) {
+                    val existing = pendingWrites[reg]
+                    if(existing != null) {
+                        pendingWrites[reg] = existing.first to true
+                    }
+                }
+            }
+            if(format?.reg2 == OperandDirection.READ || format?.reg2 == OperandDirection.READWRITE) {
+                val reg = ins.reg2 ?: ins.fpReg2
+                if(reg != null) {
+                    val existing = pendingWrites[reg]
+                    if(existing != null) {
+                        pendingWrites[reg] = existing.first to true
+                    }
+                }
+            }
+            if(format?.reg3 == OperandDirection.READ || format?.reg3 == OperandDirection.READWRITE) {
+                val reg = ins.reg3
+                if(reg != null) {
+                    val existing = pendingWrites[reg]
+                    if(existing != null) {
+                        pendingWrites[reg] = existing.first to true
+                    }
+                }
+            }
+
+            // Then, check if this instruction WRITES to any registers
+            if(format?.reg1 == OperandDirection.WRITE || format?.reg1 == OperandDirection.READWRITE) {
+                val reg = ins.reg1 ?: ins.fpReg1
+                if(reg != null && reg != 0) {
+                    // Check if previous write to this reg was dead (never read before this overwrite)
+                    val existing = pendingWrites[reg]
+                    if(existing != null && !existing.second) {
+                        deadStores.add(existing.first)
+                    }
+                    // Record this new write as pending (not yet read)
+                    pendingWrites[reg] = idx to false
+                }
+            }
+        }
+        
+        // Any remaining pending writes that were never read are also dead
+        // (unless they're the final value needed - but we can't know that here)
+        // Actually, we should NOT remove these because they might be the final value
+        
+        // Remove dead stores (in reverse order to preserve indices)
+        var changed = false
+        deadStores.sortedDescending().forEach { idx ->
+            if(idx < chunk.instructions.size) {
+                chunk.instructions.removeAt(idx)
+                changed = true
+            }
+        }
+        return changed
+    }
+
+    private fun isRegisterRead(ins: IRInstruction, reg: Int): Boolean {
+        // Check if the instruction reads from the given register
+        val formats = instructionFormats.getValue(ins.opcode)
+        val format = formats[ins.type] ?: formats[null]
+        
+        val reg1Read = (format?.reg1 == OperandDirection.READ || format?.reg1 == OperandDirection.READWRITE) && (ins.reg1 == reg || ins.fpReg1 == reg)
+        val reg2Read = (format?.reg2 == OperandDirection.READ || format?.reg2 == OperandDirection.READWRITE) && (ins.reg2 == reg || ins.fpReg2 == reg)
+        val reg3Read = (format?.reg3 == OperandDirection.READ || format?.reg3 == OperandDirection.READWRITE) && (ins.reg3 == reg)
+        
+        return reg1Read || reg2Read || reg3Read
+    }
+
+    //private fun removeLoadrForwarding(chunk: IRCodeChunk, indexedInstructions: List<IndexedValue<IRInstruction>>): Boolean {
+        // Forward LOADR instructions to their original source.
+        // Example:
+        //   LOAD r1, #5
+        //   LOADR r2, r1     -> LOAD r2, #5
+        //   LOADR r3, r2     -> LOAD r3, #5
+        
+        // todo: This needs more careful implementation considering:
+        //     - Cross-chunk register usage
+        //     - Function call side effects
+        //     - Proper invalidation of register tracking
+    //}
 }
