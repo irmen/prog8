@@ -180,6 +180,37 @@ class LspTestHarness {
     }
 
     /**
+     * Request document links.
+     */
+    fun documentLinks(uri: String): List<DocumentLink> {
+        val params = DocumentLinkParams(TextDocumentIdentifier(uri))
+        val result = textDocumentService.documentLink(params).get()
+        return result
+    }
+
+    /**
+     * Request workspace symbols.
+     */
+    fun workspaceSymbols(query: String = ""): List<WorkspaceSymbol> {
+        val params = WorkspaceSymbolParams(query)
+        val result = server.workspaceService.symbol(params).get()
+        return result.right ?: emptyList()
+    }
+
+    /**
+     * Request code actions for diagnostics.
+     */
+    fun codeActions(uri: String, diagnostics: List<Diagnostic>): List<CodeAction> {
+        val params = CodeActionParams(
+            TextDocumentIdentifier(uri),
+            Range(Position(0, 0), Position(0, 0)),
+            CodeActionContext(diagnostics)
+        )
+        val result = textDocumentService.codeAction(params).get()
+        return result.mapNotNull { it.right }
+    }
+
+    /**
      * Get diagnostics for a document.
      * Returns the most recently published diagnostics for the given URI.
      */

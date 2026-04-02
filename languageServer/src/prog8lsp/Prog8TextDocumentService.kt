@@ -43,8 +43,11 @@ class Prog8TextDocumentService: TextDocumentService {
     // In-memory document store
     private val documents = mutableMapOf<String, Prog8Document>()
     
+    // Store last diagnostics for code actions
+    private val lastDiagnostics = mutableMapOf<String, List<Diagnostic>>()
+    
     // Cached ASTs per document (to avoid reparsing on every request)
-    private val astCache = mutableMapOf<String, AstCache>()
+    internal val astCache = mutableMapOf<String, AstCache>()
 
     fun connect(client: LanguageClient) {
         this.client = client
@@ -455,77 +458,112 @@ class Prog8TextDocumentService: TextDocumentService {
         highlights
     }
 
-    // Folding range support - LSP4J 1.0.0 doesn't have the TextDocumentService.foldingRange() method
-    // The implementation is ready but requires LSP4J 0.12.0+ for the handler interface
-    // override fun foldingRange(params: FoldingRangeParams): CompletableFuture<MutableList<out FoldingRange>> = async.compute {
-    //     logger.config("Folding ranges for ${params.textDocument.uri}")
-    //     val ranges = mutableListOf<FoldingRange>()
+    override fun documentLink(params: DocumentLinkParams): CompletableFuture<MutableList<out DocumentLink>> = async.compute {
+        logger.config("Document links for ${params.textDocument.uri}")
+        val links = mutableListOf<DocumentLink>()
 
-    //     val document = documents[params.textDocument.uri]
-    //     if (document != null) {
-    //         // Get or parse AST
-    //         val cache = astCache.getOrPut(params.textDocument.uri) {
-    //             AstCache(module = null, isStale = true)
-    //         }
-    //         if (cache.module == null || cache.isStale) {
-    //             cache.module = Prog8Parser.parseModule(document.text).module
-    //             cache.isStale = false
-    //         }
+        val document = documents[params.textDocument.uri]
+        if (document != null) {
+            val lines = document.text.lines()
+            for ((lineNum, line) in lines.withIndex()) {
+                // Look for %import directives
+                val importMatch = Regex("""%import\s+(\w+)""").find(line)
+                if (importMatch != null) {
+                    val moduleName = importMatch.groupValues[1]
+                    val startCol = importMatch.range.first
+                    val endCol = importMatch.range.last + 1
 
-    //         cache.module?.let { module ->
-    //             // Collect folding ranges from AST
-    //             collectFoldingRangesFromStatements(module.statements, ranges)
-    //         }
-    //     }
+                    // Create a link for the module name
+                    val range = Range(
+                        Position(lineNum, startCol),
+                        Position(lineNum, endCol)
+                    )
+                    
+                    // Check if it's a built-in library module
+                    // These are the module names users actually use in %import statements
+                    // The compiler resolves these to target-specific versions automatically
+                    val builtinModules = setOf(
+                        // Core libraries (available on all targets)
+                        "bcd", "buffers", "compression", "conv", "coroutines",
+                        "math", "prog8_lib", "prog8_math", "sorting", "strings",
+                        "test_stack", "wavfile",
+                        
+                        // Target-specific modules (compiler resolves to correct version)
+                        "diskio", "floats", "graphics", "syslib", "textio", "sys",
+                        "petsnd", "petgfx",
+                        
+                        // CX16 specific modules
+                        "adpcm", "bmx", "emudbg", "gfx_hires", "gfx_lores",
+                        "monogfx", "palette", "psg", "psg2", "sprites", "verafx",
+                        
+                        // Common aliases
+                        "cbm", "memory", "txt"
+                    )
+                    
+                    val link = if (moduleName in builtinModules) {
+                        // For built-in modules, use a special URI that indicates it's a library module
+                        // The actual file is in the compiler JAR at /prog8lib/
+                        DocumentLink(range, "prog8lib://$moduleName.p8")
+                    } else {
+                        // For user modules, try to resolve relative to current file
+                        DocumentLink(range, "file:///${moduleName}.p8")
+                    }
+                    link.tooltip = if (moduleName in builtinModules) {
+                        "Built-in library module: $moduleName"
+                    } else {
+                        "Open module: $moduleName"
+                    }
+                    links.add(link)
+                }
+            }
+        }
 
-    //     ranges
-    // }
+        links
+    }
 
-    // /**
-    //  * Recursively collect folding ranges from AST nodes.
-    //  */
-    // private fun collectFoldingRangesFromStatements(
-    //     statements: List<prog8.ast.statements.Statement>,
-    //     ranges: MutableList<FoldingRange>
-    // ) {
-    //     for (stmt in statements) {
-    //         when (stmt) {
-    //             is prog8.ast.statements.Block -> {
-    //                 // Add folding range for the block
-    //                 val startLine = stmt.position.line - 1  // Convert to 0-based
-    //                 // Estimate end line from position (simplified - uses last statement)
-    //                 val endLine = if (stmt.statements.isNotEmpty()) {
-    //                     stmt.statements.last().position.line - 1
-    //                 } else {
-    //                     startLine + 1
-    //                 }
-    //                 if (endLine > startLine) {
-    //                     ranges.add(FoldingRange(startLine, endLine, FoldingRangeKind.Region))
-    //                 }
-    //                 // Recursively collect from block's statements
-    //                 collectFoldingRangesFromStatements(stmt.statements, ranges)
-    //             }
-    //             is prog8.ast.statements.Subroutine -> {
-    //                 // Add folding range for the subroutine
-    //                 val startLine = stmt.position.line - 1  // Convert to 0-based
-    //                 // Estimate end line from position
-    //                 val endLine = if (stmt.statements.isNotEmpty()) {
-    //                     stmt.statements.last().position.line - 1
-    //                 } else {
-    //                     startLine + 1
-    //                 }
-    //                 if (endLine > startLine) {
-    //                     ranges.add(FoldingRange(startLine, endLine, FoldingRangeKind.Region))
-    //                 }
-    //                 // Recursively collect from subroutine body
-    //                 collectFoldingRangesFromStatements(stmt.statements, ranges)
-    //             }
-    //             else -> {
-    //                 // Other statements don't get folding ranges
-    //             }
-    //         }
-    //     }
-    // }
+    override fun codeAction(params: CodeActionParams): CompletableFuture<MutableList<Either<Command, CodeAction>>> = async.compute {
+        logger.config("Code actions for ${params.textDocument.uri}")
+        val actions = mutableListOf<Either<Command, CodeAction>>()
+
+        val diagnostics = params.context.diagnostics
+        val uri = params.textDocument.uri
+
+        for (diagnostic in diagnostics) {
+            when (diagnostic.code?.left) {
+                "UnmatchedQuotes" -> {
+                    // Offer to add closing quote at end of line
+                    val action = CodeAction()
+                    action.title = "Add closing quote"
+                    action.kind = CodeActionKind.QuickFix
+                    action.diagnostics = listOf(diagnostic)
+                    action.isPreferred = true
+                    
+                    // Create text edit to add closing quote
+                    val edit = TextEdit(
+                        Range(diagnostic.range.end, diagnostic.range.end),
+                        "\""
+                    )
+                    val workspaceEdit = WorkspaceEdit(mapOf(uri to listOf(edit)))
+                    action.edit = workspaceEdit
+                    
+                    actions.add(Either.forRight(action))
+                }
+                "SyntaxError" -> {
+                    // For syntax errors, we can't auto-fix but can show the error message
+                    val action = CodeAction()
+                    action.title = "Syntax error: ${diagnostic.message}"
+                    action.kind = CodeActionKind.QuickFix
+                    action.diagnostics = listOf(diagnostic)
+                    // Mark as disabled (can't auto-fix)
+                    action.isPreferred = false
+                    
+                    actions.add(Either.forRight(action))
+                }
+            }
+        }
+
+        actions
+    }
 
     override fun signatureHelp(params: SignatureHelpParams): CompletableFuture<SignatureHelp?> = async.compute {
         logger.config("Signature help for ${params.textDocument.uri} at ${params.position}")
@@ -647,43 +685,8 @@ class Prog8TextDocumentService: TextDocumentService {
             
             return@compute WorkspaceEdit()
         }
-        
+
         WorkspaceEdit()
-    }
-
-    override fun codeAction(params: CodeActionParams): CompletableFuture<MutableList<Either<Command, CodeAction>>> = async.compute {
-        logger.config("Code actions for ${params.textDocument.uri}")
-
-        // Get document from our store
-        val document = documents[params.textDocument.uri]
-        if (document != null) {
-            val actions = mutableListOf<Either<Command, CodeAction>>()
-
-            // Check diagnostics to provide quick fixes
-            for (diagnostic in params.context.diagnostics) {
-                when (diagnostic.code?.left) {
-                    "UnmatchedQuotes" -> {
-                        val action = CodeAction()
-                        action.title = "Add closing quote"
-                        action.kind = CodeActionKind.QuickFix
-                        action.diagnostics = mutableListOf(diagnostic)
-                        action.isPreferred = true
-                        // TODO: Add actual TextEdit to fix the issue
-                        actions.add(Either.forRight(action))
-                    }
-                }
-            }
-
-            // Add some general code actions
-            val organizeImportsAction = CodeAction()
-            organizeImportsAction.title = "Organize imports"
-            organizeImportsAction.kind = CodeActionKind.SourceOrganizeImports
-            actions.add(Either.forRight(organizeImportsAction))
-
-            return@compute actions
-        }
-
-        mutableListOf<Either<Command, CodeAction>>()
     }
 
     private fun getWordAtPosition(document: Prog8Document, position: org.eclipse.lsp4j.Position): String {
@@ -721,7 +724,7 @@ class Prog8TextDocumentService: TextDocumentService {
 
         // Parse the document and collect parser errors
         val parseResult = Prog8Parser.parseModule(document.text)
-        
+
         // Convert parse errors to diagnostics
         for (error in parseResult.errors) {
             diagnostics.add(error.toDiagnostic(document.uri))
@@ -748,6 +751,9 @@ class Prog8TextDocumentService: TextDocumentService {
                 }
             }
         }
+
+        // Store diagnostics for code actions
+        lastDiagnostics[document.uri] = diagnostics
 
         client?.publishDiagnostics(PublishDiagnosticsParams(document.uri, diagnostics))
     }

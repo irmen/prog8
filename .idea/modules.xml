@@ -2,7 +2,6 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/beanshell/beanshell.iml" filepath="$PROJECT_DIR$/beanshell/beanshell.iml" />
       <module fileurl="file://$PROJECT_DIR$/benchmark-program/benchmark-program.iml" filepath="$PROJECT_DIR$/benchmark-program/benchmark-program.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeCore/codeCore.iml" filepath="$PROJECT_DIR$/codeCore/codeCore.iml" />
       <module fileurl="file://$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" filepath="$PROJECT_DIR$/codeGenCpu6502/codeGenCpu6502.iml" />

@@ -22,6 +22,7 @@ parser/**/*.interp
 parser/**/*.tokens
 parser/**/*.java
 compiler/src/prog8/buildversion/*
+languageServer/src/prog8/buildversion/*
 *.py[cod]
 *.egg
 *.egg-info

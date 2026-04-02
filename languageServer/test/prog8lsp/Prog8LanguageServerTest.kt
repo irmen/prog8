@@ -2,8 +2,11 @@ package prog8lsp
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.collections.shouldNotBeEmpty
+import io.kotest.matchers.ints.shouldBeGreaterThanOrEqual
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 
 /**
  * Tests for the Prog8 Language Server features.
@@ -321,5 +324,139 @@ main {
 
         // Parser should catch at least one syntax error
         diagnostics.shouldNotBeEmpty()
+    }
+
+    test("document links - should find %import directives") {
+        val code = """
+%import textio
+%import math
+%import strings
+%import psg
+%import mymodule
+
+main {
+    sub start() {
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+
+        val links = harness.documentLinks(testUri)
+
+        // Should find links for all %import statements
+        links.size shouldBe 5
+        
+        // Check built-in module links
+        val textioLink = links.find { it.tooltip?.contains("textio") == true }
+        textioLink shouldNotBe null
+        textioLink!!.tooltip shouldContain "Built-in"
+        textioLink.target shouldContain "prog8lib://textio"
+        
+        val stringsLink = links.find { it.tooltip?.contains("strings") == true }
+        stringsLink shouldNotBe null
+        stringsLink!!.tooltip shouldContain "Built-in"
+        
+        val psgLink = links.find { it.tooltip?.contains("psg") == true }
+        psgLink shouldNotBe null
+        psgLink!!.tooltip shouldContain "Built-in"
+        
+        // Check user module link
+        val mymoduleLink = links.find { it.tooltip?.contains("mymodule") == true }
+        mymoduleLink shouldNotBe null
+        mymoduleLink!!.tooltip shouldNotContain "Built-in"
+        mymoduleLink.target shouldContain "file:///"
+    }
+
+    test("workspace symbols - should find blocks and subroutines") {
+        val code = """
+main {
+    sub start() {
+    }
+    sub helper() {
+    }
+}
+data {
+    sub get_value() -> ubyte {
+        return 0
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+
+        val symbols = harness.workspaceSymbols()
+
+        // Should find blocks and subroutines
+        symbols.size shouldBeGreaterThanOrEqual 4  // main, data, start, helper, get_value
+    }
+
+    test("workspace symbols - should filter by query") {
+        val code = """
+main {
+    sub start() {
+    }
+    sub helper() {
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+
+        // Search for "helper"
+        val symbols = harness.workspaceSymbols("helper")
+
+        // Should only find helper
+        symbols.size shouldBe 1
+        symbols[0].name shouldBe "helper"
+    }
+
+    test("code actions - should offer fix for unmatched quotes") {
+        val code = """
+main {
+    sub start() {
+        txt.print("hello)
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+
+        val diagnostics = harness.getDiagnostics(testUri)
+        
+        // Should have either UnmatchedQuotes or SyntaxError
+        diagnostics.shouldNotBeEmpty()
+        
+        val unmatchedQuote = diagnostics.find { it.code?.left == "UnmatchedQuotes" }
+        val syntaxError = diagnostics.find { it.code?.left == "SyntaxError" }
+        
+        // Test code action for whichever error we got
+        val diagnosticToTest = unmatchedQuote ?: syntaxError
+        diagnosticToTest shouldNotBe null
+
+        // Request code actions for this diagnostic
+        val actions = harness.codeActions(testUri, listOf(diagnosticToTest!!))
+
+        // Should offer a quick fix or show error message
+        actions.shouldNotBeEmpty()
+    }
+
+    test("code actions - should show syntax error message") {
+        val code = """
+main {
+    sub start() {
+        ubyte x =
+    }
+}
+"""
+        harness.openDocument(testUri, code)
+
+        val diagnostics = harness.getDiagnostics(testUri)
+        val syntaxError = diagnostics.find { it.code?.left == "SyntaxError" }
+        syntaxError shouldNotBe null
+
+        // Request code actions for this diagnostic
+        val actions = harness.codeActions(testUri, listOf(syntaxError!!))
+
+        // Should show error message action
+        actions.shouldNotBeEmpty()
+        val errorAction = actions.find { it.title.contains("Syntax error") }
+        errorAction shouldNotBe null
     }
 })

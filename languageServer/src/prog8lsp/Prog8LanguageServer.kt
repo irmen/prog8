@@ -45,10 +45,11 @@ class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
         // Document highlight support (highlight all occurrences of symbol under cursor)
         capabilities.documentHighlightProvider = Either.forLeft(true)
 
-        // Folding range support (code folding for blocks and subroutines)
-        // Note: LSP4J 1.0.0 has FoldingRangeRegistrationOptions but not the handler interface
-        // Folding ranges require LSP4J 0.12.0+ for full support
-        // capabilities.foldingRangeProvider = Either.forRight(FoldingRangeRegistrationOptions())
+        // Document link support (clickable %import statements)
+        capabilities.documentLinkProvider = DocumentLinkOptions()
+
+        // Workspace symbol support (search for symbols across all files)
+        capabilities.workspaceSymbolProvider = Either.forLeft(true)
 
         // References support
         capabilities.referencesProvider = Either.forLeft(true)
@@ -95,6 +96,8 @@ class Prog8LanguageServer: LanguageServer, LanguageClientAware, Closeable {
         this.client = client
         workspaces.connect(client)
         textDocuments.connect(client)
+        // Give workspace service access to AST cache for workspace symbols
+        workspaces.setAstCache(textDocuments.astCache)
     }
 
     override fun close() {

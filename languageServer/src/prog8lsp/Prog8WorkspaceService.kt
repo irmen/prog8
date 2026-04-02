@@ -10,9 +10,14 @@ import java.util.logging.Logger
 class Prog8WorkspaceService: WorkspaceService {
     private var client: LanguageClient? = null
     private val logger = Logger.getLogger(Prog8WorkspaceService::class.simpleName)
+    private var astCache: MutableMap<String, AstCache>? = null
 
     fun connect(client: LanguageClient) {
         this.client = client
+    }
+
+    fun setAstCache(cache: MutableMap<String, AstCache>) {
+        astCache = cache
     }
 
     override fun executeCommand(params: ExecuteCommandParams): CompletableFuture<Any> {
@@ -21,17 +26,68 @@ class Prog8WorkspaceService: WorkspaceService {
     }
 
     override fun symbol(params: WorkspaceSymbolParams): CompletableFuture<Either<MutableList<out SymbolInformation>, MutableList<out WorkspaceSymbol>>> {
-        logger.info("symbol $params")
-        // TODO: Implement workspace symbol search
-        // This is just a placeholder implementation
+        logger.info("workspaceSymbol query: '${params.query}'")
         val symbols = mutableListOf<WorkspaceSymbol>()
-        val symbol = WorkspaceSymbol(
-            "workspaceSymbol",
-            SymbolKind.Function,
-            Either.forLeft(Location("file:///example.p8", Range(Position(0, 0), Position(0, 10))))
-        )
-        symbols.add(symbol)
+        
+        // Search through all cached documents
+        astCache?.forEach { (uri, cache) ->
+            val module = cache.module ?: return@forEach
+            
+            // Collect symbols from this module
+            for (stmt in module.statements) {
+                collectWorkspaceSymbols(stmt, params.query, symbols, uri)
+            }
+        }
+        
         return CompletableFuture.completedFuture(Either.forRight(symbols))
+    }
+
+    /**
+     * Recursively collect workspace symbols from AST nodes.
+     */
+    private fun collectWorkspaceSymbols(
+        stmt: prog8.ast.statements.Statement,
+        query: String,
+        symbols: MutableList<WorkspaceSymbol>,
+        uri: String
+    ) {
+        when (stmt) {
+            is prog8.ast.statements.Block -> {
+                // Add block as a symbol
+                if (query.isBlank() || stmt.name.contains(query, ignoreCase = true)) {
+                    val location = org.eclipse.lsp4j.Location(uri, Range(Position(0, 0), Position(0, 0)))
+                    symbols.add(WorkspaceSymbol(
+                        stmt.name,
+                        org.eclipse.lsp4j.SymbolKind.Module,
+                        Either.forLeft(location),
+                        ""  // Container name
+                    ))
+                }
+                // Recursively collect from block's statements
+                for (innerStmt in stmt.statements) {
+                    collectWorkspaceSymbols(innerStmt, query, symbols, uri)
+                }
+            }
+            is prog8.ast.statements.Subroutine -> {
+                // Add subroutine as a symbol
+                if (query.isBlank() || stmt.name.contains(query, ignoreCase = true)) {
+                    val location = org.eclipse.lsp4j.Location(uri, Range(Position(0, 0), Position(0, 0)))
+                    symbols.add(WorkspaceSymbol(
+                        stmt.name,
+                        org.eclipse.lsp4j.SymbolKind.Function,
+                        Either.forLeft(location),
+                        ""  // Container name
+                    ))
+                }
+                // Recursively collect from subroutine body
+                for (innerStmt in stmt.statements) {
+                    collectWorkspaceSymbols(innerStmt, query, symbols, uri)
+                }
+            }
+            else -> {
+                // Other statements don't add workspace symbols
+            }
+        }
     }
 
     override fun resolveWorkspaceSymbol(workspaceSymbol: WorkspaceSymbol): CompletableFuture<WorkspaceSymbol> {
