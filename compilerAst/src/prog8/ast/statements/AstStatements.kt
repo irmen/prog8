@@ -103,7 +103,7 @@ class Block(override val name: String,
     override fun toString() = "Block(name=$name, address=$address, ${statements.size} statements)"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
 
-    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.string!!}.toSet()
+    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.mapTo(mutableSetOf()) { it.string!! }
 }
 
 // note: a Directive is not strictly always Statement (in module scope, it's a Module Element rather)

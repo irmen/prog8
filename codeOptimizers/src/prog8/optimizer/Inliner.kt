@@ -209,7 +209,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         
         if (!sub.inline) return noModifications
         
-        val (canInline, reason) = canInlineAtCallSiteWithReason(sub, functionCallStatement)
+        val (canInline, _) = canInlineAtCallSiteWithReason(sub, functionCallStatement)
         if (!canInline) {
             // println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallStatement.position}: $reason")
             return noModifications
@@ -239,7 +239,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             // Get the first non-parameter statement (skip VarDecl with SUBROUTINEPARAM origin)
             val bodyStmt = sub.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
             if (bodyStmt is IFunctionCall) {
-                val existing = (fcall as Node).definingScope.lookup(bodyStmt.target.nameInSource.take(1))
+                val existing = (fcall as Node).definingScope.lookup(bodyStmt.target.nameInSource[0])
                 if (existing is VarDecl || existing is StructFieldRef) {
                     return false to "call target conflicts with existing symbol"
                 }
@@ -257,7 +257,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         if (sub == null) return noModifications
         if (!sub.inline) return noModifications
         
-        val (canInline, reason) = canInlineAtCallSiteWithReason(sub, functionCallExpr)
+        val (canInline, _) = canInlineAtCallSiteWithReason(sub, functionCallExpr)
         if (!canInline) {
             // println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallExpr.position}: $reason")
             return noModifications
@@ -299,7 +299,6 @@ class Inliner(private val program: Program, private val options: CompilationOpti
     }
 
     private fun possiblyInlineFunctioncallStmt(sub: Subroutine, origNode: Node, parent: Node): Iterable<AstModification> {
-        val functionCallStatement = origNode as FunctionCallStatement
 
         fun possiblyShortCircuitFunctionCall(toInline: Return): Iterable<AstModification> {
             val functionCalls = toInline.values.filterIsInstance<FunctionCallExpression>()

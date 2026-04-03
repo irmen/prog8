@@ -288,7 +288,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     if(elementIType.isUnknown) return noModifications
                     val elementType = elementIType.getOrUndef()
                     if(values.size==2 || values.size==3 && (elementType.isUnsignedByte || elementType.isUnsignedWord)) {
-                        val numbers = values.map{it.number}.toSet()
+                        val numbers = values.mapTo(mutableSetOf()) { it.number }
                         if(numbers == setOf(0.0, 1.0)) {
                             // we can replace unsigned  x==0 or x==1 with x<2
                             val compare = BinaryExpression(needle, "<", NumericLiteral(elementType.base, 2.0, expr.position), expr.position)

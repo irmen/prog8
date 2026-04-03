@@ -352,7 +352,7 @@ internal class ProgramAndVarsGen(
         val varsInBlock = getVars(scope)
 
         // Zeropage Variables
-        val varnames = varsInBlock.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedNameString }.toSet()
+        val varnames = varsInBlock.filter { it.value.type==StNodeType.STATICVAR }.mapTo(mutableSetOf()) { it.value.scopedNameString }
         zeropagevars2asm(varnames)
 
         // MemDefs and Consts
@@ -505,7 +505,7 @@ internal class ProgramAndVarsGen(
         val varsInSubroutine = getVars(scope)
 
         // Zeropage Variables
-        val varnames = varsInSubroutine.filter { it.value.type==StNodeType.STATICVAR }.map { it.value.scopedNameString }.toSet()
+        val varnames = varsInSubroutine.filter { it.value.type==StNodeType.STATICVAR }.mapTo(mutableSetOf()) { it.value.scopedNameString }
         zeropagevars2asm(varnames)
 
         // MemDefs and Consts

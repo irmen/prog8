@@ -293,13 +293,13 @@ class AstPreprocessor(val program: Program,
         // inject subroutine params as local variables (if they're not there yet).
         // If the param should be in a R0-R15 register, don't make a local variable but an alias instead.
         val symbolsInSub = subroutine.allDefinedSymbols
-        val namesInSub = symbolsInSub.map{ it.first }.toSet()
+        val namesInSub = symbolsInSub.mapTo(mutableSetOf()) { it.first }
         if(subroutine.asmAddress==null) {
             if(!subroutine.isAsmSubroutine && subroutine.parameters.isNotEmpty()) {
                 val mods = mutableListOf<AstModification>()
                 val (normalParams, registerParams) = subroutine.parameters.partition { it.registerOrPair==null }
                 if(normalParams.isNotEmpty()) {
-                    val existingVars = subroutine.statements.asSequence().filterIsInstance<VarDecl>().map { it.name }.toSet()
+                    val existingVars = subroutine.statements.filterIsInstance<VarDecl>().mapTo(mutableSetOf()) { it.name }
                     normalParams
                         .filter { it.name !in namesInSub && it.name !in existingVars }
                         .forEach {
@@ -308,7 +308,7 @@ class AstPreprocessor(val program: Program,
                         }
                 }
                 if(registerParams.isNotEmpty()) {
-                    val existingAliases = subroutine.statements.asSequence().filterIsInstance<Alias>().map { it.alias }.toSet()
+                    val existingAliases = subroutine.statements.filterIsInstance<Alias>().mapTo(mutableSetOf()) { it.alias }
                     registerParams
                         .filter { it.name !in namesInSub && it.name !in existingAliases }
                         .forEach {

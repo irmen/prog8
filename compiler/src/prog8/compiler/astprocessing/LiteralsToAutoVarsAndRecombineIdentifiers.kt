@@ -146,7 +146,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
 
         if(target==null && identifier.nameInSource.size>1) {
             // First component might be an alias
-            val tgt2 = identifier.definingScope.lookup(identifier.nameInSource.take(1)) as? Alias
+            val tgt2 = identifier.definingScope.lookup(identifier.nameInSource[0]) as? Alias
             if(tgt2!=null && parent !is Alias) {
                 val aliasTarget = resolveAliasTarget(tgt2)
                 if(aliasTarget != null) {
@@ -216,7 +216,8 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
     }
 
     override fun after(deref: PtrDereference, parent: Node): Iterable<AstModification> {
-        val tgt2 = deref.definingScope.lookup(deref.chain.take(1)) as? Alias
+        if(deref.chain.isEmpty()) return emptyList()
+        val tgt2 = deref.definingScope.lookup(deref.chain[0]) as? Alias
         if(tgt2!=null && parent !is Alias) {
             val aliasTarget = resolveAliasTarget(tgt2)
             if(aliasTarget != null) {

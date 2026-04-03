@@ -253,7 +253,8 @@ internal fun IdentifierReference.checkFunctionOrLabelExists(program: Program, st
             return targetStatement
         }
         null -> {
-            val alias = definingScope.lookup(this.nameInSource.take(1))
+            val firstName = this.nameInSource.firstOrNull()
+            val alias = if(firstName != null) definingScope.lookup(firstName) else null
             if(alias !is Alias || alias.target.targetStatement(program.builtinFunctions)==null)
                 errors.undefined(this.nameInSource, this.firstTarget(program.builtinFunctions)==null, this.position)
         }

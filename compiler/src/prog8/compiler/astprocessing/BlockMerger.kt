@@ -16,11 +16,12 @@ class BlockMerger(val errors: IErrorReporter) {
 
     fun visit(program: Program) {
         val allBlocks = program.allBlocks
+        val blocksByName = allBlocks.groupBy { it.name }
 
         // It should be an error for the same block to be declared twice without either declaration having %option merge
         // If all occurrences of the block have %option merge, the first in the list is chosen as the 'main' occurrence.
-        val multiples = allBlocks.groupBy { it.name }.filter { it.value.size > 1 }
-        for((name, blocks) in multiples) {
+        for((name, blocks) in blocksByName) {
+            if(blocks.size <= 1) continue
             val withoutMerge = blocks.filter { "merge" !in it.options() }
             if(withoutMerge.size>1) {
                 val positions = withoutMerge.joinToString(", ") { it.position.toString() }
@@ -33,16 +34,15 @@ class BlockMerger(val errors: IErrorReporter) {
 
         for(block in allBlocks) {
             if("merge" in block.options() && block.isNotEmpty()) {
-                val libraryBlockCandidates =
-                    allBlocks.filter { it !== block && it.isInLibrary && it.name == block.name }
-                val (withMerge, withoutMerge) = libraryBlockCandidates.partition { "merge" in it.options() }
-                if (withoutMerge.isNotEmpty() && withoutMerge.any { it !in mergedBlocks}) {
-                    merge(block, withoutMerge.first { it !in mergedBlocks })
-                } else if (withMerge.isNotEmpty() && withMerge.any { it !in mergedBlocks}) {
-                    merge(block, withMerge.first { it !in mergedBlocks })
+                val candidates = blocksByName[block.name]?.filter { it !== block } ?: emptyList()
+                val libraryBlocks = candidates.filter { it.isInLibrary }
+                val (libWithMerge, libWithoutMerge) = libraryBlocks.partition { "merge" in it.options() }
+                if (libWithoutMerge.isNotEmpty() && libWithoutMerge.any { it !in mergedBlocks}) {
+                    merge(block, libWithoutMerge.first { it !in mergedBlocks })
+                } else if (libWithMerge.isNotEmpty() && libWithMerge.any { it !in mergedBlocks}) {
+                    merge(block, libWithMerge.first { it !in mergedBlocks })
                 } else {
-                    val regularBlockCandidates = allBlocks.filter { it !== block && it.name == block.name }
-                    val (withMerge, withoutMerge) = regularBlockCandidates.partition { "merge" in it.options() }
+                    val (withMerge, withoutMerge) = candidates.partition { "merge" in it.options() }
                     if (withoutMerge.isNotEmpty() && withoutMerge.any { it !in mergedBlocks}) {
                         merge(block, withoutMerge.first { it !in mergedBlocks })
                     } else if (withMerge.isNotEmpty() && withMerge.any { it !in mergedBlocks}) {

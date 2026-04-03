@@ -164,6 +164,8 @@ interface IStatementContainer {
 interface INameScope: IStatementContainer, INamedStatement {
     fun subScope(name: String): INameScope?  = statements.firstOrNull { it is INameScope && it.name==name } as? INameScope
 
+    fun lookup(name: String): Statement? = lookupUnqualified(name)
+
     fun lookup(scopedName: List<String>) : Statement? {
         return if(scopedName.size>1)
             lookupQualified(scopedName)
@@ -393,7 +395,7 @@ open class Module(final override val statements: MutableList<Statement>,
 
     override fun toString() = "Module(name=$name, pos=$position, lib=${isLibrary})"
     override fun referencesIdentifier(nameInSource: List<String>): Boolean = statements.any { it.referencesIdentifier(nameInSource) }
-    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.map {it.string!!}.toSet()
+    fun options() = statements.filter { it is Directive && it.directive == "%option" }.flatMap { (it as Directive).args }.mapTo(mutableSetOf()) { it.string!! }
 
     fun accept(visitor: IAstVisitor) = visitor.visit(this)
     fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)

@@ -9,127 +9,168 @@ import prog8.code.core.ICompilationTarget
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
+// PERFORMANCE: All lines are pre-trimmed once in getLinesBy() into TrimmedLine objects
+// to avoid repeated trimStart()/instructionPart() calls across overlapping sliding windows.
+// TrimmedLine has .value (original), .trimmed (trimStart), and .instruction (instructionPart).
+
 
 internal fun optimizeAssembly(lines: MutableList<String>, machine: ICompilationTarget, symbolTable: SymbolTable): Int {
-
     var numberOfOptimizations = 0
 
-    var linesByFour = getLinesBy(lines, 4)
+    val pretrimmed = lines.map { it.trimStart() }.toMutableList()
 
-    var mods = optimizeIncDec(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
+    /** Runs an optimization pass, applies modifications if any, and recomputes line windows. */
+    fun runPass(
+        mods: List<Modification>,
+        windowSize: Int,
+        currentLines: Sequence<List<TrimmedLine>>
+    ): Sequence<List<TrimmedLine>> {
+        if (mods.isNotEmpty()) {
+            apply(mods, lines, pretrimmed)
+            numberOfOptimizations++
+            return getLinesBy(pretrimmed, lines, windowSize)
+        }
+        return currentLines
     }
 
-    mods = optimizeStoreLoadSame(linesByFour, machine, symbolTable)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
+    var linesByFour = getLinesBy(pretrimmed, lines, 4)
+    linesByFour = runPass(optimizeIncDec(linesByFour), 4, linesByFour)
+    linesByFour = runPass(optimizeStoreLoadSame(linesByFour, machine, symbolTable), 4, linesByFour)
+    linesByFour = runPass(optimizeJsrRtsAndOtherCombinations(linesByFour), 4, linesByFour)
+    linesByFour = runPass(optimizeUselessPushPopStack(linesByFour), 4, linesByFour)
+    linesByFour = runPass(optimizeUnneededTempvarInAdd(linesByFour), 4, linesByFour)
+    linesByFour = runPass(optimizeTSBtoRegularOr(linesByFour), 4, linesByFour)
 
-    mods = optimizeJsrRtsAndOtherCombinations(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
-
-    mods = optimizeUselessPushPopStack(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
-
-    mods = optimizeUnneededTempvarInAdd(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
-
-    mods = optimizeTSBtoRegularOr(linesByFour)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFour = getLinesBy(lines, 4)
-        numberOfOptimizations++
-    }
-
-    var linesByFourteen = getLinesBy(lines, 14)
-    mods = optimizeSameAssignments(linesByFourteen, machine, symbolTable)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFourteen = getLinesBy(lines, 14)
-        numberOfOptimizations++
-    }
-
-    mods = optimizeSamePointerIndexingAndUselessBeq(linesByFourteen)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFourteen = getLinesBy(lines, 14)
-        numberOfOptimizations++
-    }
-
-    mods = optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen)
-    if(mods.isNotEmpty()) {
-        apply(mods, lines)
-        linesByFourteen = getLinesBy(lines, 14)
-        numberOfOptimizations++
-    }
+    var linesByFourteen = getLinesBy(pretrimmed, lines, 14)
+    linesByFourteen = runPass(optimizeSameAssignments(linesByFourteen, machine, symbolTable), 14, linesByFourteen)
+    linesByFourteen = runPass(optimizeSamePointerIndexingAndUselessBeq(linesByFourteen), 14, linesByFourteen)
+    linesByFourteen = runPass(optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen), 14, linesByFourteen)
 
     return numberOfOptimizations
 }
 
-private fun String.isBranch() = this.startsWith("b")
-private fun String.isStoreReg() = this.startsWith("sta") || this.startsWith("sty") || this.startsWith("stx")
-private fun String.isStoreRegOrZero() = this.isStoreReg() || this.startsWith("stz")
-private fun String.isLoadReg() = this.startsWith("lda") || this.startsWith("ldy") || this.startsWith("ldx")
+internal fun String.isBranch() = this.startsWith("b")
+internal fun String.isStoreReg() = this.startsWith("sta ") || this.startsWith("sty ") || this.startsWith("stx ")
+internal fun String.isStoreRegOrZero() = this.isStoreReg() || this.startsWith("stz ")
+internal fun String.isLoadReg() = this.startsWith("lda ") || this.startsWith("ldy ") || this.startsWith("ldx ")
 
 private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?, val removeLabel: Boolean=false)
 
-private fun apply(modifications: List<Modification>, lines: MutableList<String>) {
+/** Pre-trimmed assembly line. Has .index and .value properties matching IndexedValue<String> for compatibility.
+ *  Use `.trimmed` for pattern matching (preserves leading whitespace, just removes indentation).
+ *  Use `.instruction` when you need the instruction mnemonic without any label prefix.
+ *  Use `.value` for the original raw line (needed for replacements). */
+private class TrimmedLine(val value: String, val trimmed: String, val index: Int) {
+    val instruction: String = trimmed.instructionPart()
+}
+
+private fun getLinesBy(pretrimmed: MutableList<String>, originalLines: MutableList<String>, windowSize: Int): Sequence<List<TrimmedLine>> =
+    pretrimmed.asSequence()
+        .withIndex()
+        .filter { it.value.isNotBlank() && !it.value.startsWith(';') }
+        .map { TrimmedLine(originalLines[it.index], it.value, it.index) }
+        .windowed(windowSize, partialWindows = false)
+
+private fun apply(modifications: List<Modification>, lines: MutableList<String>, pretrimmed: MutableList<String>) {
     for (modification in modifications.sortedBy { it.lineIndex }.reversed()) {
         if(modification.remove) {
             if(modification.removeLabel)
                 lines.removeAt(modification.lineIndex)
             else {
-                val line = lines[modification.lineIndex]
-                if (line.length < 2 || line[0] == ';' || line.trimStart()[0] == ';')
+                val pretrim = pretrimmed.getOrNull(modification.lineIndex)
+                if (pretrim == null || pretrim.isBlank() || pretrim[0] == ';')
                     lines.removeAt(modification.lineIndex)
-                else if (haslabel(line)) {
-                    val label = keeplabel(line)
+                else if (haslabelPretrimmed(pretrim)) {
+                    val label = keeplabelPretrimmed(pretrim)
                     if (label.isNotEmpty())
                         lines[modification.lineIndex] = label
                     else
                         lines.removeAt(modification.lineIndex)
                 } else lines.removeAt(modification.lineIndex)
             }
+            pretrimmed.removeAt(modification.lineIndex)
         }
-        else
+        else {
             lines[modification.lineIndex] = modification.replacement!!
+            pretrimmed[modification.lineIndex] = modification.replacement.trimStart()
+        }
     }
 }
 
-private fun haslabel(line: String): Boolean {
+internal fun haslabel(line: String): Boolean {
     return line.length>1 && line[0]!=';' && (!line[0].isWhitespace() || ':' in line)
 }
 
-private fun keeplabel(line: String): String {
+internal fun haslabelPretrimmed(line: String): Boolean {
+    return line.length>1 && line[0]!=';' && ':' in line
+}
+
+internal fun keeplabel(line: String): String {
     if(':' in line)
         return line.substringBefore(':') + ':'
     val splits = line.split('\t', ' ', limit=2)
     return if(splits.size>1) splits[0] + ':' else ""
 }
 
-private fun getLinesBy(lines: MutableList<String>, windowSize: Int) =
-// all lines (that aren't empty or comments) in sliding windows of certain size
-        lines.asSequence().withIndex().filter { it.value.isNotBlank() && !it.value.trimStart().startsWith(';') }.windowed(windowSize, partialWindows = false)
+internal fun keeplabelPretrimmed(line: String): String {
+    if(':' in line)
+        return line.substringBefore(':') + ':'
+    val idx = line.indexOf(' ')
+    val idxTab = line.indexOf('\t')
+    val splitIdx = if(idx==-1) idxTab else if(idxTab==-1) idx else minOf(idx, idxTab)
+    return if(splitIdx>0) line.substring(0, splitIdx) + ':' else ""
+}
+
+/** Extracts operand from an already-processed instruction (label already stripped).
+ *  More efficient than extractOperand() when you already have the instruction part. */
+private fun String.extractOperandFromInstruction(): String {
+    val spaceIdx = this.indexOf(' ')
+    return if (spaceIdx >= 0) this.substring(spaceIdx) else ""
+}
+
+/** Extracts operand from instruction and trims it in one pass.
+ *  Efficient when you just need the operand value without leading whitespace. */
+private fun String.extractOperandTrimmed(): String {
+    val spaceIdx = this.indexOf(' ')
+    return if (spaceIdx >= 0) this.substring(spaceIdx).trimStart() else ""
+}
+
+/** Checks if a trimmed assembly line contains the given instruction mnemonic.
+ *  Handles lines with or without labels. Named labels must end with ':'.
+ *  Anonymous labels (+, ++, -, --) may or may not have a colon.
+ *  Does NOT match mnemonics in comments or operands. */
+private val namedLabelPattern = Regex("^[a-zA-Z_][a-zA-Z0-9_.]*:\\s+(.*)$")
+private val anonLabelPattern = Regex("^[-+]+:?\\s+(.*)$")
+
+internal fun String.hasInstr(mnemonic: String): Boolean {
+    if (this == mnemonic || startsWith("$mnemonic ")) return true
+    // Check for named label with colon
+    val namedMatch = namedLabelPattern.matchEntire(this)
+    if (namedMatch != null) {
+        val afterLabel = namedMatch.groupValues[1]
+        return afterLabel.startsWith("$mnemonic ") || afterLabel == mnemonic
+    }
+    // Check for anonymous label
+    val anonMatch = anonLabelPattern.matchEntire(this)
+    if (anonMatch != null) {
+        val afterLabel = anonMatch.groupValues[1]
+        return afterLabel.startsWith("$mnemonic ") || afterLabel == mnemonic
+    }
+    return false
+}
+
+/** Extracts the instruction part of a trimmed assembly line, skipping any label prefix.
+ *  For "mylabel: lda  #1" returns "lda  #1". For "lda  #1" returns "lda  #1". */
+private fun String.instructionPart(): String {
+    val namedMatch = namedLabelPattern.matchEntire(this)
+    if (namedMatch != null) return namedMatch.groupValues[1]
+    val anonMatch = anonLabelPattern.matchEntire(this)
+    if (anonMatch != null) return anonMatch.groupValues[1]
+    return this
+}
 
 private fun optimizeSameAssignments(
-    linesByFourteen: Sequence<List<IndexedValue<String>>>,
+    linesByFourteen: Sequence<List<TrimmedLine>>,
     machine: ICompilationTarget,
     symbolTable: SymbolTable
 ): List<Modification> {
@@ -140,25 +181,25 @@ private fun optimizeSameAssignments(
 
     val mods = mutableListOf<Modification>()
     for (lines in linesByFourteen) {
-        val first = lines[0].value.trimStart()
-        val second = lines[1].value.trimStart()
-        val third = lines[2].value.trimStart()
-        val fourth = lines[3].value.trimStart()
-        val fifth = lines[4].value.trimStart()
-        val sixth = lines[5].value.trimStart()
-        val seventh = lines[6].value.trimStart()
-        val eighth = lines[7].value.trimStart()
+        val f1 = lines[0].instruction
+        val f2 = lines[1].instruction
+        val f3 = lines[2].instruction
+        val f4 = lines[3].instruction
+        val f5 = lines[4].instruction
+        val f6 = lines[5].instruction
+        val f7 = lines[6].instruction
+        val f8 = lines[7].instruction
 
-        if(first.startsWith("lda") && second.startsWith("ldy") && third.startsWith("sta") && fourth.startsWith("sty") &&
-                fifth.startsWith("lda") && sixth.startsWith("ldy") && seventh.startsWith("sta") && eighth.startsWith("sty")) {
-            val firstvalue = first.substring(4)
-            val secondvalue = second.substring(4)
-            val thirdvalue = fifth.substring(4)
-            val fourthvalue = sixth.substring(4)
+        if(f1.startsWith("lda ") && f2.startsWith("ldy ") && f3.startsWith("sta ") && f4.startsWith("sty ") &&
+                f5.startsWith("lda ") && f6.startsWith("ldy ") && f7.startsWith("sta ") && f8.startsWith("sty ")) {
+            val firstvalue = f1.extractOperandTrimmed()
+            val secondvalue = f2.extractOperandTrimmed()
+            val thirdvalue = f5.extractOperandTrimmed()
+            val fourthvalue = f6.extractOperandTrimmed()
             if(firstvalue==thirdvalue && secondvalue==fourthvalue) {
                 // lda/ldy   sta/sty   twice the same word -->  remove second lda/ldy pair (fifth and sixth lines)
-                val address1 = getAddressArg(first, symbolTable)
-                val address2 = getAddressArg(second, symbolTable)
+                val address1 = getAddressArg(f1, symbolTable)
+                val address2 = getAddressArg(f2, symbolTable)
                 if(address1==null || address2==null || (!machine.isIOAddress(address1) && !machine.isIOAddress(address2))) {
                     mods.add(Modification(lines[4].index, true, null))
                     mods.add(Modification(lines[5].index, true, null))
@@ -166,33 +207,33 @@ private fun optimizeSameAssignments(
             }
         }
 
-        if(first.startsWith("lda") && second.startsWith("sta") && third.startsWith("lda") && fourth.startsWith("sta")) {
-            val firstvalue = first.substring(4)
-            val secondvalue = third.substring(4)
+        if(f1.startsWith("lda ") && f2.startsWith("sta ") && f3.startsWith("lda ") && f4.startsWith("sta ")) {
+            val firstvalue = f1.extractOperandTrimmed()
+            val secondvalue = f3.extractOperandTrimmed()
             if(firstvalue==secondvalue) {
                 // lda value / sta ? / lda same-value / sta ?  -> remove second lda (third line)
-                val address = getAddressArg(first, symbolTable)
+                val address = getAddressArg(f1, symbolTable)
                 if(address==null || !machine.isIOAddress(address))
                     mods.add(Modification(lines[2].index, true, null))
             }
         }
 
-        if(first.startsWith("lda") && second.startsWith("ldy") && third.startsWith("sta") && fourth.startsWith("sty") &&
-                fifth.startsWith("lda") && sixth.startsWith("ldy") &&
-                (seventh.startsWith("jsr  floats.copy_float") || seventh.startsWith("jsr  cx16flt.copy_float"))) {
+        if(f1.startsWith("lda ") && f2.startsWith("ldy ") && f3.startsWith("sta ") && f4.startsWith("sty ") &&
+                f5.startsWith("lda ") && f6.startsWith("ldy ") &&
+                (f7.startsWith("jsr  floats.copy_float") || f7.startsWith("jsr  cx16flt.copy_float"))) {
 
-            val nineth = lines[8].value.trimStart()
-            val tenth = lines[9].value.trimStart()
-            val eleventh = lines[10].value.trimStart()
-            val twelveth = lines[11].value.trimStart()
-            val thirteenth = lines[12].value.trimStart()
-            val fourteenth = lines[13].value.trimStart()
+            val nineth = lines[8].instruction
+            val tenth = lines[9].instruction
+            val eleventh = lines[10].instruction
+            val twelveth = lines[11].instruction
+            val thirteenth = lines[12].instruction
+            val fourteenth = lines[13].instruction
 
-            if(eighth.startsWith("lda") && nineth.startsWith("ldy") && tenth.startsWith("sta") && eleventh.startsWith("sty") &&
-                    twelveth.startsWith("lda") && thirteenth.startsWith("ldy") &&
+            if(f8.startsWith("lda ") && nineth.startsWith("ldy ") && tenth.startsWith("sta ") && eleventh.startsWith("sty ") &&
+                    twelveth.startsWith("lda ") && thirteenth.startsWith("ldy ") &&
                     (fourteenth.startsWith("jsr  floats.copy_float") || fourteenth.startsWith("jsr  cx16flt.copy_float"))) {
 
-                if(first.substring(4) == eighth.substring(4) && second.substring(4)==nineth.substring(4)) {
+                if(f1.extractOperandTrimmed() == f8.extractOperandTrimmed() && f2.extractOperandTrimmed()==nineth.extractOperandTrimmed()) {
                     // identical float init
                     mods.add(Modification(lines[7].index, true, null))
                     mods.add(Modification(lines[8].index, true, null))
@@ -211,20 +252,20 @@ private fun optimizeSameAssignments(
         sta  A1
         sty  A2
          */
-        if(first.isStoreReg() && second.isStoreReg()
-            && third.isLoadReg() && fourth.isLoadReg()
-            && fifth.isStoreReg() && sixth.isStoreReg()) {
-            val reg1 = first[2]
-            val reg2 = second[2]
-            val reg3 = third[2]
-            val reg4 = fourth[2]
-            val reg5 = fifth[2]
-            val reg6 = sixth[2]
+        if(f1.isStoreReg() && f2.isStoreReg()
+            && f3.isLoadReg() && f4.isLoadReg()
+            && f5.isStoreReg() && f6.isStoreReg()) {
+            val reg1 = f1[2]
+            val reg2 = f2[2]
+            val reg3 = f3[2]
+            val reg4 = f4[2]
+            val reg5 = f5[2]
+            val reg6 = f6[2]
             if (reg1 == reg3 && reg1 == reg5 && reg2 == reg4 && reg2 == reg6) {
-                val firstvalue = first.substring(4)
-                val secondvalue = second.substring(4)
-                val thirdvalue = third.substring(4)
-                val fourthvalue = fourth.substring(4)
+                val firstvalue = f1.extractOperandTrimmed()
+                val secondvalue = f2.extractOperandTrimmed()
+                val thirdvalue = f3.extractOperandTrimmed()
+                val fourthvalue = f4.extractOperandTrimmed()
                 if(firstvalue.contains("prog8_lib.retval_interm") && secondvalue.contains("prog8_lib.retval_interm")
                     && firstvalue==thirdvalue && secondvalue==fourthvalue) {
                     mods.add(Modification(lines[0].index, true, null))
@@ -242,23 +283,23 @@ private fun optimizeSameAssignments(
         lda  A1     ; can be removed
         ldy  A2     ; can be removed if not followed by a branch instuction
          */
-        if(!overlappingMods && first.isStoreReg() && second.isStoreReg()
-            && third.isLoadReg() && fourth.isLoadReg()) {
-            val reg1 = first[2]
-            val reg2 = second[2]
-            val reg3 = third[2]
-            val reg4 = fourth[2]
+        if(!overlappingMods && f1.isStoreReg() && f2.isStoreReg()
+            && f3.isLoadReg() && f4.isLoadReg()) {
+            val reg1 = f1[2]
+            val reg2 = f2[2]
+            val reg3 = f3[2]
+            val reg4 = f4[2]
             if(reg1==reg3 && reg2==reg4) {
-                val firstvalue = first.substring(4)
-                val secondvalue = second.substring(4)
-                val thirdvalue = third.substring(4)
-                val fourthvalue = fourth.substring(4)
+                val firstvalue = f1.extractOperandTrimmed()
+                val secondvalue = f2.extractOperandTrimmed()
+                val thirdvalue = f3.extractOperandTrimmed()
+                val fourthvalue = f4.extractOperandTrimmed()
                 if(firstvalue==thirdvalue && secondvalue == fourthvalue) {
-                    val address = getAddressArg(first, symbolTable)
+                    val address = getAddressArg(f1, symbolTable)
                     if(address==null || !machine.isIOAddress(address)) {
                         overlappingMods = true
                         mods.add(Modification(lines[2].index, true, null))
-                        if (!fifth.startsWith('b'))
+                        if (!lines[4].instruction.startsWith('b'))
                             mods.add(Modification(lines[3].index, true, null))
                     }
                 }
@@ -270,15 +311,15 @@ private fun optimizeSameAssignments(
         sty  A2     ; ... or stz
         lda  A1     ; can be removed if not followed by a branch instruction
          */
-        if(!overlappingMods && first.isStoreReg() && second.isStoreRegOrZero()
-            && third.isLoadReg() && !fourth.isBranch()) {
-            val reg1 = first[2]
-            val reg3 = third[2]
+        if(!overlappingMods && f1.isStoreReg() && f2.isStoreRegOrZero()
+            && f3.isLoadReg() && !f4.isBranch()) {
+            val reg1 = f1[2]
+            val reg3 = f3[2]
             if(reg1==reg3) {
-                val firstvalue = first.substring(4)
-                val thirdvalue = third.substring(4)
+                val firstvalue = f1.extractOperandTrimmed()
+                val thirdvalue = f3.extractOperandTrimmed()
                 if(firstvalue==thirdvalue) {
-                    val address = getAddressArg(first, symbolTable)
+                    val address = getAddressArg(f1, symbolTable)
                     if(address==null || !machine.isIOAddress(address)) {
                         overlappingMods = true
                         mods.add(Modification(lines[2].index, true, null))
@@ -292,16 +333,16 @@ private fun optimizeSameAssignments(
         ldy  A1     ; make tay
         sta  A1     ; remove
          */
-        if(!overlappingMods && first.startsWith("sta") && second.isLoadReg()
-            && third.startsWith("sta") && second.length>4) {
-            val firstvalue = first.substring(4)
-            val secondvalue = second.substring(4)
-            val thirdvalue = third.substring(4)
+        if(!overlappingMods && f1.startsWith("sta ") && f2.isLoadReg()
+            && f3.startsWith("sta ") && f2.length>4) {
+            val firstvalue = f1.extractOperandTrimmed()
+            val secondvalue = f2.extractOperandTrimmed()
+            val thirdvalue = f3.extractOperandTrimmed()
             if(firstvalue==secondvalue && firstvalue==thirdvalue) {
-                val address = getAddressArg(first, symbolTable)
+                val address = getAddressArg(f1, symbolTable)
                 if(address==null || !machine.isIOAddress(address)) {
                     overlappingMods = true
-                    val reg2 = second[2]
+                    val reg2 = f2[2]
                     mods.add(Modification(lines[1].index, false, "  ta$reg2"))
                     mods.add(Modification(lines[2].index, true, null))
                 }
@@ -319,7 +360,7 @@ private fun optimizeSameAssignments(
     return mods
 }
 
-private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<List<TrimmedLine>>): List<Modification> {
 
     // Optimize same pointer indexing where for instance we load and store to the same ptr index in Y
     // if Y isn't modified in between we can omit the second LDY:
@@ -331,28 +372,28 @@ private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<L
 
     val mods = mutableListOf<Modification>()
     for (lines in linesByFourteen) {
-        val first = lines[0].value.trimStart()
-        val second = lines[1].value.trimStart()
-        val third = lines[2].value.trimStart()
-        val fourth = lines[3].value.trimStart()
-        val fifth = lines[4].value.trimStart()
-        val sixth = lines[5].value.trimStart()
+        val f1 = lines[0].instruction
+        val f2 = lines[1].instruction
+        val third = lines[2].trimmed
+        val f4 = lines[3].instruction
+        val f5 = lines[4].instruction
+        val f6 = lines[5].instruction
 
-        if(first.startsWith("ldy") && second.startsWith("lda") && fourth.startsWith("ldy") && fifth.startsWith("sta")) {
-            val firstvalue = first.substring(4)
-            val secondvalue = second.substring(4)
-            val fourthvalue = fourth.substring(4)
-            val fifthvalue = fifth.substring(4)
+        if(f1.startsWith("ldy ") && f2.startsWith("lda ") && f4.startsWith("ldy ") && f5.startsWith("sta ")) {
+            val firstvalue = f1.extractOperandTrimmed()
+            val secondvalue = f2.extractOperandTrimmed()
+            val fourthvalue = f4.extractOperandTrimmed()
+            val fifthvalue = f5.extractOperandTrimmed()
             if("y" !in third && firstvalue==fourthvalue && secondvalue==fifthvalue && secondvalue.endsWith(",y") && fifthvalue.endsWith(",y")) {
                 mods.add(Modification(lines[3].index, true, null))
             }
         }
-        if(first.startsWith("ldy") && second.startsWith("lda") && fifth.startsWith("ldy") && sixth.startsWith("sta")) {
-            val firstvalue = first.substring(4)
-            val secondvalue = second.substring(4)
-            val fifthvalue = fifth.substring(4)
-            val sixthvalue = sixth.substring(4)
-            if("y" !in third && "y" !in fourth && firstvalue==fifthvalue && secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y")) {
+        if(f1.startsWith("ldy ") && f2.startsWith("lda ") && f5.startsWith("ldy ") && f6.startsWith("sta ")) {
+            val firstvalue = f1.extractOperandTrimmed()
+            val secondvalue = f2.extractOperandTrimmed()
+            val fifthvalue = f5.extractOperandTrimmed()
+            val sixthvalue = f6.extractOperandTrimmed()
+            if("y" !in third && "y" !in f4 && firstvalue==fifthvalue && secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y")) {
                 mods.add(Modification(lines[4].index, true, null))
             }
         }
@@ -370,16 +411,16 @@ This gets generated after certain if conditions, and only the branch instruction
          */
 
         val autoLabelPrefix = GENERATED_LABEL_PREFIX
-        if(first=="beq  +" && second=="lda  #1" && third=="+") {
-            if((fourth.startsWith("beq  $autoLabelPrefix") || fourth.startsWith("bne  $autoLabelPrefix")) &&
-                (fourth.endsWith("_shortcut") || fourth.endsWith("_afterif") || fourth.endsWith("_shortcut:") || fourth.endsWith("_afterif:"))) {
+        if(f1=="beq  +" && f2=="lda  #1" && lines[2].trimmed=="+") {
+            if((f4.startsWith("beq  $autoLabelPrefix") || f4.startsWith("bne  $autoLabelPrefix")) &&
+                (f4.endsWith("_shortcut") || f4.endsWith("_afterif") || f4.endsWith("_shortcut:") || f4.endsWith("_afterif:"))) {
                 mods.add(Modification(lines[0].index, true, null))
                 mods.add(Modification(lines[1].index, true, null))
                 mods.add(Modification(lines[2].index, true, null))
             }
-            else if(fourth.startsWith(autoLabelPrefix) && (fourth.endsWith("_shortcut") || fourth.endsWith("_shortcut:"))) {
-                if((fifth.startsWith("beq  $autoLabelPrefix") || fifth.startsWith("bne  $autoLabelPrefix")) &&
-                    (fifth.endsWith("_shortcut") || fifth.endsWith("_afterif") || fifth.endsWith("_shortcut:") || fifth.endsWith("_afterif:"))) {
+            else if(f4.startsWith(autoLabelPrefix) && (f4.endsWith("_shortcut") || f4.endsWith("_shortcut:"))) {
+                if((f5.startsWith("beq  $autoLabelPrefix") || f5.startsWith("bne  $autoLabelPrefix")) &&
+                    (f5.endsWith("_shortcut") || f5.endsWith("_afterif") || f5.endsWith("_shortcut:") || f5.endsWith("_afterif:"))) {
                     mods.add(Modification(lines[0].index, true, null))
                     mods.add(Modification(lines[1].index, true, null))
                     mods.add(Modification(lines[2].index, true, null))
@@ -392,15 +433,19 @@ This gets generated after certain if conditions, and only the branch instruction
 }
 
 private fun optimizeStoreLoadSame(
-    linesByFour: Sequence<List<IndexedValue<String>>>,
+    linesByFour: Sequence<List<TrimmedLine>>,
     machine: ICompilationTarget,
     symbolTable: SymbolTable
 ): List<Modification> {
     val mods = mutableListOf<Modification>()
+
+    // Push/pop pairs that can be eliminated when consecutive
+    val pushPopPairs = mapOf("pha" to "pla", "phx" to "plx", "phy" to "ply", "php" to "plp")
+
     for (lines in linesByFour) {
-        val first = lines[1].value.trimStart()
-        val second = lines[2].value.trimStart()
-        val third = lines[3].value.trimStart()
+        val first = lines[1].trimmed
+        val second = lines[2].trimmed
+        val third = lines[3].trimmed
 
         // sta X + lda X,  sty X + ldy X,   stx X + ldx X  -> the second instruction can OFTEN be eliminated
         if ((first.startsWith("sta ") && second.startsWith("lda ")) ||
@@ -416,7 +461,7 @@ private fun optimizeStoreLoadSame(
                     // another load instruction of the same register precedes the store instruction
                     // (otherwise wrong cpu flags are used)
                     val loadinstruction = second.take(3)
-                    lines[0].value.trimStart().startsWith(loadinstruction)
+                    lines[0].trimmed.startsWith(loadinstruction)
                 }
                 else {
                     // no branch instruction follows, we can remove the load instruction
@@ -425,16 +470,13 @@ private fun optimizeStoreLoadSame(
                 }
 
             if(attemptRemove) {
-                val firstLoc = first.substring(4).trimStart()
-                val secondLoc = second.substring(4).trimStart()
+                val firstLoc = first.extractOperandTrimmed()
+                val secondLoc = second.extractOperandTrimmed()
                 if (firstLoc == secondLoc)
                     mods.add(Modification(lines[2].index, true, null))
             }
         }
-        else if(first=="pha" && second=="pla" ||
-            first=="phx" && second=="plx" ||
-            first=="phy" && second=="ply" ||
-            first=="php" && second=="plp") {
+        else if(pushPopPairs.entries.any { (push, pop) -> first == push && second == pop }) {
             mods.add(Modification(lines[1].index, true, null))
             mods.add(Modification(lines[2].index, true, null))
         } else if(first=="pha" && second=="plx") {
@@ -457,8 +499,8 @@ private fun optimizeStoreLoadSame(
             first.startsWith("ldx ") && second.startsWith("stx ") ||
             first.startsWith("ldy ") && second.startsWith("sty ")
         ) {
-            val firstLoc = first.substring(4).trimStart()
-            val secondLoc = second.substring(4).trimStart()
+            val firstLoc = first.extractOperandTrimmed()
+            val secondLoc = second.extractOperandTrimmed()
             if (firstLoc == secondLoc)
                 mods.add(Modification(lines[2].index, true, null))
         }
@@ -468,8 +510,8 @@ private fun optimizeStoreLoadSame(
             first.startsWith("ldx ") && second.startsWith("stx ") && third.startsWith("ldx ") ||
             first.startsWith("ldy ") && second.startsWith("sty ") && third.startsWith("ldy ")
         ) {
-            val firstVal = first.substring(4).trimStart()
-            val thirdVal = third.substring(4).trimStart()
+            val firstVal = first.extractOperandTrimmed()
+            val thirdVal = third.extractOperandTrimmed()
             if (firstVal == thirdVal) {
                 val address = getAddressArg(third, symbolTable)
                 if (address != null && !machine.isIOAddress(address)) {
@@ -483,9 +525,9 @@ private fun optimizeStoreLoadSame(
 
 private val identifierRegex = Regex("""^([a-zA-Z_$][a-zA-Z\d_.$]*)""")
 
-private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
-    // try to get the constant value address, could return null if it's a symbol instead
-    val loadArg = line.trimStart().substring(3).trim()
+private fun getAddressArg(instruction: String, symbolTable: SymbolTable): UInt? {
+    // instruction should already be label-stripped (e.g., from TrimmedLine.instruction)
+    val loadArg = instruction.substring(3).trim()
     return when {
         loadArg.startsWith('$') -> loadArg.substring(1).toUIntOrNull(16)
         loadArg.startsWith('%') -> loadArg.substring(1).toUIntOrNull(2)
@@ -511,20 +553,23 @@ private fun getAddressArg(line: String, symbolTable: SymbolTable): UInt? {
     }
 }
 
-private fun optimizeIncDec(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeIncDec(linesByFour: Sequence<List<TrimmedLine>>): List<Modification> {
     // sometimes, iny+dey / inx+dex / dey+iny / dex+inx sequences are generated, these can be eliminated.
     val mods = mutableListOf<Modification>()
+
+    // Canceling increment/decrement pairs
+    val cancelingPairs = setOf(
+        "iny" to "dey", "dey" to "iny",
+        "inx" to "dex", "dex" to "inx",
+        "ina" to "dea", "dea" to "ina",
+        "inc  a" to "dec  a", "dec  a" to "inc  a",
+        "inc a" to "dec a", "dec a" to "inc a"
+    )
+
     for (lines in linesByFour) {
-        val first = lines[0].value
-        val second = lines[1].value
-        if ((" iny" in first || "\tiny" in first) && (" dey" in second || "\tdey" in second)
-                || (" inx" in first || "\tinx" in first) && (" dex" in second || "\tdex" in second)
-                || (" ina" in first || "\tina" in first) && (" dea" in second || "\tdea" in second)
-                || (" inc  a" in first || "\tinc  a" in first) && (" dec  a" in second || "\tdec  a" in second)
-                || (" dey" in first || "\tdey" in first) && (" iny" in second || "\tiny" in second)
-                || (" dex" in first || "\tdex" in first) && (" inx" in second || "\tinx" in second)
-                || (" dea" in first || "\tdea" in first) && (" ina" in second || "\tina" in second)
-                || (" dec  a" in first || "\tdec  a" in first) && (" inc  a" in second || "\tinc  a" in second)) {
+        val first = lines[0].trimmed
+        val second = lines[1].trimmed
+        if (cancelingPairs.any { (inc, dec) -> first.hasInstr(inc) && second.hasInstr(dec) }) {
             mods.add(Modification(lines[0].index, true, null))
             mods.add(Modification(lines[1].index, true, null))
         }
@@ -533,7 +578,7 @@ private fun optimizeIncDec(linesByFour: Sequence<List<IndexedValue<String>>>): L
     return mods
 }
 
-private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<TrimmedLine>>): List<Modification> {
     // jsr Sub + rts -> jmp Sub
     // jmp Sub + rts -> jmp Sub
     // rts + jmp -> remove jmp
@@ -544,53 +589,38 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
 
     val mods = mutableListOf<Modification>()
     for (lines in linesByFour) {
-        val first = lines[0].value
-        val second = lines[1].value
-        val third = lines[2].value
+        val tfirst = lines[0].instruction
+        val tsecond = lines[1].instruction
+        val tthird = lines[2].instruction
+        val tfourth = lines[3].instruction
 
-        if(!haslabel(second)) {
-            if ((" jmp" in first || "\tjmp" in first || " bra" in first || "\tbra" in first ) && (" rts" in second || "\trts" in second)) {
+        if(!haslabel(lines[1].value)) {
+            if ((tfirst.hasInstr("jmp") || tfirst.hasInstr("bra")) && tsecond.hasInstr("rts")) {
                 mods += Modification(lines[1].index, true, null)
             }
-            else if ((" jsr" in first || "\tjsr" in first ) && (" rts" in second || "\trts" in second)) {
-                if("floats.pushFAC" !in first && "floats.popFAC" !in first) {       // these 2 routines depend on being called with JSR!!
+            else if (tfirst.hasInstr("jsr") && tsecond.hasInstr("rts")) {
+                if(!tfirst.contains("floats.pushFAC") && !tfirst.contains("floats.popFAC")) {       // these 2 routines depend on being called with JSR!!
                     mods += Modification(lines[0].index, false, lines[0].value.replace("jsr", "jmp"))
                     mods += Modification(lines[1].index, true, null)
                 }
             }
-            else if (" rts" in first || "\trts" in first) {
-                if (" jmp" in second || "\tjmp" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bra" in second || "\tbra" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bcc" in second || "\tbcc" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bcs" in second || "\tbcs" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" beq" in second || "\tbeq" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bne" in second || "\tbne" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bmi" in second || "\tbmi" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bpl" in second || "\tbpl" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bvs" in second || "\tbvs" in second)
-                    mods += Modification(lines[1].index, true, null)
-                else if (" bvc" in second || "\tbvc" in second)
+            else if (tfirst.hasInstr("rts")) {
+                // After RTS, any branch or jump is unreachable - remove it
+                val branchInstructions = setOf("jmp", "bra", "bcc", "bcs", "beq", "bne", "bmi", "bpl", "bvs", "bvc")
+                if (branchInstructions.any { tsecond.hasInstr(it) })
                     mods += Modification(lines[1].index, true, null)
             }
 
-            if ((" lda" in first || "\tlda" in first) && (" cmp  #0" in second || "\tcmp  #0" in second) ||
-                (" ldx" in first || "\tldx" in first) && (" cpx  #0" in second || "\tcpx  #0" in second) ||
-                (" ldy" in first || "\tldy" in first) && (" cpy  #0" in second || "\tcpy  #0" in second)
-            ) {
+            val loadComparePairs = mapOf("lda" to "cmp", "ldx" to "cpx", "ldy" to "cpy")
+            if (loadComparePairs.any { (load, compare) ->
+                tfirst.hasInstr(load) && (tsecond.startsWith("$compare  #0") || tsecond.contains(" $compare  #0"))
+            }) {
                 mods.add(Modification(lines[1].index, true, null))
             }
-            else if(" cmp  #0" in second || "\tcmp  #0" in second) {
+            else if(tsecond.startsWith("cmp  #0") || tsecond.contains(" cmp  #0")) {
                 // there are many instructions that modify A and set the bits...
-                for(instr in setOf("lda", "ora", "and", "eor", "adc", "sbc", "asl", "cmp", "inc  a", "lsr", "pla", "rol", "ror", "txa", "tya")) {
-                    if(" $instr" in first || "\t$instr" in first) {
+                for(instr in arrayOf("lda", "ora", "and", "eor", "adc", "sbc", "asl", "cmp", "inc  a", "inc a", "dec  a", "dec a", "lsr", "pla", "rol", "ror", "txa", "tya")) {
+                    if(tfirst.hasInstr(instr)) {
                         mods.add(Modification(lines[1].index, true, null))
                     }
                 }
@@ -598,10 +628,10 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
 
             // only remove bra followed by jmp or jmp followed by bra
             // bra bra or jmp jmp is likely part of a jump table, which should keep all entries!
-            if((" bra" in first || "\tbra" in first) && (" jmp" in second || "\tjmp" in second)) {
+            if(tfirst.hasInstr("bra") && tsecond.hasInstr("jmp")) {
                 mods.add(Modification(lines[1].index, true, null))
             }
-            if((" jmp" in first || "\tjmp" in first) && (" bra" in second || "\tbra" in second)) {
+            if(tfirst.hasInstr("jmp") && tsecond.hasInstr("bra")) {
                 mods.add(Modification(lines[1].index, true, null))
             }
         }
@@ -618,15 +648,11 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
     CMP NUM1
     BCS LABEL
          */
-        val tfirst = first.trimStart()
-        val tsecond = second.trimStart()
-        val tthird = lines[2].value.trimStart()
-        val tfourth = lines[3].value.trimStart()
-        if(tfirst.startsWith("lda") && tsecond.startsWith("cmp") && tthird.startsWith("bcc") && tfourth.startsWith("beq")) {
-            val label = tthird.substring(4)
-            if(label==tfourth.substring(4)) {
-                mods += Modification(lines[0].index, false, "  lda  ${tsecond.substring(4)}")
-                mods += Modification(lines[1].index, false, "  cmp  ${tfirst.substring(4)}")
+        if(tfirst.startsWith("lda ") && tsecond.startsWith("cmp ") && tthird.startsWith("bcc ") && tfourth.startsWith("beq ")) {
+            val label = tthird.extractOperandFromInstruction()
+            if(label==tfourth.extractOperandFromInstruction()) {
+                mods += Modification(lines[0].index, false, "  lda  ${tsecond.extractOperandFromInstruction()}")
+                mods += Modification(lines[1].index, false, "  cmp  ${tfirst.extractOperandFromInstruction()}")
                 mods += Modification(lines[2].index, false, "  bcs  $label")
                 mods += Modification(lines[3].index, true, null)
             }
@@ -636,77 +662,51 @@ private fun optimizeJsrRtsAndOtherCombinations(linesByFour: Sequence<List<Indexe
         fun sameLabel(branchInstr: String, jumpInstr: String, labelInstr: String): Boolean {
             if('(' in jumpInstr) return false       // indirect jump cannot be replaced
             val label = labelInstr.trimEnd().substringBefore(':').substringBefore(' ').substringBefore('\t')
-            val branchLabel = branchInstr.trimStart().substring(3).trim()
+            val branchLabel = branchInstr.extractOperandTrimmed()
             return label==branchLabel
         }
 
         // beq Label + jmp Addr + Label  -> bne Addr
-        if((" jmp" in second || "\tjmp " in second) && haslabel(third)) {
-            if((" beq " in first || "\tbeq " in first) && sameLabel(first, second, third)) {
-                val branch = second.replace("jmp", "bne")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
-            }
-            else if((" bne " in first || "\tbne " in first) && sameLabel(first, second, third)) {
-                val branch = second.replace("jmp", "beq")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
-            }
-            else if((" bcc " in first || "\tbcc " in first) && sameLabel(first, second, third)){
-                val branch = second.replace("jmp", "bcs")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
-            }
-            else if((" bcs " in first || "\tbcs " in first) && sameLabel(first, second, third)) {
-                val branch = second.replace("jmp", "bcc")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
-            }
-            else if((" bpl " in first || "\tbpl " in first) && sameLabel(first, second, third)) {
-                val branch = second.replace("jmp", "bmi")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
-            }
-            else if((" bmi " in first || "\tbmi " in first) && sameLabel(first, second, third)) {
-                val branch = second.replace("jmp", "bpl")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
-            }
-            else if((" bvc " in first || "\tbvc " in first) && sameLabel(first, second, third)) {
-                val branch = second.replace("jmp", "bvs")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
-            }
-            else if((" bvs " in first || "\tbvs " in first) && sameLabel(first, second, third)) {
-                val branch = second.replace("jmp", "bvc")
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[1].index, false, branch))
+        if(tsecond.hasInstr("jmp") && haslabel(lines[2].value)) {
+            val branchInversions = mapOf(
+                "beq" to "bne", "bne" to "beq",
+                "bcc" to "bcs", "bcs" to "bcc",
+                "bpl" to "bmi", "bmi" to "bpl",
+                "bvc" to "bvs", "bvs" to "bvc"
+            )
+            val firstMnemonic = tfirst.take(3)
+            branchInversions[firstMnemonic]?.let { invertedBranch ->
+                if (sameLabel(tfirst, tsecond, tthird)) {
+                    val branch = lines[1].value.replace("jmp", invertedBranch)
+                    mods.add(Modification(lines[0].index, true, null))
+                    mods.add(Modification(lines[1].index, false, branch))
+                }
             }
         }
     }
     return mods
 }
 
-private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<TrimmedLine>>): List<Modification> {
     val mods = mutableListOf<Modification>()
 
-    fun optimize(register: Char, lines: List<IndexedValue<String>>) {
-        if(lines[0].value.trimStart().startsWith("ph$register")) {
-            if(lines[2].value.trimStart().startsWith("pl$register")) {
-                val second = lines[1].value.trimStart().take(6).lowercase()
+    fun optimize(register: Char, lines: List<TrimmedLine>) {
+        if(lines[0].instruction.startsWith("ph$register")) {
+            if(lines[2].instruction.startsWith("pl$register")) {
+                val second = lines[1].instruction.take(6).lowercase()
                 if(register!in second
-                    && !second.startsWith("jsr")
+                    && !second.startsWith("jsr ")
                     && !second.startsWith("pl")
                     && !second.startsWith("ph")) {
                     mods.add(Modification(lines[0].index, true, null))
                     mods.add(Modification(lines[2].index, true, null))
                 }
             }
-            else if (lines[3].value.trimStart().startsWith("pl$register")) {
-                val second = lines[1].value.trimStart().take(6).lowercase()
-                val third = lines[2].value.trimStart().take(6).lowercase()
+            else if (lines[3].instruction.startsWith("pl$register")) {
+                val second = lines[1].instruction.take(6).lowercase()
+                val third = lines[2].instruction.take(6).lowercase()
                 if(register !in second && register !in third
-                    && !second.startsWith("jsr") && !third.startsWith("jsr")
+                    && !second.startsWith("jsr ") && !third.startsWith("jsr ")
                     && !second.startsWith("pl") && !third.startsWith("pl")
                     && !second.startsWith("ph") && !third.startsWith("ph")) {
                     mods.add(Modification(lines[0].index, true, null))
@@ -721,10 +721,10 @@ private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<
         optimize('x', lines)
         optimize('y', lines)
 
-        val first = lines[0].value.trimStart()
-        val second = lines[1].value.trimStart()
-        val third = lines[2].value.trimStart()
-        val fourth = lines[3].value.trimStart()
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        val third = lines[2].instruction
+        val fourth = lines[3].instruction
 
         // phy + ldy + pla -> tya + ldy
         // phx + ldx + pla -> txa + ldx
@@ -758,18 +758,18 @@ private fun optimizeUselessPushPopStack(linesByFour: Sequence<List<IndexedValue<
     return mods
 }
 
-private fun optimizeTSBtoRegularOr(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeTSBtoRegularOr(linesByFour: Sequence<List<TrimmedLine>>): List<Modification> {
     // Asm peephole:   lda var2 / tsb var1 / lda var1  Replace this with this to save 1 cycle:   lda var1 / ora var2 / sta var1
     val mods = mutableListOf<Modification>()
 
     for(lines in linesByFour) {
-        val first = lines[0].value.trimStart()
-        val second = lines[1].value.trimStart()
-        val third = lines[2].value.trimStart()
-        if(first.startsWith("lda") && second.startsWith("tsb") && third.startsWith("lda")) {
-            val operand1 = first.substring(3)
-            val operand2 = second.substring(3)
-            val operand3 = third.substring(3)
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        val third = lines[2].instruction
+        if(first.startsWith("lda ") && second.startsWith("tsb ") && third.startsWith("lda ")) {
+            val operand1 = first.extractOperandTrimmed()
+            val operand2 = second.extractOperandTrimmed()
+            val operand3 = third.extractOperandTrimmed()
             if(operand1!=operand2 && operand2==operand3) {
                 mods.add(Modification(lines[0].index, false, "  lda  $operand2"))
                 mods.add(Modification(lines[1].index, false, "  ora  $operand1"))
@@ -780,20 +780,20 @@ private fun optimizeTSBtoRegularOr(linesByFour: Sequence<List<IndexedValue<Strin
     return mods
 }
 
-private fun optimizeUnneededTempvarInAdd(linesByFour: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeUnneededTempvarInAdd(linesByFour: Sequence<List<TrimmedLine>>): List<Modification> {
     // sequence:  sta  P8ZP_SCRATCH_XX  / lda  something / clc / adc  P8ZP_SCRATCH_XX
     // this can be performed without the scratch variable:  clc  /  adc  something
     val mods = mutableListOf<Modification>()
 
     for(lines in linesByFour) {
-        val first = lines[0].value.trimStart()
-        val second = lines[1].value.trimStart()
-        val third = lines[2].value.trimStart()
-        val fourth = lines[3].value.trimStart()
-        if(first.startsWith("sta  P8ZP_SCRATCH_") && second.startsWith("lda") && third.startsWith("clc") && fourth.startsWith("adc  P8ZP_SCRATCH_") ) {
-            if(fourth.substring(4)==first.substring(4)) {
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        val third = lines[2].instruction
+        val fourth = lines[3].instruction
+        if(first.startsWith("sta  P8ZP_SCRATCH_") && second.startsWith("lda ") && third=="clc" && fourth.startsWith("adc  P8ZP_SCRATCH_") ) {
+            if(fourth.extractOperandTrimmed()==first.extractOperandTrimmed()) {
                 mods.add(Modification(lines[0].index, false, "  clc"))
-                mods.add(Modification(lines[1].index, false, "  adc  ${second.substring(3).trimStart()}"))
+                mods.add(Modification(lines[1].index, false, "  adc  ${second.extractOperandTrimmed()}"))
                 mods.add(Modification(lines[2].index, true, null))
                 mods.add(Modification(lines[3].index, true, null))
             }
@@ -803,7 +803,7 @@ private fun optimizeUnneededTempvarInAdd(linesByFour: Sequence<List<IndexedValue
     return mods
 }
 
-private fun optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen: Sequence<List<IndexedValue<String>>>): List<Modification> {
+private fun optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByFourteen: Sequence<List<TrimmedLine>>): List<Modification> {
     /*
         ; FIRST SEQUYENCE: P8ZP_SCRATCH_PTR += AY :
         clc
@@ -857,23 +857,23 @@ private fun optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByF
     */
     val mods = mutableListOf<Modification>()
     for (lines in linesByFourteen) {
-        val first = lines[0].value.trimStart()
-        val second = lines[1].value.trimStart()
-        val third = lines[2].value.trimStart()
-        val fourth = lines[3].value.trimStart()
-        val fifth = lines[4].value.trimStart()
-        val sixth = lines[5].value.trimStart()
-        val seventh = lines[6].value.trimStart()
-        val eight = lines[7].value.trimStart()
-        val ninth = lines[8].value.trimStart()
+        val first = lines[0].instruction
+        val second = lines[1].instruction
+        val third = lines[2].instruction
+        val fourth = lines[3].instruction
+        val fifth = lines[4].instruction
+        val sixth = lines[5].instruction
+        val seventh = lines[6].instruction
+        val eight = lines[7].instruction
+        val ninth = lines[8].instruction
 
         // FIRST SEQUENCE
-        if(first=="clc" && second.startsWith("adc") && third=="pha" && fourth=="tya" &&
-            fifth.startsWith("adc") && sixth=="tay" && seventh=="pla" && eight.startsWith("sta") && ninth.startsWith("sty")) {
-            val var2 = second.substring(4)
-            val var5 = fifth.substring(4).substringBefore('+')
-            val var8 = eight.substring(4)
-            val var9 = ninth.substring(4).substringBefore('+')
+        if(first=="clc" && second.startsWith("adc ") && third=="pha" && fourth=="tya" &&
+            fifth.startsWith("adc ") && sixth=="tay" && seventh=="pla" && eight.startsWith("sta ") && ninth.startsWith("sty ")) {
+            val var2 = second.extractOperandTrimmed()
+            val var5 = fifth.extractOperandTrimmed().substringBefore('+')
+            val var8 = eight.extractOperandTrimmed()
+            val var9 = ninth.extractOperandTrimmed().substringBefore('+')
             if(var2==var5 && var2==var8 && var2==var9) {
                 if(fifth.endsWith("$var5+1") && ninth.endsWith("$var9+1")) {
                     mods.add(Modification(lines[2].index, false, "  sta  $var2"))
@@ -885,32 +885,26 @@ private fun optimizeAddWordToSameVariableOrExtraRegisterLoadInWordStore(linesByF
             }
         }
 
-        // SECOND SEQUENCE
-        if(first.startsWith("ldx ") && second.startsWith("sta ") &&
-            third=="txa" && fourth.startsWith("ldy ") && fifth.startsWith("sta ")
-        ) {
-            if(",x" !in second) {
-                val value = first.substring(4)
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[2].index, false, "  lda  $value"))
-            }
-        }
-        if(first.startsWith("ldy ") && second.startsWith("sta ") &&
-            third=="tya" && fourth.startsWith("ldy ") && fifth.startsWith("sta ")
-        ) {
-            if(",y" !in second) {
-                val value = first.substring(4)
-                mods.add(Modification(lines[0].index, true, null))
-                mods.add(Modification(lines[2].index, false, "  lda  $value"))
+        // SECOND SEQUENCE: ldx/ldy + sta + txa/tya + ldy + sta  -> sta + lda + ldy + sta
+        val transferInstructions = mapOf('x' to "txa", 'y' to "tya")
+        for ((reg, transferInstr) in transferInstructions) {
+            if(first.startsWith("ld$reg ") && second.startsWith("sta ") &&
+                third==transferInstr && fourth.startsWith("ldy ") && fifth.startsWith("sta ")
+            ) {
+                if(",${reg}" !in second) {
+                    val value = first.extractOperandTrimmed()
+                    mods.add(Modification(lines[0].index, true, null))
+                    mods.add(Modification(lines[2].index, false, "  lda  $value"))
+                }
             }
         }
 
-        // THIRD SEQUENCE
+        // THIRD SEQUENCE: ldx + ldy + sta + txa + iny + sta  -> ldy + sta + lda + iny + sta
         if(first.startsWith("ldx ") && second.startsWith("ldy ") && third.startsWith("sta ") &&
             fourth=="txa" && fifth=="iny" && sixth.startsWith("sta ")
         ) {
             if(",x" !in third) {
-                val value = first.substring(4)
+                val value = first.extractOperandTrimmed()
                 mods.add(Modification(lines[0].index, true, null))
                 mods.add(Modification(lines[3].index, false, "  lda  $value"))
             }

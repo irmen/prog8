@@ -51,7 +51,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
     }
 
     private val usedModules: Set<Module> by lazy {
-        usedBlocks.map { it.definingModule }.toSet()
+        usedBlocks.mapTo(mutableSetOf()) { it.definingModule }
     }
 
     override fun visit(directive: Directive) {
@@ -137,7 +137,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
                 allIdentifiersAndTargets.add(identifier to scopeTarget)
                 break
             } else if(scopeTarget is StructFieldRef) {
-                val vd = scope.lookup(name.take(1))
+                val vd = scope.lookup(name[0])
                 if(vd is VarDecl)
                     allIdentifiersAndTargets.add(identifier to vd)
                 allIdentifiersAndTargets.add(identifier to scopeTarget)

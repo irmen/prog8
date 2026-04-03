@@ -1387,10 +1387,6 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
         else
             t as? StructDecl
     }
-    fun targetStructFieldRef(): StructFieldRef? {
-        if(nameInSource.size<2) return null
-        return targetStatement() as? StructFieldRef
-    }
 
     fun firstTarget(builtins: IBuiltinFunctions? = null): Statement? =
         if(builtins!=null && nameInSource.singleOrNull() in builtins.names) {
@@ -1398,7 +1394,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             BuiltinFunctionPlaceholder(nameInSource[0], returntypes, position, parent)
         }
         else
-            definingScope.lookup(nameInSource.take(1))
+            definingScope.lookup(nameInSource[0])
 
     fun targetNameAndTypes(program: Program): Pair<String, Array<DataType>> {
         val target = targetStatement(program.builtinFunctions) as? INamedStatement  ?: throw FatalAstException("can't find target for $nameInSource")
@@ -1503,7 +1499,7 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
             struct = startStruct
         }
         else {
-            val vardecl = definingScope.lookup(nameInSource.take(1)) as? VarDecl
+            val vardecl = definingScope.lookup(nameInSource[0]) as? VarDecl
             if (vardecl?.datatype?.isPointer != true)
                 return DataType.UNDEFINED
             if(vardecl.datatype.subType==null) {
@@ -1838,7 +1834,7 @@ class PtrDereference(
             true
     }
 
-    fun firstTarget(): Statement? = definingScope.lookup(chain.take(1))
+    fun firstTarget(): Statement? = if(chain.isEmpty()) null else definingScope.lookup(chain[0])
 }
 
 class ArrayIndexedPtrDereference(

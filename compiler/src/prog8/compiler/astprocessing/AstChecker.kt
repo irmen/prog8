@@ -110,7 +110,7 @@ internal class AstChecker(private val program: Program,
         }
 
         if(identifier.nameInSource.size>1) {
-            val lookupModule = identifier.definingScope.lookup(identifier.nameInSource.take(1))
+            val lookupModule = identifier.definingScope.lookup(identifier.nameInSource[0])
             if(lookupModule is VarDecl && !lookupModule.datatype.isPointer) {
                 errors.err("ambiguous symbol name, block name expected but found variable", identifier.position)
             }
@@ -444,7 +444,7 @@ internal class AstChecker(private val program: Program,
         if(subroutine.parameters.size>6 && !subroutine.isAsmSubroutine && !subroutine.definingBlock.isInLibrary)
             errors.info("subroutine has a large number of parameters, this is slow if called often", subroutine.position)
 
-        val uniqueNames = subroutine.parameters.asSequence().map { it.name }.toSet()
+        val uniqueNames = subroutine.parameters.mapTo(mutableSetOf()) { it.name }
         if(uniqueNames.size!=subroutine.parameters.size)
             err("parameter names must be unique")
 
@@ -2232,7 +2232,7 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(struct: StructDecl) {
-        val uniqueFields = struct.fields.map { it.second }.toSet()
+        val uniqueFields = struct.fields.mapTo(mutableSetOf()) { it.second }
         if(uniqueFields.size!=struct.fields.size)
             errors.err("duplicate field names in struct", struct.position)
         val memsize = struct.memsize(program.memsizer)
@@ -2267,9 +2267,10 @@ internal class AstChecker(private val program: Program,
             }
         }
         if (deref.inferType(program).isUnknown) {
-            val symbol = deref.definingScope.lookup(deref.chain.take(1))
+            val firstName = deref.chain.firstOrNull()
+            val symbol = if(firstName != null) deref.definingScope.lookup(firstName) else null
             if(symbol==null)
-                errors.undefined(deref.chain.take(1), position=deref.position)
+                errors.undefined(deref.chain, position=deref.position)
             else
                 errors.err("unable to determine type of dereferenced pointer expression, make sure it dereferences an actual pointer type", deref.position)
         }

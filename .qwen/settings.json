@@ -6,7 +6,6 @@
   "permissions": {
     "allow": [
       "Bash(prog8c *)",
-      "Bash(git checkout *)",
       "Bash(gradle *)",
       "Bash(mkdir *)",
       "Bash(ls *)",
@@ -21,8 +20,9 @@
       "Bash(echo *)",
       "Bash(cp *)",
       "Bash(mv *)",
-      "Bash(git stash *)",
-      "Bash(time)"
+      "Bash(time)",
+      "Bash(kotlinc *)",
+      "Bash(python3)"
     ]
   }
 }

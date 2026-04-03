@@ -194,7 +194,7 @@ internal class StatementReorderer(
 
     private fun directivesToTheTop(statements: MutableList<Statement>) {
         val directives = statements.filterIsInstance<Directive>().filter {it.directive in directivesToMove}
-        statements.removeAll(directives.toSet())
+        statements.removeAll(directives)
         statements.addAll(0, directives)
     }
 

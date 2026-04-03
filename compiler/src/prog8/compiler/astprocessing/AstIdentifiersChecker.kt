@@ -154,8 +154,8 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
 
             // check that there are no local symbols (variables, labels, subs) that redefine the subroutine's parameters.
             val symbolsInSub = subroutine.allDefinedSymbols
-            val namesInSub = symbolsInSub.map{ it.first }.toSet()
-            val paramNames = subroutine.parameters.map { it.name }.toSet()
+            val namesInSub = symbolsInSub.mapTo(mutableSetOf()) { it.first }
+            val paramNames = subroutine.parameters.mapTo(mutableSetOf()) { it.name }
             val paramsToCheck = paramNames.intersect(namesInSub)
             for(name in paramsToCheck) {
                 val symbol = subroutine.searchSymbol(name)

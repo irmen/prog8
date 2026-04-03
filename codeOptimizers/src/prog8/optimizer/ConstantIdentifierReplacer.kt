@@ -275,7 +275,7 @@ class VarConstantValueTypeAdjuster(
             }
         }
         if(func==listOf("divmod")) {
-            val argTypes = functionCallExpr.args.map {it.inferType(program)}.toSet()
+            val argTypes = functionCallExpr.args.mapTo(mutableSetOf()) { it.inferType(program) }
             if(argTypes.size!=1) {
                 errors.err("expected all ubyte/uword or all byte/word arguments", functionCallExpr.args[0].position)
                 return noModifications
