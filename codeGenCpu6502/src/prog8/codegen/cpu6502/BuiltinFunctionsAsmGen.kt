@@ -2143,7 +2143,7 @@ import prog8.codegen.cpu6502.assignment.*
                 RegisterOrPair.A -> asmgen.out("  lda  $sourceName+3")
                 RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+3")
                 RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+3")
-                else -> throw AssemblyError("invalid register for msb long: $resultReg")
+                else -> throw AssemblyError("invalid register for msb long: $resultReg  ${arg.position}")
             }
         } else if(arg is PtArrayIndexer) {
             TODO("msb of long array element ${fcall.position}")
@@ -2153,7 +2153,7 @@ import prog8.codegen.cpu6502.assignment.*
                 RegisterOrPair.A -> asmgen.out("  lda  cx16.r14+3")
                 RegisterOrPair.X -> asmgen.out("  ldx  cx16.r14+3")
                 RegisterOrPair.Y -> asmgen.out("  ldy  cx16.r14+3")
-                else -> throw AssemblyError("invalid register for msb long: $resultReg")
+                else -> throw AssemblyError("invalid register for msb long: $resultReg  ${arg.position}")
             }
         }
 
@@ -2172,7 +2172,10 @@ import prog8.codegen.cpu6502.assignment.*
                 RegisterOrPair.A -> asmgen.out("  lda  $sourceName+1")
                 RegisterOrPair.X -> asmgen.out("  ldx  $sourceName+1")
                 RegisterOrPair.Y -> asmgen.out("  ldy  $sourceName+1")
-                else -> throw AssemblyError("invalid register for msb: $resultReg")
+                RegisterOrPair.AX -> asmgen.out("  lda  $sourceName+1 |  ldx  #0")
+                RegisterOrPair.AY -> asmgen.out("  lda  $sourceName+1 |  ldy  #0")
+                RegisterOrPair.XY -> asmgen.out("  ldx  $sourceName+1 |  ldy  #0")
+                else -> throw AssemblyError("invalid register for msb: $resultReg  ${arg.position}")
             }
         } else {
             if(arg is PtArrayIndexer) {
@@ -2194,7 +2197,19 @@ import prog8.codegen.cpu6502.assignment.*
                             asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
                             asmgen.out("  ldy  $arrayVar,x")
                         }
-                        else -> throw AssemblyError("invalid register for msb: $resultReg")
+                        RegisterOrPair.AX -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVar,y |  ldx  #0")
+                        } 
+                        RegisterOrPair.AY -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVar,y |  ldy  #0")
+                        } 
+                        RegisterOrPair.XY -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
+                            asmgen.out("  ldy  $arrayVar,x |  ldx  #0")
+                        } 
+                        else -> throw AssemblyError("invalid register for msb: $resultReg  ${arg.position}")
                     }
                 } else {
                     if(arg.variable==null)
@@ -2214,7 +2229,19 @@ import prog8.codegen.cpu6502.assignment.*
                             asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.X)
                             asmgen.out("  ldy  $arrayVar+1,x")
                         }
-                        else -> throw AssemblyError("invalid register for msb: $resultReg")
+                        RegisterOrPair.AX -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVar+1,y |  ldx  #0")
+                        }
+                        RegisterOrPair.AY -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  lda  $arrayVar+1,y |  ldy  #0")
+                        }
+                        RegisterOrPair.XY -> {
+                            asmgen.loadScaledArrayIndexIntoRegister(arg, CpuRegister.Y)
+                            asmgen.out("  ldx  $arrayVar+1,y |  ldy  #0")
+                        }
+                        else -> throw AssemblyError("invalid register for msb: $resultReg  ${arg.position}")
                     }
                 }
             } else {
