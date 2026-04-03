@@ -57,25 +57,45 @@ object Prog8Parser {
     }
 
     private class AntlrErrorListener(val src: SourceCode): BaseErrorListener() {
+    
+        private fun RecognitionException.getPosition(): Position {
+            val offending = this.offendingToken ?: return Position(src.origin, 1, 1, 1)
+
+            // Handle edge case: invalid token
+            if (offending.line <= 0 || offending.charPositionInLine < 0) {
+                return Position(src.origin, 1, 1, 1)
+            }
+
+            val line = offending.line
+            val startCol = offending.charPositionInLine + 1
+
+            // For EOF or invalid tokens, use startCol as endCol
+            val endCol = if (offending.type == org.antlr.v4.runtime.Token.EOF ||
+                             offending.startIndex < 0 || offending.stopIndex < 0) {
+                startCol
+            } else if (offending.line == line) {
+                // Same line: column of the last character of the token
+                offending.charPositionInLine + (offending.stopIndex - offending.startIndex) + 1
+            } else {
+                // Multi-line token: since Position is single-line only, use startCol as minimum
+                maxOf(startCol, offending.charPositionInLine + 1)
+            }
+
+            return Position(src.origin, line, startCol, endCol)
+        }
+
         override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
             if (e == null) {
+                // Simple case: no exception, just use the provided line/col
                 throw ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), RuntimeException("parse error"))
             } else {
                 if(e.offendingToken==null) {
                     throw ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), e)
                 } else {
-                    throw ParseError(msg, e.getPosition(src.origin), e)
+                    throw ParseError(msg, e.getPosition(), e)
                 }
             }
         }
-    }
-
-    private fun RecognitionException.getPosition(file: String): Position {
-        val offending = this.offendingToken
-        val line = offending.line
-        val beginCol = offending.charPositionInLine
-        val endOffset = if(offending.startIndex<0 || offending.stopIndex<0 || offending.stopIndex<=offending.startIndex) 0 else offending.stopIndex - offending.startIndex
-        return Position(file, line, beginCol+1, beginCol+1+endOffset)
     }
 
 }

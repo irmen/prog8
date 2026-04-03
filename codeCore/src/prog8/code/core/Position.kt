@@ -5,14 +5,17 @@ import prog8.code.source.SourceCode
 import java.nio.file.InvalidPathException
 import kotlin.io.path.Path
 
-data class Position(val file: String, val line: Int, val startCol: Int, val endCol: Int) {
-    override fun toString(): String = "[$file: line $line col ${startCol}-${endCol}]"
-
-    init {
-        if(!file.startsWith('~'))
-            require(line>0 && startCol>=0 && endCol>=startCol) {
-                "Invalid position: $this"
-            }
+/**
+ * Source code position.
+ */
+data class Position(
+    val file: String,
+    val line: Int,           // line number (1-based)
+    val startCol: Int,       // start column (1-based, tab-expanded)
+    val endCol: Int          // end column (1-based, tab-expanded)
+) {
+    override fun toString(): String {
+        return "[$file: line $line col ${startCol}-${endCol}]"
     }
 
     fun toClickableStr(): String {

@@ -12,7 +12,7 @@ fun Prog8Position.toLspRange(): Range {
     // Prog8 positions are 1-based, LSP is 0-based
     val startLine = maxOf(0, this.line - 1)
     val startCol = maxOf(0, this.startCol - 1)
-    val endLine = maxOf(0, this.line - 1)  // Same line for single-line positions
+    val endLine = maxOf(0, this.line - 1)
     val endCol = maxOf(0, this.endCol - 1)
 
     return Range(

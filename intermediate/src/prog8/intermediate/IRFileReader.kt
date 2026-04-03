@@ -699,13 +699,16 @@ class IRFileReader {
         }
     }
 
-    private val posPattern = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
+    // Pattern for single-line position: [file: line 1 col 2-5]
+    private val posPatternSingle = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
 
     private fun parsePosition(strpos: String): Position {
         // example: "[library:/prog8lib/virtual/textio.p8: line 5 col 2-4]"
-        val match = posPattern.matchEntire(strpos) ?: throw IRParseException("invalid Position")
-        val (file, line, startCol, endCol) = match.destructured
-        return Position(file, line.toInt(), startCol.toInt(), endCol.toInt())
+        posPatternSingle.matchEntire(strpos)?.let { match ->
+            val (file, line, startCol, endCol) = match.destructured
+            return Position(file, line.toInt(), startCol.toInt(), endCol.toInt())
+        }
+        throw IRParseException("invalid Position: $strpos")
     }
 
     private fun readText(reader: XMLEventReader): String {

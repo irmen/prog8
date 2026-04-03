@@ -20,6 +20,9 @@ import kotlin.io.path.isRegularFile
 
 class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node>(), Prog8ANTLRVisitor<Node> {
 
+    // Cached resolved filename - computed once per visitor since it never changes during a single parse
+    private var cachedFileName: String? = null
+
     override fun visitModule(ctx: ModuleContext): Module {
         val statements = ctx.module_element().map { it.accept(this) as Statement }
         return Module(statements.toMutableList(), ctx.toPosition(), source)
@@ -801,20 +804,46 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     private fun getname(identifier: IdentifierContext): String = identifier.children[0].text
 
     private fun ParserRuleContext.toPosition() : Position {
-        val pathString = start.inputStream.sourceName
-        val filename = if(SourceCode.isRegularFilesystemPath(pathString)) {
-            val path = Path(pathString)
-            if(path.isRegularFile()) {
-                SourceCode.relative(path).toString()
+        val filename = cachedFileName ?: run {
+            val pathString = start.inputStream.sourceName
+            val resolved = if(SourceCode.isRegularFilesystemPath(pathString)) {
+                val path = Path(pathString)
+                if(path.isRegularFile()) {
+                    SourceCode.relative(path).toString()
+                } else {
+                    path.toString()
+                }
             } else {
-                path.toString()
+                pathString
             }
-        } else {
-            pathString
+            cachedFileName = resolved
+            resolved
         }
-        // note: beware of TAB characters in the source text, they count as 1 column...
-        val endOffset = if(start.startIndex<0 || start.stopIndex<0) 0 else start.stopIndex - start.startIndex
-        return Position(filename, start.line, start.charPositionInLine+1, start.charPositionInLine + 1 + endOffset)
+
+        val startToken = this.start
+        val stopToken = this.stop ?: startToken
+
+        // Handle edge case: empty file or invalid tokens
+        if (startToken.line <= 0 || startToken.charPositionInLine < 0) {
+            return Position(filename, 1, 1, 1)
+        }
+
+        // Simple column calculation (no tab expansion - Prog8 source rarely has tabs)
+        val startCol = startToken.charPositionInLine + 1
+
+        // For empty tokens or EOF, use startCol as endCol
+        val endCol = if (stopToken.type == org.antlr.v4.runtime.Token.EOF ||
+                         stopToken.startIndex < 0 || stopToken.stopIndex < 0) {
+            startCol
+        } else if (startToken.line == stopToken.line) {
+            // Same line: column of the last character of the token
+            stopToken.charPositionInLine + (stopToken.stopIndex - stopToken.startIndex) + 1
+        } else {
+            // Multi-line token: since Position is single-line only, use startCol as minimum
+            maxOf(startCol, stopToken.charPositionInLine + 1)
+        }
+
+        return Position(filename, startToken.line, startCol, endCol)
     }
 
     private fun getZpOption(tags: List<String>): ZeropageWish = when {

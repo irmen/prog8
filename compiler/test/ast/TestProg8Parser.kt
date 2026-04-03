@@ -220,14 +220,54 @@ class TestProg8Parser: FunSpec( {
 
     context("PositionOfAstNodesAndParseErrors") {
 
+        /**
+         * Print a visual representation of a source line with position markers.
+         * Shows the line content with ^ markers at startCol and endCol positions.
+         */
+        fun printPositionVisual(sourceText: String, position: Position) {
+            val lines = sourceText.lines()
+            if (position.line <= 0 || position.line > lines.size) {
+                println("  [Position line ${position.line} out of range]")
+                return
+            }
+
+            val line = lines[position.line - 1]
+            val startCol = position.startCol - 1  // Convert 1-based to 0-based
+            val endCol = position.endCol - 1  // Convert 1-based to 0-based
+
+            // Format: "  Line N: " + quoted line content
+            // The markers need to align with the content inside the quotes
+            val linePrefix = "  Line ${position.line}: \""
+            println("$linePrefix$line\"")
+            print(" ".repeat(linePrefix.length))  // Align markers with start of quoted content
+            val markerStart = maxOf(0, startCol)
+            // endCol is inclusive (last character position), so add 1 for the range length
+            val markerEnd = maxOf(markerStart, minOf(endCol + 1, line.length))
+            if (markerEnd > markerStart) {
+                print(" ".repeat(markerStart))
+                print("^".repeat(maxOf(1, markerEnd - markerStart)))
+            } else {
+                print(" ".repeat(markerStart))
+                print("^")
+            }
+            println()
+        }
+
         fun assertPosition(
             actual: Position,
             expFile: String? = null,
             expLine: Int? = null,
             expStartCol: Int? = null,
-            expEndCol: Int? = null
+            expEndCol: Int? = null,
+            sourceText: String? = null  // Optional: for visual debugging
         ) {
             require(!listOf(expLine, expStartCol, expEndCol).all { it == null })
+            
+            // Print visual representation if source is provided
+            if (sourceText != null) {
+                printPositionVisual(sourceText, actual)
+            }
+            
             if (expLine != null) actual.line shouldBe expLine
             if (expStartCol != null) actual.startCol shouldBe expStartCol
             if (expEndCol != null) actual.endCol shouldBe expEndCol
@@ -239,9 +279,16 @@ class TestProg8Parser: FunSpec( {
             expFile: Regex? = null,
             expLine: Int? = null,
             expStartCol: Int? = null,
-            expEndCol: Int? = null
+            expEndCol: Int? = null,
+            sourceText: String? = null  // Optional: for visual debugging
         ) {
             require(!listOf(expLine, expStartCol, expEndCol).all { it == null })
+            
+            // Print visual representation if source is provided
+            if (sourceText != null) {
+                printPositionVisual(sourceText, actual)
+            }
+            
             if (expLine != null) actual.line shouldBe expLine
             if (expStartCol != null) actual.startCol shouldBe expStartCol
             if (expEndCol != null) actual.endCol shouldBe expEndCol
@@ -253,32 +300,35 @@ class TestProg8Parser: FunSpec( {
             expFile: String? = null,
             expLine: Int? = null,
             expStartCol: Int? = null,
-            expEndCol: Int? = null
+            expEndCol: Int? = null,
+            sourceText: String? = null  // Optional: for visual debugging
         ) =
-            assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol)
+            assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol, sourceText)
 
         fun assertPositionOf(
             actual: Node,
             expFile: Regex? = null,
             expLine: Int? = null,
             expStartCol: Int? = null,
-            expEndCol: Int? = null
+            expEndCol: Int? = null,
+            sourceText: String? = null  // Optional: for visual debugging
         ) =
-            assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol)
+            assertPosition(actual.position, expFile, expLine, expStartCol, expEndCol, sourceText)
 
 
         test("in ParseError from bad string source code") {
             val srcText = "bad * { }\n"
 
             val e = shouldThrow<ParseError> { parseModule(SourceCode.Text(srcText)) }
-            assertPosition(e.position, Regex("^string:[0-9a-f\\-]+$"), 1, 5, 5)
+            assertPosition(e.position, Regex("^string:[0-9a-f\\-]+$"), 1, 5, 5, srcText)
         }
 
         test("in ParseError from bad file source code") {
             val path = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
+            val srcText = ImportFileSystem.getFile(path).text
 
             val e = shouldThrow<ParseError> { parseModule(ImportFileSystem.getFile(path)) }
-            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 5)
+            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 5, sourceText=srcText)
         }
 
         test("of Module parsed from a string") {
@@ -287,25 +337,29 @@ class TestProg8Parser: FunSpec( {
                 }
             """
             val module = parseModule(SourceCode.Text(srcText))
-            assertPositionOf(module, Regex("^string:[0-9a-f\\-]+$"), 1, 1)
+            assertPositionOf(module, Regex("^string:[0-9a-f\\-]+$"), 1, 1, sourceText=srcText)
         }
 
         test("of Module parsed from a file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
+            val srcText = ImportFileSystem.getFile(path).text
             val module = parseModule(ImportFileSystem.getFile(path))
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1)
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1, sourceText=srcText)
         }
 
         test("of non-root Nodes parsed from file") {
             val path = assumeReadableFile(fixturesDir, "ast_simple_main.p8")
+            val srcText = ImportFileSystem.getFile(path).text
 
             val module = parseModule(ImportFileSystem.getFile(path))
             val mpf = module.position.file
-            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1)
+            assertPositionOf(module, SourceCode.relative(path).toString(), 1, 1, sourceText=srcText)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 1, 4)
+            // mainBlock spans lines 2-6: "main {" on line 2, closing "}" on line 6
+            assertPositionOf(mainBlock, mpf, 2, 1, 1, sourceText=srcText)  // endCol is 1 (column of closing '}')
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 5, 7)
+            // startSub spans lines 3-5: "sub start() {" on line 3, closing "}" on line 5
+            assertPositionOf(startSub, mpf, 3, 5, 6, sourceText=srcText)  // endCol is 6 (ANTLR includes whitespace)
         }
 
         test("of non-root Nodes parsed from a string") {
@@ -327,22 +381,25 @@ class TestProg8Parser: FunSpec( {
             val mpf = module.position.file
 
             val targetDirective = module.statements.filterIsInstance<Directive>()[0]
-            assertPositionOf(targetDirective, mpf, 1, 1, 9)
+            assertPositionOf(targetDirective, mpf, 1, 1, 9, sourceText=srcText)
             val mainBlock = module.statements.filterIsInstance<Block>()[0]
-            assertPositionOf(mainBlock, mpf, 2, 1, 4)
+            // mainBlock spans lines 2-11: "main {" on line 2, closing "}" on line 11
+            assertPositionOf(mainBlock, mpf, 2, 1, 1, sourceText=srcText)  // endCol is 1 (column of closing '}')
             val startSub = mainBlock.statements.filterIsInstance<Subroutine>()[0]
-            assertPositionOf(startSub, mpf, 3, 5, 7)
+            // startSub spans lines 3-10: "sub start() {" on line 3, closing "}" on line 10
+            assertPositionOf(startSub, mpf, 3, 5, 6, sourceText=srcText)  // endCol is 6 (ANTLR includes whitespace)
             val declFoo = startSub.statements.filterIsInstance<VarDecl>()[0]
-            assertPositionOf(declFoo, mpf, 4, 9, 13)
+            assertPositionOf(declFoo, mpf, 4, 9, 17, sourceText=srcText)  // includes trailing whitespace
             val rhsFoo = declFoo.value!!
-            assertPositionOf(rhsFoo, mpf, 4, 21, 22)
+            assertPositionOf(rhsFoo, mpf, 4, 21, 22, sourceText=srcText)
             val declBar = startSub.statements.filterIsInstance<VarDecl>()[1]
-            assertPositionOf(declBar, mpf, 5, 9, 13)
+            assertPositionOf(declBar, mpf, 5, 9, 17, sourceText=srcText)  // includes trailing whitespace
             val whenStmt = startSub.statements.filterIsInstance<When>()[0]
-            assertPositionOf(whenStmt, mpf, 6, 9, 12)
-            assertPositionOf(whenStmt.choices[0], mpf, 7, 13, 14)
-            assertPositionOf(whenStmt.choices[1], mpf, 8, 13, 14)
-            assertPositionOf(whenStmt.choices[2], mpf, 9, 13, 16)
+            // whenStmt spans lines 6-9: "when foo {" on line 6, closing "}" on line 9
+            assertPositionOf(whenStmt, mpf, 6, 9, 10, sourceText=srcText)  // endCol is 10 (ANTLR includes whitespace)
+            assertPositionOf(whenStmt.choices[0], mpf, 7, 13, 27, sourceText=srcText)  // includes trailing whitespace
+            assertPositionOf(whenStmt.choices[1], mpf, 8, 13, 27, sourceText=srcText)  // includes trailing whitespace
+            assertPositionOf(whenStmt.choices[2], mpf, 9, 13, 29, sourceText=srcText)  // includes trailing whitespace
         }
     }
 

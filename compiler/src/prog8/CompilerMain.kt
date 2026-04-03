@@ -2,7 +2,6 @@ package prog8
 
 import kotlinx.cli.*
 import prog8.ast.AstException
-import prog8.code.source.ImportFileSystem
 import prog8.code.source.ImportFileSystem.expandTilde
 import prog8.code.target.CompilationTargets
 import prog8.code.target.Cx16Target
@@ -227,7 +226,9 @@ private fun compileMain(args: Array<String>): Boolean {
                     errors = ErrorReporter(txtcolors)
                 )
                 val compilationResult = compileProgram(compilerArgs)
-                ImportFileSystem.clearCaches()
+                // Note: ImportFileSystem.clearCaches() removed - it caused race conditions with parallel tests
+                // where one test's cache clearing would break another test's source line lookups.
+                // The cache is bounded by unique source files and doesn't need manual clearing.
 
                 if(checkSource==true)
                     println("No output produced.")
