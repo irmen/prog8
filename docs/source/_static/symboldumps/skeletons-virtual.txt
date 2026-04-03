@@ -377,12 +377,13 @@ strings  {
     find_eol  (str st) -> ubyte, bool 
     findstr  (str haystack, str needle) -> ubyte 
     hash  (str st) -> ubyte 
-    isdigit  (ubyte character) -> bool 
-    isletter  (ubyte character) -> bool 
-    islower  (ubyte character) -> bool 
-    isprint  (ubyte character) -> bool 
-    isspace  (ubyte character) -> bool 
-    isupper  (ubyte character) -> bool 
+    isdigit  (ubyte character) -> bool
+    isletter  (ubyte character) -> bool
+    islower  (ubyte character) -> bool
+    isprint  (ubyte character) -> bool
+    isspace  (ubyte character) -> bool
+    isupper  (ubyte character) -> bool
+    isxdigit  (ubyte character) -> bool
     left  (str source, ubyte slen, str target) 
     length  (str st) -> ubyte 
     lower  (str st) -> ubyte 

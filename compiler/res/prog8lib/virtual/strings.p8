@@ -237,6 +237,11 @@ strings {
         return character>='0' and character<='9'
     }
 
+    sub isxdigit(ubyte character) -> bool {
+        character = lowerchar(character)
+        return isdigit(character) or character>='a' and character<='f'
+    }
+
     sub isupper(ubyte character) -> bool {
         return character>='A' and character<='Z'
     }

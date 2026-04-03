@@ -1176,6 +1176,9 @@ conversion and classification
 ``isdigit (char)``
     Returns boolean if the character is a numerical digit 0-9
 
+``isxdigit (char)``
+    Returns boolean if the character is a hexadecimal digit 0-9, a-f, or A-F.
+
 ``islower (char)``, ``isupper (char)``, ``isletter (char)``
     Returns true if the character is a shifted-PETSCII lowercase letter, uppercase letter, or any letter, respectively.
 

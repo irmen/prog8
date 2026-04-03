@@ -1,5 +1,7 @@
 ; Number conversions routines.
 
+%import strings
+
 conv {
 
 ; ----- number conversions to decimal strings ----
@@ -267,14 +269,15 @@ sub  hex2uword(str string) -> uword {
     if @(string)=='$'
         string++
     repeat {
-        char = @(string)
-        if char==0
+        char = strings.lowerchar(@(string))
+        if strings.isxdigit(char) {
+            result <<= 4
+            if char>='0' and char<='9'
+                result |= char-'0'
+            else
+                result |= char-'a'+10
+        } else
             return result
-        result <<= 4
-        if char>='0' and char<='9'
-            result |= char-'0'
-        else
-            result |= char-'a'+10
         string++
     }
 }
@@ -287,14 +290,15 @@ sub  hex2long(str string) -> long {
     if @(string)=='$'
         string++
     repeat {
-        char = @(string)
-        if char==0
+        char = strings.lowerchar(@(string))
+        if strings.isxdigit(char) {
+            result <<= 4
+            if char>='0' and char<='9'
+                result |= char-'0'
+            else
+                result |= char-'a'+10
+        } else
             return result
-        result <<= 4
-        if char>='0' and char<='9'
-            result |= char-'0'
-        else
-            result |= char-'a'+10
         string++
     }
 }
@@ -308,7 +312,7 @@ sub  str2long(str string) -> long {
     alias digit_char = cx16.r0L
     repeat {
         digit_char = @(string)
-        if digit_char in '0' to '9' {
+        if strings.isdigit(digit_char) {
             result = (result<<1) + (result<<3)  ; multiply by 10
             result += digit_char - '0'  ; add digit
         } else {
@@ -332,11 +336,13 @@ sub  bin2uword(str string) -> uword {
         string++
     repeat {
         char = @(string)
-        if char==0
-            return result
-        result <<= 1
-        if char=='1'
+        if char=='0' {
+            result <<= 1
+        } else if char=='1' {
+            result <<= 1
             result |= 1
+        } else
+            return result
         string++
     }
 }
@@ -344,12 +350,26 @@ sub  bin2uword(str string) -> uword {
 sub  any2uword(str string) -> uword, ubyte {
     ; -- convert any number string (any prefix allowed) to uword.
     ;    returns the parsed word value, and the number of processed characters (including the prefix symbol)
-    ubyte length
-    while string[length]!=0 length++
+    ubyte count
     when string[0] {
-        '$' -> return hex2uword(string), length
-        '%' -> return bin2uword(string), length
-        else -> return str2uword(string), length
+        '$' -> {
+            count = 1
+            while strings.isxdigit(string[count])
+                count++
+            return hex2uword(string), count
+        }
+        '%' -> {
+            count = 1
+            while string[count]=='0' or string[count]=='1'
+                count++
+            return bin2uword(string), count
+        }
+        else -> {
+            count = 0
+            while strings.isdigit(string[count])
+                count++
+            return str2uword(string), count
+        }
     }
 }
 

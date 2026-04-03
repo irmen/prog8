@@ -495,12 +495,13 @@ strings  {
     find_eol  (str string @AY) -> ubyte @A, bool @Pc 
     findstr  (str haystack, str needle) -> ubyte 
     hash  (str string @AY) -> ubyte @A 
-    isdigit  (ubyte petsciichar @A) -> bool @Pc 
-    isletter  (ubyte petsciichar @A) -> bool @Pc 
-    islower  (ubyte petsciichar @A) -> bool @Pc 
-    isprint  (ubyte petsciichar @A) -> bool @Pc 
-    isspace  (ubyte petsciichar @A) -> bool @Pc 
-    isupper  (ubyte petsciichar @A) -> bool @Pc 
+    isdigit  (ubyte petsciichar @A) -> bool @Pc
+    isletter  (ubyte petsciichar @A) -> bool @Pc
+    islower  (ubyte petsciichar @A) -> bool @Pc
+    isprint  (ubyte petsciichar @A) -> bool @Pc
+    isspace  (ubyte petsciichar @A) -> bool @Pc
+    isupper  (ubyte petsciichar @A) -> bool @Pc
+    isxdigit  (ubyte petsciichar @A) -> bool @Pc
     left  (str source @AX, ubyte length @Y, str target @R1)  clobbers (A,Y) 
     length  (str string @AY)  clobbers (A) -> ubyte @Y 
     lower  (str st @AY) -> ubyte @Y 
