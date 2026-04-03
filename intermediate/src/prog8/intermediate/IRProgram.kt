@@ -428,23 +428,19 @@ class IRProgram(val name: String,
             else
                 require(chunk===split.subParent!!.chunks[split.chunkIndex])
             val totalSize = chunk.instructions.size
-            val first = chunk.instructions.dropLast(totalSize-split.splitAt-1)
-            val second = chunk.instructions.drop(split.splitAt+1)
-            chunk.instructions.clear()
-            chunk.instructions.addAll(first)
+            val splitPoint = split.splitAt + 1
             val secondChunk = IRCodeChunk(null, chunk.next)
-            secondChunk.instructions.addAll(second)
+            // Move instructions from splitPoint onward to secondChunk without copying
+            secondChunk.instructions.addAll(chunk.instructions.subList(splitPoint, totalSize))
+            chunk.instructions.subList(splitPoint, totalSize).clear()
             require(chunk.instructions.last().opcode in OpcodesThatEndSSAblock)
             require(chunk.instructions.size + secondChunk.instructions.size == totalSize)
             if(chunk.instructions.last().opcode !in OpcodesThatBranchUnconditionally) {
                 chunk.next = secondChunk
                 if(split.blockParent!=null) split.blockParent.children.add(split.chunkIndex+1, secondChunk)
                 else split.subParent!!.chunks.add(split.chunkIndex+1, secondChunk)
-                // println("split chunk ${chunk.label} at ${split.splitAt}:   ${chunk.instructions[split.splitAt]}   ${totalSize} = ${chunk.instructions.size}+${secondChunk.instructions.size}")
             } else {
-                // shouldn't occur , unreachable code in second chunk?
                 chunk.next = null
-                // println("REMOVED UNREACHABLE CODE")
             }
         }
     }

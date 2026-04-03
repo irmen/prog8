@@ -277,6 +277,8 @@ private class ParsedCall(
     val returns: List<FunctionCallArgs.RegSpec>
 )
 
+private val callPattern = Regex("(?<target>.+?)\\((?<arglist>.*?)\\)(:(?<returns>.+?))?")
+
 private fun parseCall(rest: String): ParsedCall {
 
     fun parseRegspec(reg: String): FunctionCallArgs.RegSpec {
@@ -323,8 +325,7 @@ private fun parseCall(rest: String): ParsedCall {
         }
     }
 
-    val pattern = Regex("(?<target>.+?)\\((?<arglist>.*?)\\)(:(?<returns>.+?))?")
-    val match = pattern.matchEntire(rest.replace(" ","")) ?: throw IRParseException("invalid call spec $rest")
+    val match = callPattern.matchEntire(rest.replace(" ","")) ?: throw IRParseException("invalid call spec $rest")
     val target = match.groups["target"]!!.value
     val args = match.groups["arglist"]!!.value
     val arguments = parseArgs(args)

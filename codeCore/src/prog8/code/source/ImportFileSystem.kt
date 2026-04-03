@@ -3,19 +3,15 @@ package prog8.code.source
 import prog8.code.core.Position
 import prog8.code.sanitize
 import java.nio.file.Path
-import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import kotlin.io.path.Path
 
 
 // Resource caching "filesystem".
 // Note that it leaves the decision to load a resource or an actual disk file to the caller.
+// Thread-safe: uses ConcurrentHashMap for all caches.
 
 object ImportFileSystem {
-
-    fun clearCaches() {
-        cache.clear()
-        lineSpanCache.clear()
-    }
 
     fun expandTilde(path: String): String = if (path.startsWith("~")) {
         val userHome = System.getProperty("user.home")
@@ -28,47 +24,40 @@ object ImportFileSystem {
 
     fun getFile(path: Path, isLibrary: Boolean=false): SourceCode {
         val normalized = path.sanitize()
-        val cached = cache[normalized.toString()]
-        if (cached != null)
-            return cached
-        val file = SourceCode.File(normalized, isLibrary)
-        cache[normalized.toString()] = file
-        return file
+        return cache.computeIfAbsent(normalized.toString().lowercase()) {
+            SourceCode.File(normalized, isLibrary)
+        }
     }
 
     fun getResource(name: String): SourceCode {
-        val cached = cache[name]
-        if (cached != null) return cached
-        val resource = SourceCode.Resource(name)
-        cache[name] = resource
-        return resource
+        return cache.computeIfAbsent(name.lowercase()) {
+            SourceCode.Resource(name)
+        }
     }
 
     fun retrieveSourceLine(position: Position): String {
         if(SourceCode.isLibraryResource(position.file)) {
             val key = SourceCode.withoutPrefix(position.file)
-            val cached = cache[key]
+            val cached = cache[key.lowercase()]
                 ?: runCatching { getResource(key) }.getOrNull()
             if(cached != null)
                 return getLine(cached, position.line)
         }
-        val cached = cache[position.file]
+        val cached = cache[position.file.lowercase()]
         if(cached != null)
             return getLine(cached, position.line)
         val path = Path(position.file).sanitize()
-        val cached2 = cache[path.toString()]
+        val cached2 = cache[path.toString().lowercase()]
         if(cached2 != null)
             return getLine(cached2, position.line)
         throw NoSuchElementException("cannot get source line $position, with path $path")
     }
 
     private fun getLine(code: SourceCode, lineIndex: Int): String {
-        var spans = lineSpanCache[code]
-        if(spans==null) {
+        val spans = lineSpanCache.computeIfAbsent(code) {
             val lineSpans = Regex("^", RegexOption.MULTILINE).findAll(code.text).map { it.range.first }
             val ends = lineSpans.drop(1) + code.text.length
-            spans = lineSpans.zip(ends).map { (start, end) -> LineSpan(start, end) }.toList().toTypedArray()
-            lineSpanCache[code] = spans
+            lineSpans.zip(ends).map { (start, end) -> LineSpan(start, end) }.toList().toTypedArray()
         }
         val span = spans[lineIndex - 1]
         return code.text.substring(span.start, span.end).trim()
@@ -76,6 +65,6 @@ object ImportFileSystem {
 
     private class LineSpan(val start: Int, val end: Int)
 
-    private val cache = TreeMap<String, SourceCode>(String.CASE_INSENSITIVE_ORDER)
-    private val lineSpanCache = mutableMapOf<SourceCode, Array<LineSpan>>()
+    private val cache = ConcurrentHashMap<String, SourceCode>()
+    private val lineSpanCache = ConcurrentHashMap<SourceCode, Array<LineSpan>>()
 }

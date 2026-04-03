@@ -13,8 +13,16 @@ import kotlin.io.path.inputStream
 
 private const val StMemorySlabBlockName = "prog8_slabs"
 
-
 class IRFileReader {
+
+    companion object {
+        private val varNoInitPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
+        private val constantPattern = Regex("(.+?) (.+)=(.*?)")
+        private val varInitPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+)=(?<value>.*?) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
+        private val memMappedPattern = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
+        private val slabPattern = Regex("(.+) (.+) (.+)")
+        private val posPatternSingle = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
+    }
 
     fun read(irSourceCode: String): IRProgram {
         StringReader(irSourceCode).use { stream ->
@@ -182,11 +190,10 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val varPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
             val variables = mutableListOf<IRStStaticVariable>()
             text.lineSequence().forEach { line ->
                 // example:  uword main.start.qq2 zp=DONTCARE
-                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid $segmentname $line")
+                val match = varNoInitPattern.matchEntire(line) ?: throw IRParseException("invalid $segmentname $line")
                 val type = match.groups["type"]!!.value
                 val arrayspec = match.groups["arrayspec"]?.value ?: ""
                 val name = match.groups["name"]!!.value
@@ -217,7 +224,6 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val constantPattern = Regex("(.+?) (.+)=(.*?)")
             val constants = mutableListOf<IRStConstant>()
             text.lineSequence().forEach { line ->
                 // examples:
@@ -250,13 +256,12 @@ class IRFileReader {
         return if(text.isBlank())
             emptyList()
         else {
-            val varPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+)=(?<value>.*?) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
             val variables = mutableListOf<IRStStaticVariable>()
             text.lineSequence().forEach { line ->
                 // examples:
                 // uword main.start.qq2=0 zp=REQUIRE_ZP
                 // ubyte[6] main.start.namestring=105,114,109,101,110,0
-                val match = varPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
+                val match = varInitPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
                 val type = match.groups["type"]!!.value
                 val arrayspec = match.groups["arrayspec"]?.value ?: ""
                 val name = match.groups["name"]!!.value
@@ -381,12 +386,11 @@ class IRFileReader {
             emptyList()
         else {
             val memvars = mutableListOf<IRStMemVar>()
-            val mappedPattern = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
             text.lineSequence().forEach { line ->
                 // examples:
                 // @uword main.start.mapped=49152
                 // @ubyte[20] main.start.mappedarray=49408
-                val match = mappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPED $line")
+                val match = memMappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPED $line")
                 val (type, arrayspec, name, address) = match.destructured
                 val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
                 val dt = parseDatatype(type, arraysize!=null)
@@ -407,7 +411,6 @@ class IRFileReader {
             emptyList()
         else {
             val slabs = mutableListOf<IRStMemorySlab>()
-            val slabPattern = Regex("(.+) (.+) (.+)")
             text.lineSequence().forEach { line ->
                 // example: "slabname 4096 0"
                 val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
@@ -698,9 +701,6 @@ class IRFileReader {
             }
         }
     }
-
-    // Pattern for single-line position: [file: line 1 col 2-5]
-    private val posPatternSingle = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
 
     private fun parsePosition(strpos: String): Position {
         // example: "[library:/prog8lib/virtual/textio.p8: line 5 col 2-4]"

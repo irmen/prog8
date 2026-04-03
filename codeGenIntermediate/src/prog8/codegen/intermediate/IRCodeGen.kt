@@ -1970,7 +1970,7 @@ class IRCodeGen(
                         }
                     } else {
                         // regular asmsub
-                        if(child.children.map { (it as PtInlineAssembly).isIR }.toSet().size>1)
+                        if(child.children.mapTo(mutableSetOf()) { (it as PtInlineAssembly).isIR }.size>1)
                             errors.err("asmsub mixes IR and non-IR assembly code (could be compiler-generated)", child.position)
                         val asmblocks = child.children.map { (it as PtInlineAssembly).assembly.trimEnd() }
                         val assembly = asmblocks.joinToString("\n")

@@ -1171,27 +1171,27 @@ data class IRInstruction(
         return this.type
     }
 
-    override fun toString(): String {
-        val result = mutableListOf(opcode.name.lowercase())
+    override fun toString(): String = buildString {
+        append(opcode.name.lowercase())
 
         when(type) {
-            IRDataType.BYTE -> result.add(".b ")
-            IRDataType.WORD -> result.add(".w ")
-            IRDataType.LONG -> result.add(".l ")
-            IRDataType.FLOAT -> result.add(".f ")
-            else -> result.add(" ")
+            IRDataType.BYTE -> append(".b ")
+            IRDataType.WORD -> append(".w ")
+            IRDataType.LONG -> append(".l ")
+            IRDataType.FLOAT -> append(".f ")
+            else -> append(" ")
         }
 
-        if(this.fcallArgs!=null) {
-            immediate?.let { result.add(it.toHex()) }       // syscall
+        if(this@IRInstruction.fcallArgs!=null) {
+            immediate?.let { append(it.toHex()) }       // syscall
             if(labelSymbol!=null) {
                 // regular subroutine call
-                result.add(labelSymbol)
+                append(labelSymbol)
                 if(labelSymbolOffset!=null)
-                    result.add("+$labelSymbolOffset")
+                    append("+$labelSymbolOffset")
             }
-            address?.let { result.add(address.toHex()) }    // romcall
-            result.add("(")
+            address?.let { append(address.toHex()) }    // romcall
+            append("(")
             fcallArgs.arguments.forEach {
                 val location = if(it.address==null) {
                     if(it.name.isBlank()) "" else it.name+"="
@@ -1205,20 +1205,21 @@ data class IRInstruction(
                 }
 
                 when(it.reg.dt) {
-                    IRDataType.BYTE -> result.add("${location}r${it.reg.registerNum}.b$cpuReg,")
-                    IRDataType.WORD -> result.add("${location}r${it.reg.registerNum}.w$cpuReg,")
-                    IRDataType.LONG -> result.add("${location}r${it.reg.registerNum}.l$cpuReg,")
-                    IRDataType.FLOAT -> result.add("${location}fr${it.reg.registerNum}.f$cpuReg,")
+                    IRDataType.BYTE -> append("${location}r${it.reg.registerNum}.b$cpuReg,")
+                    IRDataType.WORD -> append("${location}r${it.reg.registerNum}.w$cpuReg,")
+                    IRDataType.LONG -> append("${location}r${it.reg.registerNum}.l$cpuReg,")
+                    IRDataType.FLOAT -> append("${location}fr${it.reg.registerNum}.f$cpuReg,")
                 }
             }
-            if(result.last().endsWith(',')) {
-                result.add(result.removeLastOrNull()!!.trimEnd(','))
+            if(last() == ',') {
+                setLength(length - 1)
             }
-            result.add(")")
+            append(")")
             val returns = fcallArgs.returns
             if(returns.isNotEmpty()) {
-                result.add(":")
-                val resultParts = returns.map { returnspec ->
+                append(":")
+                returns.forEachIndexed { index, returnspec ->
+                    if (index > 0) append(",")
                     val cpuReg = if (returnspec.cpuRegister == null) "" else {
                         if (returnspec.cpuRegister.registerOrPair != null)
                             returnspec.cpuRegister.registerOrPair.toString()
@@ -1227,64 +1228,55 @@ data class IRInstruction(
                     }
                     if (cpuReg.isEmpty()) {
                         when (returnspec.dt) {
-                            IRDataType.BYTE -> "r${returnspec.registerNum}.b"
-                            IRDataType.WORD -> "r${returnspec.registerNum}.w"
-                            IRDataType.LONG -> "r${returnspec.registerNum}.l"
-                            IRDataType.FLOAT -> "fr${returnspec.registerNum}.f"
+                            IRDataType.BYTE -> append("r${returnspec.registerNum}.b")
+                            IRDataType.WORD -> append("r${returnspec.registerNum}.w")
+                            IRDataType.LONG -> append("r${returnspec.registerNum}.l")
+                            IRDataType.FLOAT -> append("fr${returnspec.registerNum}.f")
                         }
                     } else {
                         when (returnspec.dt) {
-                            IRDataType.BYTE -> "r${returnspec.registerNum}.b@" + cpuReg
-                            IRDataType.WORD -> "r${returnspec.registerNum}.w@" + cpuReg
-                            IRDataType.LONG -> "r${returnspec.registerNum}.l@" + cpuReg
-                            IRDataType.FLOAT -> "r${returnspec.registerNum}.f@" + cpuReg
+                            IRDataType.BYTE -> append("r${returnspec.registerNum}.b@$cpuReg")
+                            IRDataType.WORD -> append("r${returnspec.registerNum}.w@$cpuReg")
+                            IRDataType.LONG -> append("r${returnspec.registerNum}.l@$cpuReg")
+                            IRDataType.FLOAT -> append("r${returnspec.registerNum}.f@$cpuReg")
                         }
                     }
                 }
-                result.add(resultParts.joinToString(","))
             }
         } else {
 
             reg1?.let {
-                result.add("r$it")
-                result.add(",")
+                append("r$it,")
             }
             reg2?.let {
-                result.add("r$it")
-                result.add(",")
+                append("r$it,")
             }
             reg3?.let {
-                result.add("r$it")
-                result.add(",")
+                append("r$it,")
             }
             fpReg1?.let {
-                result.add("fr$it")
-                result.add(",")
+                append("fr$it,")
             }
             fpReg2?.let {
-                result.add("fr$it")
-                result.add(",")
+                append("fr$it,")
             }
             immediate?.let {
-                result.add("#${it.toHex()}")
-                result.add(",")
+                append("#${it.toHex()},")
             }
             immediateFp?.let {
-                result.add("#${it}")
-                result.add(",")
+                append("#${it},")
             }
             address?.let {
-                result.add(it.toHex())
-                result.add(",")
+                append(it.toHex())
+                append(",")
             }
             labelSymbol?.let {
-                result.add(it)
+                append(it)
                 if(labelSymbolOffset!=null)
-                    result.add("+$labelSymbolOffset")
+                    append("+$labelSymbolOffset")
             }
         }
-        if(result.last() == ",")
-            result.removeLastOrNull()
-        return result.joinToString("").trimEnd()
-    }
+        if(last() == ',')
+            setLength(length - 1)
+    }.trimEnd()
 }
