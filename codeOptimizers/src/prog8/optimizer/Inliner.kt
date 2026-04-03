@@ -209,10 +209,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         
         if (!sub.inline) return noModifications
         
-        // Check why we might NOT inline and print the reason
         val (canInline, reason) = canInlineAtCallSiteWithReason(sub, functionCallStatement)
         if (!canInline) {
-            println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallStatement.position}: $reason")
+            // println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallStatement.position}: $reason")
             return noModifications
         }
         
@@ -258,10 +257,9 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         if (sub == null) return noModifications
         if (!sub.inline) return noModifications
         
-        // Check why we might NOT inline and print the reason
         val (canInline, reason) = canInlineAtCallSiteWithReason(sub, functionCallExpr)
         if (!canInline) {
-            println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallExpr.position}: $reason")
+            // println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallExpr.position}: $reason")
             return noModifications
         }
         
@@ -273,7 +271,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
              sub.statements.lastOrNull()?.let(::isEmptyReturn) == true)
         )
         if (!hasOnlyBodyAndReturn) {
-            println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallExpr.position}: body too complex")
+            // println(">>> INLINER: NOT inlining '${sub.name}' at ${functionCallExpr.position}: body too complex")
             return noModifications
         }
         
@@ -281,7 +279,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             // call site is an expression, so we have to have a Return here in the inlined sub to provide the values
             // note that we don't have to process any args, because we are currently only inlining parameterless subroutines.
             return if(toInline.values.size==1 && functionCallExpr!==toInline.values[0]) {
-                println(">>> INLINER: INLINED expression '${sub.name}' at ${functionCallExpr.position} (return value substituted)")
+                // println(">>> INLINER: INLINED expression '${sub.name}' at ${functionCallExpr.position} (return value substituted)")
                 sub.hasBeenInlined =true
                 listOf(AstReplaceNode(functionCallExpr, toInline.values[0].copy(), parent))
             }
@@ -308,13 +306,13 @@ class Inliner(private val program: Program, private val options: CompilationOpti
 
             if (functionCalls.isEmpty()) {
                 // No function calls in the return values - the void call has no side effects and can be removed.
-                println(">>> INLINER: INLINED void call to '${sub.name}' at ${functionCallStatement.position} (removed, no side effects)")
+                // println(">>> INLINER: INLINED void call to '${sub.name}' at ${functionCallStatement.position} (removed, no side effects)")
                 sub.hasBeenInlined = true
                 return listOf(AstRemove(origNode as Statement, parent as IStatementContainer))
             }
 
             // There are function calls in the return values - convert each to a void statement.
-            println(">>> INLINER: INLINED void call to '${sub.name}' at ${functionCallStatement.position} (converted ${functionCalls.size} inner call(s) to void)")
+            // println(">>> INLINER: INLINED void call to '${sub.name}' at ${functionCallStatement.position} (converted ${functionCalls.size} inner call(s) to void)")
             sub.hasBeenInlined = true
 
             val voidStatements: MutableList<Statement> = functionCalls.map { fcall ->
@@ -339,7 +337,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             // Just copy the statement - parameters are unused so no substitution needed.
             val inlinedStatement = toInline.copy()
             
-            println(">>> INLINER: INLINED '${sub.name}' at ${functionCallStatement.position} (body inserted, ${sub.parameters.size} param(s))")
+            // println(">>> INLINER: INLINED '${sub.name}' at ${functionCallStatement.position} (body inserted, ${sub.parameters.size} param(s))")
             return if(origNode !== toInline) {
                 sub.hasBeenInlined = true
                 listOf(AstReplaceNode(origNode, inlinedStatement, parent))
@@ -414,7 +412,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
             )
         }
 
-        println(">>> INLINER: INLINED multi-return call to '${sub.name}' at ${assignment.position} (split into ${newAssignments.size} separate assignments)")
+        // println(">>> INLINER: INLINED multi-return call to '${sub.name}' at ${assignment.position} (split into ${newAssignments.size} separate assignments)")
         sub.hasBeenInlined = true
         val scope = AnonymousScope(newAssignments.toMutableList(), assignment.position)
         return listOf(AstReplaceNode(assignment, scope, parent))

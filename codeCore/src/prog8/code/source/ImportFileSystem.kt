@@ -46,7 +46,9 @@ object ImportFileSystem {
 
     fun retrieveSourceLine(position: Position): String {
         if(SourceCode.isLibraryResource(position.file)) {
-            val cached = cache[SourceCode.withoutPrefix(position.file)]
+            val key = SourceCode.withoutPrefix(position.file)
+            val cached = cache[key]
+                ?: runCatching { getResource(key) }.getOrNull()
             if(cached != null)
                 return getLine(cached, position.line)
         }
