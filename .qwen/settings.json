@@ -19,10 +19,8 @@
       "Bash(paste *)",
       "Bash(echo *)",
       "Bash(cp *)",
-      "Bash(mv *)",
       "Bash(time)",
       "Bash(kotlinc *)",
-      "Bash(python3)"
     ]
   }
 }
