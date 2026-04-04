@@ -457,11 +457,8 @@ main {
 }"""
         val errors = ErrorReporterForTests()
         compileText(C64Target(), false, src, outputDir, writeAssembly = false, errors = errors) shouldBe null
-        errors.errors.size shouldBe 4
-        errors.errors[0] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
-        errors.errors[1] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
-        errors.errors[2] shouldContain  "can't assign returnvalue #1 to corresponding target; ubyte vs uword"
-        errors.errors[3] shouldContain  "can't assign returnvalue #2 to corresponding target; bool vs ubyte"
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain  "bool doesn't match target type ubyte"
     }
 
     test("multi assigns with too few result values from the function") {

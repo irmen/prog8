@@ -163,13 +163,14 @@ internal class AstChecker(private val program: Program,
         for((expectedDt, actual) in expectedReturnValues.zip(returnStmt.values)) {
             val valueDt = actual.inferType(program)
             if(valueDt.isKnown) {
-                if (expectedDt != valueDt.getOrUndef()) {
-                    if(expectedDt.isUnsignedWord && (valueDt.isIterable || valueDt.isPointer)) {
+                val valueDataType = valueDt.getOrUndef()
+                if (expectedDt != valueDataType) {
+                    if(expectedDt.isUnsignedWord && (valueDataType.isIterable || valueDataType.isPointer)) {
                         // you can return a string or array or pointer when an uword (pointer) is returned
                     } else if(valueDt issimpletype BaseDataType.UWORD && expectedDt.isString) {
                         // you can return an uword pointer when the return type is a string
-                    } else if(valueDt.isUnsignedWord && expectedDt.isPointer) {
-                        // you can return an uword value when a pointer is required
+                    } else if((valueDataType.isUnsignedWord || valueDataType.isByte) && expectedDt.isPointer) {
+                        // you can return an uword/ubyte/byte value when a pointer is required
                     } else {
                         errors.err("return value type $valueDt doesn't match subroutine return type $expectedDt", actual.position)
                     }
@@ -790,11 +791,8 @@ internal class AstChecker(private val program: Program,
                 fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
                     val (returnType, target) = p
                     val targetDt = target.inferType(program).getOrUndef()
-                    if (!target.void && returnType != targetDt)
-                        errors.err(
-                            "can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt",
-                            target.position
-                        )
+                    if (!target.void)
+                        checkAssignmentCompatible(targetDt, returnType, fcall as Expression, target.position)
                 }
             }
             fcallTarget is BuiltinFunctionPlaceholder -> {
@@ -806,11 +804,8 @@ internal class AstChecker(private val program: Program,
                 fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
                     val (returnType, target) = p
                     val targetDt = target.inferType(program).getOrUndef()
-                    if (!target.void && returnType != targetDt)
-                        errors.err(
-                            "can't assign returnvalue #${index + 1} to corresponding target; $returnType vs $targetDt",
-                            target.position
-                        )
+                    if (!target.void)
+                        checkAssignmentCompatible(targetDt, returnType, fcall as Expression, target.position)
                 }
             }
         }

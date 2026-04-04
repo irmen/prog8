@@ -952,8 +952,12 @@ class AsmGen6502Internal (
                 assignmentAsmGen.assignRegisterByte(target, CpuRegister.A, target.datatype.isSigned, false)
             }
             target.datatype.isPointer -> {
-                assignExpressionToRegister(value, RegisterOrPair.AX)
-                pointerGen.assignWordReg(PtrTarget(target), RegisterOrPair.AX)
+                if(target.kind == TargetStorageKind.REGISTER) {
+                    assignExpressionToRegister(value, target.register!!)
+                } else {
+                    assignExpressionToRegister(value, RegisterOrPair.AX)
+                    pointerGen.assignWordReg(PtrTarget(target), RegisterOrPair.AX)
+                }
             }
             target.datatype.isWord || target.datatype.isPassByRef -> {
                 assignExpressionToRegister(value, RegisterOrPair.AY)
@@ -1922,7 +1926,8 @@ $repeatLabel""")
             require(ret.children.size == ret.numReturnValues())
             val assigns = ret.children.zip(returnRegs).map { it.first to it.second }
             assigns.drop(1).forEach {
-                val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, it.second.second, null, it.first.position, register = it.second.first.registerOrPair!!)
+                val targetDt = if(it.second.second.isPointer) DataType.UWORD else it.second.second
+                val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, targetDt, null, it.first.position, register = it.second.first.registerOrPair!!)
                 assignExpressionTo(it.first as PtExpression, tgt)
             }
             assigns.first().also {

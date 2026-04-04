@@ -49,8 +49,12 @@ internal class AsmAssignTarget(val kind: TargetStorageKind,
     }
 
     init {
-        if(register!=null && !datatype.isNumericOrBool)
-            throw AssemblyError("must be numeric type")
+        if(register!=null) {
+            if(datatype.isPointer)
+                throw AssemblyError("register target type must be uword, not pointer $datatype $position")
+            else if(!datatype.isNumericOrBool)
+                throw AssemblyError("target type must be numeric not $datatype $position")
+        }
         if(kind==TargetStorageKind.REGISTER)
             require(register!=null)
         else

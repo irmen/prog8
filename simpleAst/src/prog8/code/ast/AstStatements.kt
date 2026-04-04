@@ -53,7 +53,7 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
     // has all parameters PtSubroutineParameter as children.
     init {
         if(returns.any { !it.isNumericOrBool && !it.isPointer })
-            throw AssemblyError("returntype is not a bool, number or pointer")
+            throw AssemblyError("returntype is not a bool, number or pointer  $position")
     }
 
     fun returnsWhatWhere(): List<Pair<RegisterOrStatusflag, DataType>> {
@@ -89,7 +89,7 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
                 fun getLongRegister(): RegisterOrPair {
                     val reg = availableLongRegisters.removeLastOrNull()
                     if(reg==null)
-                        throw AssemblyError("out of registers for long return type ${this.position}")
+                        throw AssemblyError("out of registers for long return type $position")
                     else {
                         // remove the pair from integer regs
                         when(reg) {
@@ -125,7 +125,7 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
                                 availableIntegerRegisters.remove(RegisterOrPair.R14)
                                 availableIntegerRegisters.remove(RegisterOrPair.R15)
                             }
-                            else -> throw AssemblyError("weird long register $reg")
+                            else -> throw AssemblyError("weird long register $reg  $position")
                         }
                         return reg
                     }
@@ -134,7 +134,7 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
                 fun getIntegerRegister(): RegisterOrPair {
                     val reg = availableIntegerRegisters.removeLastOrNull()
                     if(reg==null)
-                        throw AssemblyError("out of registers for byte/word return type ${this.position}")
+                        throw AssemblyError("out of registers for byte/word return type $position")
                     else {
                         // remove it from long regs
                         when(reg) {
@@ -146,7 +146,7 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
                             RegisterOrPair.R10, RegisterOrPair.R11 -> availableLongRegisters.remove(RegisterOrPair.R10R11)
                             RegisterOrPair.R12, RegisterOrPair.R13 -> availableLongRegisters.remove(RegisterOrPair.R12R13)
                             RegisterOrPair.R14, RegisterOrPair.R15 -> availableLongRegisters.remove(RegisterOrPair.R14R15)
-                            else -> throw AssemblyError("weird byte/long register $reg")
+                            else -> throw AssemblyError("weird byte/long register $reg $position")
                         }
                         return reg
                     }
@@ -157,7 +157,8 @@ class PtSubSignature(val returns: List<DataType>, position: Position): PtNode(po
                         type.isFloat -> RegisterOrStatusflag(availableFloatRegisters.removeLastOrNull()!!, null) to type
                         type.isLong -> RegisterOrStatusflag(getLongRegister(), null) to type
                         type.isWordOrByteOrBool -> RegisterOrStatusflag(getIntegerRegister(), null) to type
-                        else -> throw AssemblyError("unsupported return type $type")
+                        type.isPointer -> RegisterOrStatusflag(getIntegerRegister(), null) to type
+                        else -> throw AssemblyError("unsupported return type $type $position")
                     }
                 }
 
