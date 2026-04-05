@@ -1,7 +1,7 @@
 TODO
 ====
 
-Chess, Imageviewer, Halloween, Paint have all increased size (maybe more)
+Chess, Imageviewer, Halloween, Paint have all increased size (maybe more)  Plasma example increased in size too since commit 14abc1f0
 
 
 Dead Code Elimination BUG with nested subroutines
@@ -112,14 +112,14 @@ Libraries
 Optimizations
 -------------
 
-- inliner: extend multi-value return inlining to support parameterized subroutines (parameter forwarding). Currently only works for parameterless subroutines returning literals or identifiers.
-- optimize the endless sequences of lda/sta's to juggle round longs for example when calling prog8_math.multiply_longs -> shorter to use a loop?  (? what is this referring to, multiply_longs already contains loops??)
+- inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
+- optimize the endless sequences of 4x lda/sta's to juggle around longs for example when calling prog8_math.multiply_longs -> shorter to use a loop over the 4 bytes?
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes almost twice as long as with prog8 11.4 and 10.5 is even faster. Largest slowdown in "ast optimizing" pass.
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
-- Optimize the IfExpression code generation to be more like regular if-else code.  (both 6502 and IR) search for "TODO don't store condition as expression" ... but maybe postpone until codegen from IR, where it seems solved?
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest
   This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on
-- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those checks should probably all be removed, or be made permanent
+  Note that simple prioritization based on size (bytes first) yields WORSE results for many programs.
+- various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those 6502 only optimizations should probably be removed

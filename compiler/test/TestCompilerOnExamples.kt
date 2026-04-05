@@ -239,7 +239,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("mandelbrot", cx16SizeOptimized=1120, cx16SizeUnoptimized=1434),
             ExampleSizes("multi-irq-new", cx16SizeOptimized=1073, cx16SizeUnoptimized=1519),
             ExampleSizes("multi-irq-old", cx16SizeOptimized=962, cx16SizeUnoptimized=1410),
-            ExampleSizes("plasma", cx16SizeOptimized=1745, cx16SizeUnoptimized=2066),
+            ExampleSizes("plasma", cx16SizeOptimized=1739, cx16SizeUnoptimized=2066),
             ExampleSizes("rasterbars", cx16SizeOptimized=1268, cx16SizeUnoptimized=1685),
             ExampleSizes("showbmx", cx16SizeOptimized=2747, cx16SizeUnoptimized=5702),
             ExampleSizes("snow", cx16SizeOptimized=3150, cx16SizeUnoptimized=5976),

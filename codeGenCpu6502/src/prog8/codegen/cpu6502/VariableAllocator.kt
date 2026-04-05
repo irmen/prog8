@@ -90,7 +90,7 @@ internal class VariableAllocator(private val symboltable: SymbolTable,
             }
 
             // try to allocate the "don't care" interger variables into the zeropage until it is full.
-            // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?
+            // TODO some form of intelligent priorization? most often used variables first? loopcounter vars first? ...?  Simply sorting by size (bytes prioritized) has BAD results
             if(errors.noErrors()) {
                 val sortedList = varsDontCareWithoutAlignment.sortedByDescending { it.scopedNameString }
                 for (variable in sortedList) {
