@@ -113,8 +113,7 @@ Optimizations
 -------------
 
 - inliner: extend multi-value return inlining to support parameterized subroutines (parameter forwarding). Currently only works for parameterless subroutines returning literals or identifiers.
-- for loops where the counter variable is unused in the loop body and count is constant -> simple repeat loops
-- optimize the endless sequences of lda/sta's to juggle round longs for example when calling prog8_math.multiply_longs -> shorter to use a loop?
+- optimize the endless sequences of lda/sta's to juggle round longs for example when calling prog8_math.multiply_longs -> shorter to use a loop?  (? what is this referring to, multiply_longs already contains loops??)
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes almost twice as long as with prog8 11.4 and 10.5 is even faster. Largest slowdown in "ast optimizing" pass.

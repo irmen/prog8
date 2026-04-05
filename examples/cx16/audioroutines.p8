@@ -3,7 +3,7 @@
 %option no_sysinit
 
 
-; NOTE: This is a small example of the Kernal's AUDIO routines.
+; NOTE: This is a small example of the Kernal's AUDIO routines. They target the Vara PSG but also the FM YM2151.
 ;       There is also the "psg" library module that implements some Vera PSG routines
 ;       of its own, but that's not used here at all. See the "cx16/bdmusic" example for that.
 

@@ -195,6 +195,16 @@ class StatementOptimizer(private val program: Program,
                 scope.statements.addAll(forLoop.body.statements)
                 return listOf(AstReplaceNode(forLoop, scope, parent))
             }
+
+            // for loop where the loop variable is not used in the body -> repeat loop
+            val loopVarName = forLoop.loopVar.nameInSource.singleOrNull()
+            if(loopVarName!=null && !forLoop.body.referencesIdentifier(listOf(loopVarName))) {
+                val iterations = range.size()
+                if(iterations != null && iterations > 0) {
+                    val repeatLoop = RepeatLoop(NumericLiteral.optimalInteger(iterations, forLoop.position), forLoop.body, forLoop.position)
+                    return listOf(AstReplaceNode(forLoop, repeatLoop, parent))
+                }
+            }
         }
         val iterable = (forLoop.iterable as? IdentifierReference)?.targetVarDecl()
         if(iterable!=null) {
