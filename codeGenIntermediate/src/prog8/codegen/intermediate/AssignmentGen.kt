@@ -109,9 +109,11 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         }
 
         // build an assignment to store the value in the actual target.
+        // Use the return type for the register (matching the LOAD instruction), not the target type.
+        // translateRegularAssign will handle byte-to-word extension if needed.
         val assign = PtAssignment(target.position)
         assign.add(target)
-        assign.add(PtIrRegister(regNum, target.type, target.position))
+        assign.add(PtIrRegister(regNum, returns.type, target.position))
         result += translate(assign)
         return result
     }
