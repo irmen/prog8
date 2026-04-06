@@ -849,4 +849,95 @@ main {
             vm.memory.getUW(allocations["main.ey2"]!!) shouldBe 0u
         }
     }
+
+    test("nosplit word array += and -= with variable index and value") {
+        // This test verifies the fix for LOADX/STOREX with element size multiplication
+        // Previously failed with -noopt because index wasn't multiplied by element size
+        val src = """
+%zeropage basicsafe
+%option no_sysinit
+
+main {
+    sub start() {
+        ; Test += with variable index, constant value
+        uword[] @nosplit arr1 = [100, 200, 300]
+        ubyte idx1 = 1
+        arr1[idx1] += 100
+
+        ; Test += with variable index, variable value
+        uword[] @nosplit arr2 = [100, 200, 300]
+        ubyte idx2 = 2
+        uword val2 = 25
+        arr2[idx2] += val2
+
+        ; Test -= with variable index, variable value
+        uword[] @nosplit arr3 = [500, 400, 300]
+        ubyte idx3 = 1
+        uword val3 = 150
+        arr3[idx3] -= val3
+
+        ; Test *= with variable index, constant value
+        uword[] @nosplit arr4 = [10, 20, 30]
+        ubyte idx4 = 2
+        arr4[idx4] *= 5
+
+        ; Store results for verification
+        main.r1 = arr1[0]
+        main.r2 = arr1[1]
+        main.r3 = arr1[2]
+        main.r4 = arr2[0]
+        main.r5 = arr2[1]
+        main.r6 = arr2[2]
+        main.r7 = arr3[0]
+        main.r8 = arr3[1]
+        main.r9 = arr3[2]
+        main.r10 = arr4[0]
+        main.r11 = arr4[1]
+        main.r12 = arr4[2]
+    }
+
+    uword @shared r1
+    uword @shared r2
+    uword @shared r3
+    uword @shared r4
+    uword @shared r5
+    uword @shared r6
+    uword @shared r7
+    uword @shared r8
+    uword @shared r9
+    uword @shared r10
+    uword @shared r11
+    uword @shared r12
+}"""
+        // Test with optimizations OFF to ensure the non-optimized path works
+        val result = compileText(VMTarget(), optimize=false, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+
+        // Parse and run
+        val irProgram = IRFileReader().read(irContent)
+        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irContent) { vm ->
+            // arr1: [100, 200+100, 300] = [100, 300, 300]
+            vm.memory.getUW(allocations["main.r1"]!!) shouldBe 100u
+            vm.memory.getUW(allocations["main.r2"]!!) shouldBe 300u
+            vm.memory.getUW(allocations["main.r3"]!!) shouldBe 300u
+
+            // arr2: [100, 200, 300+25] = [100, 200, 325]
+            vm.memory.getUW(allocations["main.r4"]!!) shouldBe 100u
+            vm.memory.getUW(allocations["main.r5"]!!) shouldBe 200u
+            vm.memory.getUW(allocations["main.r6"]!!) shouldBe 325u
+
+            // arr3: [500, 400-150, 300] = [500, 250, 300]
+            vm.memory.getUW(allocations["main.r7"]!!) shouldBe 500u
+            vm.memory.getUW(allocations["main.r8"]!!) shouldBe 250u
+            vm.memory.getUW(allocations["main.r9"]!!) shouldBe 300u
+
+            // arr4: [10, 20, 30*5] = [10, 20, 150]
+            vm.memory.getUW(allocations["main.r10"]!!) shouldBe 10u
+            vm.memory.getUW(allocations["main.r11"]!!) shouldBe 20u
+            vm.memory.getUW(allocations["main.r12"]!!) shouldBe 150u
+        }
+    }
 })

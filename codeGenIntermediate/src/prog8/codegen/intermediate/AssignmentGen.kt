@@ -378,7 +378,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             when(operator) {
                 "+" -> { }
                 "-" -> {
-                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                    val arrayVariableName = array.variable!!.name
                     val skipCarryLabel = codeGen.createLabelName()
                     if(constIndex!=null) {
                         addInstr(result, IRInstruction(Opcode.NEGM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex), null)
@@ -405,7 +405,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     }
                 }
                 "~" -> {
-                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                    val arrayVariableName = array.variable!!.name
                     if(constIndex!=null) {
                         addInstr(result, IRInstruction(Opcode.INVM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex), null)
                         addInstr(result, IRInstruction(Opcode.INVM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex), null)
@@ -432,7 +432,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         when(operator) {
             "+" -> { }
             "-" -> {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
                 if(constIndex!=null) {
                     addInstr(result, IRInstruction(Opcode.NEGM, vmDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 } else {
@@ -446,7 +446,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
             }
             "~" -> {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
                 if(constIndex!=null) {
                     addInstr(result, IRInstruction(Opcode.INVM, vmDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
                 } else {
@@ -460,7 +460,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
             }
             "not" -> {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
                 val register = codeGen.registers.next(vmDt)
                 if(constIndex!=null) {
                     result += IRCodeChunk(null, null).also {
@@ -788,7 +788,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
     private fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+            val arrayVariableName = array.variable!!.name
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
@@ -812,10 +812,115 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null // TODO("optimized inplace word array &")
+            // Non-const cases - handle split and non-split arrays differently
+            if(array.splitWords) {
+                // Split word array: extract operand bytes and AND separately
+                if(constIndex!=null) {
+                    // Constant index, non-constant value
+                    val valueTr = exprGen.translateExpression(operand)
+                    addToResult(result, valueTr, valueTr.resultReg, -1)
+                    if(valueTr.resultReg < 0) return null
+                    val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=lsbReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=msbReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.ANDM, IRDataType.BYTE, reg1=lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.ANDM, IRDataType.BYTE, reg1=msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    }
+                    return result
+                }
+                // Non-constant index - use LOADX for each byte array
+                val indexTr = exprGen.translateExpression(array.index)
+                addToResult(result, indexTr, indexTr.resultReg, -1)
+                val indexReg = indexTr.resultReg
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                if(valueTr.resultReg < 0) return null
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                val valLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val valMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=valLsbReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=valMsbReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
+                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
+                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
+                    it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
+                    it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
+                }
+                return result
+            }
+            // Non-split array cases
+            if(constIndex!=null) {
+                // Constant index, non-constant value
+                val arrayVariableName = array.variable!!.name
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.ANDM, vmDt, reg1=valueTr.resultReg, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index - use LOADX/ANDR/STOREX
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            val arrayVarName = array.variable!!.name
+            // Multiply index by element size for LOADX/STOREX
+            if(eltSize > 1) {
+                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+            }
+            if(constValue!=null) {
+                val loadReg = codeGen.registers.next(vmDt)
+                val constReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName)
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(Opcode.ANDR, vmDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName)
+                }
+            } else {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName)
+                    it += IRInstruction(Opcode.ANDR, vmDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName)
+                }
+            }
+            return result
         }
-        if(constAddress==null && memory!=null)
-            return null // TODO("optimized memory in-place &")
+        if(constAddress==null && memory!=null) {
+            // Memory target with non-constant address
+            val result = mutableListOf<IRCodeChunkBase>()
+            val addrTr = exprGen.translateExpression(memory.address)
+            addToResult(result, addrTr, addrTr.resultReg, -1)
+            val addressReg = addrTr.resultReg
+            val operandConstValue = (operand as? PtNumber)?.number
+            
+            if(operandConstValue==null) {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            } else {
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            }
+            return result
+        }
 
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(operand)
@@ -829,7 +934,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
     private fun operatorLogicalAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+            val arrayVariableName = array.variable!!.name
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
@@ -846,10 +951,68 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null // TODO("optimized inplace word array and")
+            // Non-const cases for non-split arrays (logical and = bitwise and for arrays)
+            if(constIndex!=null) {
+                // Constant index, non-constant value
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.ANDM, vmDt, reg1=valueTr.resultReg, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            if(constValue!=null) {
+                val loadReg = codeGen.registers.next(vmDt)
+                val constReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(Opcode.ANDR, vmDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            } else {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    it += IRInstruction(Opcode.ANDR, vmDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            }
+            return result
         }
-        if(constAddress==null && memory!=null)
-            return null // TODO("optimized memory in-place and")
+        if(constAddress==null && memory!=null) {
+            // Memory target with non-constant address
+            val memResult = mutableListOf<IRCodeChunkBase>()
+            val addrTr = exprGen.translateExpression(memory.address)
+            addToResult(memResult, addrTr, addrTr.resultReg, -1)
+            val addressReg = addrTr.resultReg
+            val operandConstValue = (operand as? PtNumber)?.number
+            
+            if(operandConstValue==null) {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            } else {
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            }
+            return memResult
+        }
 
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(operand)
@@ -888,7 +1051,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val constValue = operand.asConstInteger()
             val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
                 if(array.splitWords) {
                     val valueRegLsb = codeGen.registers.next(IRDataType.BYTE)
                     val valueRegMsb = codeGen.registers.next(IRDataType.BYTE)
@@ -907,10 +1070,112 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null // TODO("optimized inplace word array |")
+            // Non-const cases - handle split and non-split arrays differently
+            if(array.splitWords) {
+                val arrayVariableName = array.variable!!.name
+                if(constIndex!=null) {
+                    val valueTr = exprGen.translateExpression(operand)
+                    addToResult(result, valueTr, valueTr.resultReg, -1)
+                    if(valueTr.resultReg < 0) return null
+                    val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=lsbReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=msbReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.ORM, IRDataType.BYTE, reg1=lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.ORM, IRDataType.BYTE, reg1=msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    }
+                    return result
+                }
+                val indexTr = exprGen.translateExpression(array.index)
+                addToResult(result, indexTr, indexTr.resultReg, -1)
+                val indexReg = indexTr.resultReg
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                if(valueTr.resultReg < 0) return null
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                val valLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val valMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=valLsbReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=valMsbReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
+                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
+                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
+                    it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
+                    it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
+                }
+                return result
+            }
+            // Non-split array cases
+            if(constIndex!=null) {
+                val arrayVarName = array.variable!!.name
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.ORM, vmDt, reg1=valueTr.resultReg, labelSymbol = arrayVarName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index - use LOADX/ORR/STOREX
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            val arrayVarName2 = array.variable!!.name
+            // Multiply index by element size for LOADX/STOREX
+            if(eltSize > 1) {
+                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+            }
+            if(constValue!=null) {
+                val loadReg = codeGen.registers.next(vmDt)
+                val constReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(Opcode.ORR, vmDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                }
+            } else {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                    it += IRInstruction(Opcode.ORR, vmDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                }
+            }
+            return result
         }
-        if(constAddress==null && memory!=null)
-            return null // TODO("optimized memory in-place |")
+        if(constAddress==null && memory!=null) {
+            // Memory target with non-constant address
+            val memResult = mutableListOf<IRCodeChunkBase>()
+            val addrTr = exprGen.translateExpression(memory.address)
+            addToResult(memResult, addrTr, addrTr.resultReg, -1)
+            val addressReg = addrTr.resultReg
+            val operandConstValue = (operand as? PtNumber)?.number
+            
+            if(operandConstValue==null) {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            } else {
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            }
+            return memResult
+        }
 
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(operand)
@@ -932,7 +1197,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 if(array.splitWords) {
                     throw AssemblyError("logical or on (split) word array should not happen")
                 } else {
-                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                    val arrayVariableName = array.variable!!.name
                     val valueReg = codeGen.registers.next(vmDt)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOAD, vmDt, reg1=valueReg, immediate=constValue)
@@ -941,10 +1206,73 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null  // TODO("optimized inplace word array or")
+            // Non-const cases - split words not supported for logical or
+            if(array.splitWords) {
+                throw AssemblyError("logical or on (split) word array with non-const operand should not happen")
+            }
+            // Non-split array cases
+            if(constIndex!=null) {
+                val arrayVarName = array.variable!!.name
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.ORM, vmDt, reg1=valueTr.resultReg, labelSymbol = arrayVarName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            val arrayVarName2 = array.variable!!.name
+            if(constValue!=null) {
+                val loadReg = codeGen.registers.next(vmDt)
+                val constReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(Opcode.ORR, vmDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                }
+            } else {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                    it += IRInstruction(Opcode.ORR, vmDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                }
+            }
+            return result
         }
-        if(constAddress==null && memory!=null)
-            return null  // TODO("optimized memory in-place or"")
+        if(constAddress==null && memory!=null) {
+            // Memory target with non-constant address
+            val memResult = mutableListOf<IRCodeChunkBase>()
+            val addrTr = exprGen.translateExpression(memory.address)
+            addToResult(memResult, addrTr, addrTr.resultReg, -1)
+            val addressReg = addrTr.resultReg
+            val operandConstValue = (operand as? PtNumber)?.number
+            
+            if(operandConstValue==null) {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            } else {
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            }
+            return memResult
+        }
 
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(operand)
@@ -1042,7 +1370,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
                 if(constValue!=1) {
-                    val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                    val arrayVariableName = array.variable!!.name
                     val valueReg=codeGen.registers.next(eltDt)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOAD, eltDt, reg1=valueReg, immediate = constValue)
@@ -1052,7 +1380,47 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null  // TODO("optimized inplace array * non-const")
+            // Non-const cases for non-split arrays
+            if(constIndex!=null) {
+                // Constant index, non-constant value
+                val arrayVariableName = array.variable!!.name
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val opcode = if(signed) Opcode.MULSM else Opcode.MULM
+                addInstr(result, IRInstruction(opcode, eltDt, reg1=valueTr.resultReg, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index - use LOADX/MULR/STOREX
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            val arrayVariableName = array.variable!!.name
+            // Multiply index by element size for LOADX/STOREX
+            if(eltSize > 1) {
+                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+            }
+            if(constValue!=null) {
+                val loadReg = codeGen.registers.next(eltDt)
+                val constReg = codeGen.registers.next(eltDt)
+                val opcode = if(signed) Opcode.MULSR else Opcode.MULR
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    it += IRInstruction(Opcode.LOAD, eltDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(opcode, eltDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            } else {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(eltDt)
+                val opcode = if(signed) Opcode.MULSR else Opcode.MULR
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    it += IRInstruction(opcode, eltDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            }
+            return result
         }
         if(constAddress==null && memory!=null)
             return null  // TODO("optimized memory in-place *"")
@@ -1100,7 +1468,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
 
                 if(constValue==1) {
                     addInstr(result, IRInstruction(Opcode.DECM, eltDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
@@ -1113,10 +1481,116 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null  // TODO("optimized inplace array -")
+            // Optimized path for non-const cases
+            if(constIndex!=null) {
+                // Constant index, non-constant value
+                val arrayVariableName = array.variable!!.name
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.SUBM, eltDt, reg1=valueTr.resultReg, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index - use LOADX/SUBR/STOREX
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            val arrayVariableName = array.variable!!.name
+            // Multiply index by element size for LOADX/STOREX
+            if(eltSize > 1) {
+                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+            }
+            if(constValue!=null) {
+                // Non-constant index, constant value
+                val loadReg = codeGen.registers.next(eltDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    val constReg = codeGen.registers.next(eltDt)
+                    it += IRInstruction(Opcode.LOAD, eltDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(Opcode.SUBR, eltDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            } else {
+                // Non-constant index, non-constant value
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(eltDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    it += IRInstruction(Opcode.SUBR, eltDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, eltDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            }
+            return result
         }
-        if(constAddress==null && memory!=null)
-            return null  // TODO("optimized memory in-place -"")
+        if(constAddress==null && memory!=null) {
+            // Memory target: translate address and subtract
+            val memResult = mutableListOf<IRCodeChunkBase>()
+            
+            // Check if address is a constant number
+            val constMemAddress = memory.address as? PtNumber
+            if(constMemAddress!=null) {
+                val addr = constMemAddress.number.toInt()
+                val operandConstValue = (operand as? PtNumber)?.number
+                if(operandConstValue==null) {
+                    val valueTr = exprGen.translateExpression(operand)
+                    addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                        it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                    }
+                } else if(operandConstValue==1.0) {
+                    addInstr(memResult, IRInstruction(Opcode.DECM, IRDataType.BYTE, address = addr), null)
+                } else {
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                        it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                        it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                    }
+                }
+                return memResult
+            }
+            
+            val addrTr = exprGen.translateExpression(memory.address)
+            addToResult(memResult, addrTr, addrTr.resultReg, -1)
+            val addressReg = addrTr.resultReg
+            val operandConstValue = (operand as? PtNumber)?.number
+            
+            if(operandConstValue==null) {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            } else {
+                // Constant value, non-const address
+                if(operandConstValue==1.0) {
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                        it += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=loadReg)
+                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    }
+                } else {
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                        it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                        it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    }
+                }
+            }
+            return memResult
+        }
 
         val constValue = (operand as? PtNumber)?.number
         val result = mutableListOf<IRCodeChunkBase>()
@@ -1155,7 +1629,71 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
     }
 
     private fun operatorMultiplyInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
-        return null  // fallback to slow method   // TODO("inplace split word array *")
+        val result = mutableListOf<IRCodeChunkBase>()
+        val constIndex = array.index.asConstInteger()
+        val constValue = operand.asConstInteger()
+        if(constIndex!=null) {
+            val arrayVariableName = array.variable!!.name
+            
+            if(constValue==1) {
+                // Multiplying by 1 is a no-op
+                return emptyList()
+            } else if(constValue!=null) {
+                // Handle constant value using CONCAT/MUL/LSIGB/MSIGB
+                val wordReg = codeGen.registers.next(IRDataType.WORD)
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                
+                result += IRCodeChunk(null, null).also {
+                    // Load current LSB and MSB
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    // Concatenate into word register
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = wordReg, reg2 = msbReg, reg3 = lsbReg)
+                    // Multiply by constant value
+                    it += IRInstruction(Opcode.MUL, IRDataType.WORD, reg1 = wordReg, immediate = constValue)
+                    // Extract bytes back into NEW registers
+                    val newLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val newMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = newLsbReg, reg2 = wordReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = newMsbReg, reg2 = wordReg)
+                    // Store back
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newLsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newMsbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                }
+                return result
+            } else {
+                // Non-constant operand: translate expression, then multiply using CONCAT/MUL
+                val tr = exprGen.translateExpression(operand)
+                addToResult(result, tr, tr.resultReg, -1)
+                if(tr.resultReg<0) {
+                    return null  // fallback to slow method
+                }
+                val wordReg = codeGen.registers.next(IRDataType.WORD)
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+
+                result += IRCodeChunk(null, null).also {
+                    // Load current LSB and MSB from array
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    // Concatenate into word register
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = wordReg, reg2 = msbReg, reg3 = lsbReg)
+                    // Multiply by operand value (use MULR for register-to-register)
+                    it += IRInstruction(Opcode.MULR, IRDataType.WORD, reg1 = wordReg, reg2 = tr.resultReg)
+                    // Extract bytes back into NEW registers
+                    val newLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val newMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = newLsbReg, reg2 = wordReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = newMsbReg, reg2 = wordReg)
+                    // Store back
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newLsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newMsbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                }
+                return result
+            }
+        }
+        return null  // fallback to slow method for non-constant index
     }
 
     private fun operatorMinusInplaceSplitArray(array: PtArrayIndexer, operand: PtExpression): IRCodeChunks? {
@@ -1163,13 +1701,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val constIndex = array.index.asConstInteger()
         val constValue = operand.asConstInteger()
         if(constIndex!=null) {
-            val skip = codeGen.createLabelName()
+            val arrayVariableName = array.variable!!.name
+            
             if(constValue==1) {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
-
+                val skip = codeGen.createLabelName()
                 val lsbReg = codeGen.registers.next(IRDataType.BYTE)
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
                     it += IRInstruction(Opcode.BSTNE, labelSymbol = skip)
                     it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
                 }
@@ -1177,11 +1715,62 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     it += IRInstruction(Opcode.DECM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
                 }
                 return result
+            } else if(constValue!=null) {
+                // Handle constant value != 1 using CONCAT/SUB/LSIGB/MSIGB
+                val wordReg = codeGen.registers.next(IRDataType.WORD)
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                
+                result += IRCodeChunk(null, null).also {
+                    // Load current LSB and MSB
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    // Concatenate into word register
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = wordReg, reg2 = msbReg, reg3 = lsbReg)
+                    // Subtract the constant value
+                    it += IRInstruction(Opcode.SUB, IRDataType.WORD, reg1 = wordReg, immediate = constValue)
+                    // Extract bytes back into NEW registers
+                    val newLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val newMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = newLsbReg, reg2 = wordReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = newMsbReg, reg2 = wordReg)
+                    // Store back
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newLsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newMsbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                }
+                return result
             } else {
-                return null  // fallback to slow method   // TODO("inplace split word array -")
+                // Non-constant operand: translate expression, then subtract using CONCAT/SUB
+                val tr = exprGen.translateExpression(operand)
+                addToResult(result, tr, tr.resultReg, -1)
+                if(tr.resultReg<0) {
+                    return null  // fallback to slow method
+                }
+                val wordReg = codeGen.registers.next(IRDataType.WORD)
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+
+                result += IRCodeChunk(null, null).also {
+                    // Load current LSB and MSB from array
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    // Concatenate into word register
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = wordReg, reg2 = msbReg, reg3 = lsbReg)
+                    // Subtract the operand value (use SUBR for register-to-register)
+                    it += IRInstruction(Opcode.SUBR, IRDataType.WORD, reg1 = wordReg, reg2 = tr.resultReg)
+                    // Extract bytes back into NEW registers
+                    val newLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val newMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = newLsbReg, reg2 = wordReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = newMsbReg, reg2 = wordReg)
+                    // Store back
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newLsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newMsbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                }
+                return result
             }
         }
-        return null  // fallback to slow method   // TODO("inplace split word array -")
+        return null  // fallback to slow method for non-constant index
     }
 
     private fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?,
@@ -1195,7 +1784,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val constIndex = array.index.asConstInteger()
             val constValue = operand.asConstInteger()
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
 
                 if(constValue==1) {
                     addInstr(result, IRInstruction(Opcode.INCM, elementDt, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
@@ -1208,10 +1797,118 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null  // TODO("optimized inplace array +")
+            // Optimized path for non-const cases
+            if(constIndex!=null) {
+                // Constant index, non-constant value
+                val arrayVariableName = array.variable!!.name
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.ADDM, elementDt, reg1=valueTr.resultReg, labelSymbol = arrayVariableName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index - use LOADX/ADDR/STOREX
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            val arrayVariableName = array.variable!!.name
+            // Multiply index by element size for LOADX/STOREX
+            if(eltSize > 1) {
+                result += codeGen.multiplyByConst(DataType.UBYTE, indexReg, eltSize)
+            }
+            if(constValue!=null) {
+                // Non-constant index, constant value
+                val loadReg = codeGen.registers.next(elementDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    val constReg = codeGen.registers.next(elementDt)
+                    it += IRInstruction(Opcode.LOAD, elementDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(Opcode.ADDR, elementDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            } else {
+                // Non-constant index, non-constant value
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(elementDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                    it += IRInstruction(Opcode.ADDR, elementDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, elementDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVariableName)
+                }
+            }
+            return result
         }
-        if(constAddress==null && memory!=null)
-            return null  // TODO("optimized memory in-place +"")
+        if(constAddress==null && memory!=null) {
+            // Memory target: translate address and add
+            val memResult = mutableListOf<IRCodeChunkBase>()
+            
+            // Check if address is a constant number
+            val constMemAddress = memory.address as? PtNumber
+            if(constMemAddress!=null) {
+                // Direct constant address - shouldn't normally happen but handle it
+                val addr = constMemAddress.number.toInt()
+                val operandConstValue = (operand as? PtNumber)?.number
+                if(operandConstValue==null) {
+                    val valueTr = exprGen.translateExpression(operand)
+                    addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                    }
+                } else if(operandConstValue==1.0) {
+                    addInstr(memResult, IRInstruction(Opcode.INCM, IRDataType.BYTE, address = addr), null)
+                } else {
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                        it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr)
+                    }
+                }
+                return memResult
+            }
+            
+            val addrTr = exprGen.translateExpression(memory.address)
+            addToResult(memResult, addrTr, addrTr.resultReg, -1)
+            val addressReg = addrTr.resultReg
+            val operandConstValue = (operand as? PtNumber)?.number
+            
+            if(operandConstValue==null) {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                // LOADI current value, ADD, STOREI back
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            } else {
+                // Constant value, non-const address
+                if(operandConstValue==1.0) {
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                        it += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=loadReg)
+                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    }
+                } else {
+                    val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                    val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                    memResult += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                        it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    }
+                }
+            }
+            return memResult
+        }
 
         val result = mutableListOf<IRCodeChunkBase>()
         val constValue = (operand as? PtNumber)?.number
@@ -1255,10 +1952,10 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val constIndex = array.index.asConstInteger()
         val constValue = operand.asConstInteger()
         if(constIndex!=null) {
-            val skip = codeGen.createLabelName()
+            val arrayVariableName = array.variable!!.name
+            
             if(constValue==1) {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
-
+                val skip = codeGen.createLabelName()
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.INCM, IRDataType.BYTE, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
                     it += IRInstruction(Opcode.BSTNE, labelSymbol = skip)
@@ -1266,11 +1963,62 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 result += IRCodeChunk(skip, null)
                 return result
+            } else if(constValue!=null) {
+                // Handle constant value != 1 using CONCAT/ADD/LSIGB/MSIGB
+                val wordReg = codeGen.registers.next(IRDataType.WORD)
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                
+                result += IRCodeChunk(null, null).also {
+                    // Load current LSB and MSB
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    // Concatenate into word register
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = wordReg, reg2 = msbReg, reg3 = lsbReg)
+                    // Add the constant value
+                    it += IRInstruction(Opcode.ADD, IRDataType.WORD, reg1 = wordReg, immediate = constValue)
+                    // Extract bytes back into NEW registers
+                    val newLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val newMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = newLsbReg, reg2 = wordReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = newMsbReg, reg2 = wordReg)
+                    // Store back
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newLsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newMsbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                }
+                return result
             } else {
-                return null  // fallback to slow method   // TODO("inplace split word array +")
+                // Non-constant operand: translate expression, then add using CONCAT/ADD
+                val tr = exprGen.translateExpression(operand)
+                addToResult(result, tr, tr.resultReg, -1)
+                if(tr.resultReg<0) {
+                    return null  // fallback to slow method
+                }
+                val wordReg = codeGen.registers.next(IRDataType.WORD)
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+
+                result += IRCodeChunk(null, null).also {
+                    // Load current LSB and MSB from array
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    // Concatenate into word register
+                    it += IRInstruction(Opcode.CONCAT, IRDataType.BYTE, reg1 = wordReg, reg2 = msbReg, reg3 = lsbReg)
+                    // Add the operand value (use ADDR for register-to-register)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.WORD, reg1 = wordReg, reg2 = tr.resultReg)
+                    // Extract bytes back into NEW registers
+                    val newLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val newMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1 = newLsbReg, reg2 = wordReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1 = newMsbReg, reg2 = wordReg)
+                    // Store back
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newLsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                    it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newMsbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                }
+                return result
             }
         }
-        return null  // fallback to slow method   // TODO("inplace split word array +")
+        return null  // fallback to slow method for non-constant index
     }
 
     private fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
@@ -1280,7 +2028,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val constValue = operand.asConstInteger()
 
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
 
                 if(array.splitWords) {
                     repeat(constValue) {
@@ -1339,7 +2087,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val constValue = operand.asConstInteger()
 
             if(constIndex!=null && constValue!=null) {
-                val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+                val arrayVariableName = array.variable!!.name
 
                 if(array.splitWords) {
                     repeat(constValue) {
@@ -1391,7 +2139,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
 
     private fun operatorXorInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
-            val arrayVariableName = array.variable?.name ?: TODO("support for ptr indexing ${array.position}")
+            val arrayVariableName = array.variable!!.name
 
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
@@ -1416,10 +2164,107 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 }
                 return result
             }
-            return null  // TODO("optimized inplace word array xor")
+            // Non-const cases - handle split and non-split arrays differently
+            if(array.splitWords) {
+                if(constIndex!=null) {
+                    val valueTr = exprGen.translateExpression(operand)
+                    addToResult(result, valueTr, valueTr.resultReg, -1)
+                    if(valueTr.resultReg < 0) return null
+                    val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                    val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                    result += IRCodeChunk(null, null).also {
+                        it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=lsbReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=msbReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.XORM, IRDataType.BYTE, reg1=lsbReg, labelSymbol = arrayVariableName+"_lsb", symbolOffset = constIndex)
+                        it += IRInstruction(Opcode.XORM, IRDataType.BYTE, reg1=msbReg, labelSymbol = arrayVariableName+"_msb", symbolOffset = constIndex)
+                    }
+                    return result
+                }
+                val indexTr = exprGen.translateExpression(array.index)
+                addToResult(result, indexTr, indexTr.resultReg, -1)
+                val indexReg = indexTr.resultReg
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                if(valueTr.resultReg < 0) return null
+                val lsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val msbReg = codeGen.registers.next(IRDataType.BYTE)
+                val valLsbReg = codeGen.registers.next(IRDataType.BYTE)
+                val valMsbReg = codeGen.registers.next(IRDataType.BYTE)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LSIGB, IRDataType.WORD, reg1=valLsbReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=valMsbReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
+                    it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
+                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
+                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
+                    it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
+                    it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
+                }
+                return result
+            }
+            // Non-split array cases
+            if(constIndex!=null) {
+                val arrayVarName = array.variable!!.name
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                addInstr(result, IRInstruction(Opcode.XORM, vmDt, reg1=valueTr.resultReg, labelSymbol = arrayVarName, symbolOffset = constIndex*eltSize), null)
+                return result
+            }
+            // Non-constant index - use LOADX/XORR/STOREX
+            val indexTr = exprGen.translateExpression(array.index)
+            addToResult(result, indexTr, indexTr.resultReg, -1)
+            val indexReg = indexTr.resultReg
+            val arrayVarName2 = array.variable!!.name
+            if(constValue!=null) {
+                val loadReg = codeGen.registers.next(vmDt)
+                val constReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                    it += IRInstruction(Opcode.LOAD, vmDt, reg1=constReg, immediate = constValue)
+                    it += IRInstruction(Opcode.XORR, vmDt, reg1=loadReg, reg2=constReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                }
+            } else {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(result, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(vmDt)
+                result += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                    it += IRInstruction(Opcode.XORR, vmDt, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREX, vmDt, reg1=loadReg, reg2=indexReg, labelSymbol = arrayVarName2)
+                }
+            }
+            return result
         }
-        if(constAddress==null && memory!=null)
-            return null  // TODO("optimized memory in-place xor"")
+        if(constAddress==null && memory!=null) {
+            // Memory target with non-constant address
+            val memResult = mutableListOf<IRCodeChunkBase>()
+            val addrTr = exprGen.translateExpression(memory.address)
+            addToResult(memResult, addrTr, addrTr.resultReg, -1)
+            val addressReg = addrTr.resultReg
+            val operandConstValue = (operand as? PtNumber)?.number
+            
+            if(operandConstValue==null) {
+                val valueTr = exprGen.translateExpression(operand)
+                addToResult(memResult, valueTr, valueTr.resultReg, -1)
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            } else {
+                val loadReg = codeGen.registers.next(IRDataType.BYTE)
+                val valueReg = codeGen.registers.next(IRDataType.BYTE)
+                memResult += IRCodeChunk(null, null).also {
+                    it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
+                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
+                }
+            }
+            return memResult
+        }
 
         val result = mutableListOf<IRCodeChunkBase>()
         val tr = exprGen.translateExpression(operand)

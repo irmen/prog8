@@ -197,7 +197,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
         listOf(
             ExampleSizes("vtui/testvtui", cx16SizeOptimized=3041, cx16SizeUnoptimized=3041),
             ExampleSizes("pcmaudio/play-adpcm", cx16SizeOptimized=36147, cx16SizeUnoptimized=36645),
-            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5653, cx16SizeUnoptimized=7976),
+            ExampleSizes("pcmaudio/stream-wav", cx16SizeOptimized=5643, cx16SizeUnoptimized=7958),
             ExampleSizes("pcmaudio/stream-simple-aflow", cx16SizeOptimized=1852, cx16SizeUnoptimized=3836),
             ExampleSizes("pcmaudio/stream-simple-poll", cx16SizeOptimized=1566, cx16SizeUnoptimized=3545),
             ExampleSizes("pcmaudio/vumeter", cx16SizeOptimized=3892, cx16SizeUnoptimized=6466),

@@ -20,7 +20,8 @@
       "Bash(echo *)",
       "Bash(cp *)",
       "Bash(time)",
-      "Bash(kotlinc *)"
+      "Bash(kotlinc *)",
+      "Bash(python3 *)"
     ]
   }
 }
