@@ -579,34 +579,22 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "+" -> {
                 asmgen.out("""
                     clc
-                    lda  $targetVar
-                    adc  $sourceVar
-                    sta  $targetVar
-                    lda  $targetVar+1
-                    adc  $sourceVar+1
-                    sta  $targetVar+1
-                    lda  $targetVar+2
-                    adc  $sourceVar+2
-                    sta  $targetVar+2
-                    lda  $targetVar+3
-                    adc  $sourceVar+3
-                    sta  $targetVar+3""")
+                    ldy  #3
+-                   lda  $targetVar,y
+                    adc  $sourceVar,y
+                    sta  $targetVar,y
+                    dey
+                    bpl  -""")
             }
             "-" -> {
                 asmgen.out("""
                     sec
-                    lda  $targetVar
-                    sbc  $sourceVar
-                    sta  $targetVar
-                    lda  $targetVar+1
-                    sbc  $sourceVar+1
-                    sta  $targetVar+1
-                    lda  $targetVar+2
-                    sbc  $sourceVar+2
-                    sta  $targetVar+2
-                    lda  $targetVar+3
-                    sbc  $sourceVar+3
-                    sta  $targetVar+3""")
+                    ldy  #3
+-                   lda  $targetVar,y
+                    sbc  $sourceVar,y
+                    sta  $targetVar,y
+                    dey
+                    bpl  -""")
             }
             "<<" -> {
                 asmgen.out("""
@@ -632,51 +620,32 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             }
             "|" -> {
                 asmgen.out("""
-                    lda  $targetVar
-                    ora  $sourceVar
-                    sta  $targetVar  
-                    lda  $targetVar+1
-                    ora  $sourceVar+1
-                    sta  $targetVar+1
-                    lda  $targetVar+2
-                    ora  $sourceVar+2
-                    sta  $targetVar+2
-                    lda  $targetVar+3
-                    ora  $sourceVar+3
-                    sta  $targetVar+3""")
+                    ldy  #3
+-                   lda  $targetVar,y
+                    ora  $sourceVar,y
+                    sta  $targetVar,y
+                    dey
+                    bpl  -""")
             }
             "&" -> {
                 asmgen.out("""
-                    lda  $targetVar
-                    and  $sourceVar
-                    sta  $targetVar  
-                    lda  $targetVar+1
-                    and  $sourceVar+1
-                    sta  $targetVar+1
-                    lda  $targetVar+2
-                    and  $sourceVar+2
-                    sta  $targetVar+2
-                    lda  $targetVar+3
-                    and  $sourceVar+3
-                    sta  $targetVar+3""")
+                    ldy  #3
+-                   lda  $targetVar,y
+                    and  $sourceVar,y
+                    sta  $targetVar,y
+                    dey
+                    bpl  -""")
             }
             "^" -> {
                 asmgen.out("""
-                    lda  $targetVar
-                    eor  $sourceVar
-                    sta  $targetVar  
-                    lda  $targetVar+1
-                    eor  $sourceVar+1
-                    sta  $targetVar+1
-                    lda  $targetVar+2
-                    eor  $sourceVar+2
-                    sta  $targetVar+2
-                    lda  $targetVar+3
-                    eor  $sourceVar+3
-                    sta  $targetVar+3""")
+                    ldy  #3
+-                   lda  $targetVar,y
+                    eor  $sourceVar,y
+                    sta  $targetVar,y
+                    dey
+                    bpl  -""")
             }
             "*" -> {
-                // long *= variable - use multiplication routine with loop-based copies
                 asmgen.out("""
                     ; Copy target to R12R13 (multiplicand)
                     ldy  #4

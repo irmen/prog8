@@ -869,10 +869,9 @@ class AsmGen6502Internal (
                     }
                     in CombinedLongRegisters -> {
                         val startreg = fromRegPair!!.startregname()
-                        out("  lda  cx16.${startreg} |  sta  $tempReg")
-                        out("  lda  cx16.${startreg}+1 |  sta  ${tempReg}+1")
-                        out("  lda  cx16.${startreg}+2 |  sta  ${tempReg}+2")
-                        out("  lda  cx16.${startreg}+3 |  sta  ${tempReg}+3")
+                        out("  ldy  #3")
+                        out("-   lda  cx16.${startreg},y |  sta  $tempReg,y")
+                        out("    dey |  bpl  -")
                     }
                     null -> when(fromReg.statusflag) {
                         Statusflag.Pc -> out("  lda  #0 |  rol  a |  sta  $tempReg")
@@ -895,10 +894,9 @@ class AsmGen6502Internal (
                     }
                     in CombinedLongRegisters -> {
                         val startreg = toRegPair!!.startregname()
-                        out("  lda  $tempReg |  sta  cx16.${startreg}")
-                        out("  lda  ${tempReg}+1 |  sta  cx16.${startreg}+1")
-                        out("  lda  ${tempReg}+2 |  sta  cx16.${startreg}+2")
-                        out("  lda  ${tempReg}+3 |  sta  cx16.${startreg}+3")
+                        out("  ldy  #3")
+                        out("-   lda  $tempReg,y |  sta  cx16.${startreg},y")
+                        out("    dey |  bpl  -")
                     }
                     null -> when(toReg.statusflag) {
                         Statusflag.Pc -> out("  lda  $tempReg |  asl  a")
