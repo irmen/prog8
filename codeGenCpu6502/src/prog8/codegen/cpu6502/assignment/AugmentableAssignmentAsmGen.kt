@@ -1247,6 +1247,33 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sbc  cx16.r0H
                     sta  ${arrayVar}_msb+$index""")
             }
+            "|" -> {
+                asmgen.out("""
+                    lda  ${arrayVar}_lsb+$index
+                    ora  cx16.r0L
+                    sta  ${arrayVar}_lsb+$index
+                    lda  ${arrayVar}_msb+$index
+                    ora  cx16.r0H
+                    sta  ${arrayVar}_msb+$index""")
+            }
+            "&" -> {
+                asmgen.out("""
+                    lda  ${arrayVar}_lsb+$index
+                    and  cx16.r0L
+                    sta  ${arrayVar}_lsb+$index
+                    lda  ${arrayVar}_msb+$index
+                    and  cx16.r0H
+                    sta  ${arrayVar}_msb+$index""")
+            }
+            "^" -> {
+                asmgen.out("""
+                    lda  ${arrayVar}_lsb+$index
+                    eor  cx16.r0L
+                    sta  ${arrayVar}_lsb+$index
+                    lda  ${arrayVar}_msb+$index
+                    eor  cx16.r0H
+                    sta  ${arrayVar}_msb+$index""")
+            }
             else -> TODO("inplace split word array value $operator")
         }
     }
