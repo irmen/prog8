@@ -2,6 +2,7 @@ package prog8.codegen.intermediate
 
 import prog8.code.core.AssemblyError
 import prog8.intermediate.IRDataType
+import prog8.intermediate.RegisterNum
 
 internal class RegisterPool {
     // everything from 99000 onwards is reserved for special purposes:
@@ -10,17 +11,17 @@ internal class RegisterPool {
     // 99200 - 99299 : LONG registers for syscall arguments and response value(s)
 
     private var nextRegister: Int=1
-    private val registerTypes: MutableMap<Int, IRDataType> = mutableMapOf()
+    private val registerTypes: MutableMap<RegisterNum, IRDataType> = mutableMapOf()
 
-    fun getTypes(): Map<Int, IRDataType> = registerTypes
+    fun getTypes(): Map<RegisterNum, IRDataType> = registerTypes
 
     init {
         for(i in 99000..99099)
-            registerTypes[i] = IRDataType.WORD
+            registerTypes[RegisterNum(i)] = IRDataType.WORD
         for(i in 99100..99199)
-            registerTypes[i] = IRDataType.BYTE
+            registerTypes[RegisterNum(i)] = IRDataType.BYTE
         for(i in 99200..99299)
-            registerTypes[i] = IRDataType.LONG
+            registerTypes[RegisterNum(i)] = IRDataType.LONG
     }
 
     fun next(type: IRDataType): Int {
@@ -28,7 +29,7 @@ internal class RegisterPool {
             throw AssemblyError("register pool depleted")
         val result = nextRegister
         nextRegister++
-        registerTypes[result] = type
+        registerTypes[RegisterNum(result)] = type
         return result
     }
 }

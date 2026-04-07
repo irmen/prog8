@@ -6,9 +6,6 @@ import prog8.code.core.toHex
 
 /**
  * Inline value class representing a 16-bit memory address (0-$ffff).
- * TODO: Eventually convert the IRInstruction.address field to MemoryAddress? type
- * and update all call sites to use MemoryAddress(...) explicitly.
- * For now this provides a type-safe alternative for new code.
  */
 @JvmInline
 value class MemoryAddress(val value: Int) {
@@ -22,16 +19,13 @@ value class MemoryAddress(val value: Int) {
 /**
  * Inline value class representing a virtual register number (0-99999).
  * Supports comparison with Int and other RegisterNum values.
- * Can be used as a map key (equals/hashCode derived from underlying Int).
- * TODO: Eventually convert IRInstruction reg1/reg2/reg3/fpReg1/fpReg2 fields to RegisterNum?
- * and update all call sites to use RegisterNum(...) explicitly.
  */
 @JvmInline
-value class RegisterNum(val value: Int) {
+value class RegisterNum(val value: Int): Comparable<RegisterNum> {
     init { require(value in 0..99999) { "register number out of range: $value" } }
     override fun toString(): String = "r$value"
+    override fun compareTo(other: RegisterNum): Int = value.compareTo(other.value)
     operator fun compareTo(other: Int): Int = value.compareTo(other)
-    operator fun compareTo(other: RegisterNum): Int = value.compareTo(other.value)
 }
 
 /*
@@ -869,7 +863,7 @@ class FunctionCallArgs(
     var arguments: List<ArgumentSpec>,
     val returns: List<RegSpec>
 ) {
-    class RegSpec(val dt: IRDataType, val registerNum: Int, val cpuRegister: RegisterOrStatusflag?)
+    class RegSpec(val dt: IRDataType, val registerNum: RegisterNum, val cpuRegister: RegisterOrStatusflag?)
     class ArgumentSpec(val name: String, val address: Int?, val reg: RegSpec) {
         init {
             require(address==null || address>=0) {
@@ -885,8 +879,8 @@ data class IRInstruction(
     val reg1: Int?=null,        // 0-$ffff
     val reg2: Int?=null,        // 0-$ffff
     val reg3: Int?=null,        // 0-$ffff
-    val fpReg1: Int?=null,      // 0-$ffff
-    val fpReg2: Int?=null,      // 0-$ffff
+    val fpReg1: RegisterNum?=null,      // 0-$ffff
+    val fpReg2: RegisterNum?=null,      // 0-$ffff
     val immediate: Int?=null,   // 0-$ff or $ffff if word
     val immediateFp: Double?=null,
     val address: MemoryAddress? = null,    // 0-$ffff
@@ -915,8 +909,7 @@ data class IRInstruction(
         require(reg1==null || reg1 in 0..99999) {"reg1 out of bounds"}
         require(reg2==null || reg2 in 0..99999) {"reg2 out of bounds"}
         require(reg3==null || reg3 in 0..99999) {"reg3 out of bounds"}
-        require(fpReg1==null || fpReg1 in 0..99999) {"fpReg1 out of bounds"}
-        require(fpReg2==null || fpReg2 in 0..99999) {"fpReg2 out of bounds"}
+        // fpReg1/fpReg2 ranges are validated by RegisterNum init block
         if(reg1!=null && reg2!=null) require(reg1!=reg2 || opcode==Opcode.LOADI) {"reg1 must not be same as reg2"}  // note: this is ok for fpRegs as these are always the same type.  LOADI is also an exception, hopefully this can work, because it saves a lot of intermediary registers when dereferencing a pointer chain
         if(reg1!=null && reg3!=null) require(reg1!=reg3) {"reg1 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
         if(reg2!=null && reg3!=null) require(reg2!=reg3) {"reg2 must not be same as reg3"}  // note: this is ok for fpRegs as these are always the same type
@@ -998,146 +991,90 @@ data class IRInstruction(
     }
 
     fun addUsedRegistersCounts(
-        readRegsCounts: MutableMap<Int, Int>,
-        writeRegsCounts: MutableMap<Int, Int>,
-        readFpRegsCounts: MutableMap<Int, Int>,
-        writeFpRegsCounts: MutableMap<Int, Int>,
-        regsTypes: MutableMap<Int, IRDataType>,
+        readRegsCounts: MutableMap<RegisterNum, Int>,
+        writeRegsCounts: MutableMap<RegisterNum, Int>,
+        readFpRegsCounts: MutableMap<RegisterNum, Int>,
+        writeFpRegsCounts: MutableMap<RegisterNum, Int>,
+        regsTypes: MutableMap<RegisterNum, IRDataType>,
         chunk: IRCodeChunk?
     ) {
+        fun incReadReg(reg: RegisterNum) = readRegsCounts.merge(reg, 1, Int::plus)
+        fun incWriteReg(reg: RegisterNum) = writeRegsCounts.merge(reg, 1, Int::plus)
+        fun incReadFp(reg: RegisterNum) = readFpRegsCounts.merge(reg, 1, Int::plus)
+        fun incWriteFp(reg: RegisterNum) = writeFpRegsCounts.merge(reg, 1, Int::plus)
+        fun setRegType(reg: RegisterNum, type: IRDataType) {
+            val existingType = regsTypes[reg]
+            if (existingType != null && existingType != type)
+                throw IllegalArgumentException("register $reg given multiple types! $existingType and $type in $chunk")
+            else
+                regsTypes[reg] = type
+        }
+
         when (this.reg1direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
-                readRegsCounts[this.reg1!!] = readRegsCounts.getValue(this.reg1)+1
-                val actualtype = determineReg1Type()
-                if(actualtype!=null) {
-                    val existingType = regsTypes[reg1]
-                    if (existingType!=null) {
-                        if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in $chunk")
-                    } else
-                        regsTypes[reg1] = actualtype
-                }
+                incReadReg(RegisterNum(this.reg1!!))
+                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
             }
             OperandDirection.WRITE -> {
-                writeRegsCounts[this.reg1!!] = writeRegsCounts.getValue(this.reg1)+1
-                val actualtype = determineReg1Type()
-                if(actualtype!=null) {
-                    val existingType = regsTypes[reg1]
-                    if (existingType!=null) {
-                        if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in chunk $chunk")
-                    } else
-                        regsTypes[reg1] = actualtype
-
-                }
+                incWriteReg(RegisterNum(this.reg1!!))
+                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
             }
             OperandDirection.READWRITE -> {
-                readRegsCounts[this.reg1!!] = readRegsCounts.getValue(this.reg1)+1
-                writeRegsCounts[this.reg1] = writeRegsCounts.getValue(this.reg1)+1
-                val actualtype = determineReg1Type()
-                if(actualtype!=null) {
-                    val existingType = regsTypes[reg1]
-                    if (existingType!=null) {
-                        if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg1 given multiple types! $existingType and $actualtype  in $chunk")
-                    } else
-                        regsTypes[reg1] = actualtype
-
-                }
+                incReadReg(RegisterNum(this.reg1!!))
+                incWriteReg(RegisterNum(this.reg1))
+                determineReg1Type()?.let { setRegType(RegisterNum(this.reg1), it) }
             }
         }
         when (this.reg2direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
-                readRegsCounts[this.reg2!!] = readRegsCounts.getValue(this.reg2)+1
-                val actualtype = determineReg2Type()
-                if(actualtype!=null) {
-                    val existingType = regsTypes[reg2]
-                    if (existingType!=null) {
-                        if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg2 given multiple types! $existingType and $actualtype  in $chunk")
-                    } else
-                        regsTypes[reg2] = actualtype
-                }
+                incReadReg(RegisterNum(this.reg2!!))
+                determineReg2Type()?.let { setRegType(RegisterNum(this.reg2), it) }
             }
             OperandDirection.READWRITE -> {
-                readRegsCounts[this.reg2!!] = readRegsCounts.getValue(this.reg2)+1
-                writeRegsCounts[this.reg2] = writeRegsCounts.getValue(this.reg2)+1
-                val actualtype = determineReg2Type()
-                if(actualtype!=null) {
-                    val existingType = regsTypes[reg2]
-                    if (existingType!=null) {
-                        if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg2 given multiple types! $existingType and $actualtype  in $chunk")
-                    } else
-                        regsTypes[reg2] = actualtype
-                }
+                incReadReg(RegisterNum(this.reg2!!))
+                incWriteReg(RegisterNum(this.reg2))
+                determineReg2Type()?.let { setRegType(RegisterNum(this.reg2), it) }
             }
             else -> throw IllegalArgumentException("reg2 can only be read or readwrite")
         }
         when (this.reg3direction) {
             OperandDirection.UNUSED -> {}
             OperandDirection.READ -> {
-                readRegsCounts[this.reg3!!] = readRegsCounts.getValue(this.reg3)+1
-                val actualtype = determineReg3Type()
-                if(actualtype!=null) {
-                    val existingType = regsTypes[reg3]
-                    if (existingType!=null) {
-                        if (existingType != actualtype)
-                            throw IllegalArgumentException("register $reg3 given multiple types! $existingType and $actualtype  in $chunk")
-                    } else
-                        regsTypes[reg3] = actualtype
-                }
+                incReadReg(RegisterNum(this.reg3!!))
+                determineReg3Type()?.let { setRegType(RegisterNum(this.reg3), it) }
             }
             else -> throw IllegalArgumentException("reg3 can only be read")
         }
         when (this.fpReg1direction) {
             OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> {
-                readFpRegsCounts[this.fpReg1!!] = readFpRegsCounts.getValue(this.fpReg1)+1
-            }
-            OperandDirection.WRITE -> writeFpRegsCounts[this.fpReg1!!] = writeFpRegsCounts.getValue(this.fpReg1)+1
-            OperandDirection.READWRITE -> {
-                readFpRegsCounts[this.fpReg1!!] = readFpRegsCounts.getValue(this.fpReg1)+1
-                writeFpRegsCounts[this.fpReg1] = writeFpRegsCounts.getValue(this.fpReg1)+1
-            }
+            OperandDirection.READ -> incReadFp(this.fpReg1!!)
+            OperandDirection.WRITE -> incWriteFp(this.fpReg1!!)
+            OperandDirection.READWRITE -> { incReadFp(this.fpReg1!!); incWriteFp(this.fpReg1) }
         }
         when (this.fpReg2direction) {
             OperandDirection.UNUSED -> {}
-            OperandDirection.READ -> readFpRegsCounts[this.fpReg2!!] = readFpRegsCounts.getValue(this.fpReg2)+1
-            OperandDirection.READWRITE -> {
-                readFpRegsCounts[this.fpReg2!!] = readFpRegsCounts.getValue(this.fpReg2)+1
-                writeFpRegsCounts[this.fpReg2] = writeFpRegsCounts.getValue(this.fpReg2)+1
-            }
+            OperandDirection.READ -> incReadFp(this.fpReg2!!)
+            OperandDirection.READWRITE -> { incReadFp(this.fpReg2!!); incWriteFp(this.fpReg2) }
             else -> throw IllegalArgumentException("fpReg2 can only be read or readwrite")
         }
 
         if(fcallArgs!=null) {
             fcallArgs.returns.forEach {
                 if (it.dt == IRDataType.FLOAT)
-                    writeFpRegsCounts[it.registerNum] = writeFpRegsCounts.getValue(it.registerNum) + 1
+                    incWriteFp(it.registerNum)
                 else {
-                    writeRegsCounts[it.registerNum] = writeRegsCounts.getValue(it.registerNum) + 1
-                    val existingType = regsTypes[it.registerNum]
-                    if (existingType!=null) {
-                        if (existingType != it.dt)
-                            throw IllegalArgumentException("register ${it.registerNum} given multiple types! $existingType and ${it.dt}  in $chunk")
-                    } else
-                        regsTypes[it.registerNum] = it.dt
+                    incWriteReg(it.registerNum)
+                    setRegType(it.registerNum, it.dt)
                 }
             }
             fcallArgs.arguments.forEach {
                 if(it.reg.dt==IRDataType.FLOAT)
-                    readFpRegsCounts[it.reg.registerNum] = readFpRegsCounts.getValue(it.reg.registerNum)+1
+                    incReadFp(it.reg.registerNum)
                 else {
-                    readRegsCounts[it.reg.registerNum] = readRegsCounts.getValue(it.reg.registerNum) + 1
-                    val existingType = regsTypes[it.reg.registerNum]
-                    if (existingType!=null) {
-                        if (existingType != it.reg.dt)
-                            throw IllegalArgumentException("register ${it.reg.registerNum} given multiple types! $existingType and ${it.reg.dt}  in $chunk")
-                    } else
-                        regsTypes[it.reg.registerNum] = it.reg.dt
+                    incReadReg(it.reg.registerNum)
+                    setRegType(it.reg.registerNum, it.reg.dt)
                 }
             }
         }
@@ -1233,10 +1170,10 @@ data class IRInstruction(
                 }
 
                 when(it.reg.dt) {
-                    IRDataType.BYTE -> append("${location}r${it.reg.registerNum}.b$cpuReg,")
-                    IRDataType.WORD -> append("${location}r${it.reg.registerNum}.w$cpuReg,")
-                    IRDataType.LONG -> append("${location}r${it.reg.registerNum}.l$cpuReg,")
-                    IRDataType.FLOAT -> append("${location}fr${it.reg.registerNum}.f$cpuReg,")
+                    IRDataType.BYTE -> append("${location}r${it.reg.registerNum.value}.b$cpuReg,")
+                    IRDataType.WORD -> append("${location}r${it.reg.registerNum.value}.w$cpuReg,")
+                    IRDataType.LONG -> append("${location}r${it.reg.registerNum.value}.l$cpuReg,")
+                    IRDataType.FLOAT -> append("${location}fr${it.reg.registerNum.value}.f$cpuReg,")
                 }
             }
             if(last() == ',') {
@@ -1256,17 +1193,17 @@ data class IRInstruction(
                     }
                     if (cpuReg.isEmpty()) {
                         when (returnspec.dt) {
-                            IRDataType.BYTE -> append("r${returnspec.registerNum}.b")
-                            IRDataType.WORD -> append("r${returnspec.registerNum}.w")
-                            IRDataType.LONG -> append("r${returnspec.registerNum}.l")
-                            IRDataType.FLOAT -> append("fr${returnspec.registerNum}.f")
+                            IRDataType.BYTE -> append("r${returnspec.registerNum.value}.b")
+                            IRDataType.WORD -> append("r${returnspec.registerNum.value}.w")
+                            IRDataType.LONG -> append("r${returnspec.registerNum.value}.l")
+                            IRDataType.FLOAT -> append("fr${returnspec.registerNum.value}.f")
                         }
                     } else {
                         when (returnspec.dt) {
-                            IRDataType.BYTE -> append("r${returnspec.registerNum}.b@$cpuReg")
-                            IRDataType.WORD -> append("r${returnspec.registerNum}.w@$cpuReg")
-                            IRDataType.LONG -> append("r${returnspec.registerNum}.l@$cpuReg")
-                            IRDataType.FLOAT -> append("r${returnspec.registerNum}.f@$cpuReg")
+                            IRDataType.BYTE -> append("r${returnspec.registerNum.value}.b@$cpuReg")
+                            IRDataType.WORD -> append("r${returnspec.registerNum.value}.w@$cpuReg")
+                            IRDataType.LONG -> append("r${returnspec.registerNum.value}.l@$cpuReg")
+                            IRDataType.FLOAT -> append("r${returnspec.registerNum.value}.f@$cpuReg")
                         }
                     }
                 }
@@ -1280,19 +1217,19 @@ data class IRInstruction(
             if (format.reg1 == OperandDirection.WRITE) reg1?.let { append("r$it,") }
             if (format.reg2 == OperandDirection.WRITE) reg2?.let { append("r$it,") }
             if (format.reg3 == OperandDirection.WRITE) reg3?.let { append("r$it,") }
-            if (format.fpReg1 == OperandDirection.WRITE) fpReg1?.let { append("fr$it,") }
-            if (format.fpReg2 == OperandDirection.WRITE) fpReg2?.let { append("fr$it,") }
+            if (format.fpReg1 == OperandDirection.WRITE) fpReg1?.let { append("fr${it.value},") }
+            if (format.fpReg2 == OperandDirection.WRITE) fpReg2?.let { append("fr${it.value},") }
 
             // Pass 2: READWRITE (in-place) destinations
             if (format.reg1 == OperandDirection.READWRITE) reg1?.let { append("r$it,") }
             if (format.reg2 == OperandDirection.READWRITE) reg2?.let { append("r$it,") }
             if (format.reg3 == OperandDirection.READWRITE) reg3?.let { append("r$it,") }
-            if (format.fpReg1 == OperandDirection.READWRITE) fpReg1?.let { append("fr$it,") }
-            if (format.fpReg2 == OperandDirection.READWRITE) fpReg2?.let { append("fr$it,") }
+            if (format.fpReg1 == OperandDirection.READWRITE) fpReg1?.let { append("fr${it.value},") }
+            if (format.fpReg2 == OperandDirection.READWRITE) fpReg2?.let { append("fr${it.value},") }
 
             // Pass 3: READ sources — float (values) before int (addresses) for readability
-            if (format.fpReg1 == OperandDirection.READ) fpReg1?.let { append("fr$it,") }
-            if (format.fpReg2 == OperandDirection.READ) fpReg2?.let { append("fr$it,") }
+            if (format.fpReg1 == OperandDirection.READ) fpReg1?.let { append("fr${it.value},") }
+            if (format.fpReg2 == OperandDirection.READ) fpReg2?.let { append("fr${it.value},") }
             if (format.reg1 == OperandDirection.READ) reg1?.let { append("r$it,") }
             if (format.reg2 == OperandDirection.READ) reg2?.let { append("r$it,") }
             if (format.reg3 == OperandDirection.READ) reg3?.let { append("r$it,") }
@@ -1317,3 +1254,5 @@ data class IRInstruction(
             setLength(length - 1)
     }.trimEnd()
 }
+
+

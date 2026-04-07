@@ -273,11 +273,11 @@ class IRProgram(val name: String,
     }
 
     fun registersUsed(): RegistersUsed {
-        val readRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-        val regsTypes = mutableMapOf<Int, IRDataType>()
-        val readFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
+        val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
 
         fun addUsed(usedRegisters: RegistersUsed, child: IIRBlockElement) {
             usedRegisters.readRegs.forEach{ (reg, count) -> readRegsCounts[reg] = readRegsCounts.getValue(reg) + count }
@@ -446,7 +446,7 @@ class IRProgram(val name: String,
     }
 
 
-    fun verifyRegisterTypes(registerTypes: Map<Int, IRDataType>) {
+    fun verifyRegisterTypes(registerTypes: Map<RegisterNum, IRDataType>) {
         for(block in blocks) {
             for(bc in block.children) {
                 when(bc) {
@@ -567,11 +567,11 @@ class IRCodeChunk(label: String?, next: IRCodeChunkBase?): IRCodeChunkBase(label
     override fun isEmpty() = instructions.isEmpty()
     override fun isNotEmpty() = instructions.isNotEmpty()
     override fun usedRegisters(): RegistersUsed {
-        val readRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-        val regsTypes = mutableMapOf<Int, IRDataType>()
-        val readFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-        val writeFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+        val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
+        val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+        val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
         instructions.forEach { it.addUsedRegistersCounts(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes, this) }
         return RegistersUsed(readRegsCounts, writeRegsCounts, readFpRegsCounts, writeFpRegsCounts, regsTypes)
     }
@@ -636,11 +636,11 @@ internal class IRSubtypePlaceholder(override val scopedNameString: String, val s
 
 class RegistersUsed(
     // register num -> number of uses
-    val readRegs: Map<Int, Int>,
-    val writeRegs: Map<Int, Int>,
-    val readFpRegs: Map<Int, Int>,
-    val writeFpRegs: Map<Int, Int>,
-    val regsTypes: Map<Int, IRDataType>
+    val readRegs: Map<RegisterNum, Int>,
+    val writeRegs: Map<RegisterNum, Int>,
+    val readFpRegs: Map<RegisterNum, Int>,
+    val writeFpRegs: Map<RegisterNum, Int>,
+    val regsTypes: Map<RegisterNum, IRDataType>
 ) {
 
     override fun toString(): String {
@@ -650,10 +650,10 @@ class RegistersUsed(
     fun isEmpty() = readRegs.isEmpty() && writeRegs.isEmpty() && readFpRegs.isEmpty() && writeFpRegs.isEmpty()
     fun isNotEmpty() = !isEmpty()
 
-    fun used(register: Int) = register in readRegs || register in writeRegs
-    fun usedFp(fpRegister: Int) = fpRegister in readFpRegs || fpRegister in writeFpRegs
+    fun used(register: RegisterNum) = register in readRegs || register in writeRegs
+    fun usedFp(fpRegister: RegisterNum) = fpRegister in readFpRegs || fpRegister in writeFpRegs
 
-    fun validate(allowed: Map<Int, IRDataType>, chunk: IRCodeChunkBase?) {
+    fun validate(allowed: Map<RegisterNum, IRDataType>, chunk: IRCodeChunkBase?) {
         for((reg, type) in regsTypes) {
             val allowedType = allowed[reg]
 // can't do this check because %ir {{ .. }} segments may contain registers that the compiler doesn't know about yet.
@@ -666,11 +666,11 @@ class RegistersUsed(
 }
 
 private fun registersUsedInAssembly(isIR: Boolean, assembly: String): RegistersUsed {
-    val readRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-    val regsTypes = mutableMapOf<Int, IRDataType>()
-    val readFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-    val writeRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
-    val writeFpRegsCounts = mutableMapOf<Int, Int>().withDefault { 0 }
+    val readRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+    val regsTypes = mutableMapOf<RegisterNum, IRDataType>()
+    val readFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+    val writeRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
+    val writeFpRegsCounts = mutableMapOf<RegisterNum, Int>().withDefault { 0 }
 
     if(isIR) {
         assembly.lineSequence().forEach { line ->

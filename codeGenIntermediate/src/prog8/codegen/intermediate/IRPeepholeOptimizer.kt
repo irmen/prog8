@@ -621,7 +621,7 @@ jump p8_label_gen_2
 
             // First, check if this instruction READS any registers
             if(format?.reg1 == OperandDirection.READ || format?.reg1 == OperandDirection.READWRITE) {
-                val reg = ins.reg1 ?: ins.fpReg1
+                val reg = ins.reg1 ?: ins.fpReg1?.value
                 if(reg != null) {
                     val existing = pendingWrites[reg]
                     if(existing != null) {
@@ -630,7 +630,7 @@ jump p8_label_gen_2
                 }
             }
             if(format?.reg2 == OperandDirection.READ || format?.reg2 == OperandDirection.READWRITE) {
-                val reg = ins.reg2 ?: ins.fpReg2
+                val reg = ins.reg2 ?: ins.fpReg2?.value
                 if(reg != null) {
                     val existing = pendingWrites[reg]
                     if(existing != null) {
@@ -650,8 +650,8 @@ jump p8_label_gen_2
 
             // Then, check if this instruction WRITES to any registers
             if(format?.reg1 == OperandDirection.WRITE || format?.reg1 == OperandDirection.READWRITE) {
-                val reg = ins.reg1 ?: ins.fpReg1
-                if(reg != null && reg != 0) {
+                val reg = ins.reg1 ?: ins.fpReg1?.value
+                if(reg != null) {
                     // Check if previous write to this reg was dead (never read before this overwrite)
                     val existing = pendingWrites[reg]
                     if(existing != null && !existing.second) {
@@ -683,8 +683,8 @@ jump p8_label_gen_2
         val formats = instructionFormats.getValue(ins.opcode)
         val format = formats[ins.type] ?: formats[null]
         
-        val reg1Read = (format?.reg1 == OperandDirection.READ || format?.reg1 == OperandDirection.READWRITE) && (ins.reg1 == reg || ins.fpReg1 == reg)
-        val reg2Read = (format?.reg2 == OperandDirection.READ || format?.reg2 == OperandDirection.READWRITE) && (ins.reg2 == reg || ins.fpReg2 == reg)
+        val reg1Read = (format?.reg1 == OperandDirection.READ || format?.reg1 == OperandDirection.READWRITE) && (ins.reg1 == reg || ins.fpReg1?.value == reg)
+        val reg2Read = (format?.reg2 == OperandDirection.READ || format?.reg2 == OperandDirection.READWRITE) && (ins.reg2 == reg || ins.fpReg2?.value == reg)
         val reg3Read = (format?.reg3 == OperandDirection.READ || format?.reg3 == OperandDirection.READWRITE) && (ins.reg3 == reg)
         
         return reg1Read || reg2Read || reg3Read

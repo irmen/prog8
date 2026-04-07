@@ -60,7 +60,7 @@ class IRCodeGen(
         return irProg
     }
 
-    fun registerTypes(): Map<Int, IRDataType> = registers.getTypes()
+    fun registerTypes(): Map<RegisterNum, IRDataType> = registers.getTypes()
 
     private fun changeGlobalVarInits(symbolTable: SymbolTable) {
         // Normally, block level (global) variables that have a numeric initialization value
@@ -799,9 +799,9 @@ class IRCodeGen(
         if(factor==1.0)
             return code
         code += if(factor==0.0) {
-            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = 0.0)
+            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = 0.0)
         } else {
-            IRInstruction(Opcode.MULS, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = factor)
+            IRInstruction(Opcode.MULS, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = factor)
         }
         return code
     }
@@ -817,11 +817,11 @@ class IRCodeGen(
                 IRInstruction(Opcode.STOREZM, IRDataType.FLOAT, labelSymbol = symbol)
         } else {
             val factorReg = registers.next(IRDataType.FLOAT)
-            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=factorReg, immediateFp = factor)
+            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=RegisterNum(factorReg), immediateFp = factor)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = factorReg, address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = MemoryAddress(knownAddress))
             else
-                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = factorReg, labelSymbol = symbol)
+                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), labelSymbol = symbol)
         }
         return code
     }
@@ -897,9 +897,9 @@ class IRCodeGen(
         if(factor==1.0)
             return code
         code += if(factor==0.0) {
-            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = Double.MAX_VALUE)
+            IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = Double.MAX_VALUE)
         } else {
-            IRInstruction(Opcode.DIVS, IRDataType.FLOAT, fpReg1 = fpReg, immediateFp = factor)
+            IRInstruction(Opcode.DIVS, IRDataType.FLOAT, fpReg1 = RegisterNum(fpReg), immediateFp = factor)
         }
         return code
     }
@@ -910,18 +910,18 @@ class IRCodeGen(
             return code
         if(factor==0.0) {
             val maxvalueReg = registers.next(IRDataType.FLOAT)
-            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = maxvalueReg, immediateFp = Double.MAX_VALUE)
+            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), immediateFp = Double.MAX_VALUE)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = maxvalueReg, address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), address = MemoryAddress(knownAddress))
             else
-                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = maxvalueReg, labelSymbol = symbol)
+                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), labelSymbol = symbol)
         } else {
             val factorReg = registers.next(IRDataType.FLOAT)
-            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=factorReg, immediateFp = factor)
+            code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=RegisterNum(factorReg), immediateFp = factor)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = factorReg, address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = MemoryAddress(knownAddress))
             else
-                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = factorReg, labelSymbol = symbol)
+                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), labelSymbol = symbol)
         }
         return code
     }
@@ -1074,8 +1074,8 @@ class IRCodeGen(
                 Opcode.FCOMP,
                 IRDataType.FLOAT,
                 reg1 = compResultReg,
-                fpReg1 = leftTr.resultFpReg,
-                fpReg2 = rightTr.resultFpReg
+                fpReg1 = RegisterNum(leftTr.resultFpReg),
+                fpReg2 = RegisterNum(rightTr.resultFpReg)
             )
 
             if(isIndirectJump(goto)) {
@@ -1432,7 +1432,7 @@ class IRCodeGen(
         val rightTr = expressionEval.translateExpression(condition.right)
         addToResult(result, rightTr, -1, rightTr.resultFpReg)
         val compResultReg = registers.next(IRDataType.BYTE)
-        addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1 = compResultReg, fpReg1 = leftTr.resultFpReg, fpReg2 = rightTr.resultFpReg), null)
+        addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1 = compResultReg, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg)), null)
         val elseBranch: Opcode
         var useCmpi = false     // for the branch opcodes that have been converted to CMPI + BSTxx form already
         when (condition.operator) {
@@ -1864,13 +1864,13 @@ class IRCodeGen(
                         // For float returns, use FAC1/FAC2
                         val tempFpReg = registers.next(IRDataType.FLOAT)
                         when(fromReg.registerOrPair) {
-                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
-                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
+                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
+                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
                             else -> throw AssemblyError("unexpected FP return register ${fromReg}")
                         }
                         when(toReg.registerOrPair) {
-                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
-                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = tempFpReg), null)
+                            RegisterOrPair.FAC1 -> addInstr(result, IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
+                            RegisterOrPair.FAC2 -> addInstr(result, IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(tempFpReg)), null)
                             else -> throw AssemblyError("unexpected FP return register ${toReg}")
                         }
                     } else {
@@ -1924,7 +1924,7 @@ class IRCodeGen(
                 } else {
                     val tr = expressionEval.translateExpression(value)
                     addToResult(result, tr, -1, tr.resultFpReg)
-                    addInstr(result, IRInstruction(Opcode.RETURNR, IRDataType.FLOAT, fpReg1 = tr.resultFpReg), null)
+                    addInstr(result, IRInstruction(Opcode.RETURNR, IRDataType.FLOAT, fpReg1 = RegisterNum(tr.resultFpReg)), null)
                 }
             }
             else {
@@ -2093,10 +2093,10 @@ class IRCodeGen(
     internal fun makeSyscall(syscall: IMSyscall, params: List<Pair<IRDataType, Int>>, returns: Pair<IRDataType, Int>?, label: String?=null): IRCodeChunk {
         return IRCodeChunk(label, null).also {
             val args = params.map { (dt, reg)->
-                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, reg, null))
+                FunctionCallArgs.ArgumentSpec("", null, FunctionCallArgs.RegSpec(dt, RegisterNum(reg), null))
             }
             // for now, syscalls have 0 or 1 return value
-            val returnSpec = if(returns==null) emptyList() else listOf(FunctionCallArgs.RegSpec(returns.first, returns.second, null))
+            val returnSpec = if(returns==null) emptyList() else listOf(FunctionCallArgs.RegSpec(returns.first, RegisterNum(returns.second), null))
             it += IRInstruction(Opcode.SYSCALL, immediate = syscall.number, fcallArgs = FunctionCallArgs(args, returnSpec))
         }
     }
@@ -2110,8 +2110,8 @@ class IRCodeGen(
             RegisterOrPair.AX -> chunk += IRInstruction(Opcode.STOREHAX, IRDataType.WORD, reg1=resultReg)
             RegisterOrPair.AY -> chunk += IRInstruction(Opcode.STOREHAY, IRDataType.WORD, reg1=resultReg)
             RegisterOrPair.XY -> chunk += IRInstruction(Opcode.STOREHXY, IRDataType.WORD, reg1=resultReg)
-            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = resultFpReg)
-            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = resultFpReg)
+            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.STOREHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpReg))
+            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.STOREHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpReg))
             in Cx16VirtualRegisters -> {
                 chunk += IRInstruction(Opcode.STOREM, paramDt, reg1=resultReg, labelSymbol = "cx16.${registerOrFlag.registerOrPair.toString().lowercase()}")
             }
@@ -2140,8 +2140,8 @@ class IRCodeGen(
             RegisterOrPair.AX -> chunk += IRInstruction(Opcode.LOADHAX, IRDataType.WORD, reg1=tempReg)
             RegisterOrPair.AY -> chunk += IRInstruction(Opcode.LOADHAY, IRDataType.WORD, reg1=tempReg)
             RegisterOrPair.XY -> chunk += IRInstruction(Opcode.LOADHXY, IRDataType.WORD, reg1=tempReg)
-            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = tempReg)
-            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = tempReg)
+            RegisterOrPair.FAC1 -> chunk += IRInstruction(Opcode.LOADHFACZERO, IRDataType.FLOAT, fpReg1 = RegisterNum(tempReg))
+            RegisterOrPair.FAC2 -> chunk += IRInstruction(Opcode.LOADHFACONE, IRDataType.FLOAT, fpReg1 = RegisterNum(tempReg))
             in Cx16VirtualRegisters -> {
                 chunk += IRInstruction(Opcode.LOADM, irType, reg1=tempReg, labelSymbol = "cx16.${registerOrFlag.registerOrPair.toString().lowercase()}")
             }
@@ -2176,7 +2176,7 @@ class IRCodeGen(
             val irdt = irType(type)
             val instr = if(type.isFloat) {
                 if (valueIsZero) IRInstruction(Opcode.STOREZI, IRDataType.FLOAT, reg1 = addressReg, immediate = 0)
-                else IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = existingValueRegister, reg1 = addressReg, immediate = 0)
+                else IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = RegisterNum(existingValueRegister), reg1 = addressReg, immediate = 0)
             } else {
                 if (valueIsZero) IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg, immediate = 0)
                 else IRInstruction(Opcode.STOREI, irdt, reg1 = existingValueRegister, reg2 = addressReg, immediate = 0)
@@ -2192,7 +2192,7 @@ class IRCodeGen(
             addInstr(result, IRInstruction(Opcode.STOREZI, irdt, reg1 = addressReg, immediate = offset.toInt()), null)
         } else {
             val instr = if (type.isFloat)
-                IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = valueRegister, reg1 = addressReg, immediate = offset.toInt())
+                IRInstruction(Opcode.STOREI, IRDataType.FLOAT, fpReg1 = RegisterNum(valueRegister), reg1 = addressReg, immediate = offset.toInt())
             else
                 IRInstruction(Opcode.STOREI, irdt, reg1 = valueRegister, reg2 = addressReg, immediate = offset.toInt())
             addInstr(result, instr, null)

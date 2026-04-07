@@ -85,7 +85,7 @@ class IRUnusedCodeRemover(
                         instructions.remove(ins)
                     }
                 }
-                else if(ins.fpReg1!=0) {
+                else if(ins.fpReg1!=null) {
                     if (instructions.count { it.fpReg1 == ins.fpReg1 || it.fpReg2 == ins.fpReg1 } < 2) {
                         if(ins.labelSymbol!=null)
                             code.st.removeIfExists(ins.labelSymbol!!)

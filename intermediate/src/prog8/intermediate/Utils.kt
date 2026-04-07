@@ -114,8 +114,8 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     var reg1: Int? = null
     var reg2: Int? = null
     var reg3: Int? = null
-    var fpReg1: Int? = null
-    var fpReg2: Int? = null
+    var fpReg1: RegisterNum? = null
+    var fpReg2: RegisterNum? = null
     var immediateInt: Int? = null
     var immediateFp: Double? = null
     var address: Int? = null
@@ -145,8 +145,8 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 else if (reg3 == null) reg3 = oper.substring(1).toInt()
                 else throw IRParseException("too many register operands")
             } else if (isFloatRegisterName(oper)) {
-                if (fpReg1 == null) fpReg1 = oper.substring(2).toInt()
-                else if (fpReg2 == null) fpReg2 = oper.substring(2).toInt()
+                if (fpReg1 == null) fpReg1 = RegisterNum(oper.substring(2).toInt())
+                else if (fpReg2 == null) fpReg2 = RegisterNum(oper.substring(2).toInt())
                 else throw IRParseException("too many fp register operands")
             } else if (oper[0] in "0123456789$%-#" || oper.startsWith("0x")) {
                 val value = if(oper[0]=='#') parseIRValue(oper.drop(1)) else parseIRValue(oper)
@@ -297,7 +297,7 @@ private fun parseCall(rest: String): ParsedCall {
                 val cpuRegStr = match.groups[3]!!.value.drop(1)
                 parseRegisterOrStatusflag(cpuRegStr)
             } else null
-        return FunctionCallArgs.RegSpec(type, num, cpuRegister)
+        return FunctionCallArgs.RegSpec(type, RegisterNum(num), cpuRegister)
     }
 
     fun parseReturnRegspec(regs: String?): List<FunctionCallArgs.RegSpec> {
@@ -305,7 +305,7 @@ private fun parseCall(rest: String): ParsedCall {
             return emptyList()
         return regs.split(',').map { reg->
             if (reg.startsWith('@')) {
-                FunctionCallArgs.RegSpec(IRDataType.BYTE, -1, parseRegisterOrStatusflag(reg.drop(1)))
+                FunctionCallArgs.RegSpec(IRDataType.BYTE, RegisterNum(-1), parseRegisterOrStatusflag(reg.drop(1)))
             } else {
                 parseRegspec(reg)
             }

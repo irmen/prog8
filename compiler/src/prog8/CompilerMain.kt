@@ -507,8 +507,8 @@ private fun extractIrMetrics(program: prog8.intermediate.IRProgram): IrMetrics {
                         writeRegs.add(it)
                     }
                 }
-                ins.fpReg1?.let { readRegs.add(it) }
-                ins.fpReg2?.let { readRegs.add(it) }
+                ins.fpReg1?.let { readRegs.add(it.value) }
+                ins.fpReg2?.let { readRegs.add(it.value) }
             }
         }
     }

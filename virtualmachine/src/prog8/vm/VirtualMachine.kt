@@ -171,7 +171,7 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             null -> {
                 if(i.address!=null)
-                    throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.address!!.toHex()})")
+                    throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.address!!.value.toHex()})")
                 else if(i.labelSymbol!=null)
                     throw IllegalArgumentException("vm program can't jump to system memory address (${i.opcode} ${i.labelSymbol})")
                 else if(i.reg1!=null)

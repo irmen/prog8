@@ -85,15 +85,15 @@ class TestInstructions: FunSpec({
     }
 
     test("with float regs") {
-        val ins = IRInstruction(Opcode.FSIN, IRDataType.FLOAT, fpReg1 = 1, fpReg2 = 2)
+        val ins = IRInstruction(Opcode.FSIN, IRDataType.FLOAT, fpReg1 = RegisterNum(1), fpReg2 = RegisterNum(2))
         ins.opcode shouldBe Opcode.FSIN
         ins.type shouldBe IRDataType.FLOAT
         ins.reg1direction shouldBe OperandDirection.UNUSED
         ins.reg2direction shouldBe OperandDirection.UNUSED
         ins.fpReg1direction shouldBe OperandDirection.WRITE
         ins.fpReg2direction shouldBe OperandDirection.READ
-        ins.fpReg1 shouldBe 1
-        ins.fpReg2 shouldBe 2
+        ins.fpReg1 shouldBe RegisterNum(1)
+        ins.fpReg2 shouldBe RegisterNum(2)
         ins.reg1 shouldBe null
         ins.reg2 shouldBe null
         ins.address shouldBe null
