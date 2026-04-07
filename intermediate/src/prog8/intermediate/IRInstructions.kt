@@ -4,6 +4,36 @@ import prog8.code.core.AssemblyError
 import prog8.code.core.RegisterOrStatusflag
 import prog8.code.core.toHex
 
+/**
+ * Inline value class representing a 16-bit memory address (0-$ffff).
+ * TODO: Eventually convert the IRInstruction.address field to MemoryAddress? type
+ * and update all call sites to use MemoryAddress(...) explicitly.
+ * For now this provides a type-safe alternative for new code.
+ */
+@JvmInline
+value class MemoryAddress(val value: Int) {
+    init { require(value in 0..0xffff) { "address out of range: $value" } }
+    override fun toString(): String = "$" + value.toString(16).padStart(2, '0')
+    fun toHex(): String = "$" + value.toString(16)
+    operator fun plus(other: Int): MemoryAddress = MemoryAddress(value + other)
+    operator fun minus(other: Int): MemoryAddress = MemoryAddress(value - other)
+}
+
+/**
+ * Inline value class representing a virtual register number (0-99999).
+ * Supports comparison with Int and other RegisterNum values.
+ * Can be used as a map key (equals/hashCode derived from underlying Int).
+ * TODO: Eventually convert IRInstruction reg1/reg2/reg3/fpReg1/fpReg2 fields to RegisterNum?
+ * and update all call sites to use RegisterNum(...) explicitly.
+ */
+@JvmInline
+value class RegisterNum(val value: Int) {
+    init { require(value in 0..99999) { "register number out of range: $value" } }
+    override fun toString(): String = "r$value"
+    operator fun compareTo(other: Int): Int = value.compareTo(other)
+    operator fun compareTo(other: RegisterNum): Int = value.compareTo(other.value)
+}
+
 /*
 
 Intermediate Representation instructions for the IR Virtual machine.
@@ -859,7 +889,7 @@ data class IRInstruction(
     val fpReg2: Int?=null,      // 0-$ffff
     val immediate: Int?=null,   // 0-$ff or $ffff if word
     val immediateFp: Double?=null,
-    val address: Int?=null,       // 0-$ffff
+    val address: MemoryAddress? = null,    // 0-$ffff
     val labelSymbol: String?=null,          // symbolic label name as alternative to address (so only for Branch/jump/call Instructions!)
     private val symbolOffset: Int? = null,     // offset to add on labelSymbol (used to index into an array variable)
     var branchTarget: IRCodeChunkBase? = null,    // Will be linked after loading in IRProgram.linkChunks()! This is the chunk that the branch labelSymbol points to.
@@ -940,9 +970,7 @@ data class IRInstruction(
             else
                 require(immediate != null || immediateFp != null) { "missing immediate value" }
         }
-        require(address==null || address>=0) {
-            "address must be >=0"
-        }
+        // address range is validated by MemoryAddress init block
 
         reg1direction = format.reg1
         reg2direction = format.reg2
@@ -1190,7 +1218,7 @@ data class IRInstruction(
                 if(labelSymbolOffset!=null)
                     append("+$labelSymbolOffset")
             }
-            address?.let { append(address.toHex()) }    // romcall
+            address?.let { append(it.toHex()) }    // romcall
             append("(")
             fcallArgs.arguments.forEach {
                 val location = if(it.address==null) {

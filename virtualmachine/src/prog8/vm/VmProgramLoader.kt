@@ -160,7 +160,7 @@ class VmProgramLoader {
                 // it could be an address + index:   symbol+42
                 if(offset>0) {
                     val address = variableAddresses.getValue(label) + offset
-                    chunk.instructions[line] = instr.copy(address = address)
+                    chunk.instructions[line] = instr.copy(address = MemoryAddress(address))
                 } else {
                     // placeholder is not a variable, so it must be a label of a code chunk instead
                     val target: IRCodeChunk? = chunks.firstOrNull { it.label==label }
@@ -175,11 +175,11 @@ class VmProgramLoader {
                             address = 0xa000 + artificialLabelAddresses.size
                             artificialLabelAddresses[label] = address
                         }
-                        chunk.instructions[line] = instr.copy(address=address, branchTarget = target)
+                        chunk.instructions[line] = instr.copy(address=MemoryAddress(address), branchTarget = target)
                     }
                 }
             } else {
-                chunk.instructions[line] = instr.copy(address = replacement + offset)
+                chunk.instructions[line] = instr.copy(address = MemoryAddress(replacement + offset))
             }
         }
 
@@ -192,7 +192,7 @@ class VmProgramLoader {
                             if(arg.address!=null)
                                 arg
                             else {
-                                val address = ins.address ?: variableAddresses.getValue(ins.labelSymbol + "." + arg.name)
+                                val address = ins.address?.value ?: variableAddresses.getValue(ins.labelSymbol + "." + arg.name)
                                 FunctionCallArgs.ArgumentSpec(arg.name, address, arg.reg)
                             }
                         }

@@ -50,6 +50,8 @@ Future Things and Ideas
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
 - Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
+  **MemoryAddress done:** ``IRInstruction.address`` field converted from ``Int?`` to ``MemoryAddress?``. All construction, extraction, and comparison sites updated. Zero runtime overhead (``@JvmInline value class``). Added ``toHex()`` method for convenience.
+  **RegisterNum defined but not migrated:** ``RegisterNum`` value class exists but converting ``reg1``/``reg2``/``reg3`` fields proved too error-prone for automated migration (1500+ call sites with complex patterns). Requires careful manual review.
 - Kotlin: can private setters / backing fields be used? (internal mutableList, external List)
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33

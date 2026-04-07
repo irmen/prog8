@@ -134,7 +134,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else if (format.funcCall) {
         val call = parseCall(rest)
-        return left(IRInstruction(Opcode.CALL, address = call.address, labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+        return left(IRInstruction(Opcode.CALL, address = call.address?.let { MemoryAddress(it) }, labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else {
         operands.forEach { oper ->
             if (oper[0] == '&')
@@ -243,7 +243,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         }
     }
 
-    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address, labelSymbol = labelSymbol, symbolOffset = offset))
+    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.let { MemoryAddress(it) }, labelSymbol = labelSymbol, symbolOffset = offset))
 }
 
 private fun isRegisterName(oper: String): Boolean {
