@@ -280,6 +280,7 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - **type casting syntax**: Use `expression as <type>` to cast (e.g., `bytevar as word`, `(a+b) as uword`). This is required for type conversions.
 - **no automatic type widening**: `byte*byte=byte` (may overflow!), `word*word=word`, etc. Explicitly cast operands: `word result = (bytevar as word) * 1000`. Hex literals with full width (e.g., `$0040`) also promote. Compiler does not warn by default. **Use `as <type>` for all casts.**
 - **no block scope**: `for`, `if/else` blocks do NOT introduce new scope. Only subroutines introduce scope. Variables declared anywhere in a subroutine are hoisted to the top.
+- **no bare blocks**: Prog8 does not have standalone `{ ... }` blocks like C/C++/Java. Control structures (`if/when/for/repeat`) provide grouping but NOT scoping - they cannot create temporary variable lifetimes. Only subroutines introduce scope.
 - **qualified names from top level**: Must use full qualified names (e.g., `cx16.r0`), not relative imports.
 
 ## Project Module Descriptions

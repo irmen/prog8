@@ -1244,22 +1244,31 @@ data class IRInstruction(
                 }
             }
         } else {
+            // Output operands in dest-then-source order for human readability (matches assembly convention)
+            val formats = instructionFormats.getValue(opcode)
+            val format = formats.getOrElse(type) { formats.getValue(null) }
 
-            reg1?.let {
-                append("r$it,")
-            }
-            reg2?.let {
-                append("r$it,")
-            }
-            reg3?.let {
-                append("r$it,")
-            }
-            fpReg1?.let {
-                append("fr$it,")
-            }
-            fpReg2?.let {
-                append("fr$it,")
-            }
+            // Pass 1: WRITE destinations
+            if (format.reg1 == OperandDirection.WRITE) reg1?.let { append("r$it,") }
+            if (format.reg2 == OperandDirection.WRITE) reg2?.let { append("r$it,") }
+            if (format.reg3 == OperandDirection.WRITE) reg3?.let { append("r$it,") }
+            if (format.fpReg1 == OperandDirection.WRITE) fpReg1?.let { append("fr$it,") }
+            if (format.fpReg2 == OperandDirection.WRITE) fpReg2?.let { append("fr$it,") }
+
+            // Pass 2: READWRITE (in-place) destinations
+            if (format.reg1 == OperandDirection.READWRITE) reg1?.let { append("r$it,") }
+            if (format.reg2 == OperandDirection.READWRITE) reg2?.let { append("r$it,") }
+            if (format.reg3 == OperandDirection.READWRITE) reg3?.let { append("r$it,") }
+            if (format.fpReg1 == OperandDirection.READWRITE) fpReg1?.let { append("fr$it,") }
+            if (format.fpReg2 == OperandDirection.READWRITE) fpReg2?.let { append("fr$it,") }
+
+            // Pass 3: READ sources — float (values) before int (addresses) for readability
+            if (format.fpReg1 == OperandDirection.READ) fpReg1?.let { append("fr$it,") }
+            if (format.fpReg2 == OperandDirection.READ) fpReg2?.let { append("fr$it,") }
+            if (format.reg1 == OperandDirection.READ) reg1?.let { append("r$it,") }
+            if (format.reg2 == OperandDirection.READ) reg2?.let { append("r$it,") }
+            if (format.reg3 == OperandDirection.READ) reg3?.let { append("r$it,") }
+
             immediate?.let {
                 append("#${it.toHex()},")
             }
