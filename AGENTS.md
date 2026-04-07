@@ -99,6 +99,8 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 ### Datatypes & Variables
 - available primitive datatypes: bool, byte, ubyte, word, uword, long, float, str. ubyte/uword are unsigned. long=4 bytes (SIGNED only - no unsigned long yet), float=5-byte Microsoft format, str=0-terminated ubytes (max 255 chars).
+- **float requires import**: When using `float` variables or operations, you **must** add `%import floats` at the top of your source file. Without this import, the compiler will error with "floating point used, but that is not enabled via options".
+- **printing floats**: Use `txt.print_f(floatvalue)` to print float values. This is available via `%import textio`.
 - there are also arrays (max 256 bytes, or 512 for split word arrays), pointers, and structs. Prog8 does not yet have by-value struct variables, only pointer to structs. Pointers can point to primitive types or struct types. Use `memory()` + pointers for data larger than array limits.
 - **struct field types**: Structs can only contain simple types (bool, byte, ubyte, word, uword, long, float) and `str`. Arrays are NOT allowed as struct fields. Note that `str` in a struct is equivalent to `^^ubyte` (a pointer to a zero-terminated byte array).
 - **word arrays split by default**: LSB and MSB bytes stored in separate arrays for efficient 6502 access. With @nosplit this can be overridden to use regular sequential storage.
@@ -375,8 +377,8 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - `prog8c -target targetname -emu input.p8` - Compile and execute a prog8 file in the emulator for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -vm input.p8ir` - Execute an existing prog8 program, compiled in IR form, in the Virtual Machine
 - `x16emu -scale 2 -prg input.prg` - Just load an existing compiled program in the CommanderX16 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
-- **CX16 debugging tip**: Use `x16emu -echo iso -prg input.prg` to echo screen output to stdout. Pipe through `strings` or `grep` to filter: `x16emu -echo iso -prg input.prg 2>&1 | grep -E "(PASS|FAIL)"`.
-  **IMPORTANT**: For readable output, add `%encoding iso` at the top of your source and call `txt.iso()` in `start()`. This prevents PETSCII→ISO charset translation errors that garble uppercase/special characters:
+- **CX16 output verification**: Use `x16emu -echo iso -run -prg input.prg` to echo screen output to stdout **and auto-start the program**. The `-run` flag is **critical** - without it, the program loads but doesn't execute, so you'll see no output. Pipe through `strings` or `grep` to filter: `x16emu -echo iso -run -prg input.prg 2>&1 | grep -E "(PASS|FAIL)"`.
+  **IMPORTANT**: Always add `%encoding iso` at the top of your source file and call `txt.iso()` in `start()`. This prevents PETSCII→ISO charset translation errors that garble uppercase/special characters and make output unreadable:
   ```prog8
   %encoding iso
   %import textio

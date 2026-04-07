@@ -459,7 +459,7 @@ main {
         // This test verifies the fix for the TODO:
         // "deal with (multiple?) FP return registers"
         // Previously this would throw NotImplementedError
-        // Note: This tests the IR codegen path (virtual target)
+        // Tests both IR codegen (VMTarget) and 6502 codegen (Cx16Target)
         val src="""
 %import floats
 
@@ -474,13 +474,12 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
         errors.errors.size shouldBe 0
     }
 
     test("extsub with mixed returns including float") {
         // Test with multiple return types including FP, status flags, and CPU registers
-        // Note: This tests the IR codegen path (virtual target)
         val src="""
 %import floats
 
@@ -498,7 +497,30 @@ main {
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
+    test("regular sub with float return in multi-assign") {
+        // Test that regular Prog8 subroutines with float returns work correctly
+        // Note: float must be returned LAST to avoid FAC1 being overwritten by other return computations
+        val src="""
+%import floats
+
+main {
+    sub start() {
+        bool flag
+        ubyte b
+        float f
+        flag, b, f = multi_test(42.0)
+    }
+
+    sub multi_test(float input) -> bool, ubyte, float {
+        return true, input as ubyte, 3.14
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
         errors.errors.size shouldBe 0
     }
 

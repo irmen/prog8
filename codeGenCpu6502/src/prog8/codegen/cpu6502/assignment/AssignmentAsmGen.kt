@@ -44,21 +44,70 @@ internal class AssignmentAsmGen(
             require(extsub.returns.size>=2) {
                 "extsub ${extsub.name} must return at least 2 values but got ${extsub.returns.size}  ${assignment.position}"
             }
-            if(extsub.returns.any { it.type.isFloat })
-                TODO("floating point return registers  ${assignment.position}")
 
             asmgen.translate(values)
 
             val assignmentTargets = assignment.children.dropLast(1)
             if(extsub.returns.size==assignmentTargets.size) {
-                // because we can only handle integer results right now we can just zip() it all up
-                val (statusFlagResults, registersResults) = extsub.returns.zip(assignmentTargets).partition { it.first.register.statusflag!=null }
-                if (statusFlagResults.isEmpty())
+                // Handle float and non-float results separately
+                val floatResults = extsub.returns.zip(assignmentTargets).filter { it.first.type.isFloat }
+                val nonFloatResults = extsub.returns.zip(assignmentTargets).filter { !it.first.type.isFloat }
+                val (statusFlagResults, registersResults) = nonFloatResults.partition { it.first.register.statusflag!=null }
+                val saveFlags = statusFlagResults.size > 1
+
+                // Check if we need to save A register before extracting status flags
+                // (flag extraction functions like assignCarryFlagResult overwrite A)
+                val hasByteInA = registersResults.any { (ret, _) ->
+                    ret.type.isByteOrBool && ret.register.registerOrPair == RegisterOrPair.A
+                }
+                if(hasByteInA && statusFlagResults.isNotEmpty()) {
+                    asmgen.out("  pha")  // Save A (contains return value) before flag extraction
+                }
+
+                // Save status flags first (before float MOVMF or other ops clobber them)
+                if(statusFlagResults.isNotEmpty()) {
+                    if(saveFlags) asmgen.out("  php")
+                    statusFlagResults.forEach { (returns, target) ->
+                        target as PtAssignTarget
+                        if(!target.void) {
+                            when(returns.register.statusflag) {
+                                Statusflag.Pc -> assignCarryFlagResult(target)
+                                Statusflag.Pz -> assignZeroFlagResult(target, saveFlags)
+                                Statusflag.Pn -> assignNegativeFlagResult(target, saveFlags)
+                                Statusflag.Pv -> assignOverflowFlagResult(target)
+                                else -> throw AssemblyError("unknown status flag")
+                            }
+                        }
+                    }
+                    if(saveFlags) asmgen.out("  plp")
+                }
+
+                // Save float results (these use ldx/ldy/jsr which clobber flags)
+                if(floatResults.isNotEmpty()) {
+                    floatResults.forEach { (returns, target) ->
+                        target as PtAssignTarget
+                        if(!target.void) {
+                            val asmTarget = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
+                            if(returns.register.registerOrPair == RegisterOrPair.FAC1) {
+                                assignFAC1float(asmTarget)
+                            } else if(returns.register.registerOrPair == RegisterOrPair.FAC2) {
+                                assignFAC2float(asmTarget)
+                            } else {
+                                throw AssemblyError("float result must be in FAC1 or FAC2")
+                            }
+                        }
+                    }
+                }
+
+                // Restore A if we saved it for flag extraction
+                if(hasByteInA && statusFlagResults.isNotEmpty()) {
+                    asmgen.out("  pla")
+                }
+
+                // Handle non-float register results (not status flags)
+                if(registersResults.isNotEmpty()) {
                     assignRegisterResults(registersResults)
-                else if(registersResults.isEmpty())
-                    assignOnlyTheStatusFlagsResults(false, statusFlagResults)
-                else
-                    assignStatusFlagsAndRegistersResults(statusFlagResults, registersResults)
+                }
             } else {
                 throw AssemblyError("number of values and targets don't match")
             }
