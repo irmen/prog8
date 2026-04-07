@@ -74,33 +74,16 @@ IR/VM
 - getting it in shape for code generation: the IR file should be able to encode every detail about a prog8 program (the VM doesn't have to actually be able to run all of it though!)
 - if instruction has both integer and float registers, the sequence of the registers is sometimes weird in the .p8ir file (float regs always at the end even when otherwise the target -integer- register is the first one in the list, for example.)
 - maybe change all branch instructions to have 2 exits (label if branch condition ture, and label if false) instead of 1, and get rid of the implicit "next code chunk" link between chunks.
-- make multiple classes of registers and maybe also categorize by life time? , to prepare for better register allocation in the future
-    SYSCALL_ARGS,        // Reserved for syscall arguments (r99000-99099, r99100-99199)
-    FUNCTION_PARAMS,     // For passing function parameters
-    FUNCTION_RETURNS,    // For function return values
-    TEMPORARY,           // Short-lived temporary values
-    LOCAL_VARIABLES,     // Local variables within functions
-    GLOBAL_VARIABLES,    // Global/static variables
-    HARDWARE_MAPPED,     // Mapped to CPU hardware registers
-    LOOP_INDICES,        // Used as loop counters
-    ADDRESS_CALCULATION  // Used for pointer arithmetic
-  Registers could be categorized by how frequently they're accessed:
-   - Hot Registers: Frequently accessed (should be allocated to faster physical registers)
-   - Warm Registers: Moderately accessed
-   - Cold Registers: Rarely accessed (move to memory variables)
-  We already have type-based pools
-    - byte, word, long, float registers
-
-- pointer dt's are all reduced to just an uword (in the irTypeString method) - is this okay or could it be beneficial to reintroduce the actual pointer type information? See commit 88b074c208450c58aa32469745afa03e4c5f564a
-- change the instruction format so an indirect register (a pointer) can be used more often, at least for the inplace assignment operators that operate on pointer. Breaks SSA form though?
-- register reuse to reduce the number of required variables in memory eventually. But can only re-use a register if a) it's the same type and b) if the second occurrence is not called from the first occurrence (otherwise the value gets overwritten!) Breaks SSA form though?
-- reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
-  don't forget to take into account the data type of the register when it's going to be reused! Reuse breaks SSA form though
 - implement more TODOs in AssignmentGen?
 - add more optimizations in IRPeepholeOptimizer?
 - the split word arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...? Should array operations be encoded in a more high level form in the IR?
-- ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change.. :(
+- ExpressionCodeResult resultReg/resultFpReg: consider using a sealed type (IntReg(n) | FpReg(n) | None) instead of two separate ints with -1 sentinels. Currently easy to confuse them and pass the wrong register. Would make callsites safer but requires touching ~100-150 lines in ExpressionGen and AssignmentGen.
+- **Multi-Level IR Design**: Consider introducing a High-Level IR (HLIR) layer before the current low-level IR to preserve semantics like loop bounds, array indexing, and structure field access.
+  The current IR is effectively "assembly with infinite registers," losing high-level info needed for optimal 6502 instruction selection (e.g., choosing ``LDA addr,X`` vs ``LDA (zp),Y``).
+  Recommendation: Implement a custom HLIR using Kotlin sealed classes (inspired by MLIR dialects but lighter weight).
+  Flow: HLIR (Loops/Arrays) -> Lowering -> Current IR (Ops/Regs) -> Codegen.
+  Don't adopt LLVM (too low-level) or QBE (too simple). Custom HLIR fits Kotlin best and preserves semantic intent for better 6502 codegen.
 
 
 Libraries

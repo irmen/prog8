@@ -49,62 +49,51 @@ internal class AssignmentAsmGen(
 
             val assignmentTargets = assignment.children.dropLast(1)
             if(extsub.returns.size==assignmentTargets.size) {
-                // Handle float and non-float results separately
-                val floatResults = extsub.returns.zip(assignmentTargets).filter { it.first.type.isFloat }
-                val nonFloatResults = extsub.returns.zip(assignmentTargets).filter { !it.first.type.isFloat }
-                val (statusFlagResults, registersResults) = nonFloatResults.partition { it.first.register.statusflag!=null }
-                val saveFlags = statusFlagResults.count { (ret, target) -> !(target as PtAssignTarget).void } > 1
+                // Filter out void targets first, then separate by result type
+                val allResults = extsub.returns.zip(assignmentTargets)
+                val floatResults = allResults.filter { it.first.type.isFloat && !(it.second as PtAssignTarget).void }
+                val nonVoidResults = allResults.filter { !(it.second as PtAssignTarget).void && !it.first.type.isFloat }
+                val (statusFlagResults, registersResults) = nonVoidResults.partition { it.first.register.statusflag!=null }
+                val saveFlags = statusFlagResults.size > 1
 
                 // Check if we need to save A register before extracting status flags
                 // (flag extraction functions like assignCarryFlagResult overwrite A)
-                // Only save/restore if there are actual non-void flag results AND a byte return in A
-                val hasByteInA = registersResults.any { (ret, target) ->
-                    !(target as PtAssignTarget).void && ret.type.isByteOrBool && ret.register.registerOrPair == RegisterOrPair.A
+                val hasByteInA = registersResults.any { (ret, _) ->
+                    ret.type.isByteOrBool && ret.register.registerOrPair == RegisterOrPair.A
                 }
-                val hasNonVoidFlagResult = statusFlagResults.any { (ret, target) ->
-                    !(target as PtAssignTarget).void
-                }
-                if(hasByteInA && hasNonVoidFlagResult) {
+                if(hasByteInA && statusFlagResults.isNotEmpty()) {
                     asmgen.out("  pha")  // Save A (contains return value) before flag extraction
                 }
 
                 // Save status flags first (before float MOVMF or other ops clobber them)
-                if(hasNonVoidFlagResult) {
+                if(statusFlagResults.isNotEmpty()) {
                     if(saveFlags) asmgen.out("  php")
                     statusFlagResults.forEach { (returns, target) ->
-                        target as PtAssignTarget
-                        if(!target.void) {
-                            when(returns.register.statusflag) {
-                                Statusflag.Pc -> assignCarryFlagResult(target)
-                                Statusflag.Pz -> assignZeroFlagResult(target, saveFlags)
-                                Statusflag.Pn -> assignNegativeFlagResult(target, saveFlags)
-                                Statusflag.Pv -> assignOverflowFlagResult(target)
-                                else -> throw AssemblyError("unknown status flag")
-                            }
+                        when(returns.register.statusflag) {
+                            Statusflag.Pc -> assignCarryFlagResult(target as PtAssignTarget)
+                            Statusflag.Pz -> assignZeroFlagResult(target as PtAssignTarget, saveFlags)
+                            Statusflag.Pn -> assignNegativeFlagResult(target as PtAssignTarget, saveFlags)
+                            Statusflag.Pv -> assignOverflowFlagResult(target as PtAssignTarget)
+                            else -> throw AssemblyError("unknown status flag")
                         }
                     }
                     if(saveFlags) asmgen.out("  plp")
                 }
 
                 // Save float results (these use ldx/ldy/jsr which clobber flags)
-                if(floatResults.isNotEmpty()) {
-                    floatResults.forEach { (returns, target) ->
-                        target as PtAssignTarget
-                        if(!target.void) {
-                            val asmTarget = AsmAssignTarget.fromAstAssignment(target, target.definingISub(), asmgen)
-                            if(returns.register.registerOrPair == RegisterOrPair.FAC1) {
-                                assignFAC1float(asmTarget)
-                            } else if(returns.register.registerOrPair == RegisterOrPair.FAC2) {
-                                assignFAC2float(asmTarget)
-                            } else {
-                                throw AssemblyError("float result must be in FAC1 or FAC2")
-                            }
-                        }
+                floatResults.forEach { (returns, target) ->
+                    val asmTarget = AsmAssignTarget.fromAstAssignment(target as PtAssignTarget, target.definingISub(), asmgen)
+                    if(returns.register.registerOrPair == RegisterOrPair.FAC1) {
+                        assignFAC1float(asmTarget)
+                    } else if(returns.register.registerOrPair == RegisterOrPair.FAC2) {
+                        assignFAC2float(asmTarget)
+                    } else {
+                        throw AssemblyError("float result must be in FAC1 or FAC2")
                     }
                 }
 
                 // Restore A if we saved it for flag extraction
-                if(hasByteInA && hasNonVoidFlagResult) {
+                if(hasByteInA && statusFlagResults.isNotEmpty()) {
                     asmgen.out("  pla")
                 }
 
