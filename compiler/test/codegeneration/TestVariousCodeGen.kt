@@ -455,6 +455,53 @@ main {
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
+    test("extsub with float return in multi-assign") {
+        // This test verifies the fix for the TODO:
+        // "deal with (multiple?) FP return registers"
+        // Previously this would throw NotImplementedError
+        // Note: This tests the IR codegen path (virtual target)
+        val src="""
+%import floats
+
+main {
+    extsub 5000 = get_float_and_byte() -> float @FAC1, ubyte @X
+
+    sub start() {
+        float @shared f
+        ubyte @shared b
+
+        f, b = get_float_and_byte()
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
+    test("extsub with mixed returns including float") {
+        // Test with multiple return types including FP, status flags, and CPU registers
+        // Note: This tests the IR codegen path (virtual target)
+        val src="""
+%import floats
+
+main {
+    extsub 5000 = get_multi() -> bool @Pc, float @FAC1, ubyte @X, uword @AY
+
+    sub start() {
+        bool @shared flag
+        float @shared f
+        ubyte @shared b
+        uword @shared w
+
+        flag, f, b, w = get_multi()
+        void, f, void, void = get_multi()
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
     test("missing rts in asmsub") {
         val src="""
 main {

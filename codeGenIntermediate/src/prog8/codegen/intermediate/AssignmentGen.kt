@@ -24,15 +24,19 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val extsub = codeGen.symbolTable.lookup(values.name) as? StExtSub
             if(extsub!=null) {
                 require(funcCall.multipleResultRegs.size + funcCall.multipleResultFpRegs.size >= 2)
-                if (funcCall.multipleResultFpRegs.isNotEmpty())
-                    TODO("deal with (multiple?) FP return registers ${assignment.position}")
                 if (extsub.returns.size == assignmentTargets.size) {
                     // Targets and values match. Assign all the things. Skip 'void' targets.
-                    extsub.returns.zip(assignmentTargets).zip(funcCall.multipleResultRegs).forEach {
-                        val target = it.first.second as PtAssignTarget
+                    // We need to handle both FP registers (FAC1/FAC2) and regular CPU registers
+                    val fpRegs = funcCall.multipleResultFpRegs.toMutableList()
+                    val cpuRegs = funcCall.multipleResultRegs.toMutableList()
+
+                    extsub.returns.zip(assignmentTargets).forEach { pair ->
+                        val returns = pair.first
+                        val target = pair.second as PtAssignTarget
                         if (!target.void) {
-                            val regNumber = it.second
-                            val returns = it.first.first
+                            // Determine if this return uses an FP register or CPU register
+                            val isFpRegister = returns.register.registerOrPair in listOf(RegisterOrPair.FAC1, RegisterOrPair.FAC2)
+                            val regNumber = if(isFpRegister) fpRegs.removeAt(0) else cpuRegs.removeAt(0)
                             result += assignCpuRegister(returns, regNumber, target)
                         }
                     }
