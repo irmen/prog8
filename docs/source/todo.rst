@@ -1,6 +1,7 @@
 TODO
 ====
 
+Tehtriz has become slightly larger
 Chess, Imageviewer, Halloween, Paint have all increased size (maybe more)  Plasma example increased in size too since commit 14abc1f0
 
 
@@ -96,9 +97,8 @@ IR/VM
 - register reuse to reduce the number of required variables in memory eventually. But can only re-use a register if a) it's the same type and b) if the second occurrence is not called from the first occurrence (otherwise the value gets overwritten!) Breaks SSA form though?
 - reduce register usage via linear-scan algorithm (based on live intervals) https://anoopsarkar.github.io/compilers-class/assets/lectures/opt3-regalloc-linearscan.pdf
   don't forget to take into account the data type of the register when it's going to be reused! Reuse breaks SSA form though
-- implement fast code paths for TODO("inplace split....
-- implement more TODOs in AssignmentGen
-- add more optimizations in IRPeepholeOptimizer, implement the TODOs in there at least
+- implement more TODOs in AssignmentGen?
+- add more optimizations in IRPeepholeOptimizer?
 - the split word arrays are currently also split in _lsb/_msb arrays in the IR, and operations take multiple (byte) instructions that may lead to verbose and slow operation and machine code generation down the line.
   maybe another representation is needed once actual codegeneration is done from the IR...? Should array operations be encoded in a more high level form in the IR?
 - ExpressionCodeResult:  get rid of the separation between single result register and multiple result registers? maybe not, this requires hundreds of lines to change.. :(

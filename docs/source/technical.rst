@@ -207,8 +207,9 @@ In case of *multiple* return values:
     just like for subroutines that only return a single value.
     The remainder of the return values are returned via the "virtual registers" cx16.r16-cx16.r0 (using R15 first and counting down to R0).
     Long values will take a pair of those "virtual registers" that combined make up a single 32 bits value.
-    A floating point value is passed via FAC1 as usual (only a single floating point value is supported,
-    using FAC1 and FAC2 together unfortunately interferes with the values).
+    A floating point value is passed via FAC1. Multiple float return values are supported on the virtual target,
+    but limited to a single float on 6502 targets (because the ROM float routines use FAC1/FAC2 as operand registers
+    which would clobber earlier return values).
 
 
 ``asmsub`` and ``extsub`` routines

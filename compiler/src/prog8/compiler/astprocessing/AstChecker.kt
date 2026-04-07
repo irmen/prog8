@@ -1990,8 +1990,13 @@ internal class AstChecker(private val program: Program,
             }
 
             if(target.returntypes.size>1) {
-                if(target.returntypes.count { it.isFloat }>1) {
-                    errors.err("can only have a single float value in a multi-value result", target.position)
+                // Multiple float return values are not supported on 6502 targets because the ROM
+                // float routines use FAC1/FAC2 as operand registers which would clobber earlier return values.
+                // The virtual target has no such limitation.
+                if(compilerOptions.compTarget !is VMTarget) {
+                    if(target.returntypes.count { it.isFloat }>1) {
+                        errors.err("can only have a single float value in a multi-value result on 6502 targets", target.position)
+                    }
                 }
             }
             if(target.returntypes.size>16) {

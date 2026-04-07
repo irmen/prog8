@@ -503,7 +503,8 @@ main {
 
     test("regular sub with float return in multi-assign") {
         // Test that regular Prog8 subroutines with float returns work correctly
-        // Note: float must be returned LAST to avoid FAC1 being overwritten by other return computations
+        // Float can be in any position now - the compiler ensures FAC1 is assigned last
+        // to avoid being clobbered by other return value computations
         val src="""
 %import floats
 
@@ -517,6 +518,51 @@ main {
 
     sub multi_test(float input) -> bool, ubyte, float {
         return true, input as ubyte, 3.14
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
+    test("regular sub with float in middle of multi-return") {
+        // Test float as the middle return value - this used to fail because
+        // computing the ubyte return value clobbered FAC1
+        val src="""
+%import floats
+
+main {
+    sub start() {
+        bool flag
+        float f
+        ubyte b
+        flag, f, b = multi_test(42.0)
+    }
+
+    sub multi_test(float input) -> bool, float, ubyte {
+        return true, 3.14, input as ubyte
+    }
+}"""
+        val errors = ErrorReporterForTests()
+        compileText(Cx16Target(), false, src, outputDir, writeAssembly = true, errors = errors) shouldNotBe null
+        errors.errors.size shouldBe 0
+    }
+
+    test("regular sub with float first in multi-return") {
+        // Test float as the first return value
+        val src="""
+%import floats
+
+main {
+    sub start() {
+        float f
+        bool flag
+        ubyte b
+        f, flag, b = multi_test(42.0)
+    }
+
+    sub multi_test(float input) -> float, bool, ubyte {
+        return 3.14, true, input as ubyte
     }
 }"""
         val errors = ErrorReporterForTests()

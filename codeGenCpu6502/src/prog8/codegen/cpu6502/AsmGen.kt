@@ -1917,19 +1917,35 @@ $repeatLabel""")
             }
         }
         else if(ret.numReturnValues()>1) {
-            // note: multi-value returns are passed throug A or AY (for the first value) then cx16.R15 down to R0
+            // note: multi-value returns are passed through A or AY (for the first value) then cx16.R15 down to R0
             // (this allows unencumbered use of many Rx registers if you don't return that many values)
             // to avoid register clobbering, assign the first return value last in row.
+            // IMPORTANT: Float returns (FAC1) must be assigned LAST because other return value computations
+            // may involve float operations that clobber FAC1 (e.g., type casts like float.as ubyte).
 
             require(ret.children.size == ret.numReturnValues())
             val assigns = ret.children.zip(returnRegs).map { it.first to it.second }
-            assigns.drop(1).forEach {
+            
+            // Find float return (if any) - it must be assigned last
+            val floatIdx = assigns.indexOfFirst { it.second.second.isFloat }
+            val nonFloatAssigns = if(floatIdx >= 0) assigns.filterIndexed { i, _ -> i != floatIdx } else assigns
+            val floatAssign = if(floatIdx >= 0) assigns[floatIdx] else null
+
+            // Assign non-float returns first (all except first, then first - same logic as before)
+            nonFloatAssigns.drop(1).forEach {
                 val targetDt = if(it.second.second.isPointer) DataType.UWORD else it.second.second
                 val tgt = AsmAssignTarget(TargetStorageKind.REGISTER, this, targetDt, null, it.first.position, register = it.second.first.registerOrPair!!)
                 assignExpressionTo(it.first as PtExpression, tgt)
             }
-            assigns.first().also {
-                assignExpressionToRegister(it.first as PtExpression, it.second.first.registerOrPair!!, (it.first as PtExpression).type.isSigned)
+            if(nonFloatAssigns.isNotEmpty()) {
+                nonFloatAssigns.first().also {
+                    assignExpressionToRegister(it.first as PtExpression, it.second.first.registerOrPair!!, (it.first as PtExpression).type.isSigned)
+                }
+            }
+            
+            // Assign float return LAST (so FAC1 has the correct value when we RTS)
+            if(floatAssign != null) {
+                assignExpressionToRegister(floatAssign.first as PtExpression, floatAssign.second.first.registerOrPair!!, false)
             }
         }
         out("  rts")

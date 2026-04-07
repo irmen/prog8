@@ -1196,10 +1196,6 @@ cpu registers that take the arguments.  You can use the regular set of registers
 flag such as Carry (Pc).
 
 .. note::
-    It is currently not possible to use floating point return values in an asmsub.
-    A floating point parameter is fine though and you can use the register FAC1 or FAC2 for that.
-
-.. note::
     Asmsubs can also be tagged as ``inline asmsub`` to make trivial pieces of assembly inserted
     directly instead of a call to them. Note that it is literal copy-paste of code that is done,
     so make sure the assembly is actually written to behave like such - which probably means you
@@ -1324,10 +1320,9 @@ Remember that you can use ``void`` to skip a value. So for instance::
 .. sidebar:: register usage
 
     Subroutines with multiple return values use cpu registers A, Y, and the R0-R15 "virtual registers" to return those,
-    depending on the number of values returend.  A floating point value is passed via the FAC 'register'
-    (only a single floating point value is supported).
-    Using these during the calculation of the values in the return statement should be avoided.
-    Otherwise you risk overwriting an earlier return value in the sequence.
+    depending on the number of values returend.  A floating point value is passed via the FAC 'register'.
+    Multiple float return values are supported on the virtual target, but limited to a single float on 6502 targets
+    (because the ROM float routines use FAC1/FAC2 as operand registers which would clobber earlier return values).
 
 
 **Using just one of the values:**
