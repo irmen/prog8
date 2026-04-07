@@ -1,7 +1,6 @@
 TODO
 ====
 
-Tehtriz has become slightly larger
 Chess, Imageviewer, Halloween, Paint have all increased size (maybe more)  Plasma example increased in size too since commit 14abc1f0
 
 

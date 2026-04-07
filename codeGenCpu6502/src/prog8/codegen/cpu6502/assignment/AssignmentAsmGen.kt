@@ -53,19 +53,23 @@ internal class AssignmentAsmGen(
                 val floatResults = extsub.returns.zip(assignmentTargets).filter { it.first.type.isFloat }
                 val nonFloatResults = extsub.returns.zip(assignmentTargets).filter { !it.first.type.isFloat }
                 val (statusFlagResults, registersResults) = nonFloatResults.partition { it.first.register.statusflag!=null }
-                val saveFlags = statusFlagResults.size > 1
+                val saveFlags = statusFlagResults.count { (ret, target) -> !(target as PtAssignTarget).void } > 1
 
                 // Check if we need to save A register before extracting status flags
                 // (flag extraction functions like assignCarryFlagResult overwrite A)
-                val hasByteInA = registersResults.any { (ret, _) ->
-                    ret.type.isByteOrBool && ret.register.registerOrPair == RegisterOrPair.A
+                // Only save/restore if there are actual non-void flag results AND a byte return in A
+                val hasByteInA = registersResults.any { (ret, target) ->
+                    !(target as PtAssignTarget).void && ret.type.isByteOrBool && ret.register.registerOrPair == RegisterOrPair.A
                 }
-                if(hasByteInA && statusFlagResults.isNotEmpty()) {
+                val hasNonVoidFlagResult = statusFlagResults.any { (ret, target) ->
+                    !(target as PtAssignTarget).void
+                }
+                if(hasByteInA && hasNonVoidFlagResult) {
                     asmgen.out("  pha")  // Save A (contains return value) before flag extraction
                 }
 
                 // Save status flags first (before float MOVMF or other ops clobber them)
-                if(statusFlagResults.isNotEmpty()) {
+                if(hasNonVoidFlagResult) {
                     if(saveFlags) asmgen.out("  php")
                     statusFlagResults.forEach { (returns, target) ->
                         target as PtAssignTarget
@@ -100,7 +104,7 @@ internal class AssignmentAsmGen(
                 }
 
                 // Restore A if we saved it for flag extraction
-                if(hasByteInA && statusFlagResults.isNotEmpty()) {
+                if(hasByteInA && hasNonVoidFlagResult) {
                     asmgen.out("  pla")
                 }
 

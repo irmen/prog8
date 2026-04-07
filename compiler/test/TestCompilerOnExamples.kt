@@ -294,7 +294,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             ExampleSizes("screencodes", c64SizeOptimized=667, c64SizeUnoptimized=687, cx16SizeOptimized=655, cx16SizeUnoptimized=959),
             ExampleSizes("swirl", c64SizeOptimized=828, c64SizeUnoptimized=831, cx16SizeOptimized=923, cx16SizeUnoptimized=1208),
             ExampleSizes("swirl-float", c64SizeOptimized=708, c64SizeUnoptimized=735, cx16SizeOptimized=595, cx16SizeUnoptimized=906),
-            ExampleSizes("tehtriz", c64SizeOptimized=4339, c64SizeUnoptimized=4511, cx16SizeOptimized=6215, cx16SizeUnoptimized=6747),
+            ExampleSizes("tehtriz", c64SizeOptimized=4339, c64SizeUnoptimized=4504, cx16SizeOptimized=6215, cx16SizeUnoptimized=6747),
             ExampleSizes("textelite", c64SizeOptimized=11455, c64SizeUnoptimized=12778, cx16SizeOptimized=10789, cx16SizeUnoptimized=13505),
             ExampleSizes("pointers/animalgame", c64SizeOptimized=1570, c64SizeUnoptimized=2208, cx16SizeOptimized=1605, cx16SizeUnoptimized=2492),
             ExampleSizes("pointers/binarytree", c64SizeOptimized=2562, c64SizeUnoptimized=2640, cx16SizeOptimized=2085, cx16SizeUnoptimized=2389),
