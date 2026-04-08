@@ -51,22 +51,22 @@ class TestVm: FunSpec( {
         val code = IRCodeChunk(startSub.label, null)
         code += IRInstruction(Opcode.NOP)
         code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=1, immediate=12345)
-        code += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=1, address=MemoryAddress(1000))
+        code += IRInstruction(Opcode.STOREM, IRDataType.WORD, reg1=1, address=1000u.toAddress())
         code += IRInstruction(Opcode.RETURN)
         startSub += code
         block += startSub
         program.addBlock(block)
         val vm = VirtualMachine(program)
-        vm.memory.setUW(1000, 0u)
+        vm.memory.setUW(1000u, 0u)
 
-        vm.memory.getUW(1000) shouldBe 0u
+        vm.memory.getUW(1000u) shouldBe 0u
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
         vm.pcIndex shouldBe 0
         vm.stepCount shouldBe 0
         vm.run(false)
         vm.stepCount shouldBe 4
-        vm.memory.getUW(1000) shouldBe 12345u
+        vm.memory.getUW(1000u) shouldBe 12345u
         vm.callStack.shouldBeEmpty()
         vm.valueStack.shouldBeEmpty()
         vm.pcIndex shouldBe code.instructions.size-1

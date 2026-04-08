@@ -199,8 +199,8 @@ skipLABEL:
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUB(0) shouldBe 42u
-            vm.memory.getUB(3) shouldBe 66u
+            vm.memory.getUB(0u) shouldBe 42u
+            vm.memory.getUB(3u) shouldBe 66u
         }
     }
 
@@ -222,8 +222,8 @@ main {
         ((start.statements[1] as Assignment).value as FunctionCallExpression).target.nameInSource shouldBe listOf("memory")
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUB(2) shouldBe 42u
-            vm.memory.getUB(3) shouldBe 43u
+            vm.memory.getUB(2u) shouldBe 42u
+            vm.memory.getUB(3u) shouldBe 43u
         }
     }
 
@@ -477,7 +477,7 @@ main {
         start.children.size shouldBe 12
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUW(0xff02) shouldBe 3837u      // $ff02 = cx16.r0
+            vm.memory.getUW(0xff02u) shouldBe 3837u      // $ff02 = cx16.r0
         }
     }
 
@@ -530,7 +530,7 @@ main {
         start.children.size shouldBe 23
         val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         VmRunner().runAndTestProgram(virtfile.readText()) { vm ->
-            vm.memory.getUW(0xff02) shouldBe 3837u      // $ff02 = cx16.r0
+            vm.memory.getUW(0xff02u) shouldBe 3837u      // $ff02 = cx16.r0
         }
     }
 
@@ -724,7 +724,7 @@ main {
                 addr > xvalAddr && addr > yvalAddr 
             }
             vm.memory.getUW(structAddr) shouldBe 0u      // x field
-            vm.memory.getUW(structAddr + 2) shouldBe 0u  // y field
+            vm.memory.getUW(structAddr + 2u) shouldBe 0u  // y field
         }
     }
 

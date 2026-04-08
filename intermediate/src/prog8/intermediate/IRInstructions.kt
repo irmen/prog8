@@ -8,13 +8,18 @@ import prog8.code.core.toHex
  * Inline value class representing a 16-bit memory address (0-$ffff).
  */
 @JvmInline
-value class MemoryAddress(val value: Int) {
-    init { require(value in 0..0xffff) { "address out of range: $value" } }
+value class MemoryAddress(val value: UInt) {
+    init { require(value <= 0xffffu) { "address out of range: $value" } }
     override fun toString(): String = "$" + value.toString(16).padStart(2, '0')
     fun toHex(): String = "$" + value.toString(16)
-    operator fun plus(other: Int): MemoryAddress = MemoryAddress(value + other)
-    operator fun minus(other: Int): MemoryAddress = MemoryAddress(value - other)
+    operator fun plus(other: UInt): MemoryAddress = MemoryAddress(value + other)
+    operator fun plus(other: Int): MemoryAddress = MemoryAddress(value + other.toUInt())
+    operator fun minus(other: UInt): MemoryAddress = MemoryAddress(value - other)
+    operator fun minus(other: Int): MemoryAddress = MemoryAddress(value - other.toUInt())
 }
+
+/** Convert a UInt to a MemoryAddress. */
+fun UInt.toAddress(): MemoryAddress = MemoryAddress(this)
 
 /**
  * Inline value class representing a virtual register number (0-99999).
@@ -864,11 +869,9 @@ class FunctionCallArgs(
     val returns: List<RegSpec>
 ) {
     class RegSpec(val dt: IRDataType, val registerNum: RegisterNum, val cpuRegister: RegisterOrStatusflag?)
-    class ArgumentSpec(val name: String, val address: Int?, val reg: RegSpec) {
+    class ArgumentSpec(val name: String, val address: UInt?, val reg: RegSpec) {
         init {
-            require(address==null || address>=0) {
-                "address must be >=0"
-            }
+            // UInt is always non-negative
         }
     }
 }

@@ -405,7 +405,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
         val constAddress = mem.address as? PtNumber
         if(constAddress!=null) {
-            addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, address = MemoryAddress(constAddress.number.toInt())), null)
+            addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=resultRegister, address = constAddress.number.toUInt().toAddress()), null)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         }
 
@@ -1005,12 +1005,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                         if(address.constbank==null && address.varbank==null) {
                             IRInstruction(
                                 Opcode.CALL,
-                                address = MemoryAddress(address.address.toInt()),
+                                address = address.address.toAddress(),
                                 fcallArgs = FunctionCallArgs(argRegisters, returnRegs))
                         } else if(address.constbank!=null) {
                             IRInstruction(
                                 Opcode.CALLFAR,
-                                address = MemoryAddress(address.address.toInt()),
+                                address = address.address.toAddress(),
                                 immediate = address.constbank!!.toInt()
                             )
                         } else {
@@ -1019,7 +1019,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                             result += tr.chunks
                             IRInstruction(
                                 Opcode.CALLFARVB,
-                                address = MemoryAddress(address.address.toInt()),
+                                address = address.address.toAddress(),
                                 reg1 = tr.resultReg
                             )
                         }
@@ -1135,7 +1135,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 if(address.constbank==null && address.varbank==null) {
                     IRInstruction(
                         Opcode.CALL,
-                        address = MemoryAddress(address.address.toInt()),
+                        address = address.address.toAddress(),
                         fcallArgs = FunctionCallArgs(argRegisters, returnRegisters)
                     )
                 }

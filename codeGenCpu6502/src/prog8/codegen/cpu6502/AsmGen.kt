@@ -772,7 +772,7 @@ class AsmGen6502Internal (
                 }
             }
             expr.type.isFloat -> {
-                if(options.compTarget.FLOAT_MEM_SIZE != 5)
+                if(options.compTarget.FLOAT_MEM_SIZE != 5u)
                     TODO("support float size other than 5 ${expr.position}")
                 assignExpressionToRegister(expr.index, RegisterOrPair.A)
                 out("""
@@ -1705,7 +1705,7 @@ $repeatLabel""")
                 if(offset1==null || offset2==null)
                     TODO("swap floats not supported yet for nontrivial indexed[] expressions. Use a simpler expression, or even just temporary variable and assignments for now. ${swap.position}")
                 else {
-                    require(options.compTarget.FLOAT_MEM_SIZE==5)
+                    require(options.compTarget.FLOAT_MEM_SIZE == 5u)
                     val arrayname1 = asmVariableName(v1.variable!!.name)
                     val arrayname2 = asmVariableName(v2.variable!!.name)
                     val offsetname1 = asmVariableName(offset1.first)

@@ -8,7 +8,7 @@ import prog8.intermediate.RegisterNum
  * A,X and Y "physical" 6502 registers.
  */
 class Registers {
-    private val registers = Array<Int>(99999) { 0 }
+    private val registers = Array(99999) { 0 }
     private val floatRegisters = Array(99999) { 0.0 }
     var cpuA: UByte = 0u
     var cpuX: UByte = 0u

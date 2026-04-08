@@ -9,8 +9,8 @@ import prog8.code.target.VMTarget
 import prog8.codegen.vm.VmAssemblyProgram
 import prog8.codegen.vm.VmCodeGen
 import prog8.intermediate.IRSubroutine
-import prog8.intermediate.MemoryAddress
 import prog8.intermediate.Opcode
+import prog8.intermediate.toAddress
 import prog8tests.helpers.DummyMemsizer
 import prog8tests.helpers.DummyStringEncoder
 import prog8tests.helpers.ErrorReporterForTests
@@ -572,6 +572,6 @@ class TestVmCodeGen: FunSpec({
         irChunks[0].instructions.size shouldBe 1
         val callInstr = irChunks[0].instructions[0]
         callInstr.opcode shouldBe Opcode.CALL
-        callInstr.address shouldBe MemoryAddress(0x5000)
+        callInstr.address shouldBe 0x5000u.toAddress()
     }
 })

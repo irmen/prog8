@@ -145,7 +145,7 @@ class ConfigFileTarget(
     // TODO floats are not yet supported here, just enter some values
     override val FLOAT_MAX_POSITIVE = 9.999999999e97
     override val FLOAT_MAX_NEGATIVE = -9.999999999e97
-    override val FLOAT_MEM_SIZE = 8
+    override val FLOAT_MEM_SIZE = 8u
 
     override lateinit var zeropage: Zeropage
     override lateinit var golden: GoldenRam     // TODO this is not yet used

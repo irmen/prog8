@@ -8,15 +8,15 @@ import prog8.intermediate.IRSymbolTable
 
 class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncoding, memsizer: IMemSizer) {
 
-    val allocations = mutableMapOf<String, Int>()
-    private var freeMemoryStart: Int
+    val allocations = mutableMapOf<String, UInt>()
+    private var freeMemoryStart: UInt
 
-    val freeMem: Int
+    val freeMem: UInt
         get() = freeMemoryStart
 
 
     init {
-        var nextLocation = 0
+        var nextLocation = 0u
         for (variable in st.allVariables()) {
             val memsize =
                 when {
@@ -29,16 +29,16 @@ class VmVariableAllocator(st: IRSymbolTable, val encoding: IStringEncoding, mems
                 }
 
             allocations[variable.name] = nextLocation
-            nextLocation += memsize
+            nextLocation += memsize.toUInt()
         }
         for(slab in st.allMemorySlabs()) {
             // we ignore the alignment for the VM.
             allocations[slab.name] = nextLocation
-            nextLocation += slab.size.toInt()
+            nextLocation += slab.size
         }
         for(struct in st.allStructInstances()) {
             allocations[struct.name] = nextLocation
-            nextLocation += struct.size.toInt()
+            nextLocation += struct.size
         }
 
         freeMemoryStart = nextLocation

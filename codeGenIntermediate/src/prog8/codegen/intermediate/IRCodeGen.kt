@@ -205,7 +205,7 @@ class IRCodeGen(
             val formats = instructionFormats.getValue(old.opcode)
             val format = formats.getOrElse(old.type) { throw IllegalArgumentException("type ${old.type} invalid for ${old.opcode}") }
             val immediateValue = if(format.immediate) it.third.toInt() else null
-            val addressValue = if(format.immediate) null else it.third.toInt()
+            val addressValue: UInt? = if(format.immediate) null else it.third
 
             it.first.instructions[it.second] = IRInstruction(
                 old.opcode,
@@ -216,7 +216,7 @@ class IRCodeGen(
                 old.fpReg1,
                 old.fpReg2,
                 immediate = immediateValue,
-                address = addressValue?.let { MemoryAddress(it) }
+                address = addressValue?.toAddress()
             )
         }
     }
@@ -296,7 +296,7 @@ class IRCodeGen(
         val goto = branch.trueScope.children.firstOrNull() as? PtJump
         if (goto is PtJump) {
             // special case the form:   if_cc  goto <place>   (with optional else)
-            val address = goto.target.asConstInteger()
+            val address: UInt? = goto.target.asConstInteger()?.toUInt()
             val label = (goto.target as? PtIdentifier)?.name
             if(address!=null) {
                 val branchIns = IRBranchInstr(branch.condition, address=address)
@@ -339,7 +339,7 @@ class IRCodeGen(
         return result
     }
 
-    internal fun IRBranchInstr(condition: BranchCondition, label: String?=null, address: Int?=null): IRInstruction {
+    internal fun IRBranchInstr(condition: BranchCondition, label: String?=null, address: UInt?=null): IRInstruction {
         if(label!=null)
             return when(condition) {
                 BranchCondition.CS -> IRInstruction(Opcode.BSTCS, labelSymbol = label)
@@ -353,20 +353,20 @@ class IRCodeGen(
             }
         else if(address!=null) {
             return when(condition) {
-                BranchCondition.CS -> IRInstruction(Opcode.BSTCS, address = MemoryAddress(address))
-                BranchCondition.CC -> IRInstruction(Opcode.BSTCC, address = MemoryAddress(address))
-                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, address = MemoryAddress(address))
-                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, address = MemoryAddress(address))
-                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, address = MemoryAddress(address))
-                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, address = MemoryAddress(address))
-                BranchCondition.VC -> IRInstruction(Opcode.BSTVC, address = MemoryAddress(address))
-                BranchCondition.VS -> IRInstruction(Opcode.BSTVS, address = MemoryAddress(address))
+                BranchCondition.CS -> IRInstruction(Opcode.BSTCS, address = address.toAddress())
+                BranchCondition.CC -> IRInstruction(Opcode.BSTCC, address = address.toAddress())
+                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTEQ, address = address.toAddress())
+                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTNE, address = address.toAddress())
+                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTNEG, address = address.toAddress())
+                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTPOS, address = address.toAddress())
+                BranchCondition.VC -> IRInstruction(Opcode.BSTVC, address = address.toAddress())
+                BranchCondition.VS -> IRInstruction(Opcode.BSTVS, address = address.toAddress())
             }
         }
         else throw AssemblyError("need label or address for branch")
     }
 
-    private fun IRInvertedBranchInstr(condition: BranchCondition, label: String?=null, address: Int?=null): IRInstruction {
+    private fun IRInvertedBranchInstr(condition: BranchCondition, label: String?=null, address: UInt?=null): IRInstruction {
         if(label!=null)
             return when(condition) {
                 BranchCondition.CS -> IRInstruction(Opcode.BSTCC, labelSymbol = label)
@@ -380,14 +380,14 @@ class IRCodeGen(
             }
         else if(address!=null) {
             return when(condition) {
-                BranchCondition.CS -> IRInstruction(Opcode.BSTCC, address = MemoryAddress(address))
-                BranchCondition.CC -> IRInstruction(Opcode.BSTCS, address = MemoryAddress(address))
-                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, address = MemoryAddress(address))
-                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, address = MemoryAddress(address))
-                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, address = MemoryAddress(address))
-                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, address = MemoryAddress(address))
-                BranchCondition.VC -> IRInstruction(Opcode.BSTVS, address = MemoryAddress(address))
-                BranchCondition.VS -> IRInstruction(Opcode.BSTVC, address = MemoryAddress(address))
+                BranchCondition.CS -> IRInstruction(Opcode.BSTCC, address = address.toAddress())
+                BranchCondition.CC -> IRInstruction(Opcode.BSTCS, address = address.toAddress())
+                BranchCondition.EQ, BranchCondition.Z -> IRInstruction(Opcode.BSTNE, address = address.toAddress())
+                BranchCondition.NE, BranchCondition.NZ -> IRInstruction(Opcode.BSTEQ, address = address.toAddress())
+                BranchCondition.MI, BranchCondition.NEG -> IRInstruction(Opcode.BSTPOS, address = address.toAddress())
+                BranchCondition.PL, BranchCondition.POS -> IRInstruction(Opcode.BSTNEG, address = address.toAddress())
+                BranchCondition.VC -> IRInstruction(Opcode.BSTVS, address = address.toAddress())
+                BranchCondition.VS -> IRInstruction(Opcode.BSTVC, address = address.toAddress())
             }
         }
         else throw AssemblyError("need label or address for branch")
@@ -745,14 +745,14 @@ class IRCodeGen(
             0 -> { /* do nothing */ }
             1 -> {
                 code += if(knownAddress!=null)
-                    IRInstruction(Opcode.INCM, dt, address = MemoryAddress(knownAddress.toInt()))
+                    IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
                 else
                     IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
             }
             2 -> {
                 if(knownAddress!=null) {
-                    code += IRInstruction(Opcode.INCM, dt, address = MemoryAddress(knownAddress.toInt()))
-                    code += IRInstruction(Opcode.INCM, dt, address = MemoryAddress(knownAddress.toInt()))
+                    code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
+                    code += IRInstruction(Opcode.INCM, dt, address = knownAddress.toAddress())
                 } else {
                     code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
                     code += IRInstruction(Opcode.INCM, dt, labelSymbol = symbol)
@@ -760,14 +760,14 @@ class IRCodeGen(
             }
             -1 -> {
                 code += if(knownAddress!=null)
-                    IRInstruction(Opcode.DECM, dt, address = MemoryAddress(knownAddress.toInt()))
+                    IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
                 else
                     IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
             }
             -2 -> {
                 if(knownAddress!=null) {
-                    code += IRInstruction(Opcode.DECM, dt, address = MemoryAddress(knownAddress.toInt()))
-                    code += IRInstruction(Opcode.DECM, dt, address = MemoryAddress(knownAddress.toInt()))
+                    code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
+                    code += IRInstruction(Opcode.DECM, dt, address = knownAddress.toAddress())
                 } else {
                     code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
                     code += IRInstruction(Opcode.DECM, dt, labelSymbol = symbol)
@@ -778,14 +778,14 @@ class IRCodeGen(
                 if(value>0) {
                     code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = value)
                     code += if(knownAddress!=null)
-                        IRInstruction(Opcode.ADDM, dt, reg1=valueReg, address = MemoryAddress(knownAddress.toInt()))
+                        IRInstruction(Opcode.ADDM, dt, reg1=valueReg, address = knownAddress.toAddress())
                     else
                         IRInstruction(Opcode.ADDM, dt, reg1=valueReg, labelSymbol = symbol)
                 }
                 else {
                     code += IRInstruction(Opcode.LOAD, dt, reg1=valueReg, immediate = -value)
                     code += if(knownAddress!=null)
-                        IRInstruction(Opcode.SUBM, dt, reg1=valueReg, address = MemoryAddress(knownAddress.toInt()))
+                        IRInstruction(Opcode.SUBM, dt, reg1=valueReg, address = knownAddress.toAddress())
                     else
                         IRInstruction(Opcode.SUBM, dt, reg1=valueReg, labelSymbol = symbol)
                 }
@@ -806,20 +806,20 @@ class IRCodeGen(
         return code
     }
 
-    internal fun multiplyByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Double): IRCodeChunk {
+    internal fun multiplyByConstFloatInplace(knownAddress: UInt?, symbol: String?, factor: Double): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1.0)
             return code
         if(factor==0.0) {
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.STOREZM, IRDataType.FLOAT, address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.STOREZM, IRDataType.FLOAT, address = knownAddress.toAddress())
             else
                 IRInstruction(Opcode.STOREZM, IRDataType.FLOAT, labelSymbol = symbol)
         } else {
             val factorReg = registers.next(IRDataType.FLOAT)
             code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=RegisterNum(factorReg), immediateFp = factor)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = knownAddress.toAddress())
             else
                 IRInstruction(Opcode.MULSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), labelSymbol = symbol)
         }
@@ -852,7 +852,7 @@ class IRCodeGen(
         return code
     }
 
-    internal fun multiplyByConstInplace(dt: IRDataType, signed: Boolean, knownAddress: Int?, symbol: String?, factor: Int): IRCodeChunk {
+    internal fun multiplyByConstInplace(dt: IRDataType, signed: Boolean, knownAddress: UInt?, symbol: String?, factor: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
@@ -860,7 +860,7 @@ class IRCodeGen(
         if(pow2==1) {
             // just shift 1 bit
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.LSLM, dt, address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.LSLM, dt, address = knownAddress.toAddress())
             else
                 IRInstruction(Opcode.LSLM, dt, labelSymbol = symbol)
         }
@@ -869,13 +869,13 @@ class IRCodeGen(
             val pow2reg = registers.next(dt)
             code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.LSLNM, dt, reg1=pow2reg, address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.LSLNM, dt, reg1=pow2reg, address = knownAddress.toAddress())
             else
                 IRInstruction(Opcode.LSLNM, dt, reg1=pow2reg, labelSymbol = symbol)
         } else {
             if (factor == 0) {
                 code += if(knownAddress!=null)
-                    IRInstruction(Opcode.STOREZM, dt, address = MemoryAddress(knownAddress))
+                    IRInstruction(Opcode.STOREZM, dt, address = knownAddress.toAddress())
                 else
                     IRInstruction(Opcode.STOREZM, dt, labelSymbol = symbol)
             }
@@ -884,7 +884,7 @@ class IRCodeGen(
                 code += IRInstruction(Opcode.LOAD, dt, reg1=factorReg, immediate = factor)
                 val opcode = if(signed) Opcode.MULSM else Opcode.MULM
                 code += if(knownAddress!=null)
-                    IRInstruction(opcode, dt, reg1=factorReg, address = MemoryAddress(knownAddress))
+                    IRInstruction(opcode, dt, reg1=factorReg, address = knownAddress.toAddress())
                 else
                     IRInstruction(opcode, dt, reg1=factorReg, labelSymbol = symbol)
             }
@@ -904,7 +904,7 @@ class IRCodeGen(
         return code
     }
 
-    internal fun divideByConstFloatInplace(knownAddress: Int?, symbol: String?, factor: Double): IRCodeChunk {
+    internal fun divideByConstFloatInplace(knownAddress: UInt?, symbol: String?, factor: Double): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1.0)
             return code
@@ -912,14 +912,14 @@ class IRCodeGen(
             val maxvalueReg = registers.next(IRDataType.FLOAT)
             code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), immediateFp = Double.MAX_VALUE)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), address = knownAddress.toAddress())
             else
                 IRInstruction(Opcode.STOREM, IRDataType.FLOAT, fpReg1 = RegisterNum(maxvalueReg), labelSymbol = symbol)
         } else {
             val factorReg = registers.next(IRDataType.FLOAT)
             code += IRInstruction(Opcode.LOAD, IRDataType.FLOAT, fpReg1=RegisterNum(factorReg), immediateFp = factor)
             code += if(knownAddress!=null)
-                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = MemoryAddress(knownAddress))
+                IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), address = knownAddress.toAddress())
             else
                 IRInstruction(Opcode.DIVSM, IRDataType.FLOAT, fpReg1 = RegisterNum(factorReg), labelSymbol = symbol)
         }
@@ -968,7 +968,7 @@ class IRCodeGen(
         }
     }
 
-    internal fun divideByConstInplace(dt: IRDataType, knownAddress: Int?, symbol: String?, factor: Int, signed: Boolean): IRCodeChunk {
+    internal fun divideByConstInplace(dt: IRDataType, knownAddress: UInt?, symbol: String?, factor: Int, signed: Boolean): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         if(factor==1)
             return code
@@ -979,7 +979,7 @@ class IRCodeGen(
                 if(pow2==1) {
                     // just simple bit shift (signed)
                     code += if (knownAddress != null)
-                        IRInstruction(Opcode.ASRM, dt, address = MemoryAddress(knownAddress))
+                        IRInstruction(Opcode.ASRM, dt, address = knownAddress.toAddress())
                     else
                         IRInstruction(Opcode.ASRM, dt, labelSymbol = symbol)
                 } else {
@@ -987,7 +987,7 @@ class IRCodeGen(
                     val pow2reg = registers.next(dt)
                     code += IRInstruction(Opcode.LOAD, dt, reg1 = pow2reg, immediate = pow2)
                     code += if (knownAddress != null)
-                                IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, address = MemoryAddress(knownAddress))
+                                IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
                             else
                                 IRInstruction(Opcode.ASRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
                 }
@@ -995,7 +995,7 @@ class IRCodeGen(
                 if(pow2==1) {
                     // just simple bit shift (unsigned)
                     code += if(knownAddress!=null)
-                        IRInstruction(Opcode.LSRM, dt, address = MemoryAddress(knownAddress))
+                        IRInstruction(Opcode.LSRM, dt, address = knownAddress.toAddress())
                     else
                         IRInstruction(Opcode.LSRM, dt, labelSymbol = symbol)
                 }
@@ -1004,7 +1004,7 @@ class IRCodeGen(
                     val pow2reg = registers.next(dt)
                     code += IRInstruction(Opcode.LOAD, dt, reg1=pow2reg, immediate = pow2)
                     code += if(knownAddress!=null)
-                                IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = MemoryAddress(knownAddress))
+                                IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, address = knownAddress.toAddress())
                             else
                                 IRInstruction(Opcode.LSRNM, dt, reg1 = pow2reg, labelSymbol = symbol)
                 }
@@ -1018,7 +1018,7 @@ class IRCodeGen(
                 val reg = registers.next(dt)
                 code += IRInstruction(Opcode.LOAD, dt, reg1=reg, immediate = 0xffff)
                 code += if(knownAddress!=null)
-                    IRInstruction(Opcode.STOREM, dt, reg1=reg, address = MemoryAddress(knownAddress))
+                    IRInstruction(Opcode.STOREM, dt, reg1=reg, address = knownAddress.toAddress())
                 else
                     IRInstruction(Opcode.STOREM, dt, reg1=reg, labelSymbol = symbol)
             }
@@ -1027,13 +1027,13 @@ class IRCodeGen(
                 code += IRInstruction(Opcode.LOAD, dt, reg1=factorReg, immediate = factor)
                 code += if(signed) {
                     if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVSM, dt, reg1 = factorReg, address = MemoryAddress(knownAddress))
+                        IRInstruction(Opcode.DIVSM, dt, reg1 = factorReg, address = knownAddress.toAddress())
                     else
                         IRInstruction(Opcode.DIVSM, dt, reg1 = factorReg, labelSymbol = symbol)
                 }
                 else {
                     if(knownAddress!=null)
-                        IRInstruction(Opcode.DIVM, dt, reg1 = factorReg, address = MemoryAddress(knownAddress))
+                        IRInstruction(Opcode.DIVM, dt, reg1 = factorReg, address = knownAddress.toAddress())
                     else
                         IRInstruction(Opcode.DIVM, dt, reg1 = factorReg, labelSymbol = symbol)
                 }
@@ -1127,7 +1127,7 @@ class IRCodeGen(
                             else -> throw AssemblyError("weird operator")
                         }
                         it += if (goto.target.asConstInteger() != null)
-                            IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, address = goto.target.asConstInteger()?.let { MemoryAddress(it) })
+                            IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, address = goto.target.asConstInteger()?.toUInt()?.toAddress())
                         else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                             IRInstruction(gotoOpcode, IRDataType.BYTE, reg1 = compResultReg, immediate = 0, labelSymbol = (goto.target as PtIdentifier).name)
                         else
@@ -1143,7 +1143,7 @@ class IRCodeGen(
 
     private fun branchInstr(goto: PtJump, branchOpcode: Opcode): IRInstruction {
         return if (goto.target.asConstInteger() != null)
-            IRInstruction(branchOpcode, address = goto.target.asConstInteger()?.let { MemoryAddress(it) })
+            IRInstruction(branchOpcode, address = goto.target.asConstInteger()?.toUInt()?.toAddress())
         else {
             require(!isIndirectJump(goto)) { "indirect jumps cannot be expressed using a branch opcode"}
             val identifier = goto.target as? PtIdentifier
@@ -1324,7 +1324,7 @@ class IRCodeGen(
                             else -> throw AssemblyError("invalid comparison operator")
                         }
                         if (goto.target.asConstInteger() != null)
-                            addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, address = goto.target.asConstInteger()?.let { MemoryAddress(it) }), null)
+                            addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, address = goto.target.asConstInteger()?.toUInt()?.toAddress()), null)
                         else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                             addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, immediate = number, labelSymbol = (goto.target as PtIdentifier).name), null)
                         else
@@ -1383,7 +1383,7 @@ class IRCodeGen(
                     }
                 } else {
                     if (goto.target.asConstInteger() != null)
-                        addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, address = goto.target.asConstInteger()?.let { MemoryAddress(it) }), null)
+                        addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, address = goto.target.asConstInteger()?.toUInt()?.toAddress()), null)
                     else if(goto.target is PtIdentifier && !isIndirectJump(goto))
                         addInstr(result, IRInstruction(opcode, irDt, reg1 = firstReg, reg2 = secondReg, labelSymbol = (goto.target as PtIdentifier).name), null)
                     else
@@ -1792,7 +1792,7 @@ class IRCodeGen(
         val result = mutableListOf<IRCodeChunkBase>()
         val chunk = IRCodeChunk(null, null)
         if(jump.target.asConstInteger()!=null) {
-            chunk += IRInstruction(Opcode.JUMP, address = jump.target.asConstInteger()?.let { MemoryAddress(it) })
+            chunk += IRInstruction(Opcode.JUMP, address = jump.target.asConstInteger()?.toUInt()?.toAddress())
             result += chunk
             return result
         } else {

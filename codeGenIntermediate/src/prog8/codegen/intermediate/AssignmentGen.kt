@@ -158,7 +158,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val targetDt = irType(target.type)
         val value = augAssign.value
         val memTarget = target.memory
-        val constAddress = (memTarget?.address as? PtNumber)?.number?.toInt()
+        val constAddress: UInt? = (memTarget?.address as? PtNumber)?.number?.toUInt()
         val symbol = target.identifier?.name
         val array = target.array
         val signed = target.type.isSigned
@@ -318,7 +318,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return translateRegularAssign(normalAssign)
     }
 
-    private fun inplacePrefix(operator: String, symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType): IRCodeChunks {
+    private fun inplacePrefix(operator: String, symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType): IRCodeChunks {
         if(operator=="+")
             return emptyList()
 
@@ -348,13 +348,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             }
         } else {
             when (operator) {
-                "-" -> addInstr(result, IRInstruction(Opcode.NEGM, vmDt, address = constAddress?.let { MemoryAddress(it) }, labelSymbol = symbol), null)
-                "~" -> addInstr(result, IRInstruction(Opcode.INVM, vmDt, address = constAddress?.let { MemoryAddress(it) }, labelSymbol = symbol), null)
+                "-" -> addInstr(result, IRInstruction(Opcode.NEGM, vmDt, address = constAddress?.toAddress(), labelSymbol = symbol), null)
+                "~" -> addInstr(result, IRInstruction(Opcode.INVM, vmDt, address = constAddress?.toAddress(), labelSymbol = symbol), null)
                 "not" -> {
                     val regMask = codeGen.registers.next(vmDt)
                     result += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOAD, vmDt, reg1=regMask, immediate = 1)
-                        it += IRInstruction(Opcode.XORM, vmDt, reg1=regMask, address = constAddress?.let { MemoryAddress(it) }, labelSymbol = symbol)
+                        it += IRInstruction(Opcode.XORM, vmDt, reg1=regMask, address = constAddress?.toAddress(), labelSymbol = symbol)
                     }
                 }
                 else -> throw AssemblyError("weird prefix operator")
@@ -553,7 +553,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     require(targetDt == IRDataType.BYTE) { "must be byte type ${memory!!.position}"}
                     if(zero) {
                         if(memory!!.address is PtNumber) {
-                            val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, address = MemoryAddress((memory!!.address as PtNumber).number.toInt())) }
+                            val chunk = IRCodeChunk(null, null).also { it += IRInstruction(Opcode.STOREZM, targetDt, address = (memory!!.address as PtNumber).number.toUInt().toAddress()) }
                             result += chunk
                         } else {
                             val (address, offset) = exprGen.getAddressAndOffset(memory!!.address)
@@ -570,7 +570,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     } else {
                         val constAddress = memory!!.address as? PtNumber
                         if(constAddress!=null) {
-                            addInstr(result, IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=MemoryAddress(constAddress.number.toInt())), null)
+                            addInstr(result, IRInstruction(Opcode.STOREM, targetDt, reg1=valueRegister, address=constAddress.number.toUInt().toAddress()), null)
                             return result
                         }
                         val ptrWithOffset = memory!!.address as? PtBinaryExpression
@@ -790,7 +790,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         }
     }
 
-    private fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
             val arrayVariableName = array.variable!!.name
             val result = mutableListOf<IRCodeChunkBase>()
@@ -930,13 +930,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val tr = exprGen.translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
         addInstr(result, if(constAddress!=null)
-            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+            IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
         else
             IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol),null)
         return result
     }
 
-    private fun operatorLogicalAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    private fun operatorLogicalAndInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         if(array!=null) {
             val arrayVariableName = array.variable!!.name
             val result = mutableListOf<IRCodeChunkBase>()
@@ -1026,14 +1026,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val shortcutLabel = codeGen.createLabelName()
             result += IRCodeChunk(null, null).also {
                 it += if(constAddress!=null)
-                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
                 it += IRInstruction(Opcode.BSTEQ, labelSymbol = shortcutLabel)
             }
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, if(constAddress!=null)
-                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
             else
                 IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             result += IRCodeChunk(shortcutLabel, null)
@@ -1041,14 +1041,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // normal evaluation, it is *likely* shorter and faster because of the simple operands.
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, if(constAddress!=null)
-                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+                IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
             else
                 IRInstruction(Opcode.ANDM, vmDt, reg1=tr.resultReg, labelSymbol = symbol),null)
         }
         return result
     }
 
-    private fun operatorOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
@@ -1185,13 +1185,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val tr = exprGen.translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
         addInstr(result, if(constAddress!=null)
-            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+            IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
         else
             IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
         return result
     }
 
-    private fun operatorLogicalOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
+    private fun operatorLogicalOrInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks {
         if(array!=null) {
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
@@ -1286,14 +1286,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val shortcutLabel = codeGen.createLabelName()
             result += IRCodeChunk(null, null).also {
                 it += if(constAddress!=null)
-                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.LOADM, vmDt, reg1=inplaceReg, labelSymbol = symbol)
                 it += IRInstruction(Opcode.BSTNE, labelSymbol = shortcutLabel)
             }
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, if(constAddress!=null)
-                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+                IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
             else
                 IRInstruction(Opcode.STOREM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             result += IRCodeChunk(shortcutLabel, null)
@@ -1301,14 +1301,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // normal evaluation, it is *likely* shorter and faster because of the simple operands.
             addToResult(result, tr, tr.resultReg, -1)
             addInstr(result, if(constAddress!=null)
-                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+                IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
             else
                 IRInstruction(Opcode.ORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
         }
         return result
     }
 
-    private fun operatorDivideInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
+    private fun operatorDivideInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
             TODO("/ in array ${array.position}")
         }
@@ -1326,13 +1326,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 addToResult(result, tr, -1, tr.resultFpReg)
                 val ins = if(signed) {
                     if(constAddress!=null)
-                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = MemoryAddress(constAddress))
+                        IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = constAddress.toAddress())
                     else
                         IRInstruction(Opcode.DIVSM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), labelSymbol = symbol)
                 }
                 else {
                     if(constAddress!=null)
-                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = MemoryAddress(constAddress))
+                        IRInstruction(Opcode.DIVM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = constAddress.toAddress())
                     else
                         IRInstruction(Opcode.DIVM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), labelSymbol = symbol)
                 }
@@ -1347,13 +1347,13 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 addToResult(result, tr, tr.resultReg, -1)
                 val ins = if(signed) {
                     if(constAddress!=null)
-                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, address = MemoryAddress(constAddress))
+                        IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, address = constAddress.toAddress())
                     else
                         IRInstruction(Opcode.DIVSM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
                 }
                 else {
                     if(constAddress!=null)
-                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, address = MemoryAddress(constAddress))
+                        IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, address = constAddress.toAddress())
                     else
                         IRInstruction(Opcode.DIVM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol)
                 }
@@ -1363,7 +1363,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return result
     }
 
-    private fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
+    private fun operatorMultiplyInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
             val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             val result = mutableListOf<IRCodeChunkBase>()
@@ -1439,7 +1439,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.MULSM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.MULSM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.MULSM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), labelSymbol = symbol)
                     , null)
@@ -1453,7 +1453,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 addToResult(result, tr, tr.resultReg, -1)
                 val opcode = if(signed) Opcode.MULSM else Opcode.MULM
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(opcode, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+                    IRInstruction(opcode, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
                 else
                     IRInstruction(opcode, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
                     , null)
@@ -1462,7 +1462,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return result
     }
 
-    private fun operatorMinusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorMinusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
             val eltSize = codeGen.program.memsizer.memorySize(array.type, null)
             val result = mutableListOf<IRCodeChunkBase>()
@@ -1533,27 +1533,27 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             // Check if address is a constant number
             val constMemAddress = memory.address as? PtNumber
             if(constMemAddress!=null) {
-                val addr = constMemAddress.number.toInt()
+                val addr = constMemAddress.number.toUInt()
                 val operandConstValue = (operand as? PtNumber)?.number
                 if(operandConstValue==null) {
                     val valueTr = exprGen.translateExpression(operand)
                     addToResult(memResult, valueTr, valueTr.resultReg, -1)
                     val loadReg = codeGen.registers.next(IRDataType.BYTE)
                     memResult += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                         it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
-                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 } else if(operandConstValue==1.0) {
-                    addInstr(memResult, IRInstruction(Opcode.DECM, IRDataType.BYTE, address = MemoryAddress(addr)), null)
+                    addInstr(memResult, IRInstruction(Opcode.DECM, IRDataType.BYTE, address = addr.toAddress()), null)
                 } else {
                     val loadReg = codeGen.registers.next(IRDataType.BYTE)
                     val valueReg = codeGen.registers.next(IRDataType.BYTE)
                     memResult += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                         it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
                         it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
-                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 }
                 return memResult
@@ -1601,7 +1601,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         if(vmDt==IRDataType.FLOAT) {
             if(constValue==1.0) {
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.DECM, vmDt, address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.DECM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
             }
@@ -1609,14 +1609,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=RegisterNum(tr.resultFpReg), address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.SUBM, vmDt, fpReg1=RegisterNum(tr.resultFpReg), address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.SUBM, vmDt, fpReg1=RegisterNum(tr.resultFpReg), labelSymbol = symbol), null)
             }
         } else {
             if(constValue==1.0) {
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.DECM, vmDt, address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.DECM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.DECM, vmDt, labelSymbol = symbol), null)
             }
@@ -1624,7 +1624,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 addInstr(result, if(constAddress!=null)
-                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.SUBM, vmDt, reg1=tr.resultReg, labelSymbol = symbol), null)
             }
@@ -1777,7 +1777,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return null  // fallback to slow method for non-constant index
     }
 
-    private fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?,
+    private fun operatorPlusInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?,
                                     vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
             val result = mutableListOf<IRCodeChunkBase>()
@@ -1850,27 +1850,27 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val constMemAddress = memory.address as? PtNumber
             if(constMemAddress!=null) {
                 // Direct constant address - shouldn't normally happen but handle it
-                val addr = constMemAddress.number.toInt()
+                val addr = constMemAddress.number.toUInt()
                 val operandConstValue = (operand as? PtNumber)?.number
                 if(operandConstValue==null) {
                     val valueTr = exprGen.translateExpression(operand)
                     addToResult(memResult, valueTr, valueTr.resultReg, -1)
                     val loadReg = codeGen.registers.next(IRDataType.BYTE)
                     memResult += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                         it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
-                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 } else if(operandConstValue==1.0) {
-                    addInstr(memResult, IRInstruction(Opcode.INCM, IRDataType.BYTE, address = MemoryAddress(addr)), null)
+                    addInstr(memResult, IRInstruction(Opcode.INCM, IRDataType.BYTE, address = addr.toAddress()), null)
                 } else {
                     val loadReg = codeGen.registers.next(IRDataType.BYTE)
                     val valueReg = codeGen.registers.next(IRDataType.BYTE)
                     memResult += IRCodeChunk(null, null).also {
-                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                         it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
                         it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
-                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = MemoryAddress(addr))
+                        it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 }
                 return memResult
@@ -1920,7 +1920,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         if(vmDt==IRDataType.FLOAT) {
             if(constValue==1.0) {
                 addInstr(result, if (constAddress != null)
-                    IRInstruction(Opcode.INCM, vmDt, address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.INCM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
             }
@@ -1928,14 +1928,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, -1, tr.resultFpReg)
                 addInstr(result, if (constAddress != null)
-                    IRInstruction(Opcode.ADDM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.ADDM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.ADDM, vmDt, fpReg1 = RegisterNum(tr.resultFpReg), labelSymbol = symbol) , null)
             }
         } else {
             if(constValue==1.0) {
                 addInstr(result, if (constAddress != null)
-                    IRInstruction(Opcode.INCM, vmDt, address = MemoryAddress(constAddress))
+                    IRInstruction(Opcode.INCM, vmDt, address = constAddress.toAddress())
                 else
                     IRInstruction(Opcode.INCM, vmDt, labelSymbol = symbol) , null)
             }
@@ -1943,7 +1943,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val tr = exprGen.translateExpression(operand)
                 addToResult(result, tr, tr.resultReg, -1)
                 if (constAddress != null)
-                    addInstr(result, IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, address = MemoryAddress(constAddress)), null)
+                    addInstr(result, IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, address = constAddress.toAddress()), null)
                 else
                     addInstr(result, IRInstruction(Opcode.ADDM, vmDt, reg1 = tr.resultReg, labelSymbol = symbol) , null)
             }
@@ -2025,7 +2025,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return null  // fallback to slow method for non-constant index
     }
 
-    private fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
+    private fun operatorShiftRightInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
@@ -2066,7 +2066,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         if(codeGen.isOne(operand)) {
             val opc = if (signed) Opcode.ASRM else Opcode.LSRM
             val ins = if(constAddress!=null)
-                IRInstruction(opc, vmDt, address = MemoryAddress(constAddress))
+                IRInstruction(opc, vmDt, address = constAddress.toAddress())
             else
                 IRInstruction(opc, vmDt, labelSymbol = symbol)
             addInstr(result, ins, null)
@@ -2076,7 +2076,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             val shiftReg = shiftTr.resultReg
             val opc = if (signed) Opcode.ASRNM else Opcode.LSRNM
             val ins = if(constAddress!=null)
-                IRInstruction(opc, vmDt, reg1 = shiftReg, address = MemoryAddress(constAddress))
+                IRInstruction(opc, vmDt, reg1 = shiftReg, address = constAddress.toAddress())
             else
                 IRInstruction(opc, vmDt, reg1 = shiftReg, labelSymbol = symbol)
             addInstr(result, ins, null)
@@ -2084,7 +2084,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return result
     }
 
-    private fun operatorShiftLeftInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorShiftLeftInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
             val result = mutableListOf<IRCodeChunkBase>()
             val constIndex = array.index.asConstInteger()
@@ -2124,7 +2124,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isOne(operand)){
             addInstr(result, if(constAddress!=null)
-                IRInstruction(Opcode.LSLM, vmDt, address = MemoryAddress(constAddress))
+                IRInstruction(Opcode.LSLM, vmDt, address = constAddress.toAddress())
             else
                 IRInstruction(Opcode.LSLM, vmDt, labelSymbol = symbol)
                 , null)
@@ -2133,7 +2133,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             addToResult(result, shiftTr, shiftTr.resultReg, -1)
             val shiftReg = shiftTr.resultReg
             addInstr(result, if(constAddress!=null)
-                IRInstruction(Opcode.LSLNM, vmDt, reg1=shiftReg, address = MemoryAddress(constAddress))
+                IRInstruction(Opcode.LSLNM, vmDt, reg1=shiftReg, address = constAddress.toAddress())
             else
                 IRInstruction(Opcode.LSLNM, vmDt, reg1=shiftReg, labelSymbol = symbol)
                 ,null)
@@ -2141,7 +2141,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         return result
     }
 
-    private fun operatorXorInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
+    private fun operatorXorInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression): IRCodeChunks? {
         if(array!=null) {
             val arrayVariableName = array.variable!!.name
 
@@ -2274,14 +2274,14 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
         val tr = exprGen.translateExpression(operand)
         addToResult(result, tr, tr.resultReg, -1)
         addInstr(result, if(constAddress!=null)
-            IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, address = MemoryAddress(constAddress))
+            IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, address = constAddress.toAddress())
         else
             IRInstruction(Opcode.XORM, vmDt, reg1=tr.resultReg, labelSymbol = symbol)
             ,null)
         return result
     }
 
-    private fun operatorModuloInplace(symbol: String?, array: PtArrayIndexer?, constAddress: Int?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
+    private fun operatorModuloInplace(symbol: String?, array: PtArrayIndexer?, constAddress: UInt?, memory: PtMemoryByte?, vmDt: IRDataType, operand: PtExpression, signed: Boolean): IRCodeChunks? {
         if(array!=null) {
             TODO("% in array  ${array.position}")
         }
@@ -2297,9 +2297,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             if (constAddress != null) {
                 // @(address) = @(address) %= operand
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = MemoryAddress(constAddress))
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = constAddress.toAddress())
                     it += IRInstruction(modOpcode, vmDt, reg1 = resultReg, immediate = number)
-                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = MemoryAddress(constAddress))
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = constAddress.toAddress())
                 }
             } else {
                 // symbol = symbol %= operand
@@ -2315,9 +2315,9 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
             if (constAddress != null) {
                 // @(address) = @(address) %= operand
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = MemoryAddress(constAddress))
+                    it += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultReg, address = constAddress.toAddress())
                     it += IRInstruction(modROpcode, vmDt, reg1 = resultReg, reg2 = tr.resultReg)
-                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = MemoryAddress(constAddress))
+                    it += IRInstruction(Opcode.STOREM, vmDt, reg1 = resultReg, address = constAddress.toAddress())
                 }
             } else {
                 // symbol = symbol %= operand

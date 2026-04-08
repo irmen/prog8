@@ -13,7 +13,7 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
 
     val FLOAT_MAX_NEGATIVE: Double
     val FLOAT_MAX_POSITIVE: Double
-    val FLOAT_MEM_SIZE: Int
+    val FLOAT_MEM_SIZE: UInt
     val STARTUP_CODE_RESERVED_SIZE: UInt        // this is here, so that certain compiler targets are able to tune this
     val PROGRAM_LOAD_ADDRESS : UInt
     val PROGRAM_MEMTOP_ADDRESS: UInt

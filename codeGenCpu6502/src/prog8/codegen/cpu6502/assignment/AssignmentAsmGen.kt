@@ -3630,7 +3630,7 @@ $endLabel""")
                             asmgen.out("  asl  a")
                         }
                     } else if(subtype==BaseDataType.FLOAT) {
-                        if(asmgen.options.compTarget.FLOAT_MEM_SIZE != 5)
+                        if(asmgen.options.compTarget.FLOAT_MEM_SIZE != 5u)
                             TODO("support float size other than 5 ${arrayIndexExpr.position}")
                         asmgen.out("""
                             sta  P8ZP_SCRATCH_REG

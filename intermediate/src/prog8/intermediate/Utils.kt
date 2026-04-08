@@ -118,7 +118,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     var fpReg2: RegisterNum? = null
     var immediateInt: Int? = null
     var immediateFp: Double? = null
-    var address: Int? = null
+    var address: UInt? = null
     var labelSymbol: String? = null
 
     fun parseValueOrPlaceholder(operand: String): Double? {
@@ -130,11 +130,11 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
     }
     if(format.sysCall) {
         val call = parseCall(rest)
-        val syscallNum = call.address ?: parseIRValue(call.target ?: "").toInt()
+        val syscallNum = call.address?.toInt() ?: parseIRValue(call.target ?: "").toInt()
         return left(IRInstruction(Opcode.SYSCALL, immediate = syscallNum, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else if (format.funcCall) {
         val call = parseCall(rest)
-        return left(IRInstruction(Opcode.CALL, address = call.address?.let { MemoryAddress(it) }, labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
+        return left(IRInstruction(Opcode.CALL, address = call.address?.toAddress(), labelSymbol = call.target, fcallArgs = FunctionCallArgs(call.args, call.returns)))
     } else {
         operands.forEach { oper ->
             if (oper[0] == '&')
@@ -161,10 +161,10 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                             else -> immediateInt = value.toInt()
                         }
                     } else {
-                        address = value.toInt()
+                        address = value.toUInt()
                     }
                 } else {
-                    address = value.toInt()
+                    address = value.toUInt()
                 }
             } else {
                 if (!oper[0].isLetter())
@@ -172,7 +172,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
                 labelSymbol = oper
                 val value = parseValueOrPlaceholder(oper)
                 if (value != null)
-                    address = value.toInt()
+                    address = value.toUInt()
             }
         }
     }
@@ -243,7 +243,7 @@ fun parseIRCodeLine(line: String): Either<IRInstruction, String> {
         }
     }
 
-    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.let { MemoryAddress(it) }, labelSymbol = labelSymbol, symbolOffset = offset))
+    return left(IRInstruction(opcode, type, reg1, reg2, reg3, fpReg1, fpReg2, immediateInt, immediateFp, address?.toAddress(), labelSymbol = labelSymbol, symbolOffset = offset))
 }
 
 private fun isRegisterName(oper: String): Boolean {
@@ -272,7 +272,7 @@ private fun isFloatRegisterName(oper: String): Boolean {
 
 private class ParsedCall(
     val target: String?,
-    val address: Int?,
+    val address: UInt?,
     val args: List<FunctionCallArgs.ArgumentSpec>,
     val returns: List<FunctionCallArgs.RegSpec>
 )
@@ -330,11 +330,11 @@ private fun parseCall(rest: String): ParsedCall {
     val args = match.groups["arglist"]!!.value
     val arguments = parseArgs(args)
     val returns = match.groups["returns"]?.value
-    var address: Int? = null
+    var address: UInt? = null
     var actualTarget: String? = target
 
     if(target.startsWith('$') || target[0].isDigit()) {
-        address = parseIRValue(target).toInt()
+        address = parseIRValue(target).toUInt()
         actualTarget = null
     }
 

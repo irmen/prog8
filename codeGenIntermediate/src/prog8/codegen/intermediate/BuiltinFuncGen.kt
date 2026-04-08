@@ -548,9 +548,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         if(codeGen.isZero(call.args[1])) {
             if (call.args[0] is PtNumber) {
-                val address = (call.args[0] as PtNumber).number.toInt()
+                val address = (call.args[0] as PtNumber).number.toUInt()
                 result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.STOREZM, dt, address = MemoryAddress(address))
+                    it += IRInstruction(Opcode.STOREZM, dt, address = address.toAddress())
                 }
             } else {
                 val (address, offset) = exprGen.getAddressAndOffset(call.args[0])
@@ -567,14 +567,14 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         } else {
             if (call.args[0] is PtNumber) {
                 // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
-                val address = (call.args[0] as PtNumber).number.toInt()
+                val address = (call.args[0] as PtNumber).number.toUInt()
                 val tr = exprGen.translateExpression(call.args[1])
                 if(dt==IRDataType.FLOAT) {
                     addToResult(result, tr, -1, tr.resultFpReg)
-                    addInstr(result, IRInstruction(Opcode.STOREM, dt, fpReg1 = RegisterNum(tr.resultFpReg), address = MemoryAddress(address)), null)
+                    addInstr(result, IRInstruction(Opcode.STOREM, dt, fpReg1 = RegisterNum(tr.resultFpReg), address = address.toAddress()), null)
                 } else {
                     addToResult(result, tr, tr.resultReg, -1)
-                    addInstr(result, IRInstruction(Opcode.STOREM, dt, reg1 = tr.resultReg, address = MemoryAddress(address)), null)
+                    addInstr(result, IRInstruction(Opcode.STOREM, dt, reg1 = tr.resultReg, address = address.toAddress()), null)
                 }
             } else {
                 // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
@@ -612,8 +612,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         return if(dt==IRDataType.FLOAT) {
             if(call.args[0] is PtNumber) {
                 val resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                val address = (call.args[0] as PtNumber).number.toInt()
-                addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpRegister), address = MemoryAddress(address)), null)
+                val address = (call.args[0] as PtNumber).number.toUInt()
+                addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.FLOAT, fpReg1 = RegisterNum(resultFpRegister), address = address.toAddress()), null)
                 ExpressionCodeResult(result, IRDataType.FLOAT, -1, resultFpRegister)
             } else {
                 val tr = exprGen.translateExpression(call.args.single())
@@ -625,8 +625,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         } else {
             if (call.args[0] is PtNumber) {
                 val resultRegister = codeGen.registers.next(dt)
-                val address = (call.args[0] as PtNumber).number.toInt()
-                addInstr(result, IRInstruction(Opcode.LOADM, dt, reg1 = resultRegister, address = MemoryAddress(address)), null)
+                val address = (call.args[0] as PtNumber).number.toUInt()
+                addInstr(result, IRInstruction(Opcode.LOADM, dt, reg1 = resultRegister, address = address.toAddress()), null)
                 ExpressionCodeResult(result, dt, resultRegister, -1)
             } else {
                 val tr = exprGen.translateExpression(call.args.single())
@@ -642,13 +642,13 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         val result = mutableListOf<IRCodeChunkBase>()
         val address = call.args[0]
 
-        fun pokeM(result: MutableList<IRCodeChunkBase>, address: Int, value: PtExpression) {
+        fun pokeM(result: MutableList<IRCodeChunkBase>, address: UInt, value: PtExpression) {
             if(codeGen.isZero(value)) {
-                addInstr(result, IRInstruction(Opcode.STOREZM, IRDataType.BYTE, address = MemoryAddress(address)), null)
+                addInstr(result, IRInstruction(Opcode.STOREZM, IRDataType.BYTE, address = address.toAddress()), null)
             } else {
                 val tr = exprGen.translateExpression(value)
                 addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tr.resultReg, address = MemoryAddress(address)), null)
+                addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tr.resultReg, address = address.toAddress()), null)
             }
         }
 
@@ -665,8 +665,8 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
         return if(address is PtNumber) {
             val resultRegister = codeGen.registers.next(IRDataType.BYTE)
-            val addressNum = address.number.toInt()
-            addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = resultRegister, address = MemoryAddress(addressNum)), null)
+            val addressNum = address.number.toUInt()
+            addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = resultRegister, address = addressNum.toAddress()), null)
             pokeM(result, addressNum, call.args[1])
             ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
@@ -782,9 +782,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             return ExpressionCodeResult(result, vmDt, -1, -1)
         }
 
-        val memAddr  = (arg as? PtMemoryByte)?.address?.asConstInteger()
+        val memAddr: UInt? = (arg as? PtMemoryByte)?.address?.asConstInteger()?.toUInt()
         if(memAddr!=null) {
-            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, address = MemoryAddress(memAddr)), null)
+            addInstr(result, IRInstruction(opcodeMemAndReg.first, vmDt, address = memAddr.toAddress()), null)
             return ExpressionCodeResult(result, vmDt, -1, -1)
         }
 
