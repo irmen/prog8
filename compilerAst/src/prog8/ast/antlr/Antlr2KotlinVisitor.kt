@@ -728,23 +728,41 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         }
     }
 
+    /**
+     * Visits a pointer dereference expression.
+     * 
+     * The grammar structure is: (prefix '.')? derefchain ('.' field)?
+     * This normalizes everything into a single chain of identifiers with optional array indices.
+     * 
+     * Examples:
+     * - `foo^^` → PtrDereference(["foo"], derefLast=true)
+     * - `foo.bar^^` → PtrDereference(["foo", "bar"], derefLast=true)
+     * - `foo[0]^^` → ArrayIndexedPtrDereference([("foo", ArrayIndex), ("", null)], derefLast=true)
+     * - `foo.bar[0]^^.baz` → ArrayIndexedPtrDereference([("foo", null), ("bar", ArrayIndex), ("baz", null)], derefLast=false)
+     */
     override fun visitPointerdereference(ctx: PointerdereferenceContext): Expression {
+        // Step 1: Extract prefix identifiers (if any)
         val scopeprefix = ctx.prefix?.accept(this) as IdentifierReference?
-        val derefs = ctx.derefchain()!!.singlederef()!!.map { it.identifier().text to it.arrayindex()?.accept(this) as ArrayIndex? }
-        if(derefs.all { it.second==null }) {
-            val derefchain = derefs.map { it.first }
-            val chain = ((scopeprefix?.nameInSource ?: emptyList()) + derefchain).toMutableList()
-            if (ctx.field != null)
-                chain += ctx.field.text
-            return PtrDereference(chain, ctx.field == null, ctx.toPosition())
+        val prefixNames = scopeprefix?.nameInSource ?: emptyList()
+        
+        // Step 2: Extract derefchain as (name, arrayIndex?) pairs
+        val derefs = ctx.derefchain()!!.singlederef().map { 
+            it.identifier().text to it.arrayindex()?.accept(this) as ArrayIndex? 
+        }
+        
+        // Step 3: Merge prefix with derefchain - prefix elements have no array index
+        val fullChain = prefixNames.map { it to (null as ArrayIndex?) } + derefs
+        
+        // Step 4: Add optional field identifier (if present)
+        val finalChain = if (ctx.field != null) fullChain + (ctx.field.text to null) else fullChain
+        
+        // Step 5: Create appropriate AST node based on whether there are array indices
+        return if (finalChain.all { it.second == null }) {
+            // No array indexing - use simple PtrDereference
+            PtrDereference(finalChain.map { it.first }, ctx.field == null, ctx.toPosition())
         } else {
-            val chain = derefs.toMutableList()
-            if(scopeprefix!=null) {
-                chain.addAll(0, scopeprefix.nameInSource.map { it to (null as ArrayIndex?) })
-            }
-            if (ctx.field != null)
-                chain += ctx.field.text to null
-            return ArrayIndexedPtrDereference(chain, ctx.field == null, ctx.toPosition())
+            // Has array indexing - use ArrayIndexedPtrDereference
+            ArrayIndexedPtrDereference(finalChain, ctx.field == null, ctx.toPosition())
         }
     }
 

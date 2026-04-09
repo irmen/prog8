@@ -1778,6 +1778,47 @@ class BranchConditionExpression(var condition: BranchCondition, var truevalue: E
     }
 }
 
+/**
+ * Represents a single element in a pointer dereference chain.
+ * Each element consists of an identifier and an optional array index.
+ * 
+ * Example: In `foo.bar[0]^^.baz^^`, this represents:
+ * - `PtrDerefElement("foo", null)` 
+ * - `PtrDerefElement("bar", ArrayIndex(...))`
+ * - `PtrDerefElement("baz", null)`
+ */
+data class PtrDerefElement(
+    val identifier: String,
+    val arrayIndex: ArrayIndex? = null
+)
+
+/**
+ * Represents a postfix operation in a pointer dereference chain.
+ * This is used to represent the chain in a way that matches how the future grammar will parse it.
+ * 
+ * Example: `foo.bar[0]^^.baz^^` becomes:
+ * [Name("foo"), Name("bar"), Index(...), Deref, Name("baz"), Deref]
+ */
+sealed class PtrPostfixOp {
+    data class Name(val identifier: String) : PtrPostfixOp()
+    data class Index(val indexExpr: ArrayIndex) : PtrPostfixOp()
+    object Deref : PtrPostfixOp()
+}
+
+// TODO: Unify `PtrDereference` and `ArrayIndexedPtrDereference` into a single class that uses
+// List<PtrDerefElement> for the chain instead of having two separate representations.
+// This unification should happen when the grammar is redesigned to use postfix operators
+// (see PtrPostfixOp) instead of the current "cursed" grammar structure.
+// See: parser/README-IMPROVEMENTS.md section 3 "Pointer Dereference Grammar is Admittedly Cursed"
+//
+// Steps for future grammar transition:
+// 1. Update .g4 file to use postfix operators (pointerderefchain with primary + postfix ops)
+// 2. Replace PtrDereference + ArrayIndexedPtrDereference with single unified PtrDereferenceExpression
+// 3. Update AssignTarget to use single pointerDereference field instead of two separate fields
+// 4. Update CodeDesugarer to handle new unified structure
+// 5. Update SimplifiedAstMaker.transform() to convert to PtPointerDeref
+// 6. Consider simplifying PtPointerDeref in SimpleAst to match new representation
+
 class PtrDereference(
     val chain: List<String>,
     val derefLast: Boolean,
@@ -1835,6 +1876,54 @@ class PtrDereference(
     }
 
     fun firstTarget(): Statement? = if(chain.isEmpty()) null else definingScope.lookup(chain[0])
+
+    // === Helper methods for future grammar transition ===
+
+    /**
+     * Returns the chain as a list of PtrDerefElement objects.
+     * For PtrDereference, all elements have null arrayIndex.
+     */
+    fun toElements(): List<PtrDerefElement> = chain.map { PtrDerefElement(it, null) }
+
+    /**
+     * Returns true if this is a simple field access with no array indexing.
+     * Always true for PtrDereference (use ArrayIndexedPtrDereference for indexing).
+     */
+    fun isSimpleFieldAccess(): Boolean = true
+
+    /**
+     * Returns true if any element in the chain has an array index.
+     * Always false for PtrDereference.
+     */
+    fun hasArrayIndexing(): Boolean = false
+
+    /**
+     * Returns the first identifier in the chain (the base variable).
+     */
+    fun baseIdentifier(): String = chain.firstOrNull() ?: ""
+
+    /**
+     * Returns all identifiers in the chain except the first one (the field access path).
+     */
+    fun fieldIdentifiers(): List<String> = chain.drop(1)
+
+    /**
+     * Converts this dereference chain to a postfix representation.
+     * This matches how the future grammar will parse pointer dereferences.
+     * 
+     * Example: `foo.bar.baz^^` becomes:
+     * [Name("foo"), Name("bar"), Name("baz"), Deref]
+     */
+    fun toPostfixRepresentation(): List<PtrPostfixOp> {
+        val result = mutableListOf<PtrPostfixOp>()
+        chain.forEach { name ->
+            result.add(PtrPostfixOp.Name(name))
+        }
+        if (derefLast) {
+            result.add(PtrPostfixOp.Deref)
+        }
+        return result
+    }
 }
 
 class ArrayIndexedPtrDereference(
@@ -1910,6 +1999,54 @@ class ArrayIndexedPtrDereference(
 
         // too hard to determine the type....?
         return InferredTypes.unknown()
+    }
+
+    // === Helper methods for future grammar transition ===
+
+    /**
+     * Returns the chain as a list of PtrDerefElement objects.
+     */
+    fun toElements(): List<PtrDerefElement> = chain.map { PtrDerefElement(it.first, it.second) }
+
+    /**
+     * Returns true if this is a simple field access with no array indexing.
+     */
+    fun isSimpleFieldAccess(): Boolean = chain.all { it.second == null }
+
+    /**
+     * Returns true if any element in the chain has an array index.
+     */
+    fun hasArrayIndexing(): Boolean = chain.any { it.second != null }
+
+    /**
+     * Returns the first identifier in the chain (the base variable).
+     */
+    fun baseIdentifier(): String = chain.firstOrNull()?.first ?: ""
+
+    /**
+     * Returns all identifiers in the chain except the first one (the field access path).
+     */
+    fun fieldIdentifiers(): List<String> = chain.drop(1).map { it.first }
+
+    /**
+     * Converts this dereference chain to a postfix representation.
+     * This matches how the future grammar will parse pointer dereferences.
+     * 
+     * Example: `foo.bar[0]^^.baz^^` becomes:
+     * [Name("foo"), Name("bar"), Index(ArrayIndex), Deref, Name("baz"), Deref]
+     */
+    fun toPostfixRepresentation(): List<PtrPostfixOp> {
+        val result = mutableListOf<PtrPostfixOp>()
+        chain.forEach { (name, index) ->
+            result.add(PtrPostfixOp.Name(name))
+            if (index != null) {
+                result.add(PtrPostfixOp.Index(index))
+            }
+        }
+        if (derefLast) {
+            result.add(PtrPostfixOp.Deref)
+        }
+        return result
     }
 }
 
