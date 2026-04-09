@@ -263,22 +263,28 @@ class VmProgramLoader {
                 }
             }
 
-            variable.onetimeInitializationNumericValue?.let {
-                when {
-                    variable.dt.isUnsignedByte || variable.dt.isBool -> memory.setUB(addr, it.toInt().toUByte())
-                    variable.dt.isSignedByte -> memory.setSB(addr, it.toInt().toByte())
-                    variable.dt.isUnsignedWord -> memory.setUW(addr, it.toInt().toUShort())
-                    variable.dt.isSignedWord -> memory.setSW(addr, it.toInt().toShort())
-                    variable.dt.isLong -> memory.setSL(addr, it.toInt())
-                    variable.dt.isFloat -> memory.setFloat(addr, it)
-                    else -> throw IRParseException("invalid dt")
+            variable.initializationValue?.let { initVal ->
+                when(initVal) {
+                    is IRVariableInitializer.Numeric -> {
+                        when {
+                            variable.dt.isUnsignedByte || variable.dt.isBool -> memory.setUB(addr, initVal.value.toInt().toUByte())
+                            variable.dt.isSignedByte -> memory.setSB(addr, initVal.value.toInt().toByte())
+                            variable.dt.isUnsignedWord -> memory.setUW(addr, initVal.value.toInt().toUShort())
+                            variable.dt.isSignedWord -> memory.setSW(addr, initVal.value.toInt().toShort())
+                            variable.dt.isLong -> memory.setSL(addr, initVal.value.toInt())
+                            variable.dt.isFloat -> memory.setFloat(addr, initVal.value)
+                            else -> throw IRParseException("invalid dt")
+                        }
+                    }
+                    is IRVariableInitializer.Array -> {
+                        require(variable.length==initVal.elements.size.toUInt())
+                        initializeWithValues(variable, initVal.elements, addr, symbolAddresses, memory, program)
+                    }
+                    is IRVariableInitializer.Str -> {
+                        throw IRParseException("in vm/ir, strings should have been converted into bytearrays.")
+                    }
                 }
             }
-            variable.onetimeInitializationArrayValue?.let { iElts ->
-                require(variable.length==iElts.size.toUInt())
-                initializeWithValues(variable, iElts, addr, symbolAddresses, memory, program)
-            }
-            require(variable.onetimeInitializationStringValue==null) { "in vm/ir, strings should have been converted into bytearrays." }
         }
 
         program.st.allStructInstances().forEach { instance ->

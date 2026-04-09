@@ -27,23 +27,23 @@ private object StToIrConverter {
         }
     }
 
-    fun convert(variable: StStaticVariable): IRStStaticVariable {
+    private fun makeInitializer(
+        variable: StStaticVariable,
+        array: List<StArrayElement>?
+    ): IRVariableInitializer? {
+        if(array==null && variable.initializationNumericValue==null && variable.initializationStringValue==null)
+            return null
 
-        if('.' in variable.name) {
-            return IRStStaticVariable(variable.name,
-                variable.dt,
-                variable.initializationNumericValue,
-                variable.initializationStringValue,
-                variable.initializationArrayValue?.map { convertArrayElt(it) },
-                variable.length,
-                variable.zpwish,
-                variable.align,
-                variable.dirty)
-        } else {
-            fun fixupAddressOfInArray(array: List<StArrayElement>?): List<IRStSymbolicReference>? {
-                if(array==null)
-                    return null
-                return array.map {
+        return when {
+            variable.initializationStringValue != null -> {
+                val str = variable.initializationStringValue!!
+                IRVariableInitializer.Str(str.first, str.second)
+            }
+            variable.initializationNumericValue != null -> {
+                IRVariableInitializer.Numeric(variable.initializationNumericValue!!)
+            }
+            array != null -> {
+                val scopedArray = array.map {
                     when(it) {
                         is StArrayElement.AddressOf -> {
                             val target = variable.lookup(it.symbol) ?:
@@ -53,19 +53,26 @@ private object StToIrConverter {
                         else -> convertArrayElt(it)
                     }
                 }
+                IRVariableInitializer.Array(scopedArray)
             }
-            val scopedName = variable.scopedNameString
-            return IRStStaticVariable(scopedName,
-                variable.dt,
-                variable.initializationNumericValue,
-                variable.initializationStringValue,
-                fixupAddressOfInArray(variable.initializationArrayValue),
-                variable.length,
-                variable.zpwish,
-                variable.align,
-                variable.dirty
-            )
+            else -> null
         }
+    }
+
+    fun convert(variable: StStaticVariable): IRStStaticVariable {
+        val initValue = if('.' in variable.name) {
+            when {
+                variable.initializationStringValue != null -> IRVariableInitializer.Str(variable.initializationStringValue!!.first, variable.initializationStringValue!!.second)
+                variable.initializationNumericValue != null -> IRVariableInitializer.Numeric(variable.initializationNumericValue!!)
+                variable.initializationArrayValue != null -> IRVariableInitializer.Array(variable.initializationArrayValue!!.map { convertArrayElt(it) })
+                else -> null
+            }
+        } else {
+            makeInitializer(variable, variable.initializationArrayValue)
+        }
+
+        val name = if('.' in variable.name) variable.name else variable.scopedNameString
+        return IRStStaticVariable(name, variable.dt, initValue, variable.length, variable.zpwish, variable.align, variable.dirty)
     }
 
     fun convert(variable: StMemVar): IRStMemVar {
@@ -156,8 +163,9 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
         st.validate()
 
         st.allVariables().forEach { variable ->
-            variable.onetimeInitializationArrayValue?.let {
-                it.forEach { arrayElt ->
+            if(variable.initializationValue is IRVariableInitializer.Array) {
+                val initValue = variable.initializationValue as IRVariableInitializer.Array
+                initValue.elements.forEach { arrayElt ->
                     if (arrayElt is IRStSymbolicReference.Symbol) {
                         require(arrayElt.name.contains('.')) {
                             "pointer var in array should be properly scoped: ${arrayElt.name} in ${variable.name}"

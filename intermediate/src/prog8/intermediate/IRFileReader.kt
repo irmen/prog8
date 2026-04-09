@@ -15,13 +15,17 @@ private const val StMemorySlabBlockName = "prog8_slabs"
 
 class IRFileReader {
 
-    companion object {
-        private val varNoInitPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
-        private val constantPattern = Regex("(.+?) (.+)=(.*?)")
-        private val varInitPattern = Regex("(?<type>.+?)(?<arrayspec>\\[.+?\\])? (?<name>.+)=(?<value>.*?) zp=(?<zp>.+?)\\s?(split=(?<split>.+?))?\\s?(align=(?<align>.+?))?")
-        private val memMappedPattern = Regex("@(.+?)(\\[.+?\\])? (.+)=(.+)")
-        private val slabPattern = Regex("(.+) (.+) (.+)")
-        private val posPatternSingle = Regex("\\[(.+): line (.+) col (.+)-(.+)\\]")
+    /**
+     * Helper to parse a named XML section containing line-based text content.
+     * Handles the skipText/startElement/readText/endElement pattern.
+     */
+    private fun <T> parseSection(reader: XMLEventReader, sectionName: String, parseLine: (String) -> T): List<T> {
+        skipText(reader)
+        val start = reader.nextEvent().asStartElement()
+        require(start.name.localPart == sectionName) { "missing $sectionName" }
+        val text = readText(reader).trim()
+        require(reader.nextEvent().isEndElement)
+        return if(text.isBlank()) emptyList() else text.lineSequence().map(parseLine).toList()
     }
 
     fun read(irSourceCode: String): IRProgram {
@@ -180,237 +184,170 @@ class IRFileReader {
             }
     }
 
-    private fun parseVarsWithoutInit(segmentname: String, dirty: Boolean, reader: XMLEventReader): List<IRStStaticVariable> {
-        skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart==segmentname) { "missing $segmentname" }
-        val text = readText(reader).trim()
-        require(reader.nextEvent().isEndElement)
-
-        return if(text.isBlank())
-            emptyList()
-        else {
-            val variables = mutableListOf<IRStStaticVariable>()
-            text.lineSequence().forEach { line ->
-                // example:  uword main.start.qq2 zp=DONTCARE
-                val match = varNoInitPattern.matchEntire(line) ?: throw IRParseException("invalid $segmentname $line")
-                val type = match.groups["type"]!!.value
-                val arrayspec = match.groups["arrayspec"]?.value ?: ""
-                val name = match.groups["name"]!!.value
-                val zpwish = match.groups["zp"]!!.value
-                match.groups["split"]?.value ?: ""
-                val alignment = match.groups["align"]?.value ?: ""
-                if('.' !in name)
-                    throw IRParseException("unscoped name: $name")
-                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
-                val dt = parseDatatype(type, arraysize!=null)
-                val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                // val isSplit = if(split.isBlank()) false else split.toBoolean()
-                val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-                val newVar = IRStStaticVariable(name, dt, null, null, null, arraysize, zp, align, dirty)
-                variables.add(newVar)
-            }
-            variables
+    private fun parseVarsWithoutInit(segmentname: String, dirty: Boolean, reader: XMLEventReader): List<IRStStaticVariable> =
+        parseSection(reader, segmentname) { line ->
+            parseNoInitVar(line, dirty)
         }
+
+    private fun parseNoInitVar(line: String, dirty: Boolean): IRStStaticVariable {
+        val match = IRFormat.VAR_NO_INIT.matchEntire(line) 
+            ?: throw IRParseException("invalid variable: $line")
+        val type = match.groups["type"]!!.value
+        val arrayspec = match.groups["arrayspec"]?.value ?: ""
+        val name = match.groups["name"]!!.value
+        val zpwish = match.groups["zp"]!!.value
+        val alignment = match.groups["align"]?.value ?: ""
+        
+        if('.' !in name)
+            throw IRParseException("unscoped name: $name")
+        
+        val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
+        val dt = parseDatatype(type, arraysize!=null)
+        val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+        val align = if(alignment.isBlank()) 0u else alignment.toUInt()
+        return IRStStaticVariable(name, dt, null, arraysize, zp, align, dirty)
     }
 
-    private fun parseConstants(reader: XMLEventReader): List<IRStConstant> {
-        skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="CONSTANTS") { "missing CONSTANTS" }
-        val text = readText(reader).trim()
-        require(reader.nextEvent().isEndElement)
+    private fun parseConstants(reader: XMLEventReader): List<IRStConstant> =
+        parseSection(reader, "CONSTANTS") { line ->
+            parseConstant(line)
+        }
 
-        return if(text.isBlank())
-            emptyList()
-        else {
-            val constants = mutableListOf<IRStConstant>()
-            text.lineSequence().forEach { line ->
-                // examples:
-                // uword main.start.qq2=0
-                // uword main.start.ptr=@prog8_slabs.memory_buffer2
-                val match = constantPattern.matchEntire(line) ?: throw IRParseException("invalid CONSTANT $line")
-                val (type, name, valueStr) = match.destructured
-                if('.' !in name)
-                    throw IRParseException("unscoped name: $name")
-                val dt = parseDatatype(type, false)
-                val memorySlabName: String? = if(valueStr.startsWith("@$StMemorySlabBlockName.")) {
-                    valueStr.drop("$StMemorySlabBlockName.".length + 1)  // skip @ and block prefix
-                } else {
+    private fun parseConstant(line: String): IRStConstant {
+        val match = IRFormat.CONSTANT.matchEntire(line) 
+            ?: throw IRParseException("invalid CONSTANT: $line")
+        val (type, name, valueStr) = match.destructured
+        if('.' !in name)
+            throw IRParseException("unscoped name: $name")
+        val dt = parseDatatype(type, false)
+        val memorySlabName: String? = if(valueStr.startsWith("@$StMemorySlabBlockName.")) {
+            valueStr.drop("$StMemorySlabBlockName.".length + 1)
+        } else {
+            null
+        }
+        val value: Double? = if(memorySlabName != null) null else parseIRValue(valueStr)
+        return IRStConstant(name, dt, value, memorySlabName)
+    }
+
+    private fun parseVariables(reader: XMLEventReader): List<IRStStaticVariable> =
+        parseSection(reader, "INIT") { line ->
+            parseVarWithInit(line)
+        }
+
+    private fun parseVarWithInit(line: String): IRStStaticVariable {
+        val match = IRFormat.VAR_INIT.matchEntire(line) 
+            ?: throw IRParseException("invalid VARIABLE: $line")
+        val type = match.groups["type"]!!.value
+        val arrayspec = match.groups["arrayspec"]?.value ?: ""
+        val name = match.groups["name"]!!.value
+        val value = match.groups["value"]!!.value
+        val zpwish = match.groups["zp"]!!.value
+        val alignment = match.groups["align"]?.value ?: ""
+        
+        if('.' !in name)
+            throw IRParseException("unscoped varname: $name")
+        
+        val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
+        val dt = parseDatatype(type, arraysize!=null)
+        val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
+        val align = if(alignment.isBlank()) 0u else alignment.toUInt()
+        val dirty = false
+        val initValue = parseInitValue(dt, value, arraysize)
+        return IRStStaticVariable(name, dt, initValue, arraysize, zp, align, dirty)
+    }
+
+    private fun parseInitValue(dt: DataType, value: String, arraysize: UInt?): IRVariableInitializer? {
+        return when {
+            dt.isNumericOrBool -> IRVariableInitializer.Numeric(parseIRValue(value))
+            dt.isBoolArray -> {
+                val elements = value.split(',').map {
+                    IRStSymbolicReference.BoolValue(parseIRValue(it) != 0.0)
+                }
+                if(arraysize!=null && elements.all { it is IRStSymbolicReference.Numeric && it.value==0.0 })
                     null
+                else
+                    IRVariableInitializer.Array(elements)
+            }
+            dt.isArray -> {
+                val elements = value.split(',').map {
+                    if(it.startsWith('@'))
+                        IRStSymbolicReference.Symbol(it.drop(1))
+                    else
+                        IRStSymbolicReference.Numeric(parseIRValue(it))
                 }
-                val value: Double? = if(memorySlabName != null) null else parseIRValue(valueStr)
-                constants.add(IRStConstant(name, dt, value, memorySlabName))
+                if(arraysize!=null && elements.all { it is IRStSymbolicReference.Numeric && it.value==0.0 })
+                    null
+                else
+                    IRVariableInitializer.Array(elements)
             }
-            constants
+            dt.isString -> throw IRParseException("STR should have been converted to byte array")
+            else -> throw IRParseException("weird dt")
         }
     }
 
-    private fun parseVariables(reader: XMLEventReader): List<IRStStaticVariable> {
-        skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="INIT") { "missing INIT" }
-        val text = readText(reader).trim()
-        require(reader.nextEvent().isEndElement)
-
-        return if(text.isBlank())
-            emptyList()
-        else {
-            val variables = mutableListOf<IRStStaticVariable>()
-            text.lineSequence().forEach { line ->
-                // examples:
-                // uword main.start.qq2=0 zp=REQUIRE_ZP
-                // ubyte[6] main.start.namestring=105,114,109,101,110,0
-                val match = varInitPattern.matchEntire(line) ?: throw IRParseException("invalid VARIABLE $line")
-                val type = match.groups["type"]!!.value
-                val arrayspec = match.groups["arrayspec"]?.value ?: ""
-                val name = match.groups["name"]!!.value
-                val value = match.groups["value"]!!.value
-                val zpwish = match.groups["zp"]!!.value
-                //val splitStr = match.groups["split"]?.value ?: ""
-                val alignment = match.groups["align"]?.value ?: ""
-                if('.' !in name)
-                    throw IRParseException("unscoped varname: $name")
-                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
-                val dt = parseDatatype(type, arraysize!=null)
-                val zp = if(zpwish.isBlank()) ZeropageWish.DONTCARE else ZeropageWish.valueOf(zpwish)
-                // val split = if(splitStr.isBlank()) false else splitStr.toBoolean()
-                val align = if(alignment.isBlank()) 0u else alignment.toUInt()
-                val dirty = false // these variables have initialization values.
-                var initNumeric: Double? = null
-                var initArray: IRStArray? = null
-                when {
-                    dt.isNumericOrBool -> initNumeric = parseIRValue(value)
-                    dt.isBoolArray -> {
-                        initArray = value.split(',').map {
-                            val boolean = parseIRValue(it) != 0.0
-                            IRStSymbolicReference.BoolValue(boolean)
-                        }
-                    }
-                    dt.isArray -> {
-                        initArray = value.split(',').map {
-                            if (it.startsWith('@'))
-                                IRStSymbolicReference.Symbol(it.drop(1))
-                            else
-                                IRStSymbolicReference.Numeric(parseIRValue(it))
-                        }
-                    }
-                    dt.isString -> throw IRParseException("STR should have been converted to byte array")
-                    else -> throw IRParseException("weird dt")
-                }
-                if(arraysize!=null && initArray!=null && initArray.all { it is IRStSymbolicReference.Numeric && it.value==0.0 }) {
-                    initArray=null  // arrays with just zeros can be left uninitialized
-                }
-                val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align, dirty)
-                variables.add(stVar)
-            }
-            variables
+    private fun parseStructInstancesNoInit(reader: XMLEventReader): List<IRStStructInstance> =
+        parseSection(reader, "STRUCTINSTANCESNOINIT") { line ->
+            parseStructInstanceNoInit(line)
         }
+
+    private fun parseStructInstanceNoInit(line: String): IRStStructInstance {
+        val (structName, name, sizeStr1) = line.split(' ')
+        val sizeStr = sizeStr1.split('=')
+        require(sizeStr[0]=="size")
+        val size = sizeStr[1].toUInt()
+        return IRStStructInstance(name, structName, emptyList(), size)
     }
 
-    private fun parseStructInstancesNoInit(reader: XMLEventReader): List<IRStStructInstance> {
-        skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart == "STRUCTINSTANCESNOINIT") { "missing STRUCTINSTANCESNOINIT" }
-        val text = readText(reader).trim()
-        require(reader.nextEvent().isEndElement)
-
-        return if (text.isBlank())
-            emptyList()
-        else {
-            text.lines().map {
-                val (structName, name, sizeStr1) = it.split(' ')
-                val sizeStr = sizeStr1.split('=')
-                require(sizeStr[0]=="size")
-                val size = sizeStr[1].toUInt()
-                IRStStructInstance(name, structName, emptyList(), size)
-            }
+    private fun parseStructInstances(reader: XMLEventReader): List<IRStStructInstance> =
+        parseSection(reader, "STRUCTINSTANCES") { line ->
+            parseStructInstance(line)
         }
+
+    private fun parseStructInstance(line: String): IRStStructInstance {
+        val (structName, name, sizeStr1, valuesStr1) = line.split(' ')
+        val sizeStr = sizeStr1.split('=')
+        require(sizeStr[0]=="size")
+        val size = sizeStr[1].toUInt()
+        require(valuesStr1.startsWith("values="))
+        val valuesStr = valuesStr1.drop(7).split(',')
+        val values = valuesStr.map { vstr ->
+            val (type, value) = vstr.split(':')
+            val dt = parseDatatype(type, false)
+            val ref = when {
+                dt.isBool -> IRStSymbolicReference.BoolValue(parseIRValue(value) != 0.0)
+                value.startsWith('@') -> IRStSymbolicReference.Symbol(value.drop(1))
+                dt.isNumeric -> IRStSymbolicReference.Numeric(parseIRValue(value))
+                else -> throw IRParseException("unexpected field datatype $dt")
+            }
+            IRStructInitValue(dt.base, ref)
+        }
+        return IRStStructInstance(name, structName, values, size)
     }
 
-    private fun parseStructInstances(reader: XMLEventReader): List<IRStStructInstance> {
-        skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart == "STRUCTINSTANCES") { "missing STRUCTINSTANCES" }
-        val text = readText(reader).trim()
-        require(reader.nextEvent().isEndElement)
-
-        return if (text.isBlank())
-            emptyList()
-        else {
-            text.lines().map {
-                val (structName, name, sizeStr1, valuesStr1) = it.split(' ')
-                val sizeStr = sizeStr1.split('=')
-                require(sizeStr[0]=="size")
-                val size = sizeStr[1].toUInt()
-                require(valuesStr1.startsWith("values="))
-                val valuesStr = valuesStr1.drop(7).split(',')
-                val values = valuesStr.map { vstr ->
-                    val (type, value) = vstr.split(':')
-                    val dt = parseDatatype(type, false)
-                    val ref = if(dt.isBool) {
-                        IRStSymbolicReference.BoolValue(parseIRValue(value) != 0.0)
-                    } else if(value.startsWith('@')) {
-                        // Handle symbol references (address-of, memory slabs, struct instances)
-                        IRStSymbolicReference.Symbol(value.drop(1))
-                    } else if(dt.isNumeric) {
-                        IRStSymbolicReference.Numeric(parseIRValue(value))
-                    } else {
-                        throw IRParseException("unexpected field datatype $dt")
-                    }
-                    IRStructInitValue(dt.base, ref)
-                }
-
-                IRStStructInstance(name, structName, values, size)
-            }
+    private fun parseMemMapped(reader: XMLEventReader): List<IRStMemVar> =
+        parseSection(reader, "MEMORYMAPPED") { line ->
+            parseMemoryMapped(line)
         }
+
+    private fun parseMemoryMapped(line: String): IRStMemVar {
+        val match = IRFormat.MEMORY_MAPPED.matchEntire(line) 
+            ?: throw IRParseException("invalid MEMORYMAPPED: $line")
+        val (type, arrayspec, name, address) = match.destructured
+        val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
+        val dt = parseDatatype(type, arraysize!=null)
+        return IRStMemVar(name, dt, parseIRValue(address).toUInt(), arraysize)
     }
 
-
-    private fun parseMemMapped(reader: XMLEventReader): List<IRStMemVar> {
-        skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="MEMORYMAPPED") { "missing MEMORYMAPPED" }
-        val text = readText(reader).trim()
-        require(reader.nextEvent().isEndElement)
-
-        return if(text.isBlank())
-            emptyList()
-        else {
-            val memvars = mutableListOf<IRStMemVar>()
-            text.lineSequence().forEach { line ->
-                // examples:
-                // @uword main.start.mapped=49152
-                // @ubyte[20] main.start.mappedarray=49408
-                val match = memMappedPattern.matchEntire(line) ?: throw IRParseException("invalid MEMORYMAPPED $line")
-                val (type, arrayspec, name, address) = match.destructured
-                val arraysize = if(arrayspec.isNotBlank()) arrayspec.substring(1, arrayspec.length-1).toUInt() else null
-                val dt = parseDatatype(type, arraysize!=null)
-                memvars.add(IRStMemVar(name, dt, parseIRValue(address).toUInt(), arraysize))
-            }
-            memvars
+    private fun parseSlabs(reader: XMLEventReader): List<IRStMemorySlab> =
+        parseSection(reader, "MEMORYSLABS") { line ->
+            parseMemorySlab(line)
         }
-    }
 
-    private fun parseSlabs(reader: XMLEventReader): List<IRStMemorySlab> {
-        skipText(reader)
-        val start = reader.nextEvent().asStartElement()
-        require(start.name.localPart=="MEMORYSLABS") { "missing MEMORYSLABS" }
-        val text = readText(reader).trim()
-        require(reader.nextEvent().isEndElement)
-
-        return if(text.isBlank())
-            emptyList()
-        else {
-            val slabs = mutableListOf<IRStMemorySlab>()
-            text.lineSequence().forEach { line ->
-                // example: "slabname 4096 0"
-                val match = slabPattern.matchEntire(line) ?: throw IRParseException("invalid slab $line")
-                val (name, size, align) = match.destructured
-                slabs.add(IRStMemorySlab(name, size.toUInt(), align.toUInt()))
-            }
-            slabs
-        }
+    private fun parseMemorySlab(line: String): IRStMemorySlab {
+        val match = IRFormat.MEMORY_SLAB.matchEntire(line) 
+            ?: throw IRParseException("invalid slab: $line")
+        val (name, size, align) = match.destructured
+        return IRStMemorySlab(name, size.toUInt(), align.toUInt())
     }
 
     private fun parseInitGlobals(reader: XMLEventReader): IRCodeChunk {
@@ -696,7 +633,7 @@ class IRFileReader {
 
     private fun parsePosition(strpos: String): Position {
         // example: "[library:/prog8lib/virtual/textio.p8: line 5 col 2-4]"
-        posPatternSingle.matchEntire(strpos)?.let { match ->
+        IRFormat.POSITION_SINGLE.matchEntire(strpos)?.let { match ->
             val (file, line, startCol, endCol) = match.destructured
             return Position(file, line.toInt(), startCol.toInt(), endCol.toInt())
         }

@@ -1814,9 +1814,9 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
 
 
 internal fun addInstr(code: MutableList<IRCodeChunkBase>, instr: IRInstruction, label: String?) {
-    code += IRCodeChunk(label, null).also {
-        it += instr
-    }
+    val chunk = IRCodeChunk(label, null)
+    chunk.instructions.add(instr)
+    code += chunk
 }
 
 internal fun addToResult(

@@ -40,9 +40,9 @@ class IRUnusedCodeRemover(
             }
 
             irprog.st.allVariables().forEach { variable ->
-                val initValue = variable.onetimeInitializationArrayValue
-                if(!initValue.isNullOrEmpty()) {
-                    if(initValue.any {
+                val initValue = variable.initializationValue
+                if(initValue is IRVariableInitializer.Array) {
+                    if(initValue.elements.any {
                         it is IRStSymbolicReference.Symbol && it.name.startsWith(blockLabel)
                     })
                         return   // symbol occurs in an initializer value (address-of this symbol)_
@@ -204,8 +204,9 @@ class IRUnusedCodeRemover(
         irprog.st.allVariables()
             .filter { !it.uninitialized }
             .forEach {
-                it.onetimeInitializationArrayValue?.let { array ->
-                    array.forEach {elt ->
+                val initValue = it.initializationValue
+                if(initValue is IRVariableInitializer.Array) {
+                    initValue.elements.forEach {elt ->
                         if(elt is IRStSymbolicReference.Symbol && irprog.st.lookup(elt.name)==null)
                             reachable.add(irprog.getChunkWithLabel(elt.name))
                     }
@@ -250,8 +251,9 @@ class IRUnusedCodeRemover(
         irprog.st.allVariables()
             .filter { !it.uninitialized }
             .forEach {
-                it.onetimeInitializationArrayValue?.let { array ->
-                    array.forEach {elt ->
+                if(it.initializationValue is IRVariableInitializer.Array) {
+                    val initValue = it.initializationValue as IRVariableInitializer.Array
+                    initValue.elements.forEach {elt ->
                         if(elt is IRStSymbolicReference.Symbol && irprog.st.lookup(elt.name)==null)
                             linkedChunks += irprog.getChunkWithLabel(elt.name)
                     }

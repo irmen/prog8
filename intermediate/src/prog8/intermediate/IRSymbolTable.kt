@@ -99,12 +99,21 @@ class IRStConstant(name: String, val dt: DataType, val value: Double?, val memor
     val typeString: String = dt.irTypeString(null)
 }
 
+/**
+ * The initialization value for a static variable.
+ * Replaces the previous parallel nullable properties (numericValue, stringValue, arrayValue).
+ */
+sealed class IRVariableInitializer {
+    data class Numeric(val value: Double) : IRVariableInitializer()
+    data class Str(val text: String, val encoding: Encoding) : IRVariableInitializer()
+    data class Array(val elements: IRStArray) : IRVariableInitializer()
+}
+
+typealias IRStString = Pair<String, Encoding>
 
 class IRStStaticVariable(name: String,
                        val dt: DataType,
-                       val onetimeInitializationNumericValue: Double?,      // TODO still needed? Or can go?   regular (every-run-time) initialization is done via regular assignments
-                       val onetimeInitializationStringValue: IRStString?,
-                       val onetimeInitializationArrayValue: IRStArray?,
+                       val initializationValue: IRVariableInitializer?,
                        val length: UInt?,            // for arrays: the number of elements, for strings: number of characters *including* the terminating 0-byte
                        val zpwish: ZeropageWish,    // used in the variable allocator
                        val align: UInt,
@@ -117,7 +126,8 @@ class IRStStaticVariable(name: String,
         }
     }
 
-    val uninitialized = onetimeInitializationArrayValue==null && onetimeInitializationStringValue==null && onetimeInitializationNumericValue==null
+    val uninitialized: Boolean
+        get() = initializationValue == null
 
     val typeString: String = dt.irTypeString(length)
 }
@@ -147,4 +157,3 @@ class IRStStructInstance(name: String, val structName: String, val values: List<
 class IRStructInitValue(val dt: BaseDataType, val value: IRStSymbolicReference)
 
 typealias IRStArray = List<IRStSymbolicReference>
-typealias IRStString = Pair<String, Encoding>
