@@ -67,11 +67,43 @@ singlederef: identifier arrayindex? POINTER;
 > "This is a cursed mix of IdentifierReference and binary expressions with '.' dereference operators."
 
 **Problems:**
-1. The grammar allows `foo.bar^^.baz` but what about `foo^^.bar`?
-2. Array indexing on pointers: `ptr[0]^^` vs `ptr^^[0]` - which is valid?
-3. The comment admits this is a hack that needs rewriting
 
-**Recommendation:** This needs a proper redesign. Consider treating `^^` as a postfix operator with clear precedence rules.
+1. **Ambiguity between field access and chained dereference**: The optional `('.' field = identifier)?` at the end conflicts with `'.' singlederef` inside `derefchain`. In `foo^^.bar^^`, ANTLR resolves this by rule order, but the grammar doesn't express intent clearly.
+
+2. **Asymmetric prefixes**: `(prefix = scoped_identifier '.')?` treats the first identifier differently from the rest, even though semantically they're part of the same chain.
+
+3. **Backward indexing**: `singlederef` supports `foo[0]^^` (index then dereference) but **not** `foo^^[0]` (dereference then index the result), which is a common operation in C-like languages.
+
+4. **AST reconstruction is painful**: The grammar flattens everything into one node with a `prefix`, `derefchain`, and optional `field`. The Kotlin visitor essentially has to re-parse the grammar's output to figure out what the user actually wrote, leading to complex logic in the `Antlr2KotlinVisitor`.
+
+5. **The grammar comment admits it**: *"This is a cursed mix of IdentifierReference and binary expressions with '.' dereference operators."*
+
+**Recommendation:** This needs a proper redesign. Stop trying to enforce semantic structure in the grammar and instead parse the surface syntax — a sequence of identifiers, dots, brackets, and `^^` operators — and let the AST builder figure out the meaning.
+
+```antlr
+pointerderefchain: 
+    primary 
+    ( '[' expression ']'            // Array/pointer indexing
+    | POINTER                       // Pointer dereference ^^
+    | '.' identifier                // Field access
+    )*
+    ;
+
+primary: 
+    scoped_identifier               // Named variable/function
+    | directmemory                  // @(expr)
+    | '(' expression ')'            // Parenthesized
+    ;
+```
+
+This treats `.` and `^^` and `[]` as postfix operators with equal precedence (left-associative), which is how they're actually used in practice. It removes the artificial distinction between "prefix", "chain", and "field" entirely.
+
+**Caveat:** This simplification conflicts with `scoped_identifier` (defined as `identifier ('.' identifier)*`). If both exist, `foo.bar` becomes ambiguous: is it a scoped identifier or a pointer chain with a field access?
+Resolving this requires either:
+1. **Removing `scoped_identifier`**: Parse all chains as postfix operators and defer the "namespace vs field" decision to the **AST semantic analyzer**. This simplifies the grammar but moves significant complexity into the type checker.
+2. **Strict syntactic separation**: Use different operators (e.g., `::` for namespaces), but this is a breaking language change.
+
+This is why the fix is **High complexity** — it touches the semantic analysis phase, not just the ANTLR rules.
 
 ---
 
@@ -126,109 +158,15 @@ These should be evaluated based on **what makes sense for 6502 programmers** com
 
 The Prog8 ANTLR4 grammar has several areas that could be improved:
 
-1. **Poor Error Recovery**: Uses `BailErrorStrategy` that fails immediately on first error
-2. **Generic Error Messages**: Users receive cryptic ANTLR default messages
-3. **Complex Expression Rule**: 25+ alternatives in a single left-recursive rule
-4. **Fragile Lexer Rules**: `NOT_IN` token depends on whitespace
-5. **Manual Keyword Handling**: Must explicitly list keywords that can be identifiers
-6. **"Cursed" Pointer Dereference**: Complex grammar that doesn't handle chaining well
-
----
-
-## 1. Error Recovery & Reporting Improvements
-
-### Current Issues
-- **BailErrorStrategy**: Fails immediately on first error with no recovery
-- **Generic error messages**: ANTLR default messages like "mismatched input" are unhelpful
-- **No rule-specific error messages**: Users get cryptic errors for common mistakes
-
-### Recommended Improvements
-
-#### Add Error Alternatives with Custom Messages
-
-```antlr
-// Assignment rule with error detection
-assignment
-    : assign_target '=' expression
-    | assign_target '=' assignment
-    | multi_assign_target '=' expression
-    | assign_target '=' expression '=' expression+  // ERROR: chained assignment
-      { notifyErrorListeners("Cannot chain assignments. Use multiple statements instead."); }
-    ;
-```
-
-#### Add Error Recovery Rules
-
-```antlr
-statement
-    : // ... valid statements
-    | 'if' expression statement  // Missing THEN or block
-      { notifyErrorListeners("Expected 'then' or '{' after if condition"); }
-    | 'for' identifier 'in'      // Missing expression
-      { notifyErrorListeners("Expected expression after 'in'"); }
-    | 'while' '}'                // Missing condition
-      { notifyErrorListeners("Expected condition after 'while'"); }
-    ;
-```
-
-#### Improve Error Messages for Common Mistakes
-
-```antlr
-vardecl
-    : datatype (arrayindex | EMPTYARRAYSIG)? TAG* identifierlist
-    | datatype EMPTYARRAYSG identifierlist
-      { if (!$datatype.text.equals("ubyte") && !$datatype.text.equals("byte")) 
-          notifyErrorListeners("Empty array syntax [] only valid for byte/ubyte types"); }
-    ;
-```
+1. **Generic Error Messages**: Users receive cryptic ANTLR default messages
+2. **Manual Keyword Handling**: Must explicitly list keywords that can be identifiers
+3. **"Cursed" Pointer Dereference**: Complex grammar that doesn't handle chaining well
 
 ---
 
 ## 2. Rule Optimization
 
-### A. Expression Rule Refactoring
-
-**Current Problem**: Massive left-recursive rule with 25+ alternatives (lines 202-233)
-
-**Optimization**: Group by precedence using sub-rules:
-
-```antlr
-expression
-    : primaryExpression
-    | expression postfixOperator
-    | prefixOperator expression
-    | expression multiplicativeOp expression
-    | expression additiveOp expression
-    | expression shiftOp expression
-    | expression relationalOp expression
-    | expression equalityOp expression
-    | expression bitwiseAndOp expression
-    | expression bitwiseXorOp expression
-    | expression bitwiseOrOp expression
-    | expression rangeOp expression
-    | expression 'in' expression
-    | expression 'not' 'in' expression
-    | expression 'and' expression
-    | expression 'or' expression
-    | expression 'xor' expression
-    | 'if' expression 'then' expression 'else' expression  // if-expression
-    ;
-
-// Operator groups
-multiplicativeOp: '*' | '/' | '%' ;
-additiveOp: '+' | '-' ;
-shiftOp: '<<' | '>>' ;
-relationalOp: '<' | '>' | '<=' | '>=' ;
-equalityOp: '==' | '!=' ;
-bitwiseAndOp: '&' ;
-bitwiseXorOp: '^' ;
-bitwiseOrOp: '|' ;
-rangeOp: 'to' | 'downto' ;
-postfixOperator: '++' | '--' ;
-prefixOperator: '+' | '-' | '~' ;
-```
-
-### B. Statement Rule Grouping
+### A. Statement Rule Grouping
 
 **Current Problem**: 25 alternatives with no grouping, hard to extend (lines 98-124)
 
@@ -297,79 +235,19 @@ directiveArgs
 
 ---
 
-## 3. Lexer Improvements
+## 3. Lexer Status
 
-### A. NOT_IN Token Fix
+**Assessment:** No meaningful improvements remain.
 
-**Current Problem**: Fragile lexer rule with whitespace dependence (line 72)
-```antlr
-NOT_IN: 'not' [ \t]+ 'in' [ \t] ;
-```
+The lexer is in a stable, efficient state. Key points:
 
-**Fix**: Move to parser rule:
-```antlr
-// Remove NOT_IN from lexer
-// In parser:
-expression
-    : ...
-    | left=expression 'not' 'in' right=expression  #NotInExpression
-    ;
-```
+- **Float Numbers:** Already simplified to a single rule.
+- **NOT_IN:** Attempted and failed. The current whitespace-dependent token is fragile but works; moving it to the parser creates ambiguity.
+- **Numbers/Strings/Identifiers:** Standard and correct.
+- **Keywords:** All necessary tokens.
+- **Commented-out code:** The `// WS2 : '\\' EOL -> skip;` line is abandoned line-continuation logic and can be removed cosmetically.
 
-> **ATTEMPTED AND FAILED (2026-03-28)**: Multiple approaches were tried to fix this:
-> - Moving `not in` to a parser rule alternative using `'not' 'in'` sequence
-> - Placing the alternative at different positions in the expression rule (before/after 'in', at top)
-> - All approaches failed because ANTLR's lexer always tokenizes `not` and `in` as separate tokens first
-> - The parser rule approach creates ambiguity that prevents parsing `not in` correctly
-> - The original lexer rule with token `NOT_IN` is fragile but works; any fix attempt causes more problems than it solves
-> - **Conclusion**: Leave the lexer rule as-is; the fragility is acceptable
-
-### B. Identifier Rule Improvement
-
-**Current Problem**: Must manually list keywords that can be identifiers (line 266)
-```antlr
-identifier: UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | STEP ;
-```
-
-**Fix**: Use parser rule approach:
-```antlr
-// Instead of tokens, use a parser rule that matches any keyword as identifier
-identifier
-    : UNICODEDNAME
-    | UNDERSCORENAME
-    | keywordAsIdentifier
-    ;
-
-keywordAsIdentifier
-    : 'on' | 'call' | 'inline' | 'step' | 'else' | 'then' | 'goto' | 'void' | 'struct'
-    ;
-```
-
-> **ATTEMPTED AND FAILED (2026-03-28)**: This approach was tried but creates severe parsing ambiguity.
-> - Adding many keywords as alternatives in a parser rule creates ambiguity with other grammar rules
-> - The parser cannot distinguish between a keyword used as an identifier vs. as actual syntax
-> - Tests showed ~300+ failures due to parse errors in various contexts (function calls, expressions, etc.)
-> - The manual token listing approach is fragile but works correctly
-> - **Conclusion**: Keep the current approach of explicitly listing keywords that can be used as identifiers
-
-### C. Float Number Rules Simplification
-
-**Current Problem**: Complex, potentially ambiguous rules (lines 51-54)
-```antlr
-FLOAT_NUMBER : FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;
-FNUMBER : FDOTNUMBER | FNUMDOTNUMBER ;
-FDOTNUMBER : '.' (DEC_DIGIT | '_')+ ;
-FNUMDOTNUMBER : DEC_DIGIT (DEC_DIGIT | '_')* FDOTNUMBER? ;
-```
-
-**Fix**: Simplify:
-```antlr
-FLOAT_NUMBER
-    : DEC_DIGIT (DEC_DIGIT | '_')* ('.' (DEC_DIGIT | '_')*)?
-      (('E'|'e') ('+'|'-')? DEC_INTEGER)?
-    | '.' (DEC_DIGIT | '_')+ (('E'|'e') ('+'|'-')? DEC_INTEGER)?
-    ;
-```
+There are no functional lexer improvements left to make.
 
 ---
 
@@ -434,59 +312,13 @@ module: EOL* (module_element (EOL+ module_element)*)? EOL* EOF;
 
 ---
 
-## 5. Missing Syntactic Validations
-
-Add parser-level validations to catch errors early:
-
-```antlr
-// Array type validation
-vardecl
-    : datatype (arrayindex | EMPTYARRAYSIG)? TAG* identifierlist
-    | datatype EMPTYARRAYSIG identifierlist
-      { if (!$datatype.text.equals("ubyte") && !$datatype.text.equals("byte")) 
-          notifyErrorListeners("Empty array syntax [] only valid for byte/ubyte types"); }
-    ;
-
-// Function call validation
-functioncall_stmt
-    : VOID? scoped_identifier '(' EOL? expression_list? EOL? ')'
-    | VOID? scoped_identifier '(' EOL? expression_list? EOL? ')' '=' expression  // ERROR: assignment in function call
-      { notifyErrorListeners("Cannot assign to function call. Use separate statement."); }
-    ;
-```
-
----
-
 ## 6. Implementation Priority
 
 | Priority | Issue | Impact | Effort | Files to Modify |
 |----------|-------|--------|--------|------------------|
-| **High** | Expression rule refactoring | Maintainability, error quality | Medium | `Prog8ANTLR.g4` |
-| **High** | Add error recovery alternatives | User experience | Low | `Prog8ANTLR.g4` |
-| **Medium** | NOT_IN to parser rule | Robustness | Low | `Prog8ANTLR.g4` |
 | **Medium** | Statement rule grouping | Maintainability | Low | `Prog8ANTLR.g4` |
 | **Medium** | Identifier keyword handling | Completeness | Low | `Prog8ANTLR.g4` |
 | **Low** | Pointer dereference cleanup | Technical debt | Medium | `Prog8ANTLR.g4` |
-| **Low** | Float number simplification | Maintainability | Low | `Prog8ANTLR.g4` |
-
----
-
-## 7. Example: Improved Error Messages
-
-### Before (Current)
-```
-line 5:8 mismatched input '=' expecting {<EOF>, EOL, ';', ...}
-line 10:3 mismatched input 'if' expecting {'{', 'then', ...}
-line 15:12 mismatched input 'on' expecting {UNICODEDNAME, ...}
-```
-
-### After (With Custom Messages)
-```
-line 5:8 syntax error: Cannot chain assignments. Use multiple statements instead.
-line 10:3 syntax error: 'if' statement missing 'then' or '{' before condition body
-line 15:12 syntax error: Variable 'on' is a keyword. Use a different name or escape it.
-line 20:4 syntax error: Empty array syntax [] only valid for byte/ubyte types.
-```
 
 ---
 
@@ -501,381 +333,9 @@ After implementing these changes:
 
 ---
 
-## 9. Migration Plan
-
-1. **Phase 1**: Implement high-priority error recovery improvements
-2. **Phase 2**: Refactor expression and statement rules
-3. **Phase 3**: Fix lexer issues (NOT_IN, identifier handling)
-4. **Phase 4**: Clean up specific problem areas (pointers, assignments)
-5. **Phase 5**: Add comprehensive error validations
-
-Each phase should include:
-- Grammar changes
-- Test updates
-- Documentation updates
-- Performance verification
-
----
-
 ## 10. Related Files to Update
 
 - `/home/irmen/Projects/prog8/parser/src/main/antlr/Prog8ANTLR.g4` - Main grammar file
 - `/home/irmen/Projects/prog8/compilerAst/src/prog8/parser/Prog8Parser.kt` - Error handling
 - Test files in `/home/irmen/Projects/prog8/compiler/test/` - Update for new error messages
 - Documentation - Update language specification if grammar semantics change
-
----
-
-## Conclusion
-
-These improvements will significantly enhance the Prog8 parser by:
-- Providing clearer, more helpful error messages
-- Making the grammar more maintainable and extensible
-- Fixing known parsing issues and ambiguities
-- Improving overall user experience for developers using the language
-
-The changes are designed to be backward-compatible where possible, with careful attention to maintaining existing functionality while improving the parser's robustness and usability.
-
----
-
-# Appendix: BailErrorStrategy Migration Guide
-
-## What is BailErrorStrategy?
-
-`BailErrorStrategy` is an ANTLR4 error handling strategy that **immediately stops parsing** when it encounters the first syntax error, rather than attempting to recover and continue parsing.
-
-### Key Characteristics:
-
-1. **Fail-Fast**: Stops on the first error - no recovery attempts
-2. **No Error Recovery**: Doesn't try to skip tokens or resynchronize
-3. **Throws Exceptions**: Immediately throws `InputMismatchException` or other parse errors
-4. **Simple but Limited**: Easy to implement but poor user experience
-
-### Current Implementation in Prog8:
-
-```kotlin
-// File: /home/irmen/Projects/prog8/compilerAst/src/prog8/parser/Prog8Parser.kt
-private object Prog8ErrorStrategy: BailErrorStrategy() {
-    override fun recover(recognizer: Parser?, e: RecognitionException?) {
-        fillIn(e, recognizer!!.context)
-        reportError(recognizer, e)
-    }
-    
-    override fun recoverInline(recognizer: Parser?): Token {
-        val e = InputMismatchException(recognizer)
-        fillIn(e, recognizer!!.context)
-        reportError(recognizer, e)
-        throw e
-    }
-}
-```
-
-## Problems with BailErrorStrategy:
-
-1. **Single Error Only**: Users only see the first syntax error, not all issues
-2. **Poor IDE Integration**: IDEs can't highlight multiple errors simultaneously
-3. **Frustrating Workflow**: Fix one error, recompile, find next error
-4. **Limited Context**: No information about what might be expected
-
----
-
-## Migration Plan: Replace BailErrorStrategy
-
-### 1. **Replace Error Strategy**
-
-**Current:**
-```kotlin
-parser.errorHandler = Prog8ErrorStrategy     // BailErrorStrategy
-```
-
-**New:**
-```kotlin
-parser.errorHandler = DefaultErrorStrategy()  // Built-in recovery strategy
-```
-
-### 2. **Implement Custom Error Listener**
-
-**Create new error listener:**
-```kotlin
-private class Prog8ErrorListener(val src: SourceCode): BaseErrorListener() {
-    private val errors = mutableListOf<ParseError>()
-    
-    override fun syntaxError(recognizer: Recognizer<*, *>?, 
-                            offendingSymbol: Any?, 
-                            line: Int, 
-                            charPositionInLine: Int, 
-                            msg: String, 
-                            e: RecognitionException?) {
-        // Collect errors instead of throwing immediately
-        val error = ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), e ?: RuntimeException("parse error"))
-        errors.add(error)
-    }
-    
-    fun getErrors(): List<ParseError> = errors.toList()
-    fun hasErrors(): Boolean = errors.isNotEmpty()
-}
-```
-
-### 3. **Update Parser Setup**
-
-**Current:**
-```kotlin
-fun parseModule(src: SourceCode): Module {
-    val antlrErrorListener = AntlrErrorListener(src)
-    val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
-    lexer.removeErrorListeners()
-    lexer.addErrorListener(antlrErrorListener)
-    val tokens = CommonTokenStream(lexer)
-    val parser = Prog8ANTLRParser(tokens)
-    parser.errorHandler = Prog8ErrorStrategy     // BailErrorStrategy
-    parser.removeErrorListeners()
-    parser.addErrorListener(antlrErrorListener)
-    
-    val parseTree = parser.module()
-    // ... visitor pattern
-}
-```
-
-**New:**
-```kotlin
-fun parseModule(src: SourceCode): Module {
-    val errorListener = Prog8ErrorListener(src)
-    val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
-    lexer.removeErrorListeners()
-    lexer.addErrorListener(errorListener)
-    val tokens = CommonTokenStream(lexer)
-    val parser = Prog8ANTLRParser(tokens)
-    parser.errorHandler = DefaultErrorStrategy()  // Recovery strategy
-    parser.removeErrorListeners()
-    parser.addErrorListener(errorListener)
-    
-    val parseTree = parser.module()
-    
-    // Check for errors after parsing
-    if (errorListener.hasErrors()) {
-        throw MultipleParseErrors(errorListener.getErrors())
-    }
-    
-    // ... visitor pattern
-}
-```
-
-### 4. **Create Multiple Errors Exception**
-
-```kotlin
-class MultipleParseErrors(val errors: List<ParseError>) : Exception() {
-    override val message: String
-        get() = "Found ${errors.size} parse errors:\n" + 
-                errors.joinToString("\n") { "${it.position}: ${it.message}" }
-}
-```
-
-### 5. **Update Compiler Error Handling**
-
-**Current in Compiler.kt:**
-```kotlin
-} catch (px: ParseError) {
-    args.errors.printSingleError("${px.position.toClickableStr()} parse error: ${px.message}".trim())
-}
-```
-
-**New:**
-```kotlin
-} catch (mpe: MultipleParseErrors) {
-    // Report all parse errors
-    mpe.errors.forEach { error ->
-        args.errors.printSingleError("${error.position.toClickableStr()} parse error: ${error.message}".trim())
-    }
-} catch (px: ParseError) {
-    // Fallback for single errors
-    args.errors.printSingleError("${px.position.toClickableStr()} parse error: ${px.message}".trim())
-}
-```
-
----
-
-## Grammar Changes for Better Error Recovery
-
-### 1. **Add Error Recovery Alternatives**
-
-```antlr
-// Statement with error recovery
-statement
-    : directive
-    | ongoto
-    | variabledeclaration
-    | structdeclaration
-    | assignment
-    | augassignment
-    | unconditionaljump
-    | postincrdecr
-    | functioncall_stmt
-    | if_stmt
-    | branch_stmt
-    | subroutinedeclaration
-    | inlineasm
-    | returnstmt
-    | forloop
-    | whileloop
-    | untilloop
-    | repeatloop
-    | unrollloop
-    | whenstmt
-    | breakstmt
-    | continuestmt
-    | labeldef
-    | defer
-    | alias
-    // Error recovery alternatives
-    | 'if' expression error=statement
-      { notifyErrorListeners("Expected 'then' or '{' after if condition"); }
-    | 'for' identifier 'in' error=statement
-      { notifyErrorListeners("Expected expression after 'in'"); }
-    | 'while' error=statement
-      { notifyErrorListeners("Expected condition after 'while'"); }
-    | 'return' error=expression
-      { notifyErrorListeners("Invalid return expression"); }
-    ;
-```
-
-### 2. **Add Synchronization Points**
-
-```antlr
-// Block with synchronization
-block: identifier integerliteral? EOL? '{' EOL? (block_statement | EOL)* '}' 
-    | identifier integerliteral? EOL? '{' error=EOL? (block_statement | EOL)* '}'
-      { notifyErrorListeners("Error in block: " + $error.text); }
-    ;
-
-// Module with synchronization
-module: EOL* (module_element (EOL+ module_element)*)? EOL* EOF
-      | EOL* module_element error=EOL+ module_element* EOL* EOF
-      { notifyErrorListeners("Error between module elements"); }
-      ;
-```
-
-### 3. **Add Error Tokens**
-
-```antlr
-// Add to lexer
-ERROR_TOKEN: . -> skip ;  // Skip unknown tokens
-```
-
----
-
-## Benefits of Migration
-
-### 1. **Multiple Error Reporting**
-- Users see all syntax errors at once
-- Better IDE integration with multiple error highlights
-- More efficient development workflow
-
-### 2. **Better Error Context**
-- ANTLR's recovery provides context about expected tokens
-- Can suggest alternatives based on grammar
-- More precise error locations
-
-### 3. **Improved User Experience**
-- Less frustrating compilation process
-- Better error messages with context
-- Ability to fix multiple issues in one iteration
-
----
-
-## Implementation Steps
-
-### Phase 1: Basic Migration
-1. Replace `BailErrorStrategy` with `DefaultErrorStrategy`
-2. Update error listener to collect instead of throw
-3. Create `MultipleParseErrors` exception
-4. Update compiler error handling
-
-### Phase 2: Grammar Improvements
-1. Add error recovery alternatives to key rules
-2. Add synchronization points for better recovery
-3. Improve error messages with context
-
-### Phase 3: Advanced Features
-1. Add error suggestion logic
-2. Implement custom recovery strategies for specific patterns
-3. Add error severity levels (warning vs error)
-
----
-
-## Testing Strategy
-
-### 1. **Create Test Cases with Multiple Errors**
-```kotlin
-test("multiple parse errors") {
-    val src = """
-        sub main() {
-            x = 1 +    // Missing right operand
-            if x > 0   // Missing then/block
-            y =        // Missing expression
-        }
-    """
-    // Should report all 3 errors, not just the first
-}
-```
-
-### 2. **Test Error Recovery**
-```kotlin
-test("error recovery continues parsing") {
-    val src = """
-        sub bad() { x = 1 + }
-        sub good() { return 42 }
-    """
-    // Should parse both subroutines and report error in first
-}
-```
-
-### 3. **Test Synchronization**
-```kotlin
-test("block synchronization") {
-    val src = """
-        block1 {
-            x = 1 +    // Error in block1
-        }
-        block2 {      // Should still parse block2
-            y = 2
-        }
-    """
-    // Should recover and parse block2 correctly
-}
-```
-
----
-
-## Potential Challenges
-
-### 1. **Cascading Errors**
-- One syntax error might cause multiple subsequent errors
-- Need to filter or prioritize errors intelligently
-
-### 2. **Performance Impact**
-- Error recovery has overhead
-- Need to benchmark parsing performance
-
-### 3. **False Positives**
-- Recovery might parse invalid constructs
-- Need to validate AST after parsing
-
----
-
-## Summary
-
-Migrating from `BailErrorStrategy` to a recovery-based approach will:
-
-1. **Improve User Experience**: Show all errors at once instead of one-by-one
-2. **Better IDE Integration**: Enable multiple error highlights
-3. **Provide Context**: Better error messages with expected tokens
-4. **Maintain Robustness**: Still catch all errors, just report them differently
-
-The migration requires changes to:
-- Error handling strategy in parser setup
-- Error listener implementation  
-- Compiler error reporting
-- Grammar for better recovery
-- Test cases for multiple errors
-
-This change will significantly improve the development experience for Prog8 programmers while maintaining the compiler's accuracy and robustness.

@@ -22,6 +22,7 @@ import prog8.codegen.vm.VmCodeGen
 import prog8.compiler.astprocessing.*
 import prog8.compiler.simpleastprocessing.profilingInstrumentation
 import prog8.optimizer.*
+import prog8.parser.MultipleParseErrors
 import prog8.parser.ParseError
 import java.nio.file.Path
 import kotlin.io.path.Path
@@ -323,6 +324,10 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
             println("\nTotal compilation+assemble time: ${totalTime.toString(DurationUnit.SECONDS, 3)}.")
         }
         return CompilationResult(resultingProgram!!, ast, symbolTable, compilationOptions, importedFiles, irInstructionCount, irRegisterCount)
+    } catch (mpe: MultipleParseErrors) {
+        mpe.errors.forEach { error ->
+            args.errors.printSingleError("ERROR ${error.position.toClickableStr()} parse error: ${error.message}")
+        }
     } catch (px: ParseError) {
         args.errors.printSingleError("ERROR ${px.position.toClickableStr()} parse error: ${px.message}".trim())
     } catch (ac: ErrorsReportedException) {

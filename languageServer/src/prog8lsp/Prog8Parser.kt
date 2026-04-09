@@ -4,6 +4,7 @@ import prog8.ast.Module
 import prog8.ast.statements.Block
 import prog8.code.core.Position
 import prog8.code.source.SourceCode
+import prog8.parser.MultipleParseErrors
 import prog8.parser.ParseError
 import prog8.parser.Prog8Parser as InternalParser
 
@@ -30,8 +31,11 @@ object Prog8Parser {
             val sourceCode = SourceCode.Text(text)
             val module = InternalParser.parseModule(sourceCode)
             ParseResult(module, emptyList())
+        } catch (e: MultipleParseErrors) {
+            // Collect all parse errors into the result
+            ParseResult(null, e.errors)
         } catch (e: ParseError) {
-            // Capture the parse error with position and message
+            // Capture the single parse error with position and message
             ParseResult(null, listOf(e))
         } catch (e: Exception) {
             // Wrap unexpected exceptions as parse errors

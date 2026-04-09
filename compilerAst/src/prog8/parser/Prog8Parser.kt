@@ -9,20 +9,28 @@ import prog8.code.source.SourceCode
 
 class ParseError(override var message: String, val position: Position, cause: RuntimeException): Exception(message, cause)
 
+class MultipleParseErrors(val errors: List<ParseError>) : Exception(
+    "Found ${errors.size} parse errors:\n${errors.joinToString("\n") { it.message }}"
+)
+
 object Prog8Parser {
 
     fun parseModule(src: SourceCode): Module {
-        val antlrErrorListener = AntlrErrorListener(src)
+        val errorListener = CollectingErrorListener(src)
         val lexer = Prog8ANTLRLexer(CharStreams.fromString(src.text, src.origin))
         lexer.removeErrorListeners()
-        lexer.addErrorListener(antlrErrorListener)
+        lexer.addErrorListener(errorListener)
         val tokens = CommonTokenStream(lexer)
         val parser = Prog8ANTLRParser(tokens)
-        parser.errorHandler = Prog8ErrorStrategy
+        parser.errorHandler = DefaultErrorStrategy()
         parser.removeErrorListeners()
-        parser.addErrorListener(antlrErrorListener)
+        parser.addErrorListener(errorListener)
 
         val parseTree = parser.module()
+
+        if(errorListener.hasErrors()) {
+            throw MultipleParseErrors(errorListener.getErrors())
+        }
 
         val visitor = Antlr2KotlinVisitor(src)
         val visitorResult = visitor.visit(parseTree)
@@ -30,34 +38,9 @@ object Prog8Parser {
     }
 
 
-    private object Prog8ErrorStrategy: BailErrorStrategy() {
-        private fun fillIn(e: RecognitionException?, ctx: ParserRuleContext?) {
-            var context = ctx
-            while (context != null) {
-                context.exception = e
-                context = context.getParent()
-            }
-        }
+    class CollectingErrorListener(private val src: SourceCode): BaseErrorListener() {
+        private val errors = mutableListOf<ParseError>()
 
-        override fun reportInputMismatch(recognizer: Parser?, e: InputMismatchException?) {
-            super.reportInputMismatch(recognizer, e)
-        }
-
-        override fun recover(recognizer: Parser?, e: RecognitionException?) {
-            fillIn(e, recognizer!!.context)
-            reportError(recognizer, e)
-        }
-
-        override fun recoverInline(recognizer: Parser?): Token {
-            val e = InputMismatchException(recognizer)
-            fillIn(e, recognizer!!.context)
-            reportError(recognizer, e)
-            throw e
-        }
-    }
-
-    private class AntlrErrorListener(val src: SourceCode): BaseErrorListener() {
-    
         private fun RecognitionException.getPosition(): Position {
             val offending = this.offendingToken ?: return Position(src.origin, 1, 1, 1)
 
@@ -86,16 +69,21 @@ object Prog8Parser {
 
         override fun syntaxError(recognizer: Recognizer<*, *>?, offendingSymbol: Any?, line: Int, charPositionInLine: Int, msg: String, e: RecognitionException?) {
             if (e == null) {
-                // Simple case: no exception, just use the provided line/col
-                throw ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), RuntimeException("parse error"))
+                val error = ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), RuntimeException("parse error"))
+                errors.add(error)
             } else {
                 if(e.offendingToken==null) {
-                    throw ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), e)
+                    val error = ParseError(msg, Position(src.origin, line, charPositionInLine+1, charPositionInLine+1), e)
+                    errors.add(error)
                 } else {
-                    throw ParseError(msg, e.getPosition(), e)
+                    val error = ParseError(msg, e.getPosition(), e)
+                    errors.add(error)
                 }
             }
         }
+
+        fun getErrors(): List<ParseError> = errors.toList()
+        fun hasErrors(): Boolean = errors.isNotEmpty()
     }
 
 }

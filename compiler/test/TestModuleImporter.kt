@@ -14,7 +14,7 @@ import prog8.code.PROG8_CONTAINER_MODULES
 import prog8.code.core.IErrorReporter
 import prog8.code.source.SourceCode
 import prog8.compiler.ModuleImporter
-import prog8.parser.ParseError
+import prog8.parser.MultipleParseErrors
 import prog8tests.helpers.*
 import kotlin.io.path.*
 
@@ -146,11 +146,11 @@ class TestModuleImporter: FunSpec({
                     val act = { importer.importMainModule(srcPath) }
 
                     repeat(2) { n -> withClue(count[n] + " call") {
-                            shouldThrow<ParseError> { act() }.let {
-                                it.position.file shouldBe SourceCode.relative(srcPath).toString()
-                                withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                                withClue("startCol; should be 1-based") { it.position.startCol shouldBe 5 }
-                                withClue("endCol; should be 1-based") { it.position.endCol shouldBe 7 }
+                            shouldThrow<MultipleParseErrors> { act() }.let { e ->
+                                e.errors.first().position.file shouldBe SourceCode.relative(srcPath).toString()
+                                withClue("line; should be 1-based") { e.errors.first().position.line shouldBe 2 }
+                                withClue("startCol; should be 1-based") { e.errors.first().position.startCol shouldBe 5 }
+                                withClue("endCol; should be 1-based") { e.errors.first().position.endCol shouldBe 7 }
                             }
                         }
                         program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
@@ -166,11 +166,11 @@ class TestModuleImporter: FunSpec({
                     val act = { importer.importMainModule(importing) }
 
                     repeat(repetitions) { n -> withClue(count[n] + " call") {
-                        shouldThrow<ParseError> { act() }.let {
-                            it.position.file shouldBe SourceCode.relative(imported).toString()
-                            withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                            withClue("startCol; should be 1-based") { it.position.startCol shouldBe 5 }
-                            withClue("endCol; should be 1-based") { it.position.endCol shouldBe 7 }
+                        shouldThrow<MultipleParseErrors> { act() }.let { e ->
+                            e.errors.first().position.file shouldBe SourceCode.relative(imported).toString()
+                            withClue("line; should be 1-based") { e.errors.first().position.line shouldBe 2 }
+                            withClue("startCol; should be 1-based") { e.errors.first().position.startCol shouldBe 5 }
+                            withClue("endCol; should be 1-based") { e.errors.first().position.endCol shouldBe 7 }
                             }
                         }
                         withClue("imported module with error in it should not be present") { program.modules.size shouldBe PROG8_CONTAINER_MODULES.size }
@@ -225,13 +225,13 @@ class TestModuleImporter: FunSpec({
                     val srcPath = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
 
                     repeat(2) { n -> withClue(count[n] + " call") {
-                            shouldThrow<ParseError>()
-                            {
-                                importer.importImplicitLibraryModule(srcPath.nameWithoutExtension) }.let {
-                                it.position.file shouldBe SourceCode.relative(srcPath).toString()
-                                withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                                withClue("startCol; should be 1-based") { it.position.startCol shouldBe 5 }
-                                withClue("endCol; should be 1-based") { it.position.endCol shouldBe 7 }
+                            shouldThrow<MultipleParseErrors> {
+                                importer.importImplicitLibraryModule(srcPath.nameWithoutExtension)
+                            }.let { e ->
+                                e.errors.first().position.file shouldBe SourceCode.relative(srcPath).toString()
+                                withClue("line; should be 1-based") { e.errors.first().position.line shouldBe 2 }
+                                withClue("startCol; should be 1-based") { e.errors.first().position.startCol shouldBe 5 }
+                                withClue("endCol; should be 1-based") { e.errors.first().position.endCol shouldBe 7 }
                             }
                         }
                         program.modules.size shouldBe PROG8_CONTAINER_MODULES.size
@@ -248,12 +248,12 @@ class TestModuleImporter: FunSpec({
                     val act = { importer.importImplicitLibraryModule(importing.nameWithoutExtension) }
 
                     repeat(repetitions) { n -> withClue(count[n] + " call") {
-                            shouldThrow<ParseError> {
-                                act() }.let {
-                                it.position.file shouldBe SourceCode.relative(imported).toString()
-                                withClue("line; should be 1-based") { it.position.line shouldBe 2 }
-                                withClue("startCol; should be 1-based") { it.position.startCol shouldBe 5 }
-                                withClue("endCol; should be 1-based") { it.position.endCol shouldBe 7 }
+                            shouldThrow<MultipleParseErrors> {
+                                act() }.let { e ->
+                                e.errors.first().position.file shouldBe SourceCode.relative(imported).toString()
+                                withClue("line; should be 1-based") { e.errors.first().position.line shouldBe 2 }
+                                withClue("startCol; should be 1-based") { e.errors.first().position.startCol shouldBe 5 }
+                                withClue("endCol; should be 1-based") { e.errors.first().position.endCol shouldBe 7 }
                             }
                         }
                         withClue("imported module with error in it should not be present") { program.modules.size shouldBe PROG8_CONTAINER_MODULES.size }

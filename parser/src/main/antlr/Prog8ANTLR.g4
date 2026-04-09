@@ -49,10 +49,9 @@ fragment HEX_DIGIT: ('a'..'f') | ('A'..'F') | ('0'..'9') ;
 fragment BIN_DIGIT: ('0' | '1') ;
 fragment DEC_DIGIT: ('0'..'9') ;
 
-FLOAT_NUMBER :  FNUMBER (('E'|'e') ('+' | '-')? DEC_INTEGER)? ;    // sign comes later from unary expression
-FNUMBER : FDOTNUMBER |  FNUMDOTNUMBER ;
-FDOTNUMBER : '.' (DEC_DIGIT | '_')+ ;
-FNUMDOTNUMBER : DEC_DIGIT (DEC_DIGIT | '_')* FDOTNUMBER? ;
+FLOAT_NUMBER : DEC_DIGIT (DEC_DIGIT | '_')* ('.' (DEC_DIGIT | '_')*)? (('E'|'e') ('+'|'-')? DEC_INTEGER)?
+             | '.' (DEC_DIGIT | '_')+ (('E'|'e') ('+'|'-')? DEC_INTEGER)?
+             ;
 
 STRING_ESCAPE_SEQ :  '\\' [\u0021-\u007E] | '\\x' HEX_DIGIT HEX_DIGIT | '\\u' HEX_DIGIT HEX_DIGIT HEX_DIGIT HEX_DIGIT;
 STRING :
@@ -128,6 +127,27 @@ statement :
     | alias
     | enum
     | swap
+    // Error recovery: match tokens that can NEVER start a valid expression
+    | 'if' '{'
+      { notifyErrorListeners("Missing condition: expected expression after 'if'"); }
+    | 'while' '{'
+      { notifyErrorListeners("Missing condition: expected expression after 'while'"); }
+    | 'for' identifier 'in' '}'
+      { notifyErrorListeners("Missing range: expected expression after 'in'"); }
+    | 'for' identifier 'in' ('else' | 'return' | 'break' | 'continue' | 'defer' | '}')
+      { notifyErrorListeners("Missing range: expected expression after 'in'"); }
+    | 'return' ('}' | 'else' | 'while' | 'for' | 'if' | 'defer')
+      { notifyErrorListeners("Invalid token after 'return'"); }
+    | 'defer' ('}' | 'else' | 'while' | 'for' | 'if' | 'return' | 'break' | 'continue')
+      { notifyErrorListeners("Expected statement after 'defer'"); }
+    | 'when' '{'
+      { notifyErrorListeners("Missing expression: expected condition after 'when'"); }
+    | ENUM '{'
+      { notifyErrorListeners("Expected enum name after 'enum'"); }
+    | STRUCT '{'
+      { notifyErrorListeners("Expected struct name after 'struct'"); }
+    | ON (GOTO | CALL)
+      { notifyErrorListeners("Missing expression: expected index after 'on'"); }
     ;
 
 

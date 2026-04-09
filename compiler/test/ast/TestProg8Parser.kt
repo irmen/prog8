@@ -22,7 +22,7 @@ import prog8.code.source.SourceCode
 import prog8.code.target.C64Target
 import prog8.code.target.VMTarget
 import prog8.code.target.encodings.PetsciiEncoding
-import prog8.parser.ParseError
+import prog8.parser.MultipleParseErrors
 import prog8.parser.Prog8Parser.parseModule
 import prog8tests.helpers.*
 import kotlin.io.path.Path
@@ -63,40 +63,40 @@ class TestProg8Parser: FunSpec( {
             // GOOD: 2nd block `bar` does start on a new line; however, a nl at the very end ain't needed
             val srcGood = "foo {$nl}${nl}bar {$nl}"
 
-            shouldThrow<ParseError> { parseModule(SourceCode.Text(srcBad)) }
+            shouldThrow<MultipleParseErrors> { parseModule(SourceCode.Text(srcBad)) }
             val module = parseModule(SourceCode.Text(srcGood))
             module.statements.size shouldBe 2
         }
 
         test("is required between two Blocks or Directives - #47") {
             // block and block
-            shouldThrow<ParseError>{ parseModule(
+            shouldThrow<MultipleParseErrors>{ parseModule(
                 SourceCode.Text("""
                 blockA {
-                } blockB {            
-                }            
+                } blockB {
+                }
             """)) }
 
             // block and directive
-            shouldThrow<ParseError>{ parseModule(
+            shouldThrow<MultipleParseErrors>{ parseModule(
                 SourceCode.Text("""
-                blockB {            
-                } %import textio            
+                blockB {
+                } %import textio
             """)) }
 
             // The following two are bogus due to directive *args* expected to follow the directive name.
             // Leaving them in anyways.
 
             // dir and block
-            shouldThrow<ParseError>{ parseModule(
+            shouldThrow<MultipleParseErrors>{ parseModule(
                 SourceCode.Text("""
-                %import textio blockB {            
-                }            
+                %import textio blockB {
+                }
             """)) }
 
-            shouldThrow<ParseError>{ parseModule(
+            shouldThrow<MultipleParseErrors>{ parseModule(
                 SourceCode.Text("""
-                %import textio %import syslib            
+                %import textio %import syslib
             """)) }
         }
 
@@ -319,16 +319,16 @@ class TestProg8Parser: FunSpec( {
         test("in ParseError from bad string source code") {
             val srcText = "bad * { }\n"
 
-            val e = shouldThrow<ParseError> { parseModule(SourceCode.Text(srcText)) }
-            assertPosition(e.position, Regex("^string:[0-9a-f\\-]+$"), 1, 5, 5, srcText)
+            val e = shouldThrow<MultipleParseErrors> { parseModule(SourceCode.Text(srcText)) }
+            assertPosition(e.errors.first().position, Regex("^string:[0-9a-f\\-]+$"), 1, 5, 5, srcText)
         }
 
         test("in ParseError from bad file source code") {
             val path = assumeReadableFile(fixturesDir, "ast_file_with_syntax_error.p8")
             val srcText = ImportFileSystem.getFile(path).text
 
-            val e = shouldThrow<ParseError> { parseModule(ImportFileSystem.getFile(path)) }
-            assertPosition(e.position, SourceCode.relative(path).toString(), 2, 5, sourceText=srcText)
+            val e = shouldThrow<MultipleParseErrors> { parseModule(ImportFileSystem.getFile(path)) }
+            assertPosition(e.errors.first().position, SourceCode.relative(path).toString(), 2, 5, sourceText=srcText)
         }
 
         test("of Module parsed from a string") {
