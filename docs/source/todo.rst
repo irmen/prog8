@@ -37,8 +37,7 @@ Future Things and Ideas
 - struct/ptr: optimize the long pointer deref in assignPointerDerefExpression() so that it doesnt require a temp assignment all the time
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
-- make memory mapped variables support more constant expressions such as:  &uword  MyHigh = &mylong1+2 (see github issue #192)
-- allow the value of a memory mapped variable to be address-of another variable, not just a constant number
+- allow the value of a memory mapped variable to be address-of another variable, not just a constant number, and maybe even even more complicated constant expressions such as:  &uword  MyHigh = &mylong+2
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
@@ -49,10 +48,6 @@ Future Things and Ideas
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
-- Kotlin: can we use inline value classes in certain spots? (domain types instead of primitives)
-  **MemoryAddress done:** ``IRInstruction.address`` field converted from ``Int?`` to ``MemoryAddress?``. All construction, serialization, and VM extraction sites updated. Internally uses ``UInt`` for the address value, matching the unsigned 16-bit hardware semantics. Zero runtime overhead (``@JvmInline value class``). Added ``toHex()`` method. ``Memory`` class methods all take ``UInt`` addresses.
-  **RegisterNum partially done:** ``RegisterNum`` value class exists with ``compareTo`` operators. Used for ``RegSpec.registerNum``, ``RegisterPool`` keys, and ``addUsedRegistersCounts()``/``RegistersUsed`` maps (``readRegsCounts``, ``writeRegsCounts``, ``regsTypes``). ``IRInstruction.reg1``/``reg2``/``reg3`` fields remain ``Int?``; ``fpReg1``/``fpReg2`` are ``RegisterNum?``. Full migration of int register fields would provide end-to-end type safety but requires converting ~500 call sites across 8+ files.
-- Kotlin: can private setters / backing fields be used? (internal mutableList, external List)
 - add float support to the configurable compiler targets. Restrictions: just have "cbm-style floats" as an option (to that it can slot into the current float codegen), where all you have to specify is the addresses of AYINT and GIVAYF and FADDT and all their friends.
 - Change scoping rules for qualified symbols so that they don't always start from the root but behave like other programming languages (look in local scope first), maybe only when qualified symbol starts with '.' such as: .local.value = 33
 - something to reduce the need to use fully qualified names all the time. 'with' ?  Or 'using <prefix>'?
@@ -68,7 +63,6 @@ Future Things and Ideas
 - more support for (64tass) SEGMENTS in the prog8 syntax itself? maybe %segment blah  in blocks?
 - ability to use a sub instead of only a var for @bank ? what for though? dynamic bank/overlay loading?
 - BUG: fix the c64 multiplexer example
-- Zig-like try-based error handling where the V flag could indicate error condition? and/or BRK to jump into monitor on failure? (has to set BRK vector for that) But the V flag is also set on certain normal instructions
 
 
 IR/VM

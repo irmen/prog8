@@ -122,17 +122,16 @@ class IRStStaticVariable(name: String,
     val typeString: String = dt.irTypeString(length)
 }
 
-class IRStArrayElement(val bool: Boolean?, val number: Double?, val addressOfSymbol: String?, val memorySlabName: String? = null) {
-    init {
-        if(bool!=null) require(number==null && addressOfSymbol==null && memorySlabName==null)
-        if(number!=null) require(bool==null && addressOfSymbol==null && memorySlabName==null)
-        if(addressOfSymbol!=null) require(number==null && bool==null && memorySlabName==null)
-        if(memorySlabName!=null) require(number==null && bool==null && addressOfSymbol==null)
-        if(addressOfSymbol!=null) {
-            require('.' in addressOfSymbol) { "addressOfSymbol must be a scoped name" }
-        }
-        if(memorySlabName!=null) {
-            require('.' in memorySlabName) { "memorySlabName must be a scoped name" }
+/**
+ * A symbolic reference that can be resolved at runtime or assembly time.
+ * Used for array initializer values and struct initialization.
+ */
+sealed class IRStSymbolicReference {
+    data class BoolValue(val value: Boolean) : IRStSymbolicReference()
+    data class Numeric(val value: Double) : IRStSymbolicReference()
+    data class Symbol(val name: String) : IRStSymbolicReference() {
+        init {
+            require('.' in name) { "symbol name must be a scoped name" }
         }
     }
 }
@@ -145,7 +144,7 @@ class IRStStructInstance(name: String, val structName: String, val values: List<
     }
 }
 
-class IRStructInitValue(val dt: BaseDataType, val value: IRStArrayElement)
+class IRStructInitValue(val dt: BaseDataType, val value: IRStSymbolicReference)
 
-typealias IRStArray = List<IRStArrayElement>
+typealias IRStArray = List<IRStSymbolicReference>
 typealias IRStString = Pair<String, Encoding>

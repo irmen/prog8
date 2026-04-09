@@ -43,7 +43,7 @@ class IRUnusedCodeRemover(
                 val initValue = variable.onetimeInitializationArrayValue
                 if(!initValue.isNullOrEmpty()) {
                     if(initValue.any {
-                        it.addressOfSymbol?.startsWith(blockLabel)==true
+                        it is IRStSymbolicReference.Symbol && it.name.startsWith(blockLabel)
                     })
                         return   // symbol occurs in an initializer value (address-of this symbol)_
                 }
@@ -206,8 +206,8 @@ class IRUnusedCodeRemover(
             .forEach {
                 it.onetimeInitializationArrayValue?.let { array ->
                     array.forEach {elt ->
-                        if(elt.addressOfSymbol!=null && irprog.st.lookup(elt.addressOfSymbol!!)==null)
-                            reachable.add(irprog.getChunkWithLabel(elt.addressOfSymbol!!))
+                        if(elt is IRStSymbolicReference.Symbol && irprog.st.lookup(elt.name)==null)
+                            reachable.add(irprog.getChunkWithLabel(elt.name))
                     }
                 }
             }
@@ -252,8 +252,8 @@ class IRUnusedCodeRemover(
             .forEach {
                 it.onetimeInitializationArrayValue?.let { array ->
                     array.forEach {elt ->
-                        if(elt.addressOfSymbol!=null && irprog.st.lookup(elt.addressOfSymbol!!)==null)
-                            linkedChunks += irprog.getChunkWithLabel(elt.addressOfSymbol!!)
+                        if(elt is IRStSymbolicReference.Symbol && irprog.st.lookup(elt.name)==null)
+                            linkedChunks += irprog.getChunkWithLabel(elt.name)
                     }
                 }
             }

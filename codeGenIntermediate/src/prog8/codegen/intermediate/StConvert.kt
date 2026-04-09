@@ -12,15 +12,17 @@ private object StToIrConverter {
     fun convert(struct: StStruct): IRStStructDef =
         IRStStructDef(struct.scopedNameString, struct.fields, struct.size)
 
-    private fun convertArrayElt(elt: StArrayElement): IRStArrayElement {
+    private fun convertArrayElt(elt: StArrayElement): IRStSymbolicReference {
         return when(elt) {
-            is StArrayElement.BoolValue -> IRStArrayElement(elt.value, null, null)
-            is StArrayElement.Number -> IRStArrayElement(null, elt.value, null)
-            is StArrayElement.MemorySlab -> IRStArrayElement(null, null, "$StMemorySlabBlockName.${elt.name}")
-            is StArrayElement.AddressOf -> IRStArrayElement(null, null, elt.symbol)
+            is StArrayElement.BoolValue -> IRStSymbolicReference.BoolValue(elt.value)
+            is StArrayElement.Number -> IRStSymbolicReference.Numeric(elt.value)
+            // Memory slabs and address-of are both stored as symbol references in the IR
+            is StArrayElement.MemorySlab -> IRStSymbolicReference.Symbol("$StMemorySlabBlockName.${elt.name}")
+            is StArrayElement.AddressOf -> IRStSymbolicReference.Symbol(elt.symbol)
             is StArrayElement.StructInstance -> {
+                // Struct instances in arrays are stored as symbol references to the struct instance block
                 val symbol = StStructInstanceBlockName + "." + (if(elt.uninitialized) elt.name else elt.name)
-                IRStArrayElement(null, null, symbol)
+                IRStSymbolicReference.Symbol(symbol)
             }
         }
     }
@@ -38,26 +40,19 @@ private object StToIrConverter {
                 variable.align,
                 variable.dirty)
         } else {
-            fun fixupAddressOfInArray(array: List<StArrayElement>?): List<IRStArrayElement>? {
+            fun fixupAddressOfInArray(array: List<StArrayElement>?): List<IRStSymbolicReference>? {
                 if(array==null)
                     return null
-                val newArray = mutableListOf<IRStArrayElement>()
-                array.forEach {
+                return array.map {
                     when(it) {
                         is StArrayElement.AddressOf -> {
                             val target = variable.lookup(it.symbol) ?:
                                 throw NoSuchElementException("can't find variable ${it.symbol}")
-                            newArray.add(IRStArrayElement(null, null, target.scopedNameString))
+                            IRStSymbolicReference.Symbol(target.scopedNameString)
                         }
-                        is StArrayElement.MemorySlab -> {
-                            newArray.add(convertArrayElt(it))
-                        }
-                        else -> {
-                            newArray.add(convertArrayElt(it))
-                        }
+                        else -> convertArrayElt(it)
                     }
                 }
-                return newArray
             }
             val scopedName = variable.scopedNameString
             return IRStStaticVariable(scopedName,
@@ -163,10 +158,9 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
         st.allVariables().forEach { variable ->
             variable.onetimeInitializationArrayValue?.let {
                 it.forEach { arrayElt ->
-                    val addrOfSymbol = arrayElt.addressOfSymbol
-                    if (addrOfSymbol != null) {
-                        require(addrOfSymbol.contains('.')) {
-                            "pointer var in array should be properly scoped: $addrOfSymbol in ${variable.name}"
+                    if (arrayElt is IRStSymbolicReference.Symbol) {
+                        require(arrayElt.name.contains('.')) {
+                            "pointer var in array should be properly scoped: ${arrayElt.name} in ${variable.name}"
                         }
                     }
                 }

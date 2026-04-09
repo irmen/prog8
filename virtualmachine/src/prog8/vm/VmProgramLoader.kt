@@ -292,22 +292,15 @@ class VmProgramLoader {
                 }
             } else {
                 instance.values.forEach {
-                    val value: Double = if(it.value.bool==true) 1.0
-                        else if(it.value.bool==false) 0.0
-                        else if(it.value.number!=null) it.value.number!!
-                        else if(it.value.addressOfSymbol!=null) {
-                            val name = it.value.addressOfSymbol!!
-                            val symbolAddress = symbolAddresses[name]
-                                ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                    val value: Double = when(val ref = it.value) {
+                        is IRStSymbolicReference.BoolValue -> if(ref.value) 1.0 else 0.0
+                        is IRStSymbolicReference.Numeric -> ref.value
+                        is IRStSymbolicReference.Symbol -> {
+                            val symbolAddress = symbolAddresses[ref.name]
+                                ?: throw IRParseException("vm cannot yet load a label address as a value: ${ref.name}")
                             symbolAddress.toDouble()
                         }
-                        else if(it.value.memorySlabName!=null) {
-                            val name = it.value.memorySlabName!!
-                            val symbolAddress = symbolAddresses[name]
-                                ?: throw IRParseException("vm cannot load memory slab address: $name")
-                            symbolAddress.toDouble()
-                        }
-                        else throw IRParseException("invalid initializer value")
+                    }
 
                     when {
                         it.dt.isByteOrBool -> {
@@ -441,31 +434,32 @@ class VmProgramLoader {
         }
     }
 
-    private fun getInitializerValue(arrayDt: DataType, elt: IRStArrayElement, symbolAddresses: MutableMap<String, UInt>): Either<Double, Boolean> {
-        if(elt.addressOfSymbol!=null) {
-            when {
-                arrayDt.isString || arrayDt.isByteArray || arrayDt.isBoolArray -> {
-                    val name = elt.addressOfSymbol!!
-                    val sym = symbolAddresses[name.drop(1)]
-                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                    val symbolAddress: UInt = if(name.startsWith('<')) {
-                        sym.and(255u)
-                    } else if(name.startsWith('>')) {
-                        sym.shr(8)
-                    } else
-                        throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
-                    return left(symbolAddress.toDouble())
-                }
-                else -> {
-                    val name = elt.addressOfSymbol!!
-                    val symbolAddress = symbolAddresses[name]
-                        ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
-                    return left(symbolAddress.toInt().toDouble())
+    private fun getInitializerValue(arrayDt: DataType, elt: IRStSymbolicReference, symbolAddresses: MutableMap<String, UInt>): Either<Double, Boolean> {
+        return when(elt) {
+            is IRStSymbolicReference.Symbol -> {
+                when {
+                    arrayDt.isString || arrayDt.isByteArray || arrayDt.isBoolArray -> {
+                        val name = elt.name
+                        val sym = symbolAddresses[name.drop(1)]
+                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                        val symbolAddress: UInt = if(name.startsWith('<')) {
+                            sym.and(255u)
+                        } else if(name.startsWith('>')) {
+                            sym.shr(8)
+                        } else
+                            throw IRParseException("for byte-array address-of, expected < or > (lsb/msb)")
+                        left(symbolAddress.toDouble())
+                    }
+                    else -> {
+                        val name = elt.name
+                        val symbolAddress = symbolAddresses[name]
+                            ?: throw IRParseException("vm cannot yet load a label address as a value: $name")
+                        left(symbolAddress.toInt().toDouble())
+                    }
                 }
             }
-        } else if (elt.number!=null) {
-            return left(elt.number!!)
-        } else
-            return right(elt.bool!!)
+            is IRStSymbolicReference.Numeric -> left(elt.value)
+            is IRStSymbolicReference.BoolValue -> right(elt.value)
+        }
     }
 }

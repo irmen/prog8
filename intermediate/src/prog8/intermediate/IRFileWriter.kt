@@ -1,6 +1,8 @@
 package prog8.intermediate
 
-import prog8.code.core.*
+import prog8.code.core.InternalCompilerException
+import prog8.code.core.Position
+import prog8.code.core.toHex
 import prog8.code.source.ImportFileSystem
 import java.nio.file.Path
 import javax.xml.stream.XMLOutputFactory
@@ -10,6 +12,49 @@ import kotlin.io.path.bufferedWriter
 import kotlin.io.path.div
 
 private const val StMemorySlabBlockName = "prog8_slabs"
+
+/**
+ * Converts [IRStSymbolicReference] instances to IR XML text representation.
+ * Used for serializing array initializers and struct field values.
+ */
+private object IRStSymbolicReferenceXml {
+    /**
+     * Formats a symbolic reference for use in a generic array initializer.
+     * @param floats if true, numeric values are formatted as floats; otherwise as hex integers
+     */
+    fun formatForArray(ref: IRStSymbolicReference, floats: Boolean = false): String = when(ref) {
+        is IRStSymbolicReference.BoolValue -> if(ref.value) "1" else "0"
+        is IRStSymbolicReference.Numeric -> if(floats) ref.value.toString() else ref.value.toInt().toHex()
+        is IRStSymbolicReference.Symbol -> "@${ref.name}"
+    }
+
+    /**
+     * Formats a symbolic reference for use in the LSB byte of a split word array.
+     */
+    fun formatLsb(ref: IRStSymbolicReference): String = when(ref) {
+        is IRStSymbolicReference.Numeric -> (ref.value.toInt() and 255).toHex()
+        is IRStSymbolicReference.Symbol -> "@<${ref.name}"
+        is IRStSymbolicReference.BoolValue -> throw InternalCompilerException("bool in word array")
+    }
+
+    /**
+     * Formats a symbolic reference for use in the MSB byte of a split word array.
+     */
+    fun formatMsb(ref: IRStSymbolicReference): String = when(ref) {
+        is IRStSymbolicReference.Numeric -> (ref.value.toInt() shr 8).toHex()
+        is IRStSymbolicReference.Symbol -> "@>${ref.name}"
+        is IRStSymbolicReference.BoolValue -> throw InternalCompilerException("bool in word array")
+    }
+
+    /**
+     * Formats a symbolic reference for use as a struct field value.
+     */
+    fun formatForStructField(ref: IRStSymbolicReference): String = when(ref) {
+        is IRStSymbolicReference.BoolValue -> if(ref.value) "1" else "0"
+        is IRStSymbolicReference.Numeric -> ref.value.toInt().toHex()
+        is IRStSymbolicReference.Symbol -> "@${ref.name}"
+    }
+}
 
 
 class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
@@ -237,20 +282,8 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         xml.writeCharacters("\n\n")
     }
 
-    private fun initArrayInXml(array: IRStArray, floats: Boolean): String = array.joinToString(",") {
-        if(it.bool==true)
-            "1"
-        else if(it.bool==false)
-            "0"
-        else if(it.number!=null) {
-            if(floats) it.number.toString()
-            else it.number.toInt().toHex()
-        }
-        else if(it.addressOfSymbol!=null)
-            "@${it.addressOfSymbol}"
-        else
-            throw InternalCompilerException("weird array value")
-    }
+    private fun initArrayInXml(array: IRStArray, floats: Boolean): String =
+        array.joinToString(",") { IRStSymbolicReferenceXml.formatForArray(it, floats) }
 
     private fun writeVariables() {
         xml.writeStartElement("VARS")
@@ -298,21 +331,11 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
                     lsbValue = ""
                     msbValue = ""
                 } else {
-                    lsbValue = variable.onetimeInitializationArrayValue.joinToString(",") {
-                        if(it.number!=null)
-                            (it.number.toInt() and 255).toHex()
-                        else if (it.addressOfSymbol!=null)
-                            "@<${it.addressOfSymbol}"
-                        else
-                            throw InternalCompilerException("weird array value")
+                    lsbValue = variable.onetimeInitializationArrayValue.joinToString(",") { elt ->
+                        IRStSymbolicReferenceXml.formatLsb(elt)
                     }
-                    msbValue = variable.onetimeInitializationArrayValue.joinToString(",") {
-                        if(it.number!=null)
-                            (it.number.toInt() shr 8).toHex()
-                        else if(it.addressOfSymbol!=null)
-                            "@>${it.addressOfSymbol}"
-                        else
-                            throw InternalCompilerException("weird array value")
+                    msbValue = variable.onetimeInitializationArrayValue.joinToString(",") { elt ->
+                        IRStSymbolicReferenceXml.formatMsb(elt)
                     }
                 }
                 xml.writeCharacters("ubyte[${variable.length}] ${variable.name}_lsb=$lsbValue zp=${variable.zpwish} split=true")
@@ -403,25 +426,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
             require(struct.fields.size == instance.values.size)
             xml.writeCharacters("${instance.structName} ${instance.name} size=${instance.size} values=")
             val values = struct.fields.zip(instance.values).map {(field, value) ->
-                val valuestr = when {
-                    value.dt == BaseDataType.BOOL -> {
-                        if(value.value.bool==true) "1" else "0"
-                    }
-                    value.dt.isInteger || value.dt.isPointer -> {
-                        if(value.value.number!=null)
-                            value.value.number.toInt().toHex()
-                        else if(value.value.addressOfSymbol!=null)
-                            "@${value.value.addressOfSymbol}"
-                        else if(value.value.memorySlabName!=null)
-                            "@${value.value.memorySlabName}"
-                        else
-                            throw InternalCompilerException("weird field value")
-                    }
-                    value.dt == BaseDataType.FLOAT -> {
-                        value.value.number.toString()
-                    }
-                    else -> throw InternalCompilerException("weird dt")
-                }
+                val valuestr = IRStSymbolicReferenceXml.formatForStructField(value.value)
                 field.first to valuestr
             }
             xml.writeCharacters(values.joinToString(",") { "${it.first}:${it.second}" })

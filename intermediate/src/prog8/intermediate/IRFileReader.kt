@@ -284,21 +284,21 @@ class IRFileReader {
                     dt.isBoolArray -> {
                         initArray = value.split(',').map {
                             val boolean = parseIRValue(it) != 0.0
-                            IRStArrayElement(boolean, null, null)
+                            IRStSymbolicReference.BoolValue(boolean)
                         }
                     }
                     dt.isArray -> {
                         initArray = value.split(',').map {
                             if (it.startsWith('@'))
-                                IRStArrayElement(null, null, it.drop(1))
+                                IRStSymbolicReference.Symbol(it.drop(1))
                             else
-                                IRStArrayElement(null, parseIRValue(it), null)
+                                IRStSymbolicReference.Numeric(parseIRValue(it))
                         }
                     }
                     dt.isString -> throw IRParseException("STR should have been converted to byte array")
                     else -> throw IRParseException("weird dt")
                 }
-                if(arraysize!=null && initArray!=null && initArray.all { it.number==0.0 }) {
+                if(arraysize!=null && initArray!=null && initArray.all { it is IRStSymbolicReference.Numeric && it.value==0.0 }) {
                     initArray=null  // arrays with just zeros can be left uninitialized
                 }
                 val stVar = IRStStaticVariable(name, dt, initNumeric, null, initArray, arraysize, zp, align, dirty)
@@ -348,25 +348,17 @@ class IRFileReader {
                 val values = valuesStr.map { vstr ->
                     val (type, value) = vstr.split(':')
                     val dt = parseDatatype(type, false)
-                    var booleanValue: Boolean? = null
-                    var numberValue: Double? = null
-                    var addressOfValue: String? = null
-                    var memorySlabValue: String? = null
-                    if(dt.isBool)
-                        booleanValue = parseIRValue(value) != 0.0
-                    else if(value.startsWith('@')) {
-                        // Handle symbol references (both address-of and memory slabs)
-                        val symbol = value.drop(1)
-                        if(symbol.startsWith("prog8_slabs."))
-                            memorySlabValue = symbol
-                        else
-                            addressOfValue = symbol
-                    }
-                    else if(dt.isNumeric)
-                        numberValue = parseIRValue(value)
-                    else
+                    val ref = if(dt.isBool) {
+                        IRStSymbolicReference.BoolValue(parseIRValue(value) != 0.0)
+                    } else if(value.startsWith('@')) {
+                        // Handle symbol references (address-of, memory slabs, struct instances)
+                        IRStSymbolicReference.Symbol(value.drop(1))
+                    } else if(dt.isNumeric) {
+                        IRStSymbolicReference.Numeric(parseIRValue(value))
+                    } else {
                         throw IRParseException("unexpected field datatype $dt")
-                    IRStructInitValue(dt.base, IRStArrayElement(booleanValue, numberValue, addressOfValue, memorySlabValue))
+                    }
+                    IRStructInitValue(dt.base, ref)
                 }
 
                 IRStStructInstance(name, structName, values, size)
