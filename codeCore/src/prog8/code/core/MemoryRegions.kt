@@ -133,37 +133,3 @@ abstract class Zeropage(options: CompilationOptions): MemoryAllocator(options) {
         return free.containsAll((address until address+size.toUInt()).toList())
     }
 }
-
-
-// TODO: this class is not yet used
-class GoldenRam(options: CompilationOptions, val region: UIntRange): MemoryAllocator(options) {
-    private var nextLocation: UInt = region.first
-
-    override fun allocate(
-        name: String,
-        datatype: DataType,
-        numElements: Int?,
-        position: Position?,
-        errors: IErrorReporter): Result<VarAllocation, MemAllocationError> {
-
-        val size: Int =
-            when {
-                datatype.isIntegerOrBool -> options.compTarget.memorySize(datatype, null)
-                datatype.isString -> numElements!!
-                datatype.isArray -> options.compTarget.memorySize(datatype, numElements!!)
-                datatype.isFloat -> {
-                    if (options.floats) {
-                        options.compTarget.memorySize(DataType.FLOAT, null)
-                    } else return Err(MemAllocationError("floating point option not enabled"))
-                }
-                else -> throw MemAllocationError("weird dt")
-            }
-
-        return if(nextLocation<=region.last && (region.last + 1u - nextLocation) >= size.toUInt()) {
-            val result = Ok(VarAllocation(nextLocation, datatype, size))
-            nextLocation += size.toUInt()
-            result
-        } else
-            Err(MemAllocationError("no more free space in Golden RAM to allocate $size sequential bytes"))
-    }
-}

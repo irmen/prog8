@@ -148,7 +148,6 @@ class ConfigFileTarget(
     override val FLOAT_MEM_SIZE = 8u
 
     override lateinit var zeropage: Zeropage
-    override lateinit var golden: GoldenRam     // TODO this is not yet used
 
     override fun getFloatAsmBytes(num: Number) = TODO("floats")
     override fun convertFloatToBytes(num: Double): List<UByte> = TODO("floats")
@@ -168,6 +167,5 @@ class ConfigFileTarget(
             zpFullsafe,
             compilerOptions
         )
-        // note: there's no golden ram yet
     }
 }

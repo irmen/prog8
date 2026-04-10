@@ -24,7 +24,6 @@ interface ICompilationTarget: IStringEncoding, IMemSizer {
 
     val cpu: CpuType
     var zeropage: Zeropage
-    var golden: GoldenRam
     val libraryPath: Path?
     val customLauncher: List<String>
     val additionalAssemblerOptions: List<String>

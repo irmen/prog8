@@ -38,7 +38,6 @@ class VMTarget: ICompilationTarget,
     override val BSSGOLDENRAM_START = 0u        // not actually used
     override val BSSGOLDENRAM_END = 0u          // not actually used
     override lateinit var zeropage: Zeropage    // not actually used
-    override lateinit var golden: GoldenRam     // not actually used
 
     override fun getFloatAsmBytes(num: Number): String {
         // little endian binary representation
@@ -89,7 +88,6 @@ class VMTarget: ICompilationTarget,
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = VirtualZeropage(compilerOptions)
-        golden = GoldenRam(compilerOptions, UIntRange.EMPTY)
     }
 }
 

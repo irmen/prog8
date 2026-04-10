@@ -36,7 +36,6 @@ class PETTarget: ICompilationTarget,
     override val BSSGOLDENRAM_END = 0u
 
     override lateinit var zeropage: Zeropage
-    override lateinit var golden: GoldenRam
 
     override fun getFloatAsmBytes(num: Number) = Mflpt5.fromNumber(num).makeFloatFillAsm()
 
@@ -74,7 +73,6 @@ class PETTarget: ICompilationTarget,
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = PETZeropage(compilerOptions)
-        golden = GoldenRam(compilerOptions, UIntRange.EMPTY)
     }
 
 }

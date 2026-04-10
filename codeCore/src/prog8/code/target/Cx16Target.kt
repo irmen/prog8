@@ -37,7 +37,6 @@ class Cx16Target: ICompilationTarget,
     override val BSSGOLDENRAM_END = 0x07ffu
 
     override lateinit var zeropage: Zeropage
-    override lateinit var golden: GoldenRam
 
     override fun getFloatAsmBytes(num: Number) = Mflpt5.fromNumber(num).makeFloatFillAsm()
 
@@ -87,7 +86,6 @@ class Cx16Target: ICompilationTarget,
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = CX16Zeropage(compilerOptions)
-        golden = GoldenRam(compilerOptions, BSSGOLDENRAM_START..BSSGOLDENRAM_END)
     }
 
 

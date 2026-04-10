@@ -37,7 +37,6 @@ class C128Target: ICompilationTarget,
     override val BSSGOLDENRAM_END = 0u    // TODO address?
 
     override lateinit var zeropage: Zeropage
-    override lateinit var golden: GoldenRam
 
     override fun getFloatAsmBytes(num: Number) = Mflpt5.fromNumber(num).makeFloatFillAsm()
 
@@ -71,11 +70,10 @@ class C128Target: ICompilationTarget,
         process.waitFor()
     }
 
-    override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu
+    override fun isIOAddress(address: UInt): Boolean = address==0u || address==1u || address in 0xd000u..0xdfffu || address in 0xff00u..0xff04u
 
     override fun initializeMemoryAreas(compilerOptions: CompilationOptions) {
         zeropage = C128Zeropage(compilerOptions)
-        golden = GoldenRam(compilerOptions, UIntRange.EMPTY)    // TODO does the c128 have some of this somewhere?
     }
 
 }

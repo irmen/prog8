@@ -263,10 +263,7 @@ class IRFileReader {
                 val elements = value.split(',').map {
                     IRStSymbolicReference.BoolValue(parseIRValue(it) != 0.0)
                 }
-                if(arraysize!=null && elements.all { it is IRStSymbolicReference.Numeric && it.value==0.0 })
-                    null
-                else
-                    IRVariableInitializer.Array(elements)
+                IRVariableInitializer.Array(elements)
             }
             dt.isArray -> {
                 val elements = value.split(',').map {
