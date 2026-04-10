@@ -195,7 +195,7 @@ directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','?
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype (arrayindex | EMPTYARRAYSIG)? TAG* identifierlist ;
+vardecl: datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
 
 identifierlist: identifier (',' identifier)* ;
 
@@ -281,7 +281,7 @@ sizeof_argument: basedatatype | scoped_identifier | pointertype | addressof ;
 
 
 arrayindexed:
-    scoped_identifier arrayindex
+    scoped_identifier arrayindex+
     ;
 
 

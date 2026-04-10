@@ -204,7 +204,7 @@ internal class LiteralsToAutoVarsAndRecombineIdentifiers(private val program: Pr
                     if(rightIndex.plainarrayvar!=null) {
                         val combinedName = leftIdent.nameInSource + rightIndex.plainarrayvar!!.nameInSource
                         val combined = IdentifierReference(combinedName, leftIdent.position)
-                        val indexer = ArrayIndexedExpression(combined, null, rightIndex.indexer, leftIdent.position)
+                        val indexer = ArrayIndexedExpression(combined, null, null, rightIndex.indexer, leftIdent.position)
                         return listOf(AstReplaceNode(expr, indexer, parent))
                     } else {
                         throw FatalAstException("didn't expect pointer[idx] in this phase already")

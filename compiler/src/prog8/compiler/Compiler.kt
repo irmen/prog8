@@ -46,31 +46,6 @@ class CompilationResult(val compilerAst: Program,   // deprecated, use codegenAs
                         val irInstructionCount: Int = 0,
                         val irRegisterCount: Int = 0)
 
-data class CompilerError(
-    val message: String,
-    val file: String? = null,
-    val line: Int? = null,
-    val column: Int? = null
-)
-
-data class CompilerWarning(
-    val message: String,
-    val file: String? = null,
-    val line: Int? = null,
-    val column: Int? = null
-)
-
-data class CompilationAndRunResult(
-    val success: Boolean,
-    val irProgram: prog8.intermediate.IRProgram? = null,
-    val errors: List<CompilerError> = emptyList(),
-    val warnings: List<CompilerWarning> = emptyList(),
-    val executionOutput: String? = null,
-    val executionSteps: Int = 0,
-    val exitCode: Int = 0,
-    val fatalException: String? = null
-)
-
 class CompilerArguments(val filepath: Path,
                         val optimize: Boolean,
                         val writeAssembly: Boolean,

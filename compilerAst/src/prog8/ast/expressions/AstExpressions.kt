@@ -394,30 +394,47 @@ class BinaryExpression(
 }
 
 class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
+                             var nestedArray: ArrayIndexedExpression?,  // For chained indexing like matrix[i][j]
                              var pointerderef: PtrDereference?,
-                             val indexer: ArrayIndex,
+                             var indexer: ArrayIndex,
                              override val position: Position) : Expression() {
     override lateinit var parent: Node
     override fun linkParents(parent: Node) {
         this.parent = parent
         plainarrayvar?.linkParents(this)
+        nestedArray?.linkParents(this)
         pointerderef?.linkParents(this)
         indexer.linkParents(this)
     }
 
-    override val isSimple = indexer.indexExpr is NumericLiteral || indexer.indexExpr is IdentifierReference
+    override val isSimple = (indexer.indexExpr is NumericLiteral || indexer.indexExpr is IdentifierReference) && nestedArray == null
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         when (replacement) {
             is IdentifierReference -> {
                 plainarrayvar = replacement
+                nestedArray = null
+                pointerderef = null
+            }
+            is ArrayIndexedExpression -> {
+                plainarrayvar = null
+                nestedArray = replacement
                 pointerderef = null
             }
             is PtrDereference -> {
                 plainarrayvar = null
+                nestedArray = null
                 pointerderef = replacement
             }
-            else -> throw FatalAstException("invalid replace")
+            is ArrayIndex -> {
+                // Replacing the whole ArrayIndex
+                indexer = replacement
+            }
+            is Expression -> {
+                // Replacing just the index expression
+                indexer.indexExpr = replacement
+            }
+            else -> throw FatalAstException("invalid replace: $node -> $replacement")
         }
         replacement.parent = this
     }
@@ -426,8 +443,13 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 
-    override fun referencesIdentifier(nameInSource: List<String>) =
-        plainarrayvar?.referencesIdentifier(nameInSource)==true || pointerderef?.referencesIdentifier(nameInSource)==true || indexer.referencesIdentifier(nameInSource)
+    override fun referencesIdentifier(nameInSource: List<String>): Boolean {
+        val plainRef = plainarrayvar?.referencesIdentifier(nameInSource) == true
+        val nestedRef: Boolean = nestedArray?.referencesIdentifier(nameInSource) == true
+        val ptrRef = pointerderef?.referencesIdentifier(nameInSource) == true
+        val idxRef = indexer.referencesIdentifier(nameInSource)
+        return plainRef || nestedRef || ptrRef || idxRef
+    }
 
     override fun inferType(program: Program): InferredTypes.InferredType {
         if(plainarrayvar!=null) {
@@ -448,6 +470,10 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
                 return if(subparam!=null) InferredTypes.knownFor(subparam.type) else InferredTypes.unknown()
             } else
                 TODO("infer type from target $target   ${target.position}    arrayindexed @ ${this.position}")
+        } else if(nestedArray!=null) {
+            // For nested array indexing like matrix[i][j], infer type from the nested expression
+            val nestedType: InferredTypes.InferredType = nestedArray!!.inferType(program)
+            return nestedType
         } else if(pointerderef!=null) {
             val dt= pointerderef!!.inferType(program).getOrUndef()
             return when {
@@ -463,18 +489,27 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
     override fun toString(): String {
         return if(plainarrayvar!=null)
             "ArrayIndexed(arrayvar=$plainarrayvar, idx=$indexer; pos=$position)"
+        else if(nestedArray!=null)
+            "ArrayIndexed(nested=$nestedArray, idx=$indexer; pos=$position)"
         else if(pointerderef!=null)
             "ArrayIndexed(ptr=$pointerderef, idx=$indexer; pos=$position)"
         else
             "??????"
     }
 
-    override fun copy() = ArrayIndexedExpression(plainarrayvar?.copy(), pointerderef?.copy(), indexer.copy(), position)
+    override fun copy(): ArrayIndexedExpression {
+        val copyNested: ArrayIndexedExpression? = nestedArray?.copy()
+        return ArrayIndexedExpression(plainarrayvar?.copy(), copyNested, pointerderef?.copy(), indexer.copy(), position)
+    }
 
     fun isSameArrayIndexedAs(other: Expression): Boolean {
         if(other !is ArrayIndexedExpression || !(other.indexer.indexExpr isSameAs indexer.indexExpr))
             return false
         if(plainarrayvar?.nameInSource != other.plainarrayvar?.nameInSource)
+            return false
+        if(nestedArray != null && other.nestedArray != null)
+            return nestedArray!!.isSameArrayIndexedAs(other.nestedArray!!)
+        if(nestedArray != null || other.nestedArray != null)
             return false
         if(pointerderef!=null)
             return pointerderef!!.isSamePointerDeref(other.pointerderef)

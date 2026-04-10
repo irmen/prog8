@@ -2020,6 +2020,23 @@ internal class AstChecker(private val program: Program,
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
+        // Check for invalid chained indexing (more than 2 levels or on non-2D arrays)
+        if(arrayIndexedExpression.nestedArray != null) {
+            // This is a chained index like matrix[i][j]
+            val nested = arrayIndexedExpression.nestedArray!!
+            
+            // Check for more than 2 levels of chaining
+            if(nested.nestedArray != null) {
+                errors.err("3D or higher array indexing is not supported", arrayIndexedExpression.position)
+            }
+            
+            // Check that the base variable is a 2D array
+            val targetVarDecl = nested.plainarrayvar?.targetStatement(program.builtinFunctions) as? VarDecl
+            if(targetVarDecl != null && !targetVarDecl.is2DArray) {
+                errors.err("chained indexing requires the variable to be declared as a 2D array", arrayIndexedExpression.position)
+            }
+        }
+        
         val target = arrayIndexedExpression.plainarrayvar?.targetStatement(program.builtinFunctions)
         if(target is VarDecl) {
             if (!target.datatype.isIterable && !target.datatype.isUnsignedWord && !target.datatype.isPointer)

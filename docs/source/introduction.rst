@@ -84,6 +84,7 @@ Language :index:`Features`
 - Variables are all allocated statically, no memory allocation overhead
 - Variable data types include signed and unsigned bytes and words, long integers, floats, arrays, and strings.
 - Structs and typed pointers
+- 2D arrays (``matrix[row][col]`` syntax)
 - Tight control over Zeropage usage
 - Programs can be restarted after exiting (i.e. run them multiple times without having to reload everything), due to automatic variable (re)initializations.
 - Programs can be configured to execute in ROM

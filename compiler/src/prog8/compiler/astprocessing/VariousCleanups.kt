@@ -97,7 +97,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     value = ArrayLiteral(InferredTypes.knownFor(changeDataType), value.value, value.position)
                 }
                 val newDecl = VarDecl(decl.type, decl.origin, changeDataType, decl.zeropage,
-                    decl.splitwordarray, decl.arraysize, decl.name, decl.names,
+                    decl.splitwordarray, decl.arraysize, decl.matrixNumCols?.copy(), decl.name, decl.names,
                     value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
                 return listOf(AstReplaceNode(decl, newDecl, parent))
             }

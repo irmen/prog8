@@ -241,6 +241,7 @@ internal class StatementReorderer(
                                 it.zeropage,
                                 it.splitwordarray,
                                 null,
+                                null,
                                 it.name,
                                 emptyList(),
                                 null,

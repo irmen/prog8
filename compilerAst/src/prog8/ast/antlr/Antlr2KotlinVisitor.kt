@@ -188,8 +188,29 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val identifiername = identifiers[0]
         val name = if(identifiers.size==1) identifiername else "<multiple>"
 
-        val arrayIndex = ctx.arrayindex()?.accept(this) as ArrayIndex?
-        val isArray = ctx.EMPTYARRAYSIG() != null || arrayIndex != null
+        // Handle 0, 1, or 2 array indices
+        val arrayIndices = ctx.arrayindex()
+        val isArray = ctx.EMPTYARRAYSIG() != null || arrayIndices.isNotEmpty()
+        
+        val (arraySize, matrixNumCols) = if(arrayIndices.size == 2) {
+            // 2D array: [rows][cols]
+            val rowIndex = arrayIndices[0].accept(this) as ArrayIndex
+            val colIndex = arrayIndices[1].accept(this) as ArrayIndex
+            val rows = rowIndex.indexExpr as? NumericLiteral
+            val cols = colIndex.indexExpr as? NumericLiteral
+            if(rows == null || cols == null) {
+                throw SyntaxError("2D array dimensions must be constant expressions", ctx.toPosition())
+            }
+            val totalElements = (rows.number.toInt() * cols.number.toInt())
+            val totalSize = ArrayIndex(NumericLiteral.optimalNumeric(totalElements, ctx.toPosition()), ctx.toPosition())
+            Pair(totalSize, colIndex.indexExpr)
+        } else if(arrayIndices.isNotEmpty()) {
+            // 1D array
+            val arrayIndex = arrayIndices[0].accept(this) as ArrayIndex
+            Pair(arrayIndex, null)
+        } else {
+            Pair(null, null)
+        }
 
         val baseDt = dataTypeFor(ctx.datatype()) ?: DataType.UNDEFINED
         val dt = if(!isArray) baseDt else {
@@ -207,7 +228,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             dt,
             zp,
             split,
-            arrayIndex,
+            arraySize,
+            matrixNumCols,
             name,
             if(identifiers.size==1) emptyList() else identifiers,
             null,
@@ -247,6 +269,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             datatype,
             ZeropageWish.DONTCARE,
             SplitWish.DONTCARE,
+            null,
             null,
             name,
             if(identifiers.size==1) emptyList() else identifiers,
@@ -324,9 +347,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitArrayindexedTarget(ctx: ArrayindexedTargetContext): AssignTarget {
         val ax = ctx.arrayindexed()
-        val arrayvar = ax.scoped_identifier().accept(this) as IdentifierReference
-        val index = ax.arrayindex().accept(this) as ArrayIndex
-        val arrayindexed = ArrayIndexedExpression(arrayvar, null, index, ax.toPosition())
+        val arrayindexed = ax.accept(this) as ArrayIndexedExpression
         return AssignTarget(null, arrayindexed, null, null, false, position=ctx.toPosition())
     }
 
@@ -355,8 +376,19 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     override fun visitArrayindexed(ctx: ArrayindexedContext): ArrayIndexedExpression {
         val identifier = ctx.scoped_identifier().accept(this) as IdentifierReference
-        val index = ctx.arrayindex().accept(this) as ArrayIndex
-        return ArrayIndexedExpression(identifier, null, index, ctx.toPosition())
+        val indices = ctx.arrayindex()
+        // Build nested ArrayIndexedExpression for chained indexing
+        // For matrix[i][j], create: ArrayIndexedExpression(ArrayIndexedExpression(matrix, i), j)
+        var result: ArrayIndexedExpression? = null
+        for(arrayIndexCtx in indices) {
+            val index = arrayIndexCtx.accept(this) as ArrayIndex
+            result = if(result == null) {
+                ArrayIndexedExpression(identifier, null, null, index, ctx.toPosition())
+            } else {
+                ArrayIndexedExpression(null, result, null, index, ctx.toPosition())
+            }
+        }
+        return result!!
     }
 
     override fun visitDirectmemory(ctx: DirectmemoryContext): DirectMemoryRead {
@@ -589,8 +621,13 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         }
         val zp = getZpOption(tags)
         var datatype = dataTypeFor(decl.datatype()) ?: DataType.UNDEFINED
-        if(decl.EMPTYARRAYSIG()!=null || decl.arrayindex()!=null)
+        val arrayIndices = decl.arrayindex()
+        if(decl.EMPTYARRAYSIG()!=null || arrayIndices.isNotEmpty()) {
+            if(arrayIndices.size > 1) {
+                throw SyntaxError("2D arrays cannot be used as subroutine parameters", decl.toPosition())
+            }
             datatype = datatype.elementToArray()
+        }
 
         val identifiers = decl.identifierlist().identifier()
         if(identifiers.size>1)
@@ -892,8 +929,13 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     private fun asmSubroutineParam(pctx: Asmsub_paramContext): AsmSubroutineParameter {
         val vardecl = pctx.vardecl()
         var datatype = dataTypeFor(vardecl.datatype()) ?: DataType.UNDEFINED
-        if(vardecl.EMPTYARRAYSIG()!=null || vardecl.arrayindex()!=null)
+        val arrayIndices = vardecl.arrayindex()
+        if(vardecl.EMPTYARRAYSIG()!=null || arrayIndices.isNotEmpty()) {
+            if(arrayIndices.size > 1) {
+                throw SyntaxError("2D arrays cannot be used as subroutine parameters", vardecl.toPosition())
+            }
             datatype = datatype.elementToArray()
+        }
         val (registerorpair, statusregister) = parseParamRegister(pctx.register, pctx.toPosition())
         val identifiers = vardecl.identifierlist().identifier()
         if(identifiers.size>1)

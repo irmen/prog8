@@ -531,6 +531,7 @@ abstract class AstWalker {
 
     fun visit(arrayIndexedExpression: ArrayIndexedExpression, parent: Node) {
         track(before(arrayIndexedExpression, parent), arrayIndexedExpression, parent)
+        arrayIndexedExpression.nestedArray?.accept(this, arrayIndexedExpression)
         arrayIndexedExpression.plainarrayvar?.accept(this, arrayIndexedExpression)
         arrayIndexedExpression.pointerderef?.accept(this, arrayIndexedExpression)
         arrayIndexedExpression.indexer.accept(this)

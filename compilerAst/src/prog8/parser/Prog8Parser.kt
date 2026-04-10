@@ -53,7 +53,7 @@ object Prog8Parser {
             val startCol = offending.charPositionInLine + 1
 
             // For EOF or invalid tokens, use startCol as endCol
-            val endCol = if (offending.type == org.antlr.v4.runtime.Token.EOF ||
+            val endCol = if (offending.type == Token.EOF ||
                              offending.startIndex < 0 || offending.stopIndex < 0) {
                 startCol
             } else if (offending.line == line) {

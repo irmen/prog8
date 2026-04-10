@@ -255,6 +255,7 @@ class VarDecl(
     var zeropage: ZeropageWish,
     val splitwordarray: SplitWish,
     var arraysize: ArrayIndex?,
+    var matrixNumCols: Expression?,  // column count for 2D arrays (null for 1D)
     override val name: String,
     val names: List<String>,
     var value: Expression?,
@@ -264,6 +265,9 @@ class VarDecl(
     override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
+
+    val is2DArray: Boolean
+        get() = matrixNumCols != null
 
     companion object {
         private var autoHeapValueSequenceNumber = 0
@@ -286,7 +290,7 @@ class VarDecl(
                 param.type.isString -> DataType.pointer(BaseDataType.UBYTE)
                 else -> param.type
             }
-            return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, SplitWish.DONTCARE, null, param.name, emptyList(), value,
+            return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, SplitWish.DONTCARE, null, null, param.name, emptyList(), value,
                 sharedWithAsm = false,
                 alignment = 0u,
                 dirty = false,
@@ -307,7 +311,7 @@ class VarDecl(
             }
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
-                SplitWish.NOSPLIT, arraysize, autoVarName, emptyList(), array,
+                SplitWish.NOSPLIT, arraysize, null, autoVarName, emptyList(), array,
                     sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
         }
 
@@ -317,14 +321,14 @@ class VarDecl(
             val split = if(arrayDt.isSplitWordArray) SplitWish.DONTCARE else if(arrayDt.isWordArray) SplitWish.NOSPLIT else SplitWish.DONTCARE
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
-                split, arraysize, autoVarName, emptyList(), array,
+                split, arraysize, null, autoVarName, emptyList(), array,
                 sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
         }
 
         fun createAuto(dt: DataType, position: Position): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val vardecl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, dt, ZeropageWish.NOT_IN_ZEROPAGE,
-                SplitWish.DONTCARE, null, autoVarName, emptyList(), null,
+                SplitWish.DONTCARE, null, null, autoVarName, emptyList(), null,
                 sharedWithAsm = false, alignment = 0u, dirty = false, position = position)
             return vardecl
         }
@@ -336,6 +340,7 @@ class VarDecl(
     override fun linkParents(parent: Node) {
         this.parent = parent
         arraysize?.linkParents(this)
+        matrixNumCols?.linkParents(this)
         value?.linkParents(this)
     }
 
@@ -364,7 +369,7 @@ class VarDecl(
     fun copy(newDatatype: DataType): VarDecl {
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
-        val copy = VarDecl(type, origin, newDatatype, zeropage, splitwordarray, arraysize?.copy(), name, names, value?.copy(),
+        val copy = VarDecl(type, origin, newDatatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), name, names, value?.copy(),
             sharedWithAsm, alignment, dirty, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
@@ -372,26 +377,27 @@ class VarDecl(
 
     override fun referencesIdentifier(nameInSource: List<String>): Boolean =
         value?.referencesIdentifier(nameInSource)==true ||
-                this.arraysize?.referencesIdentifier(nameInSource)==true
+                this.arraysize?.referencesIdentifier(nameInSource)==true ||
+                this.matrixNumCols?.referencesIdentifier(nameInSource)==true
 
     fun desugarMultiDecl(): List<VarDecl> {
         require(alignment==0u)
         if(value==null || value?.isSimple==true) {
             // just copy the initialization value to a separate vardecl for each component
             return names.map {
-                val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), it, emptyList(), value?.copy(),
+                val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), it, emptyList(), value?.copy(),
                     sharedWithAsm, alignment, dirty, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
-            val first = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), names[0], emptyList(), value?.copy(),
+            val first = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), names[0], emptyList(), value?.copy(),
                 sharedWithAsm, alignment, dirty, position)
             first.allowInitializeWithZero = this.allowInitializeWithZero
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
-                val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), it, emptyList(), firstVar.copy(),
+                val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), it, emptyList(), firstVar.copy(),
                     sharedWithAsm, alignment, dirty, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy

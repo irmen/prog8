@@ -645,7 +645,7 @@ class TypecastsAdder(val program: Program, val options: CompilationOptions, val 
             val idxDt = arrayIndexedExpression.indexer.indexExpr.inferType(program).getOrUndef()
             if(idxDt.base.largerSizeThan(smaller.type)) {
                 val newIdx = ArrayIndex(smaller, smaller.position)
-                val newIndexer = ArrayIndexedExpression(arrayIndexedExpression.plainarrayvar, arrayIndexedExpression.pointerderef, newIdx, arrayIndexedExpression.position)
+                val newIndexer = ArrayIndexedExpression(arrayIndexedExpression.plainarrayvar, arrayIndexedExpression.nestedArray, arrayIndexedExpression.pointerderef, newIdx, arrayIndexedExpression.position)
                 return listOf(AstReplaceNode(arrayIndexedExpression, newIndexer, parent))
             }
         }

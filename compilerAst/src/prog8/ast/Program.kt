@@ -91,7 +91,7 @@ class Program(val name: String,
             val varName = "string_${internedStringsBlock.statements.size}"
             val decl = VarDecl(
                 VarDeclType.VAR, VarDeclOrigin.STRINGLITERAL, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE,
-                SplitWish.DONTCARE, null, varName, emptyList(), string,
+                SplitWish.DONTCARE, null, null, varName, emptyList(), string,
                 sharedWithAsm = false, alignment = 0u, dirty = false, position = string.position
             )
             internedStringsBlock.statements.add(decl)

@@ -65,6 +65,7 @@ What does Prog8 provide?
 - modularity, symbol scoping, subroutines. No need for forward declarations.
 - various data types other than just bytes (16-bit words, long integers, floats, strings)
 - Structs and typed pointers
+- 2D arrays (`matrix[row][col]` syntax)
 - floating point math is supported on certain targets
 - access to most Kernal ROM routines as external subroutine definitions you can call normally
 - tight control over Zeropage usage

@@ -134,7 +134,19 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
         }
 
         output(decl.datatype.sourceString())
-        if(decl.arraysize!=null) {
+        if(decl.is2DArray) {
+            // Output as [rows][cols]
+            val totalSize = decl.arraysize?.indexExpr
+            val numCols = decl.matrixNumCols
+            if(totalSize is NumericLiteral && numCols is NumericLiteral) {
+                val numRows = totalSize.number.toInt() / numCols.number.toInt()
+                output("[$numRows]")
+                output("[${numCols.number.toInt()}]")
+            } else {
+                // Fallback: just output what we have
+                decl.arraysize?.indexExpr?.accept(this)
+            }
+        } else if(decl.arraysize!=null) {
             decl.arraysize!!.indexExpr.accept(this)
         }
         if(decl.isArray)
@@ -430,11 +442,19 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(arrayIndexedExpression: ArrayIndexedExpression) {
-        arrayIndexedExpression.plainarrayvar?.accept(this)
-        arrayIndexedExpression.pointerderef?.accept(this)
-        output("[")
-        arrayIndexedExpression.indexer.indexExpr.accept(this)
-        output("]")
+        // Handle nested arrays (2D indexing)
+        if(arrayIndexedExpression.nestedArray != null) {
+            arrayIndexedExpression.nestedArray!!.accept(this)
+            output("[")
+            arrayIndexedExpression.indexer.indexExpr.accept(this)
+            output("]")
+        } else {
+            arrayIndexedExpression.plainarrayvar?.accept(this)
+            arrayIndexedExpression.pointerderef?.accept(this)
+            output("[")
+            arrayIndexedExpression.indexer.indexExpr.accept(this)
+            output("]")
+        }
     }
 
     override fun visit(assignTarget: AssignTarget) {

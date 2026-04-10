@@ -239,7 +239,7 @@ class AstPreprocessor(val program: Program,
                     .zip(tuple.expressions)
                     .reversed()
                     .map { (name, value) ->
-                        val decl = VarDecl(decl.type, decl.origin, decl.datatype, decl.zeropage, decl.splitwordarray, decl.arraysize, name, emptyList(), value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
+                        val decl = VarDecl(decl.type, decl.origin, decl.datatype, decl.zeropage, decl.splitwordarray, decl.arraysize, decl.matrixNumCols?.copy(), name, emptyList(), value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
                         AstInsert.after(decl, decl, parent as IStatementContainer)
                     }
                 return vardecls + AstRemove(decl, parent as IStatementContainer)
@@ -503,7 +503,7 @@ class AstPreprocessor(val program: Program,
             } else value++
             val membervalue = NumericLiteral(enum.type, value.toDouble(), enum.position)
             VarDecl(VarDeclType.CONST, VarDeclOrigin.USERCODE, dt,
-                ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, membername, emptyList(), membervalue,
+                ZeropageWish.DONTCARE, SplitWish.DONTCARE, null, null, membername, emptyList(), membervalue,
                 false, 0u, false, enum.position)
         }
 

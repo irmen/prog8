@@ -412,6 +412,52 @@ for instance.
 Using the ``in`` operator you can easily check if a value is present in an array,
 example: ``if choice in [1,2,3,4] {....}``
 
+2D Arrays
+^^^^^^^^^
+.. index:: triple: Data Types; Matrixes; Two-dimensional Arrays
+    
+Prog8 provides a convenient syntactic sugar for working with two-dimensional arrays.
+Instead of manually calculating offsets into a flat 1D array, you can declare and
+access arrays using familiar 2D syntax.
+
+Declaration uses two bracket pairs to specify the number of rows and columns::
+
+    ubyte[3][4] matrix   ; 3 rows, 4 columns (12 elements total)
+
+Access uses chained indexing with ``[row][column]``::
+
+    ubyte value = matrix[1][2]   ; element at row 1, column 2
+    matrix[0][0] = 42            ; set top-left element
+
+This is purely **syntactic sugar**. The compiler automatically transforms
+``matrix[row][col]`` into the equivalent 1D index calculation
+``matrix[row * numCols + col]``. There is no runtime overhead or special
+2D tracking — after compilation it behaves exactly like a regular 1D array access.
+
+**Initialization:**
+
+When initializing a 2D array, provide the values as a **flat list** that matches
+the total number of elements (rows × columns). Nested list initializers
+(such as ``[[1,2,3],[4,5,6]]``) are **not supported**::
+
+    ubyte[2][3] matrix = [1, 2, 3, 4, 5, 6]   ; correct: flat list
+
+**Size limitations:**
+
+The combined array size is subject to the same limits as regular 1D arrays:
+
+- For byte arrays (``ubyte``, ``byte``, ``bool``): maximum **256 elements** total (rows × columns ≤ 256).
+- For split word arrays (``uword``, ``word``, ``str``): maximum **256 elements** total, which occupies 512 bytes of storage (LSB and MSB arrays).
+- The ``@split`` tag works normally with 2D syntax.
+- The ``@nosplit`` tag can also be used on 2D word arrays if sequential storage is needed.
+
+**Not supported:**
+
+- 3D or higher-dimensional arrays are not supported.
+- Chained indexing (``arr[y][x]``) can only be used on variables that were
+  explicitly declared with the 2D ``[rows][cols]`` syntax. Using it on a
+  regular 1D array variable will produce a compile error.
+
 **Arrays at a specific memory location:**
 
 Using the memory-mapped syntax it is possible to define an array to be located at a specific memory location.

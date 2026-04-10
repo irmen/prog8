@@ -264,9 +264,54 @@ _after:
     }
 
     override fun after(arrayIndexedExpression: ArrayIndexedExpression, parent: Node): Iterable<AstModification> {
+        // Handle 2D array indexing: matrix[row][col] -> matrix[row * numCols + col]
+        // This must be done FIRST, before any other array transformations
+        if(arrayIndexedExpression.nestedArray != null) {
+            val nested = arrayIndexedExpression.nestedArray!!
+            val outerIndex = arrayIndexedExpression.indexer.indexExpr
+
+            // Check for 3D+ indexing
+            if(nested.nestedArray != null) {
+                errors.err("3D or higher array indexing is not supported", arrayIndexedExpression.position)
+                return noModifications
+            }
+
+            // Find the variable declaration
+            val targetVarDecl = nested.plainarrayvar?.targetStatement(program.builtinFunctions) as? VarDecl
+
+            if(targetVarDecl == null) {
+                // Complex expression - can't determine dimensions, report error
+                errors.err("chained indexing requires the variable to be declared as a 2D array", arrayIndexedExpression.position)
+                return noModifications
+            }
+
+            if(!targetVarDecl.is2DArray) {
+                errors.err("chained indexing requires the variable to be declared as a 2D array", arrayIndexedExpression.position)
+                return noModifications
+            }
+
+            val numCols = targetVarDecl.matrixNumCols ?: return noModifications
+            val innerIndex = nested.indexer.indexExpr
+
+            // Calculate: row * numCols + col
+            val rowTimesCols = BinaryExpression(innerIndex, "*", numCols.copy(), arrayIndexedExpression.position)
+            val flatIndex = BinaryExpression(rowTimesCols, "+", outerIndex.copy(), arrayIndexedExpression.position)
+
+            // Create flattened ArrayIndexedExpression
+            val flatArrayIndex = ArrayIndex(flatIndex, arrayIndexedExpression.position)
+            val desugared = ArrayIndexedExpression(
+                nested.plainarrayvar?.copy(),
+                null,  // No more nesting
+                nested.pointerderef?.copy(),
+                flatArrayIndex,
+                arrayIndexedExpression.position
+            )
+            return listOf(AstReplaceNode(arrayIndexedExpression, desugared, parent))
+        }
+
         // replace pointervar[word] by @(pointervar+word) to avoid the
         // "array indexing is limited to byte size 0..255" error for pointervariables.
-        // (uses pokew or pokef if the ointer is a word or float pointer).
+        // (uses pokew or pokef if the pointer is a word or float pointer).
 
         if(arrayIndexedExpression.pointerderef!=null) {
             return noModifications
@@ -417,7 +462,7 @@ _after:
                 if(ri!=null && ri.plainarrayvar!=null) {
                     // a.b   .  c.d[i]  ->  a.b.c.d[i]
                     val joined = (expr.left as IdentifierReference).nameInSource + ri.plainarrayvar!!.nameInSource
-                    val ai = ArrayIndexedExpression(IdentifierReference(joined, expr.position), null, ri.indexer, expr.position)
+                    val ai = ArrayIndexedExpression(IdentifierReference(joined, expr.position), null, null, ri.indexer, expr.position)
                     return listOf(AstReplaceNode(expr, ai, parent))
                 }
             }
@@ -445,7 +490,7 @@ _after:
                         //       x.y.z[i]           field
 
                         val combinedIdentifier = IdentifierReference(parentLeft.nameInSource+left.plainarrayvar!!.nameInSource, parentLeft.position)
-                        val newleft = ArrayIndexedExpression(combinedIdentifier, null, left.indexer, left.position)
+                        val newleft = ArrayIndexedExpression(combinedIdentifier, null, null, left.indexer, left.position)
                         val newright = IdentifierReference(listOf(right.chain.single()), right.position)
                         return listOf(
                             AstReplaceNode(parent.left, newleft, parent),
@@ -621,7 +666,7 @@ _after:
             assignIndex = Assignment(varTarget, ongoto.index, AssignmentOrigin.USERCODE, ongoto.position)
         }
 
-        val callTarget = ArrayIndexedExpression(IdentifierReference(listOf(jumplistArray.name), jumplistArray.position), null, ArrayIndex(indexValue.copy(), indexValue.position), ongoto.position)
+        val callTarget = ArrayIndexedExpression(IdentifierReference(listOf(jumplistArray.name), jumplistArray.position), null, null, ArrayIndex(indexValue.copy(), indexValue.position), ongoto.position)
         val callIndexed = AnonymousScope.empty(ongoto.position)
         if(ongoto.isCall) {
             callIndexed.statements.add(FunctionCallStatement(IdentifierReference(listOf("call"), ongoto.position), mutableListOf(callTarget), true, ongoto.position))
@@ -682,7 +727,7 @@ _after:
                 if(idx.plainarrayvar!=null) {
                     val name = deref.chain + idx.plainarrayvar!!.nameInSource
                     val ptrDeref = PtrDereference(name, false, deref.position)
-                    val indexer = ArrayIndexedExpression(null, ptrDeref, idx.indexer, idx.position)
+                    val indexer = ArrayIndexedExpression(null, null, ptrDeref, idx.indexer, idx.position)
                     return listOf(AstReplaceNode(expr, indexer, expr.parent))
                 } else {
                     TODO("convert ptr.p[idx]  ${idx.position}")
@@ -733,7 +778,7 @@ _after:
                         }
                         else {
                             // pointerarray[idx].field = value  -->  pokeXXX(pointerarray[idx] as uword + offsetof(Struct.field), value)
-                            val index = ArrayIndexedExpression(pointerIdentifier, null, ptr.last().second!!, deref.position)
+                            val index = ArrayIndexedExpression(pointerIdentifier, null, null, ptr.last().second!!, deref.position)
                             val pointerAsUword = TypecastExpression(index, DataType.UWORD, true, deref.position)
                             address = BinaryExpression(pointerAsUword, "+", offsetNumber, deref.position)
                         }
@@ -771,7 +816,7 @@ _after:
                             else throw FatalAstException("can only deref a numeric or boolean pointer here")
                         val indexer = deref.chain.last().second!!
                         val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
-                        val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)
+                        val indexed = ArrayIndexedExpression(identifier, null, null, indexer, deref.position)
                         val peekIdent = IdentifierReference(listOf(peekFunc), deref.position)
                         val peekCall = FunctionCallExpression(peekIdent, mutableListOf(indexed), deref.position)
                         if(cast==null)
@@ -806,7 +851,7 @@ _after:
                     val (pokeFunc, cast) = pokeFunc(dt)
                     val indexer = deref.chain.last().second!!
                     val identifier = IdentifierReference(deref.chain.map { it.first }, deref.position)
-                    val indexed = ArrayIndexedExpression(identifier, null, indexer, deref.position)
+                    val indexed = ArrayIndexedExpression(identifier, null, null, indexer, deref.position)
                     val pokeIdent = IdentifierReference(listOf(pokeFunc), deref.position)
                     val assignment = parent.parent as Assignment
                     val pokeCall: FunctionCallStatement
@@ -841,7 +886,7 @@ _after:
                 TODO("support multiple array indexed dereferencings  ${deref.position}")
             } else if (parent !is AssignTarget) {
                 val pointer = IdentifierReference(listOf(index.first), deref.position)
-                val left = ArrayIndexedExpression(pointer, null, index.second!!, deref.position)
+                val left = ArrayIndexedExpression(pointer, null, null, index.second!!, deref.position)
                 val right = PtrDereference(tail.map { it.first }, deref.derefLast, deref.position)
                 val derefExpr = BinaryExpression(left, ".", right, deref.position)
                 return listOf(AstReplaceNode(deref, derefExpr, parent))

@@ -41,10 +41,8 @@ Future Things and Ideas
 - Make all constants long by default? or not? (remove type name altogether), reduce to target type implictly if the actual value fits.  Experiment is in branch 'long-consts'
   This will break some existing programs that depend on value wrap arounds, but gives more intuitive constant number handling.
   Can give descriptive error message for old syntax that still includes the type name?
-- improve ANTLR grammar with better error handling (see parser/README-IMPROVEMENTS.md)
 - add documentation for more library modules instead of just linking to the source code
 - sizeof(pointer) is now always 2 (an uword), make this a variable in the ICompilationTarget so that it could be 4 at the time we might ad a 32-bits 68000 target for example. Much code assumes word size addresses though.
-- Two- or even multidimensional arrays and chained indexing, purely as syntactic sugar over regular arrays?
 - when a complete block is removed because unused, suppress all info messages about everything in the block being removed
 - romable: should we have a way to explicitly set the memory address for the BSS area (add a -varsaddress and -slabsaddress options?)
 - romable: fix remaining codegens (some for loops, see ForLoopsAsmGen)
