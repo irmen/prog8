@@ -2,8 +2,10 @@ package prog8tests.codegencpu6502
 
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
+import prog8.code.StMemVar
 import prog8.code.SymbolTable
 import prog8.code.ast.PtProgram
+import prog8.code.core.DataType
 import prog8.code.target.C64Target
 import prog8.codegen.cpu6502.*
 import prog8tests.helpers.DummyMemsizer
@@ -15,6 +17,18 @@ class TestAsmOptimizer: FunSpec({
     val machine = C64Target()
     val program = PtProgram("test", DummyMemsizer, DummyStringEncoder)
     val symbolTable = SymbolTable(program)
+
+    // Add test variables with known non-IO addresses so the optimizer can resolve them
+    // Non-IO addresses in typical C64 RAM range
+    symbolTable.add(StMemVar("myvar", DataType.UBYTE, 0x0300u, null, null))
+    symbolTable.add(StMemVar("var", DataType.UBYTE, 0x0301u, null, null))
+    symbolTable.add(StMemVar("var1", DataType.UWORD, 0x0302u, null, null))
+    symbolTable.add(StMemVar("var2", DataType.UWORD, 0x0304u, null, null))
+    symbolTable.add(StMemVar("ptr", DataType.UWORD, 0x0306u, null, null))
+    symbolTable.add(StMemVar("P8ZP_SCRATCH_PTR", DataType.UWORD, 0x02u, null, null))
+    symbolTable.add(StMemVar("P8ZP_SCRATCH_W1", DataType.UWORD, 0x04u, null, null))
+    symbolTable.add(StMemVar("A1", DataType.UWORD, 0x0310u, null, null))
+    symbolTable.add(StMemVar("A2", DataType.UWORD, 0x0312u, null, null))
 
     fun optimize(lines: MutableList<String>): Int {
         return optimizeAssembly(lines, machine, symbolTable)
@@ -505,5 +519,91 @@ class TestAsmOptimizer: FunSpec({
 
     test("keeplabel: handles tab-separated labels") {
         keeplabel("mylabel\tlda  #1") shouldBe "mylabel:"
+    }
+
+    // ========================================================================
+    // KNOWN BUGS - These tests demonstrate current optimizer defects.
+    // See AsmOptimizer.kt header for the full list.
+    // ========================================================================
+
+    // BUG #1: Float copy optimization removes stores without verifying destinations.
+    // The pattern matches two identical float initializations based only on load operands,
+    // then removes the second one's lda/ldy/sta/sty without checking if the store
+    // destinations are the same. Two different float vars initialized from the same
+    // source will have the second initialization's stores wrongly deleted.
+    test("BUG #1: float copy init to different destinations should not be removed") {
+        // Pattern: 14 lines matching two float copy_float sequences
+        // First copy to floatA:  lda #1 / ldy #0 / sta floatA / sty floatA+1 / lda #1 / ldy #0 / jsr floats.copy_float
+        // Second copy to floatB: lda #1 / ldy #0 / sta floatB / sty floatB+1 / lda #1 / ldy #0 / jsr floats.copy_float
+        // BUG: optimizer sees matching loads (#1, #0) and removes the second copy's lda/ldy/sta/sty
+        // even though floatA != floatB
+        val lines = mutableListOf(
+            // Lines 0-6: first float copy
+            "  lda  #1", "  ldy  #0", "  sta  floatA", "  sty  floatA+1",
+            "  lda  #1", "  ldy  #0", "  jsr  floats.copy_float",
+            // Lines 7-13: second float copy to DIFFERENT destination
+            "  lda  #1", "  ldy  #0", "  sta  floatB", "  sty  floatB+1",
+            "  lda  #1", "  ldy  #0", "  jsr  floats.copy_float"
+        )
+        val beforeOpt = lines.toList()
+        optimize(lines)
+        // After fix: no optimization should apply, lines unchanged
+        // Currently: optimizer removes lines 7-10 (lda/ldy/sta/sty for floatB)
+        lines shouldBe beforeOpt  // xfail: this will fail until bug is fixed
+    }
+
+    // BUG #2: Crude "y" substring check for Y register modification
+    // A variable named "myvar" contains 'y', so the optimizer thinks Y is modified
+    // and incorrectly keeps a redundant ldy.
+    test("BUG #2: variable name containing 'y' should not trigger false positive") {
+        symbolTable.add(StMemVar("myvar", DataType.UBYTE, 0x0320u, null, null))
+        val lines = mutableListOf(
+            "  ldy  #0", "  lda  (ptr),y", "  ora  myvar",  // 'y' in "myvar" triggers false positive
+            "  ldy  #0", "  sta  (ptr),y", "  rts",
+            "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop"
+        )
+        // BUG: "y" in "ora  myvar" matches the "y" in "myvar", so the optimizer
+        // thinks Y might be modified and keeps the redundant ldy.
+        // After fix: the second ldy should be removed (count should be 1)
+        // Currently: count is 0 because of the false positive
+        optimize(lines) shouldBe 1  // xfail: this will fail until bug is fixed
+    }
+
+    // BUG #3: Inconsistent line property usage (trimmed vs instruction)
+    // This is a latent correctness issue - harder to trigger in a minimal test,
+    // but the pattern exists in optimizeSamePointerIndexingAndUselessBeq.
+    // The check `"y" !in third` uses .trimmed (may include labels) while
+    // `"y" !in f4` uses .instruction. This is fragile but hard to isolate
+    // without crafting a specific label+instruction combination.
+    // No minimal test case yet - the bug is structural inconsistency.
+
+    // BUG #4: getAddressArg() unprotected at most call sites
+    // Passing a bare instruction string like "lda " (< 3 chars after trim) would crash.
+    // This is currently protected by the optimizer's windowing filter (blank/comment
+    // lines are excluded), but a pathological case could slip through.
+    test("BUG #4: getAddressArg should handle short instruction strings gracefully") {
+        // Currently: getAddressArg("lda ", symbolTable) throws StringIndexOutOfBoundsException
+        // After fix: should return null safely
+        try {
+            val result = getAddressArg("lda ", symbolTable)
+            result shouldBe null  // xfail: currently throws instead of returning null
+        } catch (e: StringIndexOutOfBoundsException) {
+            // Currently expected behavior (the bug)
+            false shouldBe true  // xfail marker
+        }
+    }
+
+    test("compiler-prefixed memory-mapped IO variable accesses are not optimized away") {
+        symbolTable.add(StMemVar("p8b_main.p8v_io_data", DataType.UBYTE, 0xd021u, null, null))
+        symbolTable.add(StMemVar("p8b_main.p8v_result", DataType.UBYTE, 0x0300u, null, null))
+        val lines = mutableListOf(
+            "  lda  p8b_main.p8v_io_data", "  sta  p8b_main.p8v_result",
+            "  lda  p8b_main.p8v_io_data", "  sta  p8b_main.p8v_result",
+            "  lda  p8b_main.p8v_io_data", "  sta  p8b_main.p8v_result",
+            "  rts", "  nop"
+        )
+        val count = optimize(lines)
+        count shouldBe 0
+        lines.size shouldBe 8  // all instructions preserved
     }
 })

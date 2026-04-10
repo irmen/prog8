@@ -16,6 +16,7 @@ import prog8.ast.statements.*
 import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
 import prog8.code.ast.PtFunctionCall
+import prog8.code.ast.PtIdentifier
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
@@ -1610,10 +1611,83 @@ main {
 
         // Void call should be removed entirely
         val hasVoidCall = startSub.statements.any { stmt ->
-            stmt is FunctionCallStatement && 
+            stmt is FunctionCallStatement &&
             stmt.target.nameInSource.last() == "take_six" &&
             stmt.void
         }
         hasVoidCall shouldBe false
     }
+
+
+    test("memory-mapped IO reads should not be eliminated (c64)") {
+        val src = $$"""
+main {
+    &ubyte io_reg = $d021
+    ubyte @shared result
+    sub start() {
+        result = io_reg
+        result = io_reg
+        result = io_reg
+        io_reg = 0
+        io_reg = 0
+        io_reg = 0
+    }
+}"""
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = true)!!
+
+        // Check the SimpleAst (codegenAst) before assembly: should have 3 reads and 3 writes to io_reg
+        val sub = result.codegenAst!!.entrypoint()!!
+        val assignments = sub.children.drop(1).filterIsInstance<PtAssignment>()
+        val ioRegReads = assignments.count { a ->
+            (a.value as? PtIdentifier)?.name?.endsWith("io_reg")==true
+        }
+        val ioRegWrites = assignments.count { a ->
+            a.target.identifier?.name?.endsWith("io_reg")==true
+        }
+        ioRegReads shouldBe 3
+        ioRegWrites shouldBe 3
+
+        val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val asm = asmFile.readText()
+
+        // $d021 is an IO address so every read and write should be there and not optimized away, there should be 3 loads and 3 stores
+        val ioAccessCount = asm.lines().count { (it.contains("lda ") || it.contains("sta ") || it.contains("stz ")) && it.contains("io_reg") }
+        ioAccessCount shouldBe 6
+    }
+
+    test("memory-mapped IO reads should not be eliminated (cx16)") {
+        val src = $$"""
+main {
+    &ubyte io_reg = $9f01
+    ubyte @shared result
+    sub start() {
+        result = io_reg
+        result = io_reg
+        result = io_reg
+        io_reg = 0
+        io_reg = 0
+        io_reg = 0
+    }
+}"""
+        val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = true)!!
+
+        // Check the SimpleAst (codegenAst) before assembly: should have 3 reads and 3 writes to io_reg
+        val sub = result.codegenAst!!.entrypoint()!!
+        val assignments = sub.children.drop(1).filterIsInstance<PtAssignment>()
+        val ioRegReads = assignments.count { a ->
+            (a.value as? PtIdentifier)?.name?.endsWith("io_reg")==true
+        }
+        val ioRegWrites = assignments.count { a ->
+            a.target.identifier?.name?.endsWith("io_reg")==true
+        }
+        ioRegReads shouldBe 3
+        ioRegWrites shouldBe 3
+
+        val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val asm = asmFile.readText()
+
+        // $d021 is an IO address so every read and write should be there and not optimized away, there should be 3 loads and 3 stores
+        val ioAccessCount = asm.lines().count { (it.contains("lda ") || it.contains("sta ") || it.contains("stz ")) && it.contains("io_reg") }
+        ioAccessCount shouldBe 6
+    }    
 })

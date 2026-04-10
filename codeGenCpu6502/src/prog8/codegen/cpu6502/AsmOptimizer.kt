@@ -6,6 +6,49 @@ import prog8.code.StMemVar
 import prog8.code.SymbolTable
 import prog8.code.core.ICompilationTarget
 
+// ============================================================================
+// KNOWN BUGS / TODOs
+// ============================================================================
+//
+// 1. Float copy optimization (optimizeSameAssignments, ~line 243):
+//    The "identical float init" pattern removes 4 lines (lda/ldy/sta/sty)
+//    based only on matching *load* operands. It never verifies that the two
+//    sta/sty store to the *same* destination. If two different float variables
+//    are initialized from the same source, the second initialization gets
+//    silently deleted.
+//    NOTE: Cannot be reproduced from Prog8 source - the codegen doesn't
+//    produce the exact 14-line pattern that triggers this.
+//
+// 2. Crude "y" substring check for Y register modification (~line 387-410):
+//    optimizeSamePointerIndexing checks "y" !in third to detect if Y is
+//    modified between ldy pairs. This produces false positives (variable
+//    "myvar" contains 'y') and false negatives (tay, phy, ply would be
+//    missed). Should parse actual instruction mnemonics instead.
+//
+// 3. Inconsistent line property usage (~line 400):
+//    The pointer indexing patterns mix lines[2].trimmed with
+//    lines[3].instruction (e.g., checks "y" !in f4 where f4 is .instruction,
+//    while third is .trimmed). Should consistently use .instruction for all.
+//
+// 4. getAddressArg() unprotected at most call sites (~line 608):
+//    instruction.substring(3) crashes if the instruction string is < 3 chars.
+//    The f2.length>4 guard at ~line 353 protects one path, but all other
+//    callers (lines 202, 221, 305, 329, 349, 476, 514, 528, 551) have no
+//    equivalent guard.
+//
+// 5. ~~jsr+rts -> jmp exclusion list incomplete~~:
+//    NOT A BUG for Prog8. Prog8 subroutines never use the return address
+//    on the stack (no runtime call stack, static allocation only).
+//    The jsr→jmp tail-call optimization is safe for all Prog8-generated code.
+//    The exclusion list for floats.pushFAC/popFAC is unnecessary but harmless.
+//
+// 6. ~~Memory-mapped IO with compiler-generated prefixes bypasses protection~~:
+//    FIXED: The symbol table is now rebuilt after prefixing (AsmGen.kt), so
+//    prefixed names like p8b_main.p8v_io_reg resolve to their StMemVar entries
+//    with correct IO addresses. The optimizer now properly protects IO accesses.
+//
+// ============================================================================
+
 
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
@@ -198,9 +241,20 @@ private fun optimizeSameAssignments(
             val fourthvalue = f6.extractOperandTrimmed()
             if(firstvalue==thirdvalue && secondvalue==fourthvalue) {
                 // lda/ldy   sta/sty   twice the same word -->  remove second lda/ldy pair (fifth and sixth lines)
-                val address1 = getAddressArg(f1, symbolTable)
-                val address2 = getAddressArg(f2, symbolTable)
-                if(address1==null || address2==null || (!machine.isIOAddress(address1) && !machine.isIOAddress(address2))) {
+                // Immediate values (#) are always safe to optimize; memory addresses must not be IO
+                val isImmediate1 = firstvalue.startsWith('#')
+                val isImmediate2 = secondvalue.startsWith('#')
+                val safe1 = isImmediate1 || run {
+                    val addr = getAddressArg(f1, symbolTable)
+                    addr == null && !looksLikeIOAddress(firstvalue, machine) ||
+                    addr != null && !machine.isIOAddress(addr)
+                }
+                val safe2 = isImmediate2 || run {
+                    val addr = getAddressArg(f2, symbolTable)
+                    addr == null && !looksLikeIOAddress(secondvalue, machine) ||
+                    addr != null && !machine.isIOAddress(addr)
+                }
+                if(safe1 && safe2) {
                     mods.add(Modification(lines[4].index, true, null))
                     mods.add(Modification(lines[5].index, true, null))
                 }
@@ -212,8 +266,14 @@ private fun optimizeSameAssignments(
             val secondvalue = f3.extractOperandTrimmed()
             if(firstvalue==secondvalue) {
                 // lda value / sta ? / lda same-value / sta ?  -> remove second lda (third line)
-                val address = getAddressArg(f1, symbolTable)
-                if(address==null || !machine.isIOAddress(address))
+                // Immediate values (#) are always safe; memory addresses must not be IO
+                val isImmediate = firstvalue.startsWith('#')
+                val safe = isImmediate || run {
+                    val addr = getAddressArg(f1, symbolTable)
+                    addr == null && !looksLikeIOAddress(firstvalue, machine) ||
+                    addr != null && !machine.isIOAddress(addr)
+                }
+                if(safe)
                     mods.add(Modification(lines[2].index, true, null))
             }
         }
@@ -296,7 +356,9 @@ private fun optimizeSameAssignments(
                 val fourthvalue = f4.extractOperandTrimmed()
                 if(firstvalue==thirdvalue && secondvalue == fourthvalue) {
                     val address = getAddressArg(f1, symbolTable)
-                    if(address==null || !machine.isIOAddress(address)) {
+                    val isIO = address != null && machine.isIOAddress(address) ||
+                               address == null && looksLikeIOAddress(firstvalue, machine)
+                    if(!isIO) {
                         overlappingMods = true
                         mods.add(Modification(lines[2].index, true, null))
                         if (!lines[4].instruction.startsWith('b'))
@@ -320,7 +382,9 @@ private fun optimizeSameAssignments(
                 val thirdvalue = f3.extractOperandTrimmed()
                 if(firstvalue==thirdvalue) {
                     val address = getAddressArg(f1, symbolTable)
-                    if(address==null || !machine.isIOAddress(address)) {
+                    val isIO = address != null && machine.isIOAddress(address) ||
+                               address == null && looksLikeIOAddress(firstvalue, machine)
+                    if(!isIO) {
                         overlappingMods = true
                         mods.add(Modification(lines[2].index, true, null))
                     }
@@ -340,7 +404,9 @@ private fun optimizeSameAssignments(
             val thirdvalue = f3.extractOperandTrimmed()
             if(firstvalue==secondvalue && firstvalue==thirdvalue) {
                 val address = getAddressArg(f1, symbolTable)
-                if(address==null || !machine.isIOAddress(address)) {
+                val isIO = address != null && machine.isIOAddress(address) ||
+                           address == null && looksLikeIOAddress(firstvalue, machine)
+                if(!isIO) {
                     overlappingMods = true
                     val reg2 = f2[2]
                     mods.add(Modification(lines[1].index, false, "  ta$reg2"))
@@ -465,8 +531,13 @@ private fun optimizeStoreLoadSame(
                 }
                 else {
                     // no branch instruction follows, we can remove the load instruction
-                    val address = getAddressArg(lines[2].value, symbolTable)
-                    address==null || !machine.isIOAddress(address)
+                    // if we can resolve the address and it's NOT IO, or if it doesn't look like IO
+                    val instr = lines[2].instruction
+                    val address = getAddressArg(instr, symbolTable)
+                    val operand = instr.extractOperandTrimmed()
+                    val isIO = address != null && machine.isIOAddress(address) ||
+                               address == null && looksLikeIOAddress(operand, machine)
+                    !isIO
                 }
 
             if(attemptRemove) {
@@ -495,14 +566,20 @@ private fun optimizeStoreLoadSame(
 
 
         // lda X + sta X,  ldy X + sty X,   ldx X + stx X  -> the second instruction can be eliminated
+        // ONLY if X is NOT an IO address (reading from IO may have side effects)
         if (first.startsWith("lda ") && second.startsWith("sta ") ||
             first.startsWith("ldx ") && second.startsWith("stx ") ||
             first.startsWith("ldy ") && second.startsWith("sty ")
         ) {
             val firstLoc = first.extractOperandTrimmed()
             val secondLoc = second.extractOperandTrimmed()
-            if (firstLoc == secondLoc)
-                mods.add(Modification(lines[2].index, true, null))
+            if (firstLoc == secondLoc) {
+                val address = getAddressArg(first, symbolTable)
+                val isIO = address != null && machine.isIOAddress(address) ||
+                           address == null && looksLikeIOAddress(firstLoc, machine)
+                if(!isIO)
+                    mods.add(Modification(lines[2].index, true, null))
+            }
         }
 
         //  all 3 registers:  lda VALUE + sta SOMEWHERE + lda VALUE  -> last load can be eliminated IF NOT IO ADDRESS
@@ -514,7 +591,9 @@ private fun optimizeStoreLoadSame(
             val thirdVal = third.extractOperandTrimmed()
             if (firstVal == thirdVal) {
                 val address = getAddressArg(third, symbolTable)
-                if (address != null && !machine.isIOAddress(address)) {
+                val isIO = address != null && machine.isIOAddress(address) ||
+                           address == null && looksLikeIOAddress(thirdVal, machine)
+                if(!isIO) {
                     mods.add(Modification(lines[3].index, true, null))
                 }
             }
@@ -525,7 +604,7 @@ private fun optimizeStoreLoadSame(
 
 private val identifierRegex = Regex("""^([a-zA-Z_$][a-zA-Z\d_.$]*)""")
 
-private fun getAddressArg(instruction: String, symbolTable: SymbolTable): UInt? {
+internal fun getAddressArg(instruction: String, symbolTable: SymbolTable): UInt? {
     // instruction should already be label-stripped (e.g., from TrimmedLine.instruction)
     val loadArg = instruction.substring(3).trim()
     return when {
@@ -551,6 +630,31 @@ private fun getAddressArg(instruction: String, symbolTable: SymbolTable): UInt? 
         }
         else -> loadArg.substring(1).toUIntOrNull()
     }
+}
+
+/** Heuristic check: does this operand string look like an IO address?
+ *  Used when symbol table lookup fails - catches cases like `cx16.VERA_DATA1`
+ *  that should be IO but might not be in the symbol table at optimization time.
+ *  Delegates to machine.isIOAddress() for any parseable address. */
+private fun looksLikeIOAddress(operand: String, machine: ICompilationTarget): Boolean {
+    // Known IO module prefixes in the standard library
+    if(operand.startsWith("cx16.") || operand.startsWith("cbm.") ||
+        operand.startsWith("c128.") || operand.startsWith("c64.") ||
+        operand.startsWith("pet32.") || operand.startsWith("sys."))
+        return true
+    // Try to parse hex address and delegate to machine
+    if(operand.startsWith('$')) {
+        val hexVal = operand.substring(1).take(4).toUIntOrNull(16)
+        if(hexVal != null)
+            return machine.isIOAddress(hexVal)
+    }
+    // Try to parse decimal address (e.g. "53280" = $d000) and delegate to machine
+    val decVal = operand.toUIntOrNull()
+    if(decVal != null)
+        return machine.isIOAddress(decVal)
+    // For unresolved symbolic names we can't determine - assume NOT IO
+    // (the symbol table lookup already failed, so we have no better info)
+    return false
 }
 
 private fun optimizeIncDec(linesByFour: Sequence<List<TrimmedLine>>): List<Modification> {

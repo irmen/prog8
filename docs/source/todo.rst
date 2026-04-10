@@ -1,6 +1,8 @@
 TODO
 ====
 
+Fix asm optimizations bug introduced in 1100ab0d "performance tweaks"
+
 Chess, Imageviewer, Halloween, Paint have all increased size (maybe more)  Plasma example increased in size too since commit 14abc1f0
 
 
@@ -84,6 +86,16 @@ Libraries
 
 Optimizations
 -------------
+
+- **BUG: AST-level dead store elimination removes reads from memory-mapped IO variables.**
+  When a memory-mapped variable (e.g., ``&ubyte vera_data = $9f24``) is assigned to a regular variable multiple times
+  in a row (``result = vera_data; result = vera_data; result = vera_data``), the AST optimizer sees this as redundant
+  dead stores and removes all but the last assignment. However, reading from an IO address has side effects
+  (e.g., VERA_DATA advances the VRAM address pointer), so these reads must NOT be eliminated.
+  The assembly optimizer (``AsmOptimizer.kt``) has been fixed to protect IO accesses, but the AST-level
+  ``UnusedCodeRemover`` / dead store elimination runs *before* assembly generation and doesn't know which
+  variables map to IO space. A proper fix requires marking memory-mapped IO variables in the AST so the
+  optimizer can treat reads from them as having side effects.
 
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
