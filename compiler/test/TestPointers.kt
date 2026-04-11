@@ -2600,28 +2600,26 @@ main {
 }"""
         val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 8
+        st.size shouldBe 7
         val a1 = st[0] as Assignment
         val a2 = st[1] as Assignment
         val a3 = st[2] as Assignment
         val a4 = st[3] as Assignment
         val a5 = st[4] as Assignment
         val a6 = st[5] as Assignment
-        val a7 = st[6] as Assignment
 
         a1.target.arrayIndexedDereference shouldBe null
         a1.target.pointerDereference!!.chain shouldBe listOf("sprptr", "y")
-        a2.target.arrayIndexedDereference shouldBe null
-        a2.target.pointerDereference!!.chain shouldBe listOf("sprptr", "y")
+        a2.target.arrayIndexedDereference shouldBe null  // &sprptr[0] - AddressOf, not PtrDeref
+        a2.value shouldBe instanceOf<AddressOf>()
 
-        (a3.value as? AddressOf)?.identifier?.nameInSource shouldBe listOf("sprptr")
+        (a3.value as? PtrDereference)?.chain shouldBe listOf("sprptr", "y")
         (a4.value as? PtrDereference)?.chain shouldBe listOf("sprptr", "y")
-        (a5.value as? PtrDereference)?.chain shouldBe listOf("sprptr", "y")
-        val be6 = a6.value as BinaryExpression      // this one is an actual array and we need the first element so no change here
-        be6.operator shouldBe "."
-        be6.left shouldBe instanceOf<ArrayIndexedExpression>()
-        be6.right shouldBe instanceOf<IdentifierReference>()
-        (a7.value as? ArrayIndexedExpression)?.indexer?.constIndex() shouldBe 0
+        val be5 = a5.value as BinaryExpression      // this one is an actual array and we need the first element so no change here
+        be5.operator shouldBe "."
+        be5.left shouldBe instanceOf<ArrayIndexedExpression>()
+        be5.right shouldBe instanceOf<IdentifierReference>()
+        (a6.value as? ArrayIndexedExpression)?.indexer?.constIndex() shouldBe 0
     }
 
     test("long pointer assignments") {

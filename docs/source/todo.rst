@@ -1,8 +1,6 @@
 TODO
 ====
 
-Turbokid is broken (text doesn't appear anymore) - NOT related to Asm optimizations! caused by commit 2bd7f3e210005943f5e0f199e1fd9a4b8762a653 "Improved SimpleAST optimizer"
-
 Chess, Imageviewer, Halloween, Paint have all increased size (maybe more)  Plasma example increased in size too since commit 14abc1f0
 
 

@@ -59,6 +59,12 @@ sealed class Expression: Node {
                         && other.args.size == args.size
                         && other.args.zip(args).all { it.first isSameAs it.second } )
             }
+            is PtrDereference -> {
+                (other is PtrDereference && other.derefLast == derefLast && other.chain == chain)
+            }
+            is ArrayIndexedPtrDereference -> {
+                (other is ArrayIndexedPtrDereference && other.derefLast == derefLast && other.chain == chain)
+            }
             else -> other==this
         }
     }

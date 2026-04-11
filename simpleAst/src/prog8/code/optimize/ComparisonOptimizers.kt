@@ -145,7 +145,9 @@ internal object ComparisonOptimizers {
 
                 // x == x -> true, x != x -> false, x < x -> false, etc.
                 // (constant-vs-constant is already folded in compilerAST phase)
-                if (left isSameAs right) {
+                // NOTE: do NOT apply to floats - NaN comparisons don't follow these rules
+                // (e.g. NaN == NaN is false, NaN <= NaN is false)
+                if (left isSameAs right && !left.type.isFloat) {
                     val result = when (node.operator) {
                         "==" -> true
                         "!=" -> false
@@ -159,6 +161,8 @@ internal object ComparisonOptimizers {
                     val replacement = PtBool(result, node.position)
                     node.parent.setChild(index, replacement)
                     changes++
+                    // Return false to skip traversing the orphaned children of the replaced node
+                    return@walkAst false
                 }
             }
             true
