@@ -30,23 +30,6 @@ import prog8.code.core.ICompilationTarget
 //    lines[3].instruction (e.g., checks "y" !in f4 where f4 is .instruction,
 //    while third is .trimmed). Should consistently use .instruction for all.
 //
-// 4. getAddressArg() unprotected at most call sites (~line 608):
-//    instruction.substring(3) crashes if the instruction string is < 3 chars.
-//    The f2.length>4 guard at ~line 353 protects one path, but all other
-//    callers (lines 202, 221, 305, 329, 349, 476, 514, 528, 551) have no
-//    equivalent guard.
-//
-// 5. ~~jsr+rts -> jmp exclusion list incomplete~~:
-//    NOT A BUG for Prog8. Prog8 subroutines never use the return address
-//    on the stack (no runtime call stack, static allocation only).
-//    The jsr→jmp tail-call optimization is safe for all Prog8-generated code.
-//    The exclusion list for floats.pushFAC/popFAC is unnecessary but harmless.
-//
-// 6. ~~Memory-mapped IO with compiler-generated prefixes bypasses protection~~:
-//    FIXED: The symbol table is now rebuilt after prefixing (AsmGen.kt), so
-//    prefixed names like p8b_main.p8v_io_reg resolve to their StMemVar entries
-//    with correct IO addresses. The optimizer now properly protects IO accesses.
-//
 // ============================================================================
 
 
@@ -608,6 +591,7 @@ internal fun getAddressArg(instruction: String, symbolTable: SymbolTable): UInt?
     // instruction should already be label-stripped (e.g., from TrimmedLine.instruction)
     val loadArg = instruction.substring(3).trim()
     return when {
+        loadArg.isEmpty() -> null
         loadArg.startsWith('$') -> loadArg.substring(1).toUIntOrNull(16)
         loadArg.startsWith('%') -> loadArg.substring(1).toUIntOrNull(2)
         loadArg.startsWith('#') -> null

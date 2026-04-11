@@ -20,6 +20,7 @@ sealed class Expression: Node {
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
     abstract fun inferType(program: Program): InferredTypes.InferredType
+    abstract fun isIORead(target: ICompilationTarget): Boolean
     abstract val isSimple: Boolean
 
     infix fun isSameAs(assigntarget: AssignTarget) = assigntarget.isSameAs(this)
@@ -78,6 +79,8 @@ sealed class Expression: Node {
 
 class PrefixExpression(val operator: String, var expression: Expression, override val position: Position) : Expression() {
     override lateinit var parent: Node
+
+    override fun isIORead(target: ICompilationTarget): Boolean = expression.isIORead(target)
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -153,6 +156,8 @@ class BinaryExpression(
     override val position: Position
 ) : Expression() {
     override lateinit var parent: Node
+
+    override fun isIORead(target: ICompilationTarget): Boolean = left.isIORead(target) || right.isIORead(target)
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -399,6 +404,10 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
                              var indexer: ArrayIndex,
                              override val position: Position) : Expression() {
     override lateinit var parent: Node
+    override fun isIORead(target: ICompilationTarget): Boolean = plainarrayvar?.isIORead(target) == true ||
+                                                                 nestedArray?.isIORead(target) == true ||
+                                                                 indexer.indexExpr.isIORead(target)
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         plainarrayvar?.linkParents(this)
@@ -520,6 +529,8 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
 
 class TypecastExpression(var expression: Expression, var type: DataType, val implicit: Boolean, override val position: Position) : Expression() {
     override lateinit var parent: Node
+
+    override fun isIORead(target: ICompilationTarget): Boolean = expression.isIORead(target)
 
     override fun linkParents(parent: Node) {
         this.parent = parent
@@ -657,6 +668,8 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
         } else
             throw FatalAstException("invalid addressof")
     }
+
+    override fun isIORead(target: ICompilationTarget) = false
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 }
@@ -684,7 +697,7 @@ class DirectMemoryRead(var addressExpression: Expression, override val position:
     override fun referencesIdentifier(nameInSource: List<String>) = addressExpression.referencesIdentifier(nameInSource)
     override fun inferType(program: Program) = InferredTypes.knownFor(BaseDataType.UBYTE)
     override fun constValue(program: Program): NumericLiteral? = null
-
+    override fun isIORead(target: ICompilationTarget) = addressExpression.isIORead(target)
     override fun toString(): String {
         return "DirectMemoryRead($addressExpression)"
     }
@@ -713,6 +726,7 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
     }
 
     override val isSimple = true
+    override fun isIORead(target: ICompilationTarget) = false
     override fun copy() = NumericLiteral(type, number, position)
 
     companion object {
@@ -1078,7 +1092,8 @@ class CharLiteral private constructor(val value: Char,
     }
 
     override val isSimple = true
-
+    override fun isIORead(target: ICompilationTarget) = false
+    
     override fun replaceChildNode(node: Node, replacement: Node) {
         throw FatalAstException("can't replace here")
     }
@@ -1128,6 +1143,7 @@ class StringLiteral private constructor(val value: String,
     }
 
     override val isSimple = true
+    override fun isIORead(target: ICompilationTarget) = false
     override fun copy() = StringLiteral(value, encoding, position)
 
     override fun replaceChildNode(node: Node, replacement: Node) {
@@ -1162,7 +1178,8 @@ class ArrayLiteral(val type: InferredTypes.InferredType,     // inferred because
 
     override fun copy(): ArrayLiteral = ArrayLiteral(type, value.map { it.copy() }.toTypedArray(), position)
     override val isSimple = true
-
+    override fun isIORead(target: ICompilationTarget) = false
+    
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
         val idx = value.indexOfFirst { it===node }
@@ -1305,6 +1322,7 @@ class RangeExpression(var from: Expression,
     }
 
     override val isSimple = true
+    override fun isIORead(target: ICompilationTarget) = false
 
     override fun replaceChildNode(node: Node, replacement: Node) {
         require(replacement is Expression)
@@ -1390,6 +1408,18 @@ data class IdentifierReference(val nameInSource: List<String>, override val posi
     override lateinit var parent: Node
 
     override val isSimple = true
+
+    override fun isIORead(target: ICompilationTarget): Boolean {
+        return try {
+            val decl = targetVarDecl() ?: return false
+            if (decl.type == VarDeclType.MEMORY && decl.value is NumericLiteral)
+                target.isIOAddress((decl.value as NumericLiteral).number.toUInt())
+            else
+                false
+        } catch (_: FatalAstException) {
+            false
+        }
+    }
 
     fun targetStatement(builtins: IBuiltinFunctions? = null): Statement? =
         if(builtins!=null && nameInSource.singleOrNull() in builtins.names) {
@@ -1575,6 +1605,9 @@ class FunctionCallExpression(override var target: IdentifierReference,
                              override val position: Position) : Expression(), IFunctionCall {
     override lateinit var parent: Node
 
+    // Function calls might have side effects, so they always count as IO reads
+    override fun isIORead(target: ICompilationTarget): Boolean = true
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         target.linkParents(this)
@@ -1668,6 +1701,7 @@ class ContainmentCheck(var element: Expression,
     }
 
     override val isSimple: Boolean = false
+    override fun isIORead(target: ICompilationTarget) = false
     override fun copy() = ContainmentCheck(element.copy(), iterable.copy(), position)
     override fun constValue(program: Program): NumericLiteral? {
         val elementConst = element.constValue(program)
@@ -1736,6 +1770,8 @@ class IfExpression(var condition: Expression, var truevalue: Expression, var fal
 
     override lateinit var parent: Node
 
+    override fun isIORead(target: ICompilationTarget): Boolean = condition.isIORead(target) || truevalue.isIORead(target) || falsevalue.isIORead(target)
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         condition.linkParents(this)
@@ -1788,7 +1824,7 @@ class BranchConditionExpression(var condition: BranchCondition, var truevalue: E
     }
 
     override val isSimple: Boolean = truevalue.isSimple && falsevalue.isSimple
-
+    override fun isIORead(target: ICompilationTarget) = false
     override fun constValue(program: Program) = null
     override fun toString() = "BranchExpr(cond=$condition, true=$truevalue, false=$falsevalue, pos=$position)"
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -1867,6 +1903,7 @@ class PtrDereference(
     }
 
     override val isSimple = false
+    override fun isIORead(target: ICompilationTarget) = false
     override fun copy(): PtrDereference = PtrDereference(chain.toList(), derefLast, position)
     override fun constValue(program: Program): NumericLiteral? = null
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
@@ -1974,7 +2011,7 @@ class ArrayIndexedPtrDereference(
     }
 
     override val isSimple = false
-
+    override fun isIORead(target: ICompilationTarget) = false
     override fun replaceChildNode(node: Node, replacement: Node) = throw FatalAstException("can't replace here")
     override fun referencesIdentifier(nameInSource: List<String>) = chain.size==1 && chain==nameInSource
     override fun copy(): ArrayIndexedPtrDereference = ArrayIndexedPtrDereference(chain.toList(), derefLast, position)
@@ -2099,6 +2136,7 @@ class StaticStructInitializer(var structname: IdentifierReference,
 
     override fun copy() = StaticStructInitializer(structname.copy(), args.map { it.copy() }.toMutableList(), position)
     override val isSimple = args.all { it.isSimple }
+    override fun isIORead(target: ICompilationTarget) = false
     override fun replaceChildNode(node: Node, replacement: Node) {
         if(node===structname)
             structname=replacement as IdentifierReference
@@ -2154,6 +2192,7 @@ class ExpressionTuple(val expressions: List<Expression>, override val position: 
     }
 
     override val isSimple = expressions.all { it.isSimple }
+    override fun isIORead(target: ICompilationTarget) = expressions.any { it.isIORead(target) }
     override fun referencesIdentifier(nameInSource: List<String>) = expressions.any { it.referencesIdentifier(nameInSource) }
     override fun copy(): ExpressionTuple = ExpressionTuple(expressions.map { it.copy() }, position)
 

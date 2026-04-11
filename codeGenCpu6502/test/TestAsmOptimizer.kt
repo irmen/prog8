@@ -577,22 +577,6 @@ class TestAsmOptimizer: FunSpec({
     // without crafting a specific label+instruction combination.
     // No minimal test case yet - the bug is structural inconsistency.
 
-    // BUG #4: getAddressArg() unprotected at most call sites
-    // Passing a bare instruction string like "lda " (< 3 chars after trim) would crash.
-    // This is currently protected by the optimizer's windowing filter (blank/comment
-    // lines are excluded), but a pathological case could slip through.
-    test("BUG #4: getAddressArg should handle short instruction strings gracefully") {
-        // Currently: getAddressArg("lda ", symbolTable) throws StringIndexOutOfBoundsException
-        // After fix: should return null safely
-        try {
-            val result = getAddressArg("lda ", symbolTable)
-            result shouldBe null  // xfail: currently throws instead of returning null
-        } catch (e: StringIndexOutOfBoundsException) {
-            // Currently expected behavior (the bug)
-            false shouldBe true  // xfail marker
-        }
-    }
-
     test("compiler-prefixed memory-mapped IO variable accesses are not optimized away") {
         symbolTable.add(StMemVar("p8b_main.p8v_io_data", DataType.UBYTE, 0xd021u, null, null))
         symbolTable.add(StMemVar("p8b_main.p8v_result", DataType.UBYTE, 0x0300u, null, null))

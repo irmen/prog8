@@ -561,7 +561,7 @@ private fun optimizeAst(program: Program, compilerOptions: CompilationOptions, e
         }
     }
 
-    removeUnusedCode(program, errors,compilerOptions)
+    removeUnusedCode(program, errors, compilerOptions)
     program.constantFold(errors, compilerOptions)
 
     for(numCycles in 0..10000) {

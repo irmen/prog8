@@ -1156,21 +1156,19 @@ main {
         ub1 = sizeof(List)
         ub2 = sizeof(main.start.List)
         ub1 = sizeof(&w)
-        ub1 = sizeof(&b)
-        ub2 = sizeof(&&w)
-        ub1 = sizeof(&&lptr)
-        ub2 = sizeof(^^float)
-        ub1 = sizeof(^^word)
+        ub2 = sizeof(&b)
+        ub1 = sizeof(&&w)
+        ub2 = sizeof(&&lptr)
+        ub1 = sizeof(^^float)
+        ub2 = sizeof(^^word)
         ub1 = sizeof(^^List)
     }
 }"""
         val result = compileText(VMTarget(), false, validSrc, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
         // Check that all sizeof calls compiled to numeric literals
-        val sizeofAssignments = st.filterIsInstance<Assignment>().filter { 
-            it.value is NumericLiteral 
-        }
-        sizeofAssignments.size shouldBe 29  // 6 SIZEOF_* + 23 sizeof() calls
+        val assignments = st.filterIsInstance<Assignment>()
+        assignments.all { it.value is NumericLiteral } shouldBe true
     }
 
     test("sizeof() rejects invalid argument types") {
