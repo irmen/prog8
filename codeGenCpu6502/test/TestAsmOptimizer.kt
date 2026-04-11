@@ -526,17 +526,7 @@ class TestAsmOptimizer: FunSpec({
     // See AsmOptimizer.kt header for the full list.
     // ========================================================================
 
-    // BUG #1: Float copy optimization removes stores without verifying destinations.
-    // The pattern matches two identical float initializations based only on load operands,
-    // then removes the second one's lda/ldy/sta/sty without checking if the store
-    // destinations are the same. Two different float vars initialized from the same
-    // source will have the second initialization's stores wrongly deleted.
-    test("BUG #1: float copy init to different destinations should not be removed") {
-        // Pattern: 14 lines matching two float copy_float sequences
-        // First copy to floatA:  lda #1 / ldy #0 / sta floatA / sty floatA+1 / lda #1 / ldy #0 / jsr floats.copy_float
-        // Second copy to floatB: lda #1 / ldy #0 / sta floatB / sty floatB+1 / lda #1 / ldy #0 / jsr floats.copy_float
-        // BUG: optimizer sees matching loads (#1, #0) and removes the second copy's lda/ldy/sta/sty
-        // even though floatA != floatB
+    test("float copy init to different destinations should not be removed") {
         val lines = mutableListOf(
             // Lines 0-6: first float copy
             "  lda  #1", "  ldy  #0", "  sta  floatA", "  sty  floatA+1",
@@ -547,35 +537,43 @@ class TestAsmOptimizer: FunSpec({
         )
         val beforeOpt = lines.toList()
         optimize(lines)
-        // After fix: no optimization should apply, lines unchanged
-        // Currently: optimizer removes lines 7-10 (lda/ldy/sta/sty for floatB)
-        lines shouldBe beforeOpt  // xfail: this will fail until bug is fixed
+        lines shouldBe beforeOpt
     }
 
-    // BUG #2: Crude "y" substring check for Y register modification
-    // A variable named "myvar" contains 'y', so the optimizer thinks Y is modified
-    // and incorrectly keeps a redundant ldy.
-    test("BUG #2: variable name containing 'y' should not trigger false positive") {
-        symbolTable.add(StMemVar("myvar", DataType.UBYTE, 0x0320u, null, null))
+    test("variable name containing 'y' should not trigger false positive") {
         val lines = mutableListOf(
-            "  ldy  #0", "  lda  (ptr),y", "  ora  myvar",  // 'y' in "myvar" triggers false positive
+            "  ldy  #0", "  lda  (ptr),y", "  ora  myvar",  // 'y' in "myvar" no longer triggers false positive
             "  ldy  #0", "  sta  (ptr),y", "  rts",
             "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop"
         )
-        // BUG: "y" in "ora  myvar" matches the "y" in "myvar", so the optimizer
-        // thinks Y might be modified and keeps the redundant ldy.
-        // After fix: the second ldy should be removed (count should be 1)
-        // Currently: count is 0 because of the false positive
-        optimize(lines) shouldBe 1  // xfail: this will fail until bug is fixed
+        // The second ldy should be removed since "ora" doesn't modify Y
+        optimize(lines) shouldBe 1
     }
 
-    // BUG #3: Inconsistent line property usage (trimmed vs instruction)
-    // This is a latent correctness issue - harder to trigger in a minimal test,
-    // but the pattern exists in optimizeSamePointerIndexingAndUselessBeq.
-    // The check `"y" !in third` uses .trimmed (may include labels) while
-    // `"y" !in f4` uses .instruction. This is fragile but hard to isolate
-    // without crafting a specific label+instruction combination.
-    // No minimal test case yet - the bug is structural inconsistency.
+    test("actual Y-modifying instructions should still be detected") {
+        val lines = mutableListOf(
+            "  ldy  #0", "  lda  (ptr),y", "  tay",  // tay modifies Y, so ldy cannot be removed
+            "  ldy  #0", "  sta  (ptr),y", "  rts",
+            "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop", "  nop"
+        )
+        // The second ldy should NOT be removed since "tay" modifies Y
+        optimize(lines) shouldBe 0
+    }
+
+    test("modifiesYRegister: correctly identifies Y-modifying instructions") {
+        "  ldy  #0".modifiesYRegister() shouldBe true
+        "  tay".modifiesYRegister() shouldBe true
+        "  iny".modifiesYRegister() shouldBe true
+        "  dey".modifiesYRegister() shouldBe true
+        "  tya".modifiesYRegister() shouldBe true
+        "  phy".modifiesYRegister() shouldBe true
+        "  ply".modifiesYRegister() shouldBe true
+        "  sty  var".modifiesYRegister() shouldBe true
+        "  ora  myvar".modifiesYRegister() shouldBe false  // false positive fixed
+        "  lda  #0".modifiesYRegister() shouldBe false
+        "  cpy  #0".modifiesYRegister() shouldBe false  // compare doesn't modify
+        "  jsr  func".modifiesYRegister() shouldBe false
+    }
 
     test("compiler-prefixed memory-mapped IO variable accesses are not optimized away") {
         symbolTable.add(StMemVar("p8b_main.p8v_io_data", DataType.UBYTE, 0xd021u, null, null))

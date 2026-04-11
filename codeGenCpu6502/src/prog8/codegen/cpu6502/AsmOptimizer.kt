@@ -6,33 +6,6 @@ import prog8.code.StMemVar
 import prog8.code.SymbolTable
 import prog8.code.core.ICompilationTarget
 
-// ============================================================================
-// KNOWN BUGS / TODOs
-// ============================================================================
-//
-// 1. Float copy optimization (optimizeSameAssignments, ~line 243):
-//    The "identical float init" pattern removes 4 lines (lda/ldy/sta/sty)
-//    based only on matching *load* operands. It never verifies that the two
-//    sta/sty store to the *same* destination. If two different float variables
-//    are initialized from the same source, the second initialization gets
-//    silently deleted.
-//    NOTE: Cannot be reproduced from Prog8 source - the codegen doesn't
-//    produce the exact 14-line pattern that triggers this.
-//
-// 2. Crude "y" substring check for Y register modification (~line 387-410):
-//    optimizeSamePointerIndexing checks "y" !in third to detect if Y is
-//    modified between ldy pairs. This produces false positives (variable
-//    "myvar" contains 'y') and false negatives (tay, phy, ply would be
-//    missed). Should parse actual instruction mnemonics instead.
-//
-// 3. Inconsistent line property usage (~line 400):
-//    The pointer indexing patterns mix lines[2].trimmed with
-//    lines[3].instruction (e.g., checks "y" !in f4 where f4 is .instruction,
-//    while third is .trimmed). Should consistently use .instruction for all.
-//
-// ============================================================================
-
-
 // note: see https://wiki.nesdev.org/w/index.php/6502_assembly_optimisations
 
 // PERFORMANCE: All lines are pre-trimmed once in getLinesBy() into TrimmedLine objects
@@ -79,6 +52,14 @@ internal fun String.isBranch() = this.startsWith("b")
 internal fun String.isStoreReg() = this.startsWith("sta ") || this.startsWith("sty ") || this.startsWith("stx ")
 internal fun String.isStoreRegOrZero() = this.isStoreReg() || this.startsWith("stz ")
 internal fun String.isLoadReg() = this.startsWith("lda ") || this.startsWith("ldy ") || this.startsWith("ldx ")
+
+/** Checks if an instruction modifies the Y register.
+ *  Used by optimizeSamePointerIndexing to detect if Y is safe to preserve between ldy pairs. */
+private val yModifyingMnemonics = setOf("ldy", "sty", "tay", "tya", "phy", "ply", "iny", "dey")
+internal fun String.modifiesYRegister(): Boolean {
+    val mnemonic = this.trimStart().take(3).lowercase()
+    return mnemonic in yModifyingMnemonics
+}
 
 private class Modification(val lineIndex: Int, val remove: Boolean, val replacement: String?, val removeLabel: Boolean=false)
 
@@ -276,8 +257,9 @@ private fun optimizeSameAssignments(
                     twelveth.startsWith("lda ") && thirteenth.startsWith("ldy ") &&
                     (fourteenth.startsWith("jsr  floats.copy_float") || fourteenth.startsWith("jsr  cx16flt.copy_float"))) {
 
-                if(f1.extractOperandTrimmed() == f8.extractOperandTrimmed() && f2.extractOperandTrimmed()==nineth.extractOperandTrimmed()) {
-                    // identical float init
+                if(f1.extractOperandTrimmed() == f8.extractOperandTrimmed() && f2.extractOperandTrimmed()==nineth.extractOperandTrimmed()
+                   && f3.extractOperandTrimmed() == tenth.extractOperandTrimmed() && f4.extractOperandTrimmed() == eleventh.extractOperandTrimmed()) {
+                    // identical float init to SAME destination - safe to remove duplicate
                     mods.add(Modification(lines[7].index, true, null))
                     mods.add(Modification(lines[8].index, true, null))
                     mods.add(Modification(lines[9].index, true, null))
@@ -423,7 +405,7 @@ private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<L
     for (lines in linesByFourteen) {
         val f1 = lines[0].instruction
         val f2 = lines[1].instruction
-        val third = lines[2].trimmed
+        val f3 = lines[2].instruction
         val f4 = lines[3].instruction
         val f5 = lines[4].instruction
         val f6 = lines[5].instruction
@@ -433,7 +415,7 @@ private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<L
             val secondvalue = f2.extractOperandTrimmed()
             val fourthvalue = f4.extractOperandTrimmed()
             val fifthvalue = f5.extractOperandTrimmed()
-            if("y" !in third && firstvalue==fourthvalue && secondvalue==fifthvalue && secondvalue.endsWith(",y") && fifthvalue.endsWith(",y")) {
+            if(!f3.modifiesYRegister() && firstvalue==fourthvalue && secondvalue==fifthvalue && secondvalue.endsWith(",y") && fifthvalue.endsWith(",y")) {
                 mods.add(Modification(lines[3].index, true, null))
             }
         }
@@ -442,7 +424,7 @@ private fun optimizeSamePointerIndexingAndUselessBeq(linesByFourteen: Sequence<L
             val secondvalue = f2.extractOperandTrimmed()
             val fifthvalue = f5.extractOperandTrimmed()
             val sixthvalue = f6.extractOperandTrimmed()
-            if("y" !in third && "y" !in f4 && firstvalue==fifthvalue && secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y")) {
+            if(!f3.modifiesYRegister() && !f4.modifiesYRegister() && firstvalue==fifthvalue && secondvalue==sixthvalue && secondvalue.endsWith(",y") && sixthvalue.endsWith(",y")) {
                 mods.add(Modification(lines[4].index, true, null))
             }
         }

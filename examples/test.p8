@@ -2,18 +2,14 @@
 %option no_sysinit
 
 main {
+    &ubyte io_reg = $d021
+    ubyte @shared result
     sub start() {
-        %asm {{
-            lda  cx16.VERA_DATA1
-            lda  cx16.VERA_DATA1
-            lda  cx16.VERA_DATA1
-            lda  cx16.VERA_DATA1
-            stz  cx16.VERA_DATA0
-            lda  cx16.VERA_DATA1
-            lda  cx16.VERA_DATA1
-            lda  cx16.VERA_DATA1
-            lda  cx16.VERA_DATA1
-            stz  cx16.VERA_DATA0
-        }}
+        result = io_reg
+        result = io_reg
+        result = io_reg
+        io_reg = 0
+        io_reg = 0
+        io_reg = 0
     }
 }
