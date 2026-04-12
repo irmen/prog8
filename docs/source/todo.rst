@@ -81,8 +81,6 @@ IR/VM
 - ``divModLongSignedInplace`` - in-place variant of the above.
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
-- ``statusOverflow`` determination in comparison operations (see line ~1555 in VirtualMachine.kt).
-
 
 Libraries
 ---------

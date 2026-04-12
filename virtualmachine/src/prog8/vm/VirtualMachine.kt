@@ -1462,6 +1462,12 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun InsCMP(i: IRInstruction) {
+        val leftOrig = when(i.type!!) {
+            IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
+            IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
+            IRDataType.LONG -> registers.getSL(i.reg1!!)
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
         val comparison = when(i.type!!) {
             IRDataType.BYTE -> {
                 val reg1 = registers.getUB(i.reg1!!)
@@ -1480,11 +1486,17 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        statusbitsComparison(comparison, i.type!!)
+        statusbitsComparisonWithOverflow(comparison, leftOrig, i.type!!)
         nextPc()
     }
 
     private fun InsCMPI(i: IRInstruction) {
+        val leftOrig = when(i.type!!) {
+            IRDataType.BYTE -> registers.getUB(i.reg1!!).toInt()
+            IRDataType.WORD -> registers.getUW(i.reg1!!).toInt()
+            IRDataType.LONG -> registers.getSL(i.reg1!!)
+            IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
+        }
         val comparison = when(i.type!!) {
             IRDataType.BYTE -> {
                 val reg1 = registers.getUB(i.reg1!!)
@@ -1500,7 +1512,7 @@ class VirtualMachine(irProgram: IRProgram) {
             }
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
-        statusbitsComparison(comparison, i.type!!)
+        statusbitsComparisonWithOverflow(comparison, leftOrig, i.type!!)
         nextPc()
     }
 
@@ -1552,7 +1564,31 @@ class VirtualMachine(irProgram: IRProgram) {
             IRDataType.LONG -> statusNegative = comparison<0
             IRDataType.FLOAT -> { /* floats don't change the status bits */ }
         }
-        // TODO determine statusOverflow in comparison
+    }
+
+    private fun statusbitsComparisonWithOverflow(comparison: Int, leftOrig: Int, type: IRDataType) {
+        statusbitsComparison(comparison, type)
+        when(type) {
+            IRDataType.BYTE -> {
+                val signBit = 0x80
+                val leftSign = leftOrig and signBit
+                val rightSign = (leftOrig - comparison) and signBit
+                statusOverflow = ((leftSign xor rightSign) and (leftSign xor (comparison and signBit))) != 0
+            }
+            IRDataType.WORD -> {
+                val signBit = 0x8000
+                val leftSign = leftOrig and signBit
+                val rightSign = (leftOrig - comparison) and signBit
+                statusOverflow = ((leftSign xor rightSign) and (leftSign xor (comparison and signBit))) != 0
+            }
+            IRDataType.LONG -> {
+                val leftSign = leftOrig < 0
+                val rightSign = (leftOrig - comparison) < 0
+                val resultSign = comparison < 0
+                statusOverflow = leftSign != rightSign && leftSign != resultSign
+            }
+            IRDataType.FLOAT -> { /* floats don't set overflow */ }
+        }
     }
 
     private fun plusMinusMultAnyByte(operator: String, reg1: Int, reg2: Int) {
