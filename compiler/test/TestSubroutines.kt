@@ -424,4 +424,29 @@ main {
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
         compileText(C64Target(), false, src, outputDir, writeAssembly = true).shouldNotBeNull()
     }
+
+    test("multi-value return with identical numeric literals") {
+        // Regression test: return 0, 0, 0 was incorrectly flagged as type mismatch
+        // because NumericLiteral.equals() only compares the number value, causing
+        // replaceChildNode to always find the first occurrence when using indexOf().
+        val src = """
+main {
+    sub start() {
+        word w1, w2, w3
+        w1, w2, w3 = multizero()
+        w1, w2, w3 = multi_nonzero()
+    }
+
+    sub multizero() -> word, word, word {
+        cx16.r0++
+        return 0, 0, 0
+    }
+
+    sub multi_nonzero() -> word, word, word {
+        cx16.r0++
+        return 42, 43, 44
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir, writeAssembly = false).shouldNotBeNull()
+    }
 })

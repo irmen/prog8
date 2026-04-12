@@ -193,7 +193,7 @@ class Return(val values: Array<Expression>, override val position: Position) : S
     }
 
     override fun replaceChildNode(node: Node, replacement: Node) {
-        val index = values.indexOf(node)
+        val index = values.indexOfFirst { it === node }
         if(replacement is Expression && index>=0) {
             values[index] = replacement
         } else throw FatalAstException("invalid replace in $this at ${node.position}: $node -> $replacement")
@@ -1068,7 +1068,7 @@ class Subroutine(override val name: String,
     override fun replaceChildNode(node: Node, replacement: Node) {
         when(replacement) {
             is SubroutineParameter -> {
-                val idx = parameters.indexOf(node)
+                val idx = parameters.indexOfFirst { it === node }
                 parameters[idx] = replacement
                 replacement.parent = this
             }
@@ -1432,8 +1432,8 @@ class WhenChoice(var values: MutableList<Expression>?,           // if null,  th
         if(replacement is AnonymousScope && node===statements) {
             statements = replacement
             replacement.parent = this
-        } else if(choiceValues!=null && node in choiceValues) {
-            val idx = choiceValues.indexOf(node)
+        } else if(choiceValues!=null && choiceValues.any { it === node }) {
+            val idx = choiceValues.indexOfFirst { it === node }
             choiceValues[idx] = replacement as Expression
             replacement.parent = this
         } else {
