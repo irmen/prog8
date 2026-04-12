@@ -1489,6 +1489,22 @@ other {
         errors.errors[1] shouldContain "no support for"
     }
 
+    test("mix of pointer dereference patterns in same program") {
+        val src = """
+main {
+    sub start() {
+        struct Node { ubyte value }
+        ^^Node[10] nodes
+        ; Array-indexed pointer dereference with explicit ^^
+        nodes[0]^^.value = 100
+        nodes[1]^^.value = 200
+    }
+}"""
+        compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+        compileText(C64Target(), false, src, outputDir) shouldNotBe null
+        compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
+    }
+
     test("a.b.c[i]^^ as assignment target where pointer is primitive type") {
         val src="""
 %import floats

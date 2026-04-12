@@ -188,6 +188,8 @@ divm        reg1,              address      - memory at address /= reg2  note: d
 divsm       reg1,              address      - signed memory at address /= reg2  note: division by zero yields max signed int 127 / 32767
 modr        reg1, reg2                      - remainder (modulo) of unsigned division reg1 %= reg2  note: division by zero yields max signed int $ff/$ffff
 mod         reg1,              value        - remainder (modulo) of unsigned division reg1 %= value  note: division by zero yields max signed int $ff/$ffff
+modsr       reg1, reg2                      - remainder (modulo) of signed division reg1 %= reg2  note: division by zero yields max signed long
+mods       reg1,              value        - remainder (modulo) of signed division reg1 %= value  note: division by zero yields max signed long
 divmodr     reg1, reg2                      - unsigned division reg1/reg2, storing division and remainder on value stack (so need to be POPped off)
 divmod      reg1,              value        - unsigned division reg1/value, storing division and remainder on value stack (so need to be POPped off)
 sdivmodr    reg1, reg2                      - signed division reg1/reg2, storing division and remainder on value stack (so need to be POPped off)
@@ -198,7 +200,7 @@ sgn         reg1, reg2                      - reg1.b is the sign of reg2 (or fpr
 cmp         reg1, reg2                      - set processor status bits C, N, Z according to comparison of reg1 with reg2. (semantics taken from 6502/68000 CMP instruction)
 cmpi        reg1,              value        - set processor status bits C, N, Z according to comparison of reg1 with immediate value. (semantics taken from 6502/68000 CMP instruction)
 
-NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
+NOTE: because mul/div are constrained (truncated) to remain in 8 or 16 or 32 bits, there is NO NEED for separate signed/unsigned mul and div instructions. The result is identical.
 
 
 LOGICAL/BITWISE
@@ -778,8 +780,8 @@ val instructionFormats = mutableMapOf(
     Opcode.SGN        to InstructionFormat.from("BWL,>r1,<r2   | F,>r1,<fr1"),
     Opcode.MODR       to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.MOD        to InstructionFormat.from("BW,<>r1,<i"),
-    Opcode.MODSR      to InstructionFormat.from("BW,<>r1,<r2"),
-    Opcode.MODS       to InstructionFormat.from("BW,<>r1,<i"),
+    Opcode.MODSR      to InstructionFormat.from("BWL,<>r1,<r2"),
+    Opcode.MODS       to InstructionFormat.from("BWL,<>r1,<i"),
     Opcode.DIVMODR    to InstructionFormat.from("BW,<>r1,<r2"),
     Opcode.DIVMOD     to InstructionFormat.from("BW,<>r1,<i"),
     Opcode.SDIVMODR   to InstructionFormat.from("BW,<>r1,<r2"),

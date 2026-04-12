@@ -146,4 +146,88 @@ class TestVm: FunSpec( {
         val vm = VMTarget()
         vm.getFloatAsmBytes(Math.PI) shouldBe "\$40, \$09, \$21, \$fb, \$54, \$44, \$2d, \$18"
     }
+
+    test("vm signed long division") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=3)
+        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=2, reg2=4)
+        code += IRInstruction(Opcode.DIVSR, IRDataType.LONG, reg1=1, reg2=2)
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setSL(3, 100)
+        vm.registers.setSL(4, 7)
+        vm.run(false)
+        vm.registers.getSL(1) shouldBe 14
+    }
+
+    test("vm signed long modulo") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=2)
+        code += IRInstruction(Opcode.MODS, IRDataType.LONG, reg1=1, immediate=7)
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setSL(2, 100)
+        vm.run(false)
+        vm.registers.getSL(1) shouldBe 2
+    }
+
+    test("vm signed long division constant divisor") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=2)
+        code += IRInstruction(Opcode.DIVS, IRDataType.LONG, reg1=1, immediate=8)
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setSL(2, 50)
+        vm.run(false)
+        vm.registers.getSL(1) shouldBe 6
+    }
+
+    test("vm signed long division by zero") {
+        val program = IRProgram("test", IRSymbolTable(), getTestOptions(), VMTarget())
+        val block = IRBlock("main", false, IRBlock.Options(), Position.DUMMY)
+        val startSub = IRSubroutine("main.test", emptyList(), emptyList(), Position.DUMMY)
+        val code = IRCodeChunk(startSub.label, null)
+
+        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=1, reg2=3)
+        code += IRInstruction(Opcode.LOADR, IRDataType.LONG, reg1=2, reg2=4)
+        code += IRInstruction(Opcode.DIVSR, IRDataType.LONG, reg1=1, reg2=2)
+        code += IRInstruction(Opcode.RETURN)
+
+        startSub += code
+        block += startSub
+        program.addBlock(block)
+
+        val vm = VirtualMachine(program)
+        vm.registers.setSL(3, 100)
+        vm.registers.setSL(4, 0)
+        vm.run(false)
+        vm.registers.getSL(1) shouldBe Int.MAX_VALUE
+    }
 })

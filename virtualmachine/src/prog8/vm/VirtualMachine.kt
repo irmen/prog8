@@ -1344,7 +1344,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModByteSigned("%", i.reg1!!, i.reg2!!)
             IRDataType.WORD -> divModWordSigned("%", i.reg1!!, i.reg2!!)
-            IRDataType.LONG -> throw IllegalArgumentException("mods unsigned long not supported")
+            IRDataType.LONG -> divModLongSigned("%", i.reg1!!, i.reg2!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -1354,7 +1354,7 @@ class VirtualMachine(irProgram: IRProgram) {
         when(i.type!!) {
             IRDataType.BYTE -> divModConstByteSigned("%", i.reg1!!, i.immediate!!.toByte())
             IRDataType.WORD -> divModConstWordSigned("%", i.reg1!!, i.immediate!!.toShort())
-            IRDataType.LONG -> throw IllegalArgumentException("mods unsigned long not supported")
+            IRDataType.LONG -> divModConstLongSigned("%", i.reg1!!, i.immediate!!)
             IRDataType.FLOAT -> throw IllegalArgumentException("invalid float type for this instruction $i")
         }
         nextPc()
@@ -3056,15 +3056,53 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
     private fun divModLongSigned(operator: String, reg1: Int, reg2: Int) {
-        TODO("divModLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
+        val left = registers.getSL(reg1)
+        val right = registers.getSL(reg2)
+        val result = when(operator) {
+            "/" -> {
+                if(right==0) Int.MAX_VALUE
+                else left / right
+            }
+            "%" -> {
+                if(right==0) Int.MAX_VALUE
+                else left % right
+            }
+            else -> throw IllegalArgumentException("operator long $operator")
+        }
+        registers.setSL(reg1, result)
     }
 
     private fun divModConstLongSigned(operator: String, reg1: Int, immediate: Int) {
-        TODO("divModConstLongSigned - multiplication and division of long numbers not yet supported, use floats or words")
+        val left = registers.getSL(reg1)
+        val result = when(operator) {
+            "/" -> {
+                if(immediate==0) Int.MAX_VALUE
+                else left / immediate
+            }
+            "%" -> {
+                if(immediate==0) Int.MAX_VALUE
+                else left % immediate
+            }
+            else -> throw IllegalArgumentException("operator long $operator")
+        }
+        registers.setSL(reg1, result)
     }
 
     private fun divModLongSignedInplace(operator: String, reg1: Int, address: UInt) {
-        TODO("divModLongSignedInplace - multiplication and division of long numbers not yet supported, use floats or words")
+        val left = memory.getSL(address)
+        val right = registers.getSL(reg1)
+        val result = when(operator) {
+            "/" -> {
+                if(right==0) Int.MAX_VALUE
+                else left / right
+            }
+            "%" -> {
+                if(right==0) Int.MAX_VALUE
+                else left % right
+            }
+            else -> throw IllegalArgumentException("operator long $operator")
+        }
+        memory.setSL(address, result)
     }
 
 

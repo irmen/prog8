@@ -76,9 +76,6 @@ IR/VM
   **Split word arrays** are a prime example: currently represented as two separate ``_lsb``/``_msb`` ubyte arrays in the IR, so a single ``words[i] += 50`` expands to 8 byte-level IR instructions (two LOADM, CONCAT, ADD, LSIGB, MSIGB, two STOREM). At the HLIR level this should remain a single word-array augmented assignment; the lowering pass can split it into ``_lsb``/``_msb`` ops (or emit direct word ops for a backend that supports them).
 
 **Missing VM Implementations (VirtualMachine.kt)**
-- ``divModLongSigned`` - multiplication and division of signed long (4-byte) numbers is not implemented. Use floats or words as workaround.
-- ``divModConstLongSigned`` - constant variant of the above.
-- ``divModLongSignedInplace`` - in-place variant of the above.
 - ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
 
@@ -89,16 +86,6 @@ Libraries
 
 Optimizations
 -------------
-
-- **BUG: AST-level dead store elimination removes reads from memory-mapped IO variables.**
-  When a memory-mapped variable (e.g., ``&ubyte vera_data = $9f24``) is assigned to a regular variable multiple times
-  in a row (``result = vera_data; result = vera_data; result = vera_data``), the AST optimizer sees this as redundant
-  dead stores and removes all but the last assignment. However, reading from an IO address has side effects
-  (e.g., VERA_DATA advances the VRAM address pointer), so these reads must NOT be eliminated.
-  The assembly optimizer (``AsmOptimizer.kt``) has been fixed to protect IO accesses, but the AST-level
-  ``UnusedCodeRemover`` / dead store elimination runs *before* assembly generation and doesn't know which
-  variables map to IO space. A proper fix requires marking memory-mapped IO variables in the AST so the
-  optimizer can treat reads from them as having side effects.
 
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?

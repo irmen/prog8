@@ -22,8 +22,10 @@
       "Bash(time)",
       "Bash(kotlinc *)",
       "Bash(python3 *)",
-      "Bash(git checkout *)",
-      "Bash(jar *)"
+      "Bash(jar *)",
+      "Bash(od *)",
+      "Bash(xxd *)",
+      "Bash(gcc *)"
     ]
   }
 }
