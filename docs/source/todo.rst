@@ -76,6 +76,15 @@ IR/VM
   Don't adopt LLVM (too low-level) or QBE (too simple). Custom HLIR fits Kotlin best and preserves semantic intent for better 6502 codegen.
   **Split word arrays** are a prime example: currently represented as two separate ``_lsb``/``_msb`` ubyte arrays in the IR, so a single ``words[i] += 50`` expands to 8 byte-level IR instructions (two LOADM, CONCAT, ADD, LSIGB, MSIGB, two STOREM). At the HLIR level this should remain a single word-array augmented assignment; the lowering pass can split it into ``_lsb``/``_msb`` ops (or emit direct word ops for a backend that supports them).
 
+**Missing VM Implementations (VirtualMachine.kt)**
+- ``divModLongSigned`` - multiplication and division of signed long (4-byte) numbers is not implemented. Use floats or words as workaround.
+- ``divModConstLongSigned`` - constant variant of the above.
+- ``divModLongSignedInplace`` - in-place variant of the above.
+- ``IRInlineBinaryChunk`` - inline binary data chunks cannot be loaded by the VM (VmProgramLoader.kt).
+- ``IRInlineAsmChunk`` - branch targets to inline assembly chunks are not supported (``TODO("branch to inline asm chunk")``).
+- VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
+- ``statusOverflow`` determination in comparison operations (see line ~1555 in VirtualMachine.kt).
+
 
 Libraries
 ---------
