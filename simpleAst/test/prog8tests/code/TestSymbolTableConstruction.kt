@@ -4,7 +4,10 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeSameInstanceAs
 import prog8.code.*
-import prog8.code.ast.*
+import prog8.code.ast.PtBlock
+import prog8.code.ast.PtLabel
+import prog8.code.ast.PtProgram
+import prog8.code.ast.PtStructDecl
 import prog8.code.core.DataType
 import prog8.code.core.Position
 import prog8.code.core.ZeropageWish
@@ -286,7 +289,7 @@ private fun makeStWithStructs(): SymbolTable {
     st.add(blockNode)
     
     val structDecl = PtStructDecl("MyStruct", emptyList(), Position.DUMMY)
-    val struct = StStruct("MyStruct", emptyList(), 10u, "MyStruct", structDecl)
+    val struct = StStruct("MyStruct", emptyList(), 10u, structDecl)
     blockNode.add(struct)
     
     return st

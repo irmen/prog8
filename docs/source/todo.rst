@@ -26,7 +26,6 @@ Future Things and Ideas
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - add @private to variables and subroutines declared in a scope to make them invisible from outside that scope?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
-- structs: properly fix the symbol name prefix hack in StStruct.sameas(), see github issue 198
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
@@ -80,8 +79,7 @@ IR/VM
 - ``divModLongSigned`` - multiplication and division of signed long (4-byte) numbers is not implemented. Use floats or words as workaround.
 - ``divModConstLongSigned`` - constant variant of the above.
 - ``divModLongSignedInplace`` - in-place variant of the above.
-- ``IRInlineBinaryChunk`` - inline binary data chunks cannot be loaded by the VM (VmProgramLoader.kt).
-- ``IRInlineAsmChunk`` - branch targets to inline assembly chunks are not supported (``TODO("branch to inline asm chunk")``).
+- ``IRInlineBinaryChunk`` and ``IRInlineAsmChunk`` - inline chunks cannot be loaded by the VM (VmProgramLoader.kt). Limitation of the current VM design: program is not loaded into memory as data
 - VM label address loading - ``VmProgramLoader.kt`` throws when it cannot resolve a label address as a value (``"vm cannot yet load a label address as a value"``).
 - ``statusOverflow`` determination in comparison operations (see line ~1555 in VirtualMachine.kt).
 

@@ -70,18 +70,6 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         return "memory_$slabname"
     }
 
-    // Strip symbol prefixes (p8b_, p8t_, p8s_, etc.) from a scoped name for type comparison
-    private fun stripSymbolPrefixes(name: String): String {
-        return name.split('.')
-            .map { part ->
-                // Check for pattern: p8 + any letter + underscore (e.g., p8b_, p8t_, p8s_, p8v_, etc.)
-                if(part.length >= 4 && part.startsWith("p8") && part[2].isLetter() && part[3] == '_')
-                    part.drop(4)
-                else part
-            }
-            .joinToString(".")
-    }
-
     private fun addToSt(node: PtNode, scope: ArrayDeque<StNode>) {
         val stNode = when(node) {
             is PtAsmSub -> {
@@ -122,10 +110,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             }
             is PtStructDecl -> {
                 val size = node.fields.sumOf { program.memsizer.memorySize(it.first, 1) }
-                // Compute the logical scoped name (without symbol prefixes like p8b_, p8t_)
-                val scopedName = node.scopedName
-                val logicalScopedName = stripSymbolPrefixes(scopedName)
-                StStruct(node.name, node.fields, size.toUInt(), logicalScopedName, node)
+                StStruct(node.name, node.fields, size.toUInt(), node)
             }
             is PtVariable -> {
                 val initialNumeric: Double?

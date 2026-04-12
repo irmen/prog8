@@ -272,7 +272,6 @@ class StStruct(
     name: String,
     val fields: List<Pair<DataType, String>>,
     val size: UInt,
-    val logicalScopedNameString: String,  // The scoped name without symbol prefixes (e.g., "plane.Point" instead of "p8b_plane.p8t_Point") - used for equality checks
     astNode: PtStructDecl?
 ) : StNode(name, StNodeType.STRUCT, astNode), ISubType {
 
@@ -293,9 +292,13 @@ class StStruct(
 
     override fun memsize(sizer: IMemSizer): Int = size.toInt()
     override fun sameas(other: ISubType): Boolean {
-        if(other is StStruct) {
-            return logicalScopedNameString == other.logicalScopedNameString &&
-                   fields == other.fields
+        if(other is StStruct && size == other.size && fields == other.fields) {
+            if(scopedNameString == other.scopedNameString)
+                return true
+
+            // Work around prefix differences using shared utility. See https://github.com/irmen/prog8/issues/198
+            if(SymbolNames.stripPrefixes(scopedNameString) == SymbolNames.stripPrefixes(other.scopedNameString))
+                return true
         }
         return false
     }

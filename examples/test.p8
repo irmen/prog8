@@ -1,15 +1,26 @@
-%zeropage basicsafe
-%option no_sysinit
+%import textio
+
+plane {
+   struct Point {
+       ubyte x
+       ubyte y
+   }
+}
+
+txt {
+    %option merge
+    sub print_pt(^^plane.Point p) {
+        txt.chrout('(')
+        txt.print_ub(p.x)
+        txt.chrout(',')
+        txt.print_ub(p.y)
+        txt.chrout(')')
+    }
+}
 
 main {
-    &ubyte io_reg = $d021
-    ubyte @shared result
     sub start() {
-        result = io_reg
-        result = io_reg
-        result = io_reg
-        io_reg = 0
-        io_reg = 0
-        io_reg = 0
+        ^^plane.Point origin = ^^plane.Point:[0,0]
+        txt.print_pt(origin)
     }
 }

@@ -30,3 +30,22 @@ fun Path.sanitize(): Path {
         throw FileSystemException(this.toFile()).also { it.initCause(iox) }
     }
 }
+
+
+object SymbolNames {
+    /**
+     * Strips Prog8 symbol prefixes (p8b_, p8t_, p8s_, p8v_, p8l_, p8c_) from a scoped name.
+     * Example: "p8b_plane.p8t_Point" -> "plane.Point"
+     * Used to compare names across different contexts where prefixes may or may not be applied.
+     * See https://github.com/irmen/prog8/issues/198
+     */
+    fun stripPrefixes(scopedName: String): String {
+        return scopedName.split('.')
+            .map { part ->
+                if(part.length > 4 && part.startsWith("p8") && part[2].isLetter() && part[3] == '_')
+                    part.drop(4)
+                else part
+            }
+            .joinToString(".")
+    }
+}
