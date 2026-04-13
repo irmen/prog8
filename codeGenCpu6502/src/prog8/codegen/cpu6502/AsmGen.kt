@@ -2157,7 +2157,11 @@ $repeatLabel""")
                     } else if(addrOf.dereference!=null) {
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
-                        out("  sta  ${asmSymbolName(addrOf.identifier!!)}+${constOffset}")
+                        var symbolName = asmSymbolName(addrOf.identifier!!)
+                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                            symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
+                        }
+                        out("  sta  $symbolName+${constOffset}")
                         return true
                     }
                 }
@@ -2200,7 +2204,11 @@ $repeatLabel""")
                     if(pointerGen.readByteByAddressOfDereference(addrOf, constOffset))
                         return true
                 } else {
-                    out("  lda  ${asmSymbolName(addrOf.identifier!!)}+${constOffset}")
+                    var symbolName = asmSymbolName(addrOf.identifier!!)
+                    if(addrOf.identifier!!.type.isSplitWordArray) {
+                        symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
+                    }
+                    out("  lda  $symbolName+${constOffset}")
                     return true
                 }
             }
@@ -2250,7 +2258,11 @@ $repeatLabel""")
                     } else if(addrOf.dereference!=null) {
                         throw AssemblyError("write &dereference, makes no sense at ${addrOf.position}")
                     } else {
-                        out("  sta  ${asmSymbolName(addrOf.identifier!!)}-${constOffset}")
+                        var symbolName = asmSymbolName(addrOf.identifier!!)
+                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                            symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
+                        }
+                        out("  sta  $symbolName-${constOffset}")
                         return true
                     }
                 }
@@ -2283,7 +2295,11 @@ $repeatLabel""")
                     } else if(addrOf.dereference!=null) {
                         TODO("read &dereference ${addrOf.position}")
                     } else {
-                        out("  lda  ${asmSymbolName(addrOf.identifier!!)}-${constOffset}")
+                        var symbolName = asmSymbolName(addrOf.identifier!!)
+                        if(addrOf.identifier!!.type.isSplitWordArray) {
+                            symbolName = if(addrOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
+                        }
+                        out("  lda  $symbolName-${constOffset}")
                         return true
                     }
                 }

@@ -8,6 +8,7 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.code.ast.*
 import prog8.code.target.C64Target
+import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
@@ -459,6 +460,57 @@ main {
         compileText(VMTarget(), optimize=true, src, outputDir) shouldNotBe null
         compileText(C64Target(), optimize=false, src, outputDir) shouldNotBe null
         compileText(VMTarget(), optimize=false, src, outputDir) shouldNotBe null
+    }
+
+    test("split array pointer dereference with variable offset uses lsb/msb symbols") {
+        // Tests that @(array as uword +/- offset) correctly uses _lsb/_msb symbols for split word arrays
+        // This covers both read and write paths with variable offsets
+        val text = """
+%option no_sysinit
+%zeropage basicsafe
+
+main {
+    struct Point {
+        ubyte x
+        ubyte y
+    }
+
+    uword [4] wordarray
+    ^^Point[4]  points
+
+    sub start() {
+        ubyte @shared lsb_offset = 2
+        ubyte @shared msb_offset = 3
+
+        cx16.r0L = @(wordarray as uword + lsb_offset)
+        cx16.r1L = @(wordarray as uword - msb_offset)
+
+        @(wordarray as uword + lsb_offset) = 99
+        @(wordarray as uword - msb_offset) = 99
+
+        cx16.r2L = @(points as uword + lsb_offset)
+        cx16.r3L = @(points as uword - msb_offset)
+
+        @(points as uword + lsb_offset) = 99
+        @(points as uword - msb_offset) = 99
+    }
+}"""
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+
+        // Verify reads use _lsb symbol (variable offset indexed access)
+        assembly shouldContain "wordarray_lsb,x"
+        assembly shouldContain "points_lsb,x"
+
+        // Verify writes use _lsb symbol (variable offset indexed access)
+        assembly shouldContain "sta  p8b_main.p8v_wordarray_lsb,x"
+        assembly shouldContain "sta  p8b_main.p8v_points_lsb,x"
+
+        // Verify that base array symbols (without _lsb/_msb suffix) are NOT used in indexed access
+        // This ensures the bug fix is working - the old buggy code used "p8v_wordarray,x" instead
+        ("p8v_wordarray,x" in assembly) shouldBe false
+        ("p8v_points,x" in assembly) shouldBe false
     }
 })
 

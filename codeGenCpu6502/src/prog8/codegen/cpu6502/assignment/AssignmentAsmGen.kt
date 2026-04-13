@@ -417,7 +417,11 @@ internal class AssignmentAsmGen(
             if(result!=null) {
                 val addressOfIdentifier = (result.first as? PtAddressOf)?.identifier
                 if(addressOfIdentifier!=null) {
-                    val varname = asmgen.asmVariableName(addressOfIdentifier)
+                    var varname = asmgen.asmVariableName(addressOfIdentifier)
+                    if(addressOfIdentifier.type.isSplitWordArray) {
+                        val addrOf = result.first as PtAddressOf
+                        varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
+                    }
                     if(result.second is PtNumber) {
                         val offset = (result.second as PtNumber).number.toInt()
                         asmgen.out("  lda  $varname+$offset")
@@ -1713,6 +1717,36 @@ internal class AssignmentAsmGen(
                                     txa""")
                 }
                 assignRegisterpairWord(target, RegisterOrPair.AY)
+            }
+
+            // Handle when left is PtAddressOf of a split word array
+            val leftAddressOf = left as? PtAddressOf
+            if(leftAddressOf!=null && leftAddressOf.identifier!=null && !leftAddressOf.isFromArrayElement && leftAddressOf.dereference==null) {
+                if(leftAddressOf.identifier!!.type.isSplitWordArray) {
+                    var symbol = asmgen.asmVariableName(leftAddressOf.identifier!!)
+                    symbol = if(leftAddressOf.isMsbForSplitArray) symbol+"_msb" else symbol+"_lsb"
+                    assignExpressionToRegister(right, RegisterOrPair.AY, right.type.isSigned)
+                    if(expr.operator=="+")
+                        asmgen.out("""
+                                clc
+                                adc  #<$symbol
+                                tax
+                                tya
+                                adc  #>$symbol
+                                tay
+                                txa""")
+                    else
+                        asmgen.out("""
+                                sec
+                                sbc  #<$symbol
+                                tax
+                                tya
+                                sbc  #>$symbol
+                                tay
+                                txa""")
+                    assignRegisterpairWord(target, RegisterOrPair.AY)
+                    return true
+                }
             }
 
             when (right) {
@@ -5435,7 +5469,11 @@ $endLabel""")
                 if(result!=null) {
                     val addressOfIdentifier = (result.first as? PtAddressOf)?.identifier
                     if(addressOfIdentifier!=null) {
-                        val varname = asmgen.asmVariableName(addressOfIdentifier)
+                        var varname = asmgen.asmVariableName(addressOfIdentifier)
+                        if(addressOfIdentifier.type.isSplitWordArray) {
+                            val addrOf = result.first as PtAddressOf
+                            varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
+                        }
                         if(result.second is PtNumber) {
                             val offset = (result.second as PtNumber).number.toInt()
                             asmgen.out("  sta  $varname+$offset")
