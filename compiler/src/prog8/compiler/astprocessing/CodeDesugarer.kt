@@ -981,8 +981,6 @@ _after:
                         }
                     }
                 }
-
-                // TODO support other forms of struct instance assignments
             }
         }
 

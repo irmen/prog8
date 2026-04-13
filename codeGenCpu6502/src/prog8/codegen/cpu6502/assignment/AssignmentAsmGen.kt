@@ -306,7 +306,7 @@ internal class AssignmentAsmGen(
                 val arrayVarName = asmgen.asmVariableName(valueVar)
 
                 if(valueVar.type.isPointer) {
-                    pointergen.assignIndexedPointer(assign.target, arrayVarName, value.index, valueVar.type)
+                    pointergen.assignIndexedPointer(assign.target, arrayVarName, value, valueVar.type)
                     return
                 }
 
