@@ -1177,11 +1177,6 @@ internal class AstChecker(private val program: Program,
             }
         }
 
-        if(decl.datatype.isPointerArray) {
-            if(decl.splitwordarray==SplitWish.NOSPLIT)
-                errors.err("pointer arrays can only be split", decl.position)
-        }
-
         if(decl.datatype.isStructInstance && decl.origin!=VarDeclOrigin.SUBROUTINEPARAM) {
             if(decl.type==VarDeclType.MEMORY)
                 errors.err("struct instances cannot be declared as memory-mapped currently, use a pointer and memory allocation call or direct address assignment instead", decl.position)

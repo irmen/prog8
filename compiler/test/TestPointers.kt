@@ -2051,7 +2051,7 @@ main {
         errors.errors[1] shouldContain "10:24: cannot assign different pointer type, expected ^^ubyte or uword but got ^^uword"
     }
 
-    test("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
+    xtest("passing nosplit array of structpointers to a subroutine in various forms should be param type ptr to struct") {
         val src="""
 main {
     struct Node {

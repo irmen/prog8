@@ -102,6 +102,19 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 return listOf(AstReplaceNode(decl, newDecl, parent))
             }
         }
+
+        // handle @nosplit on pointer arrays: convert to regular non-split word array
+        if(decl.datatype.isPointerArray && decl.splitwordarray == SplitWish.NOSPLIT) {
+            val newDt = DataType.arrayFor(BaseDataType.UWORD, false)  // false = not split (sequential)
+            var value = decl.value
+            if(value is ArrayLiteral && !(value.type istype newDt)) {
+                value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
+            }
+            val newDecl = VarDecl(decl.type, decl.origin, newDt, decl.zeropage,
+                decl.splitwordarray, decl.arraysize, decl.matrixNumCols?.copy(), decl.name, decl.names,
+                value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
+            return listOf(AstReplaceNode(decl, newDecl, parent))
+        }
         return noModifications
     }
 

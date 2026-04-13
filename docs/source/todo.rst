@@ -30,7 +30,6 @@ Future Things and Ideas
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - struct/ptr: implement even more struct instance assignments (via memcopy) in CodeDesugarer (see the TODO) (add to documentation as well, paragraph 'Structs')
-- struct/ptr: support @nosplit pointer arrays?
 - struct/ptr: support pointer to pointer?
 - struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)
 - struct/ptr: optimize the long pointer deref in assignPointerDerefExpression() so that it doesnt require a temp assignment all the time
