@@ -1371,7 +1371,11 @@ import prog8.codegen.cpu6502.assignment.*
                             sta  ($varname),y""")
                     return emptyArray()
                 } else if(addressOfIdentifier!=null && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
-                    val varname = asmgen.asmVariableName(addressOfIdentifier)
+                    var varname = asmgen.asmVariableName(addressOfIdentifier)
+                    if(addressOfIdentifier.type.isSplitWordArray) {
+                        val addrOf = result.first as PtAddressOf
+                        varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
+                    }
                     if(result.second is PtNumber) {
                         val offset = (result.second as PtNumber).number.toInt()
                         asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.AY)
@@ -1754,7 +1758,11 @@ import prog8.codegen.cpu6502.assignment.*
                         else -> throw AssemblyError("invalid register for indirect load word $resultReg  ${fcall.position}")
                     }
                 } else if(addressOfIdentifier!=null && (addressOfIdentifier.type.isWord || addressOfIdentifier.type.isPointer || addressOfIdentifier.type.isByteArray)) {
-                    val varname = asmgen.asmVariableName(addressOfIdentifier)
+                    var varname = asmgen.asmVariableName(addressOfIdentifier)
+                    if(addressOfIdentifier.type.isSplitWordArray) {
+                        val addrOf = result.first as PtAddressOf
+                        varname = if(addrOf.isMsbForSplitArray) varname+"_msb" else varname+"_lsb"
+                    }
                     if(result.second is PtNumber) {
                         val offset = (result.second as PtNumber).number.toInt()
                         when(resultReg) {

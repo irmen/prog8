@@ -788,7 +788,7 @@ internal class AstChecker(private val program: Program,
                 if (fcallTarget.returntypes.size != targets.size) {
                     return numberOfReturnValuesError(targets.size, fcallTarget.returntypes, fcall.position)
                 }
-                fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
+                fcallTarget.returntypes.zip(targets).withIndex().forEach { (_, p) ->
                     val (returnType, target) = p
                     val targetDt = target.inferType(program).getOrUndef()
                     if (!target.void)
@@ -801,7 +801,7 @@ internal class AstChecker(private val program: Program,
                 if (fcallTarget.returntypes.size != targets.size) {
                     return numberOfReturnValuesError(targets.size, fcallTarget.returntypes, fcall.position)
                 }
-                fcallTarget.returntypes.zip(targets).withIndex().forEach { (index, p) ->
+                fcallTarget.returntypes.zip(targets).withIndex().forEach { (_, p) ->
                     val (returnType, target) = p
                     val targetDt = target.inferType(program).getOrUndef()
                     if (!target.void)

@@ -466,9 +466,6 @@ main {
         // Tests that @(array as uword +/- offset) correctly uses _lsb/_msb symbols for split word arrays
         // This covers both read and write paths with variable offsets
         val text = """
-%option no_sysinit
-%zeropage basicsafe
-
 main {
     struct Point {
         ubyte x
@@ -511,6 +508,98 @@ main {
         // This ensures the bug fix is working - the old buggy code used "p8v_wordarray,x" instead
         ("p8v_wordarray,x" in assembly) shouldBe false
         ("p8v_points,x" in assembly) shouldBe false
+    }
+
+    test("split array address-of write without offset uses lsb/msb symbols") {
+        // Tests that poke(address, bytevalue) where address=&array correctly uses _lsb/_msb symbols
+        // This covers the direct store to &identifier without offset path
+        val text = """
+main {
+    uword [4] wordarray
+
+    sub start() {
+        ubyte @shared byteval = 99
+        poke(&wordarray, byteval)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+
+        // Verify poke uses _lsb symbol (direct store without offset)
+        assembly shouldContain "sta  p8b_main.p8v_wordarray_lsb"
+
+        // Verify that base array symbol (without _lsb suffix) is NOT used
+        ("p8v_wordarray" in assembly && "p8v_wordarray_lsb" !in assembly) shouldBe false
+    }
+
+    test("split array pokew with variable offset uses lsb/msb symbols") {
+        // Tests that pokew(array as uword + offset, wordvalue) correctly uses _lsb/_msb symbols
+        val text = """
+main {
+    uword [4] wordarray
+
+    sub start() {
+        ubyte @shared offset = 2
+        pokew(wordarray as uword + offset, 12345)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+
+        // Verify pokew uses _lsb symbol for the address calculation
+        assembly shouldContain "p8b_main.p8v_wordarray_lsb"
+
+        // Verify that base array symbol (without _lsb suffix) is NOT used in address calculation
+        // (allowing it in variable declarations like .fill)
+        val addressLines = assembly.lines().filter { it.contains("adc") || it.contains("sta") || it.contains("lda") }
+        addressLines.any { it.contains("p8v_wordarray") && !it.contains("_lsb") && !it.contains("_msb") } shouldBe false
+    }
+
+    test("split array peekw with variable offset uses lsb/msb symbols") {
+        // Tests that peekw(array as uword + offset) correctly uses _lsb/_msb symbols
+        val text = """
+main {
+    uword [4] wordarray
+
+    sub start() {
+        ubyte @shared offset = 2
+        uword val = peekw(wordarray as uword + offset)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+
+        // Verify peekw uses _lsb symbol for the address calculation
+        assembly shouldContain "p8b_main.p8v_wordarray_lsb"
+
+        // Verify that base array symbol (without _lsb suffix) is NOT used in address calculation
+        val addressLines = assembly.lines().filter { it.contains("adc") || it.contains("sta") || it.contains("lda") }
+        addressLines.any { it.contains("p8v_wordarray") && !it.contains("_lsb") && !it.contains("_msb") } shouldBe false
+    }
+
+    test("split array peekw with constant offset uses lsb/msb symbols") {
+        // Tests that peekw(array as uword + constant) correctly uses _lsb/_msb symbols
+        val text = """
+main {
+    uword [4] wordarray
+
+    sub start() {
+        uword val = peekw(wordarray as uword + 2)
+    }
+}"""
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val assembly = assemblyFile.readText()
+
+        // Verify peekw uses _lsb symbol for the address calculation
+        assembly shouldContain "p8b_main.p8v_wordarray_lsb"
+
+        // Verify that base array symbol (without _lsb suffix) is NOT used in address calculation
+        val addressLines = assembly.lines().filter { it.contains("adc") || it.contains("sta") || it.contains("lda") }
+        addressLines.any { it.contains("p8v_wordarray") && !it.contains("_lsb") && !it.contains("_msb") } shouldBe false
     }
 })
 

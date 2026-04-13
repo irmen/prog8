@@ -5458,7 +5458,11 @@ $endLabel""")
                 } else if(addressOf.dereference!=null) {
                     throw AssemblyError("write &dereference, makes no sense at ${addressOf.position}")
                 } else {
-                    asmgen.out("  sta  ${asmgen.asmSymbolName(addressOf.identifier!!)}")
+                    var symbolName = asmgen.asmSymbolName(addressOf.identifier!!)
+                    if(addressOf.identifier!!.type.isSplitWordArray) {
+                        symbolName = if(addressOf.isMsbForSplitArray) symbolName+"_msb" else symbolName+"_lsb"
+                    }
+                    asmgen.out("  sta  $symbolName")
                 }
             }
             addressExpr is PtIdentifier -> {
