@@ -571,6 +571,8 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
         value.linkParents(this)
     }
 
+    var isAugmentedMemoryAssign = false
+
     override fun replaceChildNode(node: Node, replacement: Node) {
         when {
             node===target -> target = replacement as AssignTarget

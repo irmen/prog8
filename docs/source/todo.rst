@@ -28,9 +28,8 @@ Future Things and Ideas
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
 - struct/ptr: support const pointers (simple and struct types) (make sure to change codegen properly in all cases, change remark about this limitation in docs too)
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
-- struct/ptr: optimize augmented assignments to indexed pointer targets like sprptr[2]^^.y++  (these are now not performend in-place but as a regular assignment)
 - struct/ptr: support pointer to pointer?
-- struct/ptr: support for typed function pointers?  (&routine could be typed by default as well then)
+- struct/ptr: support for typed function pointers, so that we can call them via functptr^^(args) maybe even without the ^^ operator?  (&routine could be typed by default as well then)
 - struct/ptr: really fixing the pointer dereferencing issues (cursed hybrid beween IdentifierReference, PtrDereferece and PtrIndexedDereference) may require getting rid of scoped identifiers altogether and treat '.' as a "scope or pointer following operator"
 - struct/ptr: (later, nasty parser problem:) support chaining pointer dereference on function calls that return a pointer.  (type checking now fails on stuff like func().field and func().next.field)
 - allow the value of a memory mapped variable to be address-of another variable, not just a constant number, and maybe even even more complicated constant expressions such as:  &uword  MyHigh = &mylong+2

@@ -741,6 +741,77 @@ _after:
     override fun after(deref: ArrayIndexedPtrDereference, parent: Node): Iterable<AstModification> {
         // get rid of the ArrayIndexedPtrDereference AST node, replace it with other AST nodes that are equivalent
 
+        /**
+         * Build the chain from a BinaryExpression with "." operator (e.g., "ptr[ idx].field").
+         * Returns null if the expression doesn't match this pattern.
+         */
+        fun buildChainFromDotExpression(expr: BinaryExpression): List<Pair<String, ArrayIndex?>>? {
+            if(expr.operator!=".") return null
+            val right = expr.right as? IdentifierReference ?: return null
+            val left = expr.left
+            // left could be ArrayIndexedExpression (for ptr[idx]) or IdentifierReference (for ptr)
+            return when(left) {
+                is ArrayIndexedExpression -> {
+                    val ptrName = left.plainarrayvar?.nameInSource ?: return null
+                    listOf(Pair(ptrName[0], left.indexer), Pair(right.nameInSource[0], null))
+                }
+                is IdentifierReference -> {
+                    val ptrName = left.nameInSource
+                    listOf(Pair(ptrName[0], null), Pair(right.nameInSource[0], null))
+                }
+                is BinaryExpression -> {
+                    // Nested dot expression like a.b.c
+                    val leftChain = buildChainFromDotExpression(left) ?: return null
+                    leftChain + Pair(right.nameInSource[0], null)
+                }
+                else -> null
+            }
+        }
+
+        /**
+         * For augmented assignments, convert pointer dereferences in the value that match the same memory location
+         * to DirectMemoryRead, so SimplifiedAstMaker can recognize the augmented pattern.
+         */
+        fun convertAugmentedValueToMemoryRead(value: Expression, origDeref: ArrayIndexedPtrDereference, address: Expression): Expression {
+            // Check if the value IS the same pointer dereference - replace directly
+            if(value is ArrayIndexedPtrDereference && value.chain == origDeref.chain && value.derefLast == origDeref.derefLast) {
+                return DirectMemoryRead(address.copy(), value.position)
+            }
+            // Handle "ptr[idx].field" represented as BinaryExpression with "." operator
+            if(value is BinaryExpression && value.operator==".") {
+                val chain = buildChainFromDotExpression(value)
+                if(chain != null && chain == origDeref.chain && origDeref.derefLast == false) {
+                    return DirectMemoryRead(address.copy(), value.position)
+                }
+            }
+            // For BinaryExpressions, recursively check left and right
+            if(value is BinaryExpression) {
+                val newLeft = convertAugmentedValueToMemoryRead(value.left, origDeref, address)
+                val newRight = convertAugmentedValueToMemoryRead(value.right, origDeref, address)
+                if(newLeft !== value.left || newRight !== value.right) {
+                    // Use replaceChildNode to properly update parent links
+                    val result = value.copy()
+                    if(newLeft !== value.left) {
+                        result.replaceChildNode(result.left, newLeft)
+                    }
+                    if(newRight !== value.right) {
+                        result.replaceChildNode(result.right, newRight)
+                    }
+                    return result
+                }
+            }
+            // For PrefixExpressions, recursively check the inner expression
+            if(value is PrefixExpression) {
+                val newInner = convertAugmentedValueToMemoryRead(value.expression, origDeref, address)
+                if(newInner !== value.expression) {
+                    val result = value.copy()
+                    result.replaceChildNode(result.expression, newInner)
+                    return result
+                }
+            }
+            return value
+        }
+
         fun pokeFunc(dt: DataType): Pair<String, DataType?> {
             return when {
                 dt.isBool -> "pokebool" to null
@@ -782,13 +853,58 @@ _after:
                             val pointerAsUword = TypecastExpression(index, DataType.UWORD, true, deref.position)
                             address = BinaryExpression(pointerAsUword, "+", offsetNumber, deref.position)
                         }
+
+                        // For augmented assignments, keep as DirectMemoryWrite so the IR codegen can optimize in-place.
+                        // Also convert matching pointer dereferences in the value to DirectMemoryRead for proper recognition.
+                        // Check for augmented pattern: value references the same memory location as the address.
+
+                        /**
+                         * Check if a value expression represents an augmented assignment pattern for a memory target.
+                         * E.g., @(addr) = @(addr) + 1  or  @(addr) = ~@(addr)
+                         */
+                        fun isAugmentedMemoryPattern(value: Expression, addr: Expression, origDeref: ArrayIndexedPtrDereference): Boolean {
+                            fun Expression.referencesSameAddress(a: Expression, od: ArrayIndexedPtrDereference): Boolean {
+                                if(this is DirectMemoryRead)
+                                    return this.addressExpression isSameAs a
+                                if(this is ArrayIndexedPtrDereference)
+                                    return this.chain == od.chain && this.derefLast == od.derefLast
+                                // Handle "ptr[idx].field" represented as BinaryExpression with "." operator
+                                if(this is BinaryExpression && this.operator==".") {
+                                    // Check if this corresponds to the same chain as origDeref
+                                    // Build the chain from the binary expression and compare
+                                    val chain = buildChainFromDotExpression(this)
+                                    return chain != null && chain == od.chain
+                                }
+                                return false
+                            }
+                            if(value is BinaryExpression) {
+                                if(value.left.referencesSameAddress(addr, origDeref)) return true
+                                if(value.operator in AssociativeOperators && value.right.referencesSameAddress(addr, origDeref)) return true
+                                if(value.operator in "+-" && value.right is BinaryExpression) {
+                                    val rightBin = value.right as BinaryExpression
+                                    if(rightBin.left.referencesSameAddress(addr, origDeref) || rightBin.right.referencesSameAddress(addr, origDeref)) return true
+                                }
+                            }
+                            if(value is PrefixExpression) {
+                                return value.expression.referencesSameAddress(addr, origDeref)
+                            }
+                            return false
+                        }
+
+                        val isAugmentedPattern = isAugmentedMemoryPattern(assignment.value, address, deref)
+                        if(isAugmentedPattern) {
+                            val memwrite = DirectMemoryWrite(address, deref.position)
+                            val target = AssignTarget(null, null, memwrite, null, false, null, null, deref.position)
+                            val newValue = convertAugmentedValueToMemoryRead(assignment.value, deref, address)
+                            val newAssignment = Assignment(target, newValue, assignment.origin, assignment.position)
+                            newAssignment.isAugmentedMemoryAssign = true
+                            return listOf(AstReplaceNode(assignment, newAssignment, assignment.parent))
+                        }
+
                         val (pokeFunc, valueCast) = pokeFunc(parent.inferType(program).getOrUndef())
                         val value = if(valueCast==null) assignment.value else TypecastExpression(assignment.value, valueCast, true, assignment.value.position)
                         val pokeCall = FunctionCallStatement(IdentifierReference(listOf(pokeFunc), assignment.position),
                             mutableListOf(address, value), false, assignment.position)
-
-                        if(assignment.isAugmentable)
-                            errors.warn("in-place assignment of indexed pointer variable currently is very inefficient, maybe use a temporary pointer variable", assignment.position)
                         return listOf(AstReplaceNode(assignment, pokeCall, assignment.parent))
                     }
                 }

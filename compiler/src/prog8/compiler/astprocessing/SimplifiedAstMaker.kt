@@ -171,6 +171,44 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
     }
 
     private fun transform(srcAssign: Assignment): PtNode {
+        // Handle augmented assignments with DirectMemoryWrite targets (from indexed pointer dereferences).
+        // CodeDesugarer sets the isAugmentedMemoryAssign marker when converting an augmented assignment
+        // on an indexed pointer like sprptr[2]^^.y++ to DirectMemoryWrite form.
+        if(srcAssign.target.memoryAddress!=null && srcAssign.isAugmentable && srcAssign.isAugmentedMemoryAssign) {
+            val address = srcAssign.target.memoryAddress!!.addressExpression
+            val srcExpr = srcAssign.value
+
+            // The structure is: DirectMemoryRead(addr) op value  or  value op DirectMemoryRead(addr)
+            val (operator: String, augmentedValue: Expression?) = when(srcExpr) {
+                is BinaryExpression -> {
+                    val leftIsMemRead = srcExpr.left is DirectMemoryRead
+                    val rightIsMemRead = srcExpr.right is DirectMemoryRead
+                    if(leftIsMemRead || rightIsMemRead) {
+                        val oper = if(srcExpr.operator in ComparisonOperators) srcExpr.operator else srcExpr.operator+'='
+                        val value = if(leftIsMemRead) srcExpr.right else srcExpr.left
+                        Pair(oper, value)
+                    } else {
+                        Pair("", null)
+                    }
+                }
+                is PrefixExpression -> {
+                    // ~@(addr) or -@(addr) etc.
+                    Pair(srcExpr.operator, srcExpr.expression)
+                }
+                else -> Pair("", null)
+            }
+            if(augmentedValue!=null) {
+                val assign = PtAugmentedAssign(operator, srcAssign.position)
+                val memByte = PtMemoryByte(srcAssign.position)
+                memByte.add(transformExpression(address))
+                val target = PtAssignTarget(false, srcAssign.position)
+                target.add(memByte)
+                assign.add(target)
+                assign.add(transformExpression(augmentedValue))
+                return assign
+            }
+        }
+
         if(srcAssign.isAugmentable) {
             require(srcAssign.target.multi==null)
             val srcExpr = srcAssign.value
@@ -237,7 +275,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                                     // use shift instead of multiply for powers of two
                                     offset = PtBinaryExpression("<<", DataType.UWORD, srcAssign.position)
                                     offset.add(transformExpression(augmentedValue))
-                                    offset.add(PtNumber(BaseDataType.UBYTE, kotlin.math.log2(structSize.toDouble()), srcAssign.position))
+                                    offset.add(PtNumber(BaseDataType.UBYTE, log2(structSize.toDouble()), srcAssign.position))
                                 } else {
                                     offset = PtBinaryExpression("*", DataType.UWORD, srcAssign.position)
                                     offset.add(transformExpression(augmentedValue))
