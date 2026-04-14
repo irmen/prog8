@@ -850,8 +850,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=valMsbReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
-                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
-                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
+                    it += IRInstruction(Opcode.ANDR, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
+                    it += IRInstruction(Opcode.ANDR, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
                     it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
                     it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
                 }
@@ -910,7 +910,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val loadReg = codeGen.registers.next(IRDataType.BYTE)
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
-                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.ANDR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             } else {
@@ -919,7 +919,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 result += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.ANDR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             }
@@ -1002,7 +1002,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val loadReg = codeGen.registers.next(IRDataType.BYTE)
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
-                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.ANDR)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             } else {
@@ -1011,7 +1011,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                    it += IRInstruction(Opcode.AND, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.ANDR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             }
@@ -1106,8 +1106,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=valMsbReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
-                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
-                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
+                    it += IRInstruction(Opcode.ORR, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
+                    it += IRInstruction(Opcode.ORR, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
                     it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
                     it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
                 }
@@ -1165,7 +1165,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val loadReg = codeGen.registers.next(IRDataType.BYTE)
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
-                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.ORR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             } else {
@@ -1174,7 +1174,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.ORR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             }
@@ -1262,7 +1262,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val loadReg = codeGen.registers.next(IRDataType.BYTE)
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
-                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.ORR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             } else {
@@ -1271,7 +1271,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                    it += IRInstruction(Opcode.OR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.ORR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             }
@@ -1541,7 +1541,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     val loadReg = codeGen.registers.next(IRDataType.BYTE)
                     memResult += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
-                        it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.SUBR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                         it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 } else if(operandConstValue==1.0) {
@@ -1552,25 +1552,25 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     memResult += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                         it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                        it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.SUBR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                         it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 }
                 return memResult
             }
-            
+
             val addrTr = exprGen.translateExpression(memory.address)
             addToResult(memResult, addrTr, addrTr.resultReg, -1)
             val addressReg = addrTr.resultReg
             val operandConstValue = (operand as? PtNumber)?.number
-            
+
             if(operandConstValue==null) {
                 val valueTr = exprGen.translateExpression(operand)
                 addToResult(memResult, valueTr, valueTr.resultReg, -1)
                 val loadReg = codeGen.registers.next(IRDataType.BYTE)
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
-                    it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.SUBR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             } else {
@@ -1588,7 +1588,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     memResult += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                         it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                        it += IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.SUBR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                         it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                     }
                 }
@@ -1858,7 +1858,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     val loadReg = codeGen.registers.next(IRDataType.BYTE)
                     memResult += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
-                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                        it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                         it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 } else if(operandConstValue==1.0) {
@@ -1869,18 +1869,18 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     memResult += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                         it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                         it += IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1=loadReg, address = addr.toAddress())
                     }
                 }
                 return memResult
             }
-            
+
             val addrTr = exprGen.translateExpression(memory.address)
             addToResult(memResult, addrTr, addrTr.resultReg, -1)
             val addressReg = addrTr.resultReg
             val operandConstValue = (operand as? PtNumber)?.number
-            
+
             if(operandConstValue==null) {
                 val valueTr = exprGen.translateExpression(operand)
                 addToResult(memResult, valueTr, valueTr.resultReg, -1)
@@ -1888,7 +1888,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val loadReg = codeGen.registers.next(IRDataType.BYTE)
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
-                    it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             } else {
@@ -1906,7 +1906,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     memResult += IRCodeChunk(null, null).also {
                         it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                         it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                        it += IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                        it += IRInstruction(Opcode.ADDR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                         it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                     }
                 }
@@ -2199,8 +2199,8 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                     it += IRInstruction(Opcode.MSIGB, IRDataType.WORD, reg1=valMsbReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
                     it += IRInstruction(Opcode.LOADX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
-                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
-                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
+                    it += IRInstruction(Opcode.XORR, IRDataType.BYTE, reg1=lsbReg, reg2=valLsbReg)
+                    it += IRInstruction(Opcode.XORR, IRDataType.BYTE, reg1=msbReg, reg2=valMsbReg)
                     it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=lsbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_lsb")
                     it += IRInstruction(Opcode.STOREX, IRDataType.BYTE, reg1=msbReg, reg2=indexReg, labelSymbol = arrayVariableName+"_msb")
                 }
@@ -2254,7 +2254,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 val loadReg = codeGen.registers.next(IRDataType.BYTE)
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
-                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
+                    it += IRInstruction(Opcode.XORR, IRDataType.BYTE, reg1=loadReg, reg2=valueTr.resultReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             } else {
@@ -2263,7 +2263,7 @@ internal class AssignmentGen(private val codeGen: IRCodeGen, private val exprGen
                 memResult += IRCodeChunk(null, null).also {
                     it += IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                     it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=valueReg, immediate = operandConstValue.toInt())
-                    it += IRInstruction(Opcode.XOR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
+                    it += IRInstruction(Opcode.XORR, IRDataType.BYTE, reg1=loadReg, reg2=valueReg)
                     it += IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1=loadReg, reg2=addressReg, immediate = 0)
                 }
             }
