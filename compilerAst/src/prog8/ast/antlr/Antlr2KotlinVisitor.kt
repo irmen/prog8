@@ -866,6 +866,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitDerefchain(ctx: DerefchainContext) = throw FatalAstException("should not be called")
     override fun visitSinglederef(ctx: SinglederefContext) = throw FatalAstException("should not be called")
     override fun visitPointertype(ctx: PointertypeContext) = throw FatalAstException("should not be called")
+    override fun visitAsmsub_signature(ctx: Asmsub_signatureContext?)= throw FatalAstException("should not be called")
 
     private fun getname(identifier: IdentifierContext): String = identifier.children[0].text
 
@@ -898,7 +899,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val startCol = startToken.charPositionInLine + 1
 
         // For empty tokens or EOF, use startCol as endCol
-        val endCol = if (stopToken.type == org.antlr.v4.runtime.Token.EOF ||
+        val endCol = if (stopToken.type == Token.EOF ||
                          stopToken.startIndex < 0 || stopToken.stopIndex < 0) {
             startCol
         } else if (startToken.line == stopToken.line) {
@@ -1026,9 +1027,10 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
 
     private fun asmSubDecl(ad: Asmsub_declContext): AsmsubDecl {
         val name = getname(ad.identifier())
-        val params = ad.asmsub_params()?.asmsub_param()?.map { asmSubroutineParam(it) } ?: emptyList()
-        val returns = ad.asmsub_returns()?.asmsub_return()?.map { asmReturn(it) } ?: emptyList()
-        val clobbers = ad.asmsub_clobbers()?.clobber()?.UNICODEDNAME()?.mapTo(mutableSetOf()) { cpuRegister(it.text, ad.toPosition()) } ?: mutableSetOf()
+        val sig = ad.asmsub_signature()
+        val params = sig.asmsub_params()?.asmsub_param()?.map { asmSubroutineParam(it) } ?: emptyList()
+        val returns = sig.asmsub_returns()?.asmsub_return()?.map { asmReturn(it) } ?: emptyList()
+        val clobbers = sig.asmsub_clobbers()?.clobber()?.UNICODEDNAME()?.mapTo(mutableSetOf()) { cpuRegister(it.text, ad.toPosition()) } ?: mutableSetOf()
         val normalParameters = params.mapTo(mutableListOf()) { SubroutineParameter(it.name, it.type, it.zp, it.registerOrPair, it.position) }
         val normalReturntypes = returns.mapTo(mutableListOf()) { it.type }
         val paramRegisters = params.mapTo(mutableListOf()) { RegisterOrStatusflag(it.registerOrPair, it.statusflag) }

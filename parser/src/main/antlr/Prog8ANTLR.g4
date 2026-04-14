@@ -360,7 +360,9 @@ extsubroutine :
     'extsub' (TAG (constbank=integerliteral | varbank=scoped_identifier))? address=expression '=' asmsub_decl
     ;
 
-asmsub_decl : identifier '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;
+asmsub_signature : '(' asmsub_params? ')' asmsub_clobbers? asmsub_returns? ;
+
+asmsub_decl : identifier asmsub_signature ;
 
 asmsub_params :  asmsub_param (',' EOL? asmsub_param)* ;
 
