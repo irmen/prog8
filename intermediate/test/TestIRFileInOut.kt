@@ -128,4 +128,70 @@ return
         var2.uninitialized shouldBe true
         var3.uninitialized shouldBe true
     }
+
+    test("test IR reader with struct containing pointer fields") {
+        val source="""<?xml version="1.0" encoding="utf-8"?>
+<PROGRAM NAME="test-struct-pointer" COMPILERVERSION="99.99">
+<OPTIONS>
+compTarget=virtual
+output=PRG
+launcher=BASIC
+zeropage=KERNALSAFE
+loadAddress=$0000
+</OPTIONS>
+
+<ASMSYMBOLS>
+</ASMSYMBOLS>
+
+<VARS>
+
+<NOINITCLEAN>
+uword main.start zp=DONTCARE
+</NOINITCLEAN>
+
+<NOINITDIRTY>
+</NOINITDIRTY>
+
+<INIT>
+</INIT>
+
+<STRUCTINSTANCESNOINIT>
+</STRUCTINSTANCESNOINIT>
+<STRUCTINSTANCES>
+re.State testinst size=8 values=uword:$0100,^^re.State:0,^^re.State:0,uword:0
+</STRUCTINSTANCES>
+
+<CONSTANTS>
+</CONSTANTS>
+
+<MEMORYMAPPED>
+</MEMORYMAPPED>
+
+<MEMORYSLABS>
+</MEMORYSLABS>
+</VARS>
+
+<INITGLOBALS>
+</INITGLOBALS>
+
+<BLOCK NAME="main" ADDRESS="" LIBRARY="false" FORCEOUTPUT="false" NOPREFIXING="false" VERAFXMULS="false" ALIGN="NONE" POS="[test.p8: line 1 col 1-2]">
+<SUB NAME="main.start" RETURNS="" POS="[test.p8: line 1 col 1-2]">
+<PARAMS>
+</PARAMS>
+<CHUNK LABEL="main.start"><REGS>dummy</REGS><CODE>
+load.b r1,#0
+</CODE></CHUNK>
+</SUB>
+</BLOCK>
+</PROGRAM>
+"""
+        val tempfile = createTempFile(suffix = ".p8ir")
+        tempfile.writeText(source)
+        val program = IRFileReader().read(tempfile)
+        tempfile.deleteExisting()
+        program.name shouldBe "test-struct-pointer"
+        val struct = program.st.allStructInstances().first()
+        struct.name shouldBe "testinst"
+        struct.structName shouldBe "re.State"
+    }
 })

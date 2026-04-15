@@ -850,6 +850,33 @@ main {
         }
     }
 
+    test("struct with pointer fields can be compiled and run") {
+        val src = """
+main {
+    struct State {
+        uword c
+        ^^State out
+        ^^State out1
+        uword lastlist
+    }
+
+    sub start() {
+        ^^State matchstate = [258, 0, 0, 0]
+        main.matchstatePtr = matchstate
+        main.lastlistPtr = &matchstate.lastlist
+    }
+    
+    ^^State @shared matchstatePtr
+    uword @shared lastlistPtr
+}"""
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irContent = virtfile.readText()
+
+        irContent.shouldContain("^^main.State")
+        VmRunner().runProgram(irContent, false)
+    }
+
     test("nosplit word array += and -= with variable index and value") {
         // This test verifies the fix for LOADX/STOREX with element size multiplication
         // Previously failed with -noopt because index wasn't multiplied by element size

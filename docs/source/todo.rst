@@ -1,7 +1,7 @@
 TODO
 ====
 
-Chess, Imageviewer, Halloween, Paint have all increased size (maybe more)  Plasma example increased in size too since commit 14abc1f0
+Imageviewer, Halloween, Paint have all increased size (maybe more)
 
 
 Dead Code Elimination BUG with nested subroutines

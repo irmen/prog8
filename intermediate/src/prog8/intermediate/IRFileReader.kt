@@ -313,6 +313,7 @@ class IRFileReader {
             val ref = when {
                 dt.isBool -> IRStSymbolicReference.BoolValue(parseIRValue(value) != 0.0)
                 value.startsWith('@') -> IRStSymbolicReference.Symbol(value.drop(1))
+                dt.isPointer -> IRStSymbolicReference.Numeric(parseIRValue(value))
                 dt.isNumeric -> IRStSymbolicReference.Numeric(parseIRValue(value))
                 else -> throw IRParseException("unexpected field datatype $dt")
             }
@@ -579,7 +580,7 @@ class IRFileReader {
                     "uword" -> DataType.arrayOfPointersTo(BaseDataType.UWORD)
                     "float" -> DataType.arrayOfPointersTo(BaseDataType.FLOAT)
                     "long" -> DataType.arrayOfPointersTo(BaseDataType.LONG)
-                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(1)))
+                    else -> DataType.arrayOfPointersTo(IRSubtypePlaceholder(type.drop(2)))
                 }
             }
             return when(type) {
@@ -606,7 +607,7 @@ class IRFileReader {
                     "float" -> DataType.pointer(BaseDataType.FLOAT)
                     "long" -> DataType.pointer(BaseDataType.LONG)
                     // note: 'str' should not occur anymore in IR. Should be 'uword'
-                    else -> DataType.pointer(IRSubtypePlaceholder(type.drop(1)))
+                    else -> DataType.pointer(IRSubtypePlaceholder(type.drop(2)))
                 }
             }
             return when(type) {
