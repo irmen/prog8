@@ -1,6 +1,7 @@
 %import monogfx
 %import math
 %import conv
+%import textio
 
 %option no_sysinit
 %zeropage basicsafe
@@ -11,9 +12,21 @@ main {
 
     sub start() {
         monogfx.lores()
+
+        txt.plot(10, 10)
+        txt.print("some normal layer 1 text")
+        txt.plot(12, 12)
+        txt.print("also visible")
+
         demofill()
         sys.wait(2*60)
         monogfx.hires()
+
+        txt.plot(10, 10)
+        txt.print("some normal layer 1 text")
+        txt.plot(12, 12)
+        txt.print("still visible")
+
         demo1()
         sys.wait(2*60)
         demo2()

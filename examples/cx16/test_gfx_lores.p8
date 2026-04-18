@@ -21,6 +21,10 @@ main {
 
     sub demofill() {
         gfx_lores.graphics_mode()
+        txt.plot(10, 10)
+        txt.print("some normal layer 1 text")
+        txt.plot(12, 12)
+        txt.print("also visible")
         gfx_lores.circle(160, 120, 110, 1)
         gfx_lores.rect(180, 5, 25, 190, 1)
         gfx_lores.line(100, 150, 240, 10, 1)

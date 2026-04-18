@@ -3,14 +3,12 @@
 ; (monochrome mode can be used via the monogfx module)
 ; (These modes are not supported by the documented GRAPH_xxxx kernal routines)
 ;
-; No text layer is currently shown, text can be drawn as part of the bitmap itself.
+; Layer 0 is bitmap layer, layer 1 is text layer, compatible still with regular cx16 text modes
 ; Note: for similar graphics routines that also work on the C-64, use the "graphics" module instead.
 ; Note: for identical routines for a monochrome 1 bpp screen, use the "monogfx" module instead.
 ; Note: for color palette manipulation, use the "palette" module or write Vera registers yourself.
 ;
 ; NOTE: the bitmap screen data is positioned in vram at $00000
-; This is compatible with the CX16's screen mode 128.  (void cx16.set_screen_mode(128))
-;
 
 %import buffers
 
@@ -24,13 +22,19 @@ gfx_hires {
     sub graphics_mode() {
         ; set hires 4c mode
         cx16.VERA_CTRL=0
-        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
+        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00110000      ; enable both layers
         cx16.VERA_DC_HSCALE = 128
         cx16.VERA_DC_VSCALE = 128
-        cx16.VERA_L1_CONFIG = %00000101
-        cx16.VERA_L1_MAPBASE = 0
-        cx16.VERA_L1_TILEBASE = %00000001
+        cx16.VERA_L0_CONFIG = %00000101
+        cx16.VERA_L0_MAPBASE = 0
+        cx16.VERA_L0_TILEBASE = %00000001
         clear_screen(0)
+        ; configure text mode
+        cx16.scnsiz(80, 60)
+        cbm.CHROUT($90) ; black/transparent bg
+        cbm.CHROUT(1)
+        cbm.CHROUT($9e) ; yellow text
+        cbm.CHROUT(147)
     }
 
     sub text_mode() {

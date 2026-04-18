@@ -1,6 +1,6 @@
 ; optimized graphics routines for just the single screen mode: lores 320*240, 256c  (8bpp)
 ; bitmap image needs to start at VRAM addres $00000.
-; This is compatible with the CX16's screen mode 128.  (void cx16.set_screen_mode(128))
+; This is compatible with the CX16's screen mode 128.
 
 
 %import syslib
@@ -14,23 +14,14 @@ gfx_lores {
     const ubyte HEIGHT = 240
 
     sub graphics_mode() {
-        ; enable 320x240 256c bitmap graphics mode
-        cx16.VERA_CTRL=0
-        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
-        cx16.VERA_DC_HSCALE = 64
-        cx16.VERA_DC_VSCALE = 64
-        cx16.VERA_L1_CONFIG = %00000111
-        cx16.VERA_L1_MAPBASE = 0
-        cx16.VERA_L1_TILEBASE = 0
+        ; enable 320x240 256c bitmap graphics mode. Just make use the kernal's mode 128, but clear it to black.
+        cx16.set_screen_mode(128)
         clear_screen(0)
         drawmode_eor(false)
     }
 
     sub text_mode() {
-        ; back to normal text mode
-        cx16.r15L = cx16.VERA_DC_VIDEO & %00000111 ; retain chroma + output mode
-        cbm.CINT()
-        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11111000) | cx16.r15L
+        cx16.set_screen_mode(0)
     }
 
     sub drawmode_eor(bool enabled) {

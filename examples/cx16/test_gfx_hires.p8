@@ -10,6 +10,12 @@ main {
 
     sub start() {
         gfx_hires.graphics_mode()
+
+        txt.plot(40, 10)
+        txt.print("some normal layer 1 text")
+        txt.plot(42, 12)
+        txt.print("also visible")
+
         draw()
         sys.wait(120)
         gfx_hires.text_mode()

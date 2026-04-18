@@ -1,7 +1,7 @@
 ; Monochrome Bitmap pixel graphics routines for the CommanderX16
 ; Using the full-screen 640x480 and 320x240 screen modes, in 1 bpp mode (black/white).
 ;
-; No text layer is currently shown, but text can be drawn as part of the bitmap itself.
+; Layer 0 is bitmap layer, layer 1 is text layer, compatible still with regular cx16 text modes
 ; For color bitmap graphics, see the gfx_lores or gfx_hires libraries.
 ;
 ; NOTE: For sake of speed, NO BOUNDS CHECKING is performed in most routines!
@@ -29,35 +29,47 @@ monogfx {
         ; enable 320*240 bitmap mode
         buffer_visible = buffer_back = $0000
         cx16.VERA_CTRL=0
-        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
+        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00110000      ; enable both layers
         cx16.VERA_DC_HSCALE = 64
         cx16.VERA_DC_VSCALE = 64
-        cx16.VERA_L1_CONFIG = %00000100
-        cx16.VERA_L1_MAPBASE = 0
-        cx16.VERA_L1_TILEBASE = 0           ; lores
+        cx16.VERA_L0_CONFIG = %00000100
+        cx16.VERA_L0_MAPBASE = 0
+        cx16.VERA_L0_TILEBASE = 0           ; lores
         width = 320
         height = 240
         lores_mode = true
         buffer_visible = buffer_back = $0000
         mode = MODE_NORMAL
         clear_screen(false)
+        ; configure text mode
+        cx16.scnsiz(40, 30)
+        cbm.CHROUT($90) ; black/transparent bg
+        cbm.CHROUT(1)
+        cbm.CHROUT($9e) ; yellow text
+        cbm.CHROUT(147)
     }
 
     sub hires() {
         ; enable 640*480 bitmap mode
         cx16.VERA_CTRL=0
-        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00100000      ; enable only layer 1
+        cx16.VERA_DC_VIDEO = (cx16.VERA_DC_VIDEO & %11001111) | %00110000      ; enable both layers
         cx16.VERA_DC_HSCALE = 128
         cx16.VERA_DC_VSCALE = 128
-        cx16.VERA_L1_CONFIG = %00000100
-        cx16.VERA_L1_MAPBASE = 0
-        cx16.VERA_L1_TILEBASE = %00000001       ; hires
+        cx16.VERA_L0_CONFIG = %00000100
+        cx16.VERA_L0_MAPBASE = 0
+        cx16.VERA_L0_TILEBASE = %00000001       ; hires
         width = 640
         height = 480
         lores_mode = false
         buffer_visible = buffer_back = $0000
         mode = MODE_NORMAL
         clear_screen(false)
+        ; configure text mode
+        cx16.scnsiz(80, 60)
+        cbm.CHROUT($90) ; black/transparent bg
+        cbm.CHROUT(1)
+        cbm.CHROUT($9e) ; yellow text
+        cbm.CHROUT(147)
     }
 
     sub enable_doublebuffer() {
