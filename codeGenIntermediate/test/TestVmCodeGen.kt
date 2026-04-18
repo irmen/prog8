@@ -19,20 +19,12 @@ class TestVmCodeGen: FunSpec({
 
     fun getTestOptions(): CompilationOptions {
         val target = VMTarget()
-        return CompilationOptions(
-            OutputType.RAW,
-            CbmPrgLauncherType.NONE,
-            ZeropageType.DONTUSE,
-            zpReserved = emptyList(),
-            zpAllowed = CompilationOptions.AllZeropageAllowed,
-            floats = true,
-            noSysInit = false,
-            romable = false,
-            compTarget = target,
-            compilerVersion="99.99",
-            loadAddress = target.PROGRAM_LOAD_ADDRESS,
-            memtopAddress = 0xffffu
-        )
+        return CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .floats(true)
+            .compilerVersion("99.99")
+            .build()
     }
 
     test("augmented assigns") {

@@ -24,20 +24,13 @@ class TestCodegen: FunSpec({
 
     fun getTestOptions(): CompilationOptions {
         val target = C64Target()
-        return CompilationOptions(
-            OutputType.RAW,
-            CbmPrgLauncherType.NONE,
-            ZeropageType.DONTUSE,
-            zpReserved = emptyList(),
-            zpAllowed = CompilationOptions.AllZeropageAllowed,
-            floats = true,
-            noSysInit = false,
-            romable = false,
-            compTarget = target,
-            compilerVersion="99.99",
-            loadAddress = target.PROGRAM_LOAD_ADDRESS,
-            memtopAddress = 0xffffu
-        )
+        return CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .floats(true)
+            .compilerVersion("99.99")
+            .memtopAddress(0xffffu)
+            .build()
     }
 
     test("augmented assign on arrays") {

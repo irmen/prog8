@@ -33,20 +33,12 @@ class TestZeropageFreeList: FunSpec({
     // ============================================================================
 
     fun createOptions(target: ICompilationTarget, zpType: ZeropageType, floats: Boolean = false): CompilationOptions {
-        return CompilationOptions(
-            output = OutputType.RAW,
-            launcher = CbmPrgLauncherType.NONE,
-            zeropage = zpType,
-            zpReserved = emptyList(),
-            zpAllowed = CompilationOptions.AllZeropageAllowed,
-            floats = floats,
-            noSysInit = false,
-            romable = false,
-            compTarget = target,
-            compilerVersion = "test",
-            loadAddress = target.PROGRAM_LOAD_ADDRESS,
-            memtopAddress = target.PROGRAM_MEMTOP_ADDRESS
-        )
+        return CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(zpType)
+            .floats(floats)
+            .compilerVersion("test")
+            .build()
     }
 
     fun verifyScratchLocationsReserved(zp: Zeropage) {

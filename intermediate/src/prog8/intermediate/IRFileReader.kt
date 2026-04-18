@@ -150,22 +150,19 @@ class IRFileReader {
             }
         }
 
-        return CompilationOptions(
-            outputType,
-            launcher,
-            zeropage,
-            zpReserved,
-            zpAllowed,
-            false,
-            false,
-            romable,
-            target,
-            compilerVersion,
-            loadAddress,
-            memtop,
-            outputDir = outputDir,
-            optimize = optimize
-        )
+        return CompilationOptions.builder(target)
+            .output(outputType)
+            .launcher(launcher)
+            .zeropage(zeropage)
+            .zpReserved(zpReserved)
+            .zpAllowed(zpAllowed)
+            .romable(romable)
+            .compilerVersion(compilerVersion)
+            .loadAddress(loadAddress)
+            .memtopAddress(memtop)
+            .outputDir(outputDir)
+            .optimize(optimize)
+            .build()
     }
 
     private fun parseAsmSymbols(reader: XMLEventReader): Map<String, String> {

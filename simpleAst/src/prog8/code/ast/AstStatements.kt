@@ -31,6 +31,30 @@ class PtAsmSub(
 ) : PtNamedNode(name, position), IPtSubroutine {
 
     class Address(val constbank: UByte?, var varbank: PtIdentifier?, val address: UInt)
+
+    companion object {
+        fun builder(name: String, position: Position) = Builder(name, position)
+    }
+
+    class Builder(val name: String, val position: Position) {
+        private var address: Address? = null
+        private var clobbers: Set<CpuRegister> = emptySet()
+        private var parameters: MutableList<Pair<RegisterOrStatusflag, PtSubroutineParameter>> = mutableListOf()
+        private var returns: MutableList<Pair<RegisterOrStatusflag, DataType>> = mutableListOf()
+        private var inline: Boolean = false
+
+        fun address(a: Address?) = apply { address = a }
+        fun clobbers(c: Set<CpuRegister>) = apply { clobbers = c }
+        fun parameters(p: Iterable<Pair<RegisterOrStatusflag, PtSubroutineParameter>>) = apply { parameters = p.toMutableList() }
+        fun parameters(vararg p: Pair<RegisterOrStatusflag, PtSubroutineParameter>) = apply { parameters = p.toMutableList() }
+        fun addParameter(reg: RegisterOrStatusflag, param: PtSubroutineParameter) = apply { parameters.add(reg to param) }
+        fun returns(r: Iterable<Pair<RegisterOrStatusflag, DataType>>) = apply { returns = r.toMutableList() }
+        fun returns(vararg r: Pair<RegisterOrStatusflag, DataType>) = apply { returns = r.toMutableList() }
+        fun addReturn(reg: RegisterOrStatusflag, type: DataType) = apply { returns.add(reg to type) }
+        fun inline(i: Boolean) = apply { inline = i }
+
+        fun build() = PtAsmSub(name, address, clobbers, parameters, returns, inline, position)
+    }
 }
 
 
@@ -46,6 +70,24 @@ class PtSub(name: String, position: Position) : PtNamedNode(name, position), IPt
         get() = children[0] as PtSubSignature
     
     override fun copy(): PtNode = PtSub(name, position)
+
+    companion object {
+        fun builder(name: String, position: Position) = Builder(name, position)
+    }
+
+    class Builder(val name: String, val position: Position) {
+        private var parameters: MutableList<PtSubroutineParameter> = mutableListOf()
+        private var returntypes: MutableList<DataType> = mutableListOf()
+
+        fun parameters(p: Iterable<PtSubroutineParameter>) = apply { parameters = p.toMutableList() }
+        fun parameters(vararg p: PtSubroutineParameter) = apply { parameters = p.toMutableList() }
+        fun addParameter(p: PtSubroutineParameter) = apply { parameters.add(p) }
+        fun returntypes(r: Iterable<DataType>) = apply { returntypes = r.toMutableList() }
+        fun returntypes(vararg r: DataType) = apply { returntypes = r.toMutableList() }
+        fun addReturntype(t: DataType) = apply { returntypes.add(t) }
+
+        fun build() = PtSub(name, parameters, returntypes, position)
+    }
 }
 
 
@@ -321,6 +363,26 @@ class PtVariable(
 
         value?.let {it.parent=this}
     }
+
+    companion object {
+        fun builder(name: String, type: DataType, position: Position) = Builder(name, type, position)
+    }
+
+    class Builder(val name: String, val type: DataType, val position: Position) {
+        private var zeropage: ZeropageWish = ZeropageWish.DONTCARE
+        private var align: UInt = 0u
+        private var dirty: Boolean = false
+        private var value: PtExpression? = null
+        private var arraySize: UInt? = null
+
+        fun zeropage(z: ZeropageWish) = apply { zeropage = z }
+        fun align(a: UInt) = apply { align = a }
+        fun dirty(d: Boolean) = apply { dirty = d }
+        fun value(v: PtExpression?) = apply { value = v }
+        fun arraySize(s: UInt?) = apply { arraySize = s }
+
+        fun build() = PtVariable(name, type, zeropage, align, dirty, value, arraySize, position)
+    }
 }
 
 
@@ -330,18 +392,60 @@ class PtConstant(
     val value: Double?,                 // either a constant number...
     val memorySlab: StMemorySlab?,     // .. or a memory() allocation
     position: Position
-) : PtNamedNode(name, position), IPtVariable
+) : PtNamedNode(name, position), IPtVariable {
 // note: a constant is a value but IS NOT a PtExpression node; all constants must have been replaced by their actual value
+
+    companion object {
+        fun builder(name: String, type: DataType, position: Position) = Builder(name, type, position)
+    }
+
+    class Builder(val name: String, val type: DataType, val position: Position) {
+        private var value: Double? = null
+        private var memorySlab: StMemorySlab? = null
+
+        fun value(v: Double?) = apply { value = v }
+        fun memorySlab(s: StMemorySlab?) = apply { memorySlab = s }
+
+        fun build() = PtConstant(name, type, value, memorySlab, position)
+    }
+}
 
 
 class PtMemMapped(name: String, override val type: DataType, val address: UInt, val arraySize: UInt?, position: Position) : PtNamedNode(name, position), IPtVariable {
     init {
         require(!type.isString)
     }
+
+    companion object {
+        fun builder(name: String, type: DataType, address: UInt, position: Position) = Builder(name, type, address, position)
+    }
+
+    class Builder(val name: String, val type: DataType, val address: UInt, val position: Position) {
+        private var arraySize: UInt? = null
+
+        fun arraySize(s: UInt?) = apply { arraySize = s }
+
+        fun build() = PtMemMapped(name, type, address, arraySize, position)
+    }
 }
 
 
-class PtStructDecl(name: String, val fields: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position)
+class PtStructDecl(name: String, val fields: List<Pair<DataType, String>>, position: Position) : PtNamedNode(name, position) {
+
+    companion object {
+        fun builder(name: String, position: Position) = Builder(name, position)
+    }
+
+    class Builder(val name: String, val position: Position) {
+        private var fields: MutableList<Pair<DataType, String>> = mutableListOf()
+
+        fun fields(f: Iterable<Pair<DataType, String>>) = apply { fields = f.toMutableList() }
+        fun fields(vararg f: Pair<DataType, String>) = apply { fields = f.toMutableList() }
+        fun addField(type: DataType, name: String) = apply { fields.add(type to name) }
+
+        fun build() = PtStructDecl(name, fields, position)
+    }
+}
 
 
 class PtWhen(position: Position) : PtNode(position) {

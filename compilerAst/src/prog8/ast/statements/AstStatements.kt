@@ -273,6 +273,52 @@ class VarDecl(
     companion object {
         private var autoHeapValueSequenceNumber = 0
 
+        fun builder(datatype: DataType, position: Position) = Builder(datatype, position)
+
+        class Builder(
+            private val datatype: DataType,
+            private val position: Position
+        ) {
+            private var name: String? = null
+            private var type = VarDeclType.VAR
+            private var origin = VarDeclOrigin.USERCODE
+            private var zeropage = ZeropageWish.DONTCARE
+            private var splitwordarray = SplitWish.DONTCARE
+            private var arraysize: ArrayIndex? = null
+            private var matrixNumCols: Expression? = null
+            private var additionalNames: List<String> = emptyList()
+            private var value: Expression? = null
+            private var sharedWithAsm = false
+            private var alignment = 0u
+            private var dirty = false
+            private var isPrivate = false
+
+            fun names(vararg names: String): Builder = apply {
+                require(names.isNotEmpty()) { "at least one name is required" }
+                this.name = if(names.size > 1) "<multiple>" else names[0]
+                this.additionalNames = if(names.size > 1) names.toList() else emptyList()
+            }
+            fun type(t: VarDeclType) = apply { this.type = t }
+            fun origin(o: VarDeclOrigin) = apply { this.origin = o }
+            fun zeropage(z: ZeropageWish) = apply { this.zeropage = z }
+            fun splitwordarray(s: SplitWish) = apply { this.splitwordarray = s }
+            fun arraysize(a: ArrayIndex?) = apply { this.arraysize = a }
+            fun matrixNumCols(m: Expression?) = apply { this.matrixNumCols = m }
+            fun value(v: Expression?) = apply { this.value = v }
+            fun sharedWithAsm(s: Boolean) = apply { this.sharedWithAsm = s }
+            fun alignment(a: UInt) = apply { this.alignment = a }
+            fun dirty(d: Boolean) = apply { this.dirty = d }
+            fun isPrivate(p: Boolean) = apply { this.isPrivate = p }
+
+            fun build(): VarDecl {
+                val finalName = name ?: throw IllegalStateException("name is required")
+                return VarDecl(
+                    type, origin, datatype, zeropage, splitwordarray, arraysize, matrixNumCols,
+                    finalName, additionalNames, value, sharedWithAsm, alignment, dirty, isPrivate, position
+                )
+            }
+        }
+
         fun fromParameter(param: SubroutineParameter): VarDecl {
             val decltype: VarDeclType
             val value: Expression?
@@ -416,7 +462,6 @@ class VarDecl(
 
 class StructDecl(override val name: String, val fields: Array<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
-
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
@@ -466,7 +511,6 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
-
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
@@ -1485,7 +1529,6 @@ class OnGoto(
 ) : Statement() {
 
     override lateinit var parent: Node
-
     override fun linkParents(parent: Node) {
         this.parent = parent
         index.linkParents(this)

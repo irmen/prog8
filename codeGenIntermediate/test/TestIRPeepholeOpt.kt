@@ -14,20 +14,12 @@ class TestIRPeepholeOpt: FunSpec({
         chunks.forEach { sub += it }
         block += sub
         val target = VMTarget()
-        val options = CompilationOptions(
-            OutputType.RAW,
-            CbmPrgLauncherType.NONE,
-            ZeropageType.DONTUSE,
-            emptyList(),
-            CompilationOptions.AllZeropageAllowed,
-            floats = false,
-            noSysInit = true,
-            romable = false,
-            compTarget = target,
-            compilerVersion="99.99",
-            loadAddress = target.PROGRAM_LOAD_ADDRESS,
-            memtopAddress = 0xffffu
-        )
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .build()
         val prog = IRProgram("test", IRSymbolTable(), options, target)
         prog.addBlock(block)
         prog.linkChunks()

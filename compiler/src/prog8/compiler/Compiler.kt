@@ -461,7 +461,7 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
     val allOptions = program.modules.flatMap { it.options() }.toSet()
     val floatsEnabled = "enable_floats" in allOptions
     var noSysInit = "no_sysinit" in allOptions
-    val rombale = "romable" in allOptions
+    val romable = "romable" in allOptions
     var zpType: ZeropageType =
         if (zpoption == null)
             if (floatsEnabled) ZeropageType.FLOATSAFE else ZeropageType.KERNALSAFE
@@ -516,11 +516,17 @@ internal fun determineCompilationOptions(program: Program, compTarget: ICompilat
         noSysInit = true
     }
 
-    return CompilationOptions(
-        outputType, launcherType,
-        zpType, zpReserved, zpAllowed, floatsEnabled, noSysInit, rombale,
-        compTarget, VERSION, 0u, 0xffffu
-    )
+    return CompilationOptions.builder(compTarget)
+        .output(outputType)
+        .launcher(launcherType)
+        .zeropage(zpType)
+        .zpReserved(zpReserved)
+        .zpAllowed(if (zpAllowed.isEmpty()) CompilationOptions.AllZeropageAllowed else zpAllowed)
+        .floats(floatsEnabled)
+        .noSysInit(noSysInit)
+        .romable(romable)
+        .compilerVersion(VERSION)
+        .build()
 }
 
 private fun processAst(program: Program, errors: IErrorReporter, compilerOptions: CompilationOptions) {

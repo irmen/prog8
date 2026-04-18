@@ -13,21 +13,15 @@ class TestIRFileInOut: FunSpec({
     test("test IR writer") {
         val target = Cx16Target()
         val tempdir = Path(System.getProperty("java.io.tmpdir"))
-        val options = CompilationOptions(
-            OutputType.RAW,
-            CbmPrgLauncherType.NONE,
-            ZeropageType.DONTUSE,
-            emptyList(),
-            CompilationOptions.AllZeropageAllowed,
-            floats = false,
-            noSysInit = true,
-            romable = false,
-            compTarget = target,
-            compilerVersion = "99.99",
-            loadAddress = target.PROGRAM_LOAD_ADDRESS,
-            memtopAddress = 0xffffu,
-            outputDir = tempdir
-        )
+        val options = CompilationOptions.builder(target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.DONTUSE)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(target.PROGRAM_LOAD_ADDRESS)
+            .memtopAddress(0xffffu)
+            .outputDir(tempdir)
+            .build()
         val program = IRProgram("unittest-irwriter", IRSymbolTable(), options, target)
         val writer = IRFileWriter(program, null)
         val generatedFile = writer.write()

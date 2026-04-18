@@ -88,7 +88,14 @@ class TestAsmGenSymbols: StringSpec({
 
     fun createTestAsmGen6502(program: Program): AsmGen6502Internal {
         val errors = ErrorReporterForTests()
-        val options = CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), CompilationOptions.AllZeropageAllowed, false, true, false, C64Target(), "99.99", 999u, 0xffffu)
+        val options = CompilationOptions.builder(C64Target())
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FULL)
+            .noSysInit(true)
+            .compilerVersion("99.99")
+            .loadAddress(999u)
+            .memtopAddress(0xffffu)
+            .build()
         val astchecker = AstChecker(program, errors, options)
         astchecker.visit(program)
         errors.report()
