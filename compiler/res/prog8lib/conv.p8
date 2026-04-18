@@ -942,25 +942,6 @@ _hex_digits	.text "0123456789abcdef"	; can probably be reused for other stuff as
 	}}
 }
 
-asmsub  internal_uword2hex  (uword value @AY) clobbers(A,Y)  {
-	; ---- convert 16 bit uword in A/Y into 4-character hexadecimal string 'uword2hex.output' (0-terminated)
-	%asm {{
-		sta  P8ZP_SCRATCH_REG
-		tya
-		jsr  ubyte2hex
-		sta  output
-		sty  output+1
-		lda  P8ZP_SCRATCH_REG
-		jsr  ubyte2hex
-		sta  output+2
-		sty  output+3
-		rts
-		.section BSS
-output		.fill 5      ; 0-terminated output buffer (to make printing easier)
-		.send BSS
-		; !notreached!
-	}}
-}
 
     ubyte[16]  @shared string_out       ; internal result buffer for the string conversion routines (note: uses uninitialized ARRAY instead of STR, to force it to be allocated in BSS area so it's ROM-compatible)
 
