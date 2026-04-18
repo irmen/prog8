@@ -93,7 +93,7 @@ monogfx {
         buffer_visible = cx16.r0
         cx16.VERA_CTRL = 0
         cx16.r0 &= %1111110000000000
-        cx16.VERA_L1_TILEBASE = cx16.VERA_L1_TILEBASE & 1 | (cx16.r0H >>1 )
+        cx16.VERA_L0_TILEBASE = cx16.VERA_L0_TILEBASE & 1 | (cx16.r0H >>1 )
     }
 
 
