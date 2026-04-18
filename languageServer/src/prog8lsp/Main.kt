@@ -16,7 +16,6 @@ fun main(args: Array<String>) {
     val launcher = LSPLauncher.createServerLauncher(server, inStream, outStream, threads) { it }
 
     server.connect(launcher.remoteProxy)
+    Logger.getLogger("").info("Prog8 Language Server started. Prog8 version: $VERSION")
     launcher.startListening()
-    
-    println("Prog8 Language Server started. Prog8 version: $VERSION")
 }

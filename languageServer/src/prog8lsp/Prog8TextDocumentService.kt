@@ -6,6 +6,7 @@ import org.eclipse.lsp4j.services.LanguageClient
 import org.eclipse.lsp4j.services.TextDocumentService
 import prog8lsp.SymbolLookup.SymbolAtPosition
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 import java.util.logging.Level
 import java.util.logging.Logger
 import kotlin.system.measureTimeMillis
@@ -34,20 +35,20 @@ data class AstCache(
 
 class Prog8TextDocumentService: TextDocumentService {
     private var client: LanguageClient? = null
-    private val async = AsyncExecutor()
+    internal val async = AsyncExecutor()
     private val logger = Logger.getLogger(Prog8TextDocumentService::class.simpleName).apply {
         level = if (isLspVerbose) Level.CONFIG else Level.INFO
     }
     private val symbolExtractor = SymbolExtractor()
 
     // In-memory document store
-    private val documents = mutableMapOf<String, Prog8Document>()
+    private val documents = ConcurrentHashMap<String, Prog8Document>()
     
     // Store last diagnostics for code actions
-    private val lastDiagnostics = mutableMapOf<String, List<Diagnostic>>()
+    private val lastDiagnostics = ConcurrentHashMap<String, List<Diagnostic>>()
     
     // Cached ASTs per document (to avoid reparsing on every request)
-    internal val astCache = mutableMapOf<String, AstCache>()
+    internal val astCache = ConcurrentHashMap<String, AstCache>()
 
     fun connect(client: LanguageClient) {
         this.client = client
@@ -64,14 +65,16 @@ class Prog8TextDocumentService: TextDocumentService {
         )
         documents[params.textDocument.uri] = document
         
-        // Parse and cache AST for the document
-        astCache[params.textDocument.uri] = AstCache(
-            module = Prog8Parser.parseModule(params.textDocument.text).module,
-            isStale = false
-        )
+        async.execute {
+            // Parse and cache AST for the document
+            astCache[params.textDocument.uri] = AstCache(
+                module = Prog8Parser.parseModule(params.textDocument.text).module,
+                isStale = false
+            )
 
-        // Trigger diagnostics when a document is opened
-        validateDocument(document)
+            // Trigger diagnostics when a document is opened
+            validateDocument(document)
+        }
     }
 
     override fun didChange(params: DidChangeTextDocumentParams) {
@@ -94,7 +97,9 @@ class Prog8TextDocumentService: TextDocumentService {
             }
 
             // Trigger diagnostics when a document changes
-            validateDocument(document)
+            async.execute {
+                validateDocument(document)
+            }
         }
     }
 
@@ -311,7 +316,8 @@ class Prog8TextDocumentService: TextDocumentService {
 
             // Try to find symbol at position
             cache.module?.let { module ->
-                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character)
+                val wordAtCursor = getWordAtPosition(document, params.position)
+                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character, wordAtCursor)
                 if (symbol != null) {
                     val hover = Hover()
                     val contents = buildString {
@@ -379,7 +385,8 @@ class Prog8TextDocumentService: TextDocumentService {
 
             // Find symbol at position and return its definition location
             cache.module?.let { module ->
-                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character)
+                val wordAtCursor = getWordAtPosition(document, params.position)
+                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character, wordAtCursor)
                 if (symbol != null) {
                     logger.config("Found symbol: ${symbol.name}")
                     val locations = mutableListOf<Location>()
@@ -414,10 +421,11 @@ class Prog8TextDocumentService: TextDocumentService {
 
             cache.module?.let { module ->
                 // Find the symbol at the cursor position
-                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character)
+                val wordAtCursor = getWordAtPosition(document, params.position)
+                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character, wordAtCursor)
                 if (symbol != null) {
                     // Now search the entire document for all references to this symbol
-                    val allRefs = SymbolLookup.findAllReferences(module, symbol.name, params.context.isIncludeDeclaration, params.textDocument.uri)
+                    val allRefs = SymbolLookup.findAllReferences(module, symbol, params.context.isIncludeDeclaration, params.textDocument.uri)
                     locations.addAll(allRefs)
                 }
             }
@@ -443,10 +451,11 @@ class Prog8TextDocumentService: TextDocumentService {
 
             cache.module?.let { module ->
                 // Find the symbol at the cursor position
-                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character)
+                val wordAtCursor = getWordAtPosition(document, params.position)
+                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character, wordAtCursor)
                 if (symbol != null) {
                     // Find all references in the document
-                    val allRefs = SymbolLookup.findAllReferences(module, symbol.name, true, params.textDocument.uri)
+                    val allRefs = SymbolLookup.findAllReferences(module, symbol, true, params.textDocument.uri)
                     // Convert locations to document highlights
                     for (location in allRefs) {
                         highlights.add(DocumentHighlight(location.range))
@@ -672,18 +681,40 @@ class Prog8TextDocumentService: TextDocumentService {
     }
 
     override fun rename(params: RenameParams): CompletableFuture<WorkspaceEdit> = async.compute {
-        logger.config("Rename symbol in ${params.textDocument.uri} at ${params.position}")
+        logger.config("Rename symbol in ${params.textDocument.uri} at ${params.position} to ${params.newName}")
         
         // Get document from our store
         val document = documents[params.textDocument.uri]
         if (document != null) {
-            // Implement actual rename functionality
-            // This would involve:
-            // 1. Finding all references to the symbol at the given position
-            // 2. Creating TextEdit objects to rename each reference
-            // 3. Adding the edits to a WorkspaceEdit
-            
-            return@compute WorkspaceEdit()
+            // Get or parse AST
+            val cache = astCache.getOrPut(params.textDocument.uri) {
+                AstCache(module = null, isStale = true)
+            }
+            if (cache.module == null || cache.isStale) {
+                cache.module = Prog8Parser.parseModule(document.text).module
+                cache.isStale = false
+            }
+
+            cache.module?.let { module ->
+                // 1. Find the symbol at the given position
+                val wordAtCursor = getWordAtPosition(document, params.position)
+                val symbol = SymbolLookup.findSymbolAt(module, params.position.line, params.position.character, wordAtCursor)
+                if (symbol != null) {
+                    // 2. Find all references to the symbol
+                    // Now scope-aware!
+                    val allRefs = SymbolLookup.findAllReferences(module, symbol, true, params.textDocument.uri)
+                    
+                    // 3. Create TextEdit objects to rename each reference
+                    val edits = allRefs.map { loc ->
+                        TextEdit(loc.range, params.newName)
+                    }
+                    
+                    // 4. Return the edits in a WorkspaceEdit
+                    val workspaceEdit = WorkspaceEdit()
+                    workspaceEdit.changes = mapOf(params.textDocument.uri to edits)
+                    return@compute workspaceEdit
+                }
+            }
         }
 
         WorkspaceEdit()

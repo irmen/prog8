@@ -31,4 +31,8 @@ class AsyncExecutor {
             workerThread.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS)
         }
     }
+
+    fun flush() {
+        workerThread.submit { }.get()
+    }
 }

@@ -71,6 +71,9 @@ class LspTestHarness {
     private val textDocumentService: Prog8TextDocumentService
         get() = server.textDocumentService as Prog8TextDocumentService
 
+    private val async: AsyncExecutor
+        get() = textDocumentService.async
+
     fun setup() {
         server.connect(client)
         client.clear()
@@ -95,6 +98,7 @@ class LspTestHarness {
             TextDocumentItem(uri, "prog8", version, text)
         )
         textDocumentService.didOpen(params)
+        async.flush()
     }
 
     /**
@@ -113,6 +117,7 @@ class LspTestHarness {
             listOf(TextDocumentContentChangeEvent(text))
         )
         textDocumentService.didChange(params)
+        async.flush()
     }
 
     /**

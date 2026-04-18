@@ -1,8 +1,10 @@
 package prog8lsp
 
 import prog8.ast.Module
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.expressions.StringLiteral
+import prog8.ast.Node
+import prog8.ast.IFunctionCall
+import prog8.ast.walk.IAstVisitor
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.Position
@@ -35,26 +37,26 @@ object SymbolLookup {
      * Find the symbol at the given line/column position.
      * Returns null if no symbol is found at that position.
      */
-    fun findSymbolAt(module: Module, line: Int, column: Int): SymbolAtPosition? {
+    fun findSymbolAt(module: Module, line: Int, column: Int, wordAtCursor: String): SymbolAtPosition? {
         // LSP uses 0-based, Prog8 AST uses 1-based
         val targetLine = line + 1
         val targetCol = column + 1
 
         // First pass: look for declarations at this position
         for (stmt in module.statements) {
-            val result = findSymbolInStatement(stmt, targetLine, targetCol)
+            val result = findSymbolInStatement(stmt, targetLine, targetCol, wordAtCursor)
             if (result != null) return result
         }
         
         // Second pass: look for references and resolve them
-        return findReferenceInModule(module, targetLine, targetCol)
+        return findReferenceInModule(module, targetLine, targetCol, wordAtCursor)
     }
     
     /**
      * Search for identifier references in the module and resolve them to declarations.
      * Simple unscoped lookup - just matches by name.
      */
-    private fun findReferenceInModule(module: Module, targetLine: Int, targetCol: Int): SymbolAtPosition? {
+    private fun findReferenceInModule(module: Module, targetLine: Int, targetCol: Int, wordAtCursor: String): SymbolAtPosition? {
         // Collect all blocks and subroutines for simple name-based lookup
         val blocks = mutableMapOf<String, SymbolAtPosition>()
         val subroutines = mutableMapOf<String, SymbolAtPosition>()
@@ -66,7 +68,7 @@ object SymbolLookup {
         // Search for references
         for (stmt in module.statements) {
             if (stmt is Block) {
-                val refResult = findReferenceInBlock(stmt, targetLine, targetCol, blocks, subroutines)
+                val refResult = findReferenceInBlock(stmt, targetLine, targetCol, wordAtCursor, blocks, subroutines)
                 if (refResult != null) return refResult
             }
         }
@@ -125,6 +127,7 @@ object SymbolLookup {
         block: Block,
         targetLine: Int,
         targetCol: Int,
+        wordAtCursor: String,
         blocks: Map<String, SymbolAtPosition>,
         subroutines: Map<String, SymbolAtPosition>
     ): SymbolAtPosition? {
@@ -132,12 +135,12 @@ object SymbolLookup {
         
         for (stmt in block.statements) {
             // Check for references before adding declarations
-            val refResult = findReferenceInStatement(stmt, targetLine, targetCol, visibleVars, blocks, subroutines)
+            val refResult = findReferenceInStatement(stmt, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
             if (refResult != null) return refResult
             
             // If this is a subroutine, search inside it too
             if (stmt is Subroutine) {
-                val subRefResult = findReferenceInSubroutine(stmt, targetLine, targetCol, blocks, subroutines)
+                val subRefResult = findReferenceInSubroutine(stmt, targetLine, targetCol, wordAtCursor, blocks, subroutines)
                 if (subRefResult != null) return subRefResult
             }
             
@@ -161,6 +164,7 @@ object SymbolLookup {
         sub: Subroutine,
         targetLine: Int,
         targetCol: Int,
+        wordAtCursor: String,
         blocks: Map<String, SymbolAtPosition>,
         subroutines: Map<String, SymbolAtPosition>
     ): SymbolAtPosition? {
@@ -181,7 +185,7 @@ object SymbolLookup {
         
         for (stmt in sub.statements) {
             // Check for references before adding declarations
-            val refResult = findReferenceInStatement(stmt, targetLine, targetCol, visibleVars, blocks, subroutines)
+            val refResult = findReferenceInStatement(stmt, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
             if (refResult != null) return refResult
             
             // Add variable declarations to visible set
@@ -200,19 +204,19 @@ object SymbolLookup {
         return null
     }
 
-    private fun findSymbolInStatement(stmt: Statement, targetLine: Int, targetCol: Int): SymbolAtPosition? {
+    private fun findSymbolInStatement(stmt: Statement, targetLine: Int, targetCol: Int, wordAtCursor: String): SymbolAtPosition? {
         return when (stmt) {
-            is Block -> findSymbolInBlock(stmt, targetLine, targetCol)
-            is Subroutine -> findSymbolInSubroutine(stmt, targetLine, targetCol)
-            is VarDecl -> findSymbolInVarDecl(stmt, targetLine, targetCol)
-            is StructDecl -> findSymbolInStruct(stmt, targetLine, targetCol)
+            is Block -> findSymbolInBlock(stmt, targetLine, targetCol, wordAtCursor)
+            is Subroutine -> findSymbolInSubroutine(stmt, targetLine, targetCol, wordAtCursor)
+            is VarDecl -> findSymbolInVarDecl(stmt, targetLine, targetCol, wordAtCursor)
+            is StructDecl -> findSymbolInStruct(stmt, targetLine, targetCol, wordAtCursor)
             else -> null
         }
     }
 
-    private fun findSymbolInBlock(block: Block, targetLine: Int, targetCol: Int): SymbolAtPosition? {
+    private fun findSymbolInBlock(block: Block, targetLine: Int, targetCol: Int, wordAtCursor: String): SymbolAtPosition? {
         // Check if position is on the block name itself
-        if (isPositionOnName(block.position, targetLine, targetCol, block.name)) {
+        if (isPositionOnName(block.position, targetLine, targetCol, block.name, wordAtCursor)) {
             return SymbolAtPosition(
                 name = block.name,
                 kind = SymbolKind.BLOCK,
@@ -224,16 +228,16 @@ object SymbolLookup {
 
         // Search in block's statements
         for (stmt in block.statements) {
-            val result = findSymbolInStatement(stmt, targetLine, targetCol)
+            val result = findSymbolInStatement(stmt, targetLine, targetCol, wordAtCursor)
             if (result != null) return result
         }
 
         return null
     }
 
-    private fun findSymbolInSubroutine(sub: Subroutine, targetLine: Int, targetCol: Int): SymbolAtPosition? {
+    private fun findSymbolInSubroutine(sub: Subroutine, targetLine: Int, targetCol: Int, wordAtCursor: String): SymbolAtPosition? {
         // Check if position is on the subroutine name (declaration)
-        if (isPositionOnName(sub.position, targetLine, targetCol, sub.name)) {
+        if (isPositionOnName(sub.position, targetLine, targetCol, sub.name, wordAtCursor)) {
             val params = sub.parameters.joinToString(", ") { "${it.name}: ${it.type}" }
             val returnType = sub.returntypes.joinToString(", ") { it.toString() }
             val signature = if (returnType.isNotEmpty()) {
@@ -251,6 +255,25 @@ object SymbolLookup {
             )
         }
 
+        // Check parameters
+        for (param in sub.parameters) {
+            if (isPositionOnName(sub.position, targetLine, targetCol, param.name, wordAtCursor)) {
+                return SymbolAtPosition(
+                    name = param.name,
+                    kind = SymbolKind.PARAMETER,
+                    definitionPosition = sub.position,
+                    type = param.type.toString(),
+                    signature = "${param.name}: ${param.type}"
+                )
+            }
+        }
+
+        // Search in subroutine's body
+        for (stmt in sub.statements) {
+            val result = findSymbolInStatement(stmt, targetLine, targetCol, wordAtCursor)
+            if (result != null) return result
+        }
+
         return null
     }
 
@@ -262,6 +285,7 @@ object SymbolLookup {
         stmt: Statement, 
         targetLine: Int, 
         targetCol: Int,
+        wordAtCursor: String,
         visibleVars: Map<String, SymbolAtPosition>,
         blocks: Map<String, SymbolAtPosition>,
         subroutines: Map<String, SymbolAtPosition>
@@ -270,36 +294,36 @@ object SymbolLookup {
             is Assignment -> {
                 // Check if cursor is on the target identifier
                 if (stmt.target.identifier != null && 
-                    isPositionOnName(stmt.target.identifier!!.position, targetLine, targetCol, stmt.target.identifier!!.nameInSource.lastOrNull() ?: "")) {
+                    isPositionOnName(stmt.target.identifier!!.position, targetLine, targetCol, stmt.target.identifier!!.nameInSource.lastOrNull() ?: "", wordAtCursor)) {
                     val varName = stmt.target.identifier!!.nameInSource.lastOrNull() ?: ""
                     return visibleVars[varName]
                 }
                 // Check if cursor is on an identifier in the value expression
-                findReferenceInExpression(stmt.value, targetLine, targetCol, visibleVars, blocks, subroutines)
+                findReferenceInExpression(stmt.value, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
             }
             is VarDecl -> {
                 // Check if cursor is on the initializer expression
                 stmt.value?.let { value ->
-                    findReferenceInExpression(value, targetLine, targetCol, visibleVars, blocks, subroutines)
+                    findReferenceInExpression(value, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
                 }
             }
             is FunctionCallStatement -> {
                 // Check if cursor is on the function name (handles both qualified and unqualified names)
                 val funcName = stmt.target.nameInSource.lastOrNull() ?: ""
-                if (isPositionOnName(stmt.target.position, targetLine, targetCol, funcName)) {
+                if (isPositionOnName(stmt.target.position, targetLine, targetCol, funcName, wordAtCursor)) {
                     // Simple unscoped lookup - just match by name
                     return subroutines[funcName]
                 }
                 // Also check if cursor is on the qualifier (e.g., "data" in "data.set_both")
                 if (stmt.target.nameInSource.size > 1) {
                     val qualifier = stmt.target.nameInSource.firstOrNull() ?: ""
-                    if (isPositionOnName(stmt.target.position, targetLine, targetCol, qualifier)) {
+                    if (isPositionOnName(stmt.target.position, targetLine, targetCol, qualifier, wordAtCursor)) {
                         return blocks[qualifier]
                     }
                 }
                 // Check arguments for variable references
                 for (arg in stmt.args) {
-                    val refResult = findReferenceInExpression(arg, targetLine, targetCol, visibleVars, blocks, subroutines)
+                    val refResult = findReferenceInExpression(arg, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
                     if (refResult != null) return refResult
                 }
                 null
@@ -312,6 +336,7 @@ object SymbolLookup {
         expr: prog8.ast.expressions.Expression,
         targetLine: Int,
         targetCol: Int,
+        wordAtCursor: String,
         visibleVars: Map<String, SymbolAtPosition>,
         blocks: Map<String, SymbolAtPosition>,
         subroutines: Map<String, SymbolAtPosition>
@@ -319,46 +344,46 @@ object SymbolLookup {
         return when (expr) {
             is prog8.ast.expressions.IdentifierReference -> {
                 val identName = expr.nameInSource.lastOrNull() ?: ""
-                if (isPositionOnName(expr.position, targetLine, targetCol, identName)) {
+                if (isPositionOnName(expr.position, targetLine, targetCol, identName, wordAtCursor)) {
                     // Simple unscoped lookup: check vars first, then blocks, then subroutines
                     return visibleVars[identName] ?: blocks[identName] ?: subroutines[identName]
                 }
                 // Also check if cursor is on a qualifier in a qualified name
                 for (part in expr.nameInSource) {
-                    if (isPositionOnName(expr.position, targetLine, targetCol, part)) {
+                    if (isPositionOnName(expr.position, targetLine, targetCol, part, wordAtCursor)) {
                         return visibleVars[part] ?: blocks[part] ?: subroutines[part]
                     }
                 }
                 null
             }
             is prog8.ast.expressions.BinaryExpression -> {
-                findReferenceInExpression(expr.left, targetLine, targetCol, visibleVars, blocks, subroutines)
-                    ?: findReferenceInExpression(expr.right, targetLine, targetCol, visibleVars, blocks, subroutines)
+                findReferenceInExpression(expr.left, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
+                    ?: findReferenceInExpression(expr.right, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
             }
             is prog8.ast.expressions.FunctionCallExpression -> {
                 // Check function name (handles qualified names)
                 val funcName = expr.target.nameInSource.lastOrNull() ?: ""
-                if (isPositionOnName(expr.target.position, targetLine, targetCol, funcName)) {
+                if (isPositionOnName(expr.target.position, targetLine, targetCol, funcName, wordAtCursor)) {
                     return subroutines[funcName]
                 }
                 // Check qualifiers in qualified names
                 for (part in expr.target.nameInSource.dropLast(1)) {
-                    if (isPositionOnName(expr.target.position, targetLine, targetCol, part)) {
+                    if (isPositionOnName(expr.target.position, targetLine, targetCol, part, wordAtCursor)) {
                         return blocks[part]
                     }
                 }
                 // Check arguments
                 expr.args.firstNotNullOfOrNull { 
-                    findReferenceInExpression(it, targetLine, targetCol, visibleVars, blocks, subroutines) 
+                    findReferenceInExpression(it, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines) 
                 }
             }
             else -> null
         }
     }
 
-    private fun findSymbolInVarDecl(varDecl: VarDecl, targetLine: Int, targetCol: Int): SymbolAtPosition? {
+    private fun findSymbolInVarDecl(varDecl: VarDecl, targetLine: Int, targetCol: Int, wordAtCursor: String): SymbolAtPosition? {
         // Check if position is on the variable name
-        if (isPositionOnName(varDecl.position, targetLine, targetCol, varDecl.name)) {
+        if (isPositionOnName(varDecl.position, targetLine, targetCol, varDecl.name, wordAtCursor)) {
             val kind = if (varDecl.type == VarDeclType.CONST) {
                 SymbolKind.CONSTANT
             } else {
@@ -397,9 +422,9 @@ object SymbolLookup {
         return null
     }
 
-    private fun findSymbolInStruct(struct: StructDecl, targetLine: Int, targetCol: Int): SymbolAtPosition? {
+    private fun findSymbolInStruct(struct: StructDecl, targetLine: Int, targetCol: Int, wordAtCursor: String): SymbolAtPosition? {
         // Check if position is on the struct name
-        if (isPositionOnName(struct.position, targetLine, targetCol, struct.name)) {
+        if (isPositionOnName(struct.position, targetLine, targetCol, struct.name, wordAtCursor)) {
             return SymbolAtPosition(
                 name = struct.name,
                 kind = SymbolKind.STRUCT,
@@ -414,11 +439,11 @@ object SymbolLookup {
         return null
     }
 
-    private fun isPositionOnName(position: Position, targetLine: Int, targetCol: Int, name: String): Boolean {
+    private fun isPositionOnName(position: prog8.code.core.Position, targetLine: Int, targetCol: Int, name: String, wordAtCursor: String): Boolean {
         if (position.line != targetLine) return false
         // Check if column is within the name's column range
-        // AST positions are 1-based, name starts at startCol
-        return targetCol >= position.startCol && targetCol <= position.startCol + name.length - 1
+        if (targetCol < position.startCol || targetCol > position.endCol) return false
+        return name == wordAtCursor
     }
 
     /**
@@ -492,97 +517,274 @@ object SymbolLookup {
     }
 
     /**
-     * Find all references to a symbol by name in the module.
+     * Find all references to a symbol in the module, with scope awareness.
      */
-    fun findAllReferences(module: Module, symbolName: String, includeDeclaration: Boolean, uri: String): List<org.eclipse.lsp4j.Location> {
+    fun findAllReferences(module: Module, targetSymbol: SymbolAtPosition, includeDeclaration: Boolean, uri: String): List<org.eclipse.lsp4j.Location> {
         val locations = mutableListOf<org.eclipse.lsp4j.Location>()
         
+        // Collect global symbols for lookup
+        val blocks = mutableMapOf<String, SymbolAtPosition>()
+        val subroutines = mutableMapOf<String, SymbolAtPosition>()
         for (stmt in module.statements) {
-            findReferencesInStatement(stmt, symbolName, locations, includeDeclaration, uri)
+            collectSymbols(stmt, blocks, subroutines)
+        }
+        
+        // Search in all top-level blocks
+        for (stmt in module.statements) {
+            if (stmt is Block) {
+                findReferencesInBlockScoped(stmt, targetSymbol, includeDeclaration, locations, uri, blocks, subroutines)
+            }
         }
         
         return locations
     }
     
-    private fun findReferencesInStatement(
-        stmt: prog8.ast.statements.Statement,
-        symbolName: String,
-        locations: MutableList<org.eclipse.lsp4j.Location>,
+    private fun findReferencesInBlockScoped(
+        block: Block,
+        targetSymbol: SymbolAtPosition,
         includeDeclaration: Boolean,
-        uri: String
+        locations: MutableList<org.eclipse.lsp4j.Location>,
+        uri: String,
+        blocks: Map<String, SymbolAtPosition>,
+        subroutines: Map<String, SymbolAtPosition>
     ) {
-        when (stmt) {
-            is prog8.ast.statements.VarDecl -> {
-                if (includeDeclaration && stmt.name == symbolName) {
+        val visibleVars = mutableMapOf<String, SymbolAtPosition>()
+        
+        // Check if the block itself is the target
+        if (includeDeclaration && block.name == targetSymbol.name && block.position == targetSymbol.definitionPosition) {
+            locations.add(block.position.toLspLocation(uri))
+        }
+        
+        for (stmt in block.statements) {
+            // Check for references in the statement BEFORE adding declaration to visibleVars
+            // (Prog8 doesn't allow using a variable before declaration in the same block)
+            findReferencesInStatementScoped(stmt, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            
+            // If it's a declaration, add to visibleVars and check if it's the target
+            if (stmt is VarDecl) {
+                val declPrefix = if (stmt.type == VarDeclType.CONST) "const " else ""
+                val currentDecl = SymbolAtPosition(
+                    name = stmt.name,
+                    kind = if (stmt.type == VarDeclType.CONST) SymbolKind.CONSTANT else SymbolKind.VARIABLE,
+                    definitionPosition = stmt.position,
+                    type = stmt.type.toString(),
+                    signature = "${declPrefix}${stmt.name}: ${stmt.type}"
+                )
+                visibleVars[stmt.name] = currentDecl
+                
+                if (includeDeclaration && stmt.name == targetSymbol.name && stmt.position == targetSymbol.definitionPosition) {
                     locations.add(stmt.position.toLspLocation(uri))
                 }
-                stmt.value?.let { value ->
-                    findReferencesInExpression(value, symbolName, locations, uri)
+            }
+            
+            // If it's a subroutine, search inside it
+            if (stmt is Subroutine) {
+                findReferencesInSubroutineScoped(stmt, targetSymbol, includeDeclaration, locations, uri, blocks, subroutines)
+                
+                // Also check if the subroutine itself is the target
+                if (includeDeclaration && stmt.name == targetSymbol.name && stmt.position == targetSymbol.definitionPosition) {
+                    locations.add(stmt.position.toLspLocation(uri))
                 }
             }
-            is prog8.ast.statements.Assignment -> {
+        }
+    }
+    
+    private fun findReferencesInSubroutineScoped(
+        sub: Subroutine,
+        targetSymbol: SymbolAtPosition,
+        includeDeclaration: Boolean,
+        locations: MutableList<org.eclipse.lsp4j.Location>,
+        uri: String,
+        blocks: Map<String, SymbolAtPosition>,
+        subroutines: Map<String, SymbolAtPosition>
+    ) {
+        val visibleVars = mutableMapOf<String, SymbolAtPosition>()
+        
+        // Add parameters to visible variables and check if any is the target
+        for (param in sub.parameters) {
+            val currentParam = SymbolAtPosition(
+                name = param.name,
+                kind = SymbolKind.PARAMETER,
+                definitionPosition = sub.position, // Parameters use sub's position as declaration
+                type = param.type.toString(),
+                signature = "${param.name}: ${param.type}"
+            )
+            visibleVars[param.name] = currentParam
+            
+            if (includeDeclaration && param.name == targetSymbol.name && sub.position == targetSymbol.definitionPosition) {
+                // For parameters, we highlight the parameter in the signature if we can find it
+                // For now, just use the sub's position
+                locations.add(sub.position.toLspLocation(uri))
+            }
+        }
+        
+        for (stmt in sub.statements) {
+            findReferencesInStatementScoped(stmt, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            
+            if (stmt is VarDecl && stmt.origin != VarDeclOrigin.SUBROUTINEPARAM) {
+                val declPrefix = if (stmt.type == VarDeclType.CONST) "const " else ""
+                val currentDecl = SymbolAtPosition(
+                    name = stmt.name,
+                    kind = if (stmt.type == VarDeclType.CONST) SymbolKind.CONSTANT else SymbolKind.VARIABLE,
+                    definitionPosition = stmt.position,
+                    type = stmt.type.toString(),
+                    signature = "${declPrefix}${stmt.name}: ${stmt.type}"
+                )
+                visibleVars[stmt.name] = currentDecl
+                
+                if (includeDeclaration && stmt.name == targetSymbol.name && stmt.position == targetSymbol.definitionPosition) {
+                    locations.add(stmt.position.toLspLocation(uri))
+                }
+            }
+            
+            // Subroutines can be nested
+            if (stmt is Subroutine) {
+                findReferencesInSubroutineScoped(stmt, targetSymbol, includeDeclaration, locations, uri, blocks, subroutines)
+                if (includeDeclaration && stmt.name == targetSymbol.name && stmt.position == targetSymbol.definitionPosition) {
+                    locations.add(stmt.position.toLspLocation(uri))
+                }
+            }
+        }
+    }
+    
+    private fun findReferencesInStatementScoped(
+        stmt: Statement,
+        targetSymbol: SymbolAtPosition,
+        locations: MutableList<org.eclipse.lsp4j.Location>,
+        uri: String,
+        visibleVars: Map<String, SymbolAtPosition>,
+        blocks: Map<String, SymbolAtPosition>,
+        subroutines: Map<String, SymbolAtPosition>
+    ) {
+        when (stmt) {
+            is Assignment -> {
                 stmt.target.identifier?.let { ident ->
-                    if (ident.nameInSource.lastOrNull() == symbolName) {
+                    val resolved = resolveIdentifierScoped(ident.nameInSource.lastOrNull() ?: "", visibleVars, blocks, subroutines)
+                    if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
                         locations.add(ident.position.toLspLocation(uri))
                     }
                 }
-                findReferencesInExpression(stmt.value, symbolName, locations, uri)
+                findReferencesInExpressionScoped(stmt.value, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
-            is prog8.ast.statements.FunctionCallStatement -> {
-                val funcName = stmt.target.nameInSource.lastOrNull()
-                if (funcName == symbolName) {
+            is VarDecl -> {
+                stmt.value?.let { value ->
+                    findReferencesInExpressionScoped(value, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                }
+            }
+            is FunctionCallStatement -> {
+                val funcName = stmt.target.nameInSource.lastOrNull() ?: ""
+                val resolved = resolveIdentifierScoped(funcName, visibleVars, blocks, subroutines)
+                if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
                     locations.add(stmt.target.position.toLspLocation(uri))
                 }
                 for (arg in stmt.args) {
-                    findReferencesInExpression(arg, symbolName, locations, uri)
+                    findReferencesInExpressionScoped(arg, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 }
             }
-            is prog8.ast.statements.Block -> {
-                if (includeDeclaration && stmt.name == symbolName) {
-                    locations.add(stmt.position.toLspLocation(uri))
+            is IfElse -> {
+                findReferencesInExpressionScoped(stmt.condition, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                for (s in stmt.truepart.statements) findReferencesInStatementScoped(s, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                for (s in stmt.elsepart.statements) findReferencesInStatementScoped(s, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is ForLoop -> {
+                // Loop variable
+                val resolved = resolveIdentifierScoped(stmt.loopVar.nameInSource.lastOrNull() ?: "", visibleVars, blocks, subroutines)
+                if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
+                    locations.add(stmt.loopVar.position.toLspLocation(uri))
                 }
-                for (innerStmt in stmt.statements) {
-                    findReferencesInStatement(innerStmt, symbolName, locations, includeDeclaration, uri)
+                findReferencesInExpressionScoped(stmt.iterable, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                for (s in stmt.body.statements) findReferencesInStatementScoped(s, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is When -> {
+                findReferencesInExpressionScoped(stmt.condition, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                for (choice in stmt.choices) {
+                    choice.values?.forEach { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
+                    for (s in choice.statements.statements) findReferencesInStatementScoped(s, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 }
             }
-            is prog8.ast.statements.Subroutine -> {
-                if (includeDeclaration && stmt.name == symbolName) {
-                    locations.add(stmt.position.toLspLocation(uri))
-                }
-                for (innerStmt in stmt.statements) {
-                    findReferencesInStatement(innerStmt, symbolName, locations, includeDeclaration, uri)
-                }
+            is RepeatLoop -> {
+                stmt.iterations?.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
+                for (s in stmt.body.statements) findReferencesInStatementScoped(s, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is WhileLoop -> {
+                findReferencesInExpressionScoped(stmt.condition, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                for (s in stmt.body.statements) findReferencesInStatementScoped(s, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is Return -> {
+                for (expr in stmt.values) findReferencesInExpressionScoped(expr, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
             else -> {}
         }
     }
     
-    private fun findReferencesInExpression(
+    private fun findReferencesInExpressionScoped(
         expr: prog8.ast.expressions.Expression,
-        symbolName: String,
+        targetSymbol: SymbolAtPosition,
         locations: MutableList<org.eclipse.lsp4j.Location>,
-        uri: String
+        uri: String,
+        visibleVars: Map<String, SymbolAtPosition>,
+        blocks: Map<String, SymbolAtPosition>,
+        subroutines: Map<String, SymbolAtPosition>
     ) {
         when (expr) {
             is prog8.ast.expressions.IdentifierReference -> {
-                if (expr.nameInSource.lastOrNull() == symbolName) {
+                val identName = expr.nameInSource.lastOrNull() ?: ""
+                val resolved = resolveIdentifierScoped(identName, visibleVars, blocks, subroutines)
+                if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
                     locations.add(expr.position.toLspLocation(uri))
                 }
             }
             is prog8.ast.expressions.BinaryExpression -> {
-                findReferencesInExpression(expr.left, symbolName, locations, uri)
-                findReferencesInExpression(expr.right, symbolName, locations, uri)
+                findReferencesInExpressionScoped(expr.left, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                findReferencesInExpressionScoped(expr.right, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is prog8.ast.expressions.PrefixExpression -> {
+                findReferencesInExpressionScoped(expr.expression, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
             is prog8.ast.expressions.FunctionCallExpression -> {
-                if (expr.target.nameInSource.lastOrNull() == symbolName) {
+                val funcName = expr.target.nameInSource.lastOrNull() ?: ""
+                val resolved = resolveIdentifierScoped(funcName, visibleVars, blocks, subroutines)
+                if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
                     locations.add(expr.target.position.toLspLocation(uri))
                 }
                 for (arg in expr.args) {
-                    findReferencesInExpression(arg, symbolName, locations, uri)
+                    findReferencesInExpressionScoped(arg, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 }
+            }
+            is prog8.ast.expressions.TypecastExpression -> {
+                findReferencesInExpressionScoped(expr.expression, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is prog8.ast.expressions.IfExpression -> {
+                findReferencesInExpressionScoped(expr.condition, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                findReferencesInExpressionScoped(expr.truevalue, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                findReferencesInExpressionScoped(expr.falsevalue, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is prog8.ast.expressions.ArrayIndexedExpression -> {
+                expr.plainarrayvar?.let {
+                    val resolved = resolveIdentifierScoped(it.nameInSource.lastOrNull() ?: "", visibleVars, blocks, subroutines)
+                    if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
+                        locations.add(it.position.toLspLocation(uri))
+                    }
+                }
+                expr.nestedArray?.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
+                findReferencesInExpressionScoped(expr.indexer.indexExpr, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+            }
+            is prog8.ast.expressions.RangeExpression -> {
+                findReferencesInExpressionScoped(expr.from, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                findReferencesInExpressionScoped(expr.to, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
+                expr.step?.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
             }
             else -> {}
         }
+    }
+    
+    private fun resolveIdentifierScoped(
+        name: String,
+        visibleVars: Map<String, SymbolAtPosition>,
+        blocks: Map<String, SymbolAtPosition>,
+        subroutines: Map<String, SymbolAtPosition>
+    ): SymbolAtPosition? {
+        return visibleVars[name] ?: blocks[name] ?: subroutines[name]
     }
 
     /**
@@ -597,48 +799,60 @@ object SymbolLookup {
         val targetLine = line + 1
         val targetCol = column + 1
         
-        for (stmt in module.statements) {
-            val result = findFunctionCallInStatement(stmt, targetLine, targetCol)
-            if (result != null) return result
+        var bestCall: IFunctionCall? = null
+        
+        fun checkCall(call: IFunctionCall) {
+            val pos = (call as Node).position
+            // Check if cursor is on the name OR within the parentheses
+            if (pos.line == targetLine && targetCol >= pos.startCol && targetCol <= pos.endCol) {
+                if (bestCall == null) {
+                    bestCall = call
+                } else {
+                    val bestPos = (bestCall as Node).position
+                    // Pick the innermost call (one with the smallest range)
+                    if (pos.endCol - pos.startCol <= bestPos.endCol - bestPos.startCol) {
+                        bestCall = call
+                    }
+                }
+            }
+        }
+
+        val visitor = object : IAstVisitor {
+            override fun visit(module: Module) {
+                module.statements.forEach { it.accept(this) }
+            }
+
+            override fun visit(functionCallExpr: FunctionCallExpression) {
+                checkCall(functionCallExpr)
+                super.visit(functionCallExpr)
+            }
+
+            override fun visit(functionCallStatement: FunctionCallStatement) {
+                checkCall(functionCallStatement)
+                super.visit(functionCallStatement)
+            }
+        }
+        
+        module.accept(visitor)
+        
+        bestCall?.let { call ->
+            val funcName = call.target.nameInSource.lastOrNull() ?: ""
+            var paramIndex = 0
+            
+            // Find which parameter we are in by checking argument positions.
+            // Arguments in the AST are always in order of appearance in source.
+            for ((i, arg) in call.args.withIndex()) {
+                if (targetCol > arg.position.endCol) {
+                    paramIndex = i + 1
+                } else {
+                    break
+                }
+            }
+            
+            return FunctionCallInfo(funcName, paramIndex)
         }
         
         return null
-    }
-    
-    private fun findFunctionCallInStatement(
-        stmt: prog8.ast.statements.Statement,
-        targetLine: Int,
-        targetCol: Int
-    ): FunctionCallInfo? {
-        return when (stmt) {
-            is prog8.ast.statements.FunctionCallStatement -> {
-                if (stmt.target.position.line == targetLine &&
-                    targetCol >= stmt.target.position.startCol &&
-                    targetCol <= stmt.target.position.endCol) {
-                    // Cursor is on the function name, count commas to find param index
-                    return FunctionCallInfo(
-                        stmt.target.nameInSource.lastOrNull() ?: "",
-                        0 // Default to first parameter
-                    )
-                }
-                null
-            }
-            is prog8.ast.statements.Block -> {
-                for (innerStmt in stmt.statements) {
-                    val result = findFunctionCallInStatement(innerStmt, targetLine, targetCol)
-                    if (result != null) return result
-                }
-                null
-            }
-            is prog8.ast.statements.Subroutine -> {
-                for (innerStmt in stmt.statements) {
-                    val result = findFunctionCallInStatement(innerStmt, targetLine, targetCol)
-                    if (result != null) return result
-                }
-                null
-            }
-            else -> null
-        }
     }
 
     /**

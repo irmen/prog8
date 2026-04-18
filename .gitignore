@@ -3,6 +3,7 @@
 .idea/developer-tools.xml
 .idea/usage.statistics.xml
 .idea/shelf/
+.junie/memory/
 build/
 dist/
 output/
