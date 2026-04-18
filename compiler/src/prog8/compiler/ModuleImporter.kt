@@ -58,6 +58,12 @@ class ModuleImporter(private val program: Program,
 
     private fun importModule(src: SourceCode) : Module {
         val moduleAst = Prog8Parser.parseModule(src)
+
+        // Check if module already loaded (e.g., via symlink from different name)
+        val existing = program.modules.firstOrNull { it.name == moduleAst.name }
+        if (existing != null)
+            return existing
+
         program.addModule(moduleAst)
 
         // accept additional imports
