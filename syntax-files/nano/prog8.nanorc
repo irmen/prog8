@@ -27,7 +27,7 @@ color brightyellow "[[:alpha:]][[:alnum:]_]*[[:blank:]]*\("
 color lightgreen "\<(true|if_cs|if_eq|if_mi|if_vs|if_z|if_neg)\>"
 color lightred "\<(false|if_cc|if_ne|if_pl|if_vc|if_nz|if_pos)\>"
 color red "\<if(\>|_)"
-color red "\<(sub|(inline[[:space:]]+)?asmsub|extsub|else|then|void|not|and|or|xor|for|in|(down)?to|return|while|repeat|break|continue|step|goto|when|as|const|do|until|unroll|struct|clobbers|on)\>"
+color red "\<(sub|(inline[[:space:]]+)?asmsub|extsub|else|then|void|not|and|or|xor|for|in|(down)?to|return|while|repeat|break|continue|step|goto|when|as|const|do|until|unroll|struct|clobbers|on|private)\>"
 
 # Labels
 color sky "^[[:alpha:]][[:alnum:]_]*:"

@@ -82,6 +82,16 @@ Tag         Effect
 @dirty      the variable won't be set to zero when entering the subroutine (note: it will still be set to zero once on program startup, like all other uninitialized variables). You'll usually have to make sure to assign a value yourself before using the variable! This is used to reduce overhead in certain scenarios. 🦶🔫 Footgun warning.
 ==========  ======
 
+.. _private-variables:
+.. index:: pair: Variables; Private
+
+You can use the ``private`` keyword (must come first, before the datatype and any tags) to make a variable invisible from outside its block::
+
+    private ubyte secret = 42
+    private ubyte @shared hiddenvar = 10
+
+This makes the variable only accessible within the block where it's declared. Accessing it from another block will result in a compilation error.
+
 
 Variables can be defined inside any scope (blocks, subroutines etc.) See :ref:`blocks`.
 When declaring a numeric variable it is possible to specify the initial value, if you don't want it to be zero.

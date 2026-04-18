@@ -21,7 +21,7 @@ syn region prog8Expression matchgroup=prog8AddressOp start="@(" end=")"
 syn match prog8Function "\(\<\(asm\)\?sub\>\s\+\)\@16<=\<\w\+\>"
 syn match prog8Function "\(extsub\s\+$\x\+\s\+=\s\+\)\@16<=\<\w\+\>"
 
-syn keyword prog8Statement break continue goto return asmsub sub inline extsub clobbers
+syn keyword prog8Statement break continue goto return asmsub sub inline extsub clobbers private
 syn match prog8Statement "\<\(asm\)\?sub\>"
 syn keyword prog8Conditional if else when then
 syn keyword prog8Conditional if_cs if_cc if_vs if_vc if_eq if_z if_ne if_nz

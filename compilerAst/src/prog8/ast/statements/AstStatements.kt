@@ -262,6 +262,7 @@ class VarDecl(
     val sharedWithAsm: Boolean,
     val alignment: UInt,
     val dirty: Boolean,
+    val isPrivate: Boolean,
     override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
@@ -294,6 +295,7 @@ class VarDecl(
                 sharedWithAsm = false,
                 alignment = 0u,
                 dirty = false,
+                isPrivate = false,
                 position = param.position
             )
         }
@@ -312,7 +314,7 @@ class VarDecl(
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
                 SplitWish.NOSPLIT, arraysize, null, autoVarName, emptyList(), array,
-                    sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
+                    sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = array.position)
         }
 
         fun createAutoOptionalSplit(array: ArrayLiteral): VarDecl {
@@ -322,14 +324,14 @@ class VarDecl(
             val arraysize = ArrayIndex.forArray(array)
             return VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
                 split, arraysize, null, autoVarName, emptyList(), array,
-                sharedWithAsm = false, alignment = 0u, dirty = false, position = array.position)
+                sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = array.position)
         }
 
         fun createAuto(dt: DataType, position: Position): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
             val vardecl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, dt, ZeropageWish.NOT_IN_ZEROPAGE,
                 SplitWish.DONTCARE, null, null, autoVarName, emptyList(), null,
-                sharedWithAsm = false, alignment = 0u, dirty = false, position = position)
+                sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = position)
             return vardecl
         }
     }
@@ -370,7 +372,7 @@ class VarDecl(
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
         val copy = VarDecl(type, origin, newDatatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), name, names, value?.copy(),
-            sharedWithAsm, alignment, dirty, position)
+            sharedWithAsm, alignment, dirty, isPrivate, position)
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
@@ -386,19 +388,19 @@ class VarDecl(
             // just copy the initialization value to a separate vardecl for each component
             return names.map {
                 val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), it, emptyList(), value?.copy(),
-                    sharedWithAsm, alignment, dirty, position)
+                    sharedWithAsm, alignment, dirty, isPrivate, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
             val first = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), names[0], emptyList(), value?.copy(),
-                sharedWithAsm, alignment, dirty, position)
+                sharedWithAsm, alignment, dirty, isPrivate, position)
             first.allowInitializeWithZero = this.allowInitializeWithZero
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
                 val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), it, emptyList(), firstVar.copy(),
-                    sharedWithAsm, alignment, dirty, position)
+                    sharedWithAsm, alignment, dirty, isPrivate, position)
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
@@ -1053,6 +1055,7 @@ class Subroutine(override val name: String,
                  val isAsmSubroutine: Boolean,
                  var inline: Boolean,
                  var hasBeenInlined: Boolean=false,
+                 val isPrivate: Boolean,
                  override val statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
 

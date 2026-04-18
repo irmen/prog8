@@ -248,6 +248,7 @@ internal class StatementReorderer(
                                 it.sharedWithAsm,
                                 it.alignment,
                                 it.dirty,
+                                it.isPrivate,
                                 it.position
                             )
                             AstReplaceNode(it, newvar, subroutine)

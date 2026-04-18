@@ -161,6 +161,7 @@ It's used to tell the compiler to put the block at a certain position in memory.
     Using qualified names ("dotted names") to reference symbols defined elsewhere
 
     Every symbol is 'public' and can be accessed from anywhere else, when given its *full* "dotted name".
+    You can use the ``private`` keyword to hide symbols from other blocks - see :ref:`private-symbols`.
     So, accessing a variable ``counter`` defined in subroutine ``worker`` in block ``main``,
     can be done from anywhere by using ``main.worker.counter``.
     Unlike most other programming langues, as soon as a name is scoped,
@@ -1141,6 +1142,29 @@ The return type has to be specified if the subroutine returns a value.
 Subroutines can be defined in a Block, but also nested inside another subroutine. Everything is scoped accordingly.
 There are three different types of subroutines: regular subroutines (the one above), assembly-only, and
 external subroutines. These last two are described in detail below.
+
+
+.. _private-symbols:
+
+Private subroutines
+^^^^^^^^^^^^^^^^^^^
+.. index:: pair: Subroutines; Private
+
+You can use the ``private`` keyword (must come before ``inline`` if used) to make a subroutine invisible from outside its block::
+
+    private sub helper() {
+        ; only callable from within this block
+    }
+
+    private inline sub fast_helper() {
+        ; private and inlined - note: private comes BEFORE inline
+    }
+
+    private asmsub asm_helper(ubyte a @A) clobbers(Y) -> ubyte @A {
+        ; private asmsub
+    }
+
+Accessing a private subroutine from another block will result in a compilation error.
 
 
 .. _reusevirtualregs_params:

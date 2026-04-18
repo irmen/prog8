@@ -92,7 +92,7 @@ class Program(val name: String,
             val decl = VarDecl(
                 VarDeclType.VAR, VarDeclOrigin.STRINGLITERAL, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE,
                 SplitWish.DONTCARE, null, null, varName, emptyList(), string,
-                sharedWithAsm = false, alignment = 0u, dirty = false, position = string.position
+                sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = string.position
             )
             internedStringsBlock.statements.add(decl)
             decl.linkParents(internedStringsBlock)

@@ -170,6 +170,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitVardecl(ctx: VardeclContext): VarDecl {
+        val isPrivate = ctx.PRIVATE() != null
         val tags = ctx.TAG().map { it.text }
         val validTags = arrayOf("@zp", "@requirezp", "@nozp", "@nosplit", "@shared", "@alignword", "@alignpage", "@align64", "@dirty")
         for(tag in tags) {
@@ -236,6 +237,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             "@shared" in tags,
             if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
             "@dirty" in tags,
+            isPrivate,
             ctx.toPosition()
         )
     }
@@ -253,6 +255,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     override fun visitConstdecl(ctx: ConstdeclContext): VarDecl {
         if(ctx.datatype()==null)  // semantic check instead of grammar rule to have a better error message
             throw SyntaxError("datatype missing", ctx.identifierlist().toPosition())
+        val isPrivate = ctx.PRIVATE() != null
         val datatype = dataTypeFor(ctx.datatype()) ?: DataType.LONG
         val identifiers = ctx.identifierlist().identifier().map { getname(it) }
         val identifiername = identifiers[0]
@@ -277,6 +280,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             false,
             0u,
             false,
+            isPrivate,
             ctx.toPosition()
         )
     }
@@ -587,6 +591,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitSubroutine(ctx: SubroutineContext): Subroutine {
+        val isPrivate = ctx.PRIVATE() != null
         val name = getname(ctx.identifier())
         val parameters = ctx.sub_params()?.sub_param()?.mapTo(mutableListOf()) { it.accept(this) as SubroutineParameter } ?: mutableListOf()
         val returntypes = ctx.sub_return_part()?.datatype()?.mapTo(mutableListOf()) { dataTypeFor(it)!! } ?: mutableListOf()
@@ -601,6 +606,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             asmAddress = null,
             isAsmSubroutine = false,
             inline = ctx.INLINE() != null,
+            isPrivate = isPrivate,
             statements = statements.statements,
             position = ctx.toPosition()
         )
@@ -642,6 +648,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
     }
 
     override fun visitAsmsubroutine(ctx: AsmsubroutineContext): Subroutine {
+        val isPrivate = ctx.PRIVATE() != null
         val inline = ctx.INLINE()!=null
         val ad = asmSubDecl(ctx.asmsub_decl())
         val statements = ctx.statement_block().accept(this) as AnonymousScope
@@ -651,8 +658,8 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             ad.returntypes,
             ad.asmParameterRegisters,
             ad.asmReturnvaluesRegisters,
-            ad.asmClobbers, null, true, inline,
-            statements = statements.statements, position = ctx.toPosition()
+            ad.asmClobbers, null, true, inline, false, isPrivate,
+            statements.statements, ctx.toPosition()
         )
     }
 
@@ -664,7 +671,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val address = Subroutine.Address(constbank, varbank, addr)
         return Subroutine(subdecl.name, subdecl.parameters, subdecl.returntypes,
             subdecl.asmParameterRegisters, subdecl.asmReturnvaluesRegisters,
-            subdecl.asmClobbers, address, true, inline = false, statements = mutableListOf(), position = ctx.toPosition()
+            subdecl.asmClobbers, address, true, inline = false, isPrivate = false, statements = mutableListOf(), position = ctx.toPosition()
         )
     }
 

@@ -51,9 +51,9 @@ class TestAsmGenSymbols: StringSpec({
 
          */
         val varInSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "localvar", emptyList(), null, false, 0u, false, Position.DUMMY)
+            SplitWish.DONTCARE, null, null, "localvar", emptyList(), null, false, 0u, false, false, Position.DUMMY)
         val var2InSub = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "tgt", emptyList(), null, false, 0u, false, Position.DUMMY)
+            SplitWish.DONTCARE, null, null, "tgt", emptyList(), null, false, 0u, false, false, Position.DUMMY)
         val labelInSub = Label("locallabel", Position.DUMMY)
 
         val tgt = AssignTarget(
@@ -74,10 +74,10 @@ class TestAsmGenSymbols: StringSpec({
         val assign8 = Assignment(tgt, AddressOf(IdentifierReference(listOf("main","label_outside"), Position.DUMMY), null, null, false, false, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
 
         val statements = mutableListOf(varInSub, var2InSub, labelInSub, assign1, assign2, assign3, assign4, assign5, assign6, assign7, assign8)
-        val subroutine = Subroutine("start", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, statements, Position.DUMMY)
+        val subroutine = Subroutine("start", mutableListOf(), mutableListOf(), emptyList(), emptyList(), emptySet(), null, false, false, false, false, statements, Position.DUMMY)
         val labelInBlock = Label("label_outside", Position.DUMMY)
         val varInBlock = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.UWORD, ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "var_outside", emptyList(),null, false, 0u, false, Position.DUMMY)
+            SplitWish.DONTCARE, null, null, "var_outside", emptyList(),null, false, 0u, false, false, Position.DUMMY)
         val block = Block("main", null, mutableListOf(labelInBlock, varInBlock, subroutine), false, Position.DUMMY)
 
         val module = Module(mutableListOf(block), Position.DUMMY, SourceCode.Generated("test"))

@@ -100,6 +100,26 @@ internal class AstChecker(private val program: Program,
             errors.undefined(identifier.nameInSource, identifier.firstTarget(program.builtinFunctions)==null, identifier.position)
         }
         else {
+            // Check for private symbol access
+            val privateError = when (stmt) {
+                is VarDecl -> {
+                    if (stmt.isPrivate && !isAccessWithinSameBlock(identifier, stmt.definingBlock))
+                        "private variable '${stmt.name}'"
+                    else
+                        null
+                }
+                is Subroutine -> {
+                    if (stmt.isPrivate && !isAccessWithinSameBlock(identifier, stmt.definingBlock))
+                        "private subroutine '${stmt.name}'"
+                    else
+                        null
+                }
+                else -> null
+            }
+            if (privateError != null) {
+                errors.err("cannot access $privateError from outside its block", identifier.position)
+            }
+
             val target = stmt as? VarDecl
             if (target != null && target.origin == VarDeclOrigin.SUBROUTINEPARAM) {
                 if (target.definingSubroutine!!.isAsmSubroutine) {
@@ -115,6 +135,17 @@ internal class AstChecker(private val program: Program,
                 errors.err("ambiguous symbol name, block name expected but found variable", identifier.position)
             }
         }
+    }
+
+    private fun isAccessWithinSameBlock(identifier: IdentifierReference, targetBlock: Block): Boolean {
+        var current: Node? = identifier.parent
+        while (current != null) {
+            if (current is Block) {
+                return current === targetBlock
+            }
+            current = current.parent
+        }
+        return false
     }
 
     override fun visit(unrollLoop: UnrollLoop) {

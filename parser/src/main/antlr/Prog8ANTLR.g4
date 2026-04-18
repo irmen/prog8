@@ -29,6 +29,7 @@ ON: 'on';
 GOTO: 'goto';
 CALL: 'call';
 INLINE: 'inline';
+PRIVATE: 'private';
 STEP: 'step';
 ELSE: 'else';
 THEN: 'then';
@@ -195,7 +196,7 @@ directivenamelist: '(' EOL? scoped_identifier (',' EOL? scoped_identifier)* ','?
 
 directivearg : stringliteral | identifier | integerliteral ;
 
-vardecl: datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
+vardecl: PRIVATE? datatype (arrayindex arrayindex? | EMPTYARRAYSIG)? TAG* identifierlist ;
 
 identifierlist: identifier (',' identifier)* ;
 
@@ -204,7 +205,7 @@ varinitializer :
     | vardecl '=' tuple_expression
     ;
 
-constdecl: 'const' datatype? identifierlist '=' expression ;
+constdecl: PRIVATE? 'const' datatype? identifierlist '=' expression ;
 
 memoryvardecl: ADDRESS_OF varinitializer;
 
@@ -307,7 +308,7 @@ breakstmt : 'break';
 
 continuestmt: 'continue';
 
-identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | STEP ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
+identifier :  UNICODEDNAME | UNDERSCORENAME | ON | CALL | INLINE | PRIVATE | STEP ;              // due to the way antlr creates tokens, need to list the tokens here explicitly that we want to allow as identifiers too
 
 scoped_identifier :  identifier ('.' identifier)* ;
 
@@ -336,7 +337,7 @@ literalvalue :
 inlineasm :  directivename EOL? INLINEASMBLOCK;         // directive name should be '%asm' or '%ir'
 
 subroutine :
-    INLINE? 'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
+    PRIVATE? INLINE? 'sub' identifier '(' sub_params? ')' sub_return_part? EOL? (statement_block EOL?)
     ;
 
 sub_return_part : '->' datatype (',' datatype)*  ;
@@ -353,7 +354,7 @@ sub_params :  sub_param (',' EOL? sub_param)* ;
 sub_param: vardecl ('@' register=UNICODEDNAME)? ;
 
 asmsubroutine :
-    INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
+    PRIVATE? INLINE? 'asmsub' asmsub_decl EOL? (statement_block EOL?)
     ;
 
 extsubroutine :

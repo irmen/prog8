@@ -98,7 +98,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 }
                 val newDecl = VarDecl(decl.type, decl.origin, changeDataType, decl.zeropage,
                     decl.splitwordarray, decl.arraysize, decl.matrixNumCols?.copy(), decl.name, decl.names,
-                    value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
+                    value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.isPrivate, decl.position)
                 return listOf(AstReplaceNode(decl, newDecl, parent))
             }
         }
@@ -112,7 +112,7 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             }
             val newDecl = VarDecl(decl.type, decl.origin, newDt, decl.zeropage,
                 decl.splitwordarray, decl.arraysize, decl.matrixNumCols?.copy(), decl.name, decl.names,
-                value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.position)
+                value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.isPrivate, decl.position)
             return listOf(AstReplaceNode(decl, newDecl, parent))
         }
         return noModifications

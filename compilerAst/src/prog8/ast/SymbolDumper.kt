@@ -67,7 +67,16 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
     }
 
     override fun visit(block: Block) {
-        val (vars, others) = block.statements.filter{ it is Subroutine || it is Alias || it is VarDecl }.partition { it is VarDecl }
+        val (vars, others) = block.statements
+            .filter{ it is Subroutine || it is Alias || it is VarDecl }
+            .filter {
+                when (it) {
+                    is VarDecl -> !it.isPrivate
+                    is Subroutine -> !it.isPrivate
+                    else -> true
+                }
+            }
+            .partition { it is VarDecl }
         if(vars.isNotEmpty() || others.isNotEmpty()) {
             outputln("${block.name}  {")
             for (variable in vars.sortedBy { (it as VarDecl).name }) {
@@ -106,6 +115,9 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         if(decl.origin==VarDeclOrigin.SUBROUTINEPARAM)
             return
 
+        if(decl.isPrivate)
+            return
+
         when(decl.type) {
             VarDeclType.VAR -> {}
             VarDeclType.CONST -> output("const ")
@@ -130,11 +142,14 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
         if(decl.names.size>1)
             output(decl.names.joinToString(prefix=" "))
         else
-            output(" ${decl.name} ")
+            output(" ${decl.name}")
         output("\n")
     }
 
     override fun visit(subroutine: Subroutine) {
+        if(subroutine.isPrivate)
+            return
+
         if(subroutine.isAsmSubroutine) {
             output("${subroutine.name}  (")
             for(param in subroutine.parameters.zip(subroutine.asmParameterRegisters)) {
@@ -157,7 +172,7 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
                     output(", ")
             }
         }
-        output(") ")
+        output(")")
         if(subroutine.asmClobbers.isNotEmpty()) {
             output(" clobbers (")
             val regs = subroutine.asmClobbers.toList().sorted()
@@ -166,9 +181,10 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
                 if(r!==regs.last())
                     output(",")
             }
-            output(") ")
+            output(")")
         }
         if(subroutine.returntypes.any()) {
+            output(" ")
             if(subroutine.asmReturnvaluesRegisters.isNotEmpty()) {
                 val rts = subroutine.returntypes.zip(subroutine.asmReturnvaluesRegisters).joinToString(", ") {
                     val dtstr = it.first.sourceString()
@@ -177,10 +193,10 @@ private class SymbolDumper(val skipLibraries: Boolean): IAstVisitor {
                     else
                         "$dtstr @${it.second.statusflag}"
                 }
-                output("-> $rts ")
+                output("-> $rts")
             } else {
                 val rts = subroutine.returntypes.joinToString(", ") { it.sourceString() }
-                output("-> $rts ")
+                output("-> $rts")
             }
         }
         if(subroutine.asmAddress!=null) {
