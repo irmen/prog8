@@ -287,7 +287,7 @@ palette {
     alias get_default = cx16.get_default_palette
 
 
-    sub internal_set_vera_palette_addr(ubyte index) {
+    private sub internal_set_vera_palette_addr(ubyte index) {
         cx16.VERA_CTRL = 0
         cx16.VERA_ADDR_H = %00010001
         cx16.VERA_ADDR = $fa00+(index *$0002)

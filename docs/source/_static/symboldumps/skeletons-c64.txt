@@ -1,6 +1,6 @@
 
 Prog8 compiler v12.2-SNAPSHOT by Irmen de Jong (irmen@razorvine.net)
-Prerelease version from git commit 276121bf in branch master
+Prerelease version from git commit c784fd03 in branch master
 This software is licensed under the GNU GPL 3.0, see https://www.gnu.org/licenses/gpl.html
 
 Compiling program import-all-c64.p8
@@ -66,19 +66,19 @@ LIBRARY MODULE NAME: bcd
 ------------------------
 
 bcd  {
-    addb  (byte a, byte b) -> byte 
-    addl  (long a, long b) -> long 
-    addtol  (^^long a, long b) 
-    addub  (ubyte a, ubyte b) -> ubyte 
-    adduw  (uword a, uword b) -> uword 
-    addw  (word a, word b) -> word 
-    clearbcd  () 
-    setbcd  () 
-    subb  (byte a, byte b) -> byte 
-    subfroml  (^^long a, long b) 
-    subl  (long a, long b) -> long 
-    subub  (ubyte a, ubyte b) -> ubyte 
-    subuw  (uword a, uword b) -> uword 
+    addb  (byte a, byte b) -> byte
+    addl  (long a, long b) -> long
+    addtol  (^^long a, long b)
+    addub  (ubyte a, ubyte b) -> ubyte
+    adduw  (uword a, uword b) -> uword
+    addw  (word a, word b) -> word
+    clearbcd  ()
+    setbcd  ()
+    subb  (byte a, byte b) -> byte
+    subfroml  (^^long a, long b)
+    subl  (long a, long b) -> long
+    subub  (ubyte a, ubyte b) -> ubyte
+    subuw  (uword a, uword b) -> uword
 }
 
 
@@ -86,65 +86,65 @@ LIBRARY MODULE NAME: buffers
 ----------------------------
 
 smallringbuffer  {
-    ubyte[]  buffer 
-    ubyte  fill 
-    ubyte  head 
-    ubyte  tail 
-    free  () -> ubyte 
-    get  () -> ubyte 
-    getw  () -> uword 
-    init  () 
-    isempty  () -> bool 
-    isfull  () -> bool 
-    put  (ubyte value) 
-    putw  (uword value) 
-    size  () -> ubyte 
+    ubyte[]  buffer
+    ubyte  fill
+    ubyte  head
+    ubyte  tail
+    free  () -> ubyte
+    get  () -> ubyte
+    getw  () -> uword
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    put  (ubyte value)
+    putw  (uword value)
+    size  () -> ubyte
 }
 
 smallstack  {
-    ubyte[]  buffer 
-    ubyte  sp 
-    free  () -> ubyte 
-    init  () 
-    isempty  () -> bool 
-    isfull  () -> bool 
-    pop_b  () -> ubyte 
-    pop_w  () -> uword 
-    push_b  (ubyte value) 
-    push_w  (uword value) 
-    size  () -> ubyte 
+    ubyte[]  buffer
+    ubyte  sp
+    free  () -> ubyte
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    pop_b  () -> ubyte
+    pop_w  () -> uword
+    push_b  (ubyte value)
+    push_w  (uword value)
+    size  () -> ubyte
 }
 
 stack  {
-    uword  buffer_ptr 
-    uword  sp 
-    free  () -> uword 
-    init  () 
-    isempty  () -> bool 
-    isfull  () -> bool 
-    pop_b  () -> ubyte 
-    pop_w  () -> uword 
-    push_b  (ubyte value) 
-    push_w  (uword value) 
-    size  () -> uword 
+    uword  buffer_ptr
+    uword  sp
+    free  () -> uword
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    pop_b  () -> ubyte
+    pop_w  () -> uword
+    push_b  (ubyte value)
+    push_w  (uword value)
+    size  () -> uword
 }
 
 ringbuffer  {
-    uword  buffer_ptr 
-    uword  fill 
-    uword  head 
-    uword  tail 
-    free  () -> uword 
-    get  () -> ubyte 
-    getw  () -> uword 
-    inc_head  () 
-    inc_tail  () 
-    init  () 
-    isempty  () -> bool 
-    isfull  () -> bool 
-    put  (ubyte value) 
-    putw  (uword value) 
-    size  () -> uword 
+    uword  buffer_ptr
+    uword  fill
+    uword  head
+    uword  tail
+    free  () -> uword
+    get  () -> ubyte
+    getw  () -> uword
+    inc_head  ()
+    inc_tail  ()
+    init  ()
+    isempty  () -> bool
+    isfull  () -> bool
+    put  (ubyte value)
+    putw  (uword value)
+    size  () -> uword
 }
 
 
@@ -152,13 +152,13 @@ LIBRARY MODULE NAME: compression
 --------------------------------
 
 compression  {
-    decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1)  clobbers (X) -> uword @AY 
-    decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1)  clobbers (X) -> uword @AY 
-    decode_tscrunch  (uword compressed @R0, uword target @R1)  clobbers (A,X,Y) 
-    decode_tscrunch_inplace  (uword compressed @R0)  clobbers (A,X,Y) 
-    decode_zx0  (uword compressed @R0, uword target @R1)  clobbers (A,X,Y) 
-    encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword 
-    encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block) 
+    decode_rle  (uword compressed @AY, uword target @R0, uword maxsize @R1) clobbers (X) -> uword @AY
+    decode_rle_srcfunc  (uword source_function @AY, uword target @R0, uword maxsize @R1) clobbers (X) -> uword @AY
+    decode_tscrunch  (uword compressed @R0, uword target @R1) clobbers (A,X,Y)
+    decode_tscrunch_inplace  (uword compressed @R0) clobbers (A,X,Y)
+    decode_zx0  (uword compressed @R0, uword target @R1) clobbers (A,X,Y)
+    encode_rle  (uword data, uword size, uword target, bool is_last_block) -> uword
+    encode_rle_outfunc  (uword data, uword size, uword output_function, bool is_last_block)
 }
 
 
@@ -166,33 +166,32 @@ LIBRARY MODULE NAME: conv
 -------------------------
 
 conv  {
-    ubyte[] @shared  string_out 
-    any2uword  (str string @AY) -> uword @AY, ubyte @X 
-    bin2uword  (str string @AY) -> uword @AY 
-    hex2long  (str string @AY) -> long @R0R1 
-    hex2uword  (str string @AY) -> uword @AY 
-    internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X 
-    internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A 
-    internal_ubyte2hex  (ubyte value @A)  clobbers (X) -> ubyte @A, ubyte @Y 
-    internal_uword2decimal  (uword value @AY) -> ubyte @Y, ubyte @A, ubyte @X 
-    internal_uword2hex  (uword value @AY)  clobbers (A,Y) 
-    str2byte  (str string @AY)  clobbers (Y) -> byte @A 
-    str2long  (str string) -> long 
-    str2ubyte  (str string @AY)  clobbers (Y) -> ubyte @A 
-    str2uword  (str string @AY) -> uword @AY 
-    str2word  (str string @AY) -> word @AY 
-    str_b  (byte value @A)  clobbers (X) -> str @AY 
-    str_l  (long value) -> str 
-    str_ub  (ubyte value @A)  clobbers (X) -> str @AY 
-    str_ub0  (ubyte value @A)  clobbers (X) -> str @AY 
-    str_ubbin  (ubyte value @A)  clobbers (X) -> str @AY 
-    str_ubhex  (ubyte value @A)  clobbers (X) -> str @AY 
-    str_ulhex  (long value) -> str 
-    str_uw  (uword value @AY)  clobbers (X) -> str @AY 
-    str_uw0  (uword value @AY)  clobbers (X) -> str @AY 
-    str_uwbin  (uword value @AY)  clobbers (X) -> str @AY 
-    str_uwhex  (uword value @AY) -> str @AY 
-    str_w  (word value @AY)  clobbers (X) -> str @AY 
+    ubyte[] @shared  string_out
+    any2uword  (str string @AY) -> uword @AY, ubyte @X
+    bin2uword  (str string @AY) -> uword @AY
+    hex2long  (str string @AY) -> long @R0R1
+    hex2uword  (str string @AY) -> uword @AY
+    internal_byte2decimal  (byte value @A) -> ubyte @Y, ubyte @A, ubyte @X
+    internal_ubyte2decimal  (ubyte value @A) -> ubyte @Y, ubyte @X, ubyte @A
+    internal_ubyte2hex  (ubyte value @A) clobbers (X) -> ubyte @A, ubyte @Y
+    internal_uword2decimal  (uword value @AY) -> ubyte @Y, ubyte @A, ubyte @X
+    str2byte  (str string @AY) clobbers (Y) -> byte @A
+    str2long  (str string) -> long
+    str2ubyte  (str string @AY) clobbers (Y) -> ubyte @A
+    str2uword  (str string @AY) -> uword @AY
+    str2word  (str string @AY) -> word @AY
+    str_b  (byte value @A) clobbers (X) -> str @AY
+    str_l  (long value) -> str
+    str_ub  (ubyte value @A) clobbers (X) -> str @AY
+    str_ub0  (ubyte value @A) clobbers (X) -> str @AY
+    str_ubbin  (ubyte value @A) clobbers (X) -> str @AY
+    str_ubhex  (ubyte value @A) clobbers (X) -> str @AY
+    str_ulhex  (long value) -> str
+    str_uw  (uword value @AY) clobbers (X) -> str @AY
+    str_uw0  (uword value @AY) clobbers (X) -> str @AY
+    str_uwbin  (uword value @AY) clobbers (X) -> str @AY
+    str_uwhex  (uword value @AY) -> str @AY
+    str_w  (word value @AY) clobbers (X) -> str @AY
 }
 
 
@@ -200,18 +199,18 @@ LIBRARY MODULE NAME: coroutines
 -------------------------------
 
 coroutines  {
-    const ubyte  MAX_TASKS 
-    ubyte  active_task 
-    uword  supervisor 
-    uword[]  tasklist 
-    uword[]  userdatas 
-    add  (uword taskaddress, uword userdata) -> ubyte 
-    current  () -> ubyte 
-    kill  (ubyte taskid) 
-    killall  () 
-    run  (uword supervisor_routine) 
-    termination  () 
-    yield  () -> uword 
+    const ubyte  MAX_TASKS
+    ubyte  active_task
+    uword  supervisor
+    uword[]  tasklist
+    uword[]  userdatas
+    add  (uword taskaddress, uword userdata) -> ubyte
+    current  () -> ubyte
+    kill  (ubyte taskid)
+    killall  ()
+    run  (uword supervisor_routine)
+    termination  ()
+    yield  () -> uword
 }
 
 
@@ -219,9 +218,9 @@ LIBRARY MODULE NAME: cx16logo
 -----------------------------
 
 cx16logo  {
-    uword[]  logo_lines 
-    logo  () 
-    logo_at  (ubyte column, ubyte row) 
+    uword[]  logo_lines
+    logo  ()
+    logo_at  (ubyte column, ubyte row)
 }
 
 
@@ -229,49 +228,49 @@ LIBRARY MODULE NAME: diskio
 ---------------------------
 
 diskio  {
-    const ubyte  READ_IO_CHANNEL 
-    const ubyte  STATUS_EOF 
-    const ubyte  WRITE_IO_CHANNEL 
-    ubyte @shared  drivenumber 
-    bool  iteration_in_progress 
-    uword  list_blocks 
-    str  list_filename 
-    str  list_filetype 
-    ^^ubyte  list_pattern 
-    bool  list_skip_disk_name 
-    bool  write_iteration_in_progress 
-    delete  (str filenameptr) 
-    directory  () -> bool 
-    directory_dirs  () -> bool 
-    directory_files  () -> bool 
-    diskname  () -> str 
-    exists  (str filename) -> bool 
-    f_close  () 
-    f_close_w  () 
-    f_open  (str filenameptr) -> bool 
-    f_open_w  (str filenameptr) -> bool 
-    f_read  (uword bufferpointer, uword num_bytes) -> uword 
-    f_read_all  (uword bufferpointer) -> uword 
-    f_readline  (^^ubyte bufptr @AY)  clobbers (X) -> ubyte @Y, ubyte @A 
-    f_write  (uword bufferpointer, uword num_bytes) -> bool 
-    get_loadaddress  (str filename) -> uword 
-    lf_end_list  () 
-    lf_next_entry  () -> bool 
-    lf_start_list  (str pattern_ptr) -> bool 
-    lf_start_list_dirs  (str pattern_ptr) -> bool 
-    lf_start_list_files  (str pattern_ptr) -> bool 
-    lf_start_list_having_prefix  (str prefix) -> bool 
-    list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte 
-    load  (str filenameptr, uword address_override) -> uword 
-    load_raw  (str filenameptr, uword start_address) -> uword 
-    loadlib  (str libnameptr, uword libaddress) -> uword 
-    rename  (str oldfileptr, str newfileptr) 
-    reset_read_channel  () 
-    reset_write_channel  () 
-    save  (str filenameptr, uword start_address, uword savesize) -> bool 
-    send_command  (str commandptr) 
-    status  () -> str 
-    status_code  () -> ubyte 
+    const ubyte  READ_IO_CHANNEL
+    const ubyte  STATUS_EOF
+    const ubyte  WRITE_IO_CHANNEL
+    ubyte @shared  drivenumber
+    bool  iteration_in_progress
+    uword  list_blocks
+    str  list_filename
+    str  list_filetype
+    ^^ubyte  list_pattern
+    bool  list_skip_disk_name
+    bool  write_iteration_in_progress
+    delete  (str filenameptr)
+    directory  () -> bool
+    directory_dirs  () -> bool
+    directory_files  () -> bool
+    diskname  () -> str
+    exists  (str filename) -> bool
+    f_close  ()
+    f_close_w  ()
+    f_open  (str filenameptr) -> bool
+    f_open_w  (str filenameptr) -> bool
+    f_read  (uword bufferpointer, uword num_bytes) -> uword
+    f_read_all  (uword bufferpointer) -> uword
+    f_readline  (^^ubyte bufptr @AY) clobbers (X) -> ubyte @Y, ubyte @A
+    f_write  (uword bufferpointer, uword num_bytes) -> bool
+    get_loadaddress  (str filename) -> uword
+    lf_end_list  ()
+    lf_next_entry  () -> bool
+    lf_start_list  (str pattern_ptr) -> bool
+    lf_start_list_dirs  (str pattern_ptr) -> bool
+    lf_start_list_files  (str pattern_ptr) -> bool
+    lf_start_list_having_prefix  (str prefix) -> bool
+    list_filenames  (str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte
+    load  (str filenameptr, uword address_override) -> uword
+    load_raw  (str filenameptr, uword start_address) -> uword
+    loadlib  (str libnameptr, uword libaddress) -> uword
+    rename  (str oldfileptr, str newfileptr)
+    reset_read_channel  ()
+    reset_write_channel  ()
+    save  (str filenameptr, uword start_address, uword savesize) -> bool
+    send_command  (str commandptr)
+    status  () -> str
+    status_code  () -> ubyte
 }
 
 
@@ -279,101 +278,98 @@ LIBRARY MODULE NAME: floats
 ---------------------------
 
 floats  {
-    const float  E 
-    const float  EPSILON 
-    const uword  FAC_ADDR 
-    const float  PI 
-    const float  TWOPI 
-    const float  π 
-    ABS  ()  = $bc58
-    ATN  ()  clobbers (A,X,Y)  = $e30e
-    AYINT  ()  clobbers (A,X,Y)  = $b1bf
-    AYINT2  ()  clobbers (X) -> word @AY 
-    CONUPK  (uword mflpt @AY)  clobbers (A,Y)  = $ba8c
-    COS  ()  clobbers (A,X,Y)  = $e264
-    DIV10  ()  clobbers (A,X,Y)  = $bafe
-    EXP  ()  clobbers (A,X,Y)  = $bfed
-    FADD  (uword mflpt @AY)  clobbers (A,X,Y)  = $b867
-    FADDH  ()  clobbers (A,X,Y)  = $b849
-    FADDT  ()  clobbers (A,X,Y)  = $b86a
-    FAREADMEM  ()  clobbers (A,Y)  = $ba90
-    FCOMP  (uword mflpt @AY)  clobbers (X,Y) -> ubyte @A  = $bc5b
-    FDIV  (uword mflpt @AY)  clobbers (A,X,Y)  = $bb0f
-    FDIVT  ()  clobbers (A,X,Y)  = $bb12
-    FINLOG  (byte value @A)  clobbers (A,X,Y)  = $bd7e
-    FMULT  (uword mflpt @AY)  clobbers (A,X,Y)  = $ba28
-    FMULTT  ()  clobbers (A,X,Y)  = $ba2b
-    FOUT  ()  clobbers (X) -> uword @AY  = $bddd
-    FPRINTLN  ()  clobbers (A,X,Y)  = $aabc
-    FPWR  (uword mflpt @AY)  clobbers (A,X,Y)  = $bf78
-    FPWRT  ()  clobbers (A,X,Y)  = $bf7b
-    FREADMEM  ()  clobbers (A,Y)  = $bba6
-    FREADS24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y)  clobbers (A,X,Y) 
-    FREADS32  ()  clobbers (A,X,Y) 
-    FREADSA  (byte value @A)  clobbers (A,X,Y)  = $bc3c
-    FREADSTR  (ubyte length @A)  clobbers (A,X,Y)  = $b7b5
-    FREADU24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y)  clobbers (A,X,Y) -> float @FAC1 
-    FREADUS32  ()  clobbers (A,X,Y) 
-    FREADUY  (ubyte value @Y)  clobbers (A,X,Y)  = $b3a2
-    FSUB  (uword mflpt @AY)  clobbers (A,X,Y)  = $b850
-    FSUBT  ()  clobbers (A,X,Y)  = $b853
-    GETADR  ()  clobbers (X) -> ubyte @Y, ubyte @A  = $b7f7
-    GETADRAY  ()  clobbers (X) -> uword @AY 
-    GIVAYF  (ubyte lo @Y, ubyte hi @A)  clobbers (A,X,Y)  = $b391
-    GIVAYFAY  (uword value @AY)  clobbers (A,X,Y) 
-    GIVUAYFAY  (uword value @AY)  clobbers (A,X,Y) 
-    INT  ()  clobbers (A,X,Y)  = $bccc
-    LOG  ()  clobbers (A,X,Y)  = $b9ea
-    MOVAF  ()  clobbers (A,X)  = $bc0c
-    MOVEF  ()  clobbers (A,X)  = $bc0f
-    MOVFA  ()  clobbers (A,X)  = $bbfc
-    MOVFM  (uword mflpt @AY)  clobbers (A,Y)  = $bba2
-    MOVMF  (uword mflpt @XY)  clobbers (A,Y)  = $bbd4
-    MUL10  ()  clobbers (A,X,Y)  = $bae2
-    NEGOP  ()  clobbers (A)  = $bfb4
-    NORMAL  ()  clobbers (A)  = $b8d7
-    NOTOP  ()  clobbers (A,X,Y)  = $aed4
-    QINT  ()  clobbers (A,X,Y)  = $bc9b
-    RND  ()  clobbers (A,X,Y)  = $e097
-    SGN  ()  clobbers (A,X,Y)  = $bc39
-    SIGN  () -> ubyte @A  = $bc2b
-    SIN  ()  clobbers (A,X,Y)  = $e26b
-    SQR  ()  clobbers (A,X,Y)  = $bf71
-    SQRA  ()  clobbers (A,X,Y)  = $bf74
-    TAN  ()  clobbers (A,X,Y)  = $e2b4
-    atan  (float value) -> float 
-    atan2  (float y, float x) -> float 
-    ceil  (float value) -> float 
-    clampf  (float value, float minimum, float maximum) -> float 
-    cos  (float angle) -> float 
-    cot  (float value) -> float 
-    csc  (float value) -> float 
-    deg  (float angle) -> float 
-    floor  (float value) -> float 
-    highest_bit_in_byte  (ubyte value @A) -> ubyte @Y 
-    internal_get_vptr_highest_bit_pos  (^^ubyte vptr) -> ubyte 
-    internal_long_AY_to_FAC  () 
-    internal_long_R1_to_float_AY  () 
-    interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float 
-    lerp  (float v0, float v1, float t) -> float 
-    lerp_fast  (float v0, float v1, float t) -> float 
-    ln  (float value) -> float 
-    log2  (float value) -> float 
-    maxf  (float f1, float f2) -> float 
-    minf  (float f1, float f2) -> float 
-    normalize  (float value @FAC1) -> float @FAC1 
-    parse  (str value @AY) -> float @FAC1 
-    pow  (float value, float power) -> float 
-    print  (float value @FAC1)  clobbers (A,X,Y) 
-    rad  (float angle) -> float 
-    rnd  () -> float 
-    rndseed  (float seed) 
-    round  (float value) -> float 
-    secant  (float value) -> float 
-    sin  (float angle) -> float 
-    tan  (float value) -> float 
-    time  () -> float @FAC1 
-    tostr  (float value @FAC1)  clobbers (X) -> str @AY 
+    const float  E
+    const float  EPSILON
+    const uword  FAC_ADDR
+    const float  PI
+    const float  TWOPI
+    const float  π
+    ABS  () = $bc58
+    ATN  () clobbers (A,X,Y) = $e30e
+    AYINT  () clobbers (A,X,Y) = $b1bf
+    AYINT2  () clobbers (X) -> word @AY
+    CONUPK  (uword mflpt @AY) clobbers (A,Y) = $ba8c
+    COS  () clobbers (A,X,Y) = $e264
+    DIV10  () clobbers (A,X,Y) = $bafe
+    EXP  () clobbers (A,X,Y) = $bfed
+    FADD  (uword mflpt @AY) clobbers (A,X,Y) = $b867
+    FADDH  () clobbers (A,X,Y) = $b849
+    FADDT  () clobbers (A,X,Y) = $b86a
+    FAREADMEM  () clobbers (A,Y) = $ba90
+    FCOMP  (uword mflpt @AY) clobbers (X,Y) -> ubyte @A = $bc5b
+    FDIV  (uword mflpt @AY) clobbers (A,X,Y) = $bb0f
+    FDIVT  () clobbers (A,X,Y) = $bb12
+    FINLOG  (byte value @A) clobbers (A,X,Y) = $bd7e
+    FMULT  (uword mflpt @AY) clobbers (A,X,Y) = $ba28
+    FMULTT  () clobbers (A,X,Y) = $ba2b
+    FOUT  () clobbers (X) -> uword @AY = $bddd
+    FPRINTLN  () clobbers (A,X,Y) = $aabc
+    FPWR  (uword mflpt @AY) clobbers (A,X,Y) = $bf78
+    FPWRT  () clobbers (A,X,Y) = $bf7b
+    FREADMEM  () clobbers (A,Y) = $bba6
+    FREADS24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y) clobbers (A,X,Y)
+    FREADS32  () clobbers (A,X,Y)
+    FREADSA  (byte value @A) clobbers (A,X,Y) = $bc3c
+    FREADSTR  (ubyte length @A) clobbers (A,X,Y) = $b7b5
+    FREADU24AXY  (ubyte lo @A, ubyte mid @X, ubyte hi @Y) clobbers (A,X,Y) -> float @FAC1
+    FREADUS32  () clobbers (A,X,Y)
+    FREADUY  (ubyte value @Y) clobbers (A,X,Y) = $b3a2
+    FSUB  (uword mflpt @AY) clobbers (A,X,Y) = $b850
+    FSUBT  () clobbers (A,X,Y) = $b853
+    GETADR  () clobbers (X) -> ubyte @Y, ubyte @A = $b7f7
+    GETADRAY  () clobbers (X) -> uword @AY
+    GIVAYF  (ubyte lo @Y, ubyte hi @A) clobbers (A,X,Y) = $b391
+    GIVAYFAY  (uword value @AY) clobbers (A,X,Y)
+    GIVUAYFAY  (uword value @AY) clobbers (A,X,Y)
+    INT  () clobbers (A,X,Y) = $bccc
+    LOG  () clobbers (A,X,Y) = $b9ea
+    MOVAF  () clobbers (A,X) = $bc0c
+    MOVEF  () clobbers (A,X) = $bc0f
+    MOVFA  () clobbers (A,X) = $bbfc
+    MOVFM  (uword mflpt @AY) clobbers (A,Y) = $bba2
+    MOVMF  (uword mflpt @XY) clobbers (A,Y) = $bbd4
+    MUL10  () clobbers (A,X,Y) = $bae2
+    NEGOP  () clobbers (A) = $bfb4
+    NORMAL  () clobbers (A) = $b8d7
+    NOTOP  () clobbers (A,X,Y) = $aed4
+    QINT  () clobbers (A,X,Y) = $bc9b
+    RND  () clobbers (A,X,Y) = $e097
+    SGN  () clobbers (A,X,Y) = $bc39
+    SIGN  () -> ubyte @A = $bc2b
+    SIN  () clobbers (A,X,Y) = $e26b
+    SQR  () clobbers (A,X,Y) = $bf71
+    SQRA  () clobbers (A,X,Y) = $bf74
+    TAN  () clobbers (A,X,Y) = $e2b4
+    atan  (float value) -> float
+    atan2  (float y, float x) -> float
+    ceil  (float value) -> float
+    clampf  (float value, float minimum, float maximum) -> float
+    cos  (float angle) -> float
+    cot  (float value) -> float
+    csc  (float value) -> float
+    deg  (float angle) -> float
+    floor  (float value) -> float
+    internal_long_AY_to_FAC  ()
+    interpolate  (float v, float inputMin, float inputMax, float outputMin, float outputMax) -> float
+    lerp  (float v0, float v1, float t) -> float
+    lerp_fast  (float v0, float v1, float t) -> float
+    ln  (float value) -> float
+    log2  (float value) -> float
+    maxf  (float f1, float f2) -> float
+    minf  (float f1, float f2) -> float
+    normalize  (float value @FAC1) -> float @FAC1
+    parse  (str value @AY) -> float @FAC1
+    pow  (float value, float power) -> float
+    print  (float value @FAC1) clobbers (A,X,Y)
+    rad  (float angle) -> float
+    rnd  () -> float
+    rndseed  (float seed)
+    round  (float value) -> float
+    secant  (float value) -> float
+    sin  (float angle) -> float
+    tan  (float value) -> float
+    time  () -> float @FAC1
+    tostr  (float value @FAC1) clobbers (X) -> str @AY
 }
 
 
@@ -381,24 +377,21 @@ LIBRARY MODULE NAME: graphics
 -----------------------------
 
 graphics  {
-    const uword  BITMAP_ADDRESS 
-    const uword  CHARS_ADDRESS 
-    const ubyte  HEIGHT 
-    const uword  WIDTH 
-    uword @zp  internal_plotx 
-    circle  (uword xcenter, ubyte ycenter, ubyte radius) 
-    clear_screen  (ubyte pixelcolor, ubyte bgcolor) 
-    disable_bitmap_mode  () 
-    disc  (uword xcenter, ubyte ycenter, ubyte radius) 
-    enable_bitmap_mode  () 
-    fillrect  (uword xx, ubyte yy, uword width, ubyte height) 
-    get_y_lookup  (ubyte yy @Y) -> uword @AY 
-    horizontal_line  (uword xx, ubyte yy, uword length) 
-    internal_plot  (ubyte ploty @Y)  clobbers (A,X,Y) 
-    line  (uword x1, ubyte y1, uword x2, ubyte y2) 
-    plot  (uword plotx @AX, ubyte ploty @Y)  clobbers (A,X,Y) 
-    rect  (uword xx, ubyte yy, uword width, ubyte height) 
-    vertical_line  (uword xx, ubyte yy, ubyte height) 
+    const uword  BITMAP_ADDRESS
+    const uword  CHARS_ADDRESS
+    const ubyte  HEIGHT
+    const uword  WIDTH
+    circle  (uword xcenter, ubyte ycenter, ubyte radius)
+    clear_screen  (ubyte pixelcolor, ubyte bgcolor)
+    disable_bitmap_mode  ()
+    disc  (uword xcenter, ubyte ycenter, ubyte radius)
+    enable_bitmap_mode  ()
+    fillrect  (uword xx, ubyte yy, uword width, ubyte height)
+    horizontal_line  (uword xx, ubyte yy, uword length)
+    line  (uword x1, ubyte y1, uword x2, ubyte y2)
+    plot  (uword plotx @AX, ubyte ploty @Y) clobbers (A,X,Y)
+    rect  (uword xx, ubyte yy, uword width, ubyte height)
+    vertical_line  (uword xx, ubyte yy, ubyte height)
 }
 
 
@@ -406,49 +399,49 @@ LIBRARY MODULE NAME: math
 -------------------------
 
 math  {
-    atan2  (ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A 
-    cos8  (ubyte angle @A)  clobbers (Y) -> byte @A 
-    cos8u  (ubyte angle @A)  clobbers (Y) -> ubyte @A 
-    cosr8  (ubyte radians @A)  clobbers (Y) -> byte @A 
-    cosr8u  (ubyte radians @A)  clobbers (Y) -> ubyte @A 
-    crc16  (^^ubyte data, uword length, uword initvalue, uword xorout) -> uword 
-    crc16_end  (uword xorout) -> uword 
-    crc16_start  (uword initvalue) 
-    crc16_update  (ubyte value @A) 
-    crc32  (^^ubyte data, uword length) -> long 
-    crc32_end  () -> long @R14R15 
-    crc32_start  () 
-    crc32_update  (ubyte value) 
-    diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A 
-    diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY 
-    direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte 
-    direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A 
-    direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte 
-    gcd  (uword a, uword b) -> uword 
-    interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte 
+    atan2  (ubyte x1 @R0, ubyte y1 @R1, ubyte x2 @R2, ubyte y2 @R3) -> ubyte @A
+    cos8  (ubyte angle @A) clobbers (Y) -> byte @A
+    cos8u  (ubyte angle @A) clobbers (Y) -> ubyte @A
+    cosr8  (ubyte radians @A) clobbers (Y) -> byte @A
+    cosr8u  (ubyte radians @A) clobbers (Y) -> ubyte @A
+    crc16  (^^ubyte data, uword length, uword initvalue, uword xorout) -> uword
+    crc16_end  (uword xorout) -> uword
+    crc16_start  (uword initvalue)
+    crc16_update  (ubyte value @A)
+    crc32  (^^ubyte data, uword length) -> long
+    crc32_end  () -> long @R14R15
+    crc32_start  ()
+    crc32_update  (ubyte value)
+    diff  (ubyte v1 @A, ubyte v2 @Y) -> ubyte @A
+    diffw  (uword w1 @R0, uword w2 @AY) -> uword @AY
+    direction  (ubyte x1, ubyte y1, ubyte x2, ubyte y2) -> ubyte
+    direction_qd  (ubyte quadrant @A, ubyte xdelta @X, ubyte ydelta @Y) -> ubyte @A
+    direction_sc  (byte x1, byte y1, byte x2, byte y2) -> ubyte
+    gcd  (uword a, uword b) -> uword
+    interpolate  (ubyte v, ubyte inputMin, ubyte inputMax, ubyte outputMin, ubyte outputMax) -> ubyte
     interpolatef   alias for: floats.interpolate
-    lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte 
+    lerp  (ubyte v0, ubyte v1, ubyte t) -> ubyte
     lerpf   alias for: floats.lerp
     lerpf_fast   alias for: floats.lerp_fast
-    lerpw  (uword v0, uword v1, uword t) -> uword 
-    log2  (ubyte value @A) -> ubyte @Y 
-    log2w  (uword value @AY) -> ubyte @Y 
-    mul16_last_upper  () -> uword @AY 
-    mul32  (uword a, uword b) -> long 
-    randrange  (ubyte n) -> ubyte 
-    randrange_rom  (ubyte n) -> ubyte 
-    randrangew  (uword n) -> uword 
-    randrangew_rom  (uword n) -> uword 
-    rnd  ()  clobbers (Y) -> ubyte @A 
-    rnd_rom  ()  clobbers (Y) -> ubyte @A 
-    rndseed  (uword seed1 @AY, uword seed2 @R0)  clobbers (A,Y) 
-    rndseed_rom  (uword seed1 @AY, uword seed2 @R0)  clobbers (A,Y) 
-    rndw  () -> uword @AY 
-    rndw_rom  () -> uword @AY 
-    sin8  (ubyte angle @A)  clobbers (Y) -> byte @A 
-    sin8u  (ubyte angle @A)  clobbers (Y) -> ubyte @A 
-    sinr8  (ubyte radians @A)  clobbers (Y) -> byte @A 
-    sinr8u  (ubyte radians @A)  clobbers (Y) -> ubyte @A 
+    lerpw  (uword v0, uword v1, uword t) -> uword
+    log2  (ubyte value @A) -> ubyte @Y
+    log2w  (uword value @AY) -> ubyte @Y
+    mul16_last_upper  () -> uword @AY
+    mul32  (uword a, uword b) -> long
+    randrange  (ubyte n) -> ubyte
+    randrange_rom  (ubyte n) -> ubyte
+    randrangew  (uword n) -> uword
+    randrangew_rom  (uword n) -> uword
+    rnd  () clobbers (Y) -> ubyte @A
+    rnd_rom  () clobbers (Y) -> ubyte @A
+    rndseed  (uword seed1 @AY, uword seed2 @R0) clobbers (A,Y)
+    rndseed_rom  (uword seed1 @AY, uword seed2 @R0) clobbers (A,Y)
+    rndw  () -> uword @AY
+    rndw_rom  () -> uword @AY
+    sin8  (ubyte angle @A) clobbers (Y) -> byte @A
+    sin8u  (ubyte angle @A) clobbers (Y) -> ubyte @A
+    sinr8  (ubyte radians @A) clobbers (Y) -> byte @A
+    sinr8u  (ubyte radians @A) clobbers (Y) -> ubyte @A
 }
 
 
@@ -456,9 +449,9 @@ LIBRARY MODULE NAME: petgfx
 ---------------------------
 
 petgfx  {
-    hline  (ubyte x, ubyte y, ubyte length) 
-    plot  (ubyte x, ubyte y) 
-    vline  (ubyte x, ubyte y, ubyte length) 
+    hline  (ubyte x, ubyte y, ubyte length)
+    plot  (ubyte x, ubyte y)
+    vline  (ubyte x, ubyte y, ubyte length)
 }
 
 
@@ -466,16 +459,16 @@ LIBRARY MODULE NAME: sorting
 ----------------------------
 
 sorting  {
-    gnomesort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements) 
-    gnomesort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements) 
-    gnomesort_ub  (^^ubyte bytearray @AY, ubyte num_elements @X) 
-    gnomesort_uw  (uword wordvalues, ubyte num_elements) 
-    shellsort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements) 
-    shellsort_by_uw  (^^uword uw_keys, ^^uword wordvalues, ubyte num_elements) 
-    shellsort_pointers  (uword pointers, ubyte num_elements, uword comparefunc) 
-    shellsort_ub  (^^ubyte values, ubyte num_elements) 
-    shellsort_uw  (^^uword values, ubyte num_elements) 
-    string_comparator  (str string1 @R0, str string2 @R1) -> bool @Pc 
+    gnomesort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements)
+    gnomesort_by_uw  (uword uw_keys, uword wordvalues, ubyte num_elements)
+    gnomesort_ub  (^^ubyte bytearray @AY, ubyte num_elements @X)
+    gnomesort_uw  (uword wordvalues, ubyte num_elements)
+    shellsort_by_ub  (^^ubyte ub_keys, ^^uword wordvalues, ubyte num_elements)
+    shellsort_by_uw  (^^uword uw_keys, ^^uword wordvalues, ubyte num_elements)
+    shellsort_pointers  (uword pointers, ubyte num_elements, uword comparefunc)
+    shellsort_ub  (^^ubyte values, ubyte num_elements)
+    shellsort_uw  (^^uword values, ubyte num_elements)
+    string_comparator  (str string1 @R0, str string2 @R1) -> bool @Pc
 }
 
 
@@ -483,18 +476,18 @@ LIBRARY MODULE NAME: strings
 ----------------------------
 
 strings  {
-    ^^ubyte  last_token_source 
-    append  (str target @R0, str suffix @R1)  clobbers (Y) -> ubyte @A 
-    compare  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
-    compare_nocase  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
-    compare_nocase_iso  (str string1 @R0, str string2 @AY)  clobbers (Y) -> byte @A 
-    contains  (str string @AY, ubyte character @X) -> bool @Pc 
-    copy  (str source @R0, str target @AY)  clobbers (A) -> ubyte @Y 
-    endswith  (str st, str suffix) -> bool 
-    find  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    find_eol  (str string @AY) -> ubyte @A, bool @Pc 
-    findstr  (str haystack, str needle) -> ubyte 
-    hash  (str string @AY) -> ubyte @A 
+    ^^ubyte  last_token_source
+    append  (str target @R0, str suffix @R1) clobbers (Y) -> ubyte @A
+    compare  (str string1 @R0, str string2 @AY) clobbers (Y) -> byte @A
+    compare_nocase  (str string1 @R0, str string2 @AY) clobbers (Y) -> byte @A
+    compare_nocase_iso  (str string1 @R0, str string2 @AY) clobbers (Y) -> byte @A
+    contains  (str string @AY, ubyte character @X) -> bool @Pc
+    copy  (str source @R0, str target @AY) clobbers (A) -> ubyte @Y
+    endswith  (str st, str suffix) -> bool
+    find  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc
+    find_eol  (str string @AY) -> ubyte @A, bool @Pc
+    findstr  (str haystack, str needle) -> ubyte
+    hash  (str string @AY) -> ubyte @A
     isdigit  (ubyte petsciichar @A) -> bool @Pc
     isletter  (ubyte petsciichar @A) -> bool @Pc
     islower  (ubyte petsciichar @A) -> bool @Pc
@@ -502,34 +495,34 @@ strings  {
     isspace  (ubyte petsciichar @A) -> bool @Pc
     isupper  (ubyte petsciichar @A) -> bool @Pc
     isxdigit  (ubyte petsciichar @A) -> bool @Pc
-    left  (str source @AX, ubyte length @Y, str target @R1)  clobbers (A,Y) 
-    length  (str string @AY)  clobbers (A) -> ubyte @Y 
-    lower  (str st @AY) -> ubyte @Y 
-    lower_iso  (str st @AY) -> ubyte @Y 
-    lowerchar  (ubyte character @A) -> ubyte @A 
-    lowerchar_iso  (ubyte character @A) -> ubyte @A 
-    lstrip  (str s) 
-    lstripped  (str s) -> str 
-    ltrim  (str s) 
-    ltrimmed  (str s) -> str 
-    nappend  (str target @R0, str suffix @R1, ubyte maxlength @X)  clobbers (Y) -> ubyte @A 
-    ncopy  (str source @R0, str target @AY, ubyte maxlength @X)  clobbers (A,X) -> ubyte @Y 
-    next_token  (str source, str delimiters) -> str 
-    pattern_match  (str string @AY, str pattern @R0)  clobbers (Y) -> bool @A 
-    pattern_match_nocase  (str string @AY, str lowercase_pattern @R0, bool iso @Pc)  clobbers (Y) -> bool @A 
-    rfind  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc 
-    right  (str source @AY, ubyte length @X, str target @R1)  clobbers (A,Y) 
-    rstrip  (str s) 
-    rtrim  (str s) 
-    slice  (str source @R0, ubyte start @A, ubyte length @Y, str target @R1)  clobbers (A,Y) 
-    split  (str s, ^^uword parts, ubyte maxparts) -> ubyte 
-    startswith  (str st, str prefix) -> bool 
-    strip  (str s) 
-    trim  (str s) 
-    upper  (str st @AY) -> ubyte @Y 
-    upper_iso  (str st @AY) -> ubyte @Y 
-    upperchar  (ubyte character @A) -> ubyte @A 
-    upperchar_iso  (ubyte character @A) -> ubyte @A 
+    left  (str source @AX, ubyte length @Y, str target @R1) clobbers (A,Y)
+    length  (str string @AY) clobbers (A) -> ubyte @Y
+    lower  (str st @AY) -> ubyte @Y
+    lower_iso  (str st @AY) -> ubyte @Y
+    lowerchar  (ubyte character @A) -> ubyte @A
+    lowerchar_iso  (ubyte character @A) -> ubyte @A
+    lstrip  (str s)
+    lstripped  (str s) -> str
+    ltrim  (str s)
+    ltrimmed  (str s) -> str
+    nappend  (str target @R0, str suffix @R1, ubyte maxlength @X) clobbers (Y) -> ubyte @A
+    ncopy  (str source @R0, str target @AY, ubyte maxlength @X) clobbers (A,X) -> ubyte @Y
+    next_token  (str source, str delimiters) -> str
+    pattern_match  (str string @AY, str pattern @R0) clobbers (Y) -> bool @A
+    pattern_match_nocase  (str string @AY, str lowercase_pattern @R0, bool iso @Pc) clobbers (Y) -> bool @A
+    rfind  (str string @AY, ubyte character @X) -> ubyte @A, bool @Pc
+    right  (str source @AY, ubyte length @X, str target @R1) clobbers (A,Y)
+    rstrip  (str s)
+    rtrim  (str s)
+    slice  (str source @R0, ubyte start @A, ubyte length @Y, str target @R1) clobbers (A,Y)
+    split  (str s, ^^uword parts, ubyte maxparts) -> ubyte
+    startswith  (str st, str prefix) -> bool
+    strip  (str s)
+    trim  (str s)
+    upper  (str st @AY) -> ubyte @Y
+    upper_iso  (str st @AY) -> ubyte @Y
+    upperchar  (ubyte character @A) -> ubyte @A
+    upperchar_iso  (ubyte character @A) -> ubyte @A
 }
 
 
@@ -537,449 +530,448 @@ LIBRARY MODULE NAME: syslib
 ---------------------------
 
 cbm  {
-    &uword  CBINV 
-    &uword  CINV 
-    &ubyte  COLOR 
-    const uword  Colors 
-    &ubyte  HIBASE 
-    &uword  IBASIN 
-    &uword  IBSOUT 
-    &uword  ICHKIN 
-    &uword  ICKOUT 
-    &uword  ICLALL 
-    &uword  ICLOSE 
-    &uword  ICLRCH 
-    &uword  ICRNCH 
-    &uword  IERROR 
-    &uword  IEVAL 
-    &uword  IGETIN 
-    &uword  IGONE 
-    &uword  ILOAD 
-    &uword  IMAIN 
-    &uword  IOPEN 
-    &uword  IQPLOP 
-    &uword  IRQ_VEC 
-    &uword  ISAVE 
-    &uword  ISTOP 
-    &uword  NMINV 
-    &uword  NMI_VEC 
-    &uword  RESET_VEC 
-    &ubyte  SAREG 
-    &ubyte  SFDX 
-    &ubyte  SHFLAG 
-    &ubyte  SPREG 
-    &ubyte  STATUS 
-    &ubyte  STKEY 
-    &ubyte  SXREG 
-    &ubyte  SYREG 
-    const uword  Screen 
-    &ubyte  TIME_HI 
-    &ubyte  TIME_LO 
-    &ubyte  TIME_MID 
-    &uword  USERCMD 
-    &uword  USRADD 
-    ACPTR  () -> ubyte @A  = $ffa5
-    CHKIN  (ubyte logical @X)  clobbers (A,X) -> bool @Pc  = $ffc6
-    CHKOUT  (ubyte logical @X)  clobbers (A,X)  = $ffc9
-    CHRIN  ()  clobbers (X,Y) -> ubyte @A  = $ffcf
-    CHROUT  (ubyte character @A)  = $ffd2
-    CINT  ()  clobbers (A,X,Y)  = $ff81
-    CIOUT  (ubyte databyte @A)  = $ffa8
-    CLALL  ()  clobbers (A,X)  = $ffe7
-    CLEARSCR  ()  clobbers (A,X,Y)  = $e544
-    CLEARST  () 
-    CLOSE  (ubyte logical @A)  clobbers (A,X,Y)  = $ffc3
-    CLRCHN  ()  clobbers (A,X)  = $ffcc
-    GETIN  ()  clobbers (X,Y) -> bool @Pc, ubyte @A  = $ffe4
-    GETIN2  ()  clobbers (X,Y) -> ubyte @A 
-    HOMECRSR  ()  clobbers (A,X,Y)  = $e566
-    IOBASE  () -> uword @XY  = $fff3
-    IOINIT  ()  clobbers (A,X)  = $ff84
-    IRQDFEND  ()  clobbers (A,X,Y)  = $ea81
-    IRQDFRT  ()  clobbers (A,X,Y)  = $ea31
-    LISTEN  (ubyte device @A)  clobbers (A)  = $ffb1
-    LOAD  (ubyte verify @A, uword address @XY) -> bool @Pc, ubyte @A, uword @XY  = $ffd5
-    MEMBOT  (uword address @XY, bool dir @Pc) -> uword @XY  = $ff9c
-    MEMTOP  (uword address @XY, bool dir @Pc) -> uword @XY  = $ff99
-    OPEN  ()  clobbers (X,Y) -> bool @Pc, ubyte @A  = $ffc0
-    PLOT  (ubyte col @Y, ubyte row @X, bool dir @Pc)  clobbers (A) -> ubyte @Y, ubyte @X  = $fff0
-    RAMTAS  ()  clobbers (A,X,Y)  = $ff87
-    RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y  = $ffde
-    RDTIM16  ()  clobbers (X) -> uword @AY 
-    RDTIML  ()  clobbers (X) -> long @R0R1 
-    READST  () -> ubyte @A  = $ffb7
-    RESTOR  ()  clobbers (A,X,Y)  = $ff8a
-    SAVE  (ubyte zp_startaddr @A, uword endaddr @XY) -> bool @Pc, ubyte @A  = $ffd8
-    SCNKEY  ()  clobbers (A,X,Y)  = $ff9f
-    SCREEN  () -> ubyte @X, ubyte @Y  = $ffed
-    SECOND  (ubyte address @A)  clobbers (A)  = $ff93
-    SETLFS  (ubyte logical @A, ubyte device @X, ubyte secondary @Y)  = $ffba
-    SETMSG  (ubyte value @A)  = $ff90
-    SETNAM  (ubyte namelen @A, str filename @XY)  = $ffbd
-    SETTIM  (ubyte low @A, ubyte middle @X, ubyte high @Y)  = $ffdb
-    SETTIML  (long jiffies @R0R1) 
-    SETTMO  (ubyte timeout @A)  = $ffa2
-    STOP  ()  clobbers (X) -> bool @Pz, ubyte @A  = $ffe1
-    STOP2  ()  clobbers (A,X) -> bool @Pz 
-    STROUT  (str strptr @AY)  clobbers (A,X,Y)  = $ab1e
-    TALK  (ubyte device @A)  clobbers (A)  = $ffb4
-    TKSA  (ubyte address @A)  clobbers (A)  = $ff96
-    UDTIM  ()  clobbers (A,X)  = $ffea
-    UNLSN  ()  clobbers (A)  = $ffae
-    UNTLK  ()  clobbers (A)  = $ffab
-    VECTOR  (uword userptr @XY, bool dir @Pc)  clobbers (A,Y)  = $ff8d
-    kbdbuf_clear  () 
+    &uword  CBINV
+    &uword  CINV
+    &ubyte  COLOR
+    const uword  Colors
+    &ubyte  HIBASE
+    &uword  IBASIN
+    &uword  IBSOUT
+    &uword  ICHKIN
+    &uword  ICKOUT
+    &uword  ICLALL
+    &uword  ICLOSE
+    &uword  ICLRCH
+    &uword  ICRNCH
+    &uword  IERROR
+    &uword  IEVAL
+    &uword  IGETIN
+    &uword  IGONE
+    &uword  ILOAD
+    &uword  IMAIN
+    &uword  IOPEN
+    &uword  IQPLOP
+    &uword  IRQ_VEC
+    &uword  ISAVE
+    &uword  ISTOP
+    &uword  NMINV
+    &uword  NMI_VEC
+    &uword  RESET_VEC
+    &ubyte  SAREG
+    &ubyte  SFDX
+    &ubyte  SHFLAG
+    &ubyte  SPREG
+    &ubyte  STATUS
+    &ubyte  STKEY
+    &ubyte  SXREG
+    &ubyte  SYREG
+    const uword  Screen
+    &ubyte  TIME_HI
+    &ubyte  TIME_LO
+    &ubyte  TIME_MID
+    &uword  USERCMD
+    &uword  USRADD
+    ACPTR  () -> ubyte @A = $ffa5
+    CHKIN  (ubyte logical @X) clobbers (A,X) -> bool @Pc = $ffc6
+    CHKOUT  (ubyte logical @X) clobbers (A,X) = $ffc9
+    CHRIN  () clobbers (X,Y) -> ubyte @A = $ffcf
+    CHROUT  (ubyte character @A) = $ffd2
+    CINT  () clobbers (A,X,Y) = $ff81
+    CIOUT  (ubyte databyte @A) = $ffa8
+    CLALL  () clobbers (A,X) = $ffe7
+    CLEARSCR  () clobbers (A,X,Y) = $e544
+    CLEARST  ()
+    CLOSE  (ubyte logical @A) clobbers (A,X,Y) = $ffc3
+    CLRCHN  () clobbers (A,X) = $ffcc
+    GETIN  () clobbers (X,Y) -> bool @Pc, ubyte @A = $ffe4
+    GETIN2  () clobbers (X,Y) -> ubyte @A
+    HOMECRSR  () clobbers (A,X,Y) = $e566
+    IOBASE  () -> uword @XY = $fff3
+    IOINIT  () clobbers (A,X) = $ff84
+    IRQDFEND  () clobbers (A,X,Y) = $ea81
+    IRQDFRT  () clobbers (A,X,Y) = $ea31
+    LISTEN  (ubyte device @A) clobbers (A) = $ffb1
+    LOAD  (ubyte verify @A, uword address @XY) -> bool @Pc, ubyte @A, uword @XY = $ffd5
+    MEMBOT  (uword address @XY, bool dir @Pc) -> uword @XY = $ff9c
+    MEMTOP  (uword address @XY, bool dir @Pc) -> uword @XY = $ff99
+    OPEN  () clobbers (X,Y) -> bool @Pc, ubyte @A = $ffc0
+    PLOT  (ubyte col @Y, ubyte row @X, bool dir @Pc) clobbers (A) -> ubyte @Y, ubyte @X = $fff0
+    RAMTAS  () clobbers (A,X,Y) = $ff87
+    RDTIM  () -> ubyte @A, ubyte @X, ubyte @Y = $ffde
+    RDTIM16  () clobbers (X) -> uword @AY
+    RDTIML  () clobbers (X) -> long @R0R1
+    READST  () -> ubyte @A = $ffb7
+    RESTOR  () clobbers (A,X,Y) = $ff8a
+    SAVE  (ubyte zp_startaddr @A, uword endaddr @XY) -> bool @Pc, ubyte @A = $ffd8
+    SCNKEY  () clobbers (A,X,Y) = $ff9f
+    SCREEN  () -> ubyte @X, ubyte @Y = $ffed
+    SECOND  (ubyte address @A) clobbers (A) = $ff93
+    SETLFS  (ubyte logical @A, ubyte device @X, ubyte secondary @Y) = $ffba
+    SETMSG  (ubyte value @A) = $ff90
+    SETNAM  (ubyte namelen @A, str filename @XY) = $ffbd
+    SETTIM  (ubyte low @A, ubyte middle @X, ubyte high @Y) = $ffdb
+    SETTIML  (long jiffies @R0R1)
+    SETTMO  (ubyte timeout @A) = $ffa2
+    STOP  () clobbers (X) -> bool @Pz, ubyte @A = $ffe1
+    STOP2  () clobbers (A,X) -> bool @Pz
+    STROUT  (str strptr @AY) clobbers (A,X,Y) = $ab1e
+    TALK  (ubyte device @A) clobbers (A) = $ffb4
+    TKSA  (ubyte address @A) clobbers (A) = $ff96
+    UDTIM  () clobbers (A,X) = $ffea
+    UNLSN  () clobbers (A) = $ffae
+    UNTLK  () clobbers (A) = $ffab
+    VECTOR  (uword userptr @XY, bool dir @Pc) clobbers (A,Y) = $ff8d
+    kbdbuf_clear  ()
 }
 
 c64  {
-    &ubyte  AD1 
-    &ubyte  AD2 
-    &ubyte  AD3 
-    &ubyte  BGCOL0 
-    &ubyte  BGCOL1 
-    &ubyte  BGCOL2 
-    &ubyte  BGCOL4 
-    &ubyte  CIA1CRA 
-    &ubyte  CIA1CRB 
-    &ubyte  CIA1DDRA 
-    &ubyte  CIA1DDRB 
-    &ubyte  CIA1ICR 
-    &ubyte  CIA1PRA 
-    &ubyte  CIA1PRB 
-    &ubyte  CIA1SDR 
-    &ubyte  CIA1TAH 
-    &ubyte  CIA1TAL 
-    &ubyte  CIA1TBH 
-    &ubyte  CIA1TBL 
-    &ubyte  CIA1TOD10 
-    &ubyte  CIA1TODHR 
-    &ubyte  CIA1TODMMIN 
-    &ubyte  CIA1TODSEC 
-    &ubyte  CIA2CRA 
-    &ubyte  CIA2CRB 
-    &ubyte  CIA2DDRA 
-    &ubyte  CIA2DDRB 
-    &ubyte  CIA2ICR 
-    &ubyte  CIA2PRA 
-    &ubyte  CIA2PRB 
-    &ubyte  CIA2SDR 
-    &ubyte  CIA2TAH 
-    &ubyte  CIA2TAL 
-    &ubyte  CIA2TBH 
-    &ubyte  CIA2TBL 
-    &ubyte  CIA2TOD10 
-    &ubyte  CIA2TODHR 
-    &ubyte  CIA2TODMIN 
-    &ubyte  CIA2TODSEC 
-    &ubyte  CR1 
-    &ubyte  CR2 
-    &ubyte  CR3 
-    &ubyte  ENV3 
-    &ubyte  EXTCOL 
-    &uword  FC 
-    &ubyte  FCHI 
-    &ubyte  FCLO 
-    &uword  FREQ1 
-    &uword  FREQ2 
-    &uword  FREQ3 
-    &ubyte  FREQHI1 
-    &ubyte  FREQHI2 
-    &ubyte  FREQHI3 
-    &ubyte  FREQLO1 
-    &ubyte  FREQLO2 
-    &ubyte  FREQLO3 
-    &ubyte  IREQMASK 
-    &ubyte  LPENX 
-    &ubyte  LPENY 
-    &ubyte  MSIGX 
-    &ubyte  MVOL 
-    &ubyte  OSC3 
-    &ubyte  POTX 
-    &ubyte  POTY 
-    &uword  PW1 
-    &uword  PW2 
-    &uword  PW3 
-    &ubyte  PWHI1 
-    &ubyte  PWHI2 
-    &ubyte  PWHI3 
-    &ubyte  PWLO1 
-    &ubyte  PWLO2 
-    &ubyte  PWLO3 
-    &ubyte  RASTER 
-    &ubyte  RESFILT 
-    &ubyte  SCROLX 
-    &ubyte  SCROLY 
-    &ubyte  SP0COL 
-    &ubyte  SP0X 
-    &ubyte  SP0Y 
-    &ubyte  SP1COL 
-    &ubyte  SP1X 
-    &ubyte  SP1Y 
-    &ubyte  SP2COL 
-    &ubyte  SP2X 
-    &ubyte  SP2Y 
-    &ubyte  SP3COL 
-    &ubyte  SP3X 
-    &ubyte  SP3Y 
-    &ubyte  SP4COL 
-    &ubyte  SP4X 
-    &ubyte  SP4Y 
-    &ubyte  SP5COL 
-    &ubyte  SP5X 
-    &ubyte  SP5Y 
-    &ubyte  SP6COL 
-    &ubyte  SP6X 
-    &ubyte  SP6Y 
-    &ubyte  SP7COL 
-    &ubyte  SP7X 
-    &ubyte  SP7Y 
-    &ubyte  SPBGCL 
-    &ubyte  SPBGPR 
-    &ubyte[]  SPCOL 
-    &ubyte  SPENA 
-    &ubyte  SPMC 
-    &ubyte  SPMC0 
-    &ubyte  SPMC1 
-    &ubyte[]  SPRPTR 
-    &ubyte  SPRPTR0 
-    &ubyte  SPRPTR1 
-    &ubyte  SPRPTR2 
-    &ubyte  SPRPTR3 
-    &ubyte  SPRPTR4 
-    &ubyte  SPRPTR5 
-    &ubyte  SPRPTR6 
-    &ubyte  SPRPTR7 
-    &ubyte  SPSPCL 
-    &ubyte[]  SPXY 
-    &@nosplit uword[]  SPXYW 
-    &ubyte  SR1 
-    &ubyte  SR2 
-    &ubyte  SR3 
-    &ubyte  VICIRQ 
-    &ubyte  VMCSB 
-    &ubyte  XXPAND 
-    &ubyte  YXPAND 
-    banks  (ubyte banks @A) 
-    get_bitmap_ptr  () -> uword 
-    get_char_matrix_ptr  () -> uword 
-    get_sprite_addr_ptrs  () -> uword 
-    get_vic_memory_base  () -> uword 
-    getbanks  () -> ubyte @A 
-    set_sprite_ptr  (ubyte sprite_num, uword sprite_data_address) 
-    x16jsrfar  () 
+    &ubyte  AD1
+    &ubyte  AD2
+    &ubyte  AD3
+    &ubyte  BGCOL0
+    &ubyte  BGCOL1
+    &ubyte  BGCOL2
+    &ubyte  BGCOL4
+    &ubyte  CIA1CRA
+    &ubyte  CIA1CRB
+    &ubyte  CIA1DDRA
+    &ubyte  CIA1DDRB
+    &ubyte  CIA1ICR
+    &ubyte  CIA1PRA
+    &ubyte  CIA1PRB
+    &ubyte  CIA1SDR
+    &ubyte  CIA1TAH
+    &ubyte  CIA1TAL
+    &ubyte  CIA1TBH
+    &ubyte  CIA1TBL
+    &ubyte  CIA1TOD10
+    &ubyte  CIA1TODHR
+    &ubyte  CIA1TODMMIN
+    &ubyte  CIA1TODSEC
+    &ubyte  CIA2CRA
+    &ubyte  CIA2CRB
+    &ubyte  CIA2DDRA
+    &ubyte  CIA2DDRB
+    &ubyte  CIA2ICR
+    &ubyte  CIA2PRA
+    &ubyte  CIA2PRB
+    &ubyte  CIA2SDR
+    &ubyte  CIA2TAH
+    &ubyte  CIA2TAL
+    &ubyte  CIA2TBH
+    &ubyte  CIA2TBL
+    &ubyte  CIA2TOD10
+    &ubyte  CIA2TODHR
+    &ubyte  CIA2TODMIN
+    &ubyte  CIA2TODSEC
+    &ubyte  CR1
+    &ubyte  CR2
+    &ubyte  CR3
+    &ubyte  ENV3
+    &ubyte  EXTCOL
+    &uword  FC
+    &ubyte  FCHI
+    &ubyte  FCLO
+    &uword  FREQ1
+    &uword  FREQ2
+    &uword  FREQ3
+    &ubyte  FREQHI1
+    &ubyte  FREQHI2
+    &ubyte  FREQHI3
+    &ubyte  FREQLO1
+    &ubyte  FREQLO2
+    &ubyte  FREQLO3
+    &ubyte  IREQMASK
+    &ubyte  LPENX
+    &ubyte  LPENY
+    &ubyte  MSIGX
+    &ubyte  MVOL
+    &ubyte  OSC3
+    &ubyte  POTX
+    &ubyte  POTY
+    &uword  PW1
+    &uword  PW2
+    &uword  PW3
+    &ubyte  PWHI1
+    &ubyte  PWHI2
+    &ubyte  PWHI3
+    &ubyte  PWLO1
+    &ubyte  PWLO2
+    &ubyte  PWLO3
+    &ubyte  RASTER
+    &ubyte  RESFILT
+    &ubyte  SCROLX
+    &ubyte  SCROLY
+    &ubyte  SP0COL
+    &ubyte  SP0X
+    &ubyte  SP0Y
+    &ubyte  SP1COL
+    &ubyte  SP1X
+    &ubyte  SP1Y
+    &ubyte  SP2COL
+    &ubyte  SP2X
+    &ubyte  SP2Y
+    &ubyte  SP3COL
+    &ubyte  SP3X
+    &ubyte  SP3Y
+    &ubyte  SP4COL
+    &ubyte  SP4X
+    &ubyte  SP4Y
+    &ubyte  SP5COL
+    &ubyte  SP5X
+    &ubyte  SP5Y
+    &ubyte  SP6COL
+    &ubyte  SP6X
+    &ubyte  SP6Y
+    &ubyte  SP7COL
+    &ubyte  SP7X
+    &ubyte  SP7Y
+    &ubyte  SPBGCL
+    &ubyte  SPBGPR
+    &ubyte[]  SPCOL
+    &ubyte  SPENA
+    &ubyte  SPMC
+    &ubyte  SPMC0
+    &ubyte  SPMC1
+    &ubyte[]  SPRPTR
+    &ubyte  SPRPTR0
+    &ubyte  SPRPTR1
+    &ubyte  SPRPTR2
+    &ubyte  SPRPTR3
+    &ubyte  SPRPTR4
+    &ubyte  SPRPTR5
+    &ubyte  SPRPTR6
+    &ubyte  SPRPTR7
+    &ubyte  SPSPCL
+    &ubyte[]  SPXY
+    &@nosplit uword[]  SPXYW
+    &ubyte  SR1
+    &ubyte  SR2
+    &ubyte  SR3
+    &ubyte  VICIRQ
+    &ubyte  VMCSB
+    &ubyte  XXPAND
+    &ubyte  YXPAND
+    banks  (ubyte banks @A)
+    get_bitmap_ptr  () -> uword
+    get_char_matrix_ptr  () -> uword
+    get_sprite_addr_ptrs  () -> uword
+    get_vic_memory_base  () -> uword
+    getbanks  () -> ubyte @A
+    set_sprite_ptr  (ubyte sprite_num, uword sprite_data_address)
+    x16jsrfar  ()
 }
 
 c128  {
-    fast  () 
-    slow  () 
+    fast  ()
+    slow  ()
 }
 
 sys  {
-    const byte  MAX_BYTE 
-    const float  MAX_FLOAT 
-    const ubyte  MAX_UBYTE 
-    const uword  MAX_UWORD 
-    const word  MAX_WORD 
-    const byte  MIN_BYTE 
-    const float  MIN_FLOAT 
-    const ubyte  MIN_UBYTE 
-    const uword  MIN_UWORD 
-    const word  MIN_WORD 
-    const ubyte  SIZEOF_BOOL 
-    const ubyte  SIZEOF_BYTE 
-    const ubyte  SIZEOF_FLOAT 
-    const ubyte  SIZEOF_LONG 
-    const ubyte  SIZEOF_POINTER 
-    const ubyte  SIZEOF_UBYTE 
-    const ubyte  SIZEOF_UWORD 
-    const ubyte  SIZEOF_WORD 
-    const ubyte  target 
-    clear_carry  () 
-    clear_irqd  () 
-    cpu_is_65816  () -> bool 
-    die  (ubyte code @A, str message @XY) 
-    disable_caseswitch  () 
-    disable_runstop_and_charsetswitch  () 
-    enable_caseswitch  () 
-    enable_runstop_and_charsetswitch  () 
-    exit  (ubyte returnvalue @A) 
-    exit2  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y) 
-    exit3  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc) 
-    get_as_returnaddress  (uword address @XY) -> uword @AX 
-    internal_stringcopy  (str source @R0, str target @AY)  clobbers (A,Y) 
-    irqsafe_clear_irqd  () 
-    irqsafe_set_irqd  () 
-    memcmp  (uword address1 @R0, uword address2 @R1, uword size @AY) -> byte @A 
-    memcopy  (uword source @R0, uword target @R1, uword count @AY)  clobbers (A,X,Y) 
-    memset  (uword mem @R0, uword numbytes @R1, ubyte value @A)  clobbers (A,X,Y) 
-    memsetw  (uword mem @R0, uword numwords @R1, uword value @AY)  clobbers (A,X,Y) 
-    progend  () -> uword @AY 
-    progstart  () -> uword @AY 
-    push_returnaddress  (uword address @XY) 
-    read_flags  () -> ubyte @A 
-    reset_system  () 
-    restore_irq  ()  clobbers (A) 
-    restore_prog8_internals  () 
-    save_prog8_internals  () 
-    set_carry  () 
-    set_irq  (uword handler @AY)  clobbers (A) 
-    set_irqd  () 
-    set_rasterirq  (uword handler @AY, uword rasterpos @R0)  clobbers (A) 
-    set_rasterline  (uword line @AY) 
-    update_rasterirq  (uword handler @AY, uword rasterpos @R0)  clobbers (A) 
-    wait  (uword jiffies @AY) 
-    waitrastborder  () 
-    waitrasterline  (uword line @AY) 
-    waitvsync  ()  clobbers (A) 
+    const byte  MAX_BYTE
+    const float  MAX_FLOAT
+    const ubyte  MAX_UBYTE
+    const uword  MAX_UWORD
+    const word  MAX_WORD
+    const byte  MIN_BYTE
+    const float  MIN_FLOAT
+    const ubyte  MIN_UBYTE
+    const uword  MIN_UWORD
+    const word  MIN_WORD
+    const ubyte  SIZEOF_BOOL
+    const ubyte  SIZEOF_BYTE
+    const ubyte  SIZEOF_FLOAT
+    const ubyte  SIZEOF_LONG
+    const ubyte  SIZEOF_POINTER
+    const ubyte  SIZEOF_UBYTE
+    const ubyte  SIZEOF_UWORD
+    const ubyte  SIZEOF_WORD
+    const ubyte  target
+    clear_carry  ()
+    clear_irqd  ()
+    cpu_is_65816  () -> bool
+    die  (ubyte code @A, str message @XY)
+    disable_caseswitch  ()
+    disable_runstop_and_charsetswitch  ()
+    enable_caseswitch  ()
+    enable_runstop_and_charsetswitch  ()
+    exit  (ubyte returnvalue @A)
+    exit2  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y)
+    exit3  (ubyte resulta @A, ubyte resultx @X, ubyte resulty @Y, bool carry @Pc)
+    get_as_returnaddress  (uword address @XY) -> uword @AX
+    irqsafe_clear_irqd  ()
+    irqsafe_set_irqd  ()
+    memcmp  (uword address1 @R0, uword address2 @R1, uword size @AY) -> byte @A
+    memcopy  (uword source @R0, uword target @R1, uword count @AY) clobbers (A,X,Y)
+    memset  (uword mem @R0, uword numbytes @R1, ubyte value @A) clobbers (A,X,Y)
+    memsetw  (uword mem @R0, uword numwords @R1, uword value @AY) clobbers (A,X,Y)
+    progend  () -> uword @AY
+    progstart  () -> uword @AY
+    push_returnaddress  (uword address @XY)
+    read_flags  () -> ubyte @A
+    reset_system  ()
+    restore_irq  () clobbers (A)
+    restore_prog8_internals  ()
+    save_prog8_internals  ()
+    set_carry  ()
+    set_irq  (uword handler @AY) clobbers (A)
+    set_irqd  ()
+    set_rasterirq  (uword handler @AY, uword rasterpos @R0) clobbers (A)
+    set_rasterline  (uword line @AY)
+    update_rasterirq  (uword handler @AY, uword rasterpos @R0) clobbers (A)
+    wait  (uword jiffies @AY)
+    waitrastborder  ()
+    waitrasterline  (uword line @AY)
+    waitvsync  () clobbers (A)
 }
 
 cx16  {
-    &uword  r0 
-    &ubyte  r0H 
-    &ubyte  r0L 
-    &bool  r0bH 
-    &bool  r0bL 
-    &long  r0r1sl 
-    &word  r0s 
-    &byte  r0sH 
-    &byte  r0sL 
-    &uword  r1 
-    &uword  r10 
-    &ubyte  r10H 
-    &ubyte  r10L 
-    &bool  r10bH 
-    &bool  r10bL 
-    &long  r10r11sl 
-    &word  r10s 
-    &byte  r10sH 
-    &byte  r10sL 
-    &uword  r11 
-    &ubyte  r11H 
-    &ubyte  r11L 
-    &bool  r11bH 
-    &bool  r11bL 
-    &word  r11s 
-    &byte  r11sH 
-    &byte  r11sL 
-    &uword  r12 
-    &ubyte  r12H 
-    &ubyte  r12L 
-    &bool  r12bH 
-    &bool  r12bL 
-    &long  r12r13sl 
-    &word  r12s 
-    &byte  r12sH 
-    &byte  r12sL 
-    &uword  r13 
-    &ubyte  r13H 
-    &ubyte  r13L 
-    &bool  r13bH 
-    &bool  r13bL 
-    &word  r13s 
-    &byte  r13sH 
-    &byte  r13sL 
-    &uword  r14 
-    &ubyte  r14H 
-    &ubyte  r14L 
-    &bool  r14bH 
-    &bool  r14bL 
-    &long  r14r15sl 
-    &word  r14s 
-    &byte  r14sH 
-    &byte  r14sL 
-    &uword  r15 
-    &ubyte  r15H 
-    &ubyte  r15L 
-    &bool  r15bH 
-    &bool  r15bL 
-    &word  r15s 
-    &byte  r15sH 
-    &byte  r15sL 
-    &ubyte  r1H 
-    &ubyte  r1L 
-    &bool  r1bH 
-    &bool  r1bL 
-    &word  r1s 
-    &byte  r1sH 
-    &byte  r1sL 
-    &uword  r2 
-    &ubyte  r2H 
-    &ubyte  r2L 
-    &bool  r2bH 
-    &bool  r2bL 
-    &long  r2r3sl 
-    &word  r2s 
-    &byte  r2sH 
-    &byte  r2sL 
-    &uword  r3 
-    &ubyte  r3H 
-    &ubyte  r3L 
-    &bool  r3bH 
-    &bool  r3bL 
-    &word  r3s 
-    &byte  r3sH 
-    &byte  r3sL 
-    &uword  r4 
-    &ubyte  r4H 
-    &ubyte  r4L 
-    &bool  r4bH 
-    &bool  r4bL 
-    &long  r4r5sl 
-    &word  r4s 
-    &byte  r4sH 
-    &byte  r4sL 
-    &uword  r5 
-    &ubyte  r5H 
-    &ubyte  r5L 
-    &bool  r5bH 
-    &bool  r5bL 
-    &word  r5s 
-    &byte  r5sH 
-    &byte  r5sL 
-    &uword  r6 
-    &ubyte  r6H 
-    &ubyte  r6L 
-    &bool  r6bH 
-    &bool  r6bL 
-    &long  r6r7sl 
-    &word  r6s 
-    &byte  r6sH 
-    &byte  r6sL 
-    &uword  r7 
-    &ubyte  r7H 
-    &ubyte  r7L 
-    &bool  r7bH 
-    &bool  r7bL 
-    &word  r7s 
-    &byte  r7sH 
-    &byte  r7sL 
-    &uword  r8 
-    &ubyte  r8H 
-    &ubyte  r8L 
-    &bool  r8bH 
-    &bool  r8bL 
-    &long  r8r9sl 
-    &word  r8s 
-    &byte  r8sH 
-    &byte  r8sL 
-    &uword  r9 
-    &ubyte  r9H 
-    &ubyte  r9L 
-    &bool  r9bH 
-    &bool  r9bL 
-    &word  r9s 
-    &byte  r9sH 
-    &byte  r9sL 
-    restore_virtual_registers  ()  clobbers (A,Y) 
-    save_virtual_registers  ()  clobbers (A,Y) 
+    &uword  r0
+    &ubyte  r0H
+    &ubyte  r0L
+    &bool  r0bH
+    &bool  r0bL
+    &long  r0r1sl
+    &word  r0s
+    &byte  r0sH
+    &byte  r0sL
+    &uword  r1
+    &uword  r10
+    &ubyte  r10H
+    &ubyte  r10L
+    &bool  r10bH
+    &bool  r10bL
+    &long  r10r11sl
+    &word  r10s
+    &byte  r10sH
+    &byte  r10sL
+    &uword  r11
+    &ubyte  r11H
+    &ubyte  r11L
+    &bool  r11bH
+    &bool  r11bL
+    &word  r11s
+    &byte  r11sH
+    &byte  r11sL
+    &uword  r12
+    &ubyte  r12H
+    &ubyte  r12L
+    &bool  r12bH
+    &bool  r12bL
+    &long  r12r13sl
+    &word  r12s
+    &byte  r12sH
+    &byte  r12sL
+    &uword  r13
+    &ubyte  r13H
+    &ubyte  r13L
+    &bool  r13bH
+    &bool  r13bL
+    &word  r13s
+    &byte  r13sH
+    &byte  r13sL
+    &uword  r14
+    &ubyte  r14H
+    &ubyte  r14L
+    &bool  r14bH
+    &bool  r14bL
+    &long  r14r15sl
+    &word  r14s
+    &byte  r14sH
+    &byte  r14sL
+    &uword  r15
+    &ubyte  r15H
+    &ubyte  r15L
+    &bool  r15bH
+    &bool  r15bL
+    &word  r15s
+    &byte  r15sH
+    &byte  r15sL
+    &ubyte  r1H
+    &ubyte  r1L
+    &bool  r1bH
+    &bool  r1bL
+    &word  r1s
+    &byte  r1sH
+    &byte  r1sL
+    &uword  r2
+    &ubyte  r2H
+    &ubyte  r2L
+    &bool  r2bH
+    &bool  r2bL
+    &long  r2r3sl
+    &word  r2s
+    &byte  r2sH
+    &byte  r2sL
+    &uword  r3
+    &ubyte  r3H
+    &ubyte  r3L
+    &bool  r3bH
+    &bool  r3bL
+    &word  r3s
+    &byte  r3sH
+    &byte  r3sL
+    &uword  r4
+    &ubyte  r4H
+    &ubyte  r4L
+    &bool  r4bH
+    &bool  r4bL
+    &long  r4r5sl
+    &word  r4s
+    &byte  r4sH
+    &byte  r4sL
+    &uword  r5
+    &ubyte  r5H
+    &ubyte  r5L
+    &bool  r5bH
+    &bool  r5bL
+    &word  r5s
+    &byte  r5sH
+    &byte  r5sL
+    &uword  r6
+    &ubyte  r6H
+    &ubyte  r6L
+    &bool  r6bH
+    &bool  r6bL
+    &long  r6r7sl
+    &word  r6s
+    &byte  r6sH
+    &byte  r6sL
+    &uword  r7
+    &ubyte  r7H
+    &ubyte  r7L
+    &bool  r7bH
+    &bool  r7bL
+    &word  r7s
+    &byte  r7sH
+    &byte  r7sL
+    &uword  r8
+    &ubyte  r8H
+    &ubyte  r8L
+    &bool  r8bH
+    &bool  r8bL
+    &long  r8r9sl
+    &word  r8s
+    &byte  r8sH
+    &byte  r8sL
+    &uword  r9
+    &ubyte  r9H
+    &ubyte  r9L
+    &bool  r9bH
+    &bool  r9bL
+    &word  r9s
+    &byte  r9sH
+    &byte  r9sL
+    restore_virtual_registers  () clobbers (A,Y)
+    save_virtual_registers  () clobbers (A,Y)
 }
 
 p8_sys_startup  {
-    cleanup_at_exit  () 
-    disable_runstop_and_charsetswitch  ()  clobbers (A) 
-    enable_runstop_and_charsetswitch  ()  clobbers (A) 
-    init_system  () 
-    init_system_phase2  () 
+    cleanup_at_exit  ()
+    disable_runstop_and_charsetswitch  () clobbers (A)
+    enable_runstop_and_charsetswitch  () clobbers (A)
+    init_system  ()
+    init_system_phase2  ()
 }
 
 
@@ -987,7 +979,7 @@ LIBRARY MODULE NAME: test_stack
 -------------------------------
 
 test_stack  {
-    test  () 
+    test  ()
 }
 
 
@@ -995,62 +987,62 @@ LIBRARY MODULE NAME: textio
 ---------------------------
 
 txt  {
-    const ubyte  DEFAULT_HEIGHT 
-    const ubyte  DEFAULT_WIDTH 
-    bell  () 
-    chrout  (ubyte character @A)  = $ffd2
-    clear_screen  () 
-    clear_screenchars  (ubyte character @A)  clobbers (Y) 
-    clear_screencolors  (ubyte color @A)  clobbers (Y) 
-    cls  () 
-    color  (ubyte txtcol) 
-    column  (ubyte col @A)  clobbers (A,X,Y) 
-    fill_screen  (ubyte character @A, ubyte color @Y)  clobbers (A) 
-    get_column  () -> ubyte @Y 
-    get_cursor  () -> ubyte @X, ubyte @Y 
-    get_row  () -> ubyte @X 
-    getchr  (ubyte col @A, ubyte row @Y)  clobbers (Y) -> ubyte @A 
-    getclr  (ubyte col @A, ubyte row @Y)  clobbers (Y) -> ubyte @A 
-    height  ()  clobbers (X,Y) -> ubyte @A 
-    home  () 
-    input_chars  (^^ubyte buffer @AY)  clobbers (A) -> ubyte @Y 
-    iso2petscii  (ubyte iso_char) -> ubyte 
-    iso2petscii_str  (str iso_string @AY) 
-    lowercase  () 
-    nl  () 
-    petscii2scr  (ubyte petscii_char @A) -> ubyte @A 
-    petscii2scr_str  (str petscii_string @AY) 
-    plot  (ubyte col @Y, ubyte row @X) 
-    print  (str text @AY)  clobbers (A,Y) 
-    print_b  (byte value @A)  clobbers (A,X,Y) 
-    print_bool  (bool value) 
+    const ubyte  DEFAULT_HEIGHT
+    const ubyte  DEFAULT_WIDTH
+    bell  ()
+    chrout  (ubyte character @A) = $ffd2
+    clear_screen  ()
+    clear_screenchars  (ubyte character @A) clobbers (Y)
+    clear_screencolors  (ubyte color @A) clobbers (Y)
+    cls  ()
+    color  (ubyte txtcol)
+    column  (ubyte col @A) clobbers (A,X,Y)
+    fill_screen  (ubyte character @A, ubyte color @Y) clobbers (A)
+    get_column  () -> ubyte @Y
+    get_cursor  () -> ubyte @X, ubyte @Y
+    get_row  () -> ubyte @X
+    getchr  (ubyte col @A, ubyte row @Y) clobbers (Y) -> ubyte @A
+    getclr  (ubyte col @A, ubyte row @Y) clobbers (Y) -> ubyte @A
+    height  () clobbers (X,Y) -> ubyte @A
+    home  ()
+    input_chars  (^^ubyte buffer @AY) clobbers (A) -> ubyte @Y
+    iso2petscii  (ubyte iso_char) -> ubyte
+    iso2petscii_str  (str iso_string @AY)
+    lowercase  ()
+    nl  ()
+    petscii2scr  (ubyte petscii_char @A) -> ubyte @A
+    petscii2scr_str  (str petscii_string @AY)
+    plot  (ubyte col @Y, ubyte row @X)
+    print  (str text @AY) clobbers (A,Y)
+    print_b  (byte value @A) clobbers (A,X,Y)
+    print_bool  (bool value)
     print_f   alias for: floats.print
-    print_l  (long value) 
-    print_ub  (ubyte value @A)  clobbers (A,X,Y) 
-    print_ub0  (ubyte value @A)  clobbers (A,X,Y) 
-    print_ubbin  (ubyte value @A, bool prefix @Pc)  clobbers (A,X,Y) 
-    print_ubhex  (ubyte value @A, bool prefix @Pc)  clobbers (A,X,Y) 
-    print_ulhex  (long value, bool prefix) 
-    print_uw  (uword value @AY)  clobbers (A,X,Y) 
-    print_uw0  (uword value @AY)  clobbers (A,X,Y) 
-    print_uwbin  (uword value @AY, bool prefix @Pc)  clobbers (A,X,Y) 
-    print_uwhex  (uword value @AY, bool prefix @Pc)  clobbers (A,X,Y) 
-    print_w  (word value @AY)  clobbers (A,X,Y) 
-    row  (ubyte rownum @A)  clobbers (A,X,Y) 
-    rvs_off  () 
-    rvs_on  () 
-    scroll_down  (bool alsocolors @Pc)  clobbers (A,X) 
-    scroll_left  (bool alsocolors @Pc)  clobbers (A,X,Y) 
-    scroll_right  (bool alsocolors @Pc)  clobbers (A,X) 
-    scroll_up  (bool alsocolors @Pc)  clobbers (A,X) 
-    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor) 
-    setchr  (ubyte col @X, ubyte row @Y, ubyte character @A)  clobbers (A,Y) 
-    setclr  (ubyte col @X, ubyte row @Y, ubyte color @A)  clobbers (A,Y) 
-    size  ()  clobbers (A) -> ubyte @X, ubyte @Y 
-    spc  () 
-    uppercase  () 
-    waitkey  () -> ubyte @A 
-    width  ()  clobbers (X,Y) -> ubyte @A 
+    print_l  (long value)
+    print_ub  (ubyte value @A) clobbers (A,X,Y)
+    print_ub0  (ubyte value @A) clobbers (A,X,Y)
+    print_ubbin  (ubyte value @A, bool prefix @Pc) clobbers (A,X,Y)
+    print_ubhex  (ubyte value @A, bool prefix @Pc) clobbers (A,X,Y)
+    print_ulhex  (long value, bool prefix)
+    print_uw  (uword value @AY) clobbers (A,X,Y)
+    print_uw0  (uword value @AY) clobbers (A,X,Y)
+    print_uwbin  (uword value @AY, bool prefix @Pc) clobbers (A,X,Y)
+    print_uwhex  (uword value @AY, bool prefix @Pc) clobbers (A,X,Y)
+    print_w  (word value @AY) clobbers (A,X,Y)
+    row  (ubyte rownum @A) clobbers (A,X,Y)
+    rvs_off  ()
+    rvs_on  ()
+    scroll_down  (bool alsocolors @Pc) clobbers (A,X)
+    scroll_left  (bool alsocolors @Pc) clobbers (A,X,Y)
+    scroll_right  (bool alsocolors @Pc) clobbers (A,X)
+    scroll_up  (bool alsocolors @Pc) clobbers (A,X)
+    setcc  (ubyte col, ubyte row, ubyte character, ubyte charcolor)
+    setchr  (ubyte col @X, ubyte row @Y, ubyte character @A) clobbers (A,Y)
+    setclr  (ubyte col @X, ubyte row @Y, ubyte color @A) clobbers (A,Y)
+    size  () clobbers (A) -> ubyte @X, ubyte @Y
+    spc  ()
+    uppercase  ()
+    waitkey  () -> ubyte @A
+    width  () clobbers (X,Y) -> ubyte @A
 }
 
 
@@ -1058,20 +1050,20 @@ LIBRARY MODULE NAME: wavfile
 ----------------------------
 
 wavfile  {
-    const ubyte  Format::ADPCM 
-    const ubyte  Format::ALAW 
-    const ubyte  Format::DVI_ADPCM 
-    const ubyte  Format::IEEE_FLOAT 
-    const ubyte  Format::MULAW 
-    const ubyte  Format::PCM 
-    ubyte  bits_per_sample 
-    uword  block_align 
-    uword  data_offset 
-    long  data_size 
-    ubyte  nchannels 
-    uword  sample_rate 
-    ubyte  wavefmt 
-    parse_header  (^^ubyte wav_data) -> bool 
+    const ubyte  Format::ADPCM
+    const ubyte  Format::ALAW
+    const ubyte  Format::DVI_ADPCM
+    const ubyte  Format::IEEE_FLOAT
+    const ubyte  Format::MULAW
+    const ubyte  Format::PCM
+    ubyte  bits_per_sample
+    uword  block_align
+    uword  data_offset
+    long  data_size
+    ubyte  nchannels
+    uword  sample_rate
+    ubyte  wavefmt
+    parse_header  (^^ubyte wav_data) -> bool
 }
 
 

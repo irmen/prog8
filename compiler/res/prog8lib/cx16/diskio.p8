@@ -169,14 +169,14 @@ io_error:
         return 0
     }
 
-    ; internal variables for the iterative file lister / loader
-    bool list_skip_disk_name
+    ; variables for the iterative file lister / loader
     ^^ubyte list_pattern
     uword list_blocks
-    bool iteration_in_progress = false
-    bool write_iteration_in_progress = false
     str list_filetype = "???"       ; prg, seq, dir
     str list_filename = "?" * 50
+    private bool iteration_in_progress = false
+    private bool write_iteration_in_progress = false
+    private bool list_skip_disk_name
 
     ; ----- get a list of files (uses iteration functions internally) -----
 
@@ -365,7 +365,16 @@ io_error:
         return false
     }
 
-    sub internal_next_entry() -> bool {
+    sub lf_end_list() {
+        ; -- end an iterative file listing session (close channels).
+        if iteration_in_progress {
+            cbm.CLRCHN()
+            cbm.CLOSE(READ_IO_CHANNEL)
+            iteration_in_progress = false
+        }
+    }
+
+    private sub internal_next_entry() -> bool {
         reset_read_channel()        ; use the input io channel again
 
         ^^ubyte nameptr = &list_filename
@@ -410,17 +419,6 @@ io_error:
         void cbm.CHRIN()
         return true
     }
-
-
-    sub lf_end_list() {
-        ; -- end an iterative file listing session (close channels).
-        if iteration_in_progress {
-            cbm.CLRCHN()
-            cbm.CLOSE(READ_IO_CHANNEL)
-            iteration_in_progress = false
-        }
-    }
-
 
     ; ----- iterative file loader functions (uses the read io channel) -----
 
@@ -645,7 +643,7 @@ return_status:
         }
     }
 
-    sub internal_f_open_w(str filename, bool open_for_seeks) -> bool {
+    private sub internal_f_open_w(str filename, bool open_for_seeks) -> bool {
         f_close_w()
         void strings.copy(filename, list_filename)
         str modifier = ",s,?"
@@ -735,7 +733,6 @@ exit:
     }
 
 
-
     ; saves a block of memory to disk, including the default 2 byte prg header.
     sub save(str filenameptr, uword startaddress, uword savesize) -> bool {
         return internal_save_routine(filenameptr, startaddress, savesize, false)
@@ -746,7 +743,7 @@ exit:
         return internal_save_routine(filenameptr, startaddress, savesize, true)
     }
 
-    sub internal_save_routine(str filenameptr, uword startaddress, uword savesize, bool headerless) -> bool {
+    private sub internal_save_routine(str filenameptr, uword startaddress, uword savesize, bool headerless) -> bool {
         cbm.SETNAM(strings.length(filenameptr), filenameptr)
         cbm.SETLFS(1, drivenumber, 0)
         uword @shared end_address = startaddress + savesize
@@ -811,7 +808,7 @@ exit:
     }
 
 
-    sub internal_load_routine(str filenameptr, uword address_override, bool headerless) -> uword {
+    private sub internal_load_routine(str filenameptr, uword address_override, bool headerless) -> uword {
         cbm.SETNAM(strings.length(filenameptr), filenameptr)
         ubyte secondary = 1
         cx16.r1 = 0
@@ -1152,8 +1149,7 @@ io_error:
         return diskio.f_tell.filepos, diskio.f_tell.filesize
     }
 
-
-    sub read8hex() -> long {
+    private sub read8hex() -> long {
         str hex = "00000000"
         for cx16.r0L in 0 to 7 {
             hex[cx16.r0L] = cbm.CHRIN()

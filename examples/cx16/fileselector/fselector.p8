@@ -81,7 +81,7 @@ fileselector {
         return cx16.r0
     }
 
-    sub internal_select(str pattern) -> str {
+    private sub internal_select(str pattern) -> str {
         str defaultpattern="*"
         if pattern==0
             pattern = &defaultpattern

@@ -1,6 +1,9 @@
 TODO
 ====
 
+Cobra-mk3 example shows weird characters all over the screen
+testmonogfx doublebuffered example is now broken
+
 Imageviewer, Halloween, Paint have all increased size (maybe more)
 
 

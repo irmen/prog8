@@ -104,13 +104,13 @@ internal class AstChecker(private val program: Program,
             val privateError = when (stmt) {
                 is VarDecl -> {
                     if (stmt.isPrivate && !isAccessWithinSameBlock(identifier, stmt.definingBlock))
-                        "private variable '${stmt.name}'"
+                        "private variable '${stmt.scopedName.joinToString(".")}'"
                     else
                         null
                 }
                 is Subroutine -> {
                     if (stmt.isPrivate && !isAccessWithinSameBlock(identifier, stmt.definingBlock))
-                        "private subroutine '${stmt.name}'"
+                        "private subroutine '${stmt.scopedName.joinToString(".")}'"
                     else
                         null
                 }

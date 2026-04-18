@@ -41,7 +41,7 @@ sub  str_b(byte value) -> str {
     return string_out
 }
 
-sub internal_str_ub(ubyte value, str out_ptr) {
+private sub internal_str_ub(ubyte value, str out_ptr) {
     ubyte hundreds = value / 100
     value -= hundreds*100
     ubyte tens = value / 10
@@ -184,7 +184,7 @@ sub  str_l  (long value) -> str {
     }}
 }
 
-sub internal_str_uw(uword value, str out_ptr) {
+private sub internal_str_uw(uword value, str out_ptr) {
     uword value2 = value/10
     ubyte digits = value-value2*10 as ubyte
     uword value3 = value2/10

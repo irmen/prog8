@@ -52,7 +52,7 @@ graphics {
         ; =========================================================================
         ; ASMSUB IMPLEMENTATION CONSTRAINTS & OBSERVATIONS (for future reference)
         ; =========================================================================
-        ; 
+        ;
         ; 1. PARAMETER PASSING (asmsub calling convention):
         ;    - uword x1 @R0    ; cx16.r0 (word)
         ;    - ubyte y1 @A     ; accumulator
@@ -388,9 +388,9 @@ hline_filled_right   .byte  0, %10000000, %11000000, %11100000, %11110000, %1111
     ; for efficiency of internal algorithms here is the internal plot routine
     ; that takes the plotx coordinate in a separate variable instead of the XY register pair:
 
-    uword @zp internal_plotx     ; 0..319        ; separate 'parameter' for internal_plot()
+    private uword @zp internal_plotx     ; 0..319        ; separate 'parameter' for internal_plot()
 
-    asmsub  internal_plot(ubyte ploty @Y) clobbers (A, X, Y) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
+    private asmsub  internal_plot(ubyte ploty @Y) clobbers (A, X, Y) {      ; internal_plotx is 16 bits 0 to 319... doesn't fit in a register
         %asm {{
         lda  p8v_internal_plotx+1
         sta  P8ZP_SCRATCH_W2+1
@@ -433,7 +433,7 @@ _y_lookup_hi    .byte  >_plot_y_values
         }}
     }
 
-    asmsub get_y_lookup(ubyte yy @Y) -> uword @AY {
+    private asmsub get_y_lookup(ubyte yy @Y) -> uword @AY {
         %asm {{
             lda  p8s_internal_plot._y_lookup_lo,y
             pha

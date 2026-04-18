@@ -366,7 +366,7 @@ gfx_lores {
         }
     }
 
-    asmsub internal_line_plot() {
+    private asmsub internal_line_plot() {
         ; Internal plot routine for line algorithm.
         ; Uses: x in cx16.r0, y in cx16.r1L, color in cx16.r4L
         ; Checks eor_mode flag for XOR vs normal drawing.

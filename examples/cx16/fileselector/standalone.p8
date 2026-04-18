@@ -85,7 +85,7 @@ fileselector {
         return cx16.r0
     }
 
-    sub internal_select(str pattern) -> str {
+    private sub internal_select(str pattern) -> str {
         num_visible_files = 0
         diskio.list_filename[0] = 0
         name_ptr = diskio.diskname()
