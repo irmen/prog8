@@ -770,7 +770,7 @@ object SymbolLookup {
             is RangeExpression -> {
                 findReferencesInExpressionScoped(expr.from, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 findReferencesInExpressionScoped(expr.to, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
-                expr.step.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
+                findReferencesInExpressionScoped(expr.step, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
             else -> {}
         }
