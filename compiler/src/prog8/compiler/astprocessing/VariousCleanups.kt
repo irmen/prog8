@@ -96,9 +96,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                 if(value is ArrayLiteral && !(value.type istype changeDataType)) {
                     value = ArrayLiteral(InferredTypes.knownFor(changeDataType), value.value, value.position)
                 }
-                val newDecl = VarDecl(decl.type, decl.origin, changeDataType, decl.zeropage,
-                    decl.splitwordarray, decl.arraysize, decl.matrixNumCols?.copy(), decl.name, decl.names,
-                    value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.isPrivate, decl.position)
+                val newDecl = VarDecl.builder(changeDataType, decl.position)
+                    .copyFrom(decl)
+                    .value(value)
+                    .build()
                 return listOf(AstReplaceNode(decl, newDecl, parent))
             }
         }
@@ -110,9 +111,10 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
             if(value is ArrayLiteral && !(value.type istype newDt)) {
                 value = ArrayLiteral(InferredTypes.knownFor(newDt), value.value, value.position)
             }
-            val newDecl = VarDecl(decl.type, decl.origin, newDt, decl.zeropage,
-                decl.splitwordarray, decl.arraysize, decl.matrixNumCols?.copy(), decl.name, decl.names,
-                value, decl.sharedWithAsm, decl.alignment, decl.dirty, decl.isPrivate, decl.position)
+            val newDecl = VarDecl.builder(newDt, decl.position)
+                .copyFrom(decl)
+                .value(value)
+                .build()
             return listOf(AstReplaceNode(decl, newDecl, parent))
         }
         return noModifications

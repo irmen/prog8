@@ -28,9 +28,7 @@ object SymbolLookup {
         SUBROUTINE,
         BLOCK,
         STRUCT,
-        STRUCT_FIELD,
-        PARAMETER,
-        UNKNOWN
+        PARAMETER
     }
 
     /**
@@ -81,7 +79,7 @@ object SymbolLookup {
      * Handles nested subroutines at any depth.
      */
     private fun collectSymbols(
-        stmt: prog8.ast.statements.Statement,
+        stmt: Statement,
         blocks: MutableMap<String, SymbolAtPosition>,
         subroutines: MutableMap<String, SymbolAtPosition>
     ) {
@@ -333,7 +331,7 @@ object SymbolLookup {
     }
     
     private fun findReferenceInExpression(
-        expr: prog8.ast.expressions.Expression,
+        expr: Expression,
         targetLine: Int,
         targetCol: Int,
         wordAtCursor: String,
@@ -342,7 +340,7 @@ object SymbolLookup {
         subroutines: Map<String, SymbolAtPosition>
     ): SymbolAtPosition? {
         return when (expr) {
-            is prog8.ast.expressions.IdentifierReference -> {
+            is IdentifierReference -> {
                 val identName = expr.nameInSource.lastOrNull() ?: ""
                 if (isPositionOnName(expr.position, targetLine, targetCol, identName, wordAtCursor)) {
                     // Simple unscoped lookup: check vars first, then blocks, then subroutines
@@ -356,11 +354,11 @@ object SymbolLookup {
                 }
                 null
             }
-            is prog8.ast.expressions.BinaryExpression -> {
+            is BinaryExpression -> {
                 findReferenceInExpression(expr.left, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
                     ?: findReferenceInExpression(expr.right, targetLine, targetCol, wordAtCursor, visibleVars, blocks, subroutines)
             }
-            is prog8.ast.expressions.FunctionCallExpression -> {
+            is FunctionCallExpression -> {
                 // Check function name (handles qualified names)
                 val funcName = expr.target.nameInSource.lastOrNull() ?: ""
                 if (isPositionOnName(expr.target.position, targetLine, targetCol, funcName, wordAtCursor)) {
@@ -439,7 +437,7 @@ object SymbolLookup {
         return null
     }
 
-    private fun isPositionOnName(position: prog8.code.core.Position, targetLine: Int, targetCol: Int, name: String, wordAtCursor: String): Boolean {
+    private fun isPositionOnName(position: Position, targetLine: Int, targetCol: Int, name: String, wordAtCursor: String): Boolean {
         if (position.line != targetLine) return false
         // Check if column is within the name's column range
         if (targetCol < position.startCol || targetCol > position.endCol) return false
@@ -718,7 +716,7 @@ object SymbolLookup {
     }
     
     private fun findReferencesInExpressionScoped(
-        expr: prog8.ast.expressions.Expression,
+        expr: Expression,
         targetSymbol: SymbolAtPosition,
         locations: MutableList<org.eclipse.lsp4j.Location>,
         uri: String,
@@ -727,21 +725,21 @@ object SymbolLookup {
         subroutines: Map<String, SymbolAtPosition>
     ) {
         when (expr) {
-            is prog8.ast.expressions.IdentifierReference -> {
+            is IdentifierReference -> {
                 val identName = expr.nameInSource.lastOrNull() ?: ""
                 val resolved = resolveIdentifierScoped(identName, visibleVars, blocks, subroutines)
                 if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
                     locations.add(expr.position.toLspLocation(uri))
                 }
             }
-            is prog8.ast.expressions.BinaryExpression -> {
+            is BinaryExpression -> {
                 findReferencesInExpressionScoped(expr.left, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 findReferencesInExpressionScoped(expr.right, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
-            is prog8.ast.expressions.PrefixExpression -> {
+            is PrefixExpression -> {
                 findReferencesInExpressionScoped(expr.expression, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
-            is prog8.ast.expressions.FunctionCallExpression -> {
+            is FunctionCallExpression -> {
                 val funcName = expr.target.nameInSource.lastOrNull() ?: ""
                 val resolved = resolveIdentifierScoped(funcName, visibleVars, blocks, subroutines)
                 if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
@@ -751,15 +749,15 @@ object SymbolLookup {
                     findReferencesInExpressionScoped(arg, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 }
             }
-            is prog8.ast.expressions.TypecastExpression -> {
+            is TypecastExpression -> {
                 findReferencesInExpressionScoped(expr.expression, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
-            is prog8.ast.expressions.IfExpression -> {
+            is IfExpression -> {
                 findReferencesInExpressionScoped(expr.condition, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 findReferencesInExpressionScoped(expr.truevalue, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 findReferencesInExpressionScoped(expr.falsevalue, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
-            is prog8.ast.expressions.ArrayIndexedExpression -> {
+            is ArrayIndexedExpression -> {
                 expr.plainarrayvar?.let {
                     val resolved = resolveIdentifierScoped(it.nameInSource.lastOrNull() ?: "", visibleVars, blocks, subroutines)
                     if (resolved?.definitionPosition == targetSymbol.definitionPosition) {
@@ -769,10 +767,10 @@ object SymbolLookup {
                 expr.nestedArray?.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
                 findReferencesInExpressionScoped(expr.indexer.indexExpr, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
             }
-            is prog8.ast.expressions.RangeExpression -> {
+            is RangeExpression -> {
                 findReferencesInExpressionScoped(expr.from, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
                 findReferencesInExpressionScoped(expr.to, targetSymbol, locations, uri, visibleVars, blocks, subroutines)
-                expr.step?.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
+                expr.step.let { findReferencesInExpressionScoped(it, targetSymbol, locations, uri, visibleVars, blocks, subroutines) }
             }
             else -> {}
         }

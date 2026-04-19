@@ -186,8 +186,6 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             throw SyntaxError("choose a single alignment option", ctx.toPosition())
 
         val identifiers = ctx.identifierlist().identifier().map { getname(it) }
-        val identifiername = identifiers[0]
-        val name = if(identifiers.size==1) identifiername else "<multiple>"
 
         // Handle 0, 1, or 2 array indices
         val arrayIndices = ctx.arrayindex()
@@ -223,23 +221,17 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
                 DataType.arrayFor(baseDt.base, split!=SplitWish.NOSPLIT)
         }
 
-        return VarDecl(
-            VarDeclType.VAR,        // can be changed to MEMORY or CONST as required
-            VarDeclOrigin.USERCODE,
-            dt,
-            zp,
-            split,
-            arraySize,
-            matrixNumCols,
-            name,
-            if(identifiers.size==1) emptyList() else identifiers,
-            null,
-            "@shared" in tags,
-            if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u,
-            "@dirty" in tags,
-            isPrivate,
-            ctx.toPosition()
-        )
+        return VarDecl.builder(dt, ctx.toPosition())
+            .names(identifiers)
+            .alignment(if(alignword) 2u else if(align64) 64u else if(alignpage) 256u else 0u)
+            .arraysize(arraySize)
+            .dirty("@dirty" in tags)
+            .isPrivate(isPrivate)
+            .matrixNumCols(matrixNumCols)
+            .sharedWithAsm("@shared" in tags)
+            .splitwordarray(split)
+            .zeropage(zp)
+            .build()
     }
 
     override fun visitVarinitializer(ctx: VarinitializerContext): VarDecl {
@@ -258,31 +250,18 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
         val isPrivate = ctx.PRIVATE() != null
         val datatype = dataTypeFor(ctx.datatype()) ?: DataType.LONG
         val identifiers = ctx.identifierlist().identifier().map { getname(it) }
-        val identifiername = identifiers[0]
-        val name = if(identifiers.size==1) identifiername else "<multiple>"
         val initialvalue = ctx.expression().accept(this) as Expression
         val actualValue = if(initialvalue is NumericLiteral && datatype.base.largerSizeThan(initialvalue.type))
                 NumericLiteral(datatype.base, initialvalue.number, initialvalue.position)
             else
                 initialvalue
 
-        return VarDecl(
-            VarDeclType.CONST,
-            VarDeclOrigin.USERCODE,
-            datatype,
-            ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE,
-            null,
-            null,
-            name,
-            if(identifiers.size==1) emptyList() else identifiers,
-            actualValue,
-            false,
-            0u,
-            false,
-            isPrivate,
-            ctx.toPosition()
-        )
+        return VarDecl.builder(datatype, ctx.toPosition())
+            .names(identifiers)
+            .isPrivate(isPrivate)
+            .type(VarDeclType.CONST)
+            .value(actualValue)
+            .build()
     }
 
     override fun visitMemoryvardecl(ctx: MemoryvardeclContext): VarDecl {

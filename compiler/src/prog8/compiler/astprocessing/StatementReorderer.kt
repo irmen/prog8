@@ -237,20 +237,11 @@ internal class StatementReorderer(
                         .filterIsInstance<VarDecl>()
                         .filter { it.origin==VarDeclOrigin.SUBROUTINEPARAM && it.name in stringParamsByNames && it.datatype!=DataType.pointer(BaseDataType.UBYTE) }
                         .map {
-                            val newvar = VarDecl(it.type, it.origin, DataType.pointer(BaseDataType.UBYTE),
-                                it.zeropage,
-                                it.splitwordarray,
-                                null,
-                                null,
-                                it.name,
-                                emptyList(),
-                                null,
-                                it.sharedWithAsm,
-                                it.alignment,
-                                it.dirty,
-                                it.isPrivate,
-                                it.position
-                            )
+                            val newvar = VarDecl.builder(DataType.pointer(BaseDataType.UBYTE), it.position)
+                                .copyFrom(it)
+                                .arraysize(null)
+                                .matrixNumCols(null)
+                                .build()
                             AstReplaceNode(it, newvar, subroutine)
                         }
                 }

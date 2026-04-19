@@ -393,7 +393,14 @@ class TestCx16Zeropage: FunSpec({
         r14r15sl.address shouldBe 30u
     }
     test("testLongAllocation") {
-        val zp = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FULL, emptyList(), CompilationOptions.AllZeropageAllowed, false, false, false, cx16target, "99.99", 999u, 0xffffu))
+        val zp = CX16Zeropage(CompilationOptions.builder(cx16target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FULL)
+            .compilerVersion("99.99")
+            .loadAddress(999u)
+            .memtopAddress(0xffffu)
+            .build()
+        )
         zp.availableBytes() shouldBe 214
         // LONG requires 4 sequential bytes
         val result = zp.allocate("", DataType.LONG, null, null, errors)
@@ -406,7 +413,15 @@ class TestCx16Zeropage: FunSpec({
         zp.availableBytes() shouldBe 170  // 210 - 40
     }
     test("testFloatAllocation") {
-        val zp = CX16Zeropage(CompilationOptions(OutputType.RAW, CbmPrgLauncherType.NONE, ZeropageType.FLOATSAFE, emptyList(), CompilationOptions.AllZeropageAllowed, true, false, false, cx16target, "99.99", 999u, 0xffffu))
+        val zp = CX16Zeropage(CompilationOptions.builder(cx16target)
+            .output(OutputType.RAW)
+            .zeropage(ZeropageType.FLOATSAFE)
+            .floats(true)
+            .compilerVersion("99.99")
+            .loadAddress(999u)
+            .memtopAddress(0xffffu)
+            .build()
+        )
         // FLOAT requires 5 sequential bytes and floats must be enabled
         val initialFree = zp.availableBytes()
         val result = zp.allocate("", DataType.FLOAT, null, null, errors)

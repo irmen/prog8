@@ -89,11 +89,12 @@ class Program(val name: String,
 
         fun addNewInternedStringvar(string: StringLiteral): Pair<List<String>, VarDecl> {
             val varName = "string_${internedStringsBlock.statements.size}"
-            val decl = VarDecl(
-                VarDeclType.VAR, VarDeclOrigin.STRINGLITERAL, DataType.STR, ZeropageWish.NOT_IN_ZEROPAGE,
-                SplitWish.DONTCARE, null, null, varName, emptyList(), string,
-                sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = string.position
-            )
+            val decl = VarDecl.builder(DataType.STR, string.position)
+                .names(varName)
+                .origin(VarDeclOrigin.STRINGLITERAL)
+                .value(string)
+                .zeropage(ZeropageWish.NOT_IN_ZEROPAGE)
+                .build()
             internedStringsBlock.statements.add(decl)
             decl.linkParents(internedStringsBlock)
             return Pair(listOf(INTERNED_STRINGS_MODULENAME, decl.name), decl)

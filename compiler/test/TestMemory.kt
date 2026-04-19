@@ -196,8 +196,11 @@ class TestMemory: FunSpec({
     }
 
     fun createTestProgramForMemoryRefViaVar(address: UInt, vartype: VarDeclType): AssignTarget {
-        val decl = VarDecl(vartype, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, false, Position.DUMMY)
+        val decl = VarDecl.builder(DataType.BYTE, Position.DUMMY)
+            .names("address")
+            .type(vartype)
+            .value(NumericLiteral.optimalInteger(address, Position.DUMMY))
+            .build()
         val memexpr = IdentifierReference(listOf("address"), Position.DUMMY)
         val target = AssignTarget(
             null,
@@ -256,8 +259,7 @@ class TestMemory: FunSpec({
     }
 
     test("regular variable not in mapped IO ram on C64") {
-        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.BYTE, ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "address", emptyList(), null, false, 0u, false, false, Position.DUMMY)
+        val decl = VarDecl.builder(DataType.BYTE, Position.DUMMY).names("address").build()
         val target = AssignTarget(
             IdentifierReference(listOf("address"), Position.DUMMY),
             null,
@@ -276,8 +278,11 @@ class TestMemory: FunSpec({
 
     test("memory mapped variable not in mapped IO ram on C64") {
         val address = 0x1000u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, false, Position.DUMMY)
+        val decl = VarDecl.builder(DataType.UBYTE, Position.DUMMY)
+            .names("address")
+            .type(VarDeclType.MEMORY)
+            .value(NumericLiteral.optimalInteger(address, Position.DUMMY))
+            .build()
         val target = AssignTarget(
             IdentifierReference(listOf("address"), Position.DUMMY),
             null,
@@ -296,8 +301,11 @@ class TestMemory: FunSpec({
 
     test("memory mapped variable in mapped IO ram on C64") {
         val address = 0xd020u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.UBYTE, ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, false, Position.DUMMY)
+        val decl = VarDecl.builder(DataType.UBYTE, Position.DUMMY)
+            .names("address")
+            .type(VarDeclType.MEMORY)
+            .value(NumericLiteral.optimalInteger(address, Position.DUMMY))
+            .build()
         val target = AssignTarget(
             IdentifierReference(listOf("address"), Position.DUMMY),
             null,
@@ -315,8 +323,9 @@ class TestMemory: FunSpec({
     }
 
     test("array not in mapped IO ram") {
-        val decl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, DataType.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "address", emptyList(), null, false, 0u, false, false, Position.DUMMY)
+        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY)
+            .names("address")
+            .build()
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), null, null, ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, position = Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -329,8 +338,11 @@ class TestMemory: FunSpec({
 
     test("memory mapped array not in mapped IO ram") {
         val address = 0x1000u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, false, Position.DUMMY)
+        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY)
+            .names("address")
+            .type(VarDeclType.MEMORY)
+            .value(NumericLiteral.optimalInteger(address, Position.DUMMY))
+            .build()
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), null, null, ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, position = Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)
@@ -343,8 +355,11 @@ class TestMemory: FunSpec({
 
     test("memory mapped array in mapped IO ram") {
         val address = 0xd800u
-        val decl = VarDecl(VarDeclType.MEMORY, VarDeclOrigin.USERCODE, DataType.arrayFor(BaseDataType.UBYTE), ZeropageWish.DONTCARE,
-            SplitWish.DONTCARE, null, null, "address", emptyList(), NumericLiteral.optimalInteger(address, Position.DUMMY), false, 0u, false, false, Position.DUMMY)
+        val decl = VarDecl.builder(DataType.arrayFor(BaseDataType.UBYTE), Position.DUMMY)
+            .names("address")
+            .type(VarDeclType.MEMORY)
+            .value(NumericLiteral.optimalInteger(address, Position.DUMMY))
+            .build()
         val arrayindexed = ArrayIndexedExpression(IdentifierReference(listOf("address"), Position.DUMMY), null, null, ArrayIndex(NumericLiteral.optimalInteger(1, Position.DUMMY), Position.DUMMY), Position.DUMMY)
         val target = AssignTarget(null, arrayindexed, null, null, false, position = Position.DUMMY)
         val assignment = Assignment(target, NumericLiteral.optimalInteger(0, Position.DUMMY), AssignmentOrigin.USERCODE, Position.DUMMY)

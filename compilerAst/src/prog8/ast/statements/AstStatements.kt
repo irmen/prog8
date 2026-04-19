@@ -298,6 +298,11 @@ class VarDecl(
                 this.name = if(names.size > 1) "<multiple>" else names[0]
                 this.additionalNames = if(names.size > 1) names.toList() else emptyList()
             }
+            fun names(names: List<String>): Builder = apply {
+                require(names.isNotEmpty()) { "at least one name is required" }
+                this.name = if(names.size > 1) "<multiple>" else names[0]
+                this.additionalNames = if(names.size > 1) names else emptyList()
+            }
             fun type(t: VarDeclType) = apply { this.type = t }
             fun origin(o: VarDeclOrigin) = apply { this.origin = o }
             fun zeropage(z: ZeropageWish) = apply { this.zeropage = z }
@@ -309,6 +314,22 @@ class VarDecl(
             fun alignment(a: UInt) = apply { this.alignment = a }
             fun dirty(d: Boolean) = apply { this.dirty = d }
             fun isPrivate(p: Boolean) = apply { this.isPrivate = p }
+
+            fun copyFrom(v: VarDecl) = apply {
+                this.type = v.type
+                this.origin = v.origin
+                this.zeropage = v.zeropage
+                this.splitwordarray = v.splitwordarray
+                this.arraysize = v.arraysize
+                this.matrixNumCols = v.matrixNumCols
+                this.name = v.name
+                this.additionalNames = v.names
+                this.value = v.value
+                this.sharedWithAsm = v.sharedWithAsm
+                this.alignment = v.alignment
+                this.dirty = v.dirty
+                this.isPrivate = v.isPrivate
+            }
 
             fun build(): VarDecl {
                 val finalName = name ?: throw IllegalStateException("name is required")
@@ -337,13 +358,13 @@ class VarDecl(
                 param.type.isString -> DataType.pointer(BaseDataType.UBYTE)
                 else -> param.type
             }
-            return VarDecl(decltype, VarDeclOrigin.SUBROUTINEPARAM, dt, param.zp, SplitWish.DONTCARE, null, null, param.name, emptyList(), value,
-                sharedWithAsm = false,
-                alignment = 0u,
-                dirty = false,
-                isPrivate = false,
-                position = param.position
-            )
+            return builder(dt, param.position)
+                .names(param.name)
+                .origin(VarDeclOrigin.SUBROUTINEPARAM)
+                .type(decltype)
+                .value(value)
+                .zeropage(param.zp)
+                .build()
         }
 
         fun createAuto(array: ArrayLiteral): VarDecl {
@@ -358,9 +379,14 @@ class VarDecl(
                 }
             }
             val arraysize = ArrayIndex.forArray(array)
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.ARRAYLITERAL, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
-                SplitWish.NOSPLIT, arraysize, null, autoVarName, emptyList(), array,
-                    sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = array.position)
+            return builder(arrayDt, array.position)
+                .names(autoVarName)
+                .arraysize(arraysize)
+                .origin(VarDeclOrigin.ARRAYLITERAL)
+                .splitwordarray(SplitWish.NOSPLIT)
+                .value(array)
+                .zeropage(ZeropageWish.NOT_IN_ZEROPAGE)
+                .build()
         }
 
         fun createAutoOptionalSplit(array: ArrayLiteral): VarDecl {
@@ -368,17 +394,21 @@ class VarDecl(
             val arrayDt = array.type.getOrElse { throw FatalAstException("unknown dt") }
             val split = if(arrayDt.isSplitWordArray) SplitWish.DONTCARE else if(arrayDt.isWordArray) SplitWish.NOSPLIT else SplitWish.DONTCARE
             val arraysize = ArrayIndex.forArray(array)
-            return VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, arrayDt, ZeropageWish.NOT_IN_ZEROPAGE,
-                split, arraysize, null, autoVarName, emptyList(), array,
-                sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = array.position)
+            return builder(arrayDt, array.position)
+                .names(autoVarName)
+                .arraysize(arraysize)
+                .splitwordarray(split)
+                .value(array)
+                .zeropage(ZeropageWish.NOT_IN_ZEROPAGE)
+                .build()
         }
 
         fun createAuto(dt: DataType, position: Position): VarDecl {
             val autoVarName = "auto_heap_value_${++autoHeapValueSequenceNumber}"
-            val vardecl = VarDecl(VarDeclType.VAR, VarDeclOrigin.USERCODE, dt, ZeropageWish.NOT_IN_ZEROPAGE,
-                SplitWish.DONTCARE, null, null, autoVarName, emptyList(), null,
-                sharedWithAsm = false, alignment = 0u, dirty = false, isPrivate = false, position = position)
-            return vardecl
+            return builder(dt, position)
+                .names(autoVarName)
+                .zeropage(ZeropageWish.NOT_IN_ZEROPAGE)
+                .build()
         }
     }
 
@@ -417,8 +447,7 @@ class VarDecl(
     fun copy(newDatatype: DataType): VarDecl {
         if(names.size>1)
             throw FatalAstException("should not copy a vardecl that still has multiple names")
-        val copy = VarDecl(type, origin, newDatatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), name, names, value?.copy(),
-            sharedWithAsm, alignment, dirty, isPrivate, position)
+        val copy = builder(newDatatype, position).copyFrom(this).build()
         copy.allowInitializeWithZero = this.allowInitializeWithZero
         return copy
     }
@@ -433,20 +462,17 @@ class VarDecl(
         if(value==null || value?.isSimple==true) {
             // just copy the initialization value to a separate vardecl for each component
             return names.map {
-                val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), it, emptyList(), value?.copy(),
-                    sharedWithAsm, alignment, dirty, isPrivate, position)
+                val copy = builder(datatype, position).copyFrom(this).names(it).value(value?.copy()).build()
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
-            val first = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), names[0], emptyList(), value?.copy(),
-                sharedWithAsm, alignment, dirty, isPrivate, position)
+            val first = builder(datatype, position).copyFrom(this).names(names[0]).value(value?.copy()).build()
             first.allowInitializeWithZero = this.allowInitializeWithZero
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
-                val copy = VarDecl(type, origin, datatype, zeropage, splitwordarray, arraysize?.copy(), matrixNumCols?.copy(), it, emptyList(), firstVar.copy(),
-                    sharedWithAsm, alignment, dirty, isPrivate, position)
+                val copy = builder(datatype, position).copyFrom(this).names(it).value(firstVar.copy()).build()
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
                 copy
             }
@@ -462,6 +488,7 @@ class VarDecl(
 
 class StructDecl(override val name: String, val fields: Array<Pair<DataType, String>>, override val position: Position) : Statement(), INamedStatement, ISubType {
     override lateinit var parent: Node
+
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
@@ -511,6 +538,7 @@ class StructFieldRef(val pointer: IdentifierReference, val struct: StructDecl, v
 
 class Enumeration(override val name: String, val type: BaseDataType, val members: Array<Pair<String, Int?>>, override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
+
     override fun linkParents(parent: Node) {
         this.parent = parent
     }
@@ -1102,8 +1130,8 @@ class Subroutine(override val name: String,
                  val isPrivate: Boolean,
                  override val statements: MutableList<Statement>,
                  override val position: Position) : Statement(), INameScope {
-
     override lateinit var parent: Node
+
     override fun copy() = throw NotImplementedError("no support for duplicating a Subroutine")
 
     override fun linkParents(parent: Node) {
@@ -1527,8 +1555,8 @@ class OnGoto(
     val elsepart: AnonymousScope?,
     override val position: Position
 ) : Statement() {
-
     override lateinit var parent: Node
+
     override fun linkParents(parent: Node) {
         this.parent = parent
         index.linkParents(this)

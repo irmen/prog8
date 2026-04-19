@@ -34,6 +34,34 @@ class TestBuilders : FunSpec({
             decl.names shouldBe listOf("v1", "v2", "v3")
         }
 
+        test("VarDecl builder list names") {
+            val decl = VarDecl.builder(DataType.UBYTE, pos)
+                .names(listOf("v1", "v2"))
+                .build()
+            
+            decl.name shouldBe "<multiple>"
+            decl.names shouldBe listOf("v1", "v2")
+        }
+
+        test("VarDecl builder copyFrom") {
+            val original = VarDecl.builder(DataType.UBYTE, pos)
+                .names("v1")
+                .type(VarDeclType.CONST)
+                .zeropage(ZeropageWish.REQUIRE_ZEROPAGE)
+                .value(NumericLiteral.optimalInteger(42, pos))
+                .build()
+            
+            val copy = VarDecl.builder(DataType.UWORD, pos)
+                .copyFrom(original)
+                .build()
+            
+            copy.datatype shouldBe DataType.UWORD
+            copy.name shouldBe "v1"
+            copy.type shouldBe VarDeclType.CONST
+            copy.zeropage shouldBe ZeropageWish.REQUIRE_ZEROPAGE
+            (copy.value as NumericLiteral).number shouldBe 42.0
+        }
+
         test("VarDecl builder advanced properties") {
             val valExpr = NumericLiteral.optimalInteger(42, pos)
             val numColsExpr = NumericLiteral.optimalInteger(10, pos)
@@ -41,17 +69,17 @@ class TestBuilders : FunSpec({
 
             val decl = VarDecl.builder(DataType.UWORD, pos)
                 .names("myconst")
-                .type(VarDeclType.CONST)
-                .origin(VarDeclOrigin.ARRAYLITERAL)
-                .zeropage(ZeropageWish.REQUIRE_ZEROPAGE)
-                .splitwordarray(SplitWish.NOSPLIT)
-                .isPrivate(true)
-                .sharedWithAsm(true)
                 .alignment(4u)
-                .dirty(true)
-                .value(valExpr)
-                .matrixNumCols(numColsExpr)
                 .arraysize(arraySize)
+                .dirty(true)
+                .isPrivate(true)
+                .matrixNumCols(numColsExpr)
+                .origin(VarDeclOrigin.ARRAYLITERAL)
+                .sharedWithAsm(true)
+                .splitwordarray(SplitWish.NOSPLIT)
+                .type(VarDeclType.CONST)
+                .value(valExpr)
+                .zeropage(ZeropageWish.REQUIRE_ZEROPAGE)
                 .build()
             
             decl.name shouldBe "myconst"

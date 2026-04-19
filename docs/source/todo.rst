@@ -22,7 +22,6 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- kotlin: use builder patterns instead of humongous constructor parameter lists (vardecl mostly)?  (PARTIALLY DONE: VarDecl now has a builder in its companion object)
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
