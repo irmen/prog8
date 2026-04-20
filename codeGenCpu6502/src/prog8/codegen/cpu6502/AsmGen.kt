@@ -1149,12 +1149,19 @@ class AsmGen6502Internal (
         val repeatLabel = makeLabel("repeat")
         val counterVar = createTempVarReused(BaseDataType.UWORD, true, stmt)
         val loopcount = if(iterations==65536) 0 else if(iterations and 0x00ff == 0) iterations else iterations + 0x0100   // so that the loop can simply use a double-dec
-        out("""
-            ldy  #>$loopcount
-            lda  #<$loopcount
-            sta  $counterVar
-            sty  $counterVar+1
+        if(isTargetCpu(CpuType.CPU65C02) && loopcount == 0) {
+            out("""
+                stz  $counterVar
+                stz  $counterVar+1
 $repeatLabel""")
+        } else {
+            out("""
+                ldy  #>$loopcount
+                lda  #<$loopcount
+                sta  $counterVar
+                sty  $counterVar+1
+$repeatLabel""")
+        }
         translate(stmt.statements)
         out("""
             dec  $counterVar
@@ -1189,19 +1196,15 @@ $repeatLabel""")
     private fun repeatByteCount(count: Int, stmt: PtRepeatLoop) {
         require(count in 2..256) { "invalid repeat count ${stmt.position}" }
         val repeatLabel = makeLabel("repeat")
-        if(isTargetCpu(CpuType.CPU65C02)) {
-            val counterVar = createTempVarReused(BaseDataType.UBYTE, true, stmt)
-            out("  lda  #${count and 255} |  sta  $counterVar")
-            out(repeatLabel)
-            translate(stmt.statements)
-            out("  dec  $counterVar |  bne  $repeatLabel")
-        } else {
-            val counterVar = createTempVarReused(BaseDataType.UBYTE, false, stmt)
-            out("  lda  #${count and 255} |  sta  $counterVar")
-            out(repeatLabel)
-            translate(stmt.statements)
-            out("  dec  $counterVar |  bne  $repeatLabel")
-        }
+        val actualCount = count and 255
+        val counterVar = createTempVarReused(BaseDataType.UBYTE, isTargetCpu(CpuType.CPU65C02), stmt)
+        if(isTargetCpu(CpuType.CPU65C02) && actualCount==0) 
+            out("  stz  $counterVar") 
+        else 
+            out("  lda  #$actualCount |  sta  $counterVar")
+        out(repeatLabel)
+        translate(stmt.statements)
+        out("  dec  $counterVar |  bne  $repeatLabel")
     }
 
     private fun repeatCountInY(stmt: PtRepeatLoop, endLabel: String) {

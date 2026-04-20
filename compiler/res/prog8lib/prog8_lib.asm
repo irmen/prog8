@@ -115,34 +115,6 @@ reg_lesseq_w	.proc
 		.pend
 
 
-memcopy16_up	.proc
-	; -- copy memory UP from (P8ZP_SCRATCH_W1) to (P8ZP_SCRATCH_W2) of length X/Y (16-bit, X=lo, Y=hi)
-	;    clobbers register A,X,Y
-		source = P8ZP_SCRATCH_W1
-		dest = P8ZP_SCRATCH_W2
-		length = P8ZP_SCRATCH_B1   ; (and SCRATCH_ZPREG)
-
-		stx  length
-		sty  length+1
-
-		ldx  length             ; move low byte of length into X
-		bne  +                  ; jump to start if X > 0
-		dec  length             ; subtract 1 from length
-+		ldy  #0                 ; set Y to 0
--		lda  (source),y         ; set A to whatever (source) points to offset by Y
-		sta  (dest),y           ; move A to location pointed to by (dest) offset by Y
-		iny                     ; increment Y
-		bne  +                  ; if Y<>0 then (rolled over) then still moving bytes
-		inc  source+1           ; increment hi byte of source
-		inc  dest+1             ; increment hi byte of dest
-+		dex                     ; decrement X (lo byte counter)
-		bne  -                  ; if X<>0 then move another byte
-		dec  length             ; we've moved 255 bytes, dec length
-		bpl  -                  ; if length is still positive go back and move more
-		rts                     ; done
-		.pend
-
-
 memset          .proc
 	; -- fill memory from (P8ZP_SCRATCH_W1), length XY, with value in A.
 	;    clobbers X, Y
