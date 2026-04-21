@@ -106,7 +106,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                     stmt.target is NumericLiteral
             }
 
-            if (!subroutine.isAsmSubroutine && !subroutine.inline) {
+            if (!subroutine.isAsmSubroutine) {
                 // NOTE: We allow subroutines with ANY number of parameters to be considered for inlining.
                 // For void calls where the body doesn't use the parameters, inlining is trivial -
                 // we just remove the call entirely (no parameter substitution needed).
@@ -128,7 +128,7 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                         if (subroutine !== program.entrypoint) {
                             // Find the first non-parameter statement (the actual body)
                             val bodyStmt = subroutine.statements.firstOrNull { it !is VarDecl || it.origin != VarDeclOrigin.SUBROUTINEPARAM }
-                            subroutine.inline =
+                            val isAutoInlineable =
                                 when (val stmt = bodyStmt) {
                                     is Return -> isBodyInlineable(stmt)
                                     is Assignment -> isBodyInlineable(stmt)
@@ -136,6 +136,8 @@ class Inliner(private val program: Program, private val options: CompilationOpti
                                     is Jump -> isBodyInlineable(stmt)
                                     else -> false
                                 }
+                            if (isAutoInlineable)
+                                subroutine.inline = true
                         }
                     }
 

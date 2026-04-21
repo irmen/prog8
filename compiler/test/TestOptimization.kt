@@ -1864,4 +1864,30 @@ main {
         assignments.filter { it.target.identifier?.nameInSource?.singleOrNull() == "a" }.size shouldBe 1
         assignments.find { it.target.identifier?.nameInSource?.singleOrNull() == "a" }!!.value.constValue(result.compilerAst)!!.number shouldBe 10.0
     }
+
+    test("inline keyword on regular subroutine") {
+        val src = """
+            %import textio
+            main {
+                sub start() {
+                    txt.print_ub(foo())
+                }
+                inline sub foo() -> ubyte {
+                    return 42
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, src, outputDir)!!
+        val startSub = result.compilerAst.entrypoint
+
+        // foo() should be inlined, so there should be a call to txt.print_ub with 42
+        val printCall = startSub.statements.filterIsInstance<FunctionCallStatement>()
+            .find { it.target.nameInSource.last() == "print_ub" }
+        printCall shouldNotBe null
+        printCall!!.args[0].constValue(result.compilerAst)!!.number shouldBe 42.0
+
+        // The original foo() call should be gone
+        val fooCall = startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "foo" }
+        fooCall shouldBe false
+    }
 })

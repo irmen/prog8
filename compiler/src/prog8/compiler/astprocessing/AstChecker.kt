@@ -499,14 +499,6 @@ internal class AstChecker(private val program: Program,
         if(subroutine.inline && subroutine.asmAddress!=null)
             throw FatalAstException("extsub can never be inline")
 
-        if(subroutine.inline && !subroutine.isAsmSubroutine && !subroutine.definingBlock.isInLibrary) {
-            errors.info(
-                "inline keyword on regular prog8 subroutines currently has no effect",
-                position = subroutine.position
-            )
-            subroutine.inline = false   // not supported yet o
-        }
-
         val address = subroutine.asmAddress?.address
         if(address != null && address !is NumericLiteral)
             err("address must be a constant")
