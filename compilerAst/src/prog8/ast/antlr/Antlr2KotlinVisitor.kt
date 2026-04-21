@@ -241,6 +241,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             tuple.accept(this) as ExpressionTuple
         else
             ctx.expression().accept(this) as Expression
+        vardecl.hasExplicitInitializer = true
         return vardecl
     }
 
@@ -262,6 +263,7 @@ class Antlr2KotlinVisitor(val source: SourceCode): AbstractParseTreeVisitor<Node
             .type(VarDeclType.CONST)
             .value(actualValue)
             .build()
+            .apply { hasExplicitInitializer = true }
     }
 
     override fun visitMemoryvardecl(ctx: MemoryvardeclContext): VarDecl {

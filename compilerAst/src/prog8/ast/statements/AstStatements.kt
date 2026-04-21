@@ -266,6 +266,7 @@ class VarDecl(
     override val position: Position) : Statement(), INamedStatement {
     override lateinit var parent: Node
     var allowInitializeWithZero = true
+    var hasExplicitInitializer = false
 
     val is2DArray: Boolean
         get() = matrixNumCols != null
@@ -292,6 +293,7 @@ class VarDecl(
             private var alignment = 0u
             private var dirty = false
             private var isPrivate = false
+            private var hasExplicitInitializer = false
 
             fun names(vararg names: String): Builder = apply {
                 require(names.isNotEmpty()) { "at least one name is required" }
@@ -314,6 +316,7 @@ class VarDecl(
             fun alignment(a: UInt) = apply { this.alignment = a }
             fun dirty(d: Boolean) = apply { this.dirty = d }
             fun isPrivate(p: Boolean) = apply { this.isPrivate = p }
+            fun hasExplicitInitializer(h: Boolean) = apply { this.hasExplicitInitializer = h }
 
             fun copyFrom(v: VarDecl) = apply {
                 this.type = v.type
@@ -329,14 +332,17 @@ class VarDecl(
                 this.alignment = v.alignment
                 this.dirty = v.dirty
                 this.isPrivate = v.isPrivate
+                this.hasExplicitInitializer = v.hasExplicitInitializer
             }
 
             fun build(): VarDecl {
                 val finalName = name ?: throw IllegalStateException("name is required")
-                return VarDecl(
+                val v = VarDecl(
                     type, origin, datatype, zeropage, splitwordarray, arraysize, matrixNumCols,
                     finalName, additionalNames, value, sharedWithAsm, alignment, dirty, isPrivate, position
                 )
+                v.hasExplicitInitializer = hasExplicitInitializer
+                return v
             }
         }
 
@@ -449,6 +455,7 @@ class VarDecl(
             throw FatalAstException("should not copy a vardecl that still has multiple names")
         val copy = builder(newDatatype, position).copyFrom(this).build()
         copy.allowInitializeWithZero = this.allowInitializeWithZero
+        copy.hasExplicitInitializer = this.hasExplicitInitializer
         return copy
     }
 
@@ -464,16 +471,19 @@ class VarDecl(
             return names.map {
                 val copy = builder(datatype, position).copyFrom(this).names(it).value(value?.copy()).build()
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
+                copy.hasExplicitInitializer = this.hasExplicitInitializer
                 copy
             }
         } else {
             // evaluate the value once in the vardecl for the first component, and set the other components to the first
             val first = builder(datatype, position).copyFrom(this).names(names[0]).value(value?.copy()).build()
             first.allowInitializeWithZero = this.allowInitializeWithZero
+            first.hasExplicitInitializer = this.hasExplicitInitializer
             val firstVar = firstVarAsValue(first)
             return listOf(first) + names.drop(1 ).map {
                 val copy = builder(datatype, position).copyFrom(this).names(it).value(firstVar.copy()).build()
                 copy.allowInitializeWithZero = this.allowInitializeWithZero
+                copy.hasExplicitInitializer = this.hasExplicitInitializer
                 copy
             }
         }

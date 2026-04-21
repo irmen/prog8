@@ -48,9 +48,12 @@ class VarConstantValueTypeAdjuster(
                     it is InlineAssembly  // can't really tell if it's written to or only read, assume the worst
                             || it.parent is AssignTarget
                             || it.parent is ForLoop
-                            || it.parent is AddressOf
                             || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
                 }
+
+            // If the address of the variable is taken, we cannot replace it with a constant.
+            if (reads.any { it.parent is AddressOf })
+                return noModifications
 
             var singleAssignment: Assignment? = null
             val singleWrite=writes.singleOrNull()
@@ -122,16 +125,6 @@ class VarConstantValueTypeAdjuster(
                     )
                 }
             }
-            /*
-            TODO: need to check if there are no variable usages between the declaration and the assignment (because these rely on the original initialization value)
-            if(writes.size==2) {
-                val firstAssignment = writes[0].parent as? Assignment
-                val secondAssignment = writes[1].parent as? Assignment
-                if(firstAssignment?.origin==AssignmentOrigin.VARINIT && secondAssignment?.value?.constValue(program)!=null) {
-                    errors.warn("variable is only assigned once here, consider using this as the initialization value in the declaration instead", secondAssignment.position)
-                }
-            }
-            */
         }
 
         return noModifications

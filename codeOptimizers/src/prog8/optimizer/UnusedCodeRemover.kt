@@ -1,18 +1,14 @@
 package prog8.optimizer
 
 import prog8.ast.*
-import prog8.ast.expressions.BinaryExpression
-import prog8.ast.expressions.NumericLiteral
-import prog8.ast.expressions.PrefixExpression
-import prog8.ast.expressions.TypecastExpression
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.AstModification
 import prog8.ast.walk.AstRemove
 import prog8.ast.walk.AstReplaceNode
 import prog8.ast.walk.AstWalker
 import prog8.code.PROG8_CONTAINER_MODULES
-import prog8.code.core.CompilationOptions
-import prog8.code.core.IErrorReporter
+import prog8.code.core.*
 import prog8.compiler.CallGraph
 
 
@@ -145,6 +141,51 @@ class UnusedCodeRemover(private val program: Program,
             val forceOutput = "force_output" in block.options()
             if (!forceOutput && decl.origin==VarDeclOrigin.USERCODE && !decl.sharedWithAsm) {
                 val usages = callgraph.usages(decl)
+                val (writes, reads) = usages
+                    .partition {
+                        it is InlineAssembly
+                                || it.parent is AssignTarget
+                                || it.parent is ForLoop
+                                || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
+                    }
+
+                // Check if the first assignment (VARINIT) is immediately overwritten by a constant (USERCODE)
+                // without any intermediate reads or complex control flow.
+                if(decl.definingSubroutine != null && writes.size >= 2) {
+                    val w1 = writes[0]
+                    val w2 = writes[1]
+                    val firstAssignment = findParentNode<Assignment>(w1)
+                    val secondAssignment = findParentNode<Assignment>(w2)
+                    if(firstAssignment?.origin==AssignmentOrigin.VARINIT && secondAssignment?.origin==AssignmentOrigin.USERCODE 
+                        && secondAssignment.target.identifier?.targetStatement(program.builtinFunctions) == decl
+                        && secondAssignment.value.constValue(program)!=null) {
+                        val i1 = usages.indexOf(w1)
+                        val i2 = usages.indexOf(w2)
+                        if (i1 != -1 && i2 != -1 && i1 < i2) {
+                            val inBetween = usages.subList(i1 + 1, i2)
+                            val readsBetween = inBetween.any { it in reads }
+                            if (!readsBetween) {
+                                if (firstAssignment.parent === secondAssignment.parent && firstAssignment.parent is IStatementContainer) {
+                                    val stmts = (firstAssignment.parent as IStatementContainer).statements
+                                    val si1 = stmts.indexOf(firstAssignment)
+                                    val si2 = stmts.indexOf(secondAssignment)
+                                    if (si1 != -1 && si2 != -1 && si1 < si2) {
+                                        val inBetween = stmts.subList(si1 + 1, si2)
+                                        val safe = inBetween.all { it !is Label && it !is Jump && it !is IfElse && it !is ConditionalBranch && it !is ForLoop && it !is WhileLoop && it !is RepeatLoop && it !is UntilLoop && it !is UnrollLoop && it !is Return && it !is Subroutine && it !is Block && it !is AnonymousScope && it !is When && it !is InlineAssembly && it !is Break && it !is Continue }
+                                        if (safe) {
+                                            if (decl.hasExplicitInitializer) {
+                                                val onlyOnce = if (writes.size == 2) "only " else ""
+                                                errors.warn("variable '${decl.name}' (declared at line ${decl.position.line}) is ${onlyOnce}assigned here, consider using this as the initialization value in the declaration instead", secondAssignment.position)
+                                            }
+                                            return listOf(AstRemove(firstAssignment, firstAssignment.parent as IStatementContainer))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (usages.isEmpty()) {
                     if(decl.names.size>1) {
                         errors.info("unused variable '${decl.name}'", decl.position)
@@ -177,7 +218,7 @@ class UnusedCodeRemover(private val program: Program,
                                     // but only if the vardecl immediately precedes it!
                                     if(singleUse.parent.parent === parent) {
                                         val declIndex = (parent as IStatementContainer).statements.indexOf(decl)
-                                        val singleUseIndex = (parent as IStatementContainer).statements.indexOf(singleUse.parent)
+                                        val singleUseIndex = (parent as IStatementContainer).statements.indexOf(singleUse.parent as Statement)
                                         if(declIndex==singleUseIndex-1) {
                                             val callStruct = (assignment.value as IFunctionCall).target.targetStructDecl()
                                             if(callStruct!=null) {

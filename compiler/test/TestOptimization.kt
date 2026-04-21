@@ -5,6 +5,8 @@ import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
+import io.kotest.matchers.collections.shouldBeEmpty
+import io.kotest.matchers.collections.shouldContain as shouldContainIn
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
@@ -257,7 +259,7 @@ other {
             }
         """
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 9
+        result.compilerAst.entrypoint.statements.size shouldBe 8
         val alldecls = result.compilerAst.entrypoint.allDefinedSymbols.toList()
         alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
     }
@@ -288,6 +290,126 @@ other {
         val func2 = result.compilerAst.entrypoint.statements.last() as Subroutine
         func2.statements.size shouldBe 3
         (func2.statements[0] as Assignment).target.identifier!!.nameInSource shouldBe listOf("cx16", "r0")
+    }
+
+    test("redundant variable initialization warning and removal") {
+        val src="""
+            %import textio
+            main {
+                sub start() {
+                    ubyte a = 10
+                    cx16.r0++
+                    a = 20
+                    txt.print_ub(a)
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(C64Target(), optimize=true, src, outputDir, errors=errors, writeAssembly=false)!!
+        errors.warnings.size shouldBe 1
+        errors.warnings[0] shouldContain "variable 'a' (declared at line 5) is only assigned here"
+
+        // Statements: VarDecl(a), cx16.r0++, a=20, txt.print_ub(a), return
+        result.compilerAst.entrypoint.statements.size shouldBe 5
+    }
+
+    test("no redundant initialization warning if read in between") {
+        val src="""
+            %import textio
+            main {
+                sub start() {
+                    ubyte a = 10
+                    txt.print_ub(a)
+                    a = 20
+                    txt.print_ub(a)
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(C64Target(), optimize=true, src, outputDir, errors=errors, writeAssembly=false)!!
+        errors.warnings.size shouldBe 0
+        // Statements: VarDecl(a), a=10, print, a=20, print, return
+        result.compilerAst.entrypoint.statements.size shouldBe 6
+    }
+
+    test("redundant variable initialization warning (3 assignments)") {
+        val src="""
+            %import textio
+            main {
+                sub start() {
+                    ubyte a = 10
+                    cx16.r0++
+                    a = 20
+                    cx16.r0 = a as ubyte
+                    a = 30
+                    txt.print_ub(a)
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(C64Target(), optimize=true, src, outputDir, errors=errors, writeAssembly=false)!!
+        errors.warnings.size shouldBe 1
+        errors.warnings[0] shouldContain "variable 'a' (declared at line 5) is assigned here"
+
+        // a=10 (VARINIT) removed.
+        // Statements: VarDecl(a), cx16.r0++, a=20, cx16.r0=a, a=30, print, return
+        result.compilerAst.entrypoint.statements.size shouldBe 7
+    }
+
+    test("no redundant initialization warning if address taken in between") {
+        val src="""
+            %import textio
+            main {
+                sub start() {
+                    ubyte a = 10
+                    uword p = &a
+                    txt.print_uw(p)
+                    a = 20
+                    txt.print_ub(a)
+                }
+            }
+        """
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        val result = compileText(C64Target(), optimize=true, src, outputDir, errors=errors, writeAssembly=false)!!
+        errors.warnings.size shouldBe 0
+    }
+
+    test("AddressOf prevents constant replacement") {
+        val src="""
+            %import textio
+            main {
+                sub start() {
+                    ubyte a = 10
+                    uword p = &a
+                    a = 20
+                    txt.print_ub(a)
+                    txt.print_uw(p)
+                }
+            }
+        """
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
+        // 'a' should NOT be replaced by '10' or '20' if it's not constant.
+        // Actually, since there are two writes (init and a=20), ConstantIdentifierReplacer won't replace it anyway.
+        // What if there's only ONE write?
+    }
+
+    test("AddressOf prevents constant replacement (single write)") {
+        val src="""
+            %import textio
+            main {
+                sub start() {
+                    ubyte a = 10
+                    uword p = &a
+                    txt.print_ub(a)
+                    txt.print_uw(p)
+                }
+            }
+        """
+        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
+        // 'a' is only assigned once (init). But its address is taken.
+        // ConstantIdentifierReplacer should NOT replace 'a' with '10' because it's not constant.
+        val printCall = result.compilerAst.entrypoint.statements.filterIsInstance<FunctionCallStatement>().first { it.target.nameInSource.last() == "print_ub" }
+        (printCall.args[0] as IdentifierReference).nameInSource shouldBe listOf("a")
     }
 
     test("unused subroutine removal") {
@@ -449,7 +571,7 @@ main {
                 }
             }
         """
-        val errors = ErrorReporterForTests()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 2
         errors.errors[0] shouldContain  "out of range"
@@ -464,7 +586,7 @@ main {
                 }
             }
         """
-        val errors = ErrorReporterForTests()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(C64Target(), optimize=false, src, outputDir, writeAssembly=false, errors = errors) shouldBe null
         errors.errors.size shouldBe 1
         errors.errors[0] shouldContain  "no cast"
@@ -817,7 +939,7 @@ main {
         value++
     }
 }"""
-        val errors = ErrorReporterForTests()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         compileText(Cx16Target(), true, src, outputDir, writeAssembly = false, errors = errors) shouldNotBe null
     }
 
@@ -830,7 +952,7 @@ main {
         cx16.r0L = xx+yy
     }
 }"""
-        val errors = ErrorReporterForTests()
+        val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
         val result = compileText(Cx16Target(), true, src, outputDir, writeAssembly = false, errors = errors)!!
         val st = result.compilerAst.entrypoint.statements
         st.size shouldBe 5
@@ -1689,5 +1811,57 @@ main {
         // $d021 is an IO address so every read and write should be there and not optimized away, there should be 3 loads and 3 stores
         val ioAccessCount = asm.lines().count { (it.contains("lda ") || it.contains("sta ") || it.contains("stz ")) && it.contains("io_reg") }
         ioAccessCount shouldBe 6
-    }    
+    }
+
+    test("redundant initialization warning only shown for explicit initializers") {
+        val srcWithInit = """
+            %import textio
+            main {
+                sub start() {
+                    ubyte a = 0
+                    txt.print("gap\n")
+                    a = 10
+                    txt.print_ub(a)
+                }
+            }
+        """.trimIndent()
+        val errorsWithInit = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, srcWithInit, outputDir, errors = errorsWithInit)
+        errorsWithInit.warnings.any { "variable 'a' (declared at line 4) is only assigned here" in it } shouldBe true
+
+        val srcWithoutInit = """
+            %import textio
+            main {
+                sub start() {
+                    ubyte a
+                    txt.print("gap\n")
+                    a = 10
+                    txt.print_ub(a)
+                }
+            }
+        """.trimIndent()
+        val errorsWithoutInit = ErrorReporterForTests(keepMessagesAfterReporting = true)
+        compileText(VMTarget(), true, srcWithoutInit, outputDir, errors = errorsWithoutInit)
+        errorsWithoutInit.warnings.shouldBeEmpty()
+    }
+
+    test("redundant initialization is removed even if warning is suppressed") {
+        val srcWithoutInit = """
+            main {
+                sub start() {
+                    ubyte a
+                    cx16.r0++   ; gap
+                    a = 10
+                    cx16.r1 = a
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, srcWithoutInit, outputDir)!!
+        val startSub = result.compilerAst.entrypoint
+        val assignments = startSub.statements.filterIsInstance<Assignment>()
+        // There should be only one assignment to 'a' (the USERCODE one, a=10)
+        // The VARINIT assignment (a=0) should have been removed.
+        assignments.filter { it.target.identifier?.nameInSource?.singleOrNull() == "a" }.size shouldBe 1
+        assignments.find { it.target.identifier?.nameInSource?.singleOrNull() == "a" }!!.value.constValue(result.compilerAst)!!.number shouldBe 10.0
+    }
 })

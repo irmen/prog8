@@ -10,6 +10,7 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import prog8.ast.Program
+import prog8.ast.expressions.IdentifierReference
 import prog8.ast.statements.Block
 import prog8.ast.statements.Subroutine
 import prog8.code.source.SourceCode
@@ -122,7 +123,7 @@ class TestCallgraph: FunSpec({
         val result = compileText(C64Target(), false, sourcecode, outputDir)!!
         val graph = CallGraph(result.compilerAst)
         graph.allIdentifiers.size shouldBeGreaterThanOrEqual 5
-        val empties = graph.allIdentifiers.filter { it.first.nameInSource==listOf("empty") }
+        val empties = graph.allIdentifiers.filter { (it.first as? IdentifierReference)?.nameInSource==listOf("empty") }
         println(graph.allIdentifiers)
         empties.size shouldBe 3
         empties[0].first.position.line shouldBe 4

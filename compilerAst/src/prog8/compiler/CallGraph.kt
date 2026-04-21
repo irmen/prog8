@@ -19,14 +19,14 @@ class CallGraph(private val program: Program) : IAstVisitor {
     val calls = mutableMapOf<Subroutine, Set<Subroutine>>().withDefault { setOf() }
     val calledBy = mutableMapOf<Subroutine, Set<Node>>().withDefault { setOf() }
     val notCalledButReferenced = mutableSetOf<Subroutine>()
-    private val allIdentifiersAndTargets = mutableListOf<Pair<IdentifierReference, Statement>>()
+    private val allIdentifiersAndTargets = mutableListOf<Pair<Node, Statement>>()
     private val allAssemblyNodes = mutableListOf<InlineAssembly>()
 
     init {
         visit(program)
     }
 
-    val allIdentifiers: List<Pair<IdentifierReference, Statement>> = allIdentifiersAndTargets
+    val allIdentifiers: List<Pair<Node, Statement>> = allIdentifiersAndTargets
 
     private val usedSubroutines: Set<Subroutine> by lazy {
         calledBy.keys + program.entrypoint + notCalledButReferenced
@@ -152,7 +152,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
             if(decl.datatype.subType!=null) {
                 val struct = decl.definingScope.lookup(decl.datatype.subType!!.scopedNameString.split(".")) as? StructDecl
                 if (struct != null) {
-                    allIdentifiersAndTargets.add(IdentifierReference(listOf(struct.name), struct.position) to struct)
+                    allIdentifiersAndTargets.add(decl to struct)
                     val declSub = decl.definingSubroutine
                     val structSub = struct.definingSubroutine
                     if (declSub != null && structSub != null && declSub!=structSub) {
@@ -170,7 +170,7 @@ class CallGraph(private val program: Program) : IAstVisitor {
         while(chain.isNotEmpty()) {
             val variable = deref.definingScope.lookup(chain)
             if(variable is VarDecl) {
-                allIdentifiersAndTargets.add(IdentifierReference(listOf(variable.name), variable.position) to variable)
+                allIdentifiersAndTargets.add(deref to variable)
             }
             else if(variable is Subroutine) {
                 notCalledButReferenced += variable
