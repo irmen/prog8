@@ -458,6 +458,9 @@ The combined array size is subject to the same limits as regular 1D arrays:
 
 - For byte arrays (``ubyte``, ``byte``, ``bool``): maximum **256 elements** total (rows × columns ≤ 256).
 - For split word arrays (``uword``, ``word``, ``str``): maximum **256 elements** total, which occupies 512 bytes of storage (LSB and MSB arrays).
+- For long arrays (``long``): maximum **64 elements** total (rows × columns ≤ 64), which occupies 256 bytes.
+- For float arrays (``float``): maximum **51 elements** total (rows × columns ≤ 51), which occupies 255 bytes.
+- For sequential word arrays (``@nosplit uword`` etc): maximum **128 elements** total, which occupies 256 bytes.
 - The ``@split`` tag works normally with 2D syntax.
 - The ``@nosplit`` tag can also be used on 2D word arrays if sequential storage is needed.
 

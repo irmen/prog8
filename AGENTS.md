@@ -33,6 +33,10 @@ Source → parseMainModule() → processAst() → optimizeAst() → postprocessA
 
 **Understanding this order is important:** For example, `ConstantIdentifierReplacer` runs during `processAst()`, so by the time `AstChecker` runs at the end of that phase, identifier references have already been replaced with their actual values.
 
+### Target Differences
+- **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
+
+
 ## DEBUGGING TIP: Use `-noopt` to isolate problems
 When debugging compiler issues, **FIRST try compiling with the `-noopt` switch**:
 - **Problem gone with `-noopt`**: Issue is in **optimization phases** (`optimizeAst()`, `UnusedCodeRemover`, `Inliner`, etc.)
@@ -89,218 +93,13 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - Make ONLY the requested changes, touch nothing else
 - **NO EMOJI in user documentation**. Do not use emoji or decorative unicode symbols in documentation files. Functional unicode symbols are acceptable when they serve a clear purpose (e.g., → for arrows, ± for plus-minus, × for multiplication, ° for degrees). Avoid decorative emoji like ❌ ✅ ⚠️ 🎉 etc.
 
-## Prog8 language feature hints
+### Code Style Guidelines
+**Minimal comments when making changes**: When modifying existing code, add only essential comments that explain *why* a change was made or document non-obvious behavior. **Do not add verbose comments** that restate what the code does; let the code speak for itself. Existing extensive comments should be preserved, but new changes should have minimal commentary.
 
-### General & Setup
-- an overview of the language features can be found in the documentation file docs/source/introduction.rst
-- the syntax and grammar is specified in an ANTLR4 grammar file found in the parser directory
-- a program consists of a 'main' block containing the 'start' subroutine entry point, and zero or more other subroutines. Additional blocks and subroutines in those can be present too.
-- module imports are done using "%import modulename" – there is NO "as" aliasing (e.g., don't write "%import foo as bar"). Use the module's defined prefix (e.g., textio defines "txt", diskio defines "diskio"). Example: "%import textio" imports the textio module, but it defines the "txt" prefix where all the routines are in.
+## Prog8 language information
 
-### Datatypes & Variables
-- available primitive datatypes: bool, byte, ubyte, word, uword, long, float, str. ubyte/uword are unsigned. long=4 bytes (SIGNED only, no unsigned long yet), float=5-byte Microsoft format, str=0-terminated ubytes (max 255 chars).
-- **float requires import**: When using `float` variables or operations, you **must** add `%import floats` at the top of your source file. Without this import, the compiler will error with "floating point used, but that is not enabled via options".
-- **printing floats**: Use `txt.print_f(floatvalue)` to print float values. This is available via `%import textio`.
-- there are also arrays (max 256 bytes, or 512 for split word arrays), pointers, and structs. Prog8 does not yet have by-value struct variables, only pointer to structs. Pointers can point to primitive types or struct types. Use `memory()` + pointers for data larger than array limits.
-- **struct field types**: Structs can only contain simple types (bool, byte, ubyte, word, uword, long, float) and `str`. Arrays are NOT allowed as struct fields. Note that `str` in a struct is equivalent to `^^ubyte` (a pointer to a zero-terminated byte array).
-- **word arrays split by default**: LSB and MSB bytes stored in separate arrays for efficient 6502 access. With @nosplit this can be overridden to use regular sequential storage.
-- prog8 has C-style pointer arithmetic when adding or subtracting integers from pointers. **pointer syntax differs from C**: Dereference with `@(ptr)` or `ptr[index]`.
-- while there are larger than byte datatypes, the intended compiler target is a 6502 CPU system which is 8 bit so operations on larger datatypes are expensive. Words are still somewhat okay, but longs and floats in particular are very inefficient. Try to avoid them unless needed for correctness.
-- all variables (including parameters) are statically allocated exactly once; there is no call stack, so recursion and reentrancy are not possible by default. All variables are zero-initialized (globals at program start, locals on subroutine entry).
-- variables should not be placed in zeropage (with @zp and @requirezp) often, because there is only limited zeropage memory space, *except* for pointer variables: those should usually be in zeropage.
-- **@shared variables**: Use `@shared` to mark a variable as "might be used by some other code that I can't see, so don't optimize it away". This is usually the case when it is used in some assembly code, which the prog8 compiler itself cannot parse to track variable usages.
-- **Zeropage scratch variables:** The compiler provides these predefined zeropage scratch variables: `P8ZP_SCRATCH_B1` (byte), `P8ZP_SCRATCH_REG` (byte), `P8ZP_SCRATCH_W1` (word), `P8ZP_SCRATCH_W2` (word), `P8ZP_SCRATCH_PTR` (word). **No other zeropage locations can be used**. Assembly routines must only use these predefined scratch variables. If additional storage is needed, define regular variables in the BSS section instead.
-- **Virtual registers** (`cx16.r0` - `cx16.r15`): Available on ALL targets, not just CX16. They're fast 16-bit global variables but NOT preserved across subroutine calls. R12-R15 are especially dangerous: long operations may clobber them without warning. In IRQ handlers, save/restore with `cx16.save_virtual_registers()` / `cx16.restore_virtual_registers()`. You can give them descriptive names using aliases: `alias score = cx16.r7` but using regular variables is preferred.
-
-### Recursion and Stack Management
-**Prog8 has no call stack for variable storage** - all variables (including parameters and locals) are statically allocated. This means recursive subroutine calls will overwrite each other's variables. If you need recursion or reentrancy, you must manually manage state:
-1. **CPU hardware stack**: Use builtins `push()`/`pushw()`/`pushl()`/`pushf()` and `pop()`/`popw()`/`popl()`/`popf()`. Save local state before recursive calls and restore after.
-2. **Software stacks**: Use `buffers.stack` or `buffers.smallstack` from the `buffers` library. `stack` stores `uword` values, `smallstack` stores `ubyte` values. Both provide `push_b()`/`push_w()` and `pop_b()`/`pop_w()` routines. Use these when you can't or don't want to use the CPU hardware stack.
-3. **Iterative rewrite (preferred)**: Many recursive algorithms can be rewritten as simple loops. Bisection, binary search, and similar divide-and-conquer algorithms work well as `repeat` loops with explicit bounds tracking. **Prefer this approach when possible**; it avoids all stack management overhead.
-
-### Strings, Arrays & Pointers
-- **size limitation**: `str` and array types are limited to 256 bytes maximum. This means for example that `long[]` is limited to 64 entries (64 × 4 bytes = 256 bytes). For larger data, use `memory()` + pointers.
-- **pass-by-value vs pass-by-pointer**: A `str` or array variable is accessed *by value* but **ONLY in the subroutine where it is declared**. When passed as a parameter to a subroutine, only the pointer (address) is passed. In the receiving subroutine, a `str` parameter is actually a `^^ubyte` pointer, and an array parameter is actually just a pointer to the element type (e.g., `^^long` for `long[]`).
-- **no const pointers or pointer-to-pointer**: Currently there is no support for `: const` pointers or pointers to pointers.
-- **parsing limitations**: There are some syntax parsing limitations that fail on certain pointer dereferencing and indexing expressions. One example is that you cannot write `pointer[index].field` as an assignment target (it is fine as an expression). You need to explicitly add the pointer dereference operator `^^` like so: `pointer[index]^^.field = 9999`. The same expression without array indexing is fine as an assignment target.
-- **typed vs untyped pointers**: Prog8 has *typed* pointers but also supports the legacy "untyped" pointer where every pointer is basically just a `uword` containing the memory address. C-style pointer arithmetic only works on typed pointers; for "uword" pointers it always considers the element it points to be a single `ubyte`. Prog8 allows freely converting between both forms in an assignment.
-- **pointer syntax**: The pointer declaration and dereference syntax is similar to Pascal's but Prog8 requires a double `^^` (because single `^` is already a taken operator). Note that `pointer[0]` is equivalent to `pointer^^`.
-- **address-of operators**: The `&` operator returns the *untyped* address of its argument (a `uword`), whereas the `&&` operator returns a *typed pointer* to its argument. Note that `&&` is **NOT** the logical AND operator in Prog8: that is written as `and`.
-- **static memory allocation only**: Prog8 only has *static* memory allocation. The `memory()` builtin function returns the address of a statically reserved memory block (named with the given name). It is possible to statically initialize struct variables with the syntax `^^StructType pointer = ^^StructType:[1,2,3,4]`. The `^^StructType:` may be omitted from the initializer list if it is easy to infer it from the target variable type. The initializer list may be empty which means the struct instance is zeroed out *but only at program startup*. Real "dynamic" memory allocation is impossible, but it can be emulated with a simplistic "arena allocator" that just keeps track of a large `memory()` slab internally.
-- **poking and peeking**: `@(ptr)` as LHS of an assignment is equivalent to `poke(ptr, RHS)`. `@(ptr)` as RHS of an assignment (i.e., as an *expression*), is equivalent to `peek(ptr)`. This is how you read/write single **byte** values at a memory address. **Note:** `@(ptr)` is strictly for bytes only - for other datatypes you must use the explicit builtin functions: `peekw(ptr)`/`pokew(ptr, value)` for words, `peekl(ptr)`/`pokel(ptr, value)` for longs, `peekf(ptr)`/`pokef(ptr, value)` for floats, and `peekbool(ptr)`/`pokebool(ptr, value)` for booleans. There is no `@()` syntax equivalent for these other datatypes.
-
-### Logic & Control Flow
-- **Logical operators** (short-circuit, boolean only): `and`, `or`, `xor`, `not`
-  - Use in conditions: `if x == 0 or y > 10 { ... }`
-  - Short-circuit: In `a and b`, if `a` is false, `b` is NOT evaluated. In `a or b`, if `a` is true, `b` is NOT evaluated.
-  - This is important when `b` has side effects or could cause errors.
-- **Bitwise operators** (work on integer bits): `&`, `|`, `^`, `~`, `<<`, `>>`
-  - Use for bit manipulation: `mask = mask | FLAG_ACTIVE`
-  - Test bits: `if (mask & FLAG) != 0 { ... }`
-  - **Common mistake**: Don't use `and`/`or` for bitmask operations - use `&`/`|` instead!
-- CPU status flags: if_cs, if_cc, if_z, if_nz, etc. compile to single 6502 branch instructions.
-- use 'when' statements with choice blocks instead of multiple 'if' statements.
-- use 'repeat' instead of loops when iteration count is not needed.
-- use if-expressions instead of if-statements for simple value assignments based on a choice.
-- 'defer' defers statement execution until scope exit.
-- 'goto' with labels and jump lists are allowed for optimal code.
-
-### Subroutines & Return Values
-- **everything is public**: No private/public modifiers. All symbols accessible via fully qualified names from anywhere.
-- **no function overloading**: Each subroutine must have a unique name (except for some builtin functions).
-- subroutines can return 0, 1 or more return value(s). They can be assigned to multiple variables in a single multi-variable assignment: a,b,c = routine(). Values can be skipped using 'void'.
-- **the `void` keyword has two forms:** (1) prefix form `void routine()` suppresses all return values from a subroutine call, (2) assignment form `a, void, c = routine()` skips specific return values in multi-return assignments.
-- subroutines can be nested. Nested subroutines have direct access to all variables defined in their parent scope.
-
-### Assembly Subroutines (asmsub)
-- **Purpose**: For kernel (ROM) routines or low-level assembly routines that get arguments via specific registers (sometimes even via processor status flags like Carry)
-- **parameter passing**: Parameters MUST specify which CPU register or virtual register receives them:
-  - `@A` - Accumulator (8-bit)
-  - `@X` - X register (8-bit)
-  - `@Y` - Y register (8-bit)
-  - `@AX` - A (low) and X (high) combined (16-bit word)
-  - `@AY` - A (low) and Y (high) combined (16-bit word)
-  - `@R0`-`@R15` - CX16 virtual registers (16-bit), e.g., `@R0` = cx16.r0
-  - `@FAC1`, `@FAC2` - Floating point registers
-  - `@Pc` - Carry flag (for bool parameters)
-  - `@Pz` - Zero flag (for bool parameters)
-- **return values**: Specify register for return value after `->`, e.g., `-> ubyte @A` or `-> uword @AY`. Return values can also be via processor status flags (e.g., `-> bool @Pz`), allowing immediate use of branch instructions like `if_z` or `if_cs`
-- **clobbers**: List all registers modified by the routine: `clobbers (A, X, Y)` or `clobbers (A, Y)`
-- **IMPORTANT: Parameter names in asmsub are NOT variables**: unlike regular subroutines, asmsub parameter names do NOT create subroutine parameter variables. The caller does NOT store values into variables; values are passed directly in registers. The parameter names are only for documentation. In the assembly code, you MUST use the registers specified in the signature.
-- **Symbolic aliases**: For clarity, create aliases at the start of assembly: `x1 = cx16.r0` or `x1_lo = cx16.r0L`. If you need to preserve register values, store them explicitly in BSS variables or zero-page locations.
-- **Example**: 
-  ```prog8
-  asmsub line(uword x1 @R0, ubyte y1 @A, uword x2 @R1, ubyte y2 @Y) clobbers (A, X, Y) {
-      %asm {{
-          x1 = cx16.r0      ; alias for parameter
-          x2 = cx16.r1      ; alias for parameter
-          ; MUST use registers (or aliases), NOT parameter names directly
-          lda  x1           ; NOT "lda _x1" - there is no _x1 variable!
-      }}
-  }
-  ```
-
-### Standard library
-- **to discover what modules and routines are available, FIRST consult docs/source/_static/symboldumps/** - skeleton files per target list ALL modules, subroutines, and builtin functions with their signatures.
-- **symboldump structure**: Compiler version info, then **BUILTIN FUNCTIONS** (names only), then **LIBRARY MODULE NAME:** sections. Within each module `{...}`: variables/constants show `type  name` (with `@shared`/`@requirezp`/`@AY` annotations), subroutines show `name  (params) -> returntype` (with `clobbers (X,Y)` for asm routines).
-- standard library source code is in 'res/prog8lib' directory. See docs/source/libraries.rst for details.
-- text output via 'textio' module (txt.print, txt.chrout, etc.), math in 'math', string conversions in 'conv'. **Note:** conv uses `str_<type>` for number-to-string (e.g., `str_uword`), `str2<type>` for string-to-number. **For printing numbers use txt routines directly**: `txt.print_b` (byte), `txt.print_ub` (ubyte), `txt.print_w` (word), `txt.print_uw` (uword), `txt.print_l` (long), `txt.print_bool` (bool).
-  - **Single character output**: Use `txt.chrout(char_byte)` instead of `txt.print("c")` - it's faster and more direct.
-  - **Spaces and newlines**: Use `txt.spc()` for a space character and `txt.nl()` for a newline. Avoid `txt.print(" ")` or `txt.print("\n")` as these create unnecessary string overhead.
-
-### Syntax & Formatting
-- **numeric literal syntax**: `$` prefix for hex (`$FF` not `0xFF`), `%` prefix for binary (`%1010` not `0b1010`). Underscores allowed for readability: `25_000_000`. No leading-zero octal notation. **No type suffixes**: long literals are just regular numbers (e.g., `12345678` not `12345678L`), the type is determined by context (variable type or cast).
-- **for loop syntax**: `for i in 0 to 10 { ... }` (use downto when counting down) - NOT `for i = 0 to 10` or C-style `for(i=0; i<10; i++)`. Loop variables must be declared separately before the loop - inline declaration like `for ubyte i in 0 to 10` is not supported.
-- **semicolons start comments**: `; this is a comment` - they do NOT end statements. There is NO statement separator (unlike C/Java's `;`). One statement per line only. Multi-line comments use `/* ... */`.
-  - **CRITICAL: `;` is NOT a statement separator!** It begins a comment that extends to end of line. Writing `x = 1; y = 2` does NOT assign two variables - it assigns `x = 1` and then ignores everything after `;` as a comment. **Each statement must be on its own line.**
-- **no `elif` keyword**: Prog8 does NOT have `elif`/`elsif`/`elseif` for chaining if-else conditions. Use nested `else { if ... }` instead:
-  ```prog8
-  ; WRONG - elif doesn't exist
-  if a { ... } elif b { ... } elif c { ... }
-
-  ; RIGHT - use nested else + if
-  if a { ... } else {
-      if b { ... } else {
-          if c { ... }
-      }
-  }
-  ```
-  This is a **widespread mistake** for developers coming from Python/C/Java backgrounds.
-- **Indentation**: See `.editorconfig` (4 spaces for .p8 and .asm files, no tabs).
-- **The assembly source code uses 64tass syntax, NOT ca65/cc65 or other assemblers.** Key 64tass syntax: `.proc`/`.pend` for procedures, `_label` for local labels, `.byte`/`.word`/`.dword` for data, `= ` for equates, zero-page variables defined with `=`. **Instructions like `rol`, `ror`, `asl`, `lsr` require an explicit operand** - use `rol a`, `ror a`, etc. for the accumulator, not just `rol` or `ror`.
-- **Character encoding**: 6502 targets use **PETSCII** by default. The `virtual` target uses **ISO** encoding.
-  - **6502 targets**: Use `txt.lowercase()` at program start for lowercase display.
-  - **Virtual target**: Use `%encoding iso` directive and call `txt.iso()` at program start.
-  - **Exception for x16emu debugging**: When running with `x16emu -echo iso` to see console output, use ISO encoding even on 6502 targets so the echoed text is readable.
-- **String arrays**: Use `str[N]` for arrays of strings (e.g., `str[12] types = ["sword", "axe", ...]`). Access with `types[i]`.
-- **String buffer pre-allocation**: **CRITICAL**: Empty strings don't allocate space! Always pre-allocate:
-  - WRONG: `str buffer = ""` (no space allocated, `strings.append()` will fail)
-  - RIGHT: `str buffer = "." * 50` (allocates 50 characters)
-- **String concatenation pattern**: Use `strings` module functions with pre-allocated buffers:
-  ```prog8
-  %import strings
-  str buffer = "." * 50          ; pre-allocate
-  void strings.copy(source, buffer)   ; initialize
-  void strings.append(buffer, "text") ; concatenate
-  ```
-  **WARNING**: String concatenation is EXPENSIVE on 6502! Only use when you truly need a combined string. If fragments can be handled separately (e.g., printing multiple strings in sequence), do NOT concatenate just process each fragment separately:
-  ```prog8
-  ; EXPENSIVE - don't do this unless necessary
-  void strings.append(buffer, prefix)
-  void strings.append(buffer, suffix)
-  txt.print(buffer)
-  
-  ; CHEAP - prefer this when possible
-  txt.print(prefix)
-  txt.print(suffix)
-  ```
-- **Use `len()` for array sizes**: Don't hardcode array lengths - use `len(array)`:
-  ```prog8
-  ; WRONG: magic number
-  ubyte i = math.rnd() % 20
-
-  ; RIGHT: self-documenting
-  ubyte i = math.rnd() % len(weapons.prefixes)
-  ```
-- **Enums**: Prog8 enums are declared inside a block and use `Enum::Value` syntax (double colon, not dot):
-  ```prog8
-  enum Priority {
-      LOW = 1,
-      NORMAL,      ; auto-numbered to 2
-      HIGH,        ; auto-numbered to 3
-      EXTREME = 255
-  }
-
-  ; Generates these constants:
-  const ubyte Priority::LOW = 1
-  const ubyte Priority::NORMAL = 2
-  const ubyte Priority::HIGH = 3
-  const ubyte Priority::EXTREME = 255
-
-  ; Usage:
-  ubyte p = Priority::HIGH  ; NOT Priority.HIGH
-  ```
-  **When to use enums vs const**: Use enums for sets of related named values (states, types, classes). Use `const` for standalone values:
-  ```prog8
-  ; GOOD: enum for related choices
-  enum CharClass {
-      FIGHTER = 1,
-      MAGE = 2,
-      CLERIC = 3
-  }
-
-  ; GOOD: const for standalone values
-  const ubyte MIN_HP = 1
-  const ubyte BASE_AC = 10
-  ```
-  **Note**: Name accesses enum values directly within their block. For values needed across multiple blocks, use `const` in a shared block instead.
-- **Avoid `globals.XXXX` code smell**: If you find yourself prefixing many constants with `globals.`, consider:
-  1. Moving constants closer to where they're used (inside the relevant block)
-  2. Using literals directly for obvious values (like `3` for 3d6)
-- **Array size inference**: When declaring an array with an initializer list, you don't need to specify the size; Prog8 infers it automatically:
-  ```prog8
-  ; Explicit size (works but verbose)
-  ubyte[12] types = ["sword", "axe", "bow", ...]
-  
-  ; Inferred size (cleaner, preferred)
-  str[] types = ["sword", "axe", "bow", "staff", "mace", "dagger"]
-  ```
-  This is especially useful for string arrays and lookup tables. Use `len(array)` to get the size when needed.
-- **Use strings library for character operations**: The `strings` module has functions for character manipulation and checks (case conversion, character class tests, etc.). Use these instead of manual ASCII/PETSCII arithmetic.
-- **String functions return useful lengths**: Several `strings` library routines return the length of the string they operated on. This return value is often voided, but capturing it avoids redundant `len()` calls:
-  ```prog8
-  ; returning length, Useful for: repeated appends, tracking buffer usage, avoiding redundant len() calls
-  len = strings.copy(dest, src)     ; returns copied length
-  len = strings.append(buf, text)   ; returns resulting length
-  len = strings.upper(mystr)        ; returns string length
-  ```
-
-## Other Key differences from other languages (C, Python, etc.)
-- **type casting syntax**: Use `expression as <type>` to cast (e.g., `bytevar as word`, `(a+b) as uword`). This is required for type conversions.
-- **no automatic type widening**: `byte*byte=byte` (may overflow!), `word*word=word`, etc. Explicitly cast operands: `word result = (bytevar as word) * 1000`. Hex literals with full width (e.g., `$0040`) also promote. Compiler does not warn by default. **Use `as <type>` for all casts.**
-- **no block scope**: `for`, `if/else` blocks do NOT introduce new scope. Only subroutines introduce scope. Variables declared anywhere in a subroutine are hoisted to the top.
-- **no bare blocks**: Prog8 does not have standalone `{ ... }` blocks like C/C++/Java. Control structures (`if/when/for/repeat`) provide grouping but NOT scoping; they cannot create temporary variable lifetimes. Only subroutines introduce scope.
-- **qualified names from top level**: Must use full qualified names (e.g., `cx16.r0`), not relative imports.
+General Prog8 programming language instructions and feature hints can be found in the separate file [AGENTS-PROG8-LANG.md](AGENTS-PROG8-LANG.md). 
+You MUST read that file as well to understand the language you are working with.
 
 ## Project Module Descriptions
 - `compiler` - Main compiler entrypoint (src/prog8/CompilerMain.kt)
@@ -323,11 +122,22 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - never perform any git source control write/update/add/commit/branch operations. Read and status operations are allowed.
 - **git log/history queries can be useful** for understanding when/why a feature was added or tracking down when a bug was introduced, but for locating code use grep_search or glob instead.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
-- **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
 
 # Dev environment tips
 
-## Commands to build the compiler
+## Development Workflows
+
+**1. Testing your own Prog8 programs** (no compiler changes):
+- No rebuild needed - just run `prog8c` directly
+- Edit your `.p8` file → compile/run → check stdout output
+- Example: `prog8c -target virtual -emu myprogram.p8`
+
+**2. Testing compiler or standard library changes**:
+- Rebuild required after every change to `.kt`, `.p8`, or `.asm` files in the compiler project
+- Workflow: edit source → `gradle installdist installshadowdist` → test with `prog8c`
+- Example: fix bug in `CodeGen6502.kt` → rebuild → `prog8c -target cx16 test.p8`
+
+## Building and Installing the Compiler
 - use the system installed gradle command instead of the gradle wrapper.
 
 ### Quick compile check (NO tests)
@@ -365,17 +175,14 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 **Note:** Use system `gradle` command, not wrapper. Run `gradle clean` if you suspect stale artifacts.
 
-### Two different workflows
-
-**1. Testing your own Prog8 programs** (no compiler changes):
-- No rebuild needed - just run `prog8c` directly
-- Edit your `.p8` file → compile/run → check stdout output
-- Example: `prog8c -target virtual -emu myprogram.p8`
-
-**2. Testing compiler or standard library changes**:
-- Rebuild required after every change to `.kt`, `.p8`, or `.asm` files in the compiler project
-- Workflow: edit source → `gradle installdist installshadowdist` → test with `prog8c`
-- Example: fix bug in `CodeGen6502.kt` → rebuild → `prog8c -target cx16 test.p8`
+## Using the Compiler (prog8c)
+- the prog8c compiler executable can be found in the compiler/build/install/prog8c/bin folder (this is already added to the shell's path)
+- **the `-check` switch performs a quick syntax/semantic check only; it will NOT produce any output files (no .prg, .asm, etc.)**. Use it only for fast error checking during development.
+- **the `-noopt` switch DISABLES all optimizations** - useful for debugging to determine if a problem is caused by the optimizer. **Optimizations are ENABLED by default** (no flag needed).
+- **prog8c uses single-dash command line options** (e.g., `-target`, `-noopt`, `-check`), NOT double-dash (`--target` is invalid).
+- **the `-printast1` switch prints out the internal Compiler AST** after parsing and semantic analysis.
+- **the `-printast2` switch prints out the optimized Simple AST** just before it goes to the code generator. This is useful for debugging optimizer issues.
+- **the `-out outdir` switch sets an alternative output directory** for compiled files (.prg, .asm, .list, etc.). **By default, output files are written to the same directory as the source file**.
 
 ### Compilation Output Files
 - `*.prg` - The final compiled program file for the target system (e.g., Commander X16)
@@ -384,32 +191,14 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 - `*.p8ir` - Intermediate representation file, can be executed in the Virtual Machine
 - `*.vice-mon-list` - Vice emulator monitor list file for debugging
 
-## Commands to run the Prog8 Compiler
-- the prog8c compiler executable can be found in the compiler/build/install/prog8c/bin folder (this is already added to the shell's path)
-- **the `-check` switch performs a quick syntax/semantic check only; it will NOT produce any output files (no .prg, .asm, etc.)**. Use it only for fast error checking during development.
-- **the `-noopt` switch DISABLES all optimizations** - useful for debugging to determine if a problem is caused by the optimizer. **Optimizations are ENABLED by default** (no flag needed).
-- **prog8c uses single-dash command line options** (e.g., `-target`, `-noopt`, `-check`), NOT double-dash (`--target` is invalid).
-- **the `-printast1` switch prints out the internal Compiler AST** after parsing and semantic analysis.
-- **the `-printast2` switch prints out the optimized Simple AST** just before it goes to the code generator. This is useful for debugging optimizer issues.
-- **the `-out outdir` switch sets an alternative output directory** for compiled files (.prg, .asm, .list, etc.). **By default, output files are written to the same directory as the source file**.
+### Execution Examples
 - `prog8c -target targetname input.p8` - Compile a Prog8 source file "input.p8" for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -target targetname -emu input.p8` - Compile and execute a prog8 file in the emulator for the given target (cx16, c64, pet32, c128, virtual)
 - `prog8c -vm input.p8ir` - Execute an existing prog8 program, compiled in IR form, in the Virtual Machine
-- **CX16 output verification**: Use `x16emu -echo iso -run -prg input.prg` to echo screen output to stdout **and auto-start the program**. The `-run` flag is **critical**: without it, the program loads but doesn't execute, so you'll see no output. Pipe through `strings` or `grep` to filter: `x16emu -echo iso -run -prg input.prg 2>&1 | grep -E "(PASS|FAIL)"`.
-  **IMPORTANT**: Always add `%encoding iso` at the top of your source file and call `txt.iso()` in `start()`. This prevents PETSCII→ISO charset translation errors that garble uppercase/special characters and make output unreadable:
-  ```prog8
-  %encoding iso
-  %import textio
-  main { sub start() { txt.iso(); txt.print("PASS\n") } }
-  ```
-- **IMPORTANT: Always use `sys.poweroff_system()` to exit the CX16 emulator cleanly!** Add `sys.poweroff_system()` at the end of your main program block - this exits x16emu automatically in most cases.
-  **Note:** The `sys` module is always available, there is no need to import it ever.
-- `x64sc input.prg` - run an existing compiled program in the Commodore-64 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
-- **Testing tip**: When writing and testing Prog8 programs, **use the `virtual` target** (e.g., `prog8c -target virtual -emu input.p8` or `prog8c -vm input.p8ir`). This is the preferred way to test because the virtual target can easily write output to stdout, making it simple to verify program behavior and check results.
 
-## Commands to run tests
+## Testing and Verification
 
-**Basic commands:**
+### Automated Tests (gradle)
 - `gradle build` - Full build including all tests (about 50s)
 - `gradle :compiler:test` - Run only compiler tests (faster)
 - `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"` - Run specific test class
@@ -462,6 +251,22 @@ gradle :compiler:compileTestKotlin --info 2>&1 | grep "^e:"
 - **When writing test programs**, add at the top: `%zeropage basicsafe` and `%option no_sysinit`
 - When a test fails, the output shows "There were failing tests. See the report at:" - **read that HTML report**
 
+### Manual Verification & Emulators
+
+**Testing tip**: When writing and testing Prog8 programs, **use the `virtual` target** (e.g., `prog8c -target virtual -emu input.p8` or `prog8c -vm input.p8ir`). This is the preferred way to test because the virtual target can easily write output to stdout, making it simple to verify program behavior and check results.
+
+**CX16 output verification**: Use `x16emu -echo iso -run -prg input.prg` to echo screen output to stdout **and auto-start the program**. The `-run` flag is **critical**: without it, the program loads but doesn't execute, so you'll see no output. Pipe through `strings` or `grep` to filter: `x16emu -echo iso -run -prg input.prg 2>&1 | grep -E "(PASS|FAIL)"`.
+**IMPORTANT**: Always add `%encoding iso` at the top of your source file and call `txt.iso()` in `start()`. This prevents PETSCII→ISO charset translation errors that garble uppercase/special characters and make output unreadable:
+```prog8
+%encoding iso
+%import textio
+main { sub start() { txt.iso(); txt.print("PASS\n") } }
+```
+**IMPORTANT: Always use `sys.poweroff_system()` to exit the CX16 emulator cleanly!** Add `sys.poweroff_system()` at the end of your main program block - this exits x16emu automatically in most cases.
+**Note:** The `sys` module is always available, there is no need to import it ever.
+
+**Commodore 64 (x64sc)**: `x64sc input.prg` - run an existing compiled program in the Commodore-64 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
+
 ## Git Operations for File Moves/Deletes
 
 **When renaming or moving git-tracked files, ALWAYS use `git mv`:**
@@ -486,6 +291,3 @@ rm path/to/File.kt
 
 ## TODO Items
 The file `docs/source/todo.rst` contains a comprehensive list of things that still have to be fixed, implemented, or optimized. **Use this to understand what features are NOT yet available** in the compiler or Prog8 language: if a user asks for something that's on the TODO list, you'll know it's not implemented yet and can explain the limitation.
-
-## Code Style Guidelines
-- **Minimal comments when making changes**: When modifying existing code, add only essential comments that explain *why* a change was made or document non-obvious behavior. **Do not add verbose comments** that restate what the code does; let the code speak for itself. Existing extensive comments should be preserved, but new changes should have minimal commentary.
