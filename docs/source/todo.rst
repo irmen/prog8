@@ -81,7 +81,6 @@ Libraries
 Optimizations
 -------------
 
-- repeat 256 {...} doesn't use STZ on the 65C02 (maybe other repeat values too?)
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)

@@ -1,26 +1,14 @@
-%import textio
-
-plane {
-   struct Point {
-       ubyte x
-       ubyte y
-   }
-}
-
-txt {
-    %option merge
-    sub print_pt(^^plane.Point p) {
-        txt.chrout('(')
-        txt.print_ub(p.x)
-        txt.chrout(',')
-        txt.print_ub(p.y)
-        txt.chrout(')')
-    }
-}
+%import monogfx
+%import verafx
 
 main {
     sub start() {
-        ^^plane.Point origin = ^^plane.Point:[0,0]
-        txt.print_pt(origin)
+        monogfx.lores()
+        monogfx.circle(160, 60, 59, true)
+
+        verafx.clear(0, 0, 255, 320*10/8/4)
+        verafx.copy(0,0, 0, 320*120/8, 320*120/8/4)
+
+        repeat {}
     }
 }

@@ -42,25 +42,19 @@ verafx {
         cx16.VERA_FX_MULT = 0
         cx16.VERA_FX_CTRL = %01000000    ; cache write enable
 
-        if (num_longwords & %1111110000000011) == 0 {
-            repeat lsb(num_longwords >> 2)
-                unroll 4 cx16.VERA_DATA0=0       ; write 4*4 bytes at a time, unrolled
+        cx16.r0 = num_longwords>>3
+        if cx16.r0H==0 {
+            repeat cx16.r0L {
+                unroll 8 cx16.VERA_DATA0=0       ; write 8*4 bytes at a time, unrolled
+            }
+        } else {
+            repeat cx16.r0 {
+                unroll 8 cx16.VERA_DATA0=0       ; write 8*4 bytes at a time, unrolled
+            }
         }
-        else if (num_longwords & %1111111000000001) == 0 {
-            repeat lsb(num_longwords >> 1)
-                unroll 2 cx16.VERA_DATA0=0       ; write 2*4 bytes at a time, unrolled
-        }
-        else if (lsb(num_longwords) & 3) == 0 {
-            repeat num_longwords >> 2
-                unroll 4 cx16.VERA_DATA0=0       ; write 4*4 bytes at a time, unrolled
-        }
-        else if (lsb(num_longwords) & 1) == 0 {
-            repeat num_longwords >> 1
-                unroll 2 cx16.VERA_DATA0=0       ; write 2*4 bytes at a time, unrolled
-        }
-        else {
-            repeat num_longwords
-                cx16.VERA_DATA0=0       ; write 4 bytes at a time
+
+        repeat lsb(num_longwords) & 7 {
+            cx16.VERA_DATA0=0       ; write 4 bytes at a time (remaining longs)
         }
 
         cx16.VERA_FX_CTRL = 0       ; cache write disable
@@ -81,33 +75,39 @@ verafx {
         cx16.VERA_CTRL = 2<<1       ; dcsel = 2
         cx16.VERA_FX_MULT = 0
         cx16.VERA_FX_CTRL = %01100000    ; cache write enable + cache fill enable
-        cx16.r0 = num_longwords
 
-        if (cx16.r0L & 1) == 0 {
-            repeat cx16.r0>>1 {
-                %asm {{
-                    lda  cx16.VERA_DATA1    ; fill cache with 4 source bytes...
+        cx16.r0 = num_longwords>>1
+
+        if cx16.r0H==0 {
+            repeat cx16.r0L {
+                unroll 2 %asm {{
                     lda  cx16.VERA_DATA1
                     lda  cx16.VERA_DATA1
                     lda  cx16.VERA_DATA1
-                    stz  cx16.VERA_DATA0    ; write 4 bytes at once.
-                    lda  cx16.VERA_DATA1    ; fill cache with 4 source bytes...
                     lda  cx16.VERA_DATA1
-                    lda  cx16.VERA_DATA1
-                    lda  cx16.VERA_DATA1
-                    stz  cx16.VERA_DATA0    ; write 4 bytes at once.
+                    stz  cx16.VERA_DATA0
                 }}
             }
         } else {
             repeat cx16.r0 {
-                %asm {{
-                    lda  cx16.VERA_DATA1    ; fill cache with 4 source bytes...
+                unroll 2 %asm {{
                     lda  cx16.VERA_DATA1
                     lda  cx16.VERA_DATA1
                     lda  cx16.VERA_DATA1
-                    stz  cx16.VERA_DATA0    ; write 4 bytes at once.
+                    lda  cx16.VERA_DATA1
+                    stz  cx16.VERA_DATA0
                 }}
             }
+        }
+
+        if lsb(num_longwords) & 1 == 1 {
+            %asm {{
+                lda  cx16.VERA_DATA1
+                lda  cx16.VERA_DATA1
+                lda  cx16.VERA_DATA1
+                lda  cx16.VERA_DATA1
+                stz  cx16.VERA_DATA0
+            }}
         }
 
         cx16.VERA_FX_CTRL = 0    ; cache write disable

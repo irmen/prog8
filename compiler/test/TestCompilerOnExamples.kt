@@ -221,7 +221,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("charfade", cx16SizeOptimized=1054, cx16SizeUnoptimized=1371),
             ExampleSizes("charsets", cx16SizeOptimized=1125, cx16SizeUnoptimized=1417),
             ExampleSizes("circles", cx16SizeOptimized=2409, cx16SizeUnoptimized=5209),
-            ExampleSizes("cobramk3-gfx", cx16SizeOptimized=7842, cx16SizeUnoptimized=11048),
+            ExampleSizes("cobramk3-gfx", cx16SizeOptimized=7722, cx16SizeUnoptimized=10930),
             ExampleSizes("colorbars", cx16SizeOptimized=1606, cx16SizeUnoptimized=1904),
             ExampleSizes("cxlogo", cx16SizeOptimized=599, cx16SizeUnoptimized=895),
             ExampleSizes("diskspeed", cx16SizeOptimized=6298, cx16SizeUnoptimized=8376),
