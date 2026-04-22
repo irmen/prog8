@@ -83,6 +83,7 @@ This file contains general information and instructions about the Prog8 programm
 - **clobbers**: List all registers modified by the routine: `clobbers (A, X, Y)` or `clobbers (A, Y)`
 - **IMPORTANT: Parameter names in asmsub are NOT variables**: unlike regular subroutines, asmsub parameter names do NOT create subroutine parameter variables. The caller does NOT store values into variables; values are passed directly in registers. The parameter names are only for documentation. In the assembly code, you MUST use the registers specified in the signature.
 - **Symbolic aliases**: For clarity, create aliases at the start of assembly: `x1 = cx16.r0` or `x1_lo = cx16.r0L`. If you need to preserve register values, store them explicitly in BSS variables or zero-page locations.
+- **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 assembly instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
 - **Example**: 
   ```prog8
   asmsub line(uword x1 @R0, ubyte y1 @A, uword x2 @R1, ubyte y2 @Y) clobbers (A, X, Y) {
@@ -229,7 +230,7 @@ When writing assembly code (in `%asm` blocks or `asmsub`), you often need to ref
   ```
 
 ## Other Key differences from other languages (C, Python, etc.)
-- **type casting syntax**: Use `expression as <type>` to cast (e.g., `bytevar as word`, `(a+b) as uword`). This is required for type conversions.
+- **type casting syntax**: Use `expression as <type>` to cast (e.g., `bytevar as word`, `(a+b) as uword`). This is required for type conversions. Note that `as` has very low precedence, lower than arithmetic operators. So `a + b as long` is parsed as `(a + b) as long`. Use parentheses if you want to cast operands before an operation: `(a as long) * b`.
 - **no automatic type widening**: `byte*byte=byte` (may overflow!), `word*word=word`, etc. Explicitly cast operands: `word result = (bytevar as word) * 1000`. Hex literals with full width (e.g., `$0040`) also promote. Compiler does not warn by default. **Use `as <type>` for all casts.**
 - **no block scope**: `for`, `if/else` blocks do NOT introduce new scope. Only subroutines introduce scope. Variables declared anywhere in a subroutine are hoisted to the top.
 - **no bare blocks**: Prog8 does not have standalone `{ ... }` blocks like C/C++/Java. Control structures (`if/when/for/repeat`) provide grouping but NOT scoping; they cannot create temporary variable lifetimes. Only subroutines introduce scope.

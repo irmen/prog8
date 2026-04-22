@@ -729,6 +729,11 @@ Many type conversions are possible by just writing ``as <type>`` at the end of a
     f = 56.777
     ub = f as ubyte             ; ub will be 56
 
+.. note::
+    The ``as`` operator has very low precedence, lower than almost all other operators.
+    This means that ``a + b as long`` is parsed as ``(a + b) as long``.
+    Use parentheses if you want to cast an operand before an operation: ``(a as long) * b``.
+
 Sometimes it is a straight reinterpretation of the given value as being of the other type,
 sometimes an actual value conversion is done to convert it into the other type.
 Try to avoid those type conversions as much as possible.

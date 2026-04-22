@@ -1020,6 +1020,78 @@ Operators
 ---------
 .. index:: single: Operators
 
+The following table lists the operator precedence in Prog8, from highest to lowest.
+Operators on the same line have the same precedence.
+
+.. list-table:: Operator Precedence
+   :widths: 15 35 50
+   :header-rows: 1
+
+   * - Precedence
+     - Operator(s)
+     - Description
+   * - 1 (highest)
+     - ``( )``, ``sizeof``, ``sub(args)``
+     - Parentheses, size of, subroutine call
+   * - 2
+     - ``.``
+     - Member access / scope traversal
+   * - 3
+     - ``+``, ``-``, ``~`` (unary)
+     - Unary plus, unary minus, bitwise NOT
+   * - 4
+     - ``*``, ``/``, ``%``
+     - Multiplication, division, remainder
+   * - 5
+     - ``+``, ``-`` (binary)
+     - Addition, subtraction
+   * - 6
+     - ``<<``, ``>>``
+     - Bitwise shifts
+   * - 7
+     - ``&``
+     - Bitwise AND
+   * - 8
+     - ``^``
+     - Bitwise XOR
+   * - 9
+     - ``|``
+     - Bitwise OR
+   * - 10
+     - ``<``, ``>``, ``<=``, ``>=``
+     - Comparisons
+   * - 11
+     - ``==``, ``!=``
+     - Equality and inequality
+   * - 12
+     - ``to``, ``downto``
+     - Range creation
+   * - 13
+     - ``in``, ``not in``
+     - Containment check
+   * - 14
+     - ``not``
+     - Logical NOT
+   * - 15
+     - ``and``
+     - Logical AND
+   * - 16
+     - ``or``
+     - Logical OR
+   * - 17
+     - ``xor``
+     - Logical XOR
+   * - 18
+     - ``as``
+     - Type cast
+   * - 19
+     - ``if ... then ... else``
+     - If-expression
+   * - 20 (lowest)
+     - literals, identifiers, etc.
+     - Primary expressions (literals, variables, indexing, etc)
+
+
 arithmetic: ``+``  ``-``  ``*``  ``/``  ``%``
     ``+``, ``-``, ``*``, ``/`` are the familiar arithmetic operations.
     ``/`` is division (will result in integer division when using on integer operands, and a floating point division when at least one of the operands is a float)
@@ -1102,6 +1174,13 @@ address of:  ``&``,   ``&<``,   ``&>``,   ``&&``
     backward compatibility reasons, so existing programs keep working. The *double ampersand* ``&&`` operator
     however returns a *typed* pointer to the value. The semantics are slightly different because adding or subtracting
     a number from a typed pointer uses *pointer arithmetic* that takes the size of the value that it points to into account.
+
+
+type cast:  ``as``
+    Explicitly convert an expression to another data type.
+    Note that ``as`` has very low precedence, lower than most other operators.
+    This means that ``a + b as long`` is parsed as ``(a + b) as long``.
+    If you want to cast an operand before an operation, use parentheses: ``(a as long) * b``.
 
 
 ternary:
