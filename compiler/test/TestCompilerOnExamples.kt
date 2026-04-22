@@ -241,7 +241,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("snow", cx16SizeOptimized=3127, cx16SizeUnoptimized=5951),
             ExampleSizes("sortingbench", cx16SizeOptimized=2928, cx16SizeUnoptimized=3939),
             ExampleSizes("spotlight", cx16SizeOptimized=908, cx16SizeUnoptimized=1364),
-            ExampleSizes("starszoom", cx16SizeOptimized=2141, cx16SizeUnoptimized=5335),
+            ExampleSizes("starszoom", cx16SizeOptimized=2406, cx16SizeUnoptimized=5787),
             ExampleSizes("test_gfx_hires", cx16SizeOptimized=4867, cx16SizeUnoptimized=8208),
             ExampleSizes("test_gfx_lores", cx16SizeOptimized=5871, cx16SizeUnoptimized=7700),
             ExampleSizes("testmonogfx", cx16SizeOptimized=10526, cx16SizeUnoptimized=12006),

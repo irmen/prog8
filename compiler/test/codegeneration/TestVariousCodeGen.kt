@@ -456,10 +456,6 @@ main {
     }
 
     test("extsub with float return in multi-assign") {
-        // This test verifies the fix for the TODO:
-        // "deal with (multiple?) FP return registers"
-        // Previously this would throw NotImplementedError
-        // Tests both IR codegen (VMTarget) and 6502 codegen (Cx16Target)
         val src="""
 %import floats
 

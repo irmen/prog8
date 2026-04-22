@@ -992,38 +992,38 @@ trigonometry
     Calculate the angle, in a 256-degree circle, between two points in the positive quadrant.
 
 ``sin8u (x)``
-    Fast 8-bit ubyte sine.
+    Fast 8-bit ubyte sine using a lookup table.
     x = angle 0...2π scaled as 0...255. Result is unsigned, scaled as 0...255
 
 ``sin8 (x)``
-    Fast 8-bit byte sine.
+    Fast 8-bit byte sine using a lookup table.
     x = angle 0...2π scaled as 0...255. Result is signed, scaled as -127...127
 
 ``sinr8u (x)``
-    Fast 8-bit ubyte sine.
+    Fast 8-bit ubyte sine using a lookup table.
     x = angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is unsigned, scaled as 0...255.
     Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 
 ``sinr8 (x)``
-    Fast 8-bit byte sine.
+    Fast 8-bit byte sine using a lookup table.
     x = angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is signed, scaled as -127...127.
     Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 
 ``cos8u (x)``
-    Fast 8-bit ubyte cosine.
+    Fast 8-bit ubyte cosine using a lookup table.
     x = angle 0...2π scaled as 0...255. Result is unsigned, scaled as 0...255
 
 ``cos8 (x)``
-    Fast 8-bit byte cosine.
+    Fast 8-bit byte cosine using a lookup table.
     x = angle 0...2π scaled as 0...255. Result is signed, scaled as -127...127
 
 ``cosr8u (x)``
-    Fast 8-bit ubyte cosine.
+    Fast 8-bit ubyte cosine using a lookup table.
     x = angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is unsigned, scaled as 0...255.
     Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 
 ``cosr8 (x)``
-    Fast 8-bit byte cosine.
+    Fast 8-bit byte cosine using a lookup table.
     x = of angle 0...2π scaled as 0...179 (so each value increment is a 2° step). Result is signed, scaled as -127...127.
     Input values 180...255 lie outside of the valid input interval and will yield a garbage result!
 

@@ -1,9 +1,7 @@
 ; Animate a zooming star field.
 ; Rather than doing complicated 3d stuff, this simply uses polar coordinates.
 ; Every star lies along the circle and has a radius.
-; Movement is dictated by a random accelleration, which increases the speed, which increases the radius.
-
-; TODO extend the radius to a larger maximum (0-319 or perhaps 0-511, instead of 0-255) so that we can fill the whole screen.
+; Movement is dictated by a random acceleration, which increases the speed, which increases the radius.
 
 %import math
 %import palette
@@ -14,7 +12,7 @@ main {
     %option verafxmuls
 
     sub start() {
-        const ubyte NUM_STARS = 128                 ; maximum is 128.
+        const ubyte NUM_STARS = 128
         const ubyte CIRCLE_SKIP = 256/NUM_STARS
 
         ubyte[NUM_STARS] color
@@ -31,35 +29,47 @@ main {
         for star in 0 to NUM_STARS-1 {
             color[star] = star
             accel[star] = (math.rnd() & 15) | 1
-            radius[star] = mkword(math.rnd() & %11111000, 0)
-            speed[star] = 0   ; radius[star] >> 6           ;  a slow buildup of movement at the start is kinda nice I think, so we start with speed zero
+            radius[star] = mkword(math.randrange(210), 0)
+            speed[star] = 0
+            prev_y[star] = 255   ; mark as off-screen
         }
 
-        const uword angle = 0       ; if you make this a variable and increase it, the stars rotate.
+        ubyte rotation
 
         repeat {
             sys.waitvsync()
-            ;;palette.set_color(0, $400)
+            rotation += 1
+
             for star in NUM_STARS-1 downto 0 {
 
-                gfx_lores.plot(prev_x[star], prev_y[star], 0)
+                if prev_y[star] < 240 {
+                    gfx_lores.plot(prev_x[star], prev_y[star], 0)
+                }
 
-                cx16.r2L = star*CIRCLE_SKIP + msb(angle)
-                uword sx = (msb(math.sin8(cx16.r2L) as word * msb(radius[star])) + 128) as uword + 32
-                ubyte sy = (msb(math.cos8(cx16.r2L) as word * msb(radius[star])) + 120)
+                ; use scaling / 128 so that msb(radius) is approximately the pixel radius
+                ; added a rotation and radius-based angle offset for a tunnel/spiral effect
+                ubyte a = (star * CIRCLE_SKIP) + rotation + (msb(radius[star]) / 2)
+                word r_px = msb(radius[star])
+                word dx = (math.cos8(a) as word * r_px) / 128
+                word dy = (math.sin8(a) as word * r_px) / 128
 
-                prev_x[star] = sx
-                if sy<240 {
-                    prev_y[star] = sy
-                    gfx_lores.plot(sx, sy, color[star])
-                } else
-                    prev_y[star] = 0
+                word sx_w = dx + 160
+                word sy_w = dy + 120
 
-                if radius[star] > $fffe - speed[star] {
+                ; clipping so that we don't draw outside the screen.
+                if (sx_w as uword) < 320 and (sy_w as uword) < 240 {
+                    prev_x[star] = sx_w as uword
+                    prev_y[star] = sy_w as ubyte
+                    gfx_lores.plot(prev_x[star], prev_y[star], color[star])
+                } else {
+                    prev_y[star] = 255
+                }
+
+                if msb(radius[star]) > 210 {
                     ; reset star to center
                     accel[star] = (math.rnd() & 15) | 1
                     radius[star] = $0400 + accel[star] * 128
-                    speed[star] = 0  ; radius[star] >> 6
+                    speed[star] = 0
                     color[star] = math.rnd()
                 } else {
                     ; can still move more.
@@ -67,8 +77,6 @@ main {
                     speed[star] += accel[star]
                 }
             }
-            ;; angle += $0040
-            ;;palette.set_color(0, $000)
         }
     }
 }
