@@ -1,7 +1,9 @@
 package prog8.codegen.cpu6502.assignment
 
+import prog8.code.StConstant
 import prog8.code.ast.*
 import prog8.code.core.*
+import prog8.code.core.BaseDataType
 import prog8.codegen.cpu6502.AsmGen6502Internal
 
 
@@ -196,6 +198,19 @@ internal class AsmAssignSource(val kind: SourceStorageKind,
                     val parameter = asmgen.findSubroutineParameter(value.name, asmgen)
                     if(parameter?.definingAsmSub() != null)
                         throw AssemblyError("can't assign from a asmsub register parameter $value ${value.position}")
+
+                    // Check if this identifier is a constant with a value - if so, use the value directly instead of reading from memory
+                    val symbol = asmgen.symbolTable.lookup(value.name)
+                    if(symbol is StConstant && symbol.value != null) {
+                        val constValue = symbol.value!!
+                        val baseType = when(symbol.dt.base) {
+                            BaseDataType.POINTER -> BaseDataType.UWORD
+                            else -> symbol.dt.base
+                        }
+                        return AsmAssignSource(SourceStorageKind.LITERALNUMBER, program, asmgen, symbol.dt,
+                            number = PtNumber(baseType, constValue, value.position))
+                    }
+
                     val varName=asmgen.asmVariableName(value)
                     // special case: "cx16.r[0-15]" are 16-bits virtual registers of the commander X16 system
                     if(value.type.isUnsignedWord && varName.lowercase().startsWith("cx16.r")) {

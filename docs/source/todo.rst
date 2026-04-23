@@ -23,7 +23,6 @@ Future Things and Ideas
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
-- struct/ptr: support const pointers (simple and struct types) -> const-pointers branch
 - struct/ptr: implement the remaining TODOs in PointerAssignmentsGen.
 - struct/ptr: support pointer to pointer?
 - struct/ptr: support for typed function pointers, so that we can call them via functptr^^(args) maybe even without the ^^ operator?  (&routine could be typed by default as well then)
@@ -80,7 +79,7 @@ Libraries
 Optimizations
 -------------
 
-- COMPLICATED: recursive translateCondition() in IfElseAsmgen and IfExpressionAsmGen to mirror how the IR codegen now works.  This allows the compiler to generate branches directly from expressions without intermediate `LOAD #0/1` instructions. It handles complex logical trees by jumping to the appropriate labels based on the result of each sub-expression.
+- for const pointers: check that pointer arithmetic and indexing with constant index are const-folded
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time

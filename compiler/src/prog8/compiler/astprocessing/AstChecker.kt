@@ -973,10 +973,10 @@ internal class AstChecker(private val program: Program,
         if(decl.value?.referencesIdentifier(listOf(decl.name)) == true || decl.arraysize?.indexExpr?.referencesIdentifier(listOf(decl.name)) == true)
             err("recursive var declaration")
 
-        // CONST can only occur on simple types (byte, word, float)
+        // CONST can only occur on simple types (byte, word, float) and pointers
         if(decl.type==VarDeclType.CONST) {
-            if (!decl.datatype.isNumericOrBool)
-                err("const can only be used on numbers and booleans")
+            if (!decl.datatype.isNumericOrBool && !decl.datatype.isPointer)
+                err("const can only be used on numbers, booleans and pointers")
         }
 
         // FLOATS enabled?

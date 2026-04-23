@@ -322,24 +322,25 @@ internal class ConstantIdentifierReplacer(
     override fun after(identifier: IdentifierReference, parent: Node): Iterable<AstModification> {
         // replace identifiers that refer to const value, with the value itself
         // if it's a simple type and if it's not a left hand side variable
-        if(identifier.parent is AssignTarget || identifier.parent is Alias)
+        if (identifier.parent is AssignTarget || identifier.parent is Alias)
             return noModifications
         var forloop = identifier.parent as? ForLoop
-        if(forloop==null)
+        if (forloop == null)
             forloop = identifier.parent.parent as? ForLoop
-        if(forloop!=null && identifier===forloop.loopVar)
+        if (forloop != null && identifier === forloop.loopVar)
             return noModifications
 
         val dt = identifier.inferType(program)
-        if(!dt.isKnown || !dt.isNumeric && !dt.isBool)
+        if (!dt.isKnown || !(dt.isNumeric || dt.isBool || dt.isPointer))
             return noModifications
 
         // Special case: CONST variable holding memory() call - replace with the FunctionCallExpression itself
         // This must be checked BEFORE constValue() since memory() returns null from constValue()
         val targetNode = identifier.definingScope.lookup(identifier.nameInSource)
-        if(targetNode is VarDecl && targetNode.type == VarDeclType.CONST &&
-           targetNode.value is FunctionCallExpression &&
-           (targetNode.value as FunctionCallExpression).target.nameInSource == listOf("memory")) {
+        if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST &&
+            targetNode.value is FunctionCallExpression &&
+            (targetNode.value as FunctionCallExpression).target.nameInSource == listOf("memory")
+        ) {
             // Replace IdentifierReference with the memory() FunctionCallExpression
             // Update position to match the identifier's position (where it's used), not the original declaration
             val memCall = targetNode.value as FunctionCallExpression
@@ -348,11 +349,38 @@ internal class ConstantIdentifierReplacer(
                 memCall.args.map { it.copy() }.toMutableList(),
                 identifier.position  // Use the position where it's referenced, not where it was declared
             )
-            return listOf(AstReplaceNode(
-                identifier,
-                memCallWithNewPos,
-                identifier.parent
-            ))
+            return listOf(
+                AstReplaceNode(
+                    identifier,
+                    memCallWithNewPos,
+                    identifier.parent
+                )
+            )
+        }
+
+        // handle const pointers
+        if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST) {
+            val pointerValue = targetNode.value?.constValue(program)!!
+            if (isPartOfPointerArithmetic(identifier, dt)) {
+                // pointer is part of pointer arithmetic expression, must evaluate it.
+                // TODO do we do this here, or postpone it to ConstantFoldingOptimizer?
+                val binexpr = identifier.parent as? BinaryExpression
+                if (binexpr != null) {
+                    val constLeft = binexpr.left.constValue(program)
+                    val constRight = binexpr.right.constValue(program)
+                    when(binexpr.operator) {
+                        "-" -> {
+                            println("TODO: try to const-evaluate pointer arithmetic on a const pointer identifier: $identifier at ${identifier.position} pointer arithmetic expression = ${binexpr}")
+                        }
+                        "+" -> {
+                            println("TODO: try to const-evaluate pointer arithmetic on a const pointer identifier: $identifier at ${identifier.position} pointer arithmetic expression = ${binexpr}")
+                        }
+                    }
+                }
+            } else {
+                // pointer is not part of pointer arithmetic expression, can immediately replace it with its value
+                return listOf(AstReplaceNode(identifier, NumericLiteral(BaseDataType.UWORD, pointerValue.number, identifier.position), parent))
+            }
         }
 
         val cval = identifier.constValue(program) ?: return noModifications
@@ -384,9 +412,31 @@ internal class ConstantIdentifierReplacer(
                     )
                 )
             }
+            cval.type.isPointer -> {
+                return listOf(
+                    AstReplaceNode(
+                        identifier,
+                        NumericLiteral(BaseDataType.UWORD, cval.number!!, identifier.position),
+                        identifier.parent
+                    )
+                )
+            }
             cval.type.isPassByRef -> throw InternalCompilerException("pass-by-reference type should not be considered a constant")
             else -> return noModifications
         }
+    }
+
+    private fun isPartOfPointerArithmetic(identifier: IdentifierReference, dt: InferredTypes.InferredType): Boolean {
+        if(dt.isPointer) {
+            if (identifier.parent is ArrayIndexedExpression || identifier.parent is AddressOf)
+                return true
+
+            val binexpr = identifier.parent as? BinaryExpression
+            if (binexpr != null)
+                return binexpr.operator == "+" || binexpr.operator == "-"
+        }
+        
+        return false
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {

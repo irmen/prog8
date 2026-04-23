@@ -82,7 +82,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 StNode(node.name, StNodeType.BLOCK, node)
             }
             is PtConstant -> {
-                require(node.type.isNumericOrBool) {
+                require(node.type.isNumericOrBool || node.type.isPointer) {
                     "Constant '${node.name}' must have numeric or bool type at ${node.position}"
                 }
                 if(node.value != null)

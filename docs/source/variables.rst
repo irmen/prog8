@@ -203,7 +203,7 @@ Constants
 When using ``const``, the value of the 'variable' cannot be changed; it has become a compile-time constant value instead.
 You'll have to specify the initial value expression. This value is then used
 by the compiler everywhere you refer to the constant (and no memory is allocated
-for the constant itself). Onlythe simple numeric types (byte, word, long, float) can be defined as a constant.
+for the constant itself). Only the simple numeric types (byte, word, long, float) and pointer types can be defined as a constant.
 If something is defined as a constant, very efficient code can usually be generated from it.
 Variables on the other hand can't be optimized as much, need memory, and more code to manipulate them.
 Note that a subset of the library routines in the ``math``, ``strings`` and ``floats`` modules are recognised in

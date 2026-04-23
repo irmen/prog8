@@ -460,7 +460,24 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
         replacement.parent = this
     }
 
-    override fun constValue(program: Program): NumericLiteral? = null
+    override fun constValue(program: Program): NumericLiteral? {
+        // constant folding for pointer[constantIndex]
+        val deref = pointerderef
+        if (deref != null) {
+            val ptrConst = deref.constValue(program)
+            if (ptrConst != null) {
+                val constIndex = indexer.constIndex()
+                if (constIndex != null) {
+                    // Get the element size from the pointer type
+                    val ptrDt = deref.inferType(program).getOrUndef().base
+                    val elementSize = program.memsizer.memorySize(ptrDt)
+                    val address = ptrConst.number.toInt() + constIndex * elementSize
+                    return NumericLiteral(BaseDataType.UWORD, address.toDouble(), position)
+                }
+            }
+        }
+        return null
+    }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node)= visitor.visit(this, parent)
 

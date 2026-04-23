@@ -737,18 +737,31 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 )
             }
             VarDeclType.CONST -> {
-                if(srcVar.value is NumericLiteral)
-                    return PtConstant(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number, null, srcVar.position)
-                else if((srcVar.value as? IFunctionCall)?.target?.nameInSource == listOf("memory")) {
-                    val call = srcVar.value as IFunctionCall
-                    val slabname = (call.args[0] as StringLiteral).value
-                    val size = (call.args[1] as NumericLiteral).number.toUInt()
-                    val align = (call.args[2] as NumericLiteral).number.toUInt()
-                    val slab = StMemorySlab("memory_$slabname", size, align, null)
-                    return PtConstant(srcVar.name, srcVar.datatype, null, slab, srcVar.position)
+                when (val constVal = srcVar.value) {
+                    is NumericLiteral -> {
+                        return PtConstant(srcVar.name, srcVar.datatype, constVal.number, null, srcVar.position)
+                    }
+                    is AddressOf -> {
+                        val numericValue = constVal.constValue(program)?.number
+                        if(numericValue!=null) {
+                            return PtConstant(srcVar.name, srcVar.datatype, numericValue, null, srcVar.position)
+                        }
+                        throw FatalAstException("const pointer address could not be computed at ${srcVar.position}")
+                    }
+                    is IFunctionCall -> {
+                        if(constVal.target.nameInSource == listOf("memory")) {
+                            val call = constVal
+                            val slabname = (call.args[0] as StringLiteral).value
+                            val size = (call.args[1] as NumericLiteral).number.toUInt()
+                            val align = (call.args[2] as NumericLiteral).number.toUInt()
+                            val slab = StMemorySlab("memory_$slabname", size, align, null)
+                            return PtConstant(srcVar.name, srcVar.datatype, null, slab, srcVar.position)
+                        } else
+                            throw FatalAstException("const value must be a number, address-of, or memory function call")
+                    }
+                    else ->
+                        throw FatalAstException("const value must be a number, address-of, or memory function call")
                 }
-                else
-                    throw FatalAstException("const value must be a number or contant function call")
             }
             VarDeclType.MEMORY -> return PtMemMapped(srcVar.name, srcVar.datatype, (srcVar.value as NumericLiteral).number.toUInt(), srcVar.arraysize?.constIndex()?.toUInt(), srcVar.position)
         }

@@ -468,7 +468,7 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         val value: String = when {
             dt.isBool -> constant.value!!.toInt().toString()
             dt.isFloat -> constant.value!!.toString()
-            dt.isPointer -> TODO("constant pointer $constant")
+            dt.isPointer -> constant.value!!.toInt().toHex()
             dt.isInteger -> {
                 if(constant.value != null)
                     constant.value.toLong().toHex()

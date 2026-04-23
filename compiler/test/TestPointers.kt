@@ -696,24 +696,22 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
-    test("const pointer gives proper error") {
+    test("const pointer works correctly") {
         val src="""
 main {
     sub start() {
-        ^^uword @shared ptr = 7000
-        const ^^uword cptr = 8000
+        const ^^uword cptr = 8192
+        const ^^ubyte cbyteptr = 53248
 
-        ;ptr^^ = 12345
-        ;cptr^^ = 12345
-        
+        ; test reading the pointers
         cx16.r0 = cptr
-        cx16.r1 = ptr
+        cx16.r1 = cbyteptr
     }
 }"""
         val errors = ErrorReporterForTests()
-        compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = true) shouldBe null
-        errors.errors.size shouldBe 1
-        errors.errors[0] shouldContain("const can only be used on numbers and booleans")
+        val result = compileText(VMTarget(), false, src, outputDir, errors=errors, writeAssembly = true)
+        result shouldNotBe null
+        errors.errors.size shouldBe 0
     }
 
     test("unknown field") {

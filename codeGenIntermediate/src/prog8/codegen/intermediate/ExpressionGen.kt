@@ -54,16 +54,28 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             }
             is PtIdentifier -> {
                 val code = IRCodeChunk(null, null)
-                if (expr.type.isPassByValue) {
+                // Check if this identifier is a constant - if so, use LOAD instead of LOADM to get the constant value directly
+                val stNode = codeGen.symbolTable.lookup(expr.name)
+                val isConstant = stNode is StConstant && stNode.value != null
+
+                if (isConstant || expr.type.isPassByValue) {
                     val vmDt = irType(expr.type)
                     if(vmDt==IRDataType.FLOAT) {
                         val resultFpRegister = codeGen.registers.next(IRDataType.FLOAT)
-                        code += IRInstruction(Opcode.LOADM, vmDt, fpReg1 = RegisterNum(resultFpRegister), labelSymbol = expr.name)
+                        if (isConstant) {
+                            code += IRInstruction(Opcode.LOAD, vmDt, fpReg1 = RegisterNum(resultFpRegister), labelSymbol = expr.name)
+                        } else {
+                            code += IRInstruction(Opcode.LOADM, vmDt, fpReg1 = RegisterNum(resultFpRegister), labelSymbol = expr.name)
+                        }
                         ExpressionCodeResult(code, vmDt, -1, resultFpRegister)
                     }
                     else {
                         val resultRegister = codeGen.registers.next(vmDt)
-                        code += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
+                        if (isConstant) {
+                            code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
+                        } else {
+                            code += IRInstruction(Opcode.LOADM, vmDt, reg1 = resultRegister, labelSymbol = expr.name)
+                        }
                         ExpressionCodeResult(code, vmDt, resultRegister, -1)
                     }
                 } else {
