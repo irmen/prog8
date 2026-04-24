@@ -249,14 +249,14 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
         val result = compileText(VMTarget(), false, src, outputDir)!!
         val st = result.codegenAst!!.entrypoint()!!
-        st.children.size shouldBe 13
-        ((st.children[4] as PtAssignment).value as PtNumber).number shouldBe 2147483647
+        st.children.size shouldBe 12
+        ((st.children[3] as PtAssignment).value as PtNumber).number shouldBe 2147483647
+        ((st.children[4] as PtAssignment).value as PtNumber).number shouldBe -2147483648
         ((st.children[5] as PtAssignment).value as PtNumber).number shouldBe -2147483648
-        ((st.children[6] as PtAssignment).value as PtNumber).number shouldBe -2147483648
-        ((st.children[7] as PtAssignment).value as PtNumber).number shouldBe 2147483647
-        ((st.children[8] as PtAssignment).value as PtNumber).number shouldBe -1412623820
+        ((st.children[6] as PtAssignment).value as PtNumber).number shouldBe 2147483647
+        ((st.children[7] as PtAssignment).value as PtNumber).number shouldBe -1412623820
+        ((st.children[8] as PtAssignment).value as PtNumber).number shouldBe -2147483647
         ((st.children[9] as PtAssignment).value as PtNumber).number shouldBe -2147483647
-        ((st.children[10] as PtAssignment).value as PtNumber).number shouldBe -2147483647
-        ((st.children[11] as PtAssignment).value as PtNumber).number shouldBe -128
+        ((st.children[10] as PtAssignment).value as PtNumber).number shouldBe -128
     }
 })

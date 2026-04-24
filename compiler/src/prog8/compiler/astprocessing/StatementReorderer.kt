@@ -133,22 +133,23 @@ internal class StatementReorderer(
         for(stmt in following) {
             when(stmt) {
                 is Assignment -> {
-                    if (!stmt.isAugmentable) {
-                        val assignTargets = stmt.target.multi?.mapNotNull { it.identifier?.targetVarDecl() }
-                        if(assignTargets!=null) {
-                            if(decl in assignTargets) {
-                                stmt.origin = AssignmentOrigin.VARINIT
-                                return true
-                            }
-                        } else {
-                            val assignTgt = stmt.target.identifier?.targetVarDecl()
-                            if (assignTgt == decl) {
-                                stmt.origin = AssignmentOrigin.VARINIT
-                                return true
-                            }
+                    if (stmt.value.referencesIdentifier(listOf(decl.name)))
+                        return false
+                    val assignTargets = stmt.target.multi?.mapNotNull { it.identifier?.targetVarDecl() }
+                    if (assignTargets != null) {
+                        if (decl in assignTargets) {
+                            stmt.origin = AssignmentOrigin.VARINIT
+                            return true
+                        }
+                    } else {
+                        val assignTgt = stmt.target.identifier?.targetVarDecl()
+                        if (assignTgt == decl && !stmt.isAugmentable) {
+                            stmt.origin = AssignmentOrigin.VARINIT
+                            return true
                         }
                     }
-                    return false
+                    if (stmt.target.referencesIdentifier(listOf(decl.name)))
+                        return false
                 }
 
                 is ChainedAssignment -> {
@@ -165,9 +166,16 @@ internal class StatementReorderer(
                         }
                         chained = chained.nested as? ChainedAssignment
                     }
+                    if (stmt.referencesIdentifier(listOf(decl.name)))
+                        return false
                 }
 
                 is ForLoop -> return stmt.loopVar.nameInSource == listOf(decl.name)
+
+                is VarDecl -> {
+                    if (stmt.referencesIdentifier(listOf(decl.name)))
+                        return false
+                }
 
                 is IFunctionCall,
                 is Jump,

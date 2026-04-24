@@ -392,8 +392,11 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
                         val newDecl = VarDecl.builder(DataType.forDt(constValues[i].type), parent.position)
                             .copyFrom(parent)
                             .names(parent.names[i])
+                            .type(VarDeclType.CONST)
                             .value(constValues[i])
+                            .hasExplicitInitializer(true)
                             .build()
+                        newDecl.allowInitializeWithZero = false
                         mods.add(AstInsert.after(parent, newDecl, container))
                     }
                     mods.add(AstRemove(parent, container))

@@ -3,10 +3,9 @@ package prog8tests.compiler
 import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
-import io.kotest.matchers.collections.shouldBeEmpty
-import io.kotest.matchers.collections.shouldContain as shouldContainIn
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
@@ -15,14 +14,7 @@ import prog8.ast.ParentSentinel
 import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
-import prog8.code.ast.PtAssignTarget
-import prog8.code.ast.PtAssignment
-import prog8.code.ast.PtBinaryExpression
-import prog8.code.ast.PtBlock
-import prog8.code.ast.PtFunctionCall
-import prog8.code.ast.PtIdentifier
-import prog8.code.ast.PtNumber
-import prog8.code.ast.PtPrefix
+import prog8.code.ast.*
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
@@ -263,9 +255,9 @@ other {
             }
         """
         val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
-        result.compilerAst.entrypoint.statements.size shouldBe 8
+        result.compilerAst.entrypoint.statements.size shouldBe 6
         val alldecls = result.compilerAst.entrypoint.allDefinedSymbols.toList()
-        alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar_only_written", "usedvar")
+        alldecls.map { it.first } shouldBe listOf("unused_but_shared", "usedvar")
     }
 
     test("unused variable removal from subscope") {
@@ -374,7 +366,7 @@ other {
             }
         """
         val errors = ErrorReporterForTests(keepMessagesAfterReporting = true)
-        val result = compileText(C64Target(), optimize=true, src, outputDir, errors=errors, writeAssembly=false)!!
+        compileText(C64Target(), optimize=true, src, outputDir, errors=errors, writeAssembly=false)!!
         errors.warnings.size shouldBe 0
     }
 
@@ -391,7 +383,7 @@ other {
                 }
             }
         """
-        val result = compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
+        compileText(C64Target(), optimize=true, src, outputDir, writeAssembly=false)!!
         // 'a' should NOT be replaced by '10' or '20' if it's not constant.
         // Actually, since there are two writes (init and a=20), ConstantIdentifierReplacer won't replace it anyway.
         // What if there's only ONE write?
@@ -639,9 +631,9 @@ main {
         xx += 6
          */
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 7
+        stmts.size shouldBe 8
         stmts.filterIsInstance<VarDecl>().size shouldBe 3
-        stmts.filterIsInstance<Assignment>().size shouldBe 3
+        stmts.filterIsInstance<Assignment>().size shouldBe 4
     }
 
     test("only substitue assignments with 0 after a =0 initializer if it is the same variable") {
@@ -668,13 +660,13 @@ main {
         xx += 10
          */
         val stmts = result.compilerAst.entrypoint.statements
-        stmts.size shouldBe 8
+        stmts.size shouldBe 7
         stmts.filterIsInstance<VarDecl>().size shouldBe 2
-        stmts.filterIsInstance<Assignment>().size shouldBe 5
+        stmts.filterIsInstance<Assignment>().size shouldBe 4
         val assignXX1 = stmts[1] as Assignment
         assignXX1.target.identifier!!.nameInSource shouldBe listOf("xx")
         assignXX1.value shouldBe NumericLiteral(BaseDataType.UWORD, 20.0, Position.DUMMY)
-        val assignXX2 = stmts[6] as Assignment
+        val assignXX2 = stmts[5] as Assignment
         assignXX2.target.identifier!!.nameInSource shouldBe listOf("xx")
         val xxValue = assignXX2.value as BinaryExpression
         xxValue.operator shouldBe "+"
@@ -1862,11 +1854,12 @@ main {
         """.trimIndent()
         val result = compileText(VMTarget(), true, srcWithoutInit, outputDir)!!
         val startSub = result.compilerAst.entrypoint
+        // 'a' should now be a CONST so there are no assignments to it anymore
         val assignments = startSub.statements.filterIsInstance<Assignment>()
-        // There should be only one assignment to 'a' (the USERCODE one, a=10)
-        // The VARINIT assignment (a=0) should have been removed.
-        assignments.filter { it.target.identifier?.nameInSource?.singleOrNull() == "a" }.size shouldBe 1
-        assignments.find { it.target.identifier?.nameInSource?.singleOrNull() == "a" }!!.value.constValue(result.compilerAst)!!.number shouldBe 10.0
+        assignments.filter { it.target.identifier?.nameInSource?.singleOrNull() == "a" }.size shouldBe 0
+        val aDecl = startSub.allDefinedSymbols.find { it.first == "a" }!!.second as VarDecl
+        aDecl.type shouldBe VarDeclType.CONST
+        aDecl.value!!.constValue(result.compilerAst)!!.number shouldBe 10.0
     }
 
     test("inline keyword on regular subroutine") {

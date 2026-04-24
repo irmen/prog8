@@ -332,22 +332,20 @@ main {
 }"""
         val result = compileText(VMTarget(), false, src, outputDir, writeAssembly = false)!!
         val st = result.compilerAst.entrypoint.statements
-        st.size shouldBe 27
+        st.size shouldBe 25
 
-        val a_zz = (st[20] as Assignment).value
+        val a_zz = (st[18] as Assignment).value
         a_zz shouldBe instanceOf<FunctionCallExpression>()
-        val a_fl = (st[21] as Assignment).value
+        val a_fl = (st[19] as Assignment).value
         a_fl shouldBe instanceOf<FunctionCallExpression>()
-        val a_bb = (st[22] as Assignment).value
+        val a_bb = (st[20] as Assignment).value
         a_bb shouldBe instanceOf<DirectMemoryRead>()
-        val a_r0 = (st[23] as Assignment).value
+        val a_r0 = (st[21] as Assignment).value
         a_r0 shouldBe instanceOf<DirectMemoryRead>()
-        val a_r1 = (st[24] as Assignment).value
+        val a_r1 = (st[22] as Assignment).value
         a_r1 shouldBe instanceOf<DirectMemoryRead>()
-        val a_r2 = (st[25] as Assignment).value
+        val a_r2 = (st[23] as Assignment).value
         a_r2 shouldBe instanceOf<ArrayIndexedExpression>()
-        val a_lptr2 = (st[25] as Assignment).value
-        a_lptr2 shouldBe instanceOf<ArrayIndexedExpression>()
     }
 
     test("block scoping still parsed correctly") {
