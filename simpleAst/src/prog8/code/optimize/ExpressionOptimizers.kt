@@ -134,10 +134,17 @@ internal object ExpressionOptimizers {
                                 node.parent.setChild(index, shift)
                                 changes++
                             } else if (rightConst in negativePowersOfTwoFloat) {
-                                TODO("x * negative power-of-two -> bitshift  ${node.position}")
+                                val numshifts = log2(-rightConst!!)
+                                val negation = PtPrefix("-", node.left.type, node.position)
+                                negation.add(node.left)
+                                val shift = PtBinaryExpression("<<", node.type, node.position)
+                                shift.add(negation)
+                                shift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
+                                shift.parent = node.parent
+                                val index = node.parent.children.indexOf(node)
+                                node.parent.setChild(index, shift)
+                                changes++
                             }
-                        } else if (!node.right.type.isFloat && rightConst in negativePowersOfTwoFloat) {
-                            TODO("x * negative power-of-two -> bitshift  ${node.position}")
                         }
                     }
                     "/" -> {

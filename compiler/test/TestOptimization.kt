@@ -17,8 +17,12 @@ import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.code.ast.PtAssignTarget
 import prog8.code.ast.PtAssignment
+import prog8.code.ast.PtBinaryExpression
+import prog8.code.ast.PtBlock
 import prog8.code.ast.PtFunctionCall
 import prog8.code.ast.PtIdentifier
+import prog8.code.ast.PtNumber
+import prog8.code.ast.PtPrefix
 import prog8.code.core.BaseDataType
 import prog8.code.core.DataType
 import prog8.code.core.Position
@@ -1889,5 +1893,36 @@ main {
         // The original foo() call should be gone
         val fooCall = startSub.statements.any { it is FunctionCallStatement && it.target.nameInSource.last() == "foo" }
         fooCall shouldBe false
+    }
+    test("multiplication by negative power of two (simpleAst)") {
+        val src = """
+            main {
+                sub start() {
+                    word @shared x = 10
+                    word y1 = x * -2
+                    word y2 = x * -4
+                    word y3 = -8 * x
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, src, outputDir)!!
+        val sub = result.codegenAst!!.entrypoint()!!
+        val assignments = sub.children.filterIsInstance<PtAssignment>()
+
+        val y1 = assignments.find { it.target.identifier?.name?.endsWith("y1") == true }!!.value as PtBinaryExpression
+        val y2 = assignments.find { it.target.identifier?.name?.endsWith("y2") == true }!!.value as PtBinaryExpression
+        val y3 = assignments.find { it.target.identifier?.name?.endsWith("y3") == true }!!.value as PtBinaryExpression
+
+        y1.operator shouldBe "<<"
+        (y1.left as PtPrefix).operator shouldBe "-"
+        (y1.right as PtNumber).number shouldBe 1.0
+
+        y2.operator shouldBe "<<"
+        (y2.left as PtPrefix).operator shouldBe "-"
+        (y2.right as PtNumber).number shouldBe 2.0
+
+        y3.operator shouldBe "<<"
+        (y3.left as PtPrefix).operator shouldBe "-"
+        (y3.right as PtNumber).number shouldBe 3.0
     }
 })
