@@ -1256,38 +1256,50 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun loadStatusAsBooleanResult(branchForTrue: Opcode, result: MutableList<IRCodeChunkBase>): Int {
-        val after = codeGen.createLabelName()
+        val labelTrue = codeGen.createLabelName()
+        val labelDone = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
-            it += IRInstruction(branchForTrue, labelSymbol = after)
+            it += IRInstruction(branchForTrue, labelSymbol = labelTrue)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
+            it += IRInstruction(Opcode.JUMP, labelSymbol = labelDone)
         }
-        result += IRCodeChunk(after, null)
+        result += IRCodeChunk(labelTrue, null).also {
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+        }
+        result += IRCodeChunk(labelDone, null)
         return resultReg
     }
 
     private fun compareRegisterAsBooleanResult(branchForTrue: Opcode, dt: IRDataType, reg1: Int, reg2: Int, result: MutableList<IRCodeChunkBase>): Int {
-        val after = codeGen.createLabelName()
+        val labelTrue = codeGen.createLabelName()
+        val labelDone = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
-            it += IRInstruction(branchForTrue, dt, reg1 = reg1, reg2 = reg2, labelSymbol = after)
+            it += IRInstruction(branchForTrue, dt, reg1 = reg1, reg2 = reg2, labelSymbol = labelTrue)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
+            it += IRInstruction(Opcode.JUMP, labelSymbol = labelDone)
         }
-        result += IRCodeChunk(after, null)
+        result += IRCodeChunk(labelTrue, null).also {
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+        }
+        result += IRCodeChunk(labelDone, null)
         return resultReg
     }
 
     private fun compareImmediateAsBooleanResult(branchForTrue: Opcode, dt: IRDataType, reg1: Int, immediate: Int, result: MutableList<IRCodeChunkBase>): Int {
-        val after = codeGen.createLabelName()
+        val labelTrue = codeGen.createLabelName()
+        val labelDone = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
-            it += IRInstruction(branchForTrue, dt, reg1 = reg1, immediate = immediate, labelSymbol = after)
+            it += IRInstruction(branchForTrue, dt, reg1 = reg1, immediate = immediate, labelSymbol = labelTrue)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
+            it += IRInstruction(Opcode.JUMP, labelSymbol = labelDone)
         }
-        result += IRCodeChunk(after, null)
+        result += IRCodeChunk(labelTrue, null).also {
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+        }
+        result += IRCodeChunk(labelDone, null)
         return resultReg
     }
 

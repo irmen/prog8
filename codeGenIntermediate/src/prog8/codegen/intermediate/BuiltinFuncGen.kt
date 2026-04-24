@@ -565,40 +565,33 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
                 }
             }
         } else {
+            val valueTr = exprGen.translateExpression(call.args[1])
             if (call.args[0] is PtNumber) {
-                // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
                 val address = (call.args[0] as PtNumber).number.toUInt()
-                val tr = exprGen.translateExpression(call.args[1])
+                addToResult(result, valueTr, valueTr.resultReg, valueTr.resultFpReg)
                 if(dt==IRDataType.FLOAT) {
-                    addToResult(result, tr, -1, tr.resultFpReg)
-                    addInstr(result, IRInstruction(Opcode.STOREM, dt, fpReg1 = RegisterNum(tr.resultFpReg), address = address.toAddress()), null)
+                    addInstr(result, IRInstruction(Opcode.STOREM, dt, fpReg1 = RegisterNum(valueTr.resultFpReg), address = address.toAddress()), null)
                 } else {
-                    addToResult(result, tr, tr.resultReg, -1)
-                    addInstr(result, IRInstruction(Opcode.STOREM, dt, reg1 = tr.resultReg, address = address.toAddress()), null)
+                    addInstr(result, IRInstruction(Opcode.STOREM, dt, reg1 = valueTr.resultReg, address = address.toAddress()), null)
                 }
             } else {
-                // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
                 val (address, offset) = exprGen.getAddressAndOffset(call.args[0])
                 if(address!=null) {
                     val addressTr = exprGen.translateExpression(address)
+                    addToResult(result, valueTr, valueTr.resultReg, valueTr.resultFpReg)
                     addToResult(result, addressTr, addressTr.resultReg, -1)
-                    val valueTr = exprGen.translateExpression(call.args[1])
                     if(dt==IRDataType.FLOAT) {
-                        addToResult(result, valueTr, -1, valueTr.resultFpReg)
                         addInstr(result, IRInstruction(Opcode.STOREI, IRDataType.FLOAT, reg1 = addressTr.resultReg, fpReg1 = RegisterNum(valueTr.resultFpReg), immediate = offset!!), null)
                     } else {
-                        addToResult(result, valueTr, valueTr.resultReg, -1)
                         addInstr(result, IRInstruction(Opcode.STOREI, dt, reg1 = valueTr.resultReg, reg2 = addressTr.resultReg, immediate = offset!!), null)
                     }
                 } else {
                     val addressTr = exprGen.translateExpression(call.args[0])
+                    addToResult(result, valueTr, valueTr.resultReg, valueTr.resultFpReg)
                     addToResult(result, addressTr, addressTr.resultReg, -1)
-                    val valueTr = exprGen.translateExpression(call.args[1])
                     if(dt==IRDataType.FLOAT) {
-                        addToResult(result, valueTr, -1, valueTr.resultFpReg)
                         addInstr(result, IRInstruction(Opcode.STOREI, IRDataType.FLOAT, reg1 = addressTr.resultReg, fpReg1 = RegisterNum(valueTr.resultFpReg), immediate = 0), null)
                     } else {
-                        addToResult(result, valueTr, valueTr.resultReg, -1)
                         addInstr(result, IRInstruction(Opcode.STOREI, dt, reg1 = valueTr.resultReg, reg2 = addressTr.resultReg, immediate = 0), null)
                     }
                 }
@@ -641,47 +634,36 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
     private fun funcPokemon(call: PtFunctionCall): ExpressionCodeResult {
         val result = mutableListOf<IRCodeChunkBase>()
         val address = call.args[0]
+        val newValue = call.args[1]
 
-        fun pokeM(result: MutableList<IRCodeChunkBase>, address: UInt, value: PtExpression) {
-            if(codeGen.isZero(value)) {
-                addInstr(result, IRInstruction(Opcode.STOREZM, IRDataType.BYTE, address = address.toAddress()), null)
-            } else {
-                val tr = exprGen.translateExpression(value)
-                addToResult(result, tr, tr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = tr.resultReg, address = address.toAddress()), null)
-            }
-        }
+        val newValueTr = if (codeGen.isZero(newValue)) null else exprGen.translateExpression(newValue)
 
-        fun pokeI(result: MutableList<IRCodeChunkBase>, register: Int, value: PtExpression, offset: Int) {
-            if(codeGen.isZero(value)) {
-                addInstr(result, IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = register, immediate = offset), null)
-            } else {
-                val valueTr = exprGen.translateExpression(value)
-                addToResult(result, valueTr, valueTr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = valueTr.resultReg, reg2 = register, immediate = offset), null)
-            }
-        }
-
-        // TODO first evaluate the expression value to store, then the address (easier peephole optimization later)
-        return if(address is PtNumber) {
-            val resultRegister = codeGen.registers.next(IRDataType.BYTE)
+        return if (address is PtNumber) {
             val addressNum = address.number.toUInt()
+            val resultRegister = codeGen.registers.next(IRDataType.BYTE)
+            if (newValueTr != null) addToResult(result, newValueTr, newValueTr.resultReg, -1)
             addInstr(result, IRInstruction(Opcode.LOADM, IRDataType.BYTE, reg1 = resultRegister, address = addressNum.toAddress()), null)
-            pokeM(result, addressNum, call.args[1])
+            if (newValueTr == null) {
+                addInstr(result, IRInstruction(Opcode.STOREZM, IRDataType.BYTE, address = addressNum.toAddress()), null)
+            } else {
+                addInstr(result, IRInstruction(Opcode.STOREM, IRDataType.BYTE, reg1 = newValueTr.resultReg, address = addressNum.toAddress()), null)
+            }
             ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
         } else {
             val resultReg = codeGen.registers.next(IRDataType.BYTE)
-            val(baseaddress, offset) = exprGen.getAddressAndOffset(address)
-            if(baseaddress!=null) {
-                val addressTr = exprGen.translateExpression(baseaddress)
-                addToResult(result, addressTr, addressTr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = addressTr.resultReg, immediate = offset!!), null)
-                pokeI(result, addressTr.resultReg, call.args[1], offset)
+            val (baseaddress, offset) = exprGen.getAddressAndOffset(address)
+            val addrExpr = baseaddress ?: address
+            val finalOffset = if (baseaddress != null) offset!! else 0
+
+            val addressTr = exprGen.translateExpression(addrExpr)
+            if (newValueTr != null) addToResult(result, newValueTr, newValueTr.resultReg, -1)
+            addToResult(result, addressTr, addressTr.resultReg, -1)
+
+            addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = addressTr.resultReg, immediate = finalOffset), null)
+            if (newValueTr == null) {
+                addInstr(result, IRInstruction(Opcode.STOREZI, IRDataType.BYTE, reg1 = addressTr.resultReg, immediate = finalOffset), null)
             } else {
-                val addressTr = exprGen.translateExpression(address)
-                addToResult(result, addressTr, addressTr.resultReg, -1)
-                addInstr(result, IRInstruction(Opcode.LOADI, IRDataType.BYTE, reg1 = resultReg, reg2 = addressTr.resultReg, immediate = 0), null)
-                pokeI(result, addressTr.resultReg, call.args[1], 0)
+                addInstr(result, IRInstruction(Opcode.STOREI, IRDataType.BYTE, reg1 = newValueTr.resultReg, reg2 = addressTr.resultReg, immediate = finalOffset), null)
             }
             ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         }
