@@ -13,59 +13,60 @@ import prog8.code.core.Position
 import prog8.code.core.isInteger
 import kotlin.math.*
 
-// NOTE: at this time this machinery only supports 1 return value
-private typealias ConstExpressionCaller = (args: List<Expression>, position: Position, program: Program) -> NumericLiteral
-
 // Maps builtin functions to constant evaluators for compile-time execution
-// TODO: add support for builtin functions that return multiple return values (such as divmod and lmh)
-internal val constEvaluatorsForBuiltinFuncs: Map<String, ConstExpressionCaller> = mapOf(
-    "abs__byte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() } },
-    "abs__word" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() } },
-    "abs__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() } },
-    "abs__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) { abs(it) } },
-    "len" to ::builtinLen,
-    "sizeof" to ::builtinSizeof,
-    "offsetof" to ::builtinOffsetof,
-    "sgn" to ::builtinSgn,
-    "sqrt__ubyte" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
-    "sqrt__uword" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) } },
-    "sqrt__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, false) {
+internal val constEvaluatorsForBuiltinFuncs: Map<String, (args: List<Expression>, position: Position, program: Program) -> List<NumericLiteral>> = mapOf(
+    "abs__byte" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() }) },
+    "abs__word" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() }) },
+    "abs__long" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { abs(it).toDouble() }) },
+    "abs__float" to { a, p, prg -> listOf(oneFloatArgOutputFloat(a, p, prg) { abs(it) }) },
+    "len" to { a, p, prg -> listOf(builtinLen(a, p, prg)) },
+    "sizeof" to { a, p, prg -> listOf(builtinSizeof(a, p, prg)) },
+    "offsetof" to { a, p, prg -> listOf(builtinOffsetof(a, p, prg)) },
+    "sgn" to { a, p, prg -> listOf(builtinSgn(a, p, prg)) },
+    "sqrt__ubyte" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) }) },
+    "sqrt__uword" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, false) { sqrt(it.toDouble()) }) },
+    "sqrt__long" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, false) {
         val value=it.toDouble()
         if(value<0)
             throw CannotEvaluateException("sqrt", "argument cannot be negative")
         else
             sqrt(value)
-    } },
-    "sqrt__float" to { a, p, prg -> oneFloatArgOutputFloat(a, p, prg) {
+    }) },
+    "sqrt__float" to { a, p, prg -> listOf(oneFloatArgOutputFloat(a, p, prg) {
         if(it<0)
             throw CannotEvaluateException("sqrt", "argument cannot be negative")
         else
             sqrt(it)
-    } },
-    "lsb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() } },
-    "lsb__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() } },
-    "lsw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 65535).toDouble() } },
-    "msb" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()} },
-    "msb__long" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 24 and 255).toDouble()} },
-    "msw" to { a, p, prg -> oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 16 and 65535).toDouble()} },
-    "mkword" to ::builtinMkword,
-    "mklong" to ::builtinMklong,
-    "mklong2" to ::builtinMklong,
-    "clamp__ubyte" to ::builtinClampUByte,
-    "clamp__byte" to ::builtinClampByte,
-    "clamp__uword" to ::builtinClampUWord,
-    "clamp__word" to ::builtinClampWord,
-    "clamp__long" to ::builtinClampLong,
-    "min__ubyte" to ::builtinMinUByte,
-    "min__byte" to ::builtinMinByte,
-    "min__uword" to ::builtinMinUWord,
-    "min__word" to ::builtinMinWord,
-    "min__long" to ::builtinMinLong,
-    "max__ubyte" to ::builtinMaxUByte,
-    "max__byte" to ::builtinMaxByte,
-    "max__uword" to ::builtinMaxUWord,
-    "max__word" to ::builtinMaxWord,
-    "max__long" to ::builtinMaxLong
+    }) },
+    "lsb" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() }) },
+    "lsb__long" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 255).toDouble() }) },
+    "lsw" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x and 65535).toDouble() }) },
+    "msb" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 8 and 255).toDouble()}) },
+    "msb__long" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 24 and 255).toDouble()}) },
+    "msw" to { a, p, prg -> listOf(oneIntArgOutputInt(a, p, prg, true) { x: Int -> (x ushr 16 and 65535).toDouble()}) },
+    "mkword" to { a, p, prg -> listOf(builtinMkword(a, p, prg)) },
+    "mklong" to { a, p, prg -> listOf(builtinMklong(a, p, prg)) },
+    "mklong2" to { a, p, prg -> listOf(builtinMklong(a, p, prg)) },
+    "clamp__ubyte" to { a, p, prg -> listOf(builtinClampUByte(a, p, prg)) },
+    "clamp__byte" to { a, p, prg -> listOf(builtinClampByte(a, p, prg)) },
+    "clamp__uword" to { a, p, prg -> listOf(builtinClampUWord(a, p, prg)) },
+    "clamp__word" to { a, p, prg -> listOf(builtinClampWord(a, p, prg)) },
+    "clamp__long" to { a, p, prg -> listOf(builtinClampLong(a, p, prg)) },
+    "min__ubyte" to { a, p, prg -> listOf(builtinMinUByte(a, p, prg)) },
+    "min__byte" to { a, p, prg -> listOf(builtinMinByte(a, p, prg)) },
+    "min__uword" to { a, p, prg -> listOf(builtinMinUWord(a, p, prg)) },
+    "min__word" to { a, p, prg -> listOf(builtinMinWord(a, p, prg)) },
+    "min__long" to { a, p, prg -> listOf(builtinMinLong(a, p, prg)) },
+    "max__ubyte" to { a, p, prg -> listOf(builtinMaxUByte(a, p, prg)) },
+    "max__byte" to { a, p, prg -> listOf(builtinMaxByte(a, p, prg)) },
+    "max__uword" to { a, p, prg -> listOf(builtinMaxUWord(a, p, prg)) },
+    "max__word" to { a, p, prg -> listOf(builtinMaxWord(a, p, prg)) },
+    "max__long" to { a, p, prg -> listOf(builtinMaxLong(a, p, prg)) },
+    "lmh" to ::builtinLmh,
+    "divmod__ubyte" to ::builtinDivmodUByte,
+    "divmod__uword" to ::builtinDivmodUWord,
+    "divmod__byte" to ::builtinDivmodByte,
+    "divmod__word" to ::builtinDivmodWord
 )
 
 internal fun builtinFunctionReturnTypes(function: String): Array<InferredTypes.InferredType> {
@@ -397,3 +398,63 @@ private fun builtinClampLong(args: List<Expression>, position: Position, program
     return NumericLiteral(BaseDataType.LONG, result, position)
 }
 
+
+private fun builtinLmh(args: List<Expression>, position: Position, program: Program): List<NumericLiteral> {
+    if (args.size != 1)
+        throw SyntaxError("lmh requires 1 argument", position)
+    val constval = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val value = constval.number.toLong()
+    return listOf(
+        NumericLiteral(BaseDataType.UBYTE, (value and 0xff).toDouble(), position),
+        NumericLiteral(BaseDataType.UBYTE, ((value shr 8) and 0xff).toDouble(), position),
+        NumericLiteral(BaseDataType.UBYTE, ((value shr 16) and 0xff).toDouble(), position)
+    )
+}
+
+private fun builtinDivmodUByte(args: List<Expression>, position: Position, program: Program): List<NumericLiteral> {
+    if (args.size != 2)
+        throw SyntaxError("divmod requires 2 arguments", position)
+    val v1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val v2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    if (v2.number.toInt() == 0) throw CannotEvaluateException("divmod", "division by zero")
+    return listOf(
+        NumericLiteral(BaseDataType.UBYTE, (v1.number.toInt() / v2.number.toInt()).toDouble(), position),
+        NumericLiteral(BaseDataType.UBYTE, (v1.number.toInt() % v2.number.toInt()).toDouble(), position)
+    )
+}
+
+private fun builtinDivmodUWord(args: List<Expression>, position: Position, program: Program): List<NumericLiteral> {
+    if (args.size != 2)
+        throw SyntaxError("divmod requires 2 arguments", position)
+    val v1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val v2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    if (v2.number.toInt() == 0) throw CannotEvaluateException("divmod", "division by zero")
+    return listOf(
+        NumericLiteral(BaseDataType.UWORD, (v1.number.toInt() / v2.number.toInt()).toDouble(), position),
+        NumericLiteral(BaseDataType.UWORD, (v1.number.toInt() % v2.number.toInt()).toDouble(), position)
+    )
+}
+
+private fun builtinDivmodByte(args: List<Expression>, position: Position, program: Program): List<NumericLiteral> {
+    if (args.size != 2)
+        throw SyntaxError("divmod requires 2 arguments", position)
+    val v1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val v2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    if (v2.number.toInt() == 0) throw CannotEvaluateException("divmod", "division by zero")
+    return listOf(
+        NumericLiteral(BaseDataType.BYTE, (v1.number.toInt() / v2.number.toInt()).toDouble(), position),
+        NumericLiteral(BaseDataType.BYTE, (v1.number.toInt() % v2.number.toInt()).toDouble(), position)
+    )
+}
+
+private fun builtinDivmodWord(args: List<Expression>, position: Position, program: Program): List<NumericLiteral> {
+    if (args.size != 2)
+        throw SyntaxError("divmod requires 2 arguments", position)
+    val v1 = args[0].constValue(program) ?: throw NotConstArgumentException()
+    val v2 = args[1].constValue(program) ?: throw NotConstArgumentException()
+    if (v2.number.toInt() == 0) throw CannotEvaluateException("divmod", "division by zero")
+    return listOf(
+        NumericLiteral(BaseDataType.WORD, (v1.number.toInt() / v2.number.toInt()).toDouble(), position),
+        NumericLiteral(BaseDataType.WORD, (v1.number.toInt() % v2.number.toInt()).toDouble(), position)
+    )
+}

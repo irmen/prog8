@@ -4,10 +4,7 @@ import prog8.ast.*
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
-import prog8.code.core.AssociativeOperators
-import prog8.code.core.BaseDataType
-import prog8.code.core.IErrorReporter
-import prog8.code.core.isInteger
+import prog8.code.core.*
 import kotlin.math.floor
 
 
@@ -374,29 +371,33 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
     }
 
     override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
-        if(functionCallExpr.target.nameInSource == listOf("lmh")) {
-            // builtin that returns 3 values instead of 1
-            if(functionCallExpr.args.size==1) {
-                val constArg = functionCallExpr.args[0].constValue(program)?.number?.toLong()
-                if(constArg!=null) {
-                    val assign = parent as? Assignment
-                    if(assign!=null && assign.target.multi?.size==3) {
-                        val low = constArg and 255
-                        val mid = (constArg shr 8) and 255
-                        val high = (constArg shr 16) and 255
-                        val assignLow = Assignment(assign.target.multi!![0], NumericLiteral(BaseDataType.UBYTE, low.toDouble(), assign.position),AssignmentOrigin.USERCODE, assign.position)
-                        val assignMid = Assignment(assign.target.multi!![1], NumericLiteral(BaseDataType.UBYTE, mid.toDouble(), assign.position), AssignmentOrigin.USERCODE, assign.position)
-                        val assignHigh = Assignment(assign.target.multi!![2], NumericLiteral(BaseDataType.UBYTE, high.toDouble(), assign.position), AssignmentOrigin.USERCODE, assign.position)
-                        return listOf(
-                            AstInsert.after(assign, assignHigh, assign.parent as IStatementContainer),
-                            AstInsert.after(assign, assignMid, assign.parent as IStatementContainer),
-                            AstInsert.after(assign, assignLow, assign.parent as IStatementContainer),
-                            AstRemove(assign, assign.parent as IStatementContainer)
-                        )
-                    } else {
-                        errors.info("constant lmh expression can be replaced by 3 separate constant byte values", functionCallExpr.position)
+        val constValues = functionCallExpr.constValues(program)
+        if (constValues != null) {
+            if (constValues.size == 1) {
+                return listOf(AstReplaceNode(functionCallExpr, constValues[0], parent))
+            } else {
+                // Multi-value return
+                val container = parent.parent as? IStatementContainer ?: return noModifications
+                if (parent is Assignment && parent.target.multi?.size == constValues.size) {
+                    val mods = mutableListOf<AstModification>()
+                    for (i in constValues.indices.reversed()) {
+                        val assign = Assignment(parent.target.multi!![i], constValues[i], AssignmentOrigin.USERCODE, parent.position)
+                        mods.add(AstInsert.after(parent, assign, container))
                     }
-                    return noModifications
+                    mods.add(AstRemove(parent, container))
+                    return mods
+                } else if (parent is VarDecl && parent.names.size == constValues.size) {
+                    val mods = mutableListOf<AstModification>()
+                    for (i in constValues.indices.reversed()) {
+                        val newDecl = VarDecl.builder(DataType.forDt(constValues[i].type), parent.position)
+                            .copyFrom(parent)
+                            .names(parent.names[i])
+                            .value(constValues[i])
+                            .build()
+                        mods.add(AstInsert.after(parent, newDecl, container))
+                    }
+                    mods.add(AstRemove(parent, container))
+                    return mods
                 }
             }
         }

@@ -8,6 +8,7 @@ import prog8.code.core.Position
 interface IBuiltinFunctions {
     val names: Set<String>
     val purefunctionNames: Set<String>
-    fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral?
+    fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral? = constValues(funcName, args, position)?.singleOrNull()
+    fun constValues(funcName: String, args: List<Expression>, position: Position): List<NumericLiteral>?
     fun returnTypes(funcName: String): Array<InferredTypes.InferredType>
 }

@@ -6,6 +6,7 @@ import io.kotest.inspectors.shouldForAll
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
+import io.kotest.matchers.string.shouldNotContain
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.Assignment
 import prog8.ast.statements.FunctionCallStatement
@@ -169,6 +170,37 @@ main {
         compileText(VMTarget(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(Cx16Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("divmod and lmh should be compile time folded") {
+        val src="""
+main {
+    ubyte @shared d, r, l, m, h
+    sub start() {
+        d, r = divmod(100, 13)
+        l, m, h = lmh(123456)
+    }
+}"""
+        val result = compileText(C64Target(), true, src, outputDir, writeAssembly = false)!!
+        val statements = result.compilerAst.entrypoint.statements
+        
+        val assignments = statements.filterIsInstance<Assignment>()
+        val d = assignments.find { it.target.identifier?.nameInSource?.last() == "d" }!!
+        val r = assignments.find { it.target.identifier?.nameInSource?.last() == "r" }!!
+        val l = assignments.find { it.target.identifier?.nameInSource?.last() == "l" }!!
+        val m = assignments.find { it.target.identifier?.nameInSource?.last() == "m" }!!
+        val h = assignments.find { it.target.identifier?.nameInSource?.last() == "h" }!!
+
+        (d.value as NumericLiteral).number shouldBe 7.0
+        (r.value as NumericLiteral).number shouldBe 9.0
+        (l.value as NumericLiteral).number shouldBe 64.0
+        (m.value as NumericLiteral).number shouldBe 226.0
+        (h.value as NumericLiteral).number shouldBe 1.0
+
+        statements.forEach { 
+             it.toString() shouldNotContain "divmod("
+             it.toString() shouldNotContain "lmh("
+        }
     }
 
     test("sgn") {

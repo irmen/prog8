@@ -17,6 +17,10 @@ import kotlin.math.truncate
 sealed class Expression: Node {
     abstract override fun copy(): Expression
     abstract fun constValue(program: Program): NumericLiteral?
+    open fun constValues(program: Program): List<NumericLiteral>? {
+        val cv = constValue(program)
+        return if(cv!=null) listOf(cv) else null
+    }
     abstract fun accept(visitor: IAstVisitor)
     abstract fun accept(visitor: AstWalker, parent: Node)
     abstract fun inferType(program: Program): InferredTypes.InferredType
@@ -1633,6 +1637,14 @@ class FunctionCallExpression(override var target: IdentifierReference,
     }
 
     override fun constValue(program: Program) = constValue(program, true)
+
+    override fun constValues(program: Program): List<NumericLiteral>? {
+        if (target.nameInSource.size > 1)
+            return null
+        val values = program.builtinFunctions.constValues(target.nameInSource[0], args, position)
+        values?.forEach { it.parent = this.parent }
+        return values
+    }
 
     private fun constValue(program: Program, withDatatypeCheck: Boolean): NumericLiteral? {
         // if the function is a built-in function and the args are consts, should try to const-evaluate!

@@ -376,9 +376,9 @@ private class BuiltinFunctionsFacade(functions: Map<String, FSignature>): IBuilt
     override val names = functions.keys
     override val purefunctionNames = functions.filter { it.value.pure }.mapTo(mutableSetOf()) { it.key }
 
-    override fun constValue(funcName: String, args: List<Expression>, position: Position): NumericLiteral? {
+    override fun constValues(funcName: String, args: List<Expression>, position: Position): List<NumericLiteral>? {
         if(funcName=="msw" && !args[0].inferType(program).isLong)
-            return NumericLiteral.optimalInteger(0, position)
+            return listOf(NumericLiteral.optimalInteger(0, position))
 
         val func = BuiltinFunctions[funcName]
         if(func!=null) {

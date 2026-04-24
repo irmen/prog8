@@ -16,11 +16,11 @@ internal object DummyFunctions : IBuiltinFunctions {
     override val names: Set<String> = emptySet()
     override val purefunctionNames: Set<String> = emptySet()
     
-    override fun constValue(
+    override fun constValues(
         funcName: String,
         args: List<Expression>,
         position: Position,
-    ): NumericLiteral? = null
+    ): List<NumericLiteral>? = null
 
     override fun returnTypes(funcName: String) = emptyArray<InferredTypes.InferredType>()
 }

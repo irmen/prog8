@@ -4,9 +4,9 @@
 main {
 
     sub start() {
-        long @shared lv = $12345678
+        const long lv = $12345678
 
-        ubyte l,m,h = lmh(lv+99999)
+        ubyte l,m,h = lmh(lv+99999)     ; TODO should be const-folded and ALL THREE target vars should become consts too
 
         txt.print_ubhex(h, true)
         txt.spc()
@@ -16,10 +16,10 @@ main {
         txt.nl()
 
 
-        ubyte @shared num = 230
-        ubyte @shared div = 13
+        const ubyte num = 230
+        const ubyte div = 13
 
-        ubyte d,r = divmod(num, div)
+        ubyte d,r = divmod(num, div)     ; TODO should be const-folded and BOTH target vars should become consts too
         txt.print_ub(d)
         txt.spc()
         txt.print_ub(r)
