@@ -491,7 +491,7 @@ jump p8_label_gen_2
                 else -> {}
             }
 
-            fun optimizeImmediateLoadAssociative(replacementOpcode: Opcode) {
+            fun optimizeImmediateLoad(replacementOpcode: Opcode, isCommutative: Boolean) {
 
                 fun getImmediateLoad(reg: Int): Pair<Int, Int>? {
                     // look if the given register gets an immediate value 1 or 2 istructions back
@@ -510,31 +510,33 @@ jump p8_label_gen_2
                 }
 
                 if(ins.reg1!=null) {
-                    val immediate1 = getImmediateLoad(ins.reg1!!)
-                    if(immediate1!=null) {
-                        chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg2, immediate = immediate1.second)
-                        chunk.instructions.removeAt(immediate1.first)
-                        changed=true
-                    } else {
-                        val immediate2 = getImmediateLoad(ins.reg2!!)
-                        if (immediate2 != null) {
-                            chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg1, immediate = immediate2.second)
-                            chunk.instructions.removeAt(immediate2.first)
-                            changed=true
+                    if (isCommutative) {
+                        val immediate1 = getImmediateLoad(ins.reg1!!)
+                        if (immediate1 != null) {
+                            chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg2, immediate = immediate1.second)
+                            chunk.instructions.removeAt(immediate1.first)
+                            changed = true
+                            return
                         }
+                    }
+                    val immediate2 = getImmediateLoad(ins.reg2!!)
+                    if (immediate2 != null) {
+                        chunk.instructions[idx] = IRInstruction(replacementOpcode, ins.type, reg1 = ins.reg1, immediate = immediate2.second)
+                        chunk.instructions.removeAt(immediate2.first)
+                        changed = true
                     }
                 }
             }
 
             // try to use immediate arithmetic instruction if possible
             when(ins.opcode) {
-                Opcode.ADDR -> optimizeImmediateLoadAssociative(Opcode.ADD)
-                Opcode.MULR -> optimizeImmediateLoadAssociative(Opcode.MUL)
-                Opcode.MULSR -> optimizeImmediateLoadAssociative(Opcode.MULS)
-                Opcode.SUBR -> optimizeImmediateLoadAssociative(Opcode.SUB)
-                Opcode.DIVR -> optimizeImmediateLoadAssociative(Opcode.DIV)
-                Opcode.DIVSR -> optimizeImmediateLoadAssociative(Opcode.DIVS)
-                Opcode.MODR -> optimizeImmediateLoadAssociative(Opcode.MOD)
+                Opcode.ADDR -> optimizeImmediateLoad(Opcode.ADD, true)
+                Opcode.MULR -> optimizeImmediateLoad(Opcode.MUL, true)
+                Opcode.MULSR -> optimizeImmediateLoad(Opcode.MULS, true)
+                Opcode.SUBR -> optimizeImmediateLoad(Opcode.SUB, false)
+                Opcode.DIVR -> optimizeImmediateLoad(Opcode.DIV, false)
+                Opcode.DIVSR -> optimizeImmediateLoad(Opcode.DIVS, false)
+                Opcode.MODR -> optimizeImmediateLoad(Opcode.MOD, false)
                 // Opcode.DIVMODR - skipped, no immediate DIVMOD variant exists
                 else -> {}
             }

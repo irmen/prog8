@@ -45,23 +45,6 @@ internal object ExpressionOptimizers {
                         }
                     }
                 }
-                else if (node.operator=="*" && !node.right.type.isFloat) {
-                    if (constvalue in powersOfTwoFloat) {
-                        // x * power-of-two -> bitshift
-                        val numshifts = log2(constvalue!!)
-                        val shift = PtBinaryExpression("<<", node.type, node.position)
-                        shift.add(node.left)
-                        shift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
-                        shift.parent = node.parent
-                        val index = node.parent.children.indexOf(node)
-                        node.parent.setChild(index, shift)
-                        changes++
-                    } else if(constvalue in negativePowersOfTwoFloat) {
-                        TODO("x * negative power-of-two -> bitshift  ${node.position}")
-                    }
-                } else if(node.operator=="*" && !node.right.type.isFloat && constvalue in negativePowersOfTwoFloat) {
-                    TODO("x * negative power-of-two -> bitshift  ${node.position}")
-                }
             }
             true
         }
@@ -138,6 +121,23 @@ internal object ExpressionOptimizers {
                             val index = node.parent.children.indexOf(node)
                             node.parent.setChild(index, right)
                             changes++
+                        }
+                        // x * power-of-two -> bitshift
+                        else if (!node.right.type.isFloat) {
+                            if (rightConst in powersOfTwoFloat) {
+                                val numshifts = log2(rightConst!!)
+                                val shift = PtBinaryExpression("<<", node.type, node.position)
+                                shift.add(node.left)
+                                shift.add(PtNumber(BaseDataType.UBYTE, numshifts, node.position))
+                                shift.parent = node.parent
+                                val index = node.parent.children.indexOf(node)
+                                node.parent.setChild(index, shift)
+                                changes++
+                            } else if (rightConst in negativePowersOfTwoFloat) {
+                                TODO("x * negative power-of-two -> bitshift  ${node.position}")
+                            }
+                        } else if (!node.right.type.isFloat && rightConst in negativePowersOfTwoFloat) {
+                            TODO("x * negative power-of-two -> bitshift  ${node.position}")
                         }
                     }
                     "/" -> {

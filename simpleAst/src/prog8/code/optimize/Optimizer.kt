@@ -94,6 +94,8 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
 /**
  * Runs optimizations that may create opportunities for each other.
  * These are run in a loop until no more changes occur.
+ * NOTE: some optimizations here may seem redundant because they're already done in a Compiler AST optimizer step,
+ * but they're done again here to catch cases where rewriting the AST after optimization may have introduced optimizable changes again.
  * 
  * Maximum iteration limit prevents infinite loops from buggy optimizations.
  */
@@ -133,7 +135,7 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
 private fun runSinglePassOptimizations(program: PtProgram, ctx: OptimizerContext) {
     // Variable optimizations
     VariableOptimizers.optimizeRedundantVarInits(program)
-    
+
     // Strength reduction (x/2^n→x>>n, x%2^n→x&(2^n-1)) doesn't create opportunities for other opts
     ExpressionOptimizers.optimizeStrengthReduction(program, ctx.options)
 }

@@ -12,11 +12,13 @@ import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldNotContain
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.statements.Assignment
+import prog8.code.core.IErrorReporter
 import prog8.code.target.C64Target
 import prog8.code.target.Cx16Target
 import prog8.code.target.VMTarget
 import prog8.intermediate.*
 import prog8.vm.VmRunner
+import prog8.vm.VmVariableAllocator
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
 import kotlin.io.path.readText
@@ -708,7 +710,7 @@ main {
         
         // Parse the IR to get variable allocations and verify memory
         val irProgram = IRFileReader().read(irContent)
-        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         
         VmRunner().runAndTestProgram(irContent) { vm ->
             // Get the addresses of the shared variables
@@ -767,7 +769,7 @@ main {
         
         // Parse the IR to get variable allocations and verify memory
         val irProgram = IRFileReader().read(irContent)
-        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         
         // Run the program and verify all struct fields were zeroed
         VmRunner().runAndTestProgram(irContent) { vm ->
@@ -832,7 +834,7 @@ main {
         
         // Parse the IR to get variable allocations
         val irProgram = IRFileReader().read(irContent)
-        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
         
         // Run the program and verify both initialized and uninitialized values
         VmRunner().runAndTestProgram(irContent) { vm ->
@@ -943,7 +945,7 @@ main {
 
         // Parse and run
         val irProgram = IRFileReader().read(irContent)
-        val allocations = prog8.vm.VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
 
         VmRunner().runAndTestProgram(irContent) { vm ->
             // arr1: [100, 200+100, 300] = [100, 300, 300]
@@ -965,6 +967,87 @@ main {
             vm.memory.getUW(allocations["main.r10"]!!) shouldBe 10u
             vm.memory.getUW(allocations["main.r11"]!!) shouldBe 20u
             vm.memory.getUW(allocations["main.r12"]!!) shouldBe 150u
+        }
+    }
+
+    test("divmod does not crash when results are unused (optimization issue)") {
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                sub start() {
+                    ubyte num = 230
+                    ubyte div = 13
+                    ubyte d, r = divmod(num, div)
+                }
+            }
+        """.trimIndent()
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        VmRunner().runProgram(virtfile.readText(), false)
+    }
+
+    test("divmod results are correct with optimizations") {
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                ubyte d_res
+                ubyte r_res
+                sub start() {
+                    d_res = 0
+                    r_res = 0
+                    ubyte num = 230
+                    ubyte div = 13
+                    ubyte d, r = divmod(num, div)
+                    d_res = d
+                    r_res = r
+                }
+            }
+        """.trimIndent()
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irSource = virtfile.readText()
+        val irProgram = IRFileReader().read(irSource)
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irSource) { vm ->
+            vm.memory.getUB(allocations["main.d_res"]!!) shouldBe 17u
+            vm.memory.getUB(allocations["main.r_res"]!!) shouldBe 9u
+        }
+    }
+
+    test("subtraction with constant left operand is correct (non-commutative)") {
+        val src = """
+            %zeropage basicsafe
+            %option no_sysinit
+            main {
+                word sub_res
+                word div_res
+                word mod_res
+                sub start() {
+                    word x = 10
+                    sub_res = 20 - x
+                    div_res = 100 / x
+                    mod_res = 25 % x
+                }
+            }
+        """.trimIndent()
+
+        val result = compileText(VMTarget(), true, src, outputDir, writeAssembly = true)!!
+
+        val virtfile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
+        val irSource = virtfile.readText()
+        val irProgram = IRFileReader().read(irSource)
+        val allocations = VmVariableAllocator(irProgram.st, irProgram.encoding, irProgram.options.compTarget).allocations
+
+        VmRunner().runAndTestProgram(irSource) { vm ->
+            vm.memory.getUW(allocations["main.sub_res"]!!) shouldBe 10u
+            vm.memory.getUW(allocations["main.div_res"]!!) shouldBe 10u
+            vm.memory.getUW(allocations["main.mod_res"]!!) shouldBe 5u
         }
     }
 })

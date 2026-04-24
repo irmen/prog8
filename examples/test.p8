@@ -6,7 +6,7 @@ main {
     sub start() {
         long @shared lv = $12345678
 
-        ubyte l,m,h = lmh(lv)
+        ubyte l,m,h = lmh(lv+99999)
 
         txt.print_ubhex(h, true)
         txt.spc()
