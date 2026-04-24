@@ -58,6 +58,7 @@ class FSignature(val pure: Boolean,      // does it have side effects?
                 }
             }
         } else {
+            // note: this path is currently never hit because the builtin functions with multiple return values have been handled in specialized optimized codegens already earlier.
             TODO("multiple return types from builtin function")
         }
 

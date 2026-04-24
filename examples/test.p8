@@ -1,10 +1,28 @@
+%import textio
+%zeropage basicsafe
+
 main {
+
     sub start() {
-        ubyte a=10
-        cx16.r0++
-        a = 20
-        cx16.r0 = a
-        a = 30
-        cx16.r1 = a
+        long @shared lv = $12345678
+
+        ubyte l,m,h = lmh(lv)
+
+        txt.print_ubhex(h, true)
+        txt.spc()
+        txt.print_ubhex(m, false)
+        txt.spc()
+        txt.print_ubhex(l, false)
+        txt.nl()
+
+
+        ubyte @shared num = 230
+        ubyte @shared div = 13
+
+        ubyte d,r = divmod(num, div)
+        txt.print_ub(d)
+        txt.spc()
+        txt.print_ub(r)
+        txt.nl()
     }
 }

@@ -598,6 +598,18 @@ val OpcodesThatLoad = setOf(
 
 val OpcodesThatSetStatusbits = OpcodesThatSetStatusbitsButNotCarry + OpcodesThatSetStatusbitsIncludingCarry
 
+val OpcodesWithSideEffects = OpcodesThatBranch + setOf(
+    Opcode.PUSH,
+    Opcode.POP,
+    Opcode.PUSHST,
+    Opcode.POPST,
+    Opcode.DIVMOD,
+    Opcode.DIVMODR,
+    Opcode.SDIVMOD,
+    Opcode.SDIVMODR,
+    Opcode.BREAKPOINT
+)
+
 
 enum class IRDataType {
     BYTE,

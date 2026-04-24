@@ -38,9 +38,11 @@ Source → parseMainModule() → processAst() → optimizeAst() → postprocessA
 
 
 ## DEBUGGING TIP: Use `-noopt` to isolate problems
-When debugging compiler issues, **FIRST try compiling with the `-noopt` switch**:
+When investigating a possible code generation problem (both IR and 6502), **FIRST try compiling the program with the `-noopt` switch** to disable most of the compiler optimizations.
 - **Problem gone with `-noopt`**: Issue is in **optimization phases** (`optimizeAst()`, `UnusedCodeRemover`, `Inliner`, etc.)
-- **Problem persists with `-noopt`**: Issue is in **parsing, semantic analysis, symboltable, or code generation**
+- **Problem persists with `-noopt`**: Issue is in **parsing, semantic analysis, symboltable, or the regular code generation path**.
+
+This way you can determine if the problem is caused by a faulty optimization step, or just occurs in the regular code generation path.
 
 ## DEBUGGING TIP: Use `-compareir` to see what changed
 When investigating optimization-related issues or tracking regressions:

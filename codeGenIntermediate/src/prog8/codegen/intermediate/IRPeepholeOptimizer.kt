@@ -616,6 +616,12 @@ jump p8_label_gen_2
         val deadStores = mutableSetOf<Int>()
 
         indexedInstructions.forEach { (idx, ins) ->
+            if (ins.opcode in OpcodesWithSideEffects) {
+                // Instruction has side effects, must never be removed as dead store,
+                // AND it also counts as a "read" of all current pending registers to avoid them being removed
+                pendingWrites.clear()
+                return@forEach
+            }
             val formats = instructionFormats.getValue(ins.opcode)
             val format = formats[ins.type] ?: formats[null]
 
