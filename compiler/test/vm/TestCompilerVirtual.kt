@@ -647,7 +647,7 @@ main  {
         val irProgram = IRFileReader().read(virtfile)
         val func = irProgram.blocks[0].children[1] as IRSubroutine
         func.label shouldBe "main.func"
-        func.chunks.size shouldBe 11
+        func.chunks.size shouldBe 9
         for(chunk in func.chunks) {
             if(chunk.next == null) {
                 chunk.instructions.last().opcode shouldBeIn OpcodesThatBranchUnconditionally

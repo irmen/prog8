@@ -1161,28 +1161,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             val resultRegister = codeGen.registers.next(IRDataType.BYTE)
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=resultRegister, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg)), null)
-            addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultRegister, immediate = 0), null)
-            val other = codeGen.createLabelName()
-            val after = codeGen.createLabelName()
-            val resultReg = codeGen.registers.next(IRDataType.BYTE)
-            // TODO can this be done more efficiently? also see operatorLessThan
-            if(greaterEquals) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.BSTPOS, labelSymbol = other)
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
-                    it += IRInstruction(Opcode.JUMP, labelSymbol = after)
-                }
-                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 1), other)
-            } else {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.BSTNEG, labelSymbol = other)
-                    it += IRInstruction(Opcode.BSTEQ, labelSymbol = other)
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
-                    it += IRInstruction(Opcode.JUMP, labelSymbol = after)
-                }
-                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 0), other)
-            }
-            result += IRCodeChunk(after, null)
+            val branch = if(greaterEquals) Opcode.BGES else Opcode.BGTS
+            val resultReg = compareImmediateAsBooleanResult(branch, IRDataType.BYTE, resultRegister, 0, result)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         } else {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
@@ -1217,28 +1197,8 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
             val resultRegister = codeGen.registers.next(IRDataType.BYTE)
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=resultRegister, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg)), null)
-            addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=resultRegister, immediate = 0), null)
-            val other = codeGen.createLabelName()
-            val after = codeGen.createLabelName()
-            val resultReg = codeGen.registers.next(IRDataType.BYTE)
-            // TODO can this be done more efficiently? also see operatorGreaterThan
-            if(lessEquals) {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.BSTNEG, labelSymbol = other)
-                    it += IRInstruction(Opcode.BSTEQ, labelSymbol = other)
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
-                    it += IRInstruction(Opcode.JUMP, labelSymbol = after)
-                }
-                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 1), other)
-            } else {
-                result += IRCodeChunk(null, null).also {
-                    it += IRInstruction(Opcode.BSTNEG, labelSymbol = other)
-                    it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
-                    it += IRInstruction(Opcode.JUMP, labelSymbol = after)
-                }
-                addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 1), other)
-            }
-            result += IRCodeChunk(after, null)
+            val branch = if(lessEquals) Opcode.BLES else Opcode.BLTS
+            val resultReg = compareImmediateAsBooleanResult(branch, IRDataType.BYTE, resultRegister, 0, result)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         } else {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
@@ -1266,21 +1226,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             addToResult(result, leftTr, -1, leftTr.resultFpReg)
             val rightTr = translateExpression(binExpr.right)
             addToResult(result, rightTr, -1, rightTr.resultFpReg)
-            val resultRegister = codeGen.registers.next(IRDataType.BYTE)
             val valueReg = codeGen.registers.next(IRDataType.BYTE)
-            val label = codeGen.createLabelName()
-            result += IRCodeChunk(null, null).also {
-                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, immediate = 0)
-                it += IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=valueReg, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg))
-                it += IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=valueReg, immediate = 0)
-                it += if (notEquals)
-                    IRInstruction(Opcode.BSTEQ, labelSymbol = label)
-                else
-                    IRInstruction(Opcode.BSTNE, labelSymbol = label)
-                it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultRegister, immediate = 1)
-            }
-            result += IRCodeChunk(label, null)
-            return ExpressionCodeResult(result, IRDataType.BYTE, resultRegister, -1)
+            addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=valueReg, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg)), null)
+            addInstr(result, IRInstruction(Opcode.CMPI, IRDataType.BYTE, reg1=valueReg, immediate = 0), null)
+            val resultReg = loadStatusAsBooleanResult(if(notEquals) Opcode.BSTNE else Opcode.BSTEQ, result)
+            return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         } else {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
                 throw AssemblyError("str compares should have been replaced with builtin function call to do the compare")
@@ -1306,31 +1256,37 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
     }
 
     private fun loadStatusAsBooleanResult(branchForTrue: Opcode, result: MutableList<IRCodeChunkBase>): Int {
-        // TODO this used to be a single instruction like SCC, SCS, SZ etc
-        val other = codeGen.createLabelName()
         val after = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(branchForTrue, labelSymbol = other)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+            it += IRInstruction(branchForTrue, labelSymbol = after)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
-            it += IRInstruction(Opcode.JUMP, labelSymbol = after)
         }
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 1), other)
         result += IRCodeChunk(after, null)
         return resultReg
     }
 
     private fun compareRegisterAsBooleanResult(branchForTrue: Opcode, dt: IRDataType, reg1: Int, reg2: Int, result: MutableList<IRCodeChunkBase>): Int {
-        // TODO this used to be a single instruction like SCC, SCS, SZ etc
-        val other = codeGen.createLabelName()
         val after = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(branchForTrue, dt, reg1=reg1, reg2=reg2, labelSymbol = other)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+            it += IRInstruction(branchForTrue, dt, reg1 = reg1, reg2 = reg2, labelSymbol = after)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
-            it += IRInstruction(Opcode.JUMP, labelSymbol = after)
         }
-        addInstr(result, IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1=resultReg, immediate = 1), other)
+        result += IRCodeChunk(after, null)
+        return resultReg
+    }
+
+    private fun compareImmediateAsBooleanResult(branchForTrue: Opcode, dt: IRDataType, reg1: Int, immediate: Int, result: MutableList<IRCodeChunkBase>): Int {
+        val after = codeGen.createLabelName()
+        val resultReg = codeGen.registers.next(IRDataType.BYTE)
+        result += IRCodeChunk(null, null).also {
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 1)
+            it += IRInstruction(branchForTrue, dt, reg1 = reg1, immediate = immediate, labelSymbol = after)
+            it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
+        }
         result += IRCodeChunk(after, null)
         return resultReg
     }
