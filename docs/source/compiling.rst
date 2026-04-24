@@ -278,9 +278,9 @@ One or more .p8 module files
     Show a more detailed breakdown of the time taken in various compiler phases, for performance analysis of the compiler itself.
 
 ``-varsgolden``
-    Like ``-varshigh``, but places the variables in the $0400-$07FF "golden ram" area instead.
+    Like ``-varshigh``, but places the variables in the "golden ram" area instead (e.g. $0400-$07FF on CX16, $1300-$1BDF on C128).
     Because this is in normal system memory, there are no bank switching issues.
-    This mode is only available on the Commander X16, and possibly on custom configured targets.
+    This mode is only available on the Commander X16 and the Commodore 128, and possibly on custom configured targets.
 
 ``-varshigh <rambank>``
     Places uninitialized non-zeropage variables in a separate memory area, instead of inside the program itself.

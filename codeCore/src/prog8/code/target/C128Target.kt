@@ -31,10 +31,10 @@ class C128Target: ICompilationTarget,
     override val PROGRAM_LOAD_ADDRESS = 0x1c01u
     override val PROGRAM_MEMTOP_ADDRESS = 0xc000u
 
-    override val BSSHIGHRAM_START = 0u    // TODO address?
-    override val BSSHIGHRAM_END = 0u      // TODO address?
-    override val BSSGOLDENRAM_START = 0u  // TODO address?
-    override val BSSGOLDENRAM_END = 0u    // TODO address?
+    override val BSSHIGHRAM_START = 0u      // no high ram
+    override val BSSHIGHRAM_END = 0u        // no high ram
+    override val BSSGOLDENRAM_START = 0x1300u
+    override val BSSGOLDENRAM_END = 0x1bdfu     //  note: $1be0 - $1bff contains the 16 virtual registers
 
     override lateinit var zeropage: Zeropage
 

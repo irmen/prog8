@@ -138,6 +138,20 @@ Footnotes for the Commodore 64
     may free up more locations for use by Prog8 or to reserve them for other things.
 
 
+Footnotes for the Commodore 128
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. index:: single: Targets; Commodore 128 notes
+
+*Golden Ram $1300 - $1BDF*
+    Application RAM area, free to use if you don't use BASIC variables or strings.
+    Note: $1BE0 - $1BFF are used for the 16 virtual registers cx16.r0 .. cx16.r15.
+    There is no "high ram" defined on the C128.
+
+*Program RAM $1C00 - $BFFF*
+    On the C128 the Basic ROM is banked out by default, reclaiming the RAM area from $1C00 to $BFFF.
+    This gives about 41 Kb of contiguous RAM for Prog8 programs.
+
+
 Zero page usage by the Prog8 compiler
 -------------------------------------
 .. index:: single: Targets; Zero page usage
