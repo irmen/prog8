@@ -845,34 +845,69 @@ class AsmGen6502Internal (
             fromRegPair == RegisterOrPair.X && toRegPair == RegisterOrPair.Y -> out("  txa | tay")
             fromRegPair == RegisterOrPair.Y && toRegPair == RegisterOrPair.X -> out("  tya | tax")
             
-            // Word transfers (AX, AY, XY)
+            // Word transfers (AX, AY, XY, Virtual Registers)
             fromRegPair == RegisterOrPair.AX && toRegPair == RegisterOrPair.AY -> out("  tay")  // X already in A, Y gets X
             fromRegPair == RegisterOrPair.AY && toRegPair == RegisterOrPair.AX -> out("  tax")  // Y already in A, X gets Y
             fromRegPair == RegisterOrPair.AX && toRegPair == RegisterOrPair.XY -> out("  tay")  // A->X (already there), X->Y
             fromRegPair == RegisterOrPair.AY && toRegPair == RegisterOrPair.XY -> out("  tax")  // A->Y (already there), Y->X
             
+            fromRegPair in Cx16VirtualRegisters && toRegPair in Cx16VirtualRegisters -> {
+                val fromName = fromRegPair.toString().lowercase()
+                val toName = toRegPair.toString().lowercase()
+                out("  lda  cx16.$fromName |  sta  cx16.$toName")
+                out("  lda  cx16.$fromName+1 |  sta  cx16.$toName+1")
+            }
+            fromRegPair == RegisterOrPair.AX && toRegPair in Cx16VirtualRegisters -> {
+                val toName = toRegPair.toString().lowercase()
+                out("  sta  cx16.$toName |  stx  cx16.$toName+1")
+            }
+            fromRegPair in Cx16VirtualRegisters && toRegPair == RegisterOrPair.AX -> {
+                val fromName = fromRegPair.toString().lowercase()
+                out("  lda  cx16.$fromName |  ldx  cx16.$fromName+1")
+            }
+            
+            // Long transfers (CombinedLongRegisters)
+            fromRegPair in CombinedLongRegisters && toRegPair in CombinedLongRegisters -> {
+                val fromStart = fromRegPair!!.startregname()
+                val toStart = toRegPair!!.startregname()
+                out("  lda  cx16.${fromStart} |  sta  cx16.${toStart}")
+                out("  lda  cx16.${fromStart}+1 |  sta  cx16.${toStart}+1")
+                out("  lda  cx16.${fromStart}+2 |  sta  cx16.${toStart}+2")
+                out("  lda  cx16.${fromStart}+3 |  sta  cx16.${toStart}+3")
+            }
+
             // For everything else, use temp register
             else -> {
                 val tempReg = "P8ZP_SCRATCH_REG"
-                
+                if (!fromType.isByteOrBool) {
+                    // Fallback for multi-byte moves that are not handled above.
+                    // To avoid memory corruption, we must NOT use P8ZP_SCRATCH_REG as a multi-byte buffer.
+                    // We can just use A as a temporary byte and unroll the copy.
+                    
+                    val fromAddr = when(fromRegPair) {
+                        in Cx16VirtualRegisters -> "cx16.${fromRegPair.toString().lowercase()}"
+                        in CombinedLongRegisters -> "cx16.${fromRegPair!!.startregname()}"
+                        else -> throw AssemblyError("unsupported multi-byte source register $fromRegPair")
+                    }
+                    val toAddr = when(toRegPair) {
+                        in Cx16VirtualRegisters -> "cx16.${toRegPair.toString().lowercase()}"
+                        in CombinedLongRegisters -> "cx16.${toRegPair!!.startregname()}"
+                        else -> throw AssemblyError("unsupported multi-byte destination register $toRegPair")
+                    }
+                    val bytes = if (fromType.isLong) 4 else 2
+                    repeat(bytes) {
+                        val offset = if (it == 0) "" else "+$it"
+                        out("  lda  $fromAddr$offset |  sta  $toAddr$offset")
+                    }
+                    return
+                }
+
                 // Load from source register to temp
                 when(fromRegPair) {
                     RegisterOrPair.A -> out("  sta  $tempReg")
                     RegisterOrPair.X -> out("  stx  $tempReg")
                     RegisterOrPair.Y -> out("  sty  $tempReg")
-                    RegisterOrPair.AX -> out("  sta  ${tempReg} |  stx  ${tempReg}+1")
-                    RegisterOrPair.AY -> out("  sta  ${tempReg} |  sty  ${tempReg}+1")
-                    RegisterOrPair.XY -> out("  stx  ${tempReg} |  sty  ${tempReg}+1")
-                    in Cx16VirtualRegisters -> {
-                        out("  lda  cx16.${fromRegPair.toString().lowercase()} |  sta  $tempReg")
-                        if(fromType.isWord) out("  lda  cx16.${fromRegPair.toString().lowercase()}+1 |  sta  ${tempReg}+1")
-                    }
-                    in CombinedLongRegisters -> {
-                        val startreg = fromRegPair!!.startregname()
-                        out("  ldy  #3")
-                        out("-   lda  cx16.${startreg},y |  sta  $tempReg,y")
-                        out("    dey |  bpl  -")
-                    }
+                    in Cx16VirtualRegisters -> out("  lda  cx16.${fromRegPair.toString().lowercase()} |  sta  $tempReg")
                     null -> when(fromReg.statusflag) {
                         Statusflag.Pc -> out("  lda  #0 |  rol  a |  sta  $tempReg")
                         else -> throw AssemblyError("unsupported statusflag ${fromReg.statusflag}")
@@ -885,19 +920,7 @@ class AsmGen6502Internal (
                     RegisterOrPair.A -> out("  lda  $tempReg")
                     RegisterOrPair.X -> out("  ldx  $tempReg")
                     RegisterOrPair.Y -> out("  ldy  $tempReg")
-                    RegisterOrPair.AX -> out("  lda  $tempReg |  ldx  ${tempReg}+1")
-                    RegisterOrPair.AY -> out("  lda  $tempReg |  ldy  ${tempReg}+1")
-                    RegisterOrPair.XY -> out("  ldx  $tempReg |  ldy  ${tempReg}+1")
-                    in Cx16VirtualRegisters -> {
-                        out("  lda  $tempReg |  sta  cx16.${toRegPair.toString().lowercase()}")
-                        if(toType.isWord) out("  lda  ${tempReg}+1 |  sta  cx16.${toRegPair.toString().lowercase()}+1")
-                    }
-                    in CombinedLongRegisters -> {
-                        val startreg = toRegPair!!.startregname()
-                        out("  ldy  #3")
-                        out("-   lda  $tempReg,y |  sta  cx16.${startreg},y")
-                        out("    dey |  bpl  -")
-                    }
+                    in Cx16VirtualRegisters -> out("  lda  $tempReg |  sta  cx16.${toRegPair.toString().lowercase()}")
                     null -> when(toReg.statusflag) {
                         Statusflag.Pc -> out("  lda  $tempReg |  asl  a")
                         else -> throw AssemblyError("unsupported statusflag ${toReg.statusflag}")

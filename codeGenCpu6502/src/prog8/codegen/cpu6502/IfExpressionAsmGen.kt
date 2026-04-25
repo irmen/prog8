@@ -493,6 +493,10 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
 
     private fun translateWordExprLessZero(expr: PtExpression, signed: Boolean, falseLabel: String) {
         // if w<0 (signed only)
+        if (!signed) {
+            asmgen.jmp(falseLabel)
+            return
+        }
         if(expr is PtIdentifier) {
             val varname = asmgen.asmVariableName(expr)
             asmgen.out("""
@@ -500,54 +504,65 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 bpl  $falseLabel""")
         } else {
             asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  sty  P8ZP_SCRATCH_REG |  lda  P8ZP_SCRATCH_REG+1 |  bpl  $falseLabel")
+            asmgen.out("  tya |  bpl  $falseLabel")
         }
     }
 
     private fun translateWordExprLessEqualsZero(expr: PtExpression, signed: Boolean, falseLabel: String) {
         // if w<=0 (signed only)
+        if (!signed) {
+            translateWordExprIsZero(expr, falseLabel)
+            return
+        }
         if(expr is PtIdentifier) {
             val varname = asmgen.asmVariableName(expr)
             asmgen.out("""
-                lda  $varname
-                ora  ${varname}+1
-                beq  $falseLabel
                 lda  ${varname}+1
-                bmi  $falseLabel""")
+                bmi  +
+                ora  $varname
+                bne  $falseLabel
++""")
         } else {
             asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out("""
-                sty  P8ZP_SCRATCH_REG
-                lda  P8ZP_SCRATCH_REG
-                ora  P8ZP_SCRATCH_REG+1
-                beq  $falseLabel
-                lda  P8ZP_SCRATCH_REG+1
-                bmi  $falseLabel""")
+                sta  P8ZP_SCRATCH_REG
+                tya
+                bmi  +
+                ora  P8ZP_SCRATCH_REG
+                bne  $falseLabel
++""")
         }
     }
 
     private fun translateWordExprGreaterZero(expr: PtExpression, signed: Boolean, falseLabel: String) {
         // if w>0 (signed only)
+        if (!signed) {
+            translateWordExprIsNotZero(expr, falseLabel)
+            return
+        }
         if(expr is PtIdentifier) {
             val varname = asmgen.asmVariableName(expr)
             asmgen.out("""
                 lda  ${varname}+1
                 bmi  $falseLabel
-                lda  $varname
+                ora  $varname
                 beq  $falseLabel""")
         } else {
             asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
             asmgen.out("""
-                sty  P8ZP_SCRATCH_REG
-                lda  P8ZP_SCRATCH_REG+1
+                sta  P8ZP_SCRATCH_REG
+                tya
                 bmi  $falseLabel
-                lda  P8ZP_SCRATCH_REG
+                ora  P8ZP_SCRATCH_REG
                 beq  $falseLabel""")
         }
     }
 
     private fun translateWordExprGreaterEqualsZero(expr: PtExpression, signed: Boolean, falseLabel: String) {
         // if w>=0 (signed only)
+        if (!signed) {
+            return
+        }
         if(expr is PtIdentifier) {
             val varname = asmgen.asmVariableName(expr)
             asmgen.out("""
@@ -555,7 +570,7 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 bmi  $falseLabel""")
         } else {
             asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  sty  P8ZP_SCRATCH_REG |  lda  P8ZP_SCRATCH_REG+1 |  bmi  $falseLabel")
+            asmgen.out("  tya |  bmi  $falseLabel")
         }
     }
 

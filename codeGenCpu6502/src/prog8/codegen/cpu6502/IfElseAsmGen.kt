@@ -995,10 +995,8 @@ _jump                       jmp  (${target.asmLabel})
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  ${target.asmLabel}
-                            bne  +
-                            lda  $valueLsb
-                            beq  ${target.asmLabel}
-+""")
+                            ora  $valueLsb
+                            beq  ${target.asmLabel}""")
                     }
                     asmgen.translate(stmt.elseScope)
                 } else {
@@ -1009,8 +1007,7 @@ _jump                       jmp  (${target.asmLabel})
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  +
-                            bne  $elseLabel
-                            lda  $valueLsb
+                            ora  $valueLsb
                             bne  $elseLabel
 +""")
                         asmgen.translate(stmt.ifScope)
@@ -1022,8 +1019,7 @@ _jump                       jmp  (${target.asmLabel})
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  +
-                            bne  $afterIfLabel
-                            lda  $valueLsb
+                            ora  $valueLsb
                             bne  $afterIfLabel
 +""")
                         asmgen.translate(stmt.ifScope)
@@ -1143,8 +1139,7 @@ _jump                       jmp  (${target.asmLabel})
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  +
-                            bne  ${target.asmLabel}
-                            lda  $valueLsb
+                            ora  $valueLsb
                             bne  ${target.asmLabel}
 +""")
                     }
@@ -1157,10 +1152,8 @@ _jump                       jmp  (${target.asmLabel})
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  $elseLabel
-                            bne  +
-                            lda  $valueLsb
-                            beq  $elseLabel
-+""")
+                            ora  $valueLsb
+                            beq  $elseLabel""")
                         asmgen.translate(stmt.ifScope)
                         asmgen.jmp(afterIfLabel)
                         asmgen.out(elseLabel)
@@ -1170,10 +1163,8 @@ _jump                       jmp  (${target.asmLabel})
                         asmgen.out("""
                             lda  $valueMsb
                             bmi  $afterIfLabel
-                            bne  +
-                            lda  $valueLsb
-                            beq  $afterIfLabel
-+""")
+                            ora  $valueLsb
+                            beq  $afterIfLabel""")
                         asmgen.translate(stmt.ifScope)
                     }
                     asmgen.out(afterIfLabel)

@@ -579,22 +579,22 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "+" -> {
                 asmgen.out("""
                     clc
-                    ldy  #3
--                   lda  $targetVar,y
-                    adc  $sourceVar,y
-                    sta  $targetVar,y
-                    dey
-                    bpl  -""")
+                    ldx  #252
+-                   lda  $targetVar+4,x
+                    adc  $sourceVar+4,x
+                    sta  $targetVar+4,x
+                    inx
+                    bne  -""")
             }
             "-" -> {
                 asmgen.out("""
                     sec
-                    ldy  #3
--                   lda  $targetVar,y
-                    sbc  $sourceVar,y
-                    sta  $targetVar,y
-                    dey
-                    bpl  -""")
+                    ldx  #252
+-                   lda  $targetVar+4,x
+                    sbc  $sourceVar+4,x
+                    sta  $targetVar+4,x
+                    inx
+                    bne  -""")
             }
             "<<" -> {
                 asmgen.out("""
