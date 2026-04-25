@@ -207,7 +207,7 @@ class TestCompilerOnExamplesCx16: FunSpec({
             ExampleSizes("zsmkit_v2/demo", cx16SizeOptimized=790, cx16SizeUnoptimized=3374),
             // zsmkit_v2/zsmkit doesn't compile (empty source file)
             ExampleSizes("banking/program", cx16SizeOptimized=665, cx16SizeUnoptimized=3003),
-            ExampleSizes("fileselector/standalone", cx16SizeOptimized=4200, cx16SizeUnoptimized=6906),
+            ExampleSizes("fileselector/standalone", cx16SizeOptimized=4200, cx16SizeUnoptimized=6899),
             ExampleSizes("fileselector/main", cx16SizeOptimized=480, cx16SizeUnoptimized=2805),
             // fileselector/fselector and fileselector/namesorting don't compile (empty source files)
             ExampleSizes("pointers/fountain-cx16", cx16SizeOptimized=1179, cx16SizeUnoptimized=1520),

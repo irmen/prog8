@@ -311,11 +311,28 @@ internal class IfElseAsmGen(private val program: PtProgram,
             return translateIfCompareWithZeroByte(stmt, signed, jumpAfterIf)
         }
 
-        when (condition.operator) {
+        var left = condition.left
+        var right = condition.right
+        var operator = condition.operator
+
+        if (complexity(left) < complexity(right)) {
+            val swapped = condition.right
+            right = condition.left
+            left = swapped
+            operator = when (operator) {
+                "<" -> ">"
+                "<=" -> ">="
+                ">" -> "<"
+                ">=" -> "<="
+                else -> operator
+            }
+        }
+
+        when (operator) {
             "==" -> {
                 // if X==value
-                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
-                asmgen.cmpAwithByteValue(condition.right, false)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
+                asmgen.cmpAwithByteValue(right, false)
                 return if(jumpAfterIf!=null)
                     translateJumpElseBodies("beq", "bne", jumpAfterIf, stmt.elseScope)
                 else
@@ -323,18 +340,18 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
             "!=" -> {
                 // if X!=value
-                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
-                asmgen.cmpAwithByteValue(condition.right, false)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
+                asmgen.cmpAwithByteValue(right, false)
                 return if(jumpAfterIf!=null)
                     translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
                 else
                     translateIfElseBodies("beq", stmt)
             }
-            "<" -> translateByteLess(stmt, signed, jumpAfterIf)
-            "<=" -> translateByteLessEqual(stmt, signed, jumpAfterIf)
-            ">" -> translateByteGreater(stmt, signed, jumpAfterIf)
-            ">=" -> translateByteGreaterEqual(stmt, signed, jumpAfterIf)
-            else -> throw AssemblyError("expected comparison operator '${condition.operator}' at ${stmt.position}")
+            "<" -> translateByteLess(left, right, operator, signed, stmt, jumpAfterIf)
+            "<=" -> translateByteLessEqual(left, right, operator, signed, stmt, jumpAfterIf)
+            ">" -> translateByteGreater(left, right, operator, signed, stmt, jumpAfterIf)
+            ">=" -> translateByteGreaterEqual(left, right, operator, signed, stmt, jumpAfterIf)
+            else -> throw AssemblyError("expected comparison operator '${operator}' at ${stmt.position}")
         }
     }
 
@@ -477,16 +494,15 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteLess(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
-        val condition = stmt.condition as PtBinaryExpression
-        asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+    private fun translateByteLess(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
         if(signed) {
             if(jumpAfterIf!=null)
-                translateJumpElseBodiesSignedByte("<", condition.right, jumpAfterIf, stmt.elseScope)
+                translateJumpElseBodiesSignedByte("<", right, jumpAfterIf, stmt.elseScope)
             else
-                translateIfElseBodiesSignedByte("<", condition.right, stmt)
+                translateIfElseBodiesSignedByte("<", right, stmt)
         } else {
-            asmgen.cmpAwithByteValue(condition.right, false)
+            asmgen.cmpAwithByteValue(right, false)
             if(jumpAfterIf!=null)
                 translateJumpElseBodies("bcc", "bcs", jumpAfterIf, stmt.elseScope)
             else
@@ -494,17 +510,16 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteLessEqual(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
+    private fun translateByteLessEqual(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
         // X<=Y -> Y>=X (reverse of >=)
-        val condition = stmt.condition as PtBinaryExpression
-        asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, signed)
+        asmgen.assignExpressionToRegister(right, RegisterOrPair.A, signed)
         return if(signed) {
             if(jumpAfterIf!=null)
-                translateJumpElseBodiesSignedByte(">=", condition.left, jumpAfterIf, stmt.elseScope)
+                translateJumpElseBodiesSignedByte(">=", left, jumpAfterIf, stmt.elseScope)
             else
-                translateIfElseBodiesSignedByte(">=", condition.left, stmt)
+                translateIfElseBodiesSignedByte(">=", left, stmt)
         } else {
-            asmgen.cmpAwithByteValue(condition.left, false)
+            asmgen.cmpAwithByteValue(left, false)
             if(jumpAfterIf!=null)
                 translateJumpElseBodies("bcs", "bcc", jumpAfterIf, stmt.elseScope)
             else
@@ -512,18 +527,17 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteGreater(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
-        val condition = stmt.condition as PtBinaryExpression
+    private fun translateByteGreater(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
         if(signed) {
             // X>Y --> Y<X
-            asmgen.assignExpressionToRegister(condition.right, RegisterOrPair.A, true)
+            asmgen.assignExpressionToRegister(right, RegisterOrPair.A, true)
             if (jumpAfterIf != null)
-                translateJumpElseBodiesSignedByte("<", condition.left, jumpAfterIf, stmt.elseScope)
+                translateJumpElseBodiesSignedByte("<", left, jumpAfterIf, stmt.elseScope)
             else
-                translateIfElseBodiesSignedByte("<", condition.left, stmt)
+                translateIfElseBodiesSignedByte("<", left, stmt)
         } else {
-            asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A)
-            asmgen.cmpAwithByteValue(condition.right, false)
+            asmgen.assignExpressionToRegister(left, RegisterOrPair.A)
+            asmgen.cmpAwithByteValue(right, false)
             if(jumpAfterIf!=null) {
                 var target = asmgen.getJumpTarget(jumpAfterIf, false)
                 if(target.indirect) {
@@ -562,16 +576,15 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteGreaterEqual(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
-        val condition = stmt.condition as PtBinaryExpression
-        asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
+    private fun translateByteGreaterEqual(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
         return if(signed) {
             if(jumpAfterIf!=null)
-                translateJumpElseBodiesSignedByte(">=", condition.right, jumpAfterIf, stmt.elseScope)
+                translateJumpElseBodiesSignedByte(">=", right, jumpAfterIf, stmt.elseScope)
             else
-                translateIfElseBodiesSignedByte(">=", condition.right, stmt)
+                translateIfElseBodiesSignedByte(">=", right, stmt)
         } else {
-            asmgen.cmpAwithByteValue(condition.right, false)
+            asmgen.cmpAwithByteValue(right, false)
             if(jumpAfterIf!=null)
                 translateJumpElseBodies("bcs", "bcc", jumpAfterIf, stmt.elseScope)
             else
@@ -618,15 +631,38 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
+        var left = condition.left
+        var right = condition.right
+        var operator = condition.operator
+
+        if (complexity(left) < complexity(right)) {
+            val swapped = condition.right
+            right = condition.left
+            left = swapped
+            operator = when (operator) {
+                "<" -> ">"
+                "<=" -> ">="
+                ">" -> "<"
+                ">=" -> "<="
+                else -> operator
+            }
+        }
+
         // non-zero comparisons
-        when(condition.operator) {
-            "==" -> wordEqualsValue(condition.left, condition.right, false, signed, jumpAfterIf, stmt)
-            "!=" -> wordEqualsValue(condition.left, condition.right, true, signed, jumpAfterIf, stmt)
-            "<" -> wordLessValue(condition.left, condition.right, signed, jumpAfterIf, stmt)
-            "<=" -> throw AssemblyError("X<=Y should have been replaced by Y>=X")
-            ">" -> throw AssemblyError("X>Y should have been replaced by Y<X")
-            ">=" -> wordGreaterEqualsValue(condition.left, condition.right, signed, jumpAfterIf, stmt)
-            else -> throw AssemblyError("expected comparison operator for word, got '${condition.operator}' at ${stmt.position}")
+        when(operator) {
+            "==" -> wordEqualsValue(left, right, false, signed, jumpAfterIf, stmt)
+            "!=" -> wordEqualsValue(left, right, true, signed, jumpAfterIf, stmt)
+            "<" -> wordLessValue(left, right, signed, jumpAfterIf, stmt)
+            ">=" -> wordGreaterEqualsValue(left, right, signed, jumpAfterIf, stmt)
+            ">" -> {
+                // X > Y - swap operands to use < with reversed sense
+                wordLessValue(right, left, signed, jumpAfterIf, stmt)
+            }
+            "<=" -> {
+                // X <= Y - use >= with swapped operands
+                wordGreaterEqualsValue(right, left, signed, jumpAfterIf, stmt)
+            }
+            else -> throw AssemblyError("expected comparison operator for word, got '${operator}' at ${stmt.position}")
         }
     }
 
@@ -2160,6 +2196,15 @@ _jump                       jmp  (${target.asmLabel})
             }
             else -> throw AssemblyError("expected comparison operator for float, got '${condition.operator}' at ${stmt.position}")
         }
+    }
+
+    private fun complexity(e: PtExpression): Int {
+        if (e.asConstInteger() != null) return 0
+        if (e is PtIdentifier) return 1
+        if (e is PtAddressOf && !e.isFromArrayElement) return 1
+        if (e is PtMemoryByte) return 2
+        if (e is PtArrayIndexer && e.index.asConstInteger() != null) return 2
+        return 10
     }
 }
 
