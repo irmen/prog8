@@ -106,10 +106,7 @@ private fun compileMain(args: Array<String>): Boolean {
     }
 
     val outputPath = pathFrom(outputDir)
-    if(!outputPath.toFile().isDirectory) {
-        System.err.println("Output path doesn't exist")
-        return false
-    }
+    outputPath.createDirectories()
 
     if(profilingInstrumentation==true && compilationTarget!=Cx16Target.NAME) {
         System.err.println("Profiling instrumentation is only available on the cx16 target.")

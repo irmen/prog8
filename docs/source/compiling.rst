@@ -231,7 +231,7 @@ One or more .p8 module files
     So you have to make sure these are provided somewhere in the alternate source path.
 
 ``-out <directory>``
-    sets directory location for output files instead of current directory
+    Sets directory location for output files instead of current directory. Creates it if it doesn't exist yet.
 
 ``-plaintext``
     Prints output messages in plain text: no colors or fancy symbols.
