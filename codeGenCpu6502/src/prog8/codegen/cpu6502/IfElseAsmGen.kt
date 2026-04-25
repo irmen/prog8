@@ -1110,7 +1110,7 @@ _jump                       jmp  (${target.asmLabel})
             }
         } else {
             // uword <= 0 --> uword == 0
-            wordEqualsZero(value, true, false, jump, stmt)
+            wordEqualsZero(value, false, false, jump, stmt)
         }
     }
 

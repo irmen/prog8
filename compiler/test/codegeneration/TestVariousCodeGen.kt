@@ -15,6 +15,7 @@ import prog8.code.core.DataType
 import prog8.code.target.*
 import prog8tests.helpers.ErrorReporterForTests
 import prog8tests.helpers.compileText
+import prog8tests.helpers.shouldContainInOrder
 import kotlin.io.path.readText
 
 class TestVariousCodeGen: FunSpec({
@@ -679,23 +680,27 @@ main {
         val result = compileText(C64Target(), true, text, outputDir, writeAssembly = true)!!
         val assemblyFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
         val assembly = assemblyFile.readText()
-        assembly shouldContain "bit  cx16.r0L"
-        assembly shouldContain "bit  cx16.r1L"
-        assembly shouldContain "bit  cx16.r2L"
-        assembly shouldContain "bit  cx16.r3L"
-        assembly shouldContain "bit  cx16.r4L"
-        assembly shouldContain "bit  cx16.r5L"
+        assembly.shouldContainInOrder(
+            "bit  cx16.r0L",
+            "bit  cx16.r1L",
+            "bit  cx16.r2L",
+            "bit  cx16.r3L",
+            "bit  cx16.r4L",
+            "bit  cx16.r5L"
+        )
 
         val resultIR = compileText(VMTarget(), true, text, outputDir, writeAssembly = true)!!
         val irFile = resultIR.compilationOptions.outputDir.resolve(result.compilerAst.name + ".p8ir")
         val ir = irFile.readText()
-        ir shouldContain "bit.b ${'$'}ff02"     // r0
-        ir shouldContain "bit.b ${'$'}ff04"     // r1
-        ir shouldContain "bit.b ${'$'}ff06"     // f2
-        ir shouldContain "bit.b ${'$'}ff08"     // r3
-        ir shouldContain "bit.b ${'$'}ff0a"     // r4
-        ir shouldContain "bit.b ${'$'}ff0c"     // r5
-    }
+        ir.shouldContainInOrder(
+            "bit.b ${'$'}ff02",     // r0
+            "bit.b ${'$'}ff04",     // r1
+            "bit.b ${'$'}ff06",     // f2
+            "bit.b ${'$'}ff08",     // r3
+            "bit.b ${'$'}ff0a",     // r4
+            "bit.b ${'$'}ff0c"      // r5
+        )
+    } 
 
     test("strings in if expression") {
         val src="""
