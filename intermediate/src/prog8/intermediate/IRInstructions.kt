@@ -533,6 +533,7 @@ val OpcodesThatSetStatusbitsIncludingCarry = setOf(
     Opcode.SGN
 )
 
+// Note: never include CALL, SYSCALL and CONCAT here because they should never be assumed to have set sensible status bits.
 val OpcodesThatSetStatusbitsButNotCarry = setOf(
     Opcode.LOAD,
     Opcode.LOADM,
@@ -565,8 +566,7 @@ val OpcodesThatSetStatusbitsButNotCarry = setOf(
     Opcode.MSIGB,
     Opcode.MSIGW,
     Opcode.BSIGB,
-    Opcode.MIDB,
-    Opcode.CONCAT
+    Opcode.MIDB
 )
 
 val OpcodesThatDependOnCarry = setOf(

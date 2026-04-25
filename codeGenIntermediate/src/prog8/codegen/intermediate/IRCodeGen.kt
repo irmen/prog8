@@ -552,7 +552,7 @@ class IRCodeGen(
                             it += IRInstruction(Opcode.STOREM, irType(DataType.forDt(elementDt)), reg1=tmpReg, labelSymbol = loopvarSymbol)
                         }
                         result += translateNode(forLoop.statements)
-                        result += addConstIntToReg(IRDataType.BYTE, indexReg, elementSize)
+                        result += addConstByteToReg(indexReg, elementSize)
                         result += IRCodeChunk(null, null).also {
                             if(lengthBytes!=256) {
                                 // for length 256, the compare is actually against 0, which doesn't require a separate CMP instruction
@@ -710,29 +710,29 @@ class IRCodeGen(
         return result
     }
 
-    private fun addConstIntToReg(dt: IRDataType, reg: Int, value: Int): IRCodeChunk {
+    private fun addConstByteToReg(reg: Int, value: Int): IRCodeChunk {
         val code = IRCodeChunk(null, null)
         when(value) {
             0 -> { /* do nothing */ }
             1 -> {
-                code += IRInstruction(Opcode.INC, dt, reg1=reg)
+                code += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=reg)
             }
             2 -> {
-                code += IRInstruction(Opcode.INC, dt, reg1=reg)
-                code += IRInstruction(Opcode.INC, dt, reg1=reg)
+                code += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=reg)
+                code += IRInstruction(Opcode.INC, IRDataType.BYTE, reg1=reg)
             }
             -1 -> {
-                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
+                code += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=reg)
             }
             -2 -> {
-                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
-                code += IRInstruction(Opcode.DEC, dt, reg1=reg)
+                code += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=reg)
+                code += IRInstruction(Opcode.DEC, IRDataType.BYTE, reg1=reg)
             }
             else -> {
                 code += if(value>0) {
-                    IRInstruction(Opcode.ADD, dt, reg1 = reg, immediate = value)
+                    IRInstruction(Opcode.ADD, IRDataType.BYTE, reg1 = reg, immediate = value)
                 } else {
-                    IRInstruction(Opcode.SUB, dt, reg1 = reg, immediate = -value)
+                    IRInstruction(Opcode.SUB, IRDataType.BYTE, reg1 = reg, immediate = -value)
                 }
             }
         }
@@ -1068,19 +1068,6 @@ class IRCodeGen(
         return result
     }
 
-    private fun branchInstr(goto: PtJump, branchOpcode: Opcode): IRInstruction {
-        return if (goto.target.asConstInteger() != null)
-            IRInstruction(branchOpcode, address = goto.target.asConstInteger()?.toUInt()?.toAddress())
-        else {
-            require(!isIndirectJump(goto)) { "indirect jumps cannot be expressed using a branch opcode"}
-            val identifier = goto.target as? PtIdentifier
-            if(identifier!=null && !isIndirectJump(goto))
-                IRInstruction(branchOpcode, labelSymbol = identifier.name)
-            else
-                TODO("JUMP to expression address ${goto.target}  ${goto.position}")
-        }
-    }
-
     private fun translateCondition(
         condition: PtExpression,
         onTrueLabel: String?,
@@ -1127,6 +1114,13 @@ class IRCodeGen(
         // Fallback: materialize expression and branch on result
         val tr = expressionEval.translateExpression(condition)
         result += tr.chunks
+        // Check if the last instruction already sets status flags - if so, skip the CMPI #0
+        val lastInstr = tr.chunks.lastOrNull()?.instructions?.lastOrNull()
+        val skipCmpi = lastInstr != null && lastInstr.opcode in OpcodesThatSetStatusbits
+        if (!skipCmpi) {
+            addInstr(result, IRInstruction(Opcode.CMPI, tr.dt, reg1 = tr.resultReg, immediate = 0), null)
+        }
+
         if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel != null || onFalseAddress != null)) {
             addInstr(result, IRInstruction(Opcode.BSTNE, labelSymbol = onTrueLabel, address = onTrueAddress), null)
             addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
@@ -1161,14 +1155,20 @@ class IRCodeGen(
 
         if (number != null) {
             val isComparingWithZero = number == 0
+            val lastInstr = leftTr.chunks.lastOrNull()?.instructions?.lastOrNull()
+            val canSkipCmpi = isComparingWithZero && lastInstr != null && lastInstr.opcode in OpcodesThatSetStatusbits
+
             if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel == null && onFalseAddress == null)) {
-                val (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed, isComparingWithZero)
+                var (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed)
+                if (canSkipCmpi && (opcode == Opcode.BSTEQ || opcode == Opcode.BSTNE)) useCmpi = false
                 emitIntegerComparisonBranch(result, opcode, useCmpi, branchDt, leftTr.resultReg, number, onTrueLabel, onTrueAddress)
             } else if ((onFalseLabel != null || onFalseAddress != null) && (onTrueLabel == null && onTrueAddress == null)) {
-                val (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, true, signed, isComparingWithZero)
+                var (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, true, signed)
+                if (canSkipCmpi && (opcode == Opcode.BSTEQ || opcode == Opcode.BSTNE)) useCmpi = false
                 emitIntegerComparisonBranch(result, opcode, useCmpi, branchDt, leftTr.resultReg, number, onFalseLabel, onFalseAddress)
             } else if ((onTrueLabel != null || onTrueAddress != null) && (onFalseLabel != null || onFalseAddress != null)) {
-                val (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed, isComparingWithZero)
+                var (opcode, useCmpi) = getIntegerComparisonBranch(condition.operator, false, signed)
+                if (canSkipCmpi && (opcode == Opcode.BSTEQ || opcode == Opcode.BSTNE)) useCmpi = false
                 emitIntegerComparisonBranch(result, opcode, useCmpi, branchDt, leftTr.resultReg, number, onTrueLabel, onTrueAddress)
                 addInstr(result, IRInstruction(Opcode.JUMP, labelSymbol = onFalseLabel, address = onFalseAddress), null)
             }
@@ -1228,7 +1228,7 @@ class IRCodeGen(
         else -> throw AssemblyError("invalid operator to invert")
     }
 
-    private fun getIntegerComparisonBranch(operator: String, invert: Boolean, signed: Boolean, isComparingWithZero: Boolean): Pair<Opcode, Boolean> {
+    private fun getIntegerComparisonBranch(operator: String, invert: Boolean, signed: Boolean): Pair<Opcode, Boolean> {
         val op = if (invert) invertOperator(operator) else operator
         return when (op) {
             "==" -> Opcode.BSTEQ to true

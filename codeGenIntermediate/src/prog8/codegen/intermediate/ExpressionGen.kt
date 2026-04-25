@@ -1162,7 +1162,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val resultRegister = codeGen.registers.next(IRDataType.BYTE)
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=resultRegister, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg)), null)
             val branch = if(greaterEquals) Opcode.BGES else Opcode.BGTS
-            val resultReg = compareImmediateAsBooleanResult(branch, IRDataType.BYTE, resultRegister, 0, result)
+            val resultReg = loadBooleanStatusAsByte(branch, resultRegister, result)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         } else {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
@@ -1198,7 +1198,7 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             val resultRegister = codeGen.registers.next(IRDataType.BYTE)
             addInstr(result, IRInstruction(Opcode.FCOMP, IRDataType.FLOAT, reg1=resultRegister, fpReg1 = RegisterNum(leftTr.resultFpReg), fpReg2 = RegisterNum(rightTr.resultFpReg)), null)
             val branch = if(lessEquals) Opcode.BLES else Opcode.BLTS
-            val resultReg = compareImmediateAsBooleanResult(branch, IRDataType.BYTE, resultRegister, 0, result)
+            val resultReg = loadBooleanStatusAsByte(branch, resultRegister, result)
             return ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
         } else {
             if(binExpr.left.type.isString || binExpr.right.type.isString) {
@@ -1239,7 +1239,11 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
                 return if(rightConst!=null) {
                     val leftTr = translateExpression(binExpr.left)
                     addToResult(result, leftTr, leftTr.resultReg, -1)
-                    addInstr(result, IRInstruction(Opcode.CMPI, leftTr.dt, reg1 = leftTr.resultReg, immediate = rightConst.toInt()), null)
+                    val lastInstr = leftTr.chunks.lastOrNull()?.instructions?.lastOrNull()
+                    val skipCmpi = rightConst.toInt() == 0 && lastInstr != null && lastInstr.opcode in OpcodesThatSetStatusbits
+                    if (!skipCmpi) {
+                        addInstr(result, IRInstruction(Opcode.CMPI, leftTr.dt, reg1 = leftTr.resultReg, immediate = rightConst.toInt()), null)
+                    }
                     val resultReg = loadStatusAsBooleanResult(if(notEquals) Opcode.BSTNE else Opcode.BSTEQ, result)
                     ExpressionCodeResult(result, IRDataType.BYTE, resultReg, -1)
                 } else {
@@ -1287,12 +1291,12 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
         return resultReg
     }
 
-    private fun compareImmediateAsBooleanResult(branchForTrue: Opcode, dt: IRDataType, reg1: Int, immediate: Int, result: MutableList<IRCodeChunkBase>): Int {
+    private fun loadBooleanStatusAsByte(branchForTrue: Opcode, reg1: Int, result: MutableList<IRCodeChunkBase>): Int {
         val labelTrue = codeGen.createLabelName()
         val labelDone = codeGen.createLabelName()
         val resultReg = codeGen.registers.next(IRDataType.BYTE)
         result += IRCodeChunk(null, null).also {
-            it += IRInstruction(branchForTrue, dt, reg1 = reg1, immediate = immediate, labelSymbol = labelTrue)
+            it += IRInstruction(branchForTrue, IRDataType.BYTE, reg1 = reg1, immediate = 0, labelSymbol = labelTrue)
             it += IRInstruction(Opcode.LOAD, IRDataType.BYTE, reg1 = resultReg, immediate = 0)
             it += IRInstruction(Opcode.JUMP, labelSymbol = labelDone)
         }

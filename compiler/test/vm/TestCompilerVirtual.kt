@@ -420,11 +420,11 @@ main {
         nextInstr.opcode shouldBeIn setOf(Opcode.BSTEQ, Opcode.BSTNE)
     }
 
-    test("if-expression keeps CMPI when condition doesn't set flags") {
+    test("if-expression omits CMPI since CALL now sets flags") {
         val src = """
 main {
+    sub getflag() -> bool { return true }
     sub start() {
-        sub getflag() -> bool { return true }
         cx16.r0L = if getflag() then 1 else 0
     }
 }"""
@@ -434,9 +434,9 @@ main {
         val start = irProgram.blocks[0].children[0] as IRSubroutine
         val instructions = start.chunks.flatMap { c->c.instructions }
 
-        // Should contain CMPI #0 after function call (since CALL doesn't set flags)
+        // Should NOT contain CMPI #0 after function call anymore (since CALL effectively sets flags now)
         val cmpiInstr = instructions.find { it.opcode == Opcode.CMPI && it.immediate == 0 }
-        cmpiInstr shouldNotBe null
+        cmpiInstr shouldBe null
     }
 
     test("repeat counts (const)") {

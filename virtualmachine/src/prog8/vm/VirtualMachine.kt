@@ -688,27 +688,30 @@ class VirtualMachine(irProgram: IRProgram) {
             val returns = context.fcallSpec.returns
             when (i.type!!) {
                 IRDataType.BYTE -> {
-                    if(returns.isNotEmpty())
-                        registers.setUB(returns.single().registerNum, i.immediate!!.toUByte())
-                    else {
+                    if(returns.isNotEmpty()) {
+                        val value = i.immediate!!.toUByte()
+                        registers.setUB(returns.single().registerNum, value)
+                    } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
                             throw IllegalArgumentException("missing return value reg")
                     }
                 }
                 IRDataType.WORD -> {
-                    if(returns.isNotEmpty())
-                        registers.setUW(returns.single().registerNum, i.immediate!!.toUShort())
-                    else {
+                    if(returns.isNotEmpty()) {
+                        val value = i.immediate!!.toUShort()
+                        registers.setUW(returns.single().registerNum, value)
+                    } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
                             throw IllegalArgumentException("missing return value reg")
                     }
                 }
                 IRDataType.LONG -> {
-                    if(returns.isNotEmpty())
-                        registers.setSL(returns.single().registerNum, i.immediate!!)
-                    else {
+                    if(returns.isNotEmpty()) {
+                        val value = i.immediate!!
+                        registers.setSL(returns.single().registerNum, value)
+                    } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
                             throw IllegalArgumentException("missing return value reg")
@@ -737,27 +740,30 @@ class VirtualMachine(irProgram: IRProgram) {
             val returns = context.fcallSpec.returns
             when (i.type!!) {
                 IRDataType.BYTE -> {
-                    if(returns.isNotEmpty())
-                        registers.setUB(returns.single().registerNum, registers.getUB(i.reg1!!))
-                    else {
+                    if(returns.isNotEmpty()) {
+                        val value = registers.getUB(i.reg1!!)
+                        registers.setUB(returns.single().registerNum, value)
+                    } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
                             throw IllegalArgumentException("missing return value reg")
                     }
                 }
                 IRDataType.WORD -> {
-                    if(returns.isNotEmpty())
-                        registers.setUW(returns.single().registerNum, registers.getUW(i.reg1!!))
-                    else {
+                    if(returns.isNotEmpty()) {
+                        val value = registers.getUW(i.reg1!!)
+                        registers.setUW(returns.single().registerNum, value)
+                    } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
                             throw IllegalArgumentException("missing return value reg")
                     }
                 }
                 IRDataType.LONG -> {
-                    if(returns.isNotEmpty())
-                        registers.setSL(returns.single().registerNum, registers.getSL(i.reg1!!))
-                    else {
+                    if(returns.isNotEmpty()) {
+                        val value = registers.getSL(i.reg1!!)
+                        registers.setSL(returns.single().registerNum, value)
+                    } else {
                         val callInstr = context.returnChunk.instructions[context.returnIndex-1]
                         if(callInstr.opcode!=Opcode.CALL)
                             throw IllegalArgumentException("missing return value reg")
@@ -1537,7 +1543,7 @@ class VirtualMachine(irProgram: IRProgram) {
     }
 
 
-    private fun statusbitsNZ(value: Int, type: IRDataType) {
+    internal fun statusbitsNZ(value: Int, type: IRDataType) {
         statusZero = value == 0
         when(type) {
             IRDataType.BYTE -> statusNegative = (value and 0x80) == 0x80
@@ -2723,7 +2729,6 @@ class VirtualMachine(irProgram: IRProgram) {
                 val lsb = registers.getUB(i.reg3!!)
                 val value = ((msb.toInt() shl 8) or lsb.toInt())
                 registers.setUW(i.reg1!!, value.toUShort())
-                statusbitsNZ(value, i.type!!)
             }
             IRDataType.WORD -> {
                 val msw = registers.getUW(i.reg2!!)

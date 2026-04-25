@@ -336,17 +336,17 @@ class TestCompilerOnExamplesVirtual: FunSpec({
 
     val onlyVirtual = cartesianProduct(
         listOf(
-            ExampleSizes("bouncegfx", virtualInstrCountOptimized=186, virtualInstrCountUnoptimized=834, virtualRegCountOptimized=92, virtualRegCountUnoptimized=380),
-            ExampleSizes("bsieve", virtualInstrCountOptimized=158, virtualInstrCountUnoptimized=1953, virtualRegCountOptimized=66, virtualRegCountUnoptimized=860),
-            ExampleSizes("fountain", virtualInstrCountOptimized=152, virtualInstrCountUnoptimized=802, virtualRegCountOptimized=77, virtualRegCountUnoptimized=363),
+            ExampleSizes("bouncegfx", virtualInstrCountOptimized=186, virtualInstrCountUnoptimized=824, virtualRegCountOptimized=92, virtualRegCountUnoptimized=380),
+            ExampleSizes("bsieve", virtualInstrCountOptimized=158, virtualInstrCountUnoptimized=1939, virtualRegCountOptimized=66, virtualRegCountUnoptimized=860),
+            ExampleSizes("fountain", virtualInstrCountOptimized=152, virtualInstrCountUnoptimized=791, virtualRegCountOptimized=77, virtualRegCountUnoptimized=363),
             ExampleSizes("pixelshader", virtualInstrCountOptimized=43, virtualInstrCountUnoptimized=291, virtualRegCountOptimized=15, virtualRegCountUnoptimized=109),
-            ExampleSizes("sincos", virtualInstrCountOptimized=276, virtualInstrCountUnoptimized=908, virtualRegCountOptimized=133, virtualRegCountUnoptimized=407),
-            ExampleSizes("pointers/animalgame", virtualInstrCountOptimized=221, virtualInstrCountUnoptimized=2097, virtualRegCountOptimized=103, virtualRegCountUnoptimized=933),
-            ExampleSizes("pointers/binarytree", virtualInstrCountOptimized=510, virtualInstrCountUnoptimized=2268, virtualRegCountOptimized=251, virtualRegCountUnoptimized=1020),
-            ExampleSizes("pointers/hashtable", virtualInstrCountOptimized=578, virtualInstrCountUnoptimized=2279, virtualRegCountOptimized=293, virtualRegCountUnoptimized=1045),
-            ExampleSizes("pointers/sortedlist", virtualInstrCountOptimized=267, virtualInstrCountUnoptimized=2434, virtualRegCountOptimized=118, virtualRegCountUnoptimized=1086),
-            ExampleSizes("pointers/fountain-virtual", virtualInstrCountOptimized=146, virtualInstrCountUnoptimized=797, virtualRegCountOptimized=71, virtualRegCountUnoptimized=357),
-            ExampleSizes("pointers/sorting", virtualInstrCountOptimized=369, virtualInstrCountUnoptimized=2266, virtualRegCountOptimized=173, virtualRegCountUnoptimized=1010)
+            ExampleSizes("sincos", virtualInstrCountOptimized=276, virtualInstrCountUnoptimized=898, virtualRegCountOptimized=133, virtualRegCountUnoptimized=407),
+            ExampleSizes("pointers/animalgame", virtualInstrCountOptimized=221, virtualInstrCountUnoptimized=2083, virtualRegCountOptimized=103, virtualRegCountUnoptimized=933),
+            ExampleSizes("pointers/binarytree", virtualInstrCountOptimized=510, virtualInstrCountUnoptimized=2237, virtualRegCountOptimized=251, virtualRegCountUnoptimized=1020),
+            ExampleSizes("pointers/hashtable", virtualInstrCountOptimized=578, virtualInstrCountUnoptimized=2255, virtualRegCountOptimized=293, virtualRegCountUnoptimized=1045),
+            ExampleSizes("pointers/sortedlist", virtualInstrCountOptimized=267, virtualInstrCountUnoptimized=2406, virtualRegCountOptimized=118, virtualRegCountUnoptimized=1086),
+            ExampleSizes("pointers/fountain-virtual", virtualInstrCountOptimized=146, virtualInstrCountUnoptimized=785, virtualRegCountOptimized=71, virtualRegCountUnoptimized=357),
+            ExampleSizes("pointers/sorting", virtualInstrCountOptimized=369, virtualInstrCountUnoptimized=2251, virtualRegCountOptimized=173, virtualRegCountUnoptimized=1010)
         ),
         listOf(false, true)
     )
