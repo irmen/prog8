@@ -8,7 +8,9 @@ import prog8.ast.walk.AstRemove
 import prog8.ast.walk.AstReplaceNode
 import prog8.ast.walk.AstWalker
 import prog8.code.PROG8_CONTAINER_MODULES
-import prog8.code.core.*
+import prog8.code.core.CompilationOptions
+import prog8.code.core.IErrorReporter
+import prog8.code.core.InplaceModifyingBuiltinFunctions
 import prog8.compiler.CallGraph
 
 
@@ -171,7 +173,10 @@ class UnusedCodeRemover(private val program: Program,
                                     val si2 = stmts.indexOf(secondAssignment)
                                     if (si1 != -1 && si2 != -1 && si1 < si2) {
                                         val inBetween = stmts.subList(si1 + 1, si2)
-                                        val safe = inBetween.all { it !is Label && it !is Jump && it !is IfElse && it !is ConditionalBranch && it !is ForLoop && it !is WhileLoop && it !is RepeatLoop && it !is UntilLoop && it !is UnrollLoop && it !is Return && it !is Subroutine && it !is Block && it !is AnonymousScope && it !is When && it !is InlineAssembly && it !is Break && it !is Continue }
+                                        val addressTaken = usages.any { findParentNode<AddressOf>(it) != null }
+                                        val safe = inBetween.all { stmt ->
+                                            isStatementSafe(stmt, decl, addressTaken)
+                                        }
                                         if (safe) {
                                             if (decl.hasExplicitInitializer) {
                                                 val onlyOnce = if (writes.size == 2) "only " else ""
@@ -370,5 +375,59 @@ class UnusedCodeRemover(private val program: Program,
         }
 
         return modifications + linesToRemove.map { AstRemove(it, scope) }
+    }
+
+    private fun isStatementSafe(stmt: Statement, decl: VarDecl, addressTaken: Boolean): Boolean {
+        return when (stmt) {
+            is Label, is Jump, is IfElse, is ConditionalBranch,
+            is ForLoop, is WhileLoop, is RepeatLoop, is UntilLoop,
+            is UnrollLoop, is Return, is Subroutine, is Block,
+            is AnonymousScope, is When, is InlineAssembly,
+            is Break, is Continue, is OnGoto -> false
+
+            is FunctionCallStatement -> {
+                if (addressTaken) return false
+                val definingSub = decl.definingSubroutine
+                if (definingSub == null) false // global: unsafe
+                else {
+                    val target = stmt.target.targetStatement(program.builtinFunctions)
+                    if (target is Subroutine) {
+                        !isNestedWithin(target, definingSub)
+                    } else if (target is BuiltinFunctionPlaceholder) {
+                        target.name !in setOf("call", "callfar", "callfar2")
+                    } else {
+                        true
+                    }
+                }
+            }
+
+            is Assignment -> {
+                (stmt.target.identifier != null || stmt.target.arrayindexed?.isSimple == true)
+                && isSafeExpression(stmt.value)
+            }
+
+            else -> true
+        }
+    }
+
+    private fun isNestedWithin(sub: Subroutine, parentSub: Subroutine): Boolean {
+        var p = sub.definingSubroutine
+        while (p != null) {
+            if (p === parentSub) return true
+            p = p.definingSubroutine
+        }
+        return false
+    }
+
+    private fun isSafeExpression(expr: Expression): Boolean {
+        return when (expr) {
+            is NumericLiteral -> true
+            is IdentifierReference -> true
+            is BinaryExpression -> isSafeExpression(expr.left) && isSafeExpression(expr.right)
+            is PrefixExpression -> isSafeExpression(expr.expression)
+            is ArrayIndexedExpression -> expr.isSimple
+            is TypecastExpression -> isSafeExpression(expr.expression)
+            else -> expr.isSimple
+        }
     }
 }

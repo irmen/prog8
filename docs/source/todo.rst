@@ -1,9 +1,6 @@
 TODO
 ====
 
-Imageviewer, Halloween, Paint have all increased size (maybe more)
-
-
 Dead Code Elimination BUG with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate

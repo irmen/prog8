@@ -370,6 +370,62 @@ other {
         errors.warnings.size shouldBe 0
     }
 
+    test("no redundant initialization removal if nested subroutine call in between") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte a = 1
+                    sub nested() {
+                        a = a + 1
+                    }
+                    nested()
+                    a = 4
+                    cx16.r0 = a
+                }
+            }
+        """.trimIndent()
+        val result = compileText(C64Target(), optimize = true, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.entrypoint
+        val aDecl = start.statements.filterIsInstance<VarDecl>().find { it.name == "a" }!!
+        aDecl.hasExplicitInitializer shouldBe true
+    }
+
+    test("no redundant initialization removal if dynamic call statement in between") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte a = 1
+                    uword ptr = &foo
+                    call(ptr)
+                    a = 4
+                    cx16.r0 = a
+                }
+                sub foo() {}
+            }
+        """.trimIndent()
+        val result = compileText(C64Target(), optimize = true, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.entrypoint
+        val aDecl = start.statements.filterIsInstance<VarDecl>().find { it.name == "a" }!!
+        aDecl.hasExplicitInitializer shouldBe true
+    }
+
+    test("no redundant initialization removal if callfar in between") {
+        val src = """
+            main {
+                sub start() {
+                    ubyte a = 1
+                    callfar(1, $8000, 0)
+                    a = 4
+                    cx16.r0 = a
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), optimize = true, src, outputDir, writeAssembly = false)!!
+        val start = result.compilerAst.entrypoint
+        val aDecl = start.statements.filterIsInstance<VarDecl>().find { it.name == "a" }!!
+        aDecl.hasExplicitInitializer shouldBe true
+    }
+
     test("AddressOf prevents constant replacement") {
         val src="""
             %import textio
