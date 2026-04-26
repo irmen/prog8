@@ -414,24 +414,6 @@ _fullpage       lda  (P8ZP_SCRATCH_W1),y
 		.pend
 
 
-long_not_equals     .proc
-		; checks if the 32 bits long value pointed to by AY is NOT equal to the one pointed to by P8ZP_SCRATCH_W1
-		; returns A=1 if NOT equals otherwise A=0
-		sta  P8ZP_SCRATCH_W2
-		sty  P8ZP_SCRATCH_W2+1
-		ldy  #3
--		lda  (P8ZP_SCRATCH_W1),y
-		cmp  (P8ZP_SCRATCH_W2),y
-		bne  _notequal
-		dey
-		bpl  -
-		lda  #0
-		rts
-_notequal       lda  #1
-		rts
-		.pend
-
-
 long_add_inplace        .proc
 		; long pointed to by AY += long pointed to by P8ZP_SCRATCH_W1
 		sta  P8ZP_SCRATCH_W2
@@ -653,42 +635,6 @@ long_shiftrightX_inplace        .proc
 		dex
 		bne  -
 _end		rts
-		.pend
-
-compare_long_gt_0        .proc
-		; pointer to 32 bits signed long in P8ZP_SCRATCH_W1, carry Set: value>0, carry clear: value <=0
-		ldy  #3
-		lda  (P8ZP_SCRATCH_W1),y
-		bmi  _fail
-		dey
-		ora  (P8ZP_SCRATCH_W1),y
-		dey
-		ora  (P8ZP_SCRATCH_W1),y
-		dey
-		ora  (P8ZP_SCRATCH_W1),y
-		beq  _fail
-		sec
-		rts
-_fail		clc
-		rts
-		.pend
-
-compare_long_le_0        .proc
-		; pointer to 32 bits signed long in P8ZP_SCRATCH_W1, carry Set: value<=0, carry clear: value >0
-		ldy  #3
-		lda  (P8ZP_SCRATCH_W1),y
-		bmi  _success
-		dey
-		ora  (P8ZP_SCRATCH_W1),y
-		dey
-		ora  (P8ZP_SCRATCH_W1),y
-		dey
-		ora  (P8ZP_SCRATCH_W1),y
-		beq  _success
-		clc
-		rts
-_success	sec
-		rts
 		.pend
 
 

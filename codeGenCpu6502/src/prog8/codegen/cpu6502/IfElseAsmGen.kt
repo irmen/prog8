@@ -311,22 +311,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             return translateIfCompareWithZeroByte(stmt, signed, jumpAfterIf)
         }
 
-        var left = condition.left
-        var right = condition.right
-        var operator = condition.operator
-
-        if (complexity(left) < complexity(right)) {
-            val swapped = condition.right
-            right = condition.left
-            left = swapped
-            operator = when (operator) {
-                "<" -> ">"
-                "<=" -> ">="
-                ">" -> "<"
-                ">=" -> "<="
-                else -> operator
-            }
-        }
+        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
 
         when (operator) {
             "==" -> {
@@ -607,11 +592,13 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
-        return when (condition.operator) {
-            "==" -> longEqualsValue(condition.left, condition.right, false, jumpAfterIf, stmt)
-            "!=" -> longEqualsValue(condition.left, condition.right, true, jumpAfterIf, stmt)
-            "<", "<=", ">", ">=" -> compareLongValues(condition.left, condition.operator, condition.right, jumpAfterIf, stmt)
-            else -> throw AssemblyError("expected comparison operator for long, got '${condition.operator}' at ${stmt.position}")
+        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
+
+        return when (operator) {
+            "==" -> longEqualsValue(left, right, false, jumpAfterIf, stmt)
+            "!=" -> longEqualsValue(left, right, true, jumpAfterIf, stmt)
+            "<", "<=", ">", ">=" -> compareLongValues(left, operator, right, jumpAfterIf, stmt)
+            else -> throw AssemblyError("expected comparison operator for long, got '${operator}' at ${stmt.position}")
         }
     }
 
@@ -631,22 +618,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
-        var left = condition.left
-        var right = condition.right
-        var operator = condition.operator
-
-        if (complexity(left) < complexity(right)) {
-            val swapped = condition.right
-            right = condition.left
-            left = swapped
-            operator = when (operator) {
-                "<" -> ">"
-                "<=" -> ">="
-                ">" -> "<"
-                ">=" -> "<="
-                else -> operator
-            }
-        }
+        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
 
         // non-zero comparisons
         when(operator) {
@@ -1360,42 +1332,66 @@ _jump                       jmp  (${target.asmLabel})
     }
 
     private fun checkLongGtZeroIntoCarry(value: PtExpression) {
+        val notGtLabel = asmgen.makeLabel("not_gt")
+        val doneLabel = asmgen.makeLabel("done")
         if(value is PtIdentifier) {
             val varname = asmgen.asmVariableName(value)
             asmgen.out("""
-                lda  #<$varname
-                ldy  #>$varname
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1""")
-            asmgen.out("  jsr  prog8_lib.compare_long_gt_0")
+                lda  $varname+3
+                bmi  $notGtLabel
+                ora  $varname+2
+                ora  $varname+1
+                ora  $varname
+                beq  $notGtLabel
+                sec
+                bcs  $doneLabel
+$notGtLabel     clc
+$doneLabel""")
         } else {
             assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15, value.type.isSigned)
             asmgen.out("""
-                lda  #<cx16.r14
-                ldy  #>cx16.r14
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1""")
-            asmgen.out("  jsr  prog8_lib.compare_long_gt_0")
+                lda  cx16.r14+3
+                bmi  $notGtLabel
+                ora  cx16.r14+2
+                ora  cx16.r14+1
+                ora  cx16.r14
+                beq  $notGtLabel
+                sec
+                bcs  $doneLabel
+$notGtLabel     clc
+$doneLabel""")
         }
     }
 
     private fun checkLongLeZeroIntoCarry(value: PtExpression) {
+        val leLabel = asmgen.makeLabel("le")
+        val doneLabel = asmgen.makeLabel("done")
         if(value is PtIdentifier) {
             val varname = asmgen.asmVariableName(value)
             asmgen.out("""
-                lda  #<$varname
-                ldy  #>$varname
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1""")
-            asmgen.out("  jsr  prog8_lib.compare_long_le_0")
+                lda  $varname+3
+                bmi  $leLabel
+                ora  $varname+2
+                ora  $varname+1
+                ora  $varname
+                beq  $leLabel
+                clc
+                bcc  $doneLabel
+$leLabel        sec
+$doneLabel""")
         } else {
             assignmentAsmGen.assignExpressionToRegister(value, RegisterOrPair.R14R15, value.type.isSigned)
             asmgen.out("""
-                lda  #<cx16.r14
-                ldy  #>cx16.r14
-                sta  P8ZP_SCRATCH_W1
-                sty  P8ZP_SCRATCH_W1+1""")
-            asmgen.out("  jsr  prog8_lib.compare_long_le_0")
+                lda  cx16.r14+3
+                bmi  $leLabel
+                ora  cx16.r14+2
+                ora  cx16.r14+1
+                ora  cx16.r14
+                beq  $leLabel
+                clc
+                bcc  $doneLabel
+$leLabel        sec
+$doneLabel""")
         }
     }
 
@@ -1506,13 +1502,18 @@ _jump                       jmp  (${target.asmLabel})
             } else if(variableRight!=null) {
                 require(right.type.isLong)
                 asmgen.out("""
-                    lda  #<$leftvar
-                    ldy  #>$leftvar
-                    sta  P8ZP_SCRATCH_W1
-                    sty  P8ZP_SCRATCH_W1+1
-                    lda  #<$variableRight
-                    ldy  #>$variableRight
-                    jsr  prog8_lib.long_not_equals""")
+                    lda  $leftvar
+                    cmp  $variableRight
+                    bne  +
+                    lda  $leftvar+1
+                    cmp  $variableRight+1
+                    bne  +
+                    lda  $leftvar+2
+                    cmp  $variableRight+2
+                    bne  +
+                    lda  $leftvar+3
+                    cmp  $variableRight+3
++""")
             }
         }
         else
@@ -1574,40 +1575,70 @@ _jump                       jmp  (${target.asmLabel})
         jump: PtJump?,
         stmt: PtIfElse
     ) {
-        // this comparison is not part of an expression but part of an if statement, there's no need to save the previous values of the temp registers
-
-        if(operator=="<" || operator ==">=") {
-            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R14R15, left.type.isSigned)
-            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R12R13, left.type.isSigned)
+        val (l, r, op) = if (operator == ">" || operator == "<=") {
+            Triple(right, left, if (operator == ">") "<" else ">=")
         } else {
-            // flip operands
-            assignmentAsmGen.assignExpressionToRegister(left, RegisterOrPair.R14R15, left.type.isSigned)
-            assignmentAsmGen.assignExpressionToRegister(right, RegisterOrPair.R12R13, left.type.isSigned)
+            Triple(left, right, operator)
         }
-        asmgen.out("""
-            sec
-            lda  cx16.r12
-            sbc  cx16.r14
-            lda  cx16.r12+1
-            sbc  cx16.r14+1
-            lda  cx16.r12+2
-            sbc  cx16.r14+2
-            lda  cx16.r12+3
-            sbc  cx16.r14+3""")
-        when(operator) {
-            "<", ">" -> {
-                if (jump != null)
-                    translateJumpElseBodies("bmi", "bpl", jump, stmt.elseScope)
-                else
-                    translateIfElseBodies("bpl", stmt)
-            }
-            ">=", "<=" -> {
-                if (jump != null)
-                    translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
-                else
-                    translateIfElseBodies("bmi", stmt)
-            }
-            else -> throw RuntimeException("invalid operator $operator")
+        // op is either "<" or ">="
+
+        val varL = if (l is PtIdentifier) asmgen.asmVariableName(l) else null
+        if (varL == null) {
+            asmgen.assignExpressionToRegister(l, RegisterOrPair.R12R13, true)
+        }
+        val opL = varL ?: "cx16.r12"
+
+        val constR = r.asConstInteger()
+        if (constR != null) {
+            val hex = constR.toLongHex()
+            asmgen.out("""
+                sec
+                lda  $opL
+                sbc  #$${hex.substring(6,8)}
+                lda  $opL+1
+                sbc  #$${hex.substring(4,6)}
+                lda  $opL+2
+                sbc  #$${hex.substring(2,4)}
+                lda  $opL+3
+                sbc  #$${hex.take(2)}""")
+        } else if (r is PtIdentifier) {
+            val varR = asmgen.asmVariableName(r)
+            asmgen.out("""
+                sec
+                lda  $opL
+                sbc  $varR
+                lda  $opL+1
+                sbc  $varR+1
+                lda  $opL+2
+                sbc  $varR+2
+                lda  $opL+3
+                sbc  $varR+3""")
+        } else {
+            asmgen.assignExpressionToRegister(r, RegisterOrPair.R14R15, true)
+            asmgen.out("""
+                sec
+                lda  $opL
+                sbc  cx16.r14
+                lda  $opL+1
+                sbc  cx16.r14+1
+                lda  $opL+2
+                sbc  cx16.r14+2
+                lda  $opL+3
+                sbc  cx16.r14+3""")
+        }
+
+        asmgen.out("  bvc  + | eor  #128 | +")
+
+        if (op == "<") {
+            if (jump != null)
+                translateJumpElseBodies("bmi", "bpl", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bpl", stmt)
+        } else {
+            if (jump != null)
+                translateJumpElseBodies("bpl", "bmi", jump, stmt.elseScope)
+            else
+                translateIfElseBodies("bmi", stmt)
         }
     }
 
@@ -1625,17 +1656,19 @@ _jump                       jmp  (${target.asmLabel})
             if(jump!=null) {
                 var target = asmgen.getJumpTarget(jump, false)
                 if(target.indirect) {
+                    val jumpLabel = asmgen.makeLabel("do_jump")
+                    val skipLabel = asmgen.makeLabel("skip_jump")
                     asmgen.out("""
                         cmp  $valueLsb
-                        bne  +
+                        bne  $jumpLabel
                         cpy  $valueMsb
-                        beq  ++""")
+                        beq  $skipLabel""")
                     if(target.needsExpressionEvaluation)
                         target = asmgen.getJumpTarget(jump)
                     require(!target.indexedX)
                     asmgen.out("""
-+                       jmp  (${target.asmLabel})
-+""")
+$jumpLabel              jmp  (${target.asmLabel})
+$skipLabel""")
                 } else {
                     require(!target.needsExpressionEvaluation)
                     asmgen.out("""
@@ -1650,12 +1683,13 @@ _jump                       jmp  (${target.asmLabel})
                 if(stmt.hasElse()) {
                     // if and else blocks
                     val elseLabel = asmgen.makeLabel("else")
+                    val ifLabel = asmgen.makeLabel("if")
                     asmgen.out("""
                         cmp  $valueLsb
-                        bne  +
+                        bne  $ifLabel
                         cpy  $valueMsb
                         beq  $elseLabel
-+""")
+$ifLabel""")
                     asmgen.translate(stmt.ifScope)
                     asmgen.jmp(afterIfLabel)
                     asmgen.out(elseLabel)
@@ -1678,25 +1712,27 @@ _jump                       jmp  (${target.asmLabel})
             if(jump!=null) {
                 var target = asmgen.getJumpTarget(jump, false)
                 if(target.indirect) {
+                    val skipLabel = asmgen.makeLabel("skip_jump")
                     asmgen.out("""
                         cmp  $valueLsb
-                        bne  +
+                        bne  $skipLabel
                         cpy  $valueMsb
-                        bne  +""")
+                        bne  $skipLabel""")
                     if(target.needsExpressionEvaluation)
                         target = asmgen.getJumpTarget(jump)
                     require(!target.indexedX)
                     asmgen.out("""
                         jmp  (${target.asmLabel})
-+""")
+$skipLabel""")
                 } else {
                     require(!target.needsExpressionEvaluation)
+                    val skipLabel = asmgen.makeLabel("skip_jump")
                     asmgen.out("""
                         cmp  $valueLsb
-                        bne  +
+                        bne  $skipLabel
                         cpy  $valueMsb
                         beq  ${target.asmLabel}
-+""")
+$skipLabel""")
                 }
                 asmgen.translate(stmt.elseScope)
             } else {
@@ -1726,406 +1762,33 @@ _jump                       jmp  (${target.asmLabel})
             }
         }
 
-        fun translateEqualsVarVar(left: PtIdentifier, right: PtIdentifier) {
-            if(notEquals) {
-                if(jump!=null) {
-                    var target = asmgen.getJumpTarget(jump, false)
-                    if(target.indirect) {
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            beq  ++""")
-                        if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump)
-                        require(!target.indexedX)
-                        asmgen.out("""
-+                           jmp  (${target.asmLabel})
-+""")
-                    } else {
-                        require(!target.needsExpressionEvaluation)
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  ${target.asmLabel}
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            bne  ${target.asmLabel}""")
-                    }
-                    asmgen.translate(stmt.elseScope)
+        if (left is PtIdentifier && (right is PtIdentifier || right is PtNumber)) {
+            val leftVar = asmgen.asmVariableName(left)
+            getWordOperands(right, signed) { rightLsb, rightMsb ->
+                val skipLabel = asmgen.makeLabel("skip")
+                asmgen.out("  lda  $leftVar | cmp  $rightLsb | bne  $skipLabel | lda  $leftVar+1 | cmp  $rightMsb")
+                asmgen.out("$skipLabel")
+                if (notEquals) {
+                    if (jump != null)
+                        translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
+                    else
+                        translateIfElseBodies("beq", stmt)
                 } else {
-                    val afterIfLabel = asmgen.makeLabel("afterif")
-                    if(stmt.hasElse()) {
-                        // if and else blocks
-                        val elseLabel = asmgen.makeLabel("else")
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            beq  $elseLabel
-+""")
-                        asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel)
-                        asmgen.out(elseLabel)
-                        asmgen.translate(stmt.elseScope)
-                    } else {
-                        // no else block
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            beq  $afterIfLabel
-+""")
-                        asmgen.translate(stmt.ifScope)
-                    }
-                    asmgen.out(afterIfLabel)
-                }
-            } else {
-                // XXX translateAYEquals(right.name, right.name + "+1")
-                if(jump!=null) {
-                    var target = asmgen.getJumpTarget(jump, false)
-                    if(target.indirect) {
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            bne  +""")
-                        if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump)
-                        require(!target.indexedX)
-                        asmgen.out("""
-                            jmp  (${target.asmLabel})
-+""")
-                    } else {
-                        require(!target.needsExpressionEvaluation)
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            beq  ${target.asmLabel}
-+""")
-                    }
-                    asmgen.translate(stmt.elseScope)
-                } else {
-                    val afterIfLabel = asmgen.makeLabel("afterif")
-                    if(stmt.hasElse()) {
-                        // if and else blocks
-                        val elseLabel = asmgen.makeLabel("else")
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  $elseLabel
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            bne  $elseLabel""")
-                        asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel)
-                        asmgen.out(elseLabel)
-                        asmgen.translate(stmt.elseScope)
-                    } else {
-                        // no else block
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  ${right.name}
-                            bne  $afterIfLabel
-                            lda  ${left.name}+1
-                            cmp  ${right.name}+1
-                            bne  $afterIfLabel""")
-                        asmgen.translate(stmt.ifScope)
-                    }
-                    asmgen.out(afterIfLabel)
+                    if (jump != null)
+                        translateJumpElseBodies("beq", "bne", jump, stmt.elseScope)
+                    else
+                        translateIfElseBodies("bne", stmt)
                 }
             }
+            return
         }
 
-        fun translateEqualsVarNum(left: PtIdentifier, right: PtNumber) {
-            val value = right.number.toInt()
-            if(notEquals) {
-                if(jump!=null) {
-                    var target = asmgen.getJumpTarget(jump, false)
-                    if(target.indirect) {
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            beq  ++""")
-                        if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump)
-                        require(!target.indexedX)
-                        asmgen.out("""
-+                           jmp  (${target.asmLabel})
-+""")
-                    } else {
-                        require(!target.needsExpressionEvaluation)
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  ${target.asmLabel}
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            bne  ${target.asmLabel}""")
-                    }
-                    asmgen.translate(stmt.elseScope)
-                } else {
-                    val afterIfLabel = asmgen.makeLabel("afterif")
-                    if(stmt.hasElse()) {
-                        // if and else blocks
-                        val elseLabel = asmgen.makeLabel("else")
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            beq  $elseLabel
-+""")
-                        asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel)
-                        asmgen.out(elseLabel)
-                        asmgen.translate(stmt.elseScope)
-                    } else {
-                        // no else block
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            beq  $afterIfLabel
-+""")
-                        asmgen.translate(stmt.ifScope)
-                    }
-                    asmgen.out(afterIfLabel)
-                }
-            } else {
-                if(jump!=null) {
-                    var target = asmgen.getJumpTarget(jump, false)
-                    if(target.indirect) {
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            bne  +""")
-                        if(target.needsExpressionEvaluation)
-                            target = asmgen.getJumpTarget(jump)
-                        require(!target.indexedX)
-                        asmgen.out("""
-                            jmp  (${target.asmLabel})
-+""")
-                    } else {
-                        require(!target.needsExpressionEvaluation)
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  +
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            beq  ${target.asmLabel}
-+""")
-                    }
-                    asmgen.translate(stmt.elseScope)
-                } else {
-                    val afterIfLabel = asmgen.makeLabel("afterif")
-                    if(stmt.hasElse()) {
-                        // if and else blocks
-                        val elseLabel = asmgen.makeLabel("else")
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  $elseLabel
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            bne  $elseLabel""")
-                        asmgen.translate(stmt.ifScope)
-                        asmgen.jmp(afterIfLabel)
-                        asmgen.out(elseLabel)
-                        asmgen.translate(stmt.elseScope)
-                    } else {
-                        // no else block
-                        asmgen.out("""
-                            lda  ${left.name}
-                            cmp  #<$value
-                            bne  $afterIfLabel
-                            lda  ${left.name}+1
-                            cmp  #>$value
-                            bne  $afterIfLabel""")
-                        asmgen.translate(stmt.ifScope)
-                    }
-                    asmgen.out(afterIfLabel)
-                }
-            }
-        }
-
-        fun translateEqualsArray(left: PtArrayIndexer, right: PtExpression) {
-            val constIndex = left.index.asConstInteger()
-            if(constIndex!=null) {
-                if(left.variable==null)
-                    TODO("support for ptr indexing ${left.position}")
-                asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                val varName = asmgen.asmVariableName(left.variable!!)
-                if(left.splitWords) {
-                    return if(notEquals)
-                        translateAYNotEquals("${varName}_lsb+$constIndex", "${varName}_msb+$constIndex")
-                    else
-                        translateAYEquals("${varName}_lsb+$constIndex", "${varName}_msb+$constIndex")
-                }
-                val offset = program.memsizer.memorySize(left.type, constIndex)
-                if(offset<256) {
-                    return if(notEquals)
-                        translateAYNotEquals("$varName+$offset", "$varName+$offset+1")
-                    else
-                        translateAYEquals("$varName+$offset", "$varName+$offset+1")
-                }
-            }
-            else return when(right) {
-                is PtNumber -> {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                    val value = right.number.toInt()
-                    if(notEquals)
-                        translateAYNotEquals("#<$value", "#>$value")
-                    else
-                        translateAYEquals("#<$value", "#>$value")
-                }
-                is PtIdentifier -> {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                    if(notEquals)
-                        translateAYNotEquals(right.name,right.name + "+1")
-                    else
-                        translateAYEquals(right.name, right.name + "+1")
-                }
-                else -> {
-                    asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                    asmgen.saveRegisterStack(CpuRegister.A, false)
-                    asmgen.saveRegisterStack(CpuRegister.Y, false)
-                    asmgen.assignExpressionToVariable(right,"P8ZP_SCRATCH_W1", right.type)
-                    asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                    asmgen.restoreRegisterStack(CpuRegister.A, false)
-                    if(notEquals)
-                        translateAYNotEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
-                    else
-                        translateAYEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
-                }
-            }
-        }
-
-        if(notEquals) {
-            when(left) {
-                is PtArrayIndexer -> {
-                    translateEqualsArray(left, right)
-                }
-                is PtIdentifier -> {
-                    when(right) {
-                        is PtNumber -> translateEqualsVarNum(left, right)
-                        is PtIdentifier -> translateEqualsVarVar(left, right)
-                        else -> {
-                            asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                            val varname = asmgen.asmVariableName(left)
-                            translateAYNotEquals(varname, "$varname+1")
-                        }
-                    }
-                }
-                is PtAddressOf -> {
-                    if(left.isFromArrayElement) {
-                        fallbackTranslateForSimpleCondition(stmt)
-                    } else {
-                        val varname = if(left.identifier!!.type.isSplitWordArray) {
-                            if(left.isMsbForSplitArray) left.identifier!!.name+"_msb" else left.identifier!!.name+"_lsb"
-                        } else {
-                            left.identifier!!.name
-                        }
-                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                        translateAYNotEquals("#<$varname", "#>$varname")
-                    }
-                }
-                else -> {
-                    when(right) {
-                        is PtNumber -> {
-                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                            val value = right.number.toInt()
-                            translateAYNotEquals("#<$value", "#>$value")
-                        }
-                        is PtIdentifier -> {
-                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                            translateAYNotEquals(right.name, right.name + "+1")
-                        }
-                        else -> {
-                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                            asmgen.saveRegisterStack(CpuRegister.A, false)
-                            asmgen.saveRegisterStack(CpuRegister.Y, false)
-                            asmgen.assignExpressionToVariable(right,"P8ZP_SCRATCH_W1", right.type)
-                            asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                            asmgen.restoreRegisterStack(CpuRegister.A, false)
-                            translateAYNotEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
-                        }
-                    }
-                }
-            }
-        } else {
-            when(left) {
-                is PtArrayIndexer -> {
-                    translateEqualsArray(left, right)
-                }
-                is PtIdentifier -> {
-                    when(right) {
-                        is PtNumber -> translateEqualsVarNum(left, right)
-                        is PtIdentifier -> translateEqualsVarVar(left, right)
-                        else -> {
-                            asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                            val varname = asmgen.asmVariableName(left)
-                            translateAYEquals(varname, "$varname+1")
-                        }
-                    }
-                }
-                is PtAddressOf -> {
-                    if(left.isFromArrayElement) {
-                        fallbackTranslateForSimpleCondition(stmt)
-                    } else {
-                        val varname = if(left.identifier!!.type.isSplitWordArray) {
-                            if(left.isMsbForSplitArray) left.identifier!!.name+"_msb" else left.identifier!!.name+"_lsb"
-                        } else {
-                            left.identifier!!.name
-                        }
-                        asmgen.assignExpressionToRegister(right, RegisterOrPair.AY, signed)
-                        translateAYEquals("#<$varname", "#>$varname")
-                    }
-                }
-                else -> {
-                    when(right) {
-                        is PtNumber -> {
-                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                            val value = right.number.toInt()
-                            translateAYEquals("#<$value", "#>$value")
-                        }
-                        is PtIdentifier -> {
-                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                            translateAYEquals(right.name, right.name + "+1")
-                        }
-                        else -> {
-                            asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-                            asmgen.saveRegisterStack(CpuRegister.A, false)
-                            asmgen.saveRegisterStack(CpuRegister.Y, false)
-                            asmgen.assignExpressionToVariable(right,"P8ZP_SCRATCH_W1", right.type)
-                            asmgen.restoreRegisterStack(CpuRegister.Y, false)
-                            asmgen.restoreRegisterStack(CpuRegister.A, false)
-                            translateAYEquals("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
-                        }
-                    }
-                }
-            }
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+        getWordOperands(right, signed) { valueLsb, valueMsb ->
+            if (notEquals)
+                translateAYNotEquals(valueLsb, valueMsb)
+            else
+                translateAYEquals(valueLsb, valueMsb)
         }
     }
 
@@ -2196,6 +1859,45 @@ _jump                       jmp  (${target.asmLabel})
             }
             else -> throw AssemblyError("expected comparison operator for float, got '${condition.operator}' at ${stmt.position}")
         }
+    }
+
+    private fun getWordOperands(expr: PtExpression, signed: Boolean, block: (lsb: String, msb: String) -> Unit) {
+        val constValue = expr.asConstInteger()
+        if (constValue != null) {
+            block("#<${constValue}", "#>${constValue}")
+        } else if (expr is PtIdentifier) {
+            val varname = asmgen.asmVariableName(expr)
+            block(varname, "$varname+1")
+        } else if (expr is PtAddressOf && !expr.isFromArrayElement) {
+            val identifier = expr.identifier!!
+            val varname = if (identifier.type.isSplitWordArray) {
+                if (expr.isMsbForSplitArray) identifier.name + "_msb" else identifier.name + "_lsb"
+            } else {
+                identifier.name
+            }
+            block("#<$varname", "#>$varname")
+        } else {
+            asmgen.saveRegisterStack(CpuRegister.A, false)
+            asmgen.saveRegisterStack(CpuRegister.Y, false)
+            asmgen.assignExpressionToVariable(expr, "P8ZP_SCRATCH_W1", expr.type)
+            asmgen.restoreRegisterStack(CpuRegister.Y, false)
+            asmgen.restoreRegisterStack(CpuRegister.A, false)
+            block("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+        }
+    }
+
+    private fun swapOperandsIfSimpler(left: PtExpression, right: PtExpression, operator: String): Triple<PtExpression, PtExpression, String> {
+        if (complexity(left) < complexity(right)) {
+            val newOp = when (operator) {
+                "<" -> ">"
+                "<=" -> ">="
+                ">" -> "<"
+                ">=" -> "<="
+                else -> operator
+            }
+            return Triple(right, left, newOp)
+        }
+        return Triple(left, right, operator)
     }
 
     private fun complexity(e: PtExpression): Int {
