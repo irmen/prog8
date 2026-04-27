@@ -1,6 +1,9 @@
 TODO
 ====
 
+in IfElseAsmgen and IfExpressionAsmGen there are a lot of makeLabel() calls that could just use a 64tass anonymous label '+'...
+
+
 Dead Code Elimination BUG with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
@@ -78,6 +81,7 @@ Libraries
 Optimizations
 -------------
 
+- COMPLICATED: recursive translateCondition() in IfElseAsmgen and IfExpressionAsmGen to mirror how the IR codegen now works.  This allows the compiler to generate branches directly from expressions without intermediate `LOAD #0/1` instructions. It handles complex logical trees by jumping to the appropriate labels based on the result of each sub-expression.
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)

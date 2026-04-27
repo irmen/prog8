@@ -297,7 +297,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                     translateIfElseBodies("beq", stmt)
             } else {
                 errors.info("SLOW FALLBACK FOR 'IF' CODEGEN - ask for support", stmt.position)      //  should not occur ;-)
-                asmgen.assignConditionValueToRegisterAndTest(stmt.condition)
+                asmgen.assignConditionValueToRegisterAndTest(condition)
                 if(jumpAfterIf!=null)
                     translateJumpElseBodies("bne", "beq", jumpAfterIf, stmt.elseScope)
                 else
@@ -308,10 +308,12 @@ internal class IfElseAsmGen(private val program: PtProgram,
         
         val constValue = condition.right.asConstInteger()
         if(constValue==0) {
-            return translateIfCompareWithZeroByte(stmt, signed, jumpAfterIf)
+            return translateIfCompareWithZeroByte(stmt, condition, signed, jumpAfterIf)
         }
 
-        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
 
         when (operator) {
             "==" -> {
@@ -340,9 +342,8 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateIfCompareWithZeroByte(stmt: PtIfElse, signed: Boolean, jumpAfterIf: PtJump?) {
+    private fun translateIfCompareWithZeroByte(stmt: PtIfElse, condition: PtBinaryExpression, signed: Boolean, jumpAfterIf: PtJump?) {
         // optimized code for byte comparisons with 0
-        val condition = stmt.condition as PtBinaryExpression
         asmgen.assignConditionValueToRegisterAndTest(condition.left)
         when (condition.operator) {
             "==" -> {
@@ -592,7 +593,9 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
-        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
 
         return when (operator) {
             "==" -> longEqualsValue(left, right, false, jumpAfterIf, stmt)
@@ -618,7 +621,9 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
-        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
 
         // non-zero comparisons
         when(operator) {
@@ -1864,28 +1869,5 @@ $skipLabel""")
         }
     }
 
-    private fun swapOperandsIfSimpler(left: PtExpression, right: PtExpression, operator: String): Triple<PtExpression, PtExpression, String> {
-        if (complexity(left) < complexity(right)) {
-            val newOp = when (operator) {
-                "<" -> ">"
-                "<=" -> ">="
-                ">" -> "<"
-                ">=" -> "<="
-                else -> operator
-            }
-            return Triple(right, left, newOp)
-        }
-        return Triple(left, right, operator)
-    }
-
-    private fun complexity(expr: PtExpression): Int {
-        val e = asmgen.unwrapCasts(expr)
-        if (e.asConstInteger() != null) return 0
-        if (e is PtIdentifier) return 1
-        if (e is PtAddressOf && !e.isFromArrayElement) return 1
-        if (e is PtMemoryByte) return 2
-        if (e is PtArrayIndexer && e.index.asConstInteger() != null) return 2
-        return 10
-    }
 }
 

@@ -159,7 +159,9 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             }
         }
 
-        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
         val signed = left.type.isSigned
         val constValue = right.asConstInteger()
         if(constValue==0) {
@@ -241,7 +243,9 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     }
 
     private fun translateIfExpressionWordConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
-        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
         val signed = left.type.isSigned
         val constValue = right.asConstInteger()
         if (constValue == 0) {
@@ -274,7 +278,9 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     }
 
     private fun translateIfExpressionLongConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
-        val (left, right, operator) = swapOperandsIfSimpler(condition.left, condition.right, condition.operator)
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
         val constValue = right.asConstInteger()
         if (constValue == 0) {
             // optimized comparisons with zero
@@ -1145,29 +1151,6 @@ $isLeLabel""")
         }
     }
 
-    private fun swapOperandsIfSimpler(left: PtExpression, right: PtExpression, operator: String): Triple<PtExpression, PtExpression, String> {
-        if (complexity(left) < complexity(right)) {
-            val newOp = when (operator) {
-                "<" -> ">"
-                "<=" -> ">="
-                ">" -> "<"
-                ">=" -> "<="
-                else -> operator
-            }
-            return Triple(right, left, newOp)
-        }
-        return Triple(left, right, operator)
-    }
-
-    private fun complexity(expr: PtExpression): Int {
-        val e = asmgen.unwrapCasts(expr)
-        if (e.asConstInteger() != null) return 0
-        if (e is PtIdentifier) return 1
-        if (e is PtAddressOf && !e.isFromArrayElement) return 1
-        if (e is PtMemoryByte) return 2
-        if (e is PtArrayIndexer && e.index.asConstInteger() != null) return 2
-        return 10
-    }
 
     private fun getWordOperands(expr: PtExpression, block: (lsb: String, msb: String) -> Unit) {
         val constValue = expr.asConstInteger()

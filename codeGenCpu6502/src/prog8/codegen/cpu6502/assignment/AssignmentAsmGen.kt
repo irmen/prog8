@@ -113,64 +113,6 @@ internal class AssignmentAsmGen(
         } else throw AssemblyError("expected extsub or normal sub or builtinfunc")
     }
 
-    private fun assignStatusFlagsAndRegistersResults(
-        statusFlagResults: List<Pair<StExtSubParameter, PtNode>>,
-        registersResults: List<Pair<StExtSubParameter, PtNode>>
-    ) {
-
-        fun needsToSaveA(registersResults: List<Pair<StExtSubParameter, PtNode>>): Boolean =
-            if(registersResults.isEmpty())
-                false
-            else if(registersResults.all { (it.second as PtAssignTarget).identifier!=null})
-                false
-            else
-                true
-
-        if(registersResults.all {
-                val tgt = it.second as PtAssignTarget
-                tgt.void || tgt.identifier!=null})
-        {
-            // all other results are just stored into identifiers directly so first handle those
-            // (simple store instructions that don't modify the carry flag)
-            assignRegisterResults(registersResults)
-            assignOnlyTheStatusFlagsResults(false, statusFlagResults)
-        } else {
-            val saveA = needsToSaveA(registersResults)
-            assignOnlyTheStatusFlagsResults(saveA, statusFlagResults)
-            assignRegisterResults(registersResults)
-        }
-    }
-
-    private fun assignOnlyTheStatusFlagsResults(saveA: Boolean, statusFlagResults: List<Pair<StExtSubParameter, PtNode>>) {
-        // assigning flags to their variables targets requires load-instructions that destroy flags
-        // so if there's more than 1, we need to save and restore the flags
-        val saveFlags = statusFlagResults.size>1
-
-        fun hasFlag(statusFlagResults: List<Pair<StExtSubParameter, PtNode>>, flag: Statusflag): PtAssignTarget? {
-            for ((returns, target) in statusFlagResults) {
-                if(returns.register.statusflag!! == flag)
-                    return target as PtAssignTarget
-            }
-            return null
-        }
-
-        val targetCarry = hasFlag(statusFlagResults, Statusflag.Pc)
-        val targetZero = hasFlag(statusFlagResults, Statusflag.Pz)
-        val targetNeg = hasFlag(statusFlagResults, Statusflag.Pn)
-        val targetOverflow = hasFlag(statusFlagResults, Statusflag.Pv)
-
-        if(saveA) asmgen.out("  pha")
-        if(targetZero!=null && !targetZero.void)
-            assignZeroFlagResult(targetZero, saveFlags)
-        if(targetNeg!=null && !targetNeg.void)
-            assignNegativeFlagResult(targetNeg, saveFlags)
-        if(targetCarry!=null && !targetCarry.void)
-            assignCarryFlagResult(targetCarry)
-        if(targetOverflow!=null && !targetOverflow.void)
-            assignOverflowFlagResult(targetOverflow)
-        if(saveA) asmgen.out("  pla")
-    }
-
     private fun assignRegisterResults(registersResults: List<Pair<StExtSubParameter, PtNode>>) {
         registersResults.forEach { (returns, target) ->
             target as PtAssignTarget
@@ -1575,8 +1517,30 @@ internal class AssignmentAsmGen(
         return false
     }
 
+    private fun getIdentForNoopCastOrIdent(expr: PtExpression): Pair<String, DataType>? {
+        // Returns the variable name and type if the expression is:
+        // 1. A plain identifier (returns its name and type)
+        // 2. A no-op type cast (word<->uword) - unwraps and returns the inner identifier
+        // Otherwise returns null
+        val identifier = when (expr) {
+            is PtIdentifier -> expr
+            is PtTypeCast -> {
+                // Check if this is a no-op cast (word<->uword)
+                if (expr.value is PtIdentifier &&
+                    ((expr.type.isWord && expr.value.type.isUnsignedWord) ||
+                     (expr.type.isUnsignedWord && expr.value.type.isWord) ||
+                     (expr.type.isByte && expr.value.type.isByte))) {
+                    expr.value as PtIdentifier
+                } else {
+                    return null
+                }
+            }
+            else -> return null
+        }
+        return Pair(asmgen.asmVariableName(identifier), identifier.type)
+    }
+
     private fun optimizedPlusMinExpr(expr: PtBinaryExpression, target: AsmAssignTarget): Boolean {
-        // TODO can this use the target directly as intermediate, when it's a variable?  To save the final assignRegister call.
         val dt = expr.type
         val left = expr.left
         val right = expr.right
@@ -1745,6 +1709,36 @@ internal class AssignmentAsmGen(
                                 tay
                                 txa""")
                     assignRegisterpairWord(target, RegisterOrPair.AY)
+                    return true
+                }
+            }
+
+            // Memory-to-memory optimization: when both operands and target are static variables
+            // Also handles no-op type casts (word<->uword) by unwrapping them
+            if(target.kind == TargetStorageKind.VARIABLE) {
+                val leftInfo = getIdentForNoopCastOrIdent(expr.left)
+                val rightInfo = getIdentForNoopCastOrIdent(expr.right)
+                if(leftInfo!=null && rightInfo!=null) {
+                    val targetSym = target.asmVarname
+                    if(expr.operator=="+") {
+                        asmgen.out("""
+                                lda  ${leftInfo.first}
+                                clc
+                                adc  ${rightInfo.first}
+                                sta  $targetSym
+                                lda  ${leftInfo.first}+1
+                                adc  ${rightInfo.first}+1
+                                sta  $targetSym+1""")
+                    } else {
+                        asmgen.out("""
+                                lda  ${leftInfo.first}
+                                sec
+                                sbc  ${rightInfo.first}
+                                sta  $targetSym
+                                lda  ${leftInfo.first}+1
+                                sbc  ${rightInfo.first}+1
+                                sta  $targetSym+1""")
+                    }
                     return true
                 }
             }
