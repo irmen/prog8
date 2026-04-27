@@ -89,6 +89,16 @@ For problems that **ONLY occur with the 'virtual' target**, **ONLY modify these 
 
 **DO NOT modify** `compilerAst`, `simpleAst`, `codeGenCpu6502`, etc. The IR codegen has its own separate handling for symbol tables, AST transformations, and unused code removal.
 
+## IMPORTANT: Compiler Crashes Must Be Fixed in the Compiler
+A Kotlin/Java crash in the compiler itself (as opposed to a compilation error in the user's program) indicates a bug in the compiler code. **Such crashes should NEVER be worked around by modifying the Prog8 source file that triggered them.**
+
+Instead, always fix the bug in the compiler's Kotlin code. The user's program is correct - the compiler needs to handle it properly.
+
+Steps when encountering a compiler crash:
+1. Create a minimal reproduction case of the Prog8 source that triggers the crash
+2. Debug the compiler to find the root cause in the Kotlin code
+3. Fix the compiler bug, not the user program
+
 ## CRITICAL: NO FORMATTING
 - DO NOT change indentation and formatting of lines that are not being modified. NEVER run formatters (black, ruff, prettier, etc.) after edits,
 - .editorconfig handles basic formatting (indentation, line endings, whitespace)
