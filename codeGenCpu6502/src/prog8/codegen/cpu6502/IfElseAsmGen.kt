@@ -36,9 +36,8 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
             val useBIT = asmgen.checkIfConditionCanUseBIT(compareCond)
             if(useBIT!=null) {
-                // use a BIT instruction to test for bit 7 or 6 set/clear
-                val (testBitSet, variable, bitmask) = useBIT
-                return translateIfBIT(stmt, jumpAfterIf, testBitSet, variable, bitmask)
+                val (testBitSet, variableName, bitmask) = useBIT
+                return translateIfBIT(stmt, jumpAfterIf, testBitSet, variableName, bitmask)
             }
 
             val rightDt = compareCond.right.type
@@ -78,7 +77,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         throw AssemblyError("weird non-boolean condition node type ${stmt.condition} at ${stmt.condition.position}")
     }
 
-    private fun translateIfBIT(ifElse: PtIfElse, jumpAfterIf: PtJump?, testForBitSet: Boolean, variable: PtIdentifier, bitmask: Int) {
+    private fun translateIfBIT(ifElse: PtIfElse, jumpAfterIf: PtJump?, testForBitSet: Boolean, variableName: String, bitmask: Int) {
         // use a BIT instruction to test for bit 7 or 6 set/clear
 
         fun branch(branchInstr: String, target: AsmGen6502Internal.JumpTarget) {
@@ -94,7 +93,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         when (bitmask) {
             128 -> {
                 // test via bit + N flag
-                asmgen.out("  bit  ${variable.name}")
+                asmgen.out("  bit  $variableName")
                 if(testForBitSet) {
                     if(jumpAfterIf!=null) {
                         val target = asmgen.getJumpTarget(jumpAfterIf)
@@ -116,7 +115,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
             64 -> {
                 // test via bit + V flag
-                asmgen.out("  bit  ${variable.name}")
+                asmgen.out("  bit  $variableName")
                 if(testForBitSet) {
                     if(jumpAfterIf!=null) {
                         val target = asmgen.getJumpTarget(jumpAfterIf)
@@ -332,10 +331,10 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 else
                     translateIfElseBodies("beq", stmt)
             }
-            "<" -> translateByteLess(left, right, operator, signed, stmt, jumpAfterIf)
-            "<=" -> translateByteLessEqual(left, right, operator, signed, stmt, jumpAfterIf)
-            ">" -> translateByteGreater(left, right, operator, signed, stmt, jumpAfterIf)
-            ">=" -> translateByteGreaterEqual(left, right, operator, signed, stmt, jumpAfterIf)
+            "<" -> translateByteLess(left, right, signed, stmt, jumpAfterIf)
+            "<=" -> translateByteLessEqual(left, right, signed, stmt, jumpAfterIf)
+            ">" -> translateByteGreater(left, right, signed, stmt, jumpAfterIf)
+            ">=" -> translateByteGreaterEqual(left, right, signed, stmt, jumpAfterIf)
             else -> throw AssemblyError("expected comparison operator '${operator}' at ${stmt.position}")
         }
     }
@@ -479,7 +478,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteLess(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
+    private fun translateByteLess(left: PtExpression, right: PtExpression, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
         if(signed) {
             if(jumpAfterIf!=null)
@@ -495,7 +494,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteLessEqual(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
+    private fun translateByteLessEqual(left: PtExpression, right: PtExpression, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
         // X<=Y -> Y>=X (reverse of >=)
         asmgen.assignExpressionToRegister(right, RegisterOrPair.A, signed)
         return if(signed) {
@@ -512,7 +511,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteGreater(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
+    private fun translateByteGreater(left: PtExpression, right: PtExpression, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
         if(signed) {
             // X>Y --> Y<X
             asmgen.assignExpressionToRegister(right, RegisterOrPair.A, true)
@@ -561,7 +560,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun translateByteGreaterEqual(left: PtExpression, right: PtExpression, operator: String, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
+    private fun translateByteGreaterEqual(left: PtExpression, right: PtExpression, signed: Boolean, stmt: PtIfElse, jumpAfterIf: PtJump?) {
         asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
         return if(signed) {
             if(jumpAfterIf!=null)
@@ -778,19 +777,18 @@ _jump                       jmp  (${target.asmLabel})
             }
         }
 
-        if(right is PtNumber) {
+        val varR = asmgen.tryGetStaticAddress(right, 2)
+        if (varR != null) {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-            val number = right.number.toHex()
-            return code("#<$number", "#>$number")
+            return code(varR, "$varR+1")
         }
 
-        if(right is PtIdentifier) {
+        val constValue = right.asConstInteger()
+        if (constValue != null) {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-            val variable = asmgen.asmVariableName(right)
-            return code(variable, "$variable+1")
+            val hex = constValue.toHex()
+            return code("#<$hex", "#>$hex")
         }
-
-        // TODO optimize for simple array value
 
         // generic case via scratch register
         asmgen.assignWordOperandsToAYAndVar(left, right, "P8ZP_SCRATCH_W2")
@@ -909,19 +907,18 @@ _jump                       jmp  (${target.asmLabel})
             }
         }
 
-        if(right is PtNumber) {
+        val varR = asmgen.tryGetStaticAddress(right, 2)
+        if (varR != null) {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-            val number = right.number.toHex()
-            return code("#<$number", "#>$number")
+            return code(varR, "$varR+1")
         }
 
-        if(right is PtIdentifier) {
+        val constValue = right.asConstInteger()
+        if (constValue != null) {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-            val variable = asmgen.asmVariableName(right)
-            return code(variable, "$variable+1")
+            val hex = constValue.toHex()
+            return code("#<$hex", "#>$hex")
         }
-
-        // TODO optimize for simple array value
 
         // generic case via scratch register
         asmgen.assignWordOperandsToAYAndVar(left, right, "P8ZP_SCRATCH_W2")
@@ -1482,13 +1479,13 @@ $doneLabel""")
         val constRight = right.asConstInteger()
         val variableRight = (right as? PtIdentifier)?.name
 
-        if(left is PtIdentifier) {
-            val leftvar = asmgen.asmVariableName(left)
-            if(constRight!=null) {
+        val leftvar = asmgen.tryGetStaticAddress(left, 4)
+        if (leftvar != null) {
+            if (constRight != null) {
                 val hex = constRight.toLongHex()
                 asmgen.out("""
                     lda  $leftvar
-                    cmp  #$${hex.substring(6,8)}
+                    cmp  #$${hex.substring(6, 8)}
                     bne  +
                     lda  $leftvar+1
                     cmp  #$${hex.substring(4, 6)}
@@ -1499,7 +1496,7 @@ $doneLabel""")
                     lda  $leftvar+3
                     cmp  #$${hex.take(2)}
 +""")
-            } else if(variableRight!=null) {
+            } else if (variableRight != null) {
                 require(right.type.isLong)
                 asmgen.out("""
                     lda  $leftvar
@@ -1515,9 +1512,7 @@ $doneLabel""")
                     cmp  $variableRight+3
 +""")
             }
-        }
-        else
-        {
+        } else {
             // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
             asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, left.type.isSigned)
             if(constRight!=null) {
@@ -1582,7 +1577,7 @@ $doneLabel""")
         }
         // op is either "<" or ">="
 
-        val varL = if (l is PtIdentifier) asmgen.asmVariableName(l) else null
+        val varL = asmgen.tryGetStaticAddress(l, 4)
         if (varL == null) {
             asmgen.assignExpressionToRegister(l, RegisterOrPair.R12R13, true)
         }
@@ -1764,10 +1759,10 @@ $skipLabel""")
 
         if (left is PtIdentifier && (right is PtIdentifier || right is PtNumber)) {
             val leftVar = asmgen.asmVariableName(left)
-            getWordOperands(right, signed) { rightLsb, rightMsb ->
+            getWordOperands(right) { rightLsb, rightMsb ->
                 val skipLabel = asmgen.makeLabel("skip")
                 asmgen.out("  lda  $leftVar | cmp  $rightLsb | bne  $skipLabel | lda  $leftVar+1 | cmp  $rightMsb")
-                asmgen.out("$skipLabel")
+                asmgen.out(skipLabel)
                 if (notEquals) {
                     if (jump != null)
                         translateJumpElseBodies("bne", "beq", jump, stmt.elseScope)
@@ -1784,7 +1779,7 @@ $skipLabel""")
         }
 
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
-        getWordOperands(right, signed) { valueLsb, valueMsb ->
+        getWordOperands(right) { valueLsb, valueMsb ->
             if (notEquals)
                 translateAYNotEquals(valueLsb, valueMsb)
             else
@@ -1861,7 +1856,7 @@ $skipLabel""")
         }
     }
 
-    private fun getWordOperands(expr: PtExpression, signed: Boolean, block: (lsb: String, msb: String) -> Unit) {
+    private fun getWordOperands(expr: PtExpression, block: (lsb: String, msb: String) -> Unit) {
         val constValue = expr.asConstInteger()
         if (constValue != null) {
             block("#<${constValue}", "#>${constValue}")

@@ -515,6 +515,22 @@ class AsmGen6502Internal (
             name
     }
 
+    fun tryGetStaticAddress(expr: PtExpression, variableMemSize: Int): String? {
+        if (expr is PtIdentifier) return asmVariableName(expr)
+        if (expr is PtTypeCast) {
+            // ignore type cast for static address lookup
+            return tryGetStaticAddress(expr.value, variableMemSize)
+        }
+        if (expr is PtArrayIndexer) {
+            val idx = expr.index.asConstInteger()
+            if (idx != null && expr.variable != null) {
+                val offset = program.memsizer.memorySize(expr.type, idx)
+                if (offset + (variableMemSize - 1) < 256) return "${asmVariableName(expr.variable!!)}+$offset"
+            }
+        }
+        return null
+    }
+
     fun asmVariableName(st: StNode, scope: IPtSubroutine?): String {
         val name = asmVariableName(st.scopedNameString)
         if(scope==null)
@@ -2703,22 +2719,38 @@ $repeatLabel""")
         }
     }
 
-    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): Triple<Boolean, PtIdentifier, Int>? {
+    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): Triple<Boolean, String, Int>? {
         if(condition.operator == "==" || condition.operator == "!=") {
             if (condition.right.asConstInteger() == 0) {
-                val and = condition.left as? PtBinaryExpression
+                var and = condition.left as? PtBinaryExpression
+                if (and == null && condition.left is PtTypeCast) {
+                    and = (condition.left as PtTypeCast).value as? PtBinaryExpression
+                }
                 if (and != null && and.operator == "&" && and.type.isUnsignedByte) {
                     val bitmask = and.right.asConstInteger()
                     if(bitmask==128 || bitmask==64) {
+                        // handle msb(x) or lsb(x) calls
+                        val leftExpr = and.left
+                        if (leftExpr is PtFunctionCall) {
+                            if (leftExpr.name == "msb" || leftExpr.name == "lsb") {
+                                val arg = leftExpr.args.singleOrNull()
+                                if (arg is PtIdentifier && arg.type.isWord) {
+                                    val offset = if (leftExpr.name == "msb") 1 else 0
+                                    val variableName = "${asmVariableName(arg)}+$offset"
+                                    return Triple(condition.operator == "!=", variableName, bitmask)
+                                }
+                            }
+                        }
+
                         val variable = and.left as? PtIdentifier
                         if (variable != null && variable.type.isByte) {
-                            return Triple(condition.operator=="!=", variable, bitmask)
+                            return Triple(condition.operator=="!=", asmVariableName(variable), bitmask)
                         }
                         val typecast = and.left as? PtTypeCast
                         if (typecast != null && typecast.type.isUnsignedByte) {
                             val castedVariable = typecast.value as? PtIdentifier
                             if(castedVariable!=null && castedVariable.type.isByte)
-                                return Triple(condition.operator=="!=", castedVariable, bitmask)
+                                return Triple(condition.operator=="!=", asmVariableName(castedVariable), bitmask)
                         }
                     }
                 }
