@@ -4,9 +4,10 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
+import prog8.codegen.cpu6502.assignment.PointerAssignmentsGen
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 
-internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, private val assignmentAsmGen: AssignmentAsmGen, private val errors: IErrorReporter) {
+internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, private val pointergen: PointerAssignmentsGen, private val assignmentAsmGen: AssignmentAsmGen, private val errors: IErrorReporter) {
 
     internal fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
         require(target.datatype==expr.type ||
@@ -117,6 +118,12 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
 
             is PtPrefix if condition.operator=="not" -> {
                 throw AssemblyError("not prefix in ifexpression should have been replaced by swapped values")
+            }
+
+            is PtPointerDeref -> {
+                val (zpPtrVar, offset) = pointergen.deref(condition)
+                asmgen.loadIndirectByte(zpPtrVar, offset)
+                asmgen.out("  beq  $falseLabel")
             }
 
             else -> {
