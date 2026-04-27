@@ -515,17 +515,20 @@ class AsmGen6502Internal (
             name
     }
 
+    fun unwrapCasts(expr: PtExpression): PtExpression {
+        var e = expr
+        while (e is PtTypeCast) e = e.value
+        return e
+    }
+
     fun tryGetStaticAddress(expr: PtExpression, variableMemSize: Int): String? {
-        if (expr is PtIdentifier) return asmVariableName(expr)
-        if (expr is PtTypeCast) {
-            // ignore type cast for static address lookup
-            return tryGetStaticAddress(expr.value, variableMemSize)
-        }
-        if (expr is PtArrayIndexer) {
-            val idx = expr.index.asConstInteger()
-            if (idx != null && expr.variable != null) {
-                val offset = program.memsizer.memorySize(expr.type, idx)
-                if (offset + (variableMemSize - 1) < 256) return "${asmVariableName(expr.variable!!)}+$offset"
+        val e = unwrapCasts(expr)
+        if (e is PtIdentifier) return asmVariableName(e)
+        if (e is PtArrayIndexer) {
+            val idx = e.index.asConstInteger()
+            if (idx != null && e.variable != null) {
+                val offset = program.memsizer.memorySize(e.type, idx)
+                if (offset + (variableMemSize - 1) < 256) return "${asmVariableName(e.variable!!)}+$offset"
             }
         }
         return null
@@ -2564,21 +2567,22 @@ $repeatLabel""")
             out("  $compare  P8ZP_SCRATCH_REG")
         }
 
-        when(value) {
+        val e = unwrapCasts(value)
+        when(e) {
             is PtArrayIndexer -> {
-                val constIndex = value.index.asConstInteger()
+                val constIndex = e.index.asConstInteger()
                 if(constIndex!=null) {
-                    val offset = program.memsizer.memorySize(value.type, constIndex)
+                    val offset = program.memsizer.memorySize(e.type, constIndex)
                     if(offset<256) {
-                        if(value.variable==null)
-                            TODO("support for ptr indexing ${value.position}")
-                        return out("  ldy  #$offset |  $compare  ${asmVariableName(value.variable!!)},y")
+                        if(e.variable==null)
+                            TODO("support for ptr indexing ${e.position}")
+                        return out("  ldy  #$offset |  $compare  ${asmVariableName(e.variable!!)},y")
                     }
                 }
                 cmpViaScratch()
             }
             is PtMemoryByte -> {
-                val constAddr = value.address.asConstInteger()
+                val constAddr = e.address.asConstInteger()
                 if(constAddr!=null) {
                     out("  $compare  ${constAddr.toHex()}")
                 } else {
@@ -2586,11 +2590,11 @@ $repeatLabel""")
                 }
             }
             is PtIdentifier -> {
-                out("  $compare  ${asmVariableName(value)}")
+                out("  $compare  ${asmVariableName(e)}")
             }
             is PtNumber -> {
-                if(value.number!=0.0)
-                    out("  $compare  #${value.number.toInt()}")
+                if(e.number!=0.0)
+                    out("  $compare  #${e.number.toInt()}")
             }
             else -> {
                 cmpViaScratch()
