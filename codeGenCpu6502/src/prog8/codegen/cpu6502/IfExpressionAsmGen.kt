@@ -396,12 +396,146 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     }
 
     private fun longEqualsValue(left: PtExpression, right: PtExpression, notEquals: Boolean, falseLabel: String) {
+        // Optimized long equals/not-equals comparison
+        if (left is PtIdentifier) {
+            val varL = asmgen.asmVariableName(left)
+            val constR = right.asConstInteger()
+            val varR = if (right is PtIdentifier) asmgen.asmVariableName(right as PtIdentifier) else null
+
+            if (notEquals) {
+                // Long != comparison
+                if (constR != null) {
+                    val hex = constR.toLongHex()
+                    val skipLabel = asmgen.makeLabel("skip")
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  #$${hex.substring(6, 8)}
+                        bne  $skipLabel
+                        lda  $varL+1
+                        cmp  #$${hex.substring(4, 6)}
+                        bne  $skipLabel
+                        lda  $varL+2
+                        cmp  #$${hex.substring(2, 4)}
+                        bne  $skipLabel
+                        lda  $varL+3
+                        cmp  #$${hex.take(2)}
+                        beq  $falseLabel
+$skipLabel""")
+                } else if (varR != null) {
+                    val skipLabel = asmgen.makeLabel("skip")
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  $varR
+                        bne  $skipLabel
+                        lda  $varL+1
+                        cmp  ${varR}+1
+                        bne  $skipLabel
+                        lda  $varL+2
+                        cmp  ${varR}+2
+                        bne  $skipLabel
+                        lda  $varL+3
+                        cmp  ${varR}+3
+                        beq  $falseLabel
+$skipLabel""")
+                } else {
+                    // fallback for complex right expression
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
+                    right.asConstInteger()?.let { c ->
+                        val hex = c.toLongHex()
+                        asmgen.out("""
+                            lda  cx16.r14
+                            cmp  #$${hex.substring(6, 8)}
+                            bne  $falseLabel
+                            lda  cx16.r14+1
+                            cmp  #$${hex.substring(4, 6)}
+                            bne  $falseLabel
+                            lda  cx16.r14+2
+                            cmp  #$${hex.substring(2, 4)}
+                            bne  $falseLabel
+                            lda  cx16.r14+3
+                            cmp  #$${hex.take(2)}
+                            bne  $falseLabel""")
+                    } ?: run {
+                        asmgen.assignConditionValueToRegisterAndTest(
+                            PtBinaryExpression("!=", DataType.BOOL, left.position).apply {
+                                add(left); add(right)
+                            }
+                        )
+                        asmgen.out("  beq  $falseLabel")
+                    }
+                }
+            } else {
+                // Long == comparison - use optimized pattern with variable var, old pattern for constant
+                if (constR != null) {
+                    // Old pattern: branch to false after each compare when they differ
+                    val hex = constR.toLongHex()
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  #$${hex.substring(6, 8)}
+                        bne  $falseLabel
+                        lda  $varL+1
+                        cmp  #$${hex.substring(4, 6)}
+                        bne  $falseLabel
+                        lda  $varL+2
+                        cmp  #$${hex.substring(2, 4)}
+                        bne  $falseLabel
+                        lda  $varL+3
+                        cmp  #$${hex.take(2)}
+                        bne  $falseLabel""")
+                } else if (varR != null) {
+                    // Optimized pattern for variable: branch to skip when differ, fall through when equal
+                    val skipLabel = asmgen.makeLabel("skip")
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  $varR
+                        bne  $skipLabel
+                        lda  $varL+1
+                        cmp  ${varR}+1
+                        bne  $skipLabel
+                        lda  $varL+2
+                        cmp  ${varR}+2
+                        bne  $skipLabel
+                        lda  $varL+3
+                        cmp  ${varR}+3
+$skipLabel""")
+                } else {
+                    // fallback for complex right expression
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
+                    right.asConstInteger()?.let { c ->
+                        val hex = c.toLongHex()
+                        asmgen.out("""
+                            lda  cx16.r14
+                            cmp  #$${hex.substring(6, 8)}
+                            bne  $falseLabel
+                            lda  cx16.r14+1
+                            cmp  #$${hex.substring(4, 6)}
+                            bne  $falseLabel
+                            lda  cx16.r14+2
+                            cmp  #$${hex.substring(2, 4)}
+                            bne  $falseLabel
+                            lda  cx16.r14+3
+                            cmp  #$${hex.take(2)}
+                            bne  $falseLabel""")
+                    } ?: run {
+                        asmgen.assignConditionValueToRegisterAndTest(
+                            PtBinaryExpression("==", DataType.BOOL, left.position).apply {
+                                add(left); add(right)
+                            }
+                        )
+                        asmgen.out("  beq  $falseLabel")
+                    }
+                }
+            }
+            return
+        }
+
+        // Fallback for non-PtIdentifier left: use generic approach
         val varL = if (left is PtIdentifier) asmgen.asmVariableName(left) else {
             asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
             "cx16.r14"
         }
         val constR = right.asConstInteger()
-        val varR = if (right is PtIdentifier) asmgen.asmVariableName(right) else null
+        val varR = if (right is PtIdentifier) asmgen.asmVariableName(right as PtIdentifier) else null
 
         if (notEquals) {
             val skipLabel = asmgen.makeLabel("skip")
@@ -422,23 +556,21 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                     beq  $falseLabel
 $skipLabel""")
             } else if (varR != null) {
-                val variableRight = asmgen.asmVariableName(right as PtIdentifier)
                 asmgen.out("""
                     lda  $varL
-                    cmp  $variableRight
+                    cmp  $varR
                     bne  $skipLabel
                     lda  $varL+1
-                    cmp  ${variableRight}+1
+                    cmp  ${varR}+1
                     bne  $skipLabel
                     lda  $varL+2
-                    cmp  ${variableRight}+2
+                    cmp  ${varR}+2
                     bne  $skipLabel
                     lda  $varL+3
-                    cmp  ${variableRight}+3
+                    cmp  ${varR}+3
                     beq  $falseLabel
 $skipLabel""")
             } else {
-                // fallback for complex long on right
                 val cond = PtBinaryExpression("!=", DataType.BOOL, left.position)
                 cond.add(left)
                 cond.add(right)
@@ -448,34 +580,35 @@ $skipLabel""")
         } else {
             if (constR != null) {
                 val hex = constR.toLongHex()
+                val skipLabel = asmgen.makeLabel("skip")
                 asmgen.out("""
                     lda  $varL
                     cmp  #$${hex.substring(6, 8)}
-                    bne  $falseLabel
+                    bne  $skipLabel
                     lda  $varL+1
                     cmp  #$${hex.substring(4, 6)}
-                    bne  $falseLabel
+                    bne  $skipLabel
                     lda  $varL+2
                     cmp  #$${hex.substring(2, 4)}
-                    bne  $falseLabel
+                    bne  $skipLabel
                     lda  $varL+3
                     cmp  #$${hex.take(2)}
-                    bne  $falseLabel""")
+$skipLabel""")
             } else if (varR != null) {
-                val variableRight = asmgen.asmVariableName(right as PtIdentifier)
+                val skipLabel = asmgen.makeLabel("skip")
                 asmgen.out("""
                     lda  $varL
-                    cmp  $variableRight
-                    bne  $falseLabel
+                    cmp  $varR
+                    bne  $skipLabel
                     lda  $varL+1
-                    cmp  ${variableRight}+1
-                    bne  $falseLabel
+                    cmp  ${varR}+1
+                    bne  $skipLabel
                     lda  $varL+2
-                    cmp  ${variableRight}+2
-                    bne  $falseLabel
+                    cmp  ${varR}+2
+                    bne  $skipLabel
                     lda  $varL+3
-                    cmp  ${variableRight}+3
-                    bne  $falseLabel""")
+                    cmp  ${varR}+3
+$skipLabel""")
             } else {
                 val cond = PtBinaryExpression("==", DataType.BOOL, left.position)
                 cond.add(left)
