@@ -103,13 +103,14 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         }
     }
 
-    private fun evalIfExpressionConditonAndBranchWhenFalse(condition: PtExpression, falseLabel: String) {
+    private fun evalIfExpressionConditonAndBranchWhenFalse(stmtCondition: PtExpression, falseLabel: String) {
+        val condition = asmgen.unwrapCasts(stmtCondition)
         when (condition) {
             is PtBinaryExpression -> {
                 val rightDt = condition.right.type
                 return when {
                     rightDt.isByteOrBool -> translateIfExpressionByteConditionBranch(condition, falseLabel)
-                    rightDt.isWord -> translateIfExpressionWordConditionBranch(condition, falseLabel)
+                    rightDt.isWord || rightDt.isPointer -> translateIfExpressionWordConditionBranch(condition, falseLabel)
                     rightDt.isLong -> translateIfExpressionLongConditionBranch(condition, falseLabel)
                     rightDt.isFloat -> translateIfExpressionFloatConditionBranch(condition, falseLabel)
                     else -> throw AssemblyError("weird dt")
@@ -397,13 +398,11 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
 
     private fun longEqualsValue(left: PtExpression, right: PtExpression, notEquals: Boolean, falseLabel: String) {
         // Optimized long equals/not-equals comparison
-        var varL: String? = asmgen.tryGetStaticAddress(left, 4)
+        val varL: String? = asmgen.tryGetStaticAddress(left, 4)
+        val varR: String? = asmgen.tryGetStaticAddress(right, 4)
+        val constR = right.asConstInteger()
 
         if (varL != null) {
-            val constR = right.asConstInteger()
-            val eRight = asmgen.unwrapCasts(right)
-            val varR = if (eRight is PtIdentifier) asmgen.asmVariableName(eRight) else null
-
             if (notEquals) {
                 // Long != comparison
                 if (constR != null) {
@@ -532,42 +531,40 @@ $skipLabel
             return
         }
 
-        // Fallback for non-PtIdentifier left: use generic approach
+        // Fallback for non-static-address left: use generic approach
         asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
-        varL = "cx16.r14"
-        val constR = right.asConstInteger()
-        val varR = if (right is PtIdentifier) asmgen.asmVariableName(right) else null
+        val opL = "cx16.r14"
 
         if (notEquals) {
             val skipLabel = asmgen.makeLabel("skip")
             if (constR != null) {
                 val hex = constR.toLongHex()
                 asmgen.out("""
-                    lda  $varL
+                    lda  $opL
                     cmp  #$${hex.substring(6, 8)}
                     bne  $skipLabel
-                    lda  $varL+1
+                    lda  $opL+1
                     cmp  #$${hex.substring(4, 6)}
                     bne  $skipLabel
-                    lda  $varL+2
+                    lda  $opL+2
                     cmp  #$${hex.substring(2, 4)}
                     bne  $skipLabel
-                    lda  $varL+3
+                    lda  $opL+3
                     cmp  #$${hex.take(2)}
                     beq  $falseLabel
 $skipLabel""")
             } else if (varR != null) {
                 asmgen.out("""
-                    lda  $varL
+                    lda  $opL
                     cmp  $varR
                     bne  $skipLabel
-                    lda  $varL+1
+                    lda  $opL+1
                     cmp  ${varR}+1
                     bne  $skipLabel
-                    lda  $varL+2
+                    lda  $opL+2
                     cmp  ${varR}+2
                     bne  $skipLabel
-                    lda  $varL+3
+                    lda  $opL+3
                     cmp  ${varR}+3
                     beq  $falseLabel
 $skipLabel""")
@@ -583,32 +580,32 @@ $skipLabel""")
                 val hex = constR.toLongHex()
                 val skipLabel = asmgen.makeLabel("skip")
                 asmgen.out("""
-                    lda  $varL
+                    lda  $opL
                     cmp  #$${hex.substring(6, 8)}
                     bne  $skipLabel
-                    lda  $varL+1
+                    lda  $opL+1
                     cmp  #$${hex.substring(4, 6)}
                     bne  $skipLabel
-                    lda  $varL+2
+                    lda  $opL+2
                     cmp  #$${hex.substring(2, 4)}
                     bne  $skipLabel
-                    lda  $varL+3
+                    lda  $opL+3
                     cmp  #$${hex.take(2)}
 $skipLabel
                     bne  $falseLabel""")
             } else if (varR != null) {
                 val skipLabel = asmgen.makeLabel("skip")
                 asmgen.out("""
-                    lda  $varL
+                    lda  $opL
                     cmp  $varR
                     bne  $skipLabel
-                    lda  $varL+1
+                    lda  $opL+1
                     cmp  ${varR}+1
                     bne  $skipLabel
-                    lda  $varL+2
+                    lda  $opL+2
                     cmp  ${varR}+2
                     bne  $skipLabel
-                    lda  $varL+3
+                    lda  $opL+3
                     cmp  ${varR}+3
 $skipLabel
                     bne  $falseLabel""")
@@ -637,6 +634,7 @@ $skipLabel
             "cx16.r12"
         }
         val constR = r.asConstInteger()
+        val varR = asmgen.tryGetStaticAddress(r, 4)
         if (constR != null) {
             val hex = constR.toLongHex()
             asmgen.out("""
@@ -649,8 +647,7 @@ $skipLabel
                 sbc  #$${hex.substring(2, 4)}
                 lda  $opL+3
                 sbc  #$${hex.take(2)}""")
-        } else if (r is PtIdentifier) {
-            val varR = asmgen.asmVariableName(r)
+        } else if (varR != null) {
             asmgen.out("""
                 sec
                 lda  $opL
@@ -687,39 +684,26 @@ $skipLabel
     private fun translateWordExprIsZero(expr: PtExpression, falseLabel: String) {
         // if w==0
         val e = asmgen.unwrapCasts(expr)
-        when (e) {
-            is PtIdentifier -> {
-                val varname = asmgen.asmVariableName(e)
-                asmgen.out("""
-                lda  $varname
-                ora  $varname+1
-                bne  $falseLabel""")
+        if (e is PtArrayIndexer && e.splitWords) {
+            val constIndex = e.index.asConstInteger()
+            if (constIndex != null && e.variable != null) {
+                val varName = asmgen.asmVariableName(e.variable!!)
+                asmgen.out("  lda  ${varName}_lsb+$constIndex |  ora  ${varName}_msb+$constIndex |  bne  $falseLabel")
+                return
             }
+        }
+
+        val varAddr = asmgen.tryGetStaticAddress(expr, 2)
+        if (varAddr != null) {
+            asmgen.out("  lda  $varAddr |  ora  $varAddr+1 |  bne  $falseLabel")
+            return
+        }
+
+        when (e) {
             is PtArrayIndexer -> {
                 if (e.variable == null)
                     throw AssemblyError("support for ptr indexing ${e.position}")
                 val varname = asmgen.asmVariableName(e.variable!!)
-                val constIndex = e.index.asConstInteger()
-                if (constIndex != null) {
-                    val idx = constIndex
-                    if (!e.splitWords) {
-                        val offset = asmgen.program.memsizer.memorySize(e.type, idx)
-                        if (offset < 256) {
-                            asmgen.out("""
-                                lda  $varname+$offset
-                                ora  $varname+1+$offset
-                                bne  $falseLabel""")
-                            return
-                        }
-                    } else if (idx < 256) {
-                        // split arrays
-                        asmgen.out("""
-                            lda  ${varname}_lsb+$idx
-                            ora  ${varname}_msb+$idx
-                            bne  $falseLabel""")
-                        return
-                    }
-                }
                 asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
                 if (e.splitWords) {
                     asmgen.out("""
@@ -751,39 +735,26 @@ $skipLabel
     private fun translateWordExprIsNotZero(expr: PtExpression, falseLabel: String) {
         // if w!=0
         val e = asmgen.unwrapCasts(expr)
-        when (e) {
-            is PtIdentifier -> {
-                val varname = asmgen.asmVariableName(e)
-                asmgen.out("""
-                lda  $varname
-                ora  $varname+1
-                beq  $falseLabel""")
+        if (e is PtArrayIndexer && e.splitWords) {
+            val constIndex = e.index.asConstInteger()
+            if (constIndex != null && e.variable != null) {
+                val varName = asmgen.asmVariableName(e.variable!!)
+                asmgen.out("  lda  ${varName}_lsb+$constIndex |  ora  ${varName}_msb+$constIndex |  beq  $falseLabel")
+                return
             }
+        }
+
+        val varAddr = asmgen.tryGetStaticAddress(expr, 2)
+        if (varAddr != null) {
+            asmgen.out("  lda  $varAddr |  ora  $varAddr+1 |  beq  $falseLabel")
+            return
+        }
+
+        when (e) {
             is PtArrayIndexer -> {
                 if (e.variable == null)
                     throw AssemblyError("support for ptr indexing ${e.position}")
                 val varname = asmgen.asmVariableName(e.variable!!)
-                val constIndex = e.index.asConstInteger()
-                if (constIndex != null) {
-                    val idx = constIndex
-                    if (!e.splitWords) {
-                        val offset = asmgen.program.memsizer.memorySize(e.type, idx)
-                        if (offset < 256) {
-                            asmgen.out("""
-                                lda  $varname+$offset
-                                ora  $varname+1+$offset
-                                beq  $falseLabel""")
-                            return
-                        }
-                    } else if (idx < 256) {
-                        // split arrays
-                        asmgen.out("""
-                            lda  ${varname}_lsb+$idx
-                            ora  ${varname}_msb+$idx
-                            beq  $falseLabel""")
-                        return
-                    }
-                }
                 asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
                 if (e.splitWords) {
                     asmgen.out("""

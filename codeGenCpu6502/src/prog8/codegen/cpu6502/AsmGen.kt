@@ -2390,6 +2390,9 @@ $repeatLabel""")
         if(left.isSimple()) {
             assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
+        } else if(right.isSimple()) {
+            assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
+            assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
             pushCpuStack(BaseDataType.UBYTE, left)
             assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
@@ -2401,7 +2404,10 @@ $repeatLabel""")
         if(left.isSimple()) {
             assignExpressionToVariable(right, rightVarname, DataType.UWORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
-        }  else {
+        } else if(right.isSimple()) {
+            assignExpressionToVariable(right, rightVarname, DataType.UWORD)
+            assignExpressionToRegister(left, RegisterOrPair.AY)
+        } else {
             pushCpuStack(BaseDataType.UWORD, left)
             assignExpressionToVariable(right, rightVarname, DataType.UWORD)
             restoreRegisterStack(CpuRegister.Y, false)

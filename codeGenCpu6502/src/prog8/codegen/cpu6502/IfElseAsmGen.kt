@@ -22,16 +22,18 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
         val jumpAfterIf = stmt.ifScope.children.singleOrNull() as? PtJump
 
-        if(stmt.condition is PtIdentifier ||
-            stmt.condition is PtBool ||
-            stmt.condition is PtArrayIndexer ||
-            stmt.condition is PtTypeCast ||
-            stmt.condition is PtFunctionCall ||
-            stmt.condition is PtMemoryByte ||
-            stmt.condition is PtContainmentCheck)
-                return fallbackTranslateForSimpleCondition(stmt)
+        val condition = asmgen.unwrapCasts(stmt.condition)
 
-        val compareCond = stmt.condition as? PtBinaryExpression
+        if(condition is PtIdentifier ||
+            condition is PtBool ||
+            condition is PtArrayIndexer ||
+            condition is PtFunctionCall ||
+            condition is PtIrRegister ||
+            condition is PtMemoryByte ||
+            condition is PtContainmentCheck)
+                return fallbackTranslateForSimpleCondition(stmt, condition)
+
+        val compareCond = condition as? PtBinaryExpression
         if(compareCond!=null) {
 
             val useBIT = asmgen.checkIfConditionCanUseBIT(compareCond)
@@ -42,7 +44,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
 
             val rightDt = compareCond.right.type
             return when {
-                rightDt.isByteOrBool -> translateIfByte(stmt, jumpAfterIf)
+                rightDt.isByteOrBool -> translateIfByte(stmt, condition, jumpAfterIf)
                 rightDt.isWord || rightDt.isPointer -> translateIfWord(stmt, compareCond, jumpAfterIf)
                 rightDt.isLong -> translateIfLong(stmt, compareCond, jumpAfterIf)
                 rightDt.isFloat -> translateIfFloat(stmt, compareCond, jumpAfterIf)
@@ -50,7 +52,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
-        val prefixCond = stmt.condition as? PtPrefix
+        val prefixCond = condition as? PtPrefix
         if(prefixCond?.operator=="not") {
             if(stmt.hasElse())
                 throw AssemblyError("not prefix in ifelse should have been replaced by swapped if-else blocks")
@@ -64,7 +66,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
             }
         }
 
-        val dereference = stmt.condition as? PtPointerDeref
+        val dereference = condition as? PtPointerDeref
         if(dereference!=null) {
             val (zpPtrVar, offset) = pointergen.deref(dereference)
             asmgen.loadIndirectByte(zpPtrVar, offset)
@@ -74,7 +76,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
                 translateIfElseBodies("beq", stmt)
         }
 
-        throw AssemblyError("weird non-boolean condition node type ${stmt.condition} at ${stmt.condition.position}")
+        throw AssemblyError("weird non-boolean condition node type $condition at ${condition.position}")
     }
 
     private fun translateIfBIT(ifElse: PtIfElse, jumpAfterIf: PtJump?, testForBitSet: Boolean, variableName: String, bitmask: Int) {
@@ -149,11 +151,11 @@ internal class IfElseAsmGen(private val program: PtProgram,
         }
     }
 
-    private fun fallbackTranslateForSimpleCondition(ifElse: PtIfElse) {
+    private fun fallbackTranslateForSimpleCondition(ifElse: PtIfElse, condition: PtExpression) {
         val jumpAfterIf = ifElse.ifScope.children.singleOrNull() as? PtJump
 
         // the condition is "simple" enough to just assign its 0/1 value to a register and branch on that
-        asmgen.assignConditionValueToRegisterAndTest(ifElse.condition)
+        asmgen.assignConditionValueToRegisterAndTest(condition)
         if(jumpAfterIf!=null)
             translateJumpElseBodies("bne", "beq", jumpAfterIf, ifElse.elseScope)
         else
@@ -282,8 +284,7 @@ internal class IfElseAsmGen(private val program: PtProgram,
         asmgen.translate(elseBlock)
     }
 
-    private fun translateIfByte(stmt: PtIfElse, jumpAfterIf: PtJump?) {
-        val condition = stmt.condition as PtBinaryExpression
+    private fun translateIfByte(stmt: PtIfElse, condition: PtBinaryExpression, jumpAfterIf: PtJump?) {
         val signed = condition.left.type.isSigned
         
         // Check for logical operators first before checking for constant values
@@ -926,38 +927,47 @@ _jump                       jmp  (${target.asmLabel})
     }
 
 
-    private fun loadAndCmp0MSB(value: PtExpression, long: Boolean) {
-        when(value) {
+    private fun loadAndCmp0MSB(expr: PtExpression, long: Boolean) {
+        val varname = asmgen.tryGetStaticAddress(expr, if (long) 4 else 2)
+        if (varname != null) {
+            val offset = if (long) 3 else 1
+            asmgen.out("  lda  $varname+$offset")
+            return
+        }
+        val e = asmgen.unwrapCasts(expr)
+        when (e) {
             is PtArrayIndexer -> {
-                if(value.variable==null)
-                    TODO("support for ptr indexing ${value.position}")
-                val varname = asmgen.asmVariableName(value.variable!!)
-                asmgen.loadScaledArrayIndexIntoRegister(value, CpuRegister.Y)
-                if(value.splitWords) {
-                    require(!long)
-                    asmgen.out("  lda  ${varname}_msb,y")
+                if (e.variable == null)
+                    throw AssemblyError("support for ptr indexing ${e.position}")
+                val baseVarname = asmgen.asmVariableName(e.variable!!)
+                val constIndex = e.index.asConstInteger()
+                if (constIndex != null) {
+                    val idx = constIndex
+                    if (e.splitWords) {
+                        require(idx < 256)
+                        val suffix = if (long) "_3" else "_msb"
+                        asmgen.out("  lda  $baseVarname$suffix+$idx")
+                        return
+                    }
                 }
-                else if(long)
-                    asmgen.out("  lda  $varname+3,y")
+                asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
+                if (e.splitWords) {
+                    require(!long)
+                    asmgen.out("  lda  ${baseVarname}_msb,y")
+                } else if (long)
+                    asmgen.out("  lda  $baseVarname+3,y")
                 else
-                    asmgen.out("  lda  $varname+1,y")
-            }
-            is PtIdentifier -> {
-                val varname = asmgen.asmVariableName(value)
-                if(long)
-                    asmgen.out("  lda  $varname+3")
-                else
-                    asmgen.out("  lda  $varname+1")
+                    asmgen.out("  lda  $baseVarname+1,y")
             }
             is PtAddressOf -> {
                 require(!long) {"addresses must still be words not longs"}
-                if(value.isFromArrayElement) {
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
+                if(e.isFromArrayElement) {
+                    asmgen.assignExpressionToRegister(e, RegisterOrPair.AY, true)
                     asmgen.out("  cpy  #0")
                 } else {
-                    var varname = asmgen.asmVariableName(value.identifier!!)
-                    if(value.identifier!!.type.isSplitWordArray) {
-                        varname += if(value.isMsbForSplitArray) "_msb" else "_lsb"
+                    var varname = asmgen.asmVariableName(e.identifier!!)
+                    if(e.identifier!!.type.isSplitWordArray) {
+                        varname += if(e.isMsbForSplitArray) "_msb" else "_lsb"
                     }
                     asmgen.out("  lda  #>$varname")
                 }
@@ -965,10 +975,10 @@ _jump                       jmp  (${target.asmLabel})
             else -> {
                 if(long) {
                     // note: clobbers R14+R15
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.R14R15, true)
+                    asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, true)
                     asmgen.out("  lda  cx16.r14+3")
                 } else {
-                    asmgen.assignExpressionToRegister(value, RegisterOrPair.AY, true)
+                    asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, true)
                     asmgen.out("  cpy  #0")
                 }
             }
@@ -1420,54 +1430,24 @@ $doneLabel""")
                 translateIfElseBodies(falseBranch, stmt)
         }
 
+        val e = asmgen.unwrapCasts(value)
+        if (e is PtArrayIndexer && e.splitWords) {
+            val constIndex = e.index.asConstInteger()
+            if (constIndex != null && e.variable != null) {
+                val varName = asmgen.asmVariableName(e.variable!!)
+                return translateLoadFromVarSplitw(varName, constIndex, if (notEquals) "bne" else "beq", if (notEquals) "beq" else "bne")
+            }
+        }
+
+        val varAddr = asmgen.tryGetStaticAddress(value, 2)
+        if (varAddr != null) {
+            return translateLoadFromVar(varAddr, if (notEquals) "bne" else "beq", if (notEquals) "beq" else "bne")
+        }
+
         if(notEquals) {
-            val e = asmgen.unwrapCasts(value)
-            when(e) {
-                is PtArrayIndexer -> {
-                    val constIndex = e.index.asConstInteger()
-                    if(constIndex!=null) {
-                        if(e.variable==null)
-                            TODO("support for ptr indexing ${e.position}")
-                        val varName = asmgen.asmVariableName(e.variable!!)
-                        if(e.splitWords) {
-                            return translateLoadFromVarSplitw(varName, constIndex, "bne", "beq")
-                        }
-                        val offset = program.memsizer.memorySize(e.type, constIndex)
-                        if (offset < 256) {
-                            return translateLoadFromVar("$varName+$offset", "bne", "beq")
-                        }
-                    }
-                    viaScratchReg("bne", "beq")
-                }
-                is PtIdentifier -> {
-                    return translateLoadFromVar(asmgen.asmVariableName(e), "bne", "beq")
-                }
-                else -> viaScratchReg("bne", "beq")
-            }
+            viaScratchReg("bne", "beq")
         } else {
-            val e = asmgen.unwrapCasts(value)
-            when (e) {
-                is PtArrayIndexer -> {
-                    val constIndex = e.index.asConstInteger()
-                    if (constIndex != null) {
-                        if(e.variable==null)
-                            TODO("support for ptr indexing ${e.position}")
-                        val varName = asmgen.asmVariableName(e.variable!!)
-                        if(e.splitWords) {
-                            return translateLoadFromVarSplitw(varName, constIndex, "beq", "bne")
-                        }
-                        val offset = program.memsizer.memorySize(e.type, constIndex)
-                        if (offset < 256) {
-                            return translateLoadFromVar("$varName+$offset", "beq", "bne")
-                        }
-                    }
-                    viaScratchReg("beq", "bne")
-                }
-                is PtIdentifier -> {
-                    return translateLoadFromVar(asmgen.asmVariableName(e), "beq", "bne")
-                }
-                else -> viaScratchReg("beq", "bne")
-            }
+            viaScratchReg("beq", "bne")
         }
     }
 
@@ -1479,8 +1459,7 @@ $doneLabel""")
         stmt: PtIfElse
     ) {
         val constRight = right.asConstInteger()
-        val eRight = asmgen.unwrapCasts(right)
-        val variableRight = (eRight as? PtIdentifier)?.name
+        val varR = asmgen.tryGetStaticAddress(right, 4)
 
         val leftvar = asmgen.tryGetStaticAddress(left, 4)
         if (leftvar != null) {
@@ -1499,20 +1478,19 @@ $doneLabel""")
                     lda  $leftvar+3
                     cmp  #$${hex.take(2)}
 +""")
-            } else if (variableRight != null) {
-                require(right.type.isLong)
+            } else if (varR != null) {
                 asmgen.out("""
                     lda  $leftvar
-                    cmp  $variableRight
+                    cmp  $varR
                     bne  +
                     lda  $leftvar+1
-                    cmp  $variableRight+1
+                    cmp  $varR+1
                     bne  +
                     lda  $leftvar+2
-                    cmp  $variableRight+2
+                    cmp  $varR+2
                     bne  +
                     lda  $leftvar+3
-                    cmp  $variableRight+3
+                    cmp  $varR+3
 +""")
             }
         } else {
@@ -1533,20 +1511,19 @@ $doneLabel""")
                     lda  cx16.r14+3
                     cmp  #$${hex.take(2)}
 +""")
-            } else if(variableRight!=null) {
-                require(right.type.isLong)
+            } else if(varR!=null) {
                 asmgen.out("""
                     lda  cx16.r14
-                    cmp  $variableRight
+                    cmp  $varR
                     bne  +
                     lda  cx16.r14+1
-                    cmp  $variableRight+1
+                    cmp  $varR+1
                     bne  +
                     lda  cx16.r14+2
-                    cmp  $variableRight+2
+                    cmp  $varR+2
                     bne  +
                     lda  cx16.r14+3
-                    cmp  $variableRight+3
+                    cmp  $varR+3
 +""")
             } else {
                 TODO("long == value expression ${right.position}")
@@ -1587,6 +1564,7 @@ $doneLabel""")
         val opL = varL ?: "cx16.r12"
 
         val constR = r.asConstInteger()
+        val varR = asmgen.tryGetStaticAddress(r, 4)
         if (constR != null) {
             val hex = constR.toLongHex()
             asmgen.out("""
@@ -1599,8 +1577,7 @@ $doneLabel""")
                 sbc  #$${hex.substring(2,4)}
                 lda  $opL+3
                 sbc  #$${hex.take(2)}""")
-        } else if (r is PtIdentifier) {
-            val varR = asmgen.asmVariableName(r)
+        } else if (varR != null) {
             asmgen.out("""
                 sec
                 lda  $opL
