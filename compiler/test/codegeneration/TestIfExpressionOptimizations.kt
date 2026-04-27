@@ -274,6 +274,86 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
         asm.shouldContainInOrder("cmp", "p8v_w2", "bne", "ifexpr_false", "cpy", "p8v_w2+1", "bne", "ifexpr_false")
     }
 
+    test("if-expression word indexed == 0 optimization") {
+        val text = """
+            main {
+                uword[10] @shared words
+                sub start() {
+                    ubyte i = 5
+                    ubyte result = if words[i] == 0 then 1 else 0
+                    cx16.r1L = result
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        asm.shouldContainInOrder("ldy", "p8v_i", "lda", "_lsb,y", "ora", "_msb,y", "bne", "ifexpr_false")
+    }
+
+    test("if-expression word split array indexed != 0 optimization") {
+        val text = """
+            main {
+                word[10] @shared words
+                sub start() {
+                    ubyte i = 2
+                    ubyte result = if words[i] != 0 then 1 else 0
+                    cx16.r1L = result
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        // word arrays are split by default
+        asm.shouldContainInOrder("ldy", "p8v_i", "lda", "_lsb,y", "ora", "_msb,y", "beq", "ifexpr_false")
+    }
+
+    test("if-expression word indexed <= 0 optimization") {
+        val text = """
+            main {
+                word[10] @shared words
+                sub start() {
+                    ubyte i = 1
+                    ubyte result = if words[i] <= 0 then 1 else 0
+                    cx16.r1L = result
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        asm.shouldContainInOrder("lda", "_msb,y", "bmi", "is_le", "ora", "_lsb,y", "bne", "ifexpr_false", "is_le")
+    }
+
+    test("if-expression word indexed > 0 optimization") {
+        val text = """
+            main {
+                word[10] @shared words
+                sub start() {
+                    ubyte i = 1
+                    ubyte result = if words[i] > 0 then 1 else 0
+                    cx16.r1L = result
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        asm.shouldContainInOrder("lda", "_msb,y", "bmi", "ifexpr_false", "ora", "_lsb,y", "beq", "ifexpr_false")
+    }
+
+    test("if-expression addressOf == 0 optimization") {
+        val text = """
+            main {
+                ubyte @shared x
+                sub start() {
+                    ubyte result = if (&&x) == 0 then 1 else 0
+                    cx16.r1L = result
+                }
+            }
+        """.trimIndent()
+        val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
+        val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
+        asm.shouldContainInOrder("lda", "#<", "p8v_x", "ora", "#>", "p8v_x", "bne", "ifexpr_false")
+    }
+
     test("if-expression word < word optimization") {
         val text = """
             main {

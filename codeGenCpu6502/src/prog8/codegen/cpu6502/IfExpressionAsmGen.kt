@@ -681,29 +681,85 @@ $skipLabel""")
 
     private fun translateWordExprIsZero(expr: PtExpression, falseLabel: String) {
         // if w==0
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
+        when (expr) {
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(expr)
+                asmgen.out("""
                 lda  $varname
                 ora  $varname+1
                 bne  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  bne  $falseLabel")
+            }
+            is PtArrayIndexer -> {
+                if (expr.variable == null)
+                    throw AssemblyError("support for ptr indexing ${expr.position}")
+                val varname = asmgen.asmVariableName(expr.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+                if (expr.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_lsb,y
+                        ora  ${varname}_msb,y
+                        bne  $falseLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname,y
+                        ora  $varname+1,y
+                        bne  $falseLabel""")
+                }
+            }
+            is PtAddressOf -> {
+                val identifier = expr.identifier!!
+                var varname = asmgen.asmVariableName(identifier)
+                if (identifier.type.isSplitWordArray) {
+                    varname += if (expr.isMsbForSplitArray) "_msb" else "_lsb"
+                }
+                asmgen.out("  lda  #<$varname | ora  #>$varname | bne  $falseLabel")
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  bne  $falseLabel")
+            }
         }
     }
 
     private fun translateWordExprIsNotZero(expr: PtExpression, falseLabel: String) {
         // if w!=0
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
+        when (expr) {
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(expr)
+                asmgen.out("""
                 lda  $varname
                 ora  $varname+1
                 beq  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  beq  $falseLabel")
+            }
+            is PtArrayIndexer -> {
+                if (expr.variable == null)
+                    throw AssemblyError("support for ptr indexing ${expr.position}")
+                val varname = asmgen.asmVariableName(expr.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+                if (expr.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_lsb,y
+                        ora  ${varname}_msb,y
+                        beq  $falseLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname,y
+                        ora  $varname+1,y
+                        beq  $falseLabel""")
+                }
+            }
+            is PtAddressOf -> {
+                val identifier = expr.identifier!!
+                var varname = asmgen.asmVariableName(identifier)
+                if (identifier.type.isSplitWordArray) {
+                    varname += if (expr.isMsbForSplitArray) "_msb" else "_lsb"
+                }
+                asmgen.out("  lda  #<$varname | ora  #>$varname | beq  $falseLabel")
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  beq  $falseLabel")
+            }
         }
     }
 
@@ -723,25 +779,48 @@ $skipLabel""")
             translateWordExprIsZero(expr, falseLabel)
             return
         }
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            val isLeLabel = asmgen.makeLabel("is_le")
-            asmgen.out("""
+        val isLeLabel = asmgen.makeLabel("is_le")
+        when (expr) {
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(expr)
+                asmgen.out("""
                 lda  ${varname}+1
                 bmi  $isLeLabel
                 ora  $varname
                 bne  $falseLabel
 $isLeLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            val isLeLabel = asmgen.makeLabel("is_le")
-            asmgen.out("""
+            }
+            is PtArrayIndexer -> {
+                if (expr.variable == null)
+                    throw AssemblyError("support for ptr indexing ${expr.position}")
+                val varname = asmgen.asmVariableName(expr.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+                if (expr.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_msb,y
+                        bmi  $isLeLabel
+                        ora  ${varname}_lsb,y
+                        bne  $falseLabel
+$isLeLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname+1,y
+                        bmi  $isLeLabel
+                        ora  $varname,y
+                        bne  $falseLabel
+$isLeLabel""")
+                }
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("""
                 sta  P8ZP_SCRATCH_REG
                 tya
                 bmi  $isLeLabel
                 ora  P8ZP_SCRATCH_REG
                 bne  $falseLabel
 $isLeLabel""")
+            }
         }
     }
 
@@ -751,21 +830,43 @@ $isLeLabel""")
             translateWordExprIsNotZero(expr, falseLabel)
             return
         }
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
+        when (expr) {
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(expr)
+                asmgen.out("""
                 lda  ${varname}+1
                 bmi  $falseLabel
                 ora  $varname
                 beq  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("""
+            }
+            is PtArrayIndexer -> {
+                if (expr.variable == null)
+                    throw AssemblyError("support for ptr indexing ${expr.position}")
+                val varname = asmgen.asmVariableName(expr.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+                if (expr.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_msb,y
+                        bmi  $falseLabel
+                        ora  ${varname}_lsb,y
+                        beq  $falseLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname+1,y
+                        bmi  $falseLabel
+                        ora  $varname,y
+                        beq  $falseLabel""")
+                }
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("""
                 sta  P8ZP_SCRATCH_REG
                 tya
                 bmi  $falseLabel
                 ora  P8ZP_SCRATCH_REG
                 beq  $falseLabel""")
+            }
         }
     }
 
@@ -1045,10 +1146,9 @@ $isLeLabel""")
             block(varname, "$varname+1")
         } else if (expr is PtAddressOf && !expr.isFromArrayElement) {
             val identifier = expr.identifier!!
-            val varname = if (identifier.type.isSplitWordArray) {
-                if (expr.isMsbForSplitArray) identifier.name + "_msb" else identifier.name + "_lsb"
-            } else {
-                identifier.name
+            var varname = asmgen.asmVariableName(identifier)
+            if (identifier.type.isSplitWordArray) {
+                varname += if (expr.isMsbForSplitArray) "_msb" else "_lsb"
             }
             block("#<$varname", "#>$varname")
         } else {
