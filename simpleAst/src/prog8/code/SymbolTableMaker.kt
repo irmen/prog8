@@ -41,7 +41,8 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 PtMemMapped("P8ZP_SCRATCH_W1", DataType.UWORD, options.compTarget.zeropage.SCRATCH_W1, null, Position.DUMMY),
                 PtMemMapped("P8ZP_SCRATCH_W2", DataType.UWORD, options.compTarget.zeropage.SCRATCH_W2, null, Position.DUMMY),
             ).forEach {
-                st.add(StMemVar(it.name, it.type, it.address, it.arraySize, it))  // add() sets parent automatically
+                it.parent=program
+                st.add(StMemVar(it.name, it.type, it.address, it.arraySize, it))
             }
         }
 
