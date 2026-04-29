@@ -879,7 +879,7 @@ _after:
                             }
                             if(value is BinaryExpression) {
                                 if(value.left.referencesSameAddress(addr, origDeref)) return true
-                                if(value.operator in AssociativeOperators && value.right.referencesSameAddress(addr, origDeref)) return true
+                                if(value.operator in CommutativeOperators && value.right.referencesSameAddress(addr, origDeref)) return true
                                 if(value.operator in "+-" && value.right is BinaryExpression) {
                                     val rightBin = value.right as BinaryExpression
                                     if(rightBin.left.referencesSameAddress(addr, origDeref) || rightBin.right.referencesSameAddress(addr, origDeref)) return true

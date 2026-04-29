@@ -260,13 +260,13 @@ internal class StatementReorderer(
     }
 
     override fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
-        // simplething <associative> X -> X <associative> simplething
+        // simplething <commutative> X -> X <commutative> simplething
         // (this should be done by the ExpressionSimplifier when optimizing is enabled,
         //  but the current assembly code generator for IF statements now also depends on it, so we do it here regardless of optimization.)
-        if(expr.operator in AssociativeOperators) {
+        if(expr.operator in CommutativeOperators) {
             if(expr.left is IdentifierReference || expr.left is NumericLiteral || expr.left is DirectMemoryRead || (expr.left as? ArrayIndexedExpression)?.indexer?.constIndex()!=null) {
                 if(expr.right !is IdentifierReference && expr.right !is NumericLiteral && expr.right !is DirectMemoryRead) {
-                    if(maySwapOperandOrder(expr)) {
+                    if(expr.maySwapOperandOrder()) {
                         return listOf(AstSwapOperands(expr))
                     }
                 }
@@ -335,9 +335,9 @@ internal class StatementReorderer(
                 return noModifications
             }
 
-            if(binExpr.operator in AssociativeOperators && maySwapOperandOrder(binExpr)) {
+            if(binExpr.operator in CommutativeOperators && binExpr.maySwapOperandOrder()) {
                 if (binExpr.right isSameAs assignment.target) {
-                    // A = v <associative-operator> A  ==>  A = A <associative-operator> v
+                    // A = v <commutative-operator> A  ==>  A = A <commutative-operator> v
                     return listOf(AstSwapOperands(binExpr))
                 }
             }

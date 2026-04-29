@@ -40,7 +40,7 @@ sealed class Expression: Node {
             is BinaryExpression -> {
                 if(other !is BinaryExpression || other.operator!=operator)
                     false
-                else if(operator in AssociativeOperators)
+                else if(operator in CommutativeOperators)
                     (other.left isSameAs left && other.right isSameAs right) || (other.left isSameAs right && other.right isSameAs left)
                 else
                     other.left isSameAs left && other.right isSameAs right
@@ -295,6 +295,8 @@ class BinaryExpression(
         }
     }
 
+    fun maySwapOperandOrder(): Boolean = 
+        (operator in CommutativeOperators) && (right.isSimple || left.isSimple)
 
     companion object {
         fun commonDatatype(leftDt: DataType, rightDt: DataType,

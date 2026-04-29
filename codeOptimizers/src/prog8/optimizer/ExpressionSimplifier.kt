@@ -855,7 +855,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if (leftVal == null && rightVal == null)
             return null
 
-        val (expr2, _, rightVal2) = reorderAssociativeWithConstant(expr, leftVal)
+        val (expr2, _, rightVal2) = reorderCommutativeWithConstant(expr, leftVal)
         if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
             val rightConst: NumericLiteral = rightVal2
@@ -1019,7 +1019,7 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         if (leftVal == null && rightVal == null)
             return null
 
-        val (expr2, _, rightVal2) = reorderAssociativeWithConstant(expr, leftVal)
+        val (expr2, _, rightVal2) = reorderCommutativeWithConstant(expr, leftVal)
         if (rightVal2 != null) {
             // right value is a constant, see if we can optimize
             val leftValue: Expression = expr2.left
@@ -1182,8 +1182,8 @@ class ExpressionSimplifier(private val program: Program, private val errors: IEr
         return null
     }
 
-    private fun reorderAssociativeWithConstant(expr: BinaryExpression, leftVal: NumericLiteral?): BinExprWithConstants {
-        if (expr.operator in AssociativeOperators && leftVal != null && maySwapOperandOrder(expr)) {
+    private fun reorderCommutativeWithConstant(expr: BinaryExpression, leftVal: NumericLiteral?): BinExprWithConstants {
+        if (expr.operator in CommutativeOperators && leftVal != null && expr.maySwapOperandOrder()) {
             // swap left and right so that right is always the constant
             val tmp = expr.left
             expr.left = expr.right

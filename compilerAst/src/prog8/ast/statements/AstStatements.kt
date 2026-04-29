@@ -699,24 +699,24 @@ class Assignment(var target: AssignTarget, var value: Expression, var origin: As
                     }
                 }
 
-                if(binExpr.operator in AssociativeOperators) {
+                if(binExpr.operator in CommutativeOperators) {
                     if (binExpr.left !is BinaryExpression && binExpr.right isSameAs target)
-                        return true  // A = v <associative-operator> A
+                        return true  // A = v <commutative-operator> A
 
                     val leftBinExpr = binExpr.left as? BinaryExpression
                     val rightBinExpr = binExpr.right as? BinaryExpression
                     if(leftBinExpr?.operator == binExpr.operator && rightBinExpr==null) {
                         // one of these?
-                        // A = (A <associative-operator> x) <same-operator> y
-                        // A = (x <associative-operator> A) <same-operator> y
-                        // A = (x <associative-operator> y) <same-operator> A
+                        // A = (A <commutative-operator> x) <same-operator> y
+                        // A = (x <commutative-operator> A) <same-operator> y
+                        // A = (x <commutative-operator> y) <same-operator> A
                         return leftBinExpr.left isSameAs target || leftBinExpr.right isSameAs target || binExpr.right isSameAs target
                     }
                     if(rightBinExpr?.operator == binExpr.operator && leftBinExpr==null) {
                         // one of these?
-                        // A = y <associative-operator> (A <same-operator> x)
-                        // A = y <associative-operator> (x <same-operator> y)
-                        // A = A <associative-operator> (x <same-operator> y)
+                        // A = y <commutative-operator> (A <same-operator> x)
+                        // A = y <commutative-operator> (x <same-operator> y)
+                        // A = A <commutative-operator> (x <same-operator> y)
                         return rightBinExpr.left isSameAs target || rightBinExpr.right isSameAs target || binExpr.left isSameAs target
                     }
                 }
