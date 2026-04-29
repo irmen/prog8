@@ -352,8 +352,8 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
         getWordOperands(right) { valueLsb, valueMsb ->
             if (notEquals) {
-                val skipLabel = asmgen.makeLabel("skip")
-                asmgen.out("  cmp  $valueLsb | bne  $skipLabel | cpy  $valueMsb | beq  $falseLabel | $skipLabel")
+                asmgen.out("  cmp  $valueLsb |  bne  + |  cpy  $valueMsb |  beq  $falseLabel")
+                asmgen.out("+")
             } else {
                 asmgen.out("  cmp  $valueLsb | bne  $falseLabel | cpy  $valueMsb | bne  $falseLabel")
             }
@@ -413,37 +413,35 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
                 // Long != comparison
                 if (constR != null) {
                     val hex = constR.toLongHex()
-                    val skipLabel = asmgen.makeLabel("skip")
                     asmgen.out("""
                         lda  $varL
                         cmp  #$${hex.substring(6, 8)}
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+1
                         cmp  #$${hex.substring(4, 6)}
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+2
                         cmp  #$${hex.substring(2, 4)}
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+3
                         cmp  #$${hex.take(2)}
                         beq  $falseLabel
-$skipLabel""")
++""")
                 } else if (varR != null) {
-                    val skipLabel = asmgen.makeLabel("skip")
                     asmgen.out("""
                         lda  $varL
                         cmp  $varR
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+1
                         cmp  ${varR}+1
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+2
                         cmp  ${varR}+2
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+3
                         cmp  ${varR}+3
                         beq  $falseLabel
-$skipLabel""")
++""")
                 } else {
                     // fallback for complex right expression
                     asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
@@ -491,21 +489,19 @@ $skipLabel""")
                         bne  $falseLabel""")
                 } else if (varR != null) {
                     // Optimized pattern for variable: branch to skip when differ, fall through when equal
-                    val skipLabel = asmgen.makeLabel("skip")
                     asmgen.out("""
                         lda  $varL
                         cmp  $varR
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+1
                         cmp  ${varR}+1
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+2
                         cmp  ${varR}+2
-                        bne  $skipLabel
+                        bne  +
                         lda  $varL+3
                         cmp  ${varR}+3
-$skipLabel
-                        bne  $falseLabel""")
++                       bne  $falseLabel""")
                 } else {
                     // fallback for complex right expression
                     asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
@@ -542,38 +538,37 @@ $skipLabel
         val opL = "cx16.r14"
 
         if (notEquals) {
-            val skipLabel = asmgen.makeLabel("skip")
             if (constR != null) {
                 val hex = constR.toLongHex()
                 asmgen.out("""
                     lda  $opL
                     cmp  #$${hex.substring(6, 8)}
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+1
                     cmp  #$${hex.substring(4, 6)}
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+2
                     cmp  #$${hex.substring(2, 4)}
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+3
                     cmp  #$${hex.take(2)}
                     beq  $falseLabel
-$skipLabel""")
++""")
             } else if (varR != null) {
                 asmgen.out("""
                     lda  $opL
                     cmp  $varR
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+1
                     cmp  ${varR}+1
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+2
                     cmp  ${varR}+2
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+3
                     cmp  ${varR}+3
                     beq  $falseLabel
-$skipLabel""")
++""")
             } else {
                 val cond = PtBinaryExpression("!=", DataType.BOOL, left.position)
                 cond.add(left)
@@ -584,37 +579,33 @@ $skipLabel""")
         } else {
             if (constR != null) {
                 val hex = constR.toLongHex()
-                val skipLabel = asmgen.makeLabel("skip")
                 asmgen.out("""
                     lda  $opL
                     cmp  #$${hex.substring(6, 8)}
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+1
                     cmp  #$${hex.substring(4, 6)}
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+2
                     cmp  #$${hex.substring(2, 4)}
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+3
                     cmp  #$${hex.take(2)}
-$skipLabel
-                    bne  $falseLabel""")
++                   bne  $falseLabel""")
             } else if (varR != null) {
-                val skipLabel = asmgen.makeLabel("skip")
                 asmgen.out("""
                     lda  $opL
                     cmp  $varR
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+1
                     cmp  ${varR}+1
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+2
                     cmp  ${varR}+2
-                    bne  $skipLabel
+                    bne  +
                     lda  $opL+3
                     cmp  ${varR}+3
-$skipLabel
-                    bne  $falseLabel""")
++                   bne  $falseLabel""")
             } else {
                 val cond = PtBinaryExpression("==", DataType.BOOL, left.position)
                 cond.add(left)
@@ -805,17 +796,16 @@ $skipLabel
             translateWordExprIsZero(expr, falseLabel)
             return
         }
-        val isLeLabel = asmgen.makeLabel("is_le")
         val e = asmgen.unwrapCasts(expr)
         when (e) {
             is PtIdentifier -> {
                 val varname = asmgen.asmVariableName(e)
                 asmgen.out("""
                 lda  ${varname}+1
-                bmi  $isLeLabel
+                bmi  +
                 ora  $varname
                 bne  $falseLabel
-$isLeLabel""")
++""")
             }
             is PtArrayIndexer -> {
                 if (e.variable == null)
@@ -825,17 +815,17 @@ $isLeLabel""")
                 if (e.splitWords) {
                     asmgen.out("""
                         lda  ${varname}_msb,y
-                        bmi  $isLeLabel
+                        bmi  +
                         ora  ${varname}_lsb,y
                         bne  $falseLabel
-$isLeLabel""")
++""")
                 } else {
                     asmgen.out("""
                         lda  $varname+1,y
-                        bmi  $isLeLabel
+                        bmi  +
                         ora  $varname,y
                         bne  $falseLabel
-$isLeLabel""")
++""")
                 }
             }
             else -> {
@@ -843,10 +833,10 @@ $isLeLabel""")
                 asmgen.out("""
                 sta  P8ZP_SCRATCH_REG
                 tya
-                bmi  $isLeLabel
+                bmi  +
                 ora  P8ZP_SCRATCH_REG
                 bne  $falseLabel
-$isLeLabel""")
++""")
             }
         }
     }
@@ -985,38 +975,35 @@ $isLeLabel""")
         if (lessEquals) {
             val varname = asmgen.tryGetStaticAddress(expr, 4)
             if (varname != null) {
-                val isLeLabel = asmgen.makeLabel("is_le")
                 asmgen.out("""
                     lda  $varname+3
-                    bmi  $isLeLabel
+                    bmi  +
                     ora  $varname+2
                     ora  $varname+1
                     ora  $varname
                     bne  $falseLabel
-$isLeLabel""")
++""")
             } else if (expr is PtArrayIndexer) {
                 val baseVarname = asmgen.asmVariableName(expr.variable!!)
                 asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
-                val isLeLabel = asmgen.makeLabel("is_le")
                 asmgen.out("""
                     lda  $baseVarname+3,y
-                    bmi  $isLeLabel
+                    bmi  +
                     ora  $baseVarname+2,y
                     ora  $baseVarname+1,y
                     ora  $baseVarname,y
                     bne  $falseLabel
-$isLeLabel""")
++""")
             } else {
                 asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
-                val isLeLabel = asmgen.makeLabel("is_le")
                 asmgen.out("""
                     lda  cx16.r14+3
-                    bmi  $isLeLabel
+                    bmi  +
                     ora  cx16.r14+2
                     ora  cx16.r14+1
                     ora  cx16.r14
                     bne  $falseLabel
-$isLeLabel""")
++""")
             }
         } else {
             loadAndCmp0MSB(expr, true)
@@ -1082,11 +1069,10 @@ $isLeLabel""")
             }
             "<=" -> {
                 if(signed) {
-                    val isLeLabel = asmgen.makeLabel("is_le")
                     asmgen.out("""
-                        beq  $isLeLabel
+                        beq  +
                         bpl  $falseLabel
-$isLeLabel""")
++""")
                 } else asmgen.out("  bne  $falseLabel")
             }
             else -> throw AssemblyError("expected comparison operator")

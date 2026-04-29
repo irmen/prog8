@@ -1,8 +1,6 @@
 TODO
 ====
 
-in IfElseAsmgen and IfExpressionAsmGen there are a lot of makeLabel() calls that could just use a 64tass anonymous label '+'...
-
 
 Dead Code Elimination BUG with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

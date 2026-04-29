@@ -320,7 +320,7 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
         """.trimIndent()
         val result = compileText(Cx16Target(), false, text, outputDir, writeAssembly = true)!!
         val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
-        asm.shouldContainInOrder("lda", "_msb,y", "bmi", "is_le", "ora", "_lsb,y", "bne", "ifexpr_false", "is_le")
+        asm.shouldContainInOrder("lda", "_msb,y", "bmi  +", "ora", "_lsb,y", "bne", "ifexpr_false", "+")
     }
 
     test("if-expression word indexed > 0 optimization") {
@@ -419,6 +419,6 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
         val asm = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm").readText()
         // l1 != l2 should use optimized variable comparison with skip label pattern:
         // cmp p8v_l2, bne skip, ..., cmp p8v_l2+3, beq ifexpr_false, skip:
-        asm.shouldContainInOrder("cmp", "p8v_l2", "bne", "skip", "cmp", "p8v_l2+3", "beq", "ifexpr_false")
+        asm.shouldContainInOrder("cmp  p8v_l2", "bne  +", "cmp  p8v_l2+3", "beq", "ifexpr_false")
     }
 })
