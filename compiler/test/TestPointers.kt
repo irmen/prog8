@@ -945,10 +945,10 @@ main {
         val add2expr1 = (add2[1] as PtAugmentedAssign).value as PtBinaryExpression
         add2expr1.operator shouldBe "<<"
         (add2expr1.right as PtNumber).number shouldBe 1.0
-        val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).right as PtBinaryExpression
+        val add2expr2 = ((add2[2] as PtAssignment).value as PtBinaryExpression).left as PtBinaryExpression
         add2expr2.operator shouldBe "<<"
         (add2expr2.right as PtNumber).number shouldBe 1.0
-        val add2expr3 = (((add2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).right as PtBinaryExpression
+        val add2expr3 = (((add2[3] as PtAssignment).value as PtFunctionCall).args[0] as PtBinaryExpression).left as PtBinaryExpression
         add2expr3.operator shouldBe "<<"
         (add2expr3.right as PtNumber).number shouldBe 1.0
 

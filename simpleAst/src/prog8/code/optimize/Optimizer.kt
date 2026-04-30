@@ -117,6 +117,7 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
         + BooleanOptimizers.optimizeBooleanExpressions(program)
         + BooleanOptimizers.optimizeBitwiseComplementBinary(program)
         + ExpressionOptimizers.optimizeBinaryExpressions(program, ctx.options)
+        + ExpressionOptimizers.optimizeOperandOrder(program)
         + ControlFlowOptimizers.optimizeSingleWhens(program, ctx.errors)
         + ControlFlowOptimizers.optimizeConditionalExpressions(program, ctx.errors)
         + ControlFlowOptimizers.optimizeDeadConditionalBranches(program) > 0) {

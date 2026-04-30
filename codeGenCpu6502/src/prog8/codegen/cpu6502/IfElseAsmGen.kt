@@ -623,8 +623,8 @@ internal class IfElseAsmGen(private val program: PtProgram,
             "==" -> wordEqualsValue(condition.left, condition.right, false, signed, jumpAfterIf, stmt)
             "!=" -> wordEqualsValue(condition.left, condition.right, true, signed, jumpAfterIf, stmt)
             "<" -> wordLessValue(condition.left, condition.right, signed, jumpAfterIf, stmt)
-            "<=" -> throw AssemblyError("X<=Y should have been replaced by Y>=X")
-            ">" -> throw AssemblyError("X>Y should have been replaced by Y<X")
+            "<=" -> wordGreaterEqualsValue(condition.right, condition.left, signed, jumpAfterIf, stmt)                                                  
+            ">" -> wordLessValue(condition.right, condition.left, signed, jumpAfterIf, stmt) 
             ">=" -> wordGreaterEqualsValue(condition.left, condition.right, signed, jumpAfterIf, stmt)
             else -> throw AssemblyError("expected comparison operator for word, got '${condition.operator}' at ${stmt.position}")
         }

@@ -236,6 +236,9 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
     }
     
     override fun copy() = PtBinaryExpression(operator, type, position)
+
+    fun maySwapOperandOrder(): Boolean =
+        (operator in CommutativeOperators || operator in ComparisonOperators)
 }
 
 

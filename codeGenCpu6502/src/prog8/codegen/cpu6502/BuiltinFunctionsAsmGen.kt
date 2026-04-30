@@ -77,8 +77,8 @@ import prog8.codegen.cpu6502.assignment.*
             "pokel" -> funcPokeL(fcall)
             "pokef" -> funcPokeF(fcall)
             "pokemon" -> funcPokemon(fcall, firstReturnRegister ?: RegisterOrPair.A)
-            "peek" -> throw AssemblyError("peek() should have been replaced by @()")
-            "poke" -> throw AssemblyError("poke() should have been replaced by @()")
+            "peek" -> throw AssemblyError("peek() should have been replaced by @()  ${fcall.position}")
+            "poke" -> throw AssemblyError("poke() should have been replaced by @()  ${fcall.position}")
             "pokebool" -> funcPokeBool(fcall)
             "rsave" -> funcRsave()
             "rrestore" -> funcRrestore()
@@ -87,7 +87,7 @@ import prog8.codegen.cpu6502.assignment.*
             "callfar2" -> funcCallFar2(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             "call" -> funcCall(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             "prog8_lib_structalloc" -> {
-                require(!discardResult) { "${fcall.position} should not discard result"}
+                require(!discardResult) { "should not discard result  ${fcall.position}"}
                 funcStructAlloc(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             }
             "prog8_lib_stringcompare" -> funcStringCompare(fcall, firstReturnRegister ?: RegisterOrPair.A)
