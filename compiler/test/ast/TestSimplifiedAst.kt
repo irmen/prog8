@@ -24,7 +24,7 @@ class TestSimplifiedAst: FunSpec({
         (expr1 isSameAs expr3) shouldBe false
     }
 
-    test("isSame on binaryExpressions with associative operators") {
+    test("isSame on binaryExpressions with commutative operators") {
         val expr1 = PtBinaryExpression("+", DataType.UBYTE, Position.DUMMY)
         expr1.add(PtNumber(BaseDataType.UBYTE, 1.0, Position.DUMMY))
         expr1.add(PtNumber(BaseDataType.UBYTE, 2.0, Position.DUMMY))

@@ -626,19 +626,13 @@ internal class IfElseAsmGen(private val program: PtProgram,
         val operator = condition.operator
 
         // non-zero comparisons
-        when(operator) {
+        when(condition.operator) {
             "==" -> wordEqualsValue(left, right, false, signed, jumpAfterIf, stmt)
             "!=" -> wordEqualsValue(left, right, true, signed, jumpAfterIf, stmt)
             "<" -> wordLessValue(left, right, signed, jumpAfterIf, stmt)
+            "<=" -> wordGreaterEqualsValue(right, left, signed, jumpAfterIf, stmt)                                                  
+            ">" -> wordLessValue(right, left, signed, jumpAfterIf, stmt) 
             ">=" -> wordGreaterEqualsValue(left, right, signed, jumpAfterIf, stmt)
-            ">" -> {
-                // X > Y - swap operands to use < with reversed sense
-                wordLessValue(right, left, signed, jumpAfterIf, stmt)
-            }
-            "<=" -> {
-                // X <= Y - use >= with swapped operands
-                wordGreaterEqualsValue(right, left, signed, jumpAfterIf, stmt)
-            }
             else -> throw AssemblyError("expected comparison operator for word, got '${operator}' at ${stmt.position}")
         }
     }

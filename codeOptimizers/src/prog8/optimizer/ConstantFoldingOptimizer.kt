@@ -1,6 +1,9 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.FatalAstException
+import prog8.ast.IStatementContainer
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
@@ -543,8 +546,8 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if(expr.operator==subExpr.operator) {
             // both operators are the same.
 
-            // If associative,  we can simply shuffle the const operands around to optimize.
-            if(expr.operator in AssociativeOperators && maySwapOperandOrder(expr)) {
+            // If commutative,  we can simply shuffle the const operands around to optimize.
+            if(expr.operator in CommutativeOperators && expr.maySwapOperandOrder()) {
                 return if(leftIsConst) {
                     if(subleftIsConst)
                         AstShuffleOperands(expr, null, subExpr, subExpr.right, null, null, expr.left)

@@ -1,6 +1,9 @@
 package prog8.optimizer
 
-import prog8.ast.*
+import prog8.ast.IBuiltinFunctions
+import prog8.ast.IStatementContainer
+import prog8.ast.Node
+import prog8.ast.Program
 import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.*
@@ -303,8 +306,8 @@ class StatementOptimizer(private val program: Program,
                     val op1 = binExpr.operator
                     val op2 = rExpr.operator
 
-                    if(rExpr.left is NumericLiteral && op2 in AssociativeOperators && maySwapOperandOrder(binExpr)) {
-                        // associative operator, make sure the constant numeric value is second (right)
+                    if(rExpr.left is NumericLiteral && op2 in CommutativeOperators && binExpr.maySwapOperandOrder()) {
+                        // commutative operator, make sure the constant numeric value is second (right)
                         return listOf(AstSwapOperands(rExpr))
                     }
 
@@ -339,10 +342,10 @@ class StatementOptimizer(private val program: Program,
                 }
             }
 
-            if(binExpr.operator in AssociativeOperators && binExpr.right isSameAs assignment.target) {
-                // associative operator, swap the operands so that the assignment target is first (left)
+            if(binExpr.operator in CommutativeOperators && binExpr.right isSameAs assignment.target) {
+                // commutative operator, swap the operands so that the assignment target is first (left)
                 // unless the other operand is the same in which case we don't swap (endless loop!)
-                if (!(binExpr.left isSameAs binExpr.right) && maySwapOperandOrder(binExpr))
+                if (!(binExpr.left isSameAs binExpr.right) && binExpr.maySwapOperandOrder())
                     return listOf(AstSwapOperands(binExpr))
             }
 

@@ -19,7 +19,7 @@ internal object ExpressionOptimizers {
      */
     fun optimizeBinaryExpressions(program: PtProgram, options: CompilationOptions): Int {
         var changes = 0
-        walkAst(program) { node: PtNode, depth: Int ->
+        walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression) {
                 val constvalue = node.right.asConstValue()
                 if(node.operator=="<<" && constvalue==1.0 && options.compTarget.name!=VMTarget.NAME) {
@@ -56,7 +56,7 @@ internal object ExpressionOptimizers {
      */
     fun optimizeAlgebraicIdentities(program: PtProgram): Int {
         var changes = 0
-        walkAst(program) { node: PtNode, depth: Int ->
+        walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression) {
                 val left = node.left
                 val right = node.right
@@ -292,7 +292,7 @@ internal object ExpressionOptimizers {
      */
     fun optimizeExpressionRearrangement(program: PtProgram): Int {
         var changes = 0
-        walkAst(program) { node: PtNode, depth: Int ->
+        walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression) {
                 val left = node.left
                 val right = node.right
@@ -376,9 +376,9 @@ internal object ExpressionOptimizers {
      * Strength reduction: replaces expensive operations with cheaper equivalents.
      * Division/modulo by powers of two become shifts/masks.
      */
-    fun optimizeStrengthReduction(program: PtProgram, options: CompilationOptions): Int {
+    fun optimizeStrengthReduction(program: PtProgram): Int {
         var changes = 0
-        walkAst(program) { node: PtNode, depth: Int ->
+        walkAst(program) { node: PtNode, _: Int ->
             if (node is PtBinaryExpression && node.type.isInteger) {
                 val rightConst = node.right.asConstValue()
 
@@ -415,6 +415,72 @@ internal object ExpressionOptimizers {
                         node.parent.setChild(index, zero)
                         changes++
                     }
+                }
+            }
+            true
+        }
+        return changes
+    }
+
+    /**
+     * Calculates the "complexity" of an expression.
+     * Lower values = simpler expressions.
+     */
+    private fun complexity(e: PtExpression): Int {
+        return when {
+            e.asConstInteger() != null -> 0
+            e is PtIdentifier -> 1
+            e is PtTypeCast -> complexity(e.value)
+            e is PtAddressOf && !e.isFromArrayElement -> 1
+            e is PtMemoryByte -> 2
+            e is PtArrayIndexer && e.index.asConstInteger() != null -> 2
+            else -> 10
+        }
+    }
+
+    /**
+     * Returns the swapped comparison operator for swapped operands.
+     * For example: a > b becomes b < a, so > becomes <
+     * == and != remain the same.
+     * Returns null for non-comparison operators.
+     */
+    private fun swappedComparisonOperator(operator: String): String? {
+        return when (operator) {
+            ">" -> "<"
+            "<" -> ">"
+            ">=" -> "<="
+            "<=" -> ">="
+            "==", "!=" -> operator
+            else -> null
+        }
+    }
+
+    /**
+     * Optimizes operand order by moving simpler expressions to the right.
+     * Only swaps if maySwapOperandOrder() returns true and left is simpler than right.
+     * For comparison operators, also swaps the operator appropriately.
+     */
+    fun optimizeOperandOrder(program: PtProgram): Int {
+        var changes = 0
+        walkAst(program) { node: PtNode, _: Int ->
+            if (node is PtBinaryExpression && node.maySwapOperandOrder()) {
+                val leftComplexity = complexity(node.left)
+                val rightComplexity = complexity(node.right)
+
+                // Want simplest term on the right, so swap if left is simpler than right
+                if (leftComplexity < rightComplexity) {
+                    // Determine the new operator (may need to swap for comparisons)
+                    val newOperator = swappedComparisonOperator(node.operator) ?: node.operator
+
+                    // Create replacement with swapped operands
+                    val replacement = PtBinaryExpression(newOperator, node.type, node.position)
+                    replacement.add(node.right)
+                    replacement.add(node.left)
+                    replacement.parent = node.parent
+
+                    val index = node.parent.children.indexOf(node)
+                    node.parent.setChild(index, replacement)
+                    changes++
                 }
             }
             true

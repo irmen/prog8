@@ -1010,7 +1010,7 @@ main {
         (expr1 isSameAs expr3) shouldBe false
     }
 
-    test("isSame on binary expressions with associative operators") {
+    test("isSame on binary expressions with commutative operators") {
         val left1 = NumericLiteral.optimalInteger(1, Position.DUMMY)
         val right1 = NumericLiteral.optimalInteger(2, Position.DUMMY)
         val expr1 = BinaryExpression(left1, "+", right1, Position.DUMMY)

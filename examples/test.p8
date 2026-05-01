@@ -1,28 +1,24 @@
-%import textio
 %zeropage basicsafe
 
 main {
 
     sub start() {
-        const long lv = $12345678
+        uword @shared wvar = 5
 
-        ubyte l,m,h = lmh(lv+99999)     ; TODO should be const-folded and ALL THREE target vars should become consts too
+        if wvar <= 10
+            cx16.r0++
 
-        txt.print_ubhex(h, true)
-        txt.spc()
-        txt.print_ubhex(m, false)
-        txt.spc()
-        txt.print_ubhex(l, false)
-        txt.nl()
+        if wvar > 10
+            cx16.r1++
 
+        add2()
+    }
 
-        const ubyte num = 230
-        const ubyte div = 13
+    sub add2() {
+        ^^uword @shared ptr = 0
 
-        ubyte d,r = divmod(num, div)     ; TODO should be const-folded and BOTH target vars should become consts too
-        txt.print_ub(d)
-        txt.spc()
-        txt.print_ub(r)
-        txt.nl()
+        ptr += cx16.r0L
+        cx16.r0 = ptr + cx16.r0L
+        cx16.r0 = peekw(ptr + cx16.r0L)
     }
 }

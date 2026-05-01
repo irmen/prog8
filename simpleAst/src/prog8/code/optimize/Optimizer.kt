@@ -88,7 +88,7 @@ fun optimizeSimplifiedAst(program: PtProgram, options: CompilationOptions, st: S
     runFixpointOptimizations(program, ctx)
 
     // Run single-pass optimizations (only need to run once)
-    runSinglePassOptimizations(program, ctx)
+    runSinglePassOptimizations(program)
 }
 
 /**
@@ -117,6 +117,7 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
         + BooleanOptimizers.optimizeBooleanExpressions(program)
         + BooleanOptimizers.optimizeBitwiseComplementBinary(program)
         + ExpressionOptimizers.optimizeBinaryExpressions(program, ctx.options)
+        + ExpressionOptimizers.optimizeOperandOrder(program)
         + ControlFlowOptimizers.optimizeSingleWhens(program, ctx.errors)
         + ControlFlowOptimizers.optimizeConditionalExpressions(program, ctx.errors)
         + ControlFlowOptimizers.optimizeDeadConditionalBranches(program) > 0) {
@@ -132,10 +133,10 @@ private fun runFixpointOptimizations(program: PtProgram, ctx: OptimizerContext) 
  * Runs optimizations that only need to execute once.
  * These don't create opportunities for other optimizations, so no fixpoint loop needed.
  */
-private fun runSinglePassOptimizations(program: PtProgram, ctx: OptimizerContext) {
+private fun runSinglePassOptimizations(program: PtProgram) {
     // Variable optimizations
     VariableOptimizers.optimizeRedundantVarInits(program)
 
     // Strength reduction (x/2^n→x>>n, x%2^n→x&(2^n-1)) doesn't create opportunities for other opts
-    ExpressionOptimizers.optimizeStrengthReduction(program, ctx.options)
+    ExpressionOptimizers.optimizeStrengthReduction(program)
 }

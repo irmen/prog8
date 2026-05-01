@@ -154,38 +154,11 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
     override fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
         if(expr.operator==".")
             return noModifications
-        if (options.compTarget.name == VMTarget.NAME)
-            return noModifications
-
-        val rightDt = expr.right.inferType(program)
         val rightNum = expr.right.constValue(program)
-
-        if(rightDt.isWords && (rightNum==null || rightNum.number!=0.0)) {
-            when (expr.operator) {
-                ">" -> {
-                    // X>Y -> Y<X  , easier to do in 6502
-                    expr.operator = "<"
-                    val left = expr.left
-                    expr.left = expr.right
-                    expr.right = left
-                    return noModifications
-                }
-
-                "<=" -> {
-                    // X<=Y -> Y>=X  , easier to do in 6502
-                    expr.operator = ">="
-                    val left = expr.left
-                    expr.left = expr.right
-                    expr.right = left
-                    return noModifications
-                }
-            }
-        }
-
         if(rightNum!=null && rightNum.type.isInteger && rightNum.number!=0.0) {
             when(expr.operator) {
                 ">" -> {
-                    // X>N  ->  X>=N+1,   easier to do in 6502
+                    // X>N  ->  X>=N+1,   easier to do in 6502 when N is const number
                     val maximum = when {
                         rightNum.type.isByte -> 255
                         rightNum.type.isWord -> 65535
@@ -198,7 +171,7 @@ internal class BeforeAsmAstChanger(val program: Program, private val options: Co
                     }
                 }
                 "<=" -> {
-                    // X<=N ->  X<N+1,    easier to do in 6502
+                    // X<=N ->  X<N+1,    easier to do in 6502 when N is const number
                     val maximum = when {
                         rightNum.type.isByte -> 255
                         rightNum.type.isWord -> 65535

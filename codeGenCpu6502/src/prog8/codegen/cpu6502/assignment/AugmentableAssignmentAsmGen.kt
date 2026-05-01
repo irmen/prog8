@@ -1764,8 +1764,8 @@ $shortcutLabel:""")
     private fun inplacemodificationRegisterAwithVariableWithSwappedOperands(operator: String, variable: String, signed: Boolean) {
         // A = variable <operator> A
 
-        if(operator in AssociativeOperators)
-            return inplacemodificationRegisterAwithVariable(operator, variable, signed)     // just reuse existing code for associative operators
+        if(operator in CommutativeOperators)
+            return inplacemodificationRegisterAwithVariable(operator, variable, signed)     // just reuse existing code for commutative operators
 
         // now implement the non-assiciative operators...
         when (operator) {

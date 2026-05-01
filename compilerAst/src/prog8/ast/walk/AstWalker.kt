@@ -7,7 +7,7 @@ import prog8.ast.walk.AstInsert.Companion.after
 import prog8.ast.walk.AstInsert.Companion.before
 import prog8.ast.walk.AstInsert.Companion.first
 import prog8.ast.walk.AstInsert.Companion.last
-import prog8.code.core.AssociativeOperators
+import prog8.code.core.CommutativeOperators
 
 
 /**
@@ -126,13 +126,13 @@ open class AstReplaceNode(
 
 /**
  * Swaps the left and right operands of a binary expression.
- * Only valid for associative operators (e.g., `+`, `*`, `and`, `or`).
+ * Only valid for commutative operators (e.g., `+`, `*`, `and`, `or`).
  */
 open class AstSwapOperands(private val expr: BinaryExpression) : AstModification() {
     override val affectedNodes = listOf(expr)
 
     override fun perform() {
-        require(expr.operator in AssociativeOperators)
+        require(expr.operator in CommutativeOperators)
         val tmp = expr.left
         expr.left = expr.right
         expr.right = tmp

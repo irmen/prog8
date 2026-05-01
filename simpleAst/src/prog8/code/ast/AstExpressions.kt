@@ -58,7 +58,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtBinaryExpression -> {
                 if(other !is PtBinaryExpression || other.operator!=operator)
                     false
-                else if(operator in AssociativeOperators)
+                else if(operator in CommutativeOperators)
                     (other.left isSameAs left && other.right isSameAs right) || (other.left isSameAs right && other.right isSameAs left)
                 else
                     other.left isSameAs left && other.right isSameAs right
@@ -231,6 +231,9 @@ class PtBinaryExpression(val operator: String, type: DataType, position: Positio
     }
     
     override fun copy() = PtBinaryExpression(operator, type, position)
+
+    fun maySwapOperandOrder(): Boolean =
+        (operator in CommutativeOperators || operator in ComparisonOperators)
 }
 
 
