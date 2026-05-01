@@ -2387,11 +2387,8 @@ $repeatLabel""")
     }
 
     internal fun assignByteOperandsToAAndVar(left: PtExpression, right: PtExpression, rightVarName: String) {
-        // NOTE: do NOT optimize this further! Will result in invalid code!
+        // NOTE: do NOT optimize/alter this further! Will result in invalid code!
         if(left.isSimple()) {
-            assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
-            assignExpressionToRegister(left, RegisterOrPair.A)
-        } else if(right.isSimple()) {
             assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
         } else {
@@ -2402,11 +2399,8 @@ $repeatLabel""")
     }
 
     internal fun assignWordOperandsToAYAndVar(left: PtExpression, right: PtExpression, rightVarname: String) {
-        // NOTE: do NOT optimize this further! Will result in invalid code!
+        // NOTE: do NOT optimize/alter this further! Will result in invalid code!
         if(left.isSimple()) {
-            assignExpressionToVariable(right, rightVarname, DataType.UWORD)
-            assignExpressionToRegister(left, RegisterOrPair.AY)
-        } else if(right.isSimple()) {
             assignExpressionToVariable(right, rightVarname, DataType.UWORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
         } else {
