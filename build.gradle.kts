@@ -12,6 +12,7 @@ allprojects {
     repositories {
         mavenLocal()
         mavenCentral()
+        maven { url = uri("https://jitpack.io") }
     }
 
     kotlin {
@@ -47,13 +48,14 @@ subprojects {
     configurations.all {
         exclude(group = "com.ibm.icu", module = "icu4j")
     }
-    
+
     // Common test dependencies via Kotest BOM (Bill of Materials)
     // This manages all Kotest module versions centrally
     dependencies {
         testImplementation(platform("io.kotest:kotest-bom:5.9.1"))
+        // implementation("com.github.irmen:ksim65:v2.0")
     }
-    
+
     // Common sourceSets configuration
     sourceSets {
         main {
@@ -64,7 +66,7 @@ subprojects {
             java.srcDir("${project.projectDir}/test")
         }
     }
-    
+
     // Common test configuration
     tasks.withType<Test>().configureEach {
         // Enable JUnit 5 (required for Kotest)
@@ -73,7 +75,7 @@ subprojects {
         // Enable concurrent test execution for Kotest
         // Set parallelism to number of CPU cores
         jvmArgs("-Dkotest.framework.parallelism=${Runtime.getRuntime().availableProcessors()}")
-        
+
         // Disable Kotest autoscan warning
         jvmArgs("-Dkotest.framework.classpath.scanning.autoscan.disable=true")
 
