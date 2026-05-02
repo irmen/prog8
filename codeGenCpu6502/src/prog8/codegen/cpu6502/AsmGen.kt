@@ -2151,15 +2151,21 @@ $repeatLabel""")
         val rightDt = right.type
         if((leftDt.isUnsignedWord || leftDt.isPointer) && rightDt.isUnsignedByte)
             return Pair(left, right)
-        if(leftDt.isUnsignedByte && rightDt.isUnsignedWord)
+        if(leftDt.isUnsignedByte && (rightDt.isUnsignedWord || rightDt.isPointer))
             return Pair(right, left)
-        if((leftDt.isUnsignedWord || leftDt.isPointer) && rightDt.isUnsignedWord) {
+        if((leftDt.isUnsignedWord || leftDt.isPointer) && (rightDt.isUnsignedWord || rightDt.isPointer)) {
             // could be that the index was a constant numeric byte but converted to word, check that
             val constIdx = right as? PtNumber
             if(constIdx!=null && constIdx.number.toInt()>=0 && constIdx.number.toInt()<=255) {
                 val num = PtNumber(BaseDataType.UBYTE, constIdx.number, constIdx.position)
                 num.parent = right.parent
                 return Pair(left, num)
+            }
+            val constIdxLeft = left as? PtNumber
+            if(constIdxLeft!=null && constIdxLeft.number.toInt()>=0 && constIdxLeft.number.toInt()<=255) {
+                val num = PtNumber(BaseDataType.UBYTE, constIdxLeft.number, constIdxLeft.position)
+                num.parent = left.parent
+                return Pair(right, num)
             }
             // could be that the index was typecasted into uword, check that
             val rightTc = right as? PtTypeCast

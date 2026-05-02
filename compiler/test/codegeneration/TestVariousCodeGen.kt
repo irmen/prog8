@@ -1,5 +1,6 @@
 package prog8tests.codegeneration
 
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.ints.shouldBeGreaterThan
@@ -8,6 +9,7 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.string.shouldStartWith
 import io.kotest.matchers.types.instanceOf
+import io.kotest.matchers.types.shouldBeInstanceOf
 import prog8.code.StNodeType
 import prog8.code.ast.*
 import prog8.code.core.BaseDataType
@@ -851,5 +853,55 @@ main {
 
         compileText(Cx16Target(), false, src, outputDir) shouldNotBe null
         compileText(VMTarget(), false, src, outputDir) shouldNotBe null
+    }
+
+    test("efficient 6502 array indexing code for s[index+const]") {
+        val source = """
+            %zeropage basicsafe
+            main {
+                sub rstrip(str s) {
+                    s[cx16.r0L+1] = 0
+                }
+                sub start() {
+                    rstrip("hello")
+                }
+            }
+        """.trimIndent()
+
+        val result = compileText(Cx16Target(), true, source, outputDir)!!
+
+        // 1. Check SimpleAst (codegenAst)
+        // We expect operand order optimization to have swapped 's' and '(cx16.r0L + 1)'
+        // so that the pointer 's' is on the right, because that is the least complex operand
+
+        val additions = mutableListOf<PtBinaryExpression>()
+        walkAst(result.codegenAst!!) { node, _ ->
+            if (node is PtBinaryExpression && node.operator == "+" && !node.position.file.contains("library:")) {
+                additions.add(node)
+            }
+            true
+        }
+
+        // In the SimpleAst for this program, we expect:
+        // 1. cx16.r0L + 1
+        // 2. (cx16.r0L + 1) + main.rstrip.s
+
+        additions.size shouldBe 2
+
+        val outerAddition = additions.find { it.type.isPointer || it.type.isUnsignedWord }!!
+
+        withClue("Pointer 's' should be on the right due to operand order optimization") {
+            val right = outerAddition.right
+            right.shouldBeInstanceOf<PtIdentifier>()
+            right.name shouldContain "p8v_s"
+        }
+
+        // 2. Check Assembly
+        val asmFile = result.compilationOptions.outputDir.resolve(result.compilerAst.name + ".asm")
+        val asm = asmFile.readText()
+
+        withClue("Should use efficient sta (zp),y instruction") {
+            asm shouldContain "sta  (p8v_s),y"
+        }
     }
 })
