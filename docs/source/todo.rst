@@ -72,6 +72,7 @@ IR/VM
 
 Libraries
 ---------
+- add a serialio library to interface with the serial/wifi card, see https://github.com/safiire/cx16_wget/blob/master/uart.s 
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support?
 
