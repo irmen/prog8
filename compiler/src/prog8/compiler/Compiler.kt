@@ -438,7 +438,7 @@ fun parseMainModule(filepath: Path,
         if(!compilerOptions.noSysInit)
             errors.err("library cannot use sysinit", program.toplevelModule.position)
     } else {
-        if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG)
+        if (compilerOptions.launcher == CbmPrgLauncherType.BASIC && compilerOptions.output != OutputType.PRG && compTarget.customLauncher.isEmpty())
             errors.err("BASIC launcher requires output type PRG", program.toplevelModule.position)
     }
 
