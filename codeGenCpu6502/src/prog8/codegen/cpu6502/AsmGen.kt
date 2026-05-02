@@ -812,7 +812,7 @@ class AsmGen6502Internal (
     }
 
     internal fun translateBuiltinFunctionCallExpression(bfc: PtFunctionCall, firstReturnRegister: RegisterOrPair?): Array<RegisterOrPair> =
-            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, firstReturnRegister)
+            builtinFunctionsAsmGen.translateFunctioncallExpression(bfc, firstReturnRegister)  // returns the actual register(s) that the return value is in, so the caller should still make sure to place it into the actual correct destination
 
     internal fun translateFunctionCall(functionCallExpr: PtFunctionCall) =
             functioncallAsmGen.translateFunctionCall(functionCallExpr)

@@ -100,14 +100,14 @@ enum class BranchCondition {
     VC
 }
 
-val Cx16VirtualRegisters = arrayOf(
+val Cx16VirtualRegisters = setOf(
     RegisterOrPair.R0, RegisterOrPair.R1, RegisterOrPair.R2, RegisterOrPair.R3,
     RegisterOrPair.R4, RegisterOrPair.R5, RegisterOrPair.R6, RegisterOrPair.R7,
     RegisterOrPair.R8, RegisterOrPair.R9, RegisterOrPair.R10, RegisterOrPair.R11,
     RegisterOrPair.R12, RegisterOrPair.R13, RegisterOrPair.R14, RegisterOrPair.R15
 )
 
-val CombinedLongRegisters = arrayOf(
+val CombinedLongRegisters = setOf(
     RegisterOrPair.R0R1,
     RegisterOrPair.R2R3,
     RegisterOrPair.R4R5,
@@ -118,7 +118,7 @@ val CombinedLongRegisters = arrayOf(
     RegisterOrPair.R14R15
 )
 
-val CpuRegisters = arrayOf(
+val CpuRegisters = setOf(
     RegisterOrPair.A, RegisterOrPair.X, RegisterOrPair.Y,
     RegisterOrPair.AX, RegisterOrPair.AY, RegisterOrPair.XY
 )

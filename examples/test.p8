@@ -1,24 +1,20 @@
 %zeropage basicsafe
 
 main {
-
     sub start() {
-        uword @shared wvar = 5
+        ; TODO test clamp long, min long, max long
 
-        if wvar <= 10
-            cx16.r0++
+        uword wvar
 
-        if wvar > 10
-            cx16.r1++
-
-        add2()
+        thing(peekw(&wvar+cx16.r0L))
+        thing(peekw($e844))
+        thing(peekw(cx16.r0))
     }
 
-    sub add2() {
-        ^^uword @shared ptr = 0
-
-        ptr += cx16.r0L
-        cx16.r0 = ptr + cx16.r0L
-        cx16.r0 = peekw(ptr + cx16.r0L)
+    asmsub thing(uword value @R0) {
+        %asm {{
+            rts
+        }}
     }
+
 }
