@@ -348,7 +348,7 @@ class AsmGen6502Internal (
     private val assignmentAsmGen = AssignmentAsmGen(program, this, pointerGen, anyExprGen, allocator)
     private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, pointerGen,assignmentAsmGen)
     private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, pointerGen, assignmentAsmGen, errors)
-    private val ifExpressionAsmgen = IfExpressionAsmGen(this, assignmentAsmGen, errors)
+    private val ifExpressionAsmgen = IfExpressionAsmGen(this, pointerGen, assignmentAsmGen, errors)
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, assignmentAsmGen, this, pointerGen, allocator)
 
     init {
@@ -513,6 +513,25 @@ class AsmGen6502Internal (
             name.drop(subName.length+1)
         else
             name
+    }
+
+    fun unwrapCasts(expr: PtExpression): PtExpression {
+        var e = expr
+        while (e is PtTypeCast) e = e.value
+        return e
+    }
+
+    fun tryGetStaticAddress(expr: PtExpression, variableMemSize: Int): String? {
+        val e = unwrapCasts(expr)
+        if (e is PtIdentifier) return asmVariableName(e)
+        if (e is PtArrayIndexer) {
+            val idx = e.index.asConstInteger()
+            if (idx != null && e.variable != null) {
+                val offset = program.memsizer.memorySize(e.type, idx)
+                if (offset + (variableMemSize - 1) < 256) return "${asmVariableName(e.variable!!)}+$offset"
+            }
+        }
+        return null
     }
 
     fun asmVariableName(st: StNode, scope: IPtSubroutine?): String {
@@ -2374,6 +2393,7 @@ $repeatLabel""")
     }
 
     internal fun assignByteOperandsToAAndVar(left: PtExpression, right: PtExpression, rightVarName: String) {
+        // NOTE: do NOT optimize/alter this further! Will result in invalid code!
         if(left.isSimple()) {
             assignExpressionToVariable(right, rightVarName, DataType.UBYTE)
             assignExpressionToRegister(left, RegisterOrPair.A)
@@ -2385,10 +2405,11 @@ $repeatLabel""")
     }
 
     internal fun assignWordOperandsToAYAndVar(left: PtExpression, right: PtExpression, rightVarname: String) {
+        // NOTE: do NOT optimize/alter this further! Will result in invalid code!
         if(left.isSimple()) {
             assignExpressionToVariable(right, rightVarname, DataType.UWORD)
             assignExpressionToRegister(left, RegisterOrPair.AY)
-        }  else {
+        } else {
             pushCpuStack(BaseDataType.UWORD, left)
             assignExpressionToVariable(right, rightVarname, DataType.UWORD)
             restoreRegisterStack(CpuRegister.Y, false)
@@ -2554,21 +2575,22 @@ $repeatLabel""")
             out("  $compare  P8ZP_SCRATCH_REG")
         }
 
-        when(value) {
+        val e = unwrapCasts(value)
+        when(e) {
             is PtArrayIndexer -> {
-                val constIndex = value.index.asConstInteger()
+                val constIndex = e.index.asConstInteger()
                 if(constIndex!=null) {
-                    val offset = program.memsizer.memorySize(value.type, constIndex)
+                    val offset = program.memsizer.memorySize(e.type, constIndex)
                     if(offset<256) {
-                        if(value.variable==null)
-                            TODO("support for ptr indexing ${value.position}")
-                        return out("  ldy  #$offset |  $compare  ${asmVariableName(value.variable!!)},y")
+                        if(e.variable==null)
+                            TODO("support for ptr indexing ${e.position}")
+                        return out("  ldy  #$offset |  $compare  ${asmVariableName(e.variable!!)},y")
                     }
                 }
                 cmpViaScratch()
             }
             is PtMemoryByte -> {
-                val constAddr = value.address.asConstInteger()
+                val constAddr = e.address.asConstInteger()
                 if(constAddr!=null) {
                     out("  $compare  ${constAddr.toHex()}")
                 } else {
@@ -2576,11 +2598,11 @@ $repeatLabel""")
                 }
             }
             is PtIdentifier -> {
-                out("  $compare  ${asmVariableName(value)}")
+                out("  $compare  ${asmVariableName(e)}")
             }
             is PtNumber -> {
-                if(value.number!=0.0)
-                    out("  $compare  #${value.number.toInt()}")
+                if(e.number!=0.0)
+                    out("  $compare  #${e.number.toInt()}")
             }
             else -> {
                 cmpViaScratch()
@@ -2709,22 +2731,38 @@ $repeatLabel""")
         }
     }
 
-    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): Triple<Boolean, PtIdentifier, Int>? {
+    internal fun checkIfConditionCanUseBIT(condition: PtBinaryExpression): Triple<Boolean, String, Int>? {
         if(condition.operator == "==" || condition.operator == "!=") {
             if (condition.right.asConstInteger() == 0) {
-                val and = condition.left as? PtBinaryExpression
+                var and = condition.left as? PtBinaryExpression
+                if (and == null && condition.left is PtTypeCast) {
+                    and = (condition.left as PtTypeCast).value as? PtBinaryExpression
+                }
                 if (and != null && and.operator == "&" && and.type.isUnsignedByte) {
                     val bitmask = and.right.asConstInteger()
                     if(bitmask==128 || bitmask==64) {
+                        // handle msb(x) or lsb(x) calls
+                        val leftExpr = and.left
+                        if (leftExpr is PtFunctionCall) {
+                            if (leftExpr.name == "msb" || leftExpr.name == "lsb") {
+                                val arg = leftExpr.args.singleOrNull()
+                                if (arg is PtIdentifier && arg.type.isWord) {
+                                    val offset = if (leftExpr.name == "msb") 1 else 0
+                                    val variableName = "${asmVariableName(arg)}+$offset"
+                                    return Triple(condition.operator == "!=", variableName, bitmask)
+                                }
+                            }
+                        }
+
                         val variable = and.left as? PtIdentifier
                         if (variable != null && variable.type.isByte) {
-                            return Triple(condition.operator=="!=", variable, bitmask)
+                            return Triple(condition.operator=="!=", asmVariableName(variable), bitmask)
                         }
                         val typecast = and.left as? PtTypeCast
                         if (typecast != null && typecast.type.isUnsignedByte) {
                             val castedVariable = typecast.value as? PtIdentifier
                             if(castedVariable!=null && castedVariable.type.isByte)
-                                return Triple(condition.operator=="!=", castedVariable, bitmask)
+                                return Triple(condition.operator=="!=", asmVariableName(castedVariable), bitmask)
                         }
                     }
                 }

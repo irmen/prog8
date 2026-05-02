@@ -4,9 +4,10 @@ import prog8.code.ast.*
 import prog8.code.core.*
 import prog8.codegen.cpu6502.assignment.AsmAssignTarget
 import prog8.codegen.cpu6502.assignment.AssignmentAsmGen
+import prog8.codegen.cpu6502.assignment.PointerAssignmentsGen
 import prog8.codegen.cpu6502.assignment.TargetStorageKind
 
-internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, private val assignmentAsmGen: AssignmentAsmGen, private val errors: IErrorReporter) {
+internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, private val pointergen: PointerAssignmentsGen, private val assignmentAsmGen: AssignmentAsmGen, private val errors: IErrorReporter) {
 
     internal fun assignIfExpression(target: AsmAssignTarget, expr: PtIfExpression) {
         require(target.datatype==expr.type ||
@@ -102,13 +103,14 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         }
     }
 
-    private fun evalIfExpressionConditonAndBranchWhenFalse(condition: PtExpression, falseLabel: String) {
+    private fun evalIfExpressionConditonAndBranchWhenFalse(stmtCondition: PtExpression, falseLabel: String) {
+        val condition = asmgen.unwrapCasts(stmtCondition)
         when (condition) {
             is PtBinaryExpression -> {
                 val rightDt = condition.right.type
                 return when {
                     rightDt.isByteOrBool -> translateIfExpressionByteConditionBranch(condition, falseLabel)
-                    rightDt.isWord -> translateIfExpressionWordConditionBranch(condition, falseLabel)
+                    rightDt.isWord || rightDt.isPointer -> translateIfExpressionWordConditionBranch(condition, falseLabel)
                     rightDt.isLong -> translateIfExpressionLongConditionBranch(condition, falseLabel)
                     rightDt.isFloat -> translateIfExpressionFloatConditionBranch(condition, falseLabel)
                     else -> throw AssemblyError("weird dt")
@@ -117,6 +119,12 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
 
             is PtPrefix if condition.operator=="not" -> {
                 throw AssemblyError("not prefix in ifexpression should have been replaced by swapped values")
+            }
+
+            is PtPointerDeref -> {
+                val (zpPtrVar, offset) = pointergen.deref(condition)
+                asmgen.loadIndirectByte(zpPtrVar, offset)
+                asmgen.out("  beq  $falseLabel")
             }
 
             else -> {
@@ -128,24 +136,92 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     }
 
     private fun translateIfExpressionByteConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
-        val signed = condition.left.type.isSigned
-        val constValue = condition.right.asConstInteger()
-        if(constValue==0) {
-            return translateIfCompareWithZeroByteBranch(condition, signed, falseLabel)
+        val useBIT = asmgen.checkIfConditionCanUseBIT(condition)
+        if(useBIT!=null) {
+            // use a BIT instruction to test for bit 7 or 6 set/clear
+            val (testForBitSet, variableName, bitmask) = useBIT
+            when (bitmask) {
+                128 -> {
+                    // test via bit + N flag
+                    asmgen.out("  bit  $variableName")
+                    if(testForBitSet) asmgen.out("  bpl  $falseLabel")
+                    else asmgen.out("  bmi  $falseLabel")
+                    return
+                }
+                64 -> {
+                    // test via bit + V flag
+                    asmgen.out("  bit  $variableName")
+                    if(testForBitSet) asmgen.out("  bvc  $falseLabel")
+                    else asmgen.out("  bvs  $falseLabel")
+                    return
+                }
+                else -> throw AssemblyError("BIT can only work on bits 7 and 6")
+            }
         }
 
-        when(condition.operator) {
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
+        val signed = left.type.isSigned
+        val constValue = right.asConstInteger()
+        if(constValue==0) {
+            return translateIfCompareWithZeroByteBranch(left, operator, signed, falseLabel)
+        }
+
+        when(operator) {
             "==" -> {
                 // if X==value
-                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
-                asmgen.cmpAwithByteValue(condition.right, false)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
+                asmgen.cmpAwithByteValue(right, false)
                 asmgen.out("  bne  $falseLabel")
             }
             "!=" -> {
                 // if X!=value
-                asmgen.assignExpressionToRegister(condition.left, RegisterOrPair.A, signed)
-                asmgen.cmpAwithByteValue(condition.right, false)
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
+                asmgen.cmpAwithByteValue(right, false)
                 asmgen.out("  beq  $falseLabel")
+            }
+            "<" -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
+                if (signed) {
+                    asmgen.cmpAwithByteValue(right, true)
+                    asmgen.out("  bvc  + | eor  #128 | + | bpl  $falseLabel")
+                } else {
+                    asmgen.cmpAwithByteValue(right, false)
+                    asmgen.out("  bcs  $falseLabel")
+                }
+            }
+            "<=" -> {
+                // X<=Y -> Y>=X
+                asmgen.assignExpressionToRegister(right, RegisterOrPair.A, signed)
+                if (signed) {
+                    asmgen.cmpAwithByteValue(left, true)
+                    asmgen.out("  bvc  + | eor  #128 | + | bmi  $falseLabel")
+                } else {
+                    asmgen.cmpAwithByteValue(left, false)
+                    asmgen.out("  bcc  $falseLabel")
+                }
+            }
+            ">" -> {
+                // X>Y -> Y<X
+                asmgen.assignExpressionToRegister(right, RegisterOrPair.A, signed)
+                if (signed) {
+                    asmgen.cmpAwithByteValue(left, true)
+                    asmgen.out("  bvc  + | eor  #128 | + | bpl  $falseLabel")
+                } else {
+                    asmgen.cmpAwithByteValue(left, false)
+                    asmgen.out("  bcs  $falseLabel")
+                }
+            }
+            ">=" -> {
+                asmgen.assignExpressionToRegister(left, RegisterOrPair.A, signed)
+                if (signed) {
+                    asmgen.cmpAwithByteValue(right, true)
+                    asmgen.out("  bvc  + | eor  #128 | + | bmi  $falseLabel")
+                } else {
+                    asmgen.cmpAwithByteValue(right, false)
+                    asmgen.out("  bcc  $falseLabel")
+                }
             }
             in LogicalOperators -> {
                 val regAtarget = AsmAssignTarget(TargetStorageKind.REGISTER, asmgen, DataType.BOOL, condition.definingISub(), condition.position, register=RegisterOrPair.A)
@@ -167,76 +243,64 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
     }
 
     private fun translateIfExpressionWordConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
-        val signed = condition.left.type.isSigned
-        val constValue = condition.right.asConstInteger()
-        if(constValue!=null) {
-            if (constValue == 0) {
-                return when (condition.operator) {
-                    "==" -> translateWordExprIsZero(condition.left, falseLabel)
-                    "!=" -> translateWordExprIsNotZero(condition.left, falseLabel)
-                    "<" -> translateWordExprLessZero(condition.left, signed, falseLabel)
-                    "<=" -> translateWordExprLessEqualsZero(condition.left, signed, falseLabel)
-                    ">" -> translateWordExprGreaterZero(condition.left, signed, falseLabel)
-                    ">=" -> translateWordExprGreaterEqualsZero(condition.left, signed, falseLabel)
-                    else -> throw AssemblyError("weird word comparison operator ${condition.operator}")
-                }
-            }
-            return when (condition.operator) {
-                "==" -> translateWordExprEqualsNumber(condition.left, constValue, falseLabel)
-                "!=" -> translateWordExprNotEqualsNumber(condition.left, constValue, falseLabel)
-                "<" -> translateWordExprLessThanNumber(condition.left, constValue, signed, falseLabel)
-                "<=" -> translateWordExprLessEqualsNumber(condition.left, constValue, signed, falseLabel)
-                ">" -> translateWordExprGreaterThanNumber(condition.left, constValue, signed, falseLabel)
-                ">=" -> translateWordExprGreaterEqualsNumber(condition.left, constValue, signed, falseLabel)
-                else -> throw AssemblyError("weird word comparison operator ${condition.operator}")
-            }
-        }
-        val variable = condition.right as? PtIdentifier
-        if(variable!=null) {
-            return when (condition.operator) {
-                "==" -> translateWordExprEqualsVariable(condition.left, variable, falseLabel)
-                "!=" -> translateWordExprNotEqualsVariable(condition.left, variable, falseLabel)
-                "<" -> translateWordExprLessThanVariable(condition.left, variable, signed, falseLabel)
-                "<=" -> translateWordExprLessEqualsVariable(condition.left, variable, signed, falseLabel)
-                ">" -> translateWordExprGreaterThanVariable(condition.left, variable, signed, falseLabel)
-                ">=" -> translateWordExprGreaterEqualsVariable(condition.left, variable, signed, falseLabel)
-                else -> throw AssemblyError("weird word comparison operator ${condition.operator}")
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
+        val signed = left.type.isSigned
+        val constValue = right.asConstInteger()
+        if (constValue == 0) {
+            return when (operator) {
+                "==" -> translateWordExprIsZero(left, falseLabel)
+                "!=" -> translateWordExprIsNotZero(left, falseLabel)
+                "<" -> translateWordExprLessZero(left, signed, falseLabel)
+                "<=" -> translateWordExprLessEqualsZero(left, signed, falseLabel)
+                ">" -> translateWordExprGreaterZero(left, signed, falseLabel)
+                ">=" -> translateWordExprGreaterEqualsZero(left, signed, falseLabel)
+                else -> throw AssemblyError("weird word comparison operator $operator")
             }
         }
 
-        // Fallback for complex expressions
-        asmgen.assignConditionValueToRegisterAndTest(condition)
-        asmgen.out("  beq  $falseLabel")
+        when (operator) {
+            "==" -> wordEqualsValue(left, right, false, signed, falseLabel)
+            "!=" -> wordEqualsValue(left, right, true, signed, falseLabel)
+            "<" -> wordLessValue(left, right, signed, falseLabel)
+            ">=" -> wordGreaterEqualsValue(left, right, signed, falseLabel)
+            ">" -> {
+                // X > Y - swap operands to use < with reversed sense
+                wordLessValue(right, left, signed, falseLabel)
+            }
+            "<=" -> {
+                // X <= Y - use >= with swapped operands
+                wordGreaterEqualsValue(right, left, signed, falseLabel)
+            }
+            else -> throw AssemblyError("expected comparison operator for word, got '${operator}'")
+        }
     }
 
     private fun translateIfExpressionLongConditionBranch(condition: PtBinaryExpression, falseLabel: String) {
-        // TODO can we reuse this whole thing from IfElse ?
-        val constValue = condition.right.asConstInteger()
-        if(constValue!=null) {
-            if (constValue == 0) {
-                when (condition.operator) {
-                    "==" -> return translateLongExprIsZero(condition.left, falseLabel)
-                    "!=" -> return translateLongExprIsNotZero(condition.left, falseLabel)
-                }
-            }
-            if (constValue != 0) {
-                when (condition.operator) {
-                    "==" -> return translateLongExprEqualsNumber(condition.left, constValue, falseLabel)
-                    "!=" -> return translateLongExprNotEqualsNumber(condition.left, constValue, falseLabel)
-                }
-            }
-        }
-        val variable = condition.right as? PtIdentifier
-        if(variable!=null) {
-            when (condition.operator) {
-                "==" -> return translateLongExprEqualsVariable(condition.left, variable, falseLabel)
-                "!=" -> return translateLongExprNotEqualsVariable(condition.left, variable, falseLabel)
+        val left = condition.left
+        val right = condition.right
+        val operator = condition.operator
+        val constValue = right.asConstInteger()
+        if (constValue == 0) {
+            // optimized comparisons with zero
+            return when (operator) {
+                "==" -> translateLongExprIsZero(left, falseLabel)
+                "!=" -> translateLongExprIsNotZero(left, falseLabel)
+                "<" -> translateLongExprLessZero(left, false, falseLabel)
+                "<=" -> translateLongExprLessZero(left, true, falseLabel)
+                ">" -> translateLongExprGreaterZero(left, false, falseLabel)
+                ">=" -> translateLongExprGreaterZero(left, true, falseLabel)
+                else -> throw AssemblyError("weird long comparison operator $operator")
             }
         }
 
-        // TODO don't store condition as expression result but just use the flags, like a normal PtIfElse translation does
-        asmgen.assignConditionValueToRegisterAndTest(condition)
-        asmgen.out("  beq  $falseLabel")
+        return when (operator) {
+            "==" -> longEqualsValue(left, right, false, falseLabel)
+            "!=" -> longEqualsValue(left, right, true, falseLabel)
+            "<", "<=", ">", ">=" -> compareLongValues(left, operator, right, falseLabel)
+            else -> throw AssemblyError("expected comparison operator for long, got '${operator}'")
+        }
     }
 
     private fun translateIfExpressionFloatConditionBranch(condition: PtBinaryExpression, elseLabel: String) {
@@ -284,210 +348,435 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         }
     }
 
-    private fun translateWordExprNotEqualsVariable(expr: PtExpression, variable: PtIdentifier, falseLabel: String) {
-        // if w!=variable
-        // TODO reuse code from ifElse?
-        val varRight = asmgen.asmVariableName(variable)
-        if(expr is PtIdentifier) {
-            val varLeft = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  $varLeft
-                cmp  $varRight
-                bne  +
-                lda  $varLeft+1
-                cmp  $varRight+1
-                beq  $falseLabel
+    private fun wordEqualsValue(left: PtExpression, right: PtExpression, notEquals: Boolean, signed: Boolean, falseLabel: String) {
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+        getWordOperands(right) { valueLsb, valueMsb ->
+            if (notEquals) {
+                asmgen.out("  cmp  $valueLsb |  bne  + |  cpy  $valueMsb |  beq  $falseLabel")
+                asmgen.out("+")
+            } else {
+                asmgen.out("  cmp  $valueLsb | bne  $falseLabel | cpy  $valueMsb | bne  $falseLabel")
+            }
+        }
+    }
+
+    private fun wordLessValue(left: PtExpression, right: PtExpression, signed: Boolean, falseLabel: String) {
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+        getWordOperands(right) { valueLsb, valueMsb ->
+            if (signed) {
+                asmgen.out("""
+                    cmp  $valueLsb
+                    tya
+                    sbc  $valueMsb
+                    bvc  +
+                    eor  #128
++                   bpl  $falseLabel""")
+            } else {
+                asmgen.out("""
+                    cmp  $valueLsb
+                    tya
+                    sbc  $valueMsb
+                    bcs  $falseLabel""")
+            }
+        }
+    }
+
+    private fun wordGreaterEqualsValue(left: PtExpression, right: PtExpression, signed: Boolean, falseLabel: String) {
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.AY, signed)
+        getWordOperands(right) { valueLsb, valueMsb ->
+            if (signed) {
+                asmgen.out("""
+                    cmp  $valueLsb
+                    tya
+                    sbc  $valueMsb
+                    bvc  +
+                    eor  #128
++                   bmi  $falseLabel""")
+            } else {
+                asmgen.out("""
+                    cmp  $valueLsb
+                    tya
+                    sbc  $valueMsb
+                    bcc  $falseLabel""")
+            }
+        }
+    }
+
+    private fun longEqualsValue(left: PtExpression, right: PtExpression, notEquals: Boolean, falseLabel: String) {
+        // Optimized long equals/not-equals comparison
+        val varL: String? = asmgen.tryGetStaticAddress(left, 4)
+        val varR: String? = asmgen.tryGetStaticAddress(right, 4)
+        val constR = right.asConstInteger()
+
+        if (varL != null) {
+            if (notEquals) {
+                // Long != comparison
+                if (constR != null) {
+                    val hex = constR.toLongHex()
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  #$${hex.substring(6, 8)}
+                        bne  +
+                        lda  $varL+1
+                        cmp  #$${hex.substring(4, 6)}
+                        bne  +
+                        lda  $varL+2
+                        cmp  #$${hex.substring(2, 4)}
+                        bne  +
+                        lda  $varL+3
+                        cmp  #$${hex.take(2)}
+                        beq  $falseLabel
 +""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("""
-                cmp  $varRight
-                bne  +
-                cpy  $varRight+1
-                beq  $falseLabel
+                } else if (varR != null) {
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  $varR
+                        bne  +
+                        lda  $varL+1
+                        cmp  ${varR}+1
+                        bne  +
+                        lda  $varL+2
+                        cmp  ${varR}+2
+                        bne  +
+                        lda  $varL+3
+                        cmp  ${varR}+3
+                        beq  $falseLabel
 +""")
+                } else {
+                    // fallback for complex right expression
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
+                    right.asConstInteger()?.let { c ->
+                        val hex = c.toLongHex()
+                        asmgen.out("""
+                            lda  cx16.r14
+                            cmp  #$${hex.substring(6, 8)}
+                            bne  $falseLabel
+                            lda  cx16.r14+1
+                            cmp  #$${hex.substring(4, 6)}
+                            bne  $falseLabel
+                            lda  cx16.r14+2
+                            cmp  #$${hex.substring(2, 4)}
+                            bne  $falseLabel
+                            lda  cx16.r14+3
+                            cmp  #$${hex.take(2)}
+                            bne  $falseLabel""")
+                    } ?: run {
+                        asmgen.assignConditionValueToRegisterAndTest(
+                            PtBinaryExpression("!=", DataType.BOOL, left.position).apply {
+                                add(left); add(right)
+                            }
+                        )
+                        asmgen.out("  beq  $falseLabel")
+                    }
+                }
+            } else {
+                // Long == comparison - use optimized pattern with variable var, old pattern for constant
+                if (constR != null) {
+                    // Old pattern: branch to false after each compare when they differ
+                    val hex = constR.toLongHex()
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  #$${hex.substring(6, 8)}
+                        bne  $falseLabel
+                        lda  $varL+1
+                        cmp  #$${hex.substring(4, 6)}
+                        bne  $falseLabel
+                        lda  $varL+2
+                        cmp  #$${hex.substring(2, 4)}
+                        bne  $falseLabel
+                        lda  $varL+3
+                        cmp  #$${hex.take(2)}
+                        bne  $falseLabel""")
+                } else if (varR != null) {
+                    // Optimized pattern for variable: branch to skip when differ, fall through when equal
+                    asmgen.out("""
+                        lda  $varL
+                        cmp  $varR
+                        bne  +
+                        lda  $varL+1
+                        cmp  ${varR}+1
+                        bne  +
+                        lda  $varL+2
+                        cmp  ${varR}+2
+                        bne  +
+                        lda  $varL+3
+                        cmp  ${varR}+3
++                       bne  $falseLabel""")
+                } else {
+                    // fallback for complex right expression
+                    asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
+                    right.asConstInteger()?.let { c ->
+                        val hex = c.toLongHex()
+                        asmgen.out("""
+                            lda  cx16.r14
+                            cmp  #$${hex.substring(6, 8)}
+                            bne  $falseLabel
+                            lda  cx16.r14+1
+                            cmp  #$${hex.substring(4, 6)}
+                            bne  $falseLabel
+                            lda  cx16.r14+2
+                            cmp  #$${hex.substring(2, 4)}
+                            bne  $falseLabel
+                            lda  cx16.r14+3
+                            cmp  #$${hex.take(2)}
+                            bne  $falseLabel""")
+                    } ?: run {
+                        asmgen.assignConditionValueToRegisterAndTest(
+                            PtBinaryExpression("==", DataType.BOOL, left.position).apply {
+                                add(left); add(right)
+                            }
+                        )
+                        asmgen.out("  beq  $falseLabel")
+                    }
+                }
+            }
+            return
         }
-    }
 
-    private fun translateWordExprEqualsVariable(expr: PtExpression, variable: PtIdentifier, falseLabel: String) {
-        // if w==variable
-        // TODO reuse code from ifElse?
-        val varRight = asmgen.asmVariableName(variable)
-        if(expr is PtIdentifier) {
-            val varLeft = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  $varLeft
-                cmp  $varRight
-                bne  $falseLabel
-                lda  $varLeft+1
-                cmp  $varRight+1
-                bne  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("""
-                cmp  $varRight
-                bne  $falseLabel
-                cpy  $varRight+1
-                bne  $falseLabel""")
-        }
-    }
+        // Fallback for non-static-address left: use generic approach
+        asmgen.assignExpressionToRegister(left, RegisterOrPair.R14R15, true)
+        val opL = "cx16.r14"
 
-    private fun translateWordExprNotEqualsNumber(expr: PtExpression, number: Int, falseLabel: String) {
-        // if w!=number
-        // TODO reuse code from ifElse?
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  $varname
-                cmp  #<$number
-                bne  +
-                lda  $varname+1
-                cmp  #>$number
-                beq  $falseLabel
+        if (notEquals) {
+            if (constR != null) {
+                val hex = constR.toLongHex()
+                asmgen.out("""
+                    lda  $opL
+                    cmp  #$${hex.substring(6, 8)}
+                    bne  +
+                    lda  $opL+1
+                    cmp  #$${hex.substring(4, 6)}
+                    bne  +
+                    lda  $opL+2
+                    cmp  #$${hex.substring(2, 4)}
+                    bne  +
+                    lda  $opL+3
+                    cmp  #$${hex.take(2)}
+                    beq  $falseLabel
 +""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("""
-                cmp  #<$number
-                bne  +
-                cpy  #>$number
-                beq  $falseLabel
+            } else if (varR != null) {
+                asmgen.out("""
+                    lda  $opL
+                    cmp  $varR
+                    bne  +
+                    lda  $opL+1
+                    cmp  ${varR}+1
+                    bne  +
+                    lda  $opL+2
+                    cmp  ${varR}+2
+                    bne  +
+                    lda  $opL+3
+                    cmp  ${varR}+3
+                    beq  $falseLabel
 +""")
-        }
-    }
-
-    private fun translateWordExprEqualsNumber(expr: PtExpression, number: Int, falseLabel: String) {
-        // if w==number
-        // TODO reuse code from ifElse?
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  $varname
-                cmp  #<$number
-                bne  $falseLabel
-                lda  $varname+1
-                cmp  #>$number
-                bne  $falseLabel""")
+            } else {
+                val cond = PtBinaryExpression("!=", DataType.BOOL, left.position)
+                cond.add(left)
+                cond.add(right)
+                asmgen.assignConditionValueToRegisterAndTest(cond)
+                asmgen.out("  beq  $falseLabel")
+            }
         } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out(                """
-                cmp  #<$number
-                bne  $falseLabel
-                cpy  #>$number
-                bne  $falseLabel""")
+            if (constR != null) {
+                val hex = constR.toLongHex()
+                asmgen.out("""
+                    lda  $opL
+                    cmp  #$${hex.substring(6, 8)}
+                    bne  +
+                    lda  $opL+1
+                    cmp  #$${hex.substring(4, 6)}
+                    bne  +
+                    lda  $opL+2
+                    cmp  #$${hex.substring(2, 4)}
+                    bne  +
+                    lda  $opL+3
+                    cmp  #$${hex.take(2)}
++                   bne  $falseLabel""")
+            } else if (varR != null) {
+                asmgen.out("""
+                    lda  $opL
+                    cmp  $varR
+                    bne  +
+                    lda  $opL+1
+                    cmp  ${varR}+1
+                    bne  +
+                    lda  $opL+2
+                    cmp  ${varR}+2
+                    bne  +
+                    lda  $opL+3
+                    cmp  ${varR}+3
++                   bne  $falseLabel""")
+            } else {
+                val cond = PtBinaryExpression("==", DataType.BOOL, left.position)
+                cond.add(left)
+                cond.add(right)
+                asmgen.assignConditionValueToRegisterAndTest(cond)
+                asmgen.out("  beq  $falseLabel")
+            }
         }
     }
 
-    private fun translateLongExprEqualsNumber(expr: PtExpression, number: Int, falseLabel: String) {
-        // if L==number
-        // TODO reuse code from ifElse?
-        val hex = number.toLongHex()
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  $varname
-                cmp  #$${hex.substring(6, 8)}
-                bne  $falseLabel
-                lda  $varname+1
-                cmp  #$${hex.substring(4, 6)}
-                bne  $falseLabel
-                lda  $varname+2
-                cmp  #$${hex.substring(2, 4)}
-                bne  $falseLabel
-                lda  $varname+3
-                cmp  #$${hex.take(2)}
-                bne  $falseLabel""")
+    private fun compareLongValues(left: PtExpression, operator: String, right: PtExpression, falseLabel: String) {
+        val (l, r, op) = if (operator == ">" || operator == "<=") {
+            Triple(right, left, if (operator == ">") "<" else ">=")
         } else {
-            // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
-            asmgen.out("""
-                lda  cx16.r14
-                cmp  #$${hex.substring(6, 8)}
-                bne  $falseLabel
-                lda  cx16.r14+1
-                cmp  #$${hex.substring(4, 6)}
-                bne  $falseLabel
-                lda  cx16.r14+2
-                cmp  #$${hex.substring(2, 4)}
-                bne  $falseLabel
-                lda  cx16.r14+3
-                cmp  #$${hex.take(2)}
-                bne  $falseLabel""")
+            Triple(left, right, operator)
         }
-    }
+        // op is either "<" or ">="
 
-    private fun translateLongExprEqualsVariable(expr: PtExpression, variable: PtIdentifier, falseLabel: String) {
-        // if L==variable
-        // TODO reuse code from ifElse?
-        val varname2 = asmgen.asmVariableName(variable)
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
+        val varL: String? = asmgen.tryGetStaticAddress(l, 4)
+
+        val opL = if (varL != null) varL else {
+            asmgen.assignExpressionToRegister(l, RegisterOrPair.R12R13, true)
+            "cx16.r12"
+        }
+        val constR = r.asConstInteger()
+        val varR = asmgen.tryGetStaticAddress(r, 4)
+        if (constR != null) {
+            val hex = constR.toLongHex()
             asmgen.out("""
-                lda  $varname
-                cmp  $varname2
-                bne  $falseLabel
-                lda  $varname+1
-                cmp  $varname2+1
-                bne  $falseLabel
-                lda  $varname+2
-                cmp  $varname2+2
-                bne  $falseLabel
-                lda  $varname+3
-                cmp  $varname2+3
-                bne  $falseLabel""")
+                sec
+                lda  $opL
+                sbc  #$${hex.substring(6, 8)}
+                lda  $opL+1
+                sbc  #$${hex.substring(4, 6)}
+                lda  $opL+2
+                sbc  #$${hex.substring(2, 4)}
+                lda  $opL+3
+                sbc  #$${hex.take(2)}""")
+        } else if (varR != null) {
+            asmgen.out("""
+                sec
+                lda  $opL
+                sbc  $varR
+                lda  $opL+1
+                sbc  $varR+1
+                lda  $opL+2
+                sbc  $varR+2
+                lda  $opL+3
+                sbc  $varR+3""")
         } else {
-            // TODO cannot easily preserve R14:R15 on stack because we need the status flags of the comparison in between...
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
+            asmgen.assignExpressionToRegister(r, RegisterOrPair.R14R15, true)
             asmgen.out("""
-                lda  cx16.r14
-                cmp  $varname2
-                bne  $falseLabel
-                lda  cx16.r14+1
-                cmp  $varname2+1
-                bne  $falseLabel
-                lda  cx16.r14+2
-                cmp  $varname2+2
-                bne  $falseLabel
-                lda  cx16.r14+3
-                cmp  $varname2+3
-                bne  $falseLabel""")
+                sec
+                lda  $opL
+                sbc  cx16.r14
+                lda  $opL+1
+                sbc  cx16.r14+1
+                lda  $opL+2
+                sbc  cx16.r14+2
+                lda  $opL+3
+                sbc  cx16.r14+3""")
         }
-    }
 
-    private fun translateLongExprNotEqualsNumber(expr: PtExpression, number: Int, falseLabel: String) {
-        TODO("if expression LONG != number ${expr.position}")
-    }
+        asmgen.out("  bvc  + | eor  #128 | +")
 
-    private fun translateLongExprNotEqualsVariable(expr: PtExpression, variable: PtIdentifier, falseLabel: String) {
-        // if L!=variable
-        TODO("if expression LONG != variable ${expr.position}")
+        if (op == "<") {
+            asmgen.out("  bpl  $falseLabel")
+        } else {
+            asmgen.out("  bmi  $falseLabel")
+        }
     }
 
     private fun translateWordExprIsZero(expr: PtExpression, falseLabel: String) {
         // if w==0
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  $varname
-                ora  $varname+1
-                bne  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  bne  $falseLabel")
+        val e = asmgen.unwrapCasts(expr)
+        if (e is PtArrayIndexer && e.splitWords) {
+            val constIndex = e.index.asConstInteger()
+            if (constIndex != null && e.variable != null) {
+                val varName = asmgen.asmVariableName(e.variable!!)
+                asmgen.out("  lda  ${varName}_lsb+$constIndex |  ora  ${varName}_msb+$constIndex |  bne  $falseLabel")
+                return
+            }
+        }
+
+        val varAddr = asmgen.tryGetStaticAddress(expr, 2)
+        if (varAddr != null) {
+            asmgen.out("  lda  $varAddr |  ora  $varAddr+1 |  bne  $falseLabel")
+            return
+        }
+
+        when (e) {
+            is PtArrayIndexer -> {
+                if (e.variable == null)
+                    throw AssemblyError("support for ptr indexing ${e.position}")
+                val varname = asmgen.asmVariableName(e.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
+                if (e.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_lsb,y
+                        ora  ${varname}_msb,y
+                        bne  $falseLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname,y
+                        ora  $varname+1,y
+                        bne  $falseLabel""")
+                }
+            }
+            is PtAddressOf -> {
+                val identifier = e.identifier!!
+                var varname = asmgen.asmVariableName(identifier)
+                if (identifier.type.isSplitWordArray) {
+                    varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
+                }
+                asmgen.out("  lda  #<$varname | ora  #>$varname | bne  $falseLabel")
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  bne  $falseLabel")
+            }
         }
     }
 
     private fun translateWordExprIsNotZero(expr: PtExpression, falseLabel: String) {
         // if w!=0
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  $varname
-                ora  $varname+1
-                beq  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  beq  $falseLabel")
+        val e = asmgen.unwrapCasts(expr)
+        if (e is PtArrayIndexer && e.splitWords) {
+            val constIndex = e.index.asConstInteger()
+            if (constIndex != null && e.variable != null) {
+                val varName = asmgen.asmVariableName(e.variable!!)
+                asmgen.out("  lda  ${varName}_lsb+$constIndex |  ora  ${varName}_msb+$constIndex |  beq  $falseLabel")
+                return
+            }
+        }
+
+        val varAddr = asmgen.tryGetStaticAddress(expr, 2)
+        if (varAddr != null) {
+            asmgen.out("  lda  $varAddr |  ora  $varAddr+1 |  beq  $falseLabel")
+            return
+        }
+
+        when (e) {
+            is PtArrayIndexer -> {
+                if (e.variable == null)
+                    throw AssemblyError("support for ptr indexing ${e.position}")
+                val varname = asmgen.asmVariableName(e.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
+                if (e.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_lsb,y
+                        ora  ${varname}_msb,y
+                        beq  $falseLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname,y
+                        ora  $varname+1,y
+                        beq  $falseLabel""")
+                }
+            }
+            is PtAddressOf -> {
+                val identifier = e.identifier!!
+                var varname = asmgen.asmVariableName(identifier)
+                if (identifier.type.isSplitWordArray) {
+                    varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
+                }
+                asmgen.out("  lda  #<$varname | ora  #>$varname | beq  $falseLabel")
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("  sty  P8ZP_SCRATCH_REG |  ora  P8ZP_SCRATCH_REG |  beq  $falseLabel")
+            }
         }
     }
 
@@ -497,15 +786,8 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             asmgen.jmp(falseLabel)
             return
         }
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  ${varname}+1
-                bpl  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  tya |  bpl  $falseLabel")
-        }
+        loadAndCmp0MSB(expr, false)
+        asmgen.out("  bpl  $falseLabel")
     }
 
     private fun translateWordExprLessEqualsZero(expr: PtExpression, signed: Boolean, falseLabel: String) {
@@ -514,23 +796,48 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             translateWordExprIsZero(expr, falseLabel)
             return
         }
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
+        val e = asmgen.unwrapCasts(expr)
+        when (e) {
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(e)
+                asmgen.out("""
                 lda  ${varname}+1
                 bmi  +
                 ora  $varname
                 bne  $falseLabel
 +""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("""
+            }
+            is PtArrayIndexer -> {
+                if (e.variable == null)
+                    throw AssemblyError("support for ptr indexing ${e.position}")
+                val varname = asmgen.asmVariableName(e.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
+                if (e.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_msb,y
+                        bmi  +
+                        ora  ${varname}_lsb,y
+                        bne  $falseLabel
++""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname+1,y
+                        bmi  +
+                        ora  $varname,y
+                        bne  $falseLabel
++""")
+                }
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("""
                 sta  P8ZP_SCRATCH_REG
                 tya
                 bmi  +
                 ora  P8ZP_SCRATCH_REG
                 bne  $falseLabel
 +""")
+            }
         }
     }
 
@@ -540,21 +847,44 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             translateWordExprIsNotZero(expr, falseLabel)
             return
         }
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
+        val e = asmgen.unwrapCasts(expr)
+        when (e) {
+            is PtIdentifier -> {
+                val varname = asmgen.asmVariableName(e)
+                asmgen.out("""
                 lda  ${varname}+1
                 bmi  $falseLabel
                 ora  $varname
                 beq  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("""
+            }
+            is PtArrayIndexer -> {
+                if (e.variable == null)
+                    throw AssemblyError("support for ptr indexing ${e.position}")
+                val varname = asmgen.asmVariableName(e.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
+                if (e.splitWords) {
+                    asmgen.out("""
+                        lda  ${varname}_msb,y
+                        bmi  $falseLabel
+                        ora  ${varname}_lsb,y
+                        beq  $falseLabel""")
+                } else {
+                    asmgen.out("""
+                        lda  $varname+1,y
+                        bmi  $falseLabel
+                        ora  $varname,y
+                        beq  $falseLabel""")
+                }
+            }
+            else -> {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
+                asmgen.out("""
                 sta  P8ZP_SCRATCH_REG
                 tya
                 bmi  $falseLabel
                 ora  P8ZP_SCRATCH_REG
                 beq  $falseLabel""")
+            }
         }
     }
 
@@ -563,371 +893,36 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         if (!signed) {
             return
         }
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            asmgen.out("""
-                lda  ${varname}+1
-                bmi  $falseLabel""")
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            asmgen.out("  tya |  bmi  $falseLabel")
-        }
+        loadAndCmp0MSB(expr, false)
+        asmgen.out("  bmi  $falseLabel")
     }
 
-    private fun translateWordExprLessThanNumber(expr: PtExpression, number: Int, signed: Boolean, falseLabel: String) {
-        // if w<number
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  $varname
-                    cmp  #<$number
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  $varname
-                    cmp  #<$number
-                    bcc  $falseLabel
-                    lda  ${varname}+1
-                    sbc  #>$number
-                    bcc  $falseLabel""")
-            }
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            if(signed) {
-                asmgen.out("""
-                    cmp  #<$number
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    cmp  #<$number
-                    bcc  $falseLabel
-                    cpy  #>$number
-                    bcc  $falseLabel""")
-            }
-        }
-    }
 
-    private fun translateWordExprLessEqualsNumber(expr: PtExpression, number: Int, signed: Boolean, falseLabel: String) {
-        // if w<=number
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  #<$number
-                    cmp  $varname
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  #<$number
-                    cmp  $varname
-                    bcs  $falseLabel
-                    lda  #>$number
-                    sbc  ${varname}+1
-                    bcs  $falseLabel""")
-            }
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            if(signed) {
-                asmgen.out("""
-                    cmp  #<$number
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    cmp  #<$number
-                    bcs  $falseLabel
-                    cpy  #>$number
-                    bcs  $falseLabel""")
-            }
-        }
-    }
 
-    private fun translateWordExprGreaterThanNumber(expr: PtExpression, number: Int, signed: Boolean, falseLabel: String) {
-        // if w>number
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  #<$number
-                    cmp  $varname
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  #<$number
-                    cmp  $varname
-                    bcc  $falseLabel
-                    lda  #>$number
-                    sbc  ${varname}+1
-                    bcc  $falseLabel""")
-            }
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            if(signed) {
-                asmgen.out("""
-                    cmp  #<$number
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    cmp  #<$number
-                    bcc  $falseLabel
-                    cpy  #>$number
-                    bcc  $falseLabel""")
-            }
-        }
-    }
 
-    private fun translateWordExprGreaterEqualsNumber(expr: PtExpression, number: Int, signed: Boolean, falseLabel: String) {
-        // if w>=number
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  $varname
-                    cmp  #<$number
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  $varname
-                    cmp  #<$number
-                    bcc  $falseLabel
-                    lda  ${varname}+1
-                    sbc  #>$number
-                    bcc  $falseLabel""")
-            }
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            if(signed) {
-                asmgen.out("""
-                    cmp  #<$number
-                    tya
-                    sbc  #>$number
-                    bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    cmp  #<$number
-                    bcc  $falseLabel
-                    cpy  #>$number
-                    bcc  $falseLabel""")
-            }
-        }
-    }
 
-    private fun translateWordExprLessThanVariable(expr: PtExpression, variable: PtIdentifier, signed: Boolean, falseLabel: String) {
-        // if w<variable
-        val varRight = asmgen.asmVariableName(variable)
-        if(expr is PtIdentifier) {
-            val varLeft = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  $varLeft
-                    cmp  $varRight
-                    bne  +
-                    lda  ${varLeft}+1
-                    cmp  ${varRight}+1
- +                  bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  $varLeft
-                    cmp  $varRight
-                    bcc  $falseLabel
-                    lda  ${varLeft}+1
-                    sbc  ${varRight}+1
-                    bcc  $falseLabel""")
-            }
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            if(signed) {
-                asmgen.out("""
-                    cmp  $varRight
-                    bne  +
-                    cpy  ${varRight}+1
- +                  bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    cmp  $varRight
-                    bcc  $falseLabel
-                    cpy  ${varRight}+1
-                    bcc  $falseLabel""")
-            }
-        }
-    }
 
-    private fun translateWordExprLessEqualsVariable(expr: PtExpression, variable: PtIdentifier, signed: Boolean, falseLabel: String) {
-        // if w<=variable
-        val varRight = asmgen.asmVariableName(variable)
-        if(expr is PtIdentifier) {
-            val varLeft = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  $varLeft
-                    cmp  $varRight
-                    lda  ${varLeft}+1
-                    sbc  ${varRight}+1
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  $varLeft
-                    cmp  $varRight
-                    bcc  $falseLabel
-                    lda  ${varLeft}+1
-                    sbc  ${varRight}+1
-                    bcc  $falseLabel""")
-            }
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            if(signed) {
-                asmgen.out("""
-                    cmp  $varRight
-                    tya
-                    sbc  ${varRight}+1
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    cmp  $varRight
-                    bcc  $falseLabel
-                    cpy  ${varRight}+1
-                    bcc  $falseLabel""")
-            }
-        }
-    }
 
-    private fun translateWordExprGreaterThanVariable(expr: PtExpression, variable: PtIdentifier, signed: Boolean, falseLabel: String) {
-        // if w>variable
-        val varRight = asmgen.asmVariableName(variable)
-        if(expr is PtIdentifier) {
-            val varLeft = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  $varRight
-                    cmp  $varLeft
-                    lda  ${varRight}+1
-                    sbc  ${varLeft}+1
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  $varRight
-                    cmp  $varLeft
-                    bcc  $falseLabel
-                    lda  ${varRight}+1
-                    sbc  ${varLeft}+1
-                    bcc  $falseLabel""")
-            }
-        } else {
-            // expr was assigned to AY registers above
-            if(signed) {
-                asmgen.out("""
-                    lda  $varRight
-                    cmp  $varRight
-                    tya
-                    sbc  ${varRight}+1
-                    bvc  +
-                    eor  #128
- +                  bmi  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  $varRight
-                    cmp  $varRight
-                    bcc  $falseLabel
-                    lda  ${varRight}+1
-                    sbc  ${varRight}+1
-                    bcc  $falseLabel""")
-            }
-        }
-    }
 
-    private fun translateWordExprGreaterEqualsVariable(expr: PtExpression, variable: PtIdentifier, signed: Boolean, falseLabel: String) {
-        // if w>=variable
-        val varRight = asmgen.asmVariableName(variable)
-        if(expr is PtIdentifier) {
-            val varLeft = asmgen.asmVariableName(expr)
-            if(signed) {
-                asmgen.out("""
-                    lda  $varLeft
-                    cmp  $varRight
-                    lda  ${varLeft}+1
-                    sbc  ${varRight}+1
-                    bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    lda  $varLeft
-                    cmp  $varRight
-                    bcc  $falseLabel
-                    lda  ${varLeft}+1
-                    sbc  ${varRight}+1
-                    bcc  $falseLabel""")
-            }
-        } else {
-            asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY)
-            if(signed) {
-                asmgen.out("""
-                    cmp  $varRight
-                    tya
-                    sbc  ${varRight}+1
-                    bvc  +
-                    eor  #128
- +                  bpl  $falseLabel""")
-            } else {
-                asmgen.out("""
-                    cmp  $varRight
-                    bcc  $falseLabel
-                    cpy  ${varRight}+1
-                    bcc  $falseLabel""")
-            }
-        }
-    }
 
     private fun translateLongExprIsZero(expr: PtExpression, falseLabel: String) {
         // if L==0
-        // TODO reuse code from ifElse?
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
+        val varname = asmgen.tryGetStaticAddress(expr, 4)
+        if (varname != null) {
             asmgen.out("""
                 lda  $varname
                 ora  $varname+1
                 ora  $varname+2
                 ora  $varname+3
+                bne  $falseLabel""")
+        } else if (expr is PtArrayIndexer) {
+            val baseVarname = asmgen.asmVariableName(expr.variable!!)
+            asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+            asmgen.out("""
+                lda  $baseVarname,y
+                ora  $baseVarname+1,y
+                ora  $baseVarname+2,y
+                ora  $baseVarname+3,y
                 bne  $falseLabel""")
         } else {
             asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
@@ -945,14 +940,22 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
 
     private fun translateLongExprIsNotZero(expr: PtExpression, falseLabel: String) {
         // if L!=0
-        // TODO reuse code from ifElse?
-        if(expr is PtIdentifier) {
-            val varname = asmgen.asmVariableName(expr)
+        val varname = asmgen.tryGetStaticAddress(expr, 4)
+        if (varname != null) {
             asmgen.out("""
                 lda  $varname
                 ora  $varname+1
                 ora  $varname+2
                 ora  $varname+3
+                beq  $falseLabel""")
+        } else if (expr is PtArrayIndexer) {
+            val baseVarname = asmgen.asmVariableName(expr.variable!!)
+            asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+            asmgen.out("""
+                lda  $baseVarname,y
+                ora  $baseVarname+1,y
+                ora  $baseVarname+2,y
+                ora  $baseVarname+3,y
                 beq  $falseLabel""")
         } else {
             asmgen.pushLongRegisters(RegisterOrPair.R14R15, 1)
@@ -968,34 +971,88 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         }
     }
 
-    private fun translateIfCompareWithZeroByteBranch(condition: PtBinaryExpression, signed: Boolean, falseLabel: String) {
-        // optimized code for byte comparisons with 0
+    private fun translateLongExprLessZero(expr: PtExpression, lessEquals: Boolean, falseLabel: String) {
+        if (lessEquals) {
+            val varname = asmgen.tryGetStaticAddress(expr, 4)
+            if (varname != null) {
+                asmgen.out("""
+                    lda  $varname+3
+                    bmi  +
+                    ora  $varname+2
+                    ora  $varname+1
+                    ora  $varname
+                    bne  $falseLabel
++""")
+            } else if (expr is PtArrayIndexer) {
+                val baseVarname = asmgen.asmVariableName(expr.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+                asmgen.out("""
+                    lda  $baseVarname+3,y
+                    bmi  +
+                    ora  $baseVarname+2,y
+                    ora  $baseVarname+1,y
+                    ora  $baseVarname,y
+                    bne  $falseLabel
++""")
+            } else {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
+                asmgen.out("""
+                    lda  cx16.r14+3
+                    bmi  +
+                    ora  cx16.r14+2
+                    ora  cx16.r14+1
+                    ora  cx16.r14
+                    bne  $falseLabel
++""")
+            }
+        } else {
+            loadAndCmp0MSB(expr, true)
+            asmgen.out("  bpl  $falseLabel")
+        }
+    }
 
-        val useBIT = asmgen.checkIfConditionCanUseBIT(condition)
-        if(useBIT!=null) {
-            // use a BIT instruction to test for bit 7 or 6 set/clear
-            val (testForBitSet, variable, bitmask) = useBIT
-            when (bitmask) {
-                128 -> {
-                    // test via bit + N flag
-                    asmgen.out("  bit  ${variable.name}")
-                    if(testForBitSet) asmgen.out("  bpl  $falseLabel")
-                    else asmgen.out("  bmi  $falseLabel")
-                    return
-                }
-                64 -> {
-                    // test via bit + V flag
-                    asmgen.out("  bit  ${variable.name}")
-                    if(testForBitSet) asmgen.out("  bvc  $falseLabel")
-                    else asmgen.out("  bvs  $falseLabel")
-                    return
-                }
-                else -> throw AssemblyError("BIT can only work on bits 7 and 6")
+    private fun translateLongExprGreaterZero(expr: PtExpression, greaterEquals: Boolean, falseLabel: String) {
+        if (greaterEquals) {
+            loadAndCmp0MSB(expr, true)
+            asmgen.out("  bmi  $falseLabel")
+        } else {
+            val varname = asmgen.tryGetStaticAddress(expr, 4)
+            if (varname != null) {
+                asmgen.out("""
+                    lda  $varname+3
+                    bmi  $falseLabel
+                    ora  $varname+2
+                    ora  $varname+1
+                    ora  $varname
+                    beq  $falseLabel""")
+            } else if (expr is PtArrayIndexer) {
+                val baseVarname = asmgen.asmVariableName(expr.variable!!)
+                asmgen.loadScaledArrayIndexIntoRegister(expr, CpuRegister.Y)
+                asmgen.out("""
+                    lda  $baseVarname+3,y
+                    bmi  $falseLabel
+                    ora  $baseVarname+2,y
+                    ora  $baseVarname+1,y
+                    ora  $baseVarname,y
+                    beq  $falseLabel""")
+            } else {
+                asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, expr.type.isSigned)
+                asmgen.out("""
+                    lda  cx16.r14+3
+                    bmi  $falseLabel
+                    ora  cx16.r14+2
+                    ora  cx16.r14+1
+                    ora  cx16.r14
+                    beq  $falseLabel""")
             }
         }
+    }
 
-        asmgen.assignConditionValueToRegisterAndTest(condition.left)
-        when (condition.operator) {
+    private fun translateIfCompareWithZeroByteBranch(expr: PtExpression, operator: String, signed: Boolean, falseLabel: String) {
+        // optimized code for byte comparisons with 0
+
+        asmgen.assignConditionValueToRegisterAndTest(expr)
+        when (operator) {
             "==" -> asmgen.out("  bne  $falseLabel")
             "!=" -> asmgen.out("  beq  $falseLabel")
             ">" -> {
@@ -1012,7 +1069,6 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
             }
             "<=" -> {
                 if(signed) {
-                    // inverted '>'
                     asmgen.out("""
                         beq  +
                         bpl  $falseLabel
@@ -1023,4 +1079,89 @@ internal class IfExpressionAsmGen(private val asmgen: AsmGen6502Internal, privat
         }
     }
 
+    private fun loadAndCmp0MSB(expr: PtExpression, long: Boolean) {
+        val varname = asmgen.tryGetStaticAddress(expr, if (long) 4 else 2)
+        if (varname != null) {
+            val offset = if (long) 3 else 1
+            asmgen.out("  lda  $varname+$offset")
+            return
+        }
+        val e = asmgen.unwrapCasts(expr)
+        when (e) {
+            is PtArrayIndexer -> {
+                if (e.variable == null)
+                    throw AssemblyError("support for ptr indexing ${e.position}")
+                val baseVarname = asmgen.asmVariableName(e.variable!!)
+                val constIndex = e.index.asConstInteger()
+                if (constIndex != null) {
+                    val idx = constIndex
+                    if (e.splitWords) {
+                        require(idx < 256)
+                        val suffix = if (long) "_3" else "_msb"
+                        asmgen.out("  lda  $baseVarname$suffix+$idx")
+                        return
+                    }
+                }
+                asmgen.loadScaledArrayIndexIntoRegister(e, CpuRegister.Y)
+                if (e.splitWords) {
+                    require(!long)
+                    asmgen.out("  lda  ${baseVarname}_msb,y")
+                } else if (long)
+                    asmgen.out("  lda  $baseVarname+3,y")
+                else
+                    asmgen.out("  lda  $baseVarname+1,y")
+            }
+            is PtAddressOf -> {
+                require(!long) {"addresses must still be words not longs"}
+                if(e.isFromArrayElement) {
+                    asmgen.assignExpressionToRegister(e, RegisterOrPair.AY, true)
+                    asmgen.out("  cpy  #0")
+                } else {
+                    var varname = asmgen.asmVariableName(e.identifier!!)
+                    if(e.identifier!!.type.isSplitWordArray) {
+                        varname += if(e.isMsbForSplitArray) "_msb" else "_lsb"
+                    }
+                    asmgen.out("  lda  #>$varname")
+                }
+            }
+            else -> {
+                if(long) {
+                    // note: clobbers R14+R15
+                    asmgen.assignExpressionToRegister(expr, RegisterOrPair.R14R15, true)
+                    asmgen.out("  lda  cx16.r14+3")
+                } else {
+                    asmgen.assignExpressionToRegister(expr, RegisterOrPair.AY, true)
+                    asmgen.out("  cpy  #0")
+                }
+            }
+        }
+    }
+
+
+    private fun getWordOperands(expr: PtExpression, block: (lsb: String, msb: String) -> Unit) {
+        val constValue = expr.asConstInteger()
+        if (constValue != null) {
+            block("#<${constValue}", "#>${constValue}")
+        } else {
+            val e = asmgen.unwrapCasts(expr)
+            if (e is PtIdentifier) {
+                val varname = asmgen.asmVariableName(e)
+                block(varname, "$varname+1")
+            } else if (e is PtAddressOf && !e.isFromArrayElement) {
+                val identifier = e.identifier!!
+                var varname = asmgen.asmVariableName(identifier)
+                if (identifier.type.isSplitWordArray) {
+                    varname += if (e.isMsbForSplitArray) "_msb" else "_lsb"
+                }
+                block("#<$varname", "#>$varname")
+            } else {
+                asmgen.saveRegisterStack(CpuRegister.A, false)
+                asmgen.saveRegisterStack(CpuRegister.Y, false)
+                asmgen.assignExpressionToVariable(expr, "P8ZP_SCRATCH_W1", expr.type)
+                asmgen.restoreRegisterStack(CpuRegister.Y, false)
+                asmgen.restoreRegisterStack(CpuRegister.A, false)
+                block("P8ZP_SCRATCH_W1", "P8ZP_SCRATCH_W1+1")
+            }
+        }
+    }
 }
