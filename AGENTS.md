@@ -215,19 +215,6 @@ You MUST read that file as well to understand the language you are working with.
 - `gradle :compiler:test` - Run only compiler tests (faster)
 - `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"` - Run specific test class
 
-**Language Server test logging:**
-The languageServer tests have two verbosity levels:
-```bash
-# Normal mode - only shows test failures (silent on success)
-gradle :languageServer:test
-
-# Quiet mode - only shows failures (same as normal for tests)
-gradle :languageServer:test --quiet
-
-# Verbose mode - shows detailed LSP operation logs
-gradle :languageServer:test -Dlsp.verbose=true
-```
-
 Note: By default, Gradle only shows failed tests. Passed and skipped tests are silent.
 
 **⚠️ CRITICAL: Test Filtering Patterns - Read This First!**
@@ -278,6 +265,16 @@ main { sub start() { txt.iso(); txt.print("PASS\n") } }
 **Note:** The `sys` module is always available, there is no need to import it ever.
 
 **Commodore 64 (x64sc)**: `x64sc input.prg` - run an existing compiled program in the Commodore-64 emulator. Ignore any errors and warnings, because the emulator doesn't produce any output on STDOUT.
+
+### actual 6502 CPU simulation tests
+For high-fidelity functional verification of generated 6502 code without a full emulator, you can use the `ksim65` simulator in your unit tests. This allows executing the compiled machine code and asserting on memory or register states.
+- Use the `simulate()` extension function on a `CompilationResult`.
+- See `prog8tests.codegeneration.TestExecution6502` for examples.
+- Both 6502 and 65C02 CPUs can be simulated.
+- The simulator supports capturing serial output and handling hardware reset/poweroff signals.
+- There are various assertion helper methods to test on the state of CPU registers, memory contents, etc.
+- Using the simulator is much faster and way more controllable than using a full emulator to run the code.
+- The simulator DOES NOT represent an actual real world machine and has VERY LIMITED hardware devices so it can generally not be used to run full example prorams on.
 
 ## Git Operations for File Moves/Deletes
 

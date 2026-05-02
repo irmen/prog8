@@ -9,11 +9,11 @@
       <sourceFolder url="file://$MODULE_DIR$/testResources" type="java-test-resource" />
     </content>
     <orderEntry type="inheritedJdk" />
-    <orderEntry type="library" name="io.kotest.framework.datatest" level="project" />
-    <orderEntry type="library" name="io.kotest.runner.junit5.jvm" level="project" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="KotlinJavaRuntime" level="project" />
     <orderEntry type="module" module-name="codeCore" />
     <orderEntry type="library" name="michael.bull.kotlin.result.jvm" level="project" />
+    <orderEntry type="library" scope="TEST" name="io.kotest.runner.junit5.jvm" level="project" />
+    <orderEntry type="library" scope="TEST" name="io.kotest.framework.datatest" level="project" />
   </component>
 </module>
