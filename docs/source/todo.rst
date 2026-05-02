@@ -2,8 +2,8 @@ TODO
 ====
 
 
-Dead Code Elimination BUG with nested subroutines
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Dead Code Elimination BUG in 64tass with nested subroutines
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
   the outer subroutine if ANY symbol from within it is referenced elsewhere (even if the outer subroutine itself is never called).
 - Workaround: move nested subroutines to be top-level (block-level) subroutines instead.
