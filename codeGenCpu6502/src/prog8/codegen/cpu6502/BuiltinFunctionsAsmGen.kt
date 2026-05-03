@@ -1843,41 +1843,79 @@ import prog8.codegen.cpu6502.assignment.*
         } else throw AssemblyError("unsupported type for peek $dt")
     }
 
-    private fun funcPeekL(fcall: PtFunctionCall): Array<RegisterOrPair> {
+    internal fun funcPeekL(fcall: PtFunctionCall, targetVarName: String? = null): Array<RegisterOrPair> {
         val addressArg = fcall.args[0]
+
+        // Helper to generate Y-indexed loop copy to target variable. Returns true if the optimized path was taken
+        fun tryOptimizedLoopCopyWithY(sourceSetup: String, sourceLoad: String): Boolean {
+            if(targetVarName==null) 
+                return false
+            asmgen.out("""
+                $sourceSetup
+                ldy  #3
+-               lda  $sourceLoad,y
+                sta  $targetVarName,y
+                dey
+                bpl  -""")
+            return true
+        }
+
+        // Handle constant address case
+        if(addressArg is PtNumber) {
+            val address = addressArg.number.toInt()
+            if(tryOptimizedLoopCopyWithY("", "$address")) 
+                return emptyArray()
+            
+            asmgen.assignVariableToRegister(address.toString(), RegisterOrPair.R14R15, null, fcall.position)
+            return arrayOf(RegisterOrPair.R14R15)
+        }
+
+        // Handle ZP pointer case
+        if(addressArg is PtIdentifier && asmgen.isZpVar(addressArg)) {
+            val varname = asmgen.asmVariableName(addressArg)
+            if(tryOptimizedLoopCopyWithY("", "($varname)")) 
+                return emptyArray()
+
+            asmgen.out("""
+                ldy  #3
+-               lda  ($varname),y
+                sta  cx16.r14,y
+                dey
+                bpl  - """)
+            return arrayOf(RegisterOrPair.R14R15)
+        }
+
+        // Handle addressOf identifier cases
         val result = asmgen.pointerViaIndexRegisterPossible(addressArg)
         val addressOfIdentifier = (result?.first as? PtAddressOf)?.identifier
         if(addressOfIdentifier!=null && (addressOfIdentifier.type.isLong || addressOfIdentifier.type.isByteArray)) {
             val varname = asmgen.asmVariableName(addressOfIdentifier)
             if (result.second is PtNumber) {
                 val offset = (result.second as PtNumber).number.toInt()
-                asmgen.out("""
-                    lda  $varname+$offset
-                    sta  cx16.r14
-                    lda  $varname+${offset + 1}
-                    sta  cx16.r14+1
-                    lda  $varname+${offset + 2}
-                    sta  cx16.r14+2
-                    lda  $varname+${offset + 3}
-                    sta  cx16.r14+3""")
+                if(tryOptimizedLoopCopyWithY("lda  #<$varname+$offset |  sta  P8ZP_SCRATCH_W1 |  lda  #>$varname+$offset |  sta  P8ZP_SCRATCH_W1+1", "(P8ZP_SCRATCH_W1)")) 
+                    return emptyArray()
+
+                asmgen.assignVariableToRegister("$varname+$offset", RegisterOrPair.R14R15, null, fcall.position)
+                return arrayOf(RegisterOrPair.R14R15)
             } else if(result.second is PtIdentifier) {
                 val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
                 asmgen.out("""
-                    ldx  $offsetname
-                    lda  $varname,x
+                    ldy  $offsetname
+                    lda  $varname,y
                     sta  cx16.r14
-                    lda  $varname+1,x
+                    lda  $varname+1,y
                     sta  cx16.r14+1
-                    lda  $varname+2,x
+                    lda  $varname+2,y
                     sta  cx16.r14+2
-                    lda  $varname+3,x
+                    lda  $varname+3,y
                     sta  cx16.r14+3""")
+                return arrayOf(RegisterOrPair.R14R15)
             }
         }
 
+        // Fallback: use func_peekl
         asmgen.assignExpressionToRegister(addressArg, RegisterOrPair.AY)
         asmgen.out("  jsr  prog8_lib.func_peekl")   // result in R14:R15
-
         return arrayOf(RegisterOrPair.R14R15)
     }
 
@@ -2107,7 +2145,7 @@ import prog8.codegen.cpu6502.assignment.*
         }
     }
 
-    private fun funcMklong(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+    internal fun funcMklong(fcall: PtFunctionCall, resultReg: RegisterOrPair, targetVarName: String? = null): Array<RegisterOrPair> {
         fun isArgRegister(expression: PtExpression, reg: RegisterOrPair): Boolean {
             if(expression !is PtIdentifier)
                 return false
@@ -2132,9 +2170,16 @@ import prog8.codegen.cpu6502.assignment.*
                 isArgRegister(fcall.args[1], RegisterOrPair.R14) || isArgRegister(fcall.args[1], RegisterOrPair.R15)) {
                 error("cannot use R14 and/or R15 as arguments for mklong2 because the result should go into R0:R1 ${fcall.position}")
             } else {
+                if(targetVarName!=null && fcall.args[0].isSimple() && fcall.args[1].isSimple()) {
+                    // Optimized: write directly to target variable (only for simple args)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[0], "${targetVarName}+2", DataType.UWORD)      // msw (target+2, target+3)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], targetVarName, DataType.UWORD)      // lsw (target, target+1)
+                    return emptyArray()
+                }
                 if(r1==null || r2==null) {
                     assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R15, signed = false)
                     assignAsmGen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14, signed = false)
+                    return arrayOf(RegisterOrPair.R14R15)
                 } else {
                     assignAsmGen.assignExpressionToRegister(fcall.args[0], r2, signed = false)
                     assignAsmGen.assignExpressionToRegister(fcall.args[1], r1, signed = false)
@@ -2149,11 +2194,21 @@ import prog8.codegen.cpu6502.assignment.*
                 isArgRegister(fcall.args[3], RegisterOrPair.R14) || isArgRegister(fcall.args[3], RegisterOrPair.R15)) {
                 error("cannot use R14 and/or R15 as arguments for mklong because the result should go into R14:R15 ${fcall.position}")
             } else {
+                if(targetVarName!=null && fcall.args[0].isSimple() && fcall.args[1].isSimple() &&
+                    fcall.args[2].isSimple() && fcall.args[3].isSimple()) {
+                    // Optimized: write directly to target variable (only for simple args)
+                    assignAsmGen.assignExpressionToVariable(fcall.args[0], "${targetVarName}+3", DataType.UBYTE)      // msb
+                    assignAsmGen.assignExpressionToVariable(fcall.args[1], "${targetVarName}+2", DataType.UBYTE)      // b2
+                    assignAsmGen.assignExpressionToVariable(fcall.args[2], "${targetVarName}+1", DataType.UBYTE)      // b1
+                    assignAsmGen.assignExpressionToVariable(fcall.args[3], targetVarName, DataType.UBYTE)      // lsb
+                    return emptyArray()
+                }
                 if(r1==null || r2==null) {
                     assignAsmGen.assignExpressionToVariable(fcall.args[0], "cx16.r15H", DataType.UBYTE)
                     assignAsmGen.assignExpressionToVariable(fcall.args[1], "cx16.r15L", DataType.UBYTE)
                     assignAsmGen.assignExpressionToVariable(fcall.args[2], "cx16.r14H", DataType.UBYTE)
                     assignAsmGen.assignExpressionToVariable(fcall.args[3], "cx16.r14L", DataType.UBYTE)
+                    return arrayOf(RegisterOrPair.R14R15)
                 } else {
                     val r1name = "cx16.${r1.name.lowercase()}"
                     val r2name = "cx16.${r2.name.lowercase()}"
@@ -2165,8 +2220,6 @@ import prog8.codegen.cpu6502.assignment.*
                 }
             }
         }
-
-        return arrayOf(RegisterOrPair.R14R15)
     }
 
     private fun funcMkword(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
@@ -2571,53 +2624,4 @@ import prog8.codegen.cpu6502.assignment.*
             }
         }
     }
-
-    internal fun optimizedPeeklIntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean {
-        // TODO  just integrate this into funcPeekL
-        val arg = value.args[0]
-        if(arg is PtNumber) {
-            val address = arg.number.toInt()
-            asmgen.out("""
-                lda  $address
-                sta  ${target.asmVarname}
-                lda  $address+1
-                sta  ${target.asmVarname}+1
-                lda  $address+2
-                sta  ${target.asmVarname}+2
-                lda  $address+3
-                sta  ${target.asmVarname}+3""")
-            return true
-        } else if(arg is PtIdentifier) {
-            val varname = asmgen.asmVariableName(arg)
-            if(asmgen.isZpVar(arg)) {
-                asmgen.out("""
-                    ldy  #0
-                    lda  ($varname),y
-                    sta  ${target.asmVarname}
-                    iny
-                    lda  ($varname),y
-                    sta  ${target.asmVarname}+1
-                    iny
-                    lda  ($varname),y
-                    sta  ${target.asmVarname}+2
-                    iny
-                    lda  ($varname),y
-                    sta  ${target.asmVarname}+3""")
-                return true
-            }
-        }
-        return false
-    }
-
-    internal fun optimizedMklongIntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean {
-        // TODO  just integrate this into funcMklong
-        return false
-        // TODO("mklong")
-     }
-
-     internal fun optimizedMklong2IntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean {
-         // TODO  just integrate this into funcMklong
-         return false
-         // TODO("mklong2")
-     }
- }
+}

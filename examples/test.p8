@@ -1,59 +1,48 @@
-%import textio
 %zeropage basicsafe
+%option no_sysinit
+%import textio
 
 main {
+    ubyte @shared msb1 = $12
+    ubyte @shared b2 = $34
+    ubyte @shared b1 = $56
+    ubyte @shared lsb1 = $78
+    uword @shared msw_val = $1234
+    uword @shared lsw_val = $abcd
+
     sub start() {
-        byte @shared b1 = 99
-        byte @shared b2 = -33
-        word @shared w1 = 9999
-        word @shared w2 = -3333
-        long @shared l1 = 999999
-        long @shared l2 = -333333
+        ; Test mklong(msb, b2, b1, lsb) -> long variable
+        long @shared result1
+        result1 = mklong(msb1, b2, b1, lsb1)
+        ; Expected: $12345678
 
-        txt.print_b(min(b1, b2))
-        txt.nl()
-        txt.print_b(max(b1, b2))
-        txt.nl()
-        txt.print_b(clamp(b1, 10, 88))
-        txt.spc()
-        txt.print_b(clamp(b2, -99, -44))
-        txt.spc()
-        txt.nl()
-        txt.nl()
+        ; Test mklong2(msw, lsw) -> long variable
+        long @shared result2
+        result2 = mklong2(msw_val, lsw_val)
+        ; Expected: $1234abcd
 
-        txt.print_w(min(w1, w2))
-        txt.nl()
-        txt.print_w(max(w1, w2))
-        txt.nl()
-        txt.print_w(clamp(w1, 1000, 8888))
-        txt.spc()
-        txt.print_w(clamp(w2, -9999, -4444))
-        txt.nl()
-        txt.nl()
+        ; Test peekl(const_address) -> long variable
+        ; We'll set up some test data in memory first
+        long @shared testdata = $aabbccdd
+        long @shared result3
+        result3 = peekl(&testdata)
+        ; Expected: $aabbccdd
 
-        txt.print_l(min(l1, l2))
+        ; Test peekl(pointer) -> long variable
+        ubyte[4] testarray = [$11, $22, $33, $44]
+        long @shared result4
+        result4 = peekl(&testarray)
+        ; Expected: $44332211 (peekl reads 4 bytes as long: lsb=$11, byte=$22, byte=$33, msb=$44)
+        ; Print results for verification
+        txt.print_ulhex(result1, true)      ; expected: $12345678
         txt.nl()
-        txt.print_l(max(l1, l2))
+        txt.print_ulhex(result2, true)      ; expected: $1234abcd
         txt.nl()
-        txt.print_l(clamp(l1, 1000000, 888888))
-        txt.spc()
-        txt.print_l(clamp(l2, -999999, -444444))
+        txt.print_ulhex(result3, true)      ; expected: $aabbccdd
         txt.nl()
+        txt.print_ulhex(result4, true)      ; expected: $44332211
         txt.nl()
 
-        txt.print_b(sgn(b2))
-        txt.nl()
-        txt.print_b(sgn(w2))
-        txt.nl()
-        txt.print_b(sgn(l2))
-        txt.nl()
-        txt.nl()
-
-        txt.print_ub(abs(b2))
-        txt.nl()
-        txt.print_uw(abs(w2))
-        txt.nl()
-        txt.print_l(abs(l2))
-        txt.nl()
+        ;sys.poweroff_system()
     }
 }

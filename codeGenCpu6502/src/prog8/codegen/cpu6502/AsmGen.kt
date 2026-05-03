@@ -346,7 +346,7 @@ class AsmGen6502Internal (
     private val anyExprGen = AnyExprAsmGen(this)
     private val pointerGen = PointerAssignmentsGen(this, allocator)
     private val assignmentAsmGen = AssignmentAsmGen(program, this, pointerGen, anyExprGen, allocator)
-    private val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, pointerGen,assignmentAsmGen)
+    internal val builtinFunctionsAsmGen = BuiltinFunctionsAsmGen(program, this, pointerGen,assignmentAsmGen)
     private val ifElseAsmgen = IfElseAsmGen(program, symbolTable, this, pointerGen, assignmentAsmGen, errors)
     private val ifExpressionAsmgen = IfExpressionAsmGen(this, pointerGen, assignmentAsmGen, errors)
     private val augmentableAsmGen = AugmentableAssignmentAsmGen(program, assignmentAsmGen, this, pointerGen, allocator)
@@ -3295,14 +3295,6 @@ $repeatLabel""")
             txa""")
     }
 
-    internal fun optimizedMklong2IntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean =
-        builtinFunctionsAsmGen.optimizedMklong2IntoLongvar(target, value)
-
-    internal fun optimizedMklongIntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean =
-        builtinFunctionsAsmGen.optimizedMklongIntoLongvar(target, value)
-
-    internal fun optimizedPeeklIntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean =
-        builtinFunctionsAsmGen.optimizedPeeklIntoLongvar(target, value)
 }
 
 /**

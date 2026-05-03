@@ -648,24 +648,24 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
             "*" -> {
                 asmgen.out("""
                     ; Copy target to R12R13 (multiplicand)
-                    ldy  #4
--                   lda  $targetVar-1,y
-                    sta  cx16.r12-1,y
+                    ldy  #3
+-                   lda  $targetVar,y
+                    sta  cx16.r12,y
                     dey
-                    bne  -
+                    bpl  -
                     ; Copy source to R14R15 (multiplier)
-                    ldy  #4
--                   lda  $sourceVar-1,y
-                    sta  cx16.r14-1,y
+                    ldy  #3
+-                   lda  $sourceVar,y
+                    sta  cx16.r14,y
                     dey
-                    bne  -
+                    bpl  -
                     jsr  prog8_math.multiply_longs
                     ; Copy result from R14R15 back to target
-                    ldy  #4
--                   lda  cx16.r14-1,y
-                    sta  $targetVar-1,y
+                    ldy  #3
+-                   lda  cx16.r14,y
+                    sta  $targetVar,y
                     dey
-                    bne  -""")
+                    bpl  -""")
             }
             else -> {
                 TODO("in-place modify LONG with variable, operator=$operator")
@@ -999,11 +999,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                 val hi = (value ushr 16) and 0xFFFF
                 asmgen.out("""
                     ; Copy variable to R12R13 (multiplicand)
-                    ldy  #4
--                   lda  $variable-1,y
-                    sta  cx16.r12-1,y
+                    ldy  #3
+-                   lda  $variable,y
+                    sta  cx16.r12,y
                     dey
-                    bne  -
+                    bpl  -
                     ; Load constant into R14R15 (multiplier)
                     lda  #<${lo}
                     sta  cx16.r14
@@ -1015,11 +1015,11 @@ internal class AugmentableAssignmentAsmGen(private val program: PtProgram,
                     sta  cx16.r15+1
                     jsr  prog8_math.multiply_longs
                     ; Copy result from R14R15 back to variable
-                    ldy  #4
--                   lda  cx16.r14-1,y
-                    sta  $variable-1,y
+                    ldy  #3
+-                   lda  cx16.r14,y
+                    sta  $variable,y
                     dey
-                    bne  -""")
+                    bpl  -""")
             }
             "<<" -> if (value > 0) inplaceLongShiftLeft()
             ">>" -> if (value > 0) inplaceLongShiftRight()

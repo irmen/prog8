@@ -670,14 +670,31 @@ internal class AssignmentAsmGen(
             // builtin function call
 
             if (value.type.isLong && assign.targets.single().kind == TargetStorageKind.VARIABLE) {
-                val handled = when(value.name) {
-                    "peekl" -> asmgen.optimizedPeeklIntoLongvar(assign.targets.single(), value)
-                    "mklong" -> asmgen.optimizedMklongIntoLongvar(assign.targets.single(), value)
-                    "mklong2" -> asmgen.optimizedMklong2IntoLongvar(assign.targets.single(), value)
-                    else -> false
+
+                val targetVarName = assign.targets.single().asmVarname
+
+                fun handleResultInRegister(resultReg: Array<RegisterOrPair>) {
+                    resultReg.singleOrNull()?.let {
+                        asmgen.out("  ;--REG TO VAR")
+                        asmgen.assignRegister(it, assign.targets[0])
+                        asmgen.out("  ;--REG TO VAR DONE")
+                    }
                 }
-                if(handled)
-                    return
+                
+                when(value.name) {
+                    "peekl" -> {
+                        val resultInRegister = asmgen.builtinFunctionsAsmGen.funcPeekL(value, targetVarName)
+                        return handleResultInRegister(resultInRegister)
+                    }
+                    "mklong" -> {
+                        val resultInRegister = asmgen.builtinFunctionsAsmGen.funcMklong(value, RegisterOrPair.R14R15, targetVarName)
+                        return handleResultInRegister(resultInRegister)
+                    }
+                    "mklong2" -> {
+                        val resultInRegister = asmgen.builtinFunctionsAsmGen.funcMklong(value, RegisterOrPair.R14R15, targetVarName)
+                        return handleResultInRegister(resultInRegister)
+                    }
+                }
             }
 
             if(value.name=="lmh") {
@@ -3753,11 +3770,11 @@ $endLabel""")
                     DataType.LONG -> {
                         // Long to long variable copy - use loop
                         asmgen.out("""
-                            ldy  #4
--                           lda  $varName-1,y
-                            sta  ${target.asmVarname}-1,y
+                            ldy  #3
+-                           lda  $varName,y
+                            sta  ${target.asmVarname},y
                             dey
-                            bne  -""")
+                            bpl  -""")
                     }
                     else -> throw AssemblyError("wrong dt ${target.position}")
                 }
@@ -4381,11 +4398,11 @@ $endLabel""")
                 if(pairedRegisters in CombinedLongRegisters) {
                     val startreg = pairedRegisters.startregname()
                     asmgen.out("""
-                        ldy  #4
--                       lda  cx16.$startreg-1,y
-                        sta  ${target.asmVarname}-1,y
+                        ldy  #3
+-                       lda  cx16.$startreg,y
+                        sta  ${target.asmVarname},y
                         dey
-                        bne  -""")
+                        bpl  -""")
                 }
                 else throw AssemblyError("only combined vreg allowed as long target ${target.position}")
             }
@@ -4413,11 +4430,11 @@ $endLabel""")
                     val targetStartReg = targetreg.startregname()
                     // Loop-based copy between register pairs
                     asmgen.out("""
-                        ldy  #4
--                       lda  cx16.$sourceStartReg-1,y
-                        sta  cx16.$targetStartReg-1,y
+                        ldy  #3
+-                       lda  cx16.$sourceStartReg,y
+                        sta  cx16.$targetStartReg,y
                         dey
-                        bne  -""")
+                        bpl  -""")
                 }
             }
             TargetStorageKind.POINTER -> {
