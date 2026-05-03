@@ -1185,22 +1185,25 @@ import prog8.codegen.cpu6502.assignment.*
     }
 
     private fun funcAbs(fcall: PtFunctionCall, scope: IPtSubroutine?): Array<RegisterOrPair> {
-        translateArguments(fcall, null, scope)
         val dt = fcall.args.single().type.base
         when (dt) {
             BaseDataType.BYTE -> {
+                translateArguments(fcall, null, scope)
                 asmgen.out("  jsr  prog8_lib.abs_b_into_A")
                 return arrayOf(RegisterOrPair.A)
             }
             BaseDataType.WORD -> {
+                translateArguments(fcall, null, scope)
                 asmgen.out("  jsr  prog8_lib.abs_w_into_AY")
                 return arrayOf(RegisterOrPair.AY)
             }
             BaseDataType.LONG -> {
+                assignAsmGen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)
                 asmgen.out("  jsr  prog8_lib.abs_l_into_R14R15")
                 return arrayOf(RegisterOrPair.R14R15)
             }
             BaseDataType.FLOAT -> {
+                translateArguments(fcall, null, scope)
                 asmgen.out("  jsr  floats.func_abs_f_into_FAC1")
                 return arrayOf(RegisterOrPair.FAC1)
             }
@@ -1896,7 +1899,11 @@ import prog8.codegen.cpu6502.assignment.*
                 return arrayOf(RegisterOrPair.AY)
             }
             fcall.type.isLong -> {
-                TODO("clamp long into R14:R15  ${fcall.position}")
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R10R11, true)       // low
+                asmgen.assignExpressionToRegister(fcall.args[2], RegisterOrPair.R12R13, true)       // high
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R14R15, true)       // val
+                asmgen.out("  jsr  prog8_lib.func_clamp_long")
+                return arrayOf(RegisterOrPair.R14R15)
             }
             else -> throw AssemblyError("invalid dt")
         }
@@ -1970,7 +1977,30 @@ import prog8.codegen.cpu6502.assignment.*
                 return arrayOf(RegisterOrPair.AY)
             }
             fcall.type.isLong -> {
-                TODO("min long into R14:R15 ${fcall.position}")
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R12R13, true)       // left
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15, true)       // right
+                asmgen.out("""
+                        lda  cx16.r12
+                        cmp  cx16.r14
+                        lda  cx16.r12+1
+                        sbc  cx16.r14+1
+                        lda  cx16.r13
+                        sbc  cx16.r15
+                        lda  cx16.r13+1
+                        sbc  cx16.r15+1
+                        bvc  +
+                        eor  #$80
++                       bpl  +                       ; if left >= right, right is min (already in R14R15)
+                        lda  cx16.r12
+                        sta  cx16.r14
+                        lda  cx16.r12+1
+                        sta  cx16.r14+1
+                        lda  cx16.r13
+                        sta  cx16.r15
+                        lda  cx16.r13+1
+                        sta  cx16.r15+1
++""")
+                return arrayOf(RegisterOrPair.R14R15)
             }
             else -> {
                 throw AssemblyError("min float not supported")
@@ -2046,7 +2076,30 @@ import prog8.codegen.cpu6502.assignment.*
                 return arrayOf(RegisterOrPair.AY)
             }
             fcall.type.isLong -> {
-                TODO("max long into R14:R15 ${fcall.position}")
+                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.R12R13, true)       // left
+                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.R14R15, true)       // right
+                asmgen.out("""
+                        lda  cx16.r12
+                        cmp  cx16.r14
+                        lda  cx16.r12+1
+                        sbc  cx16.r14+1
+                        lda  cx16.r13
+                        sbc  cx16.r15
+                        lda  cx16.r13+1
+                        sbc  cx16.r15+1
+                        bvc  +
+                        eor  #$80
++                       bmi  +                       ; if left < right, right is max (already in R14R15)
+                        lda  cx16.r12
+                        sta  cx16.r14
+                        lda  cx16.r12+1
+                        sta  cx16.r14+1
+                        lda  cx16.r13
+                        sta  cx16.r15
+                        lda  cx16.r13+1
+                        sta  cx16.r15+1
++""")
+                return arrayOf(RegisterOrPair.R14R15)
             }
             else -> {
                 throw AssemblyError("max float not supported")
@@ -2563,7 +2616,7 @@ import prog8.codegen.cpu6502.assignment.*
      }
 
      internal fun optimizedMklong2IntoLongvar(target: AsmAssignTarget, value: PtFunctionCall): Boolean {
-         // TODO  just integrate this into funcMklong2
+         // TODO  just integrate this into funcMklong
          return false
          // TODO("mklong2")
      }

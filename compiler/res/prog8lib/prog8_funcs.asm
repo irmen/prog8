@@ -649,3 +649,50 @@ func_clamp_uword .proc
 	rts
 
 	.pend
+
+func_clamp_long .proc
+	; signed long value in R14:R15, result in R14:R15
+	; minimum in R10:R11
+	; maximum in R12:R13
+    ; val = max(val, low)
+    lda  cx16.r14L
+    cmp  cx16.r10L
+    lda  cx16.r14H
+    sbc  cx16.r10H
+    lda  cx16.r15L
+    sbc  cx16.r11L
+    lda  cx16.r15H
+    sbc  cx16.r11H
+    bvc  +
+    eor  #$80
++   bpl  +                       ; if val >= low, val is already >= low
+    lda  cx16.r10L
+    sta  cx16.r14L
+    lda  cx16.r10H
+    sta  cx16.r14H
+    lda  cx16.r11L
+    sta  cx16.r15L
+    lda  cx16.r11H
+    sta  cx16.r15H
++   ; val = min(val, high)
+    lda  cx16.r14L
+    cmp  cx16.r12L
+    lda  cx16.r14H
+    sbc  cx16.r12H
+    lda  cx16.r15L
+    sbc  cx16.r13L
+    lda  cx16.r15H
+    sbc  cx16.r13H
+    bvc  +
+    eor  #$80
++   bmi  +                       ; if val < high, val is already <= high
+    lda  cx16.r12L
+    sta  cx16.r14L
+    lda  cx16.r12H
+    sta  cx16.r14H
+    lda  cx16.r13L
+    sta  cx16.r15L
+    lda  cx16.r13H
+    sta  cx16.r15H
++   rts
+	.pend

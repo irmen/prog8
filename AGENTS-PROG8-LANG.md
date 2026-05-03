@@ -64,6 +64,7 @@ This file contains general information and instructions about the Prog8 programm
 - **private/public access**: Symbols are public by default. Use the `private` keyword to restrict a variable or subroutine access to its own block.
 - **inline subroutines**: Subroutines can be marked with `inline` to suggest to the compiler that it should inline the code instead of calling it. This is especially useful for small subroutines. Use `private inline sub ...` if it's only used within its block.
 - **no function overloading**: Each subroutine must have a unique name (except for some builtin functions).
+- **builtin function name restriction**: You cannot use names of builtin functions (such as `msw`, `lsw`, `msb`, `lsb`, `mkword`, `mklong`, `peek`, `peekw`, `peekl`, etc.) as variable or subroutine names. This will cause a syntax error. Choose different names for your variables.
 - subroutines can return 0, 1 or more return value(s). They can be assigned to multiple variables in a single multi-variable assignment: a,b,c = routine(). Values can be skipped using 'void'.
 - **the `void` keyword has two forms:** (1) prefix form `void routine()` suppresses all return values from a subroutine call, (2) assignment form `a, void, c = routine()` skips specific return values in multi-return assignments.
 - subroutines can be nested. Nested subroutines have direct access to all variables defined in their parent scope. They access them via the parent's static symbols (no display or stack links), as all variables are statically allocated.
