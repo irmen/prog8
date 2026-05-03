@@ -38,6 +38,7 @@ However, the other compiler targets are also still worked on,  most notably the 
 The X16 `Discord server <https://discord.gg/nS2PqEC>`_ contains a small channel
 dedicated to Prog8. Besides that, you can use the issue tracker on github for questions or problems or contributions.
 
+
 Want to buy me a coffee or a pizza perhaps?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. index:: Donations
@@ -230,3 +231,18 @@ To use it, configure your editor to launch ``prog8-language-server`` as the LSP 
 The basic purpose of ctags is to index the definitions from your source code and let you find them easily.
 It is not really to find each use of print for example, but to find where print is defined.
 Visit `the Github repository <https://github.com/gillham/prog8ctags>`_ for the files and detailed usage information.
+
+
+.. _aiassist:
+
+.. index:: pair: AI; Coding Agents
+
+AI Assisted Development
+^^^^^^^^^^^^^^^^^^^^^^^
+
+If you want to use an AI coding agent to help write Prog8 programs,
+make sure the agent is provided with the language-specific instructions found in the file ``AGENTS-PROG8-LANG.md`` in the project root.
+This file contains important details about Prog8 syntax, data types, builtin functions, and common pitfalls that the AI needs to know
+to understand and generate correct Prog8 code. It also lets the agent know about the 64tass asembly syntax that Prog8 uses.
+Without this context, AI agents is likely to  suggest invalid syntax or idioms from other languages (like C or Python) that do not apply to Prog8.  
+

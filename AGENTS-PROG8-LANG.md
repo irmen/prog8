@@ -50,9 +50,13 @@ This file contains general information and instructions about the Prog8 programm
   - Short-circuit: In `a and b`, if `a` is false, `b` is NOT evaluated. In `a or b`, if `a` is true, `b` is NOT evaluated.
   - This is important when `b` has side effects or could cause errors.
 - **Bitwise operators** (work on integer bits): `&`, `|`, `^`, `~`, `<<`, `>>`
-  - Use for bit manipulation: `mask = mask | FLAG_ACTIVE`
-  - Test bits: `if (mask & FLAG) != 0 { ... }`
-  - **Common mistake**: Don't use `and`/`or` for bitmask operations - use `&`/`|` instead!
+   - Use for bit manipulation: `mask = mask | FLAG_ACTIVE`
+   - Test bits: `if (mask & FLAG) != 0 { ... }`
+   - **Common mistake**: Don't use `and`/`or` for bitmask operations - use `&`/`|` instead!
+- **Bit rotation**: Use builtin functions for bit rotation (no rotation operators like `<<<`/`>>>` exist):
+   - `rol(value)` / `ror(value)` - rotate **through carry** (standard 6502 ROL/ROR: carry flag is shifted into bit 0 for ROL, into bit 7 for ROR)
+   - `rol2(value)` / `ror2(value)` - rotate **without carry** (pure rotation: MSB wraps to LSB for ROL, LSB wraps to MSB for ROR)
+   - Works on `ubyte`, `uword`, and `long` types. Return value is the rotated result.
 - CPU status flags: if_cs, if_cc, if_z, if_nz, etc. compile to single 6502 branch instructions.
 - use 'when' statements with choice blocks instead of multiple 'if' statements.
 - use 'repeat' instead of loops when iteration count is not needed.
@@ -125,6 +129,9 @@ When writing assembly code (in `%asm` blocks or `asmsub`), you often need to ref
 
 ## Syntax & Formatting
 - **numeric literal syntax**: `$` prefix for hex (`$FF` not `0xFF`), `%` prefix for binary (`%1010` not `0b1010`). Underscores allowed for readability: `25_000_000`. No leading-zero octal notation. **No type suffixes**: there are no suffixes for word or long literals (e.g. `0L` or `0W` are invalid). If you need to disambiguate a literal between byte/word/long types, cast it to the desired type: `0 as long`. Otherwise the type is determined by context. Note that using 4-digit hex notation such as `$0000` IS interpreted as a `uword` value.
+- **Augmented assignment operators**: Prog8 supports `+=`, `-=`, `*=`, `/=`, `%=`, `&=`, `|=`, `^=`, `<<=`, `>>=` for concise variable modification.
+  - Example: `x += 5` (same as `x = x + 5`), `mask &= $0F` (same as `mask = mask & $0F`), `counter <<= 1` (same as `counter = counter << 1`)
+  - Works on all integer types (ubyte, byte, uword, word, long) and pointers (for `+=`/`-=` with integer offsets).
 - **for loop syntax**: `for i in 0 to 10 { ... }` (use downto when counting down) - NOT `for i = 0 to 10` or C-style `for(i=0; i<10; i++)`. Loop variables must be declared separately before the loop - inline declaration like `for ubyte i in 0 to 10` is not supported.
 - **semicolons start comments**: `; this is a comment` - they do NOT end statements. There is NO statement separator (unlike C/Java's `;`). One statement per line only. Multi-line comments use `/* ... */`.
   - **CRITICAL: `;` is NOT a statement separator!** It begins a comment that extends to end of line. Writing `x = 1; y = 2` does NOT assign two variables - it assigns `x = 1` and then ignores everything after `;` as a comment. **Each statement must be on its own line.**
@@ -142,7 +149,7 @@ When writing assembly code (in `%asm` blocks or `asmsub`), you often need to ref
   ```
   This is a **widespread mistake** for developers coming from Python/C/Java backgrounds.
 - **Indentation**: See `.editorconfig` (4 spaces for .p8 and .asm files, no tabs).
-- **The assembly source code uses 64tass syntax, NOT ca65/cc65 or other assemblers.** Key 64tass syntax: `.proc`/`.pend` for procedures, `_label` for local labels, `.byte`/`.word`/`.dword` for data, `= ` for equates, zero-page variables defined with `=`. **Instructions like `rol`, `ror`, `asl`, `lsr` require an explicit operand** - use `rol a`, `ror a`, etc. for the accumulator, not just `rol` or `ror`.
+- **The assembly source code uses 64tass syntax, NOT ca65/cc65 or other assemblers.** Key 64tass syntax: `.proc`/`.pend` for procedures, `_label` for local labels, `.byte`/`.word`/`.dword` for data, `= ` for equates, zero-page variables defined with `=`. **Instructions like `rol`, `ror`, `asl`, `lsr` require an explicit operand** - use `rol a`, `ror a`, etc. for the accumulator, not just `rol` or `ror`. **Anonymous labels**: define with a single `+` (forward) or `-` (backward) as the label. Branch to them using `+`, `++`, `+++` etc. for the 1st, 2nd, 3rd forward anonymous label, and `-`, `--`, `---` etc. for backward references.
 - **Character encoding**: 6502 targets use **PETSCII** by default. The `virtual` target uses **ISO** encoding.
   - **6502 targets**: Use `txt.lowercase()` at program start for lowercase display.
   - **Virtual target**: Use `%encoding iso` directive and call `txt.iso()` at program start.
@@ -236,4 +243,5 @@ When writing assembly code (in `%asm` blocks or `asmsub`), you often need to ref
 - **no automatic type widening**: `byte*byte=byte` (may overflow!), `word*word=word`, etc. Explicitly cast operands: `word result = (bytevar as word) * 1000`. Hex literals with 4-digit full width (e.g., `$0040`) are interpreted as `uword`. Compiler does not warn by default. **Use `as <type>` for all casts.**
 - **no block scope**: `for`, `if/else` blocks do NOT introduce new scope. Only subroutines introduce scope. Variables declared anywhere in a subroutine are hoisted to the top.
 - **no bare blocks**: Prog8 does not have standalone `{ ... }` blocks like C/C++/Java. Control structures (`if/when/for/repeat`) provide grouping but NOT scoping; they cannot create temporary variable lifetimes. Only subroutines introduce scope.
+- **member access through pointers**: Unlike C which uses `->` for pointer member access, Prog8 uses the same `.` operator for both direct and pointer member access. The compiler infers the type, so you can often simply write `pointer.field` without explicit dereference. Only in certain assignment targets or complex expressions may you need `^^`: `pointer^^.field` (equivalent to C's `pointer->field` or `(*pointer).field`).
 - **qualified names from top level**: Must use full qualified names (e.g., `cx16.r0`), not relative imports.

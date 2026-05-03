@@ -396,22 +396,24 @@ class Inliner(private val program: Program, private val options: CompilationOpti
         if (!toInline.values.all { it is NumericLiteral || it is IdentifierReference })
             return noModifications
 
-        // Create multiple single assignments
-        val newAssignments = multiTargets.zip(toInline.values).map { (target, value) ->
-            Assignment(
-                target = AssignTarget(
-                    identifier = target.identifier!!.copy(),
-                    arrayindexed = null,
-                    memoryAddress = null,
-                    multi = null,
-                    void = false,
-                    position = target.position
-                ),
-                value = value.copy(),
-                origin = assignment.origin,
-                position = assignment.position
-            )
-        }
+        // Create multiple single assignments, skipping void targets (they discard the value)
+        val newAssignments = multiTargets.zip(toInline.values)
+            .filter { (target, _) -> !target.void }
+            .map { (target, value) ->
+                Assignment(
+                    target = AssignTarget(
+                        identifier = target.identifier!!.copy(),
+                        arrayindexed = null,
+                        memoryAddress = null,
+                        multi = null,
+                        void = false,
+                        position = target.position
+                    ),
+                    value = value.copy(),
+                    origin = assignment.origin,
+                    position = assignment.position
+                )
+            }
 
         // println(">>> INLINER: INLINED multi-return call to '${sub.name}' at ${assignment.position} (split into ${newAssignments.size} separate assignments)")
         sub.hasBeenInlined = true
