@@ -261,7 +261,10 @@ fun compileProgram(args: CompilerArguments): CompilationResult? {
                     irInstructionCount = result.irInstructionCount
                     irRegisterCount = result.irRegisterCount
                     if (!result.success) {
+                        System.out.flush()
                         System.err.println("Error in codegeneration or assembler")
+                        System.err.flush()
+                        return null
                     }
                 }
                 if (irInstructionCount < 0) {

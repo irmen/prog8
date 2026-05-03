@@ -40,15 +40,15 @@ import prog8.codegen.cpu6502.assignment.*
             "lsb__long" -> funcLsb(fcall,true, firstReturnRegister ?: RegisterOrPair.A)
             "mkword" -> funcMkword(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             "mklong", "mklong2" -> funcMklong(fcall, firstReturnRegister ?: RegisterOrPair.R14R15)
-            "clamp__byte", "clamp__ubyte" -> funcClamp(fcall, firstReturnRegister ?: RegisterOrPair.A)
-            "clamp__word", "clamp__uword" -> funcClamp(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            "clamp__long" -> funcClamp(fcall, firstReturnRegister ?: RegisterOrPair.R14R15)
-            "min__byte", "min__ubyte" -> funcMin(fcall, firstReturnRegister ?: RegisterOrPair.A)
-            "min__word", "min__uword" -> funcMin(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            "min__long" -> funcMin(fcall, firstReturnRegister ?: RegisterOrPair.R14R15)
-            "max__byte", "max__ubyte" -> funcMax(fcall, firstReturnRegister ?: RegisterOrPair.A)
-            "max__word", "max__uword" -> funcMax(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            "max__long" -> funcMax(fcall, firstReturnRegister ?: RegisterOrPair.R14R15)
+            "clamp__byte", "clamp__ubyte" -> funcClamp(fcall)
+            "clamp__word", "clamp__uword" -> funcClamp(fcall)
+            "clamp__long" -> funcClamp(fcall)
+            "min__byte", "min__ubyte" -> funcMin(fcall)
+            "min__word", "min__uword" -> funcMin(fcall)
+            "min__long" -> funcMin(fcall)
+            "max__byte", "max__ubyte" -> funcMax(fcall)
+            "max__word", "max__uword" -> funcMax(fcall)
+            "max__long" -> funcMax(fcall)
             "abs__byte" -> funcAbs(fcall, sscope)
             "abs__word" -> funcAbs(fcall, sscope)
             "abs__long"-> funcAbs(fcall, sscope)
@@ -73,7 +73,7 @@ import prog8.codegen.cpu6502.assignment.*
                 funcMemory(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             }
             "peekw" -> funcPeekW(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            "peekl" -> funcPeekL(fcall, firstReturnRegister ?: RegisterOrPair.R14R15)
+            "peekl" -> funcPeekL(fcall)
             "peekf" -> funcPeekF(fcall)
             "peekbool" -> funcPeekBool(fcall)
             "pokew" -> funcPokeW(fcall)
@@ -1840,7 +1840,7 @@ import prog8.codegen.cpu6502.assignment.*
         } else throw AssemblyError("unsupported type for peek $dt")
     }
 
-    private fun funcPeekL(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+    private fun funcPeekL(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val addressArg = fcall.args[0]
         val result = asmgen.pointerViaIndexRegisterPossible(addressArg)
         val addressOfIdentifier = (result?.first as? PtAddressOf)?.identifier
@@ -1878,7 +1878,7 @@ import prog8.codegen.cpu6502.assignment.*
         return arrayOf(RegisterOrPair.R14R15)
     }
 
-    private fun funcClamp(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+    private fun funcClamp(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
         when {
             fcall.type.isByte -> {
@@ -1902,17 +1902,33 @@ import prog8.codegen.cpu6502.assignment.*
         }
     }
 
-    private fun funcMin(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+    private fun funcMin(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
         when {
             fcall.type.isByte -> {
-                asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
-                asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
-                asmgen.out("  cmp  P8ZP_SCRATCH_B1")
-                if(signed) asmgen.out("  bmi  +") else asmgen.out("  bcc  +")
-                asmgen.out("""
-                    lda  P8ZP_SCRATCH_B1
-+""")   // result in A
+                if (signed) {
+                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_B1
+                        sec
+                        sbc  P8ZP_SCRATCH_REG
+                        bvc  +
+                        eor  #$80
+                    +   bmi  +                       ; if left < right, branch to load left
+                        lda  P8ZP_SCRATCH_REG
+                        jmp  ++
+                    +   lda  P8ZP_SCRATCH_B1
+                    +""")
+                } else {
+                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_B1", fcall.type)     // right
+                    asmgen.assignExpressionToRegister(fcall.args[0], RegisterOrPair.A)          // left
+                    asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                    asmgen.out("  bcc  +")
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_B1
++""")
+                }
                 return arrayOf(RegisterOrPair.A)
             }
             fcall.type.isWord -> {
@@ -1962,18 +1978,33 @@ import prog8.codegen.cpu6502.assignment.*
         }
     }
 
-    private fun funcMax(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
+    private fun funcMax(fcall: PtFunctionCall): Array<RegisterOrPair> {
         val signed = fcall.type.isSigned
         when {
             fcall.type.isByte -> {
-                asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
-                asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)          // right
-                asmgen.out("  cmp  P8ZP_SCRATCH_B1")
-                if (signed) asmgen.out("  bpl  +") else asmgen.out("  bcs  +")
-                asmgen.out("""
-                    lda  P8ZP_SCRATCH_B1
-+"""
-                ) // result in A
+                if (signed) {
+                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                    asmgen.assignExpressionToVariable(fcall.args[1], "P8ZP_SCRATCH_REG", fcall.type)    // right
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_B1
+                        sec
+                        sbc  P8ZP_SCRATCH_REG
+                        bvc  +
+                        eor  #$80
+                    +   bpl  +                       ; if left >= right, branch to load left
+                        lda  P8ZP_SCRATCH_REG
+                        jmp  ++
+                    +   lda  P8ZP_SCRATCH_B1
+                    +""")
+                } else {
+                    asmgen.assignExpressionToVariable(fcall.args[0], "P8ZP_SCRATCH_B1", fcall.type)     // left
+                    asmgen.assignExpressionToRegister(fcall.args[1], RegisterOrPair.A)          // right
+                    asmgen.out("  cmp  P8ZP_SCRATCH_B1")
+                    asmgen.out("  bcs  +")
+                    asmgen.out("""
+                        lda  P8ZP_SCRATCH_B1
++""")
+                }
                 return arrayOf(RegisterOrPair.A)
             }
             fcall.type.isWord -> {
