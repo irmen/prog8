@@ -82,9 +82,7 @@ Optimizations
 
 - COMPLICATED: recursive translateCondition() in IfElseAsmgen and IfExpressionAsmGen to mirror how the IR codegen now works.  This allows the compiler to generate branches directly from expressions without intermediate `LOAD #0/1` instructions. It handles complex logical trees by jumping to the appropriate labels based on the result of each sub-expression.
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
-- bind types in the Ast much sooner than the simplifiedAst creation, so that we maybe could get rid of InferredType ?
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
-- Compilation speed regression: test/comparisons/test_word_lte.p8 compilation takes almost twice as long as with prog8 11.4 and 10.5 is even faster. Largest slowdown in "ast optimizing" pass.
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time
 - VariableAllocator: can we think of a smarter strategy for allocating variables into zeropage, rather than first-come-first-served?
   for instance, vars used inside loops first, then loopvars, then uwords used as pointers (or these first??), then the rest

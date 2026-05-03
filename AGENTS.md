@@ -12,6 +12,7 @@ Context and instructions for AI Agents to work on this project.
 - Prog8 source files are a "module" that can contain one or more "blocks". They can also import other modules, from internal library files or from source files on the filesystem.
 - The prog8 compiler is written mostly in Kotlin, those files have the .kt extension.
 - The standard library is mostly written in Prog8 and assembly code, and can be found in the "compiler" module, in the 'res/prog8lib' directory.
+- **Library Reference**: For a quick overview of all available modules, routines, and their signatures, **consult the skeleton files (symboldumps)** in `docs/source/_static/symboldumps/`. They are named `skeletons-<target>.txt`.
 - Kotlin version 2.3 is used for the compiler implementation.
 - Java 17 is used as Java runtime version.
 - ANTLR4 version 4.13 is used for the parser implementation.
