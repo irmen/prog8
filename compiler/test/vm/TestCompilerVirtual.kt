@@ -1,6 +1,7 @@
 package prog8tests.vm
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.collections.shouldBeIn
@@ -1049,4 +1050,45 @@ main {
             vm.memory.getUW(allocations["main.mod_res"]!!) shouldBe 5u
         }
     }
+
+    test("memory() in array should not crash IRFileWriter") {
+        val code = """
+            %zeropage basicsafe
+            %import textio
+            main {
+                uword[2] addresses = [ memory("a1", 10, 0), memory("a2", 20, 0) ]
+                sub start() {
+                    txt.print_uw(addresses[0])
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), true, code, outputDir, errors)
+        withClue(errors.errors.joinToString("\n")) {
+            result shouldNotBe null
+        }
+    }
+
+    test("LONG constants and variables should not crash IRFileWriter") {
+        val code = """
+            %zeropage basicsafe
+            %import textio
+            main {
+                const long CL = $12345678
+                long vl = $87654321
+                sub start() {
+                    txt.print_l(CL)
+                    txt.print_l(vl)
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), true, code, outputDir, errors)
+        withClue(errors.errors.joinToString("\n")) {
+            result shouldNotBe null
+        }
+    }
+    
 })

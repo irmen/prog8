@@ -964,6 +964,8 @@ internal class AstChecker(private val program: Program,
         if(decl.type==VarDeclType.MEMORY) {
             if (decl.datatype.isString)
                 errors.err("strings cannot be memory-mapped", decl.position)
+            if (decl.datatype.isPointer || decl.datatype.isPointerArray)
+                errors.err("pointers cannot be memory-mapped", decl.position)
         }
 
         fun err(msg: String) = errors.err(msg, decl.position)

@@ -38,10 +38,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                             else
                                 "& ${txt(it.dereference!!)}"
                         }
-                        is PtFunctionCall -> {
-                            require(it.builtin && it.name=="prog8_lib_structalloc")
-                            txt(it)
-                        }
+                        is PtFunctionCall -> txt(it)
                         else -> "invalid array element $it"
                     }
                 }

@@ -1,5 +1,6 @@
 package prog8.intermediate
 
+import prog8.code.core.BaseDataType
 import prog8.code.core.InternalCompilerException
 import prog8.code.core.Position
 import prog8.code.core.toHex
@@ -390,7 +391,17 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
         val value: String = when {
             dt.isBool -> (initValue as? IRVariableInitializer.Numeric)?.value?.toInt()?.toString() ?: ""
             dt.isFloat -> (initValue as? IRVariableInitializer.Numeric)?.value?.toString() ?: ""
-            dt.isInteger || dt.isPointer -> (initValue as? IRVariableInitializer.Numeric)?.value?.toInt()?.toHex() ?: ""
+            dt.isInteger || dt.isPointer -> {
+                val num = (initValue as? IRVariableInitializer.Numeric)?.value
+                if (num != null) {
+                    if (dt.base == BaseDataType.LONG)
+                        num.toLong().toHex()
+                    else
+                        num.toInt().toHex()
+                } else {
+                    ""
+                }
+            }
             dt.isString -> {
                 val strInit = initValue as? IRVariableInitializer.Str
                     ?: error("String variable missing initialization value")
@@ -466,18 +477,21 @@ class IRFileWriter(private val irProgram: IRProgram, outfileOverride: Path?) {
     private fun writeConstant(constant: IRStConstant) {
         val dt = constant.dt
         val value: String = when {
-            dt.isBool -> constant.value!!.toInt().toString()
-            dt.isFloat -> constant.value!!.toString()
-            dt.isPointer -> constant.value!!.toInt().toHex()
-            dt.isInteger -> {
-                if(constant.value != null)
-                    constant.value.toLong().toHex()
-                else if(constant.memorySlabName != null)
+            dt.isBool -> constant.value?.toInt()?.toString() ?: ""
+            dt.isFloat -> constant.value?.toString() ?: ""
+            dt.isInteger || dt.isPointer -> {
+                if (constant.value != null) {
+                    if (dt.base == BaseDataType.LONG)
+                        constant.value.toLong().toHex()
+                    else
+                        constant.value.toInt().toHex()
+                } else if (constant.memorySlabName != null) {
                     "@$StMemorySlabBlockName.${constant.memorySlabName}"
-                else
-                    TODO("constant without value or memory slab: $constant")
+                } else {
+                    throw InternalCompilerException("constant without value or memory slab: $constant")
+                }
             }
-            else -> throw InternalCompilerException("weird dt")
+            else -> throw InternalCompilerException("weird dt $dt")
         }
         emitLine("${constant.typeString} ${constant.name}=$value")
     }

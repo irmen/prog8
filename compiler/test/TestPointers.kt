@@ -2529,12 +2529,12 @@ main {
 
 cx16 {
       %option merge
-      &^^word pword4 = &cx16.r4
+      const ^^word pword4 = &cx16.r4
 }
 
 player {
       alias sxPtr = cx16.pword4
-      &^^word zxPtr      = &cx16.r6
+      const ^^word zxPtr      = &cx16.r6
 
   sub test() {
     sxPtr^^ = -99           ; aliased assignment 
@@ -2809,5 +2809,26 @@ main {
 
         compileText(VMTarget(), true, src, outputDir, writeAssembly = true) shouldNotBe null
         compileText(Cx16Target(), true, src, outputDir, writeAssembly = true) shouldNotBe null
+    }
+
+    test("memory() in const pointer and uword should not crash IRFileWriter") {
+        val code = """
+            %zeropage basicsafe
+            %import textio
+            main {
+                const uword mp = memory("works", 100, 0)
+                const ^^long longs = memory("chunkoflongs", 2000, 0)
+                sub start() {
+                    txt.print_uwhex(mp, true)
+                    txt.print_uwhex(longs, true)
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), true, code, outputDir, errors)
+        withClue(errors.errors.joinToString("\n")) {
+            result shouldNotBe null
+        }
     }
 })

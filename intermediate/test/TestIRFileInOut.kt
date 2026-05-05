@@ -1,7 +1,6 @@
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
-import prog8.code.core.CbmPrgLauncherType
 import prog8.code.core.CompilationOptions
 import prog8.code.core.OutputType
 import prog8.code.core.ZeropageType

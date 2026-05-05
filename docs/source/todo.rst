@@ -1,7 +1,6 @@
 TODO
 ====
 
-
 Dead Code Elimination BUG in 64tass with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
@@ -79,8 +78,8 @@ Libraries
 Optimizations
 -------------
 
+- regular (non-const) pointers that don't get a new value assigned should be turned into a const pointer (just like uword variables do). Somehow this is not yet done for pointers whereas it works fine for uwords.  
 - Always do const-folding regardless of using -noopt or not. This will break A LOT of unit tests though
-- for const pointers: check that pointer arithmetic and indexing with constant index are const-folded
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time

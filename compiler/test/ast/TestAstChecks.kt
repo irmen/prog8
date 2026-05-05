@@ -165,6 +165,21 @@ main {
         compileText(VMTarget(), false, text, outputDir, writeAssembly = true)  shouldNotBe null
     }
 
+    test("memory-mapped pointers are disallowed") {
+        val text = """
+            main {
+                &^^ubyte p1 = 4000
+                sub start() {
+                    p1^^ = 10
+                }
+            }
+        """
+        val errors = ErrorReporterForTests()
+        compileText(VMTarget(), true, text, outputDir, writeAssembly = false, errors=errors) shouldBe null
+        errors.errors.size shouldBe 1
+        errors.errors[0] shouldContain "pointers cannot be memory-mapped"
+    }
+
     test("return with a statement instead of a value is a syntax error") {
         val src="""
 main {
