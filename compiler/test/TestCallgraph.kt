@@ -301,7 +301,7 @@ main {
 }
 
 xyz {
-    uword buffer_ptr = memory("buffers_stack", 8192, 0)
+    uword buffer_ptr = 4444
 
     sub loadm() -> ubyte {            ; loadm is also an IR instruction
         return buffer_ptr[2]

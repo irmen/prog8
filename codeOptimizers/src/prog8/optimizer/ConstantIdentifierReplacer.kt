@@ -22,6 +22,15 @@ class VarConstantValueTypeAdjuster(
         return noModifications
     }
 
+    private fun getConstantInitializer(expr: Expression): Expression? {
+        val cv = expr.constValue(program)
+        if (cv != null) return cv
+        if (expr is IFunctionCall && expr.target.nameInSource == listOf("memory")) return expr
+        return null
+    }
+
+    private fun isConstantInitializer(expr: Expression): Boolean = getConstantInitializer(expr) != null
+
     override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
 
         if(decl.parent is AnonymousScope)
@@ -38,9 +47,10 @@ class VarConstantValueTypeAdjuster(
 
         // replace variables by constants, if possible
         if(options.optimize) {
-            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE || !decl.datatype.isNumericOrBool)
+            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE 
+                || !(decl.datatype.isNumericOrBool || decl.datatype.isPointer))
                 return noModifications
-            if (decl.value != null && decl.value!!.constValue(program) == null)
+            if (decl.value != null && !isConstantInitializer(decl.value!!))
                 return noModifications
             val usages = callGraph.usages(decl)
             val (writes, reads) = usages
@@ -81,10 +91,10 @@ class VarConstantValueTypeAdjuster(
                             return listOf(AstRemove(decl, parent as IStatementContainer))
                         }
                     }
-                    val declValue = decl.value?.constValue(program)
+                    val declValue = if (decl.value != null) getConstantInitializer(decl.value!!) else null
                     if (declValue != null) {
                         // variable is never written to, so it can be replaced with a constant, IF the value is a constant
-                        errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
+                        errors.info("variable '${decl.name}' is never written to and was made const", decl.position)
                         val const = VarDecl.builder(decl.datatype, decl.position)
                             .copyFrom(decl)
                             .type(VarDeclType.CONST)
@@ -97,7 +107,7 @@ class VarConstantValueTypeAdjuster(
                     }
                 }
             } else {
-                if (singleAssignment.origin == AssignmentOrigin.VARINIT && singleAssignment.value.constValue(program) != null) {
+                if (singleAssignment.origin == AssignmentOrigin.VARINIT && isConstantInitializer(singleAssignment.value)) {
                     if(reads.isEmpty()) {
                         if(decl.names.size>1) {
                             errors.info("unused variable '${decl.name}'", decl.position)
@@ -113,7 +123,7 @@ class VarConstantValueTypeAdjuster(
                     }
     
                     // variable only has a single write, and it is the initialization value, so it can be replaced with a constant, but only IF the value is a constant
-                    errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
+                    errors.info("variable '${decl.name}' is never written to and was made const", decl.position)
                     val const = VarDecl.builder(decl.datatype, decl.position)
                         .copyFrom(decl)
                         .type(VarDeclType.CONST)

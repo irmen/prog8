@@ -1,6 +1,13 @@
 TODO
 ====
 
+Regressions after the latest commit: 
+- examples/cx16/landscape.p8  is LARGER and BROKEN  after terrain was turned into a const
+- examples/cx16/charfade.p8   is  BROKEN  after palette was turned into a const   
+- examples/maze.p8  now is LARGER
+- examples/cx16/filesseek.p8 is LARGER
+
+
 Dead Code Elimination BUG in 64tass with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
@@ -78,7 +85,6 @@ Libraries
 Optimizations
 -------------
 
-- regular (non-const) pointers that don't get a new value assigned should be turned into a const pointer (just like uword variables do). Somehow this is not yet done for pointers whereas it works fine for uwords.  
 - Always do const-folding regardless of using -noopt or not. This will break A LOT of unit tests though
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)

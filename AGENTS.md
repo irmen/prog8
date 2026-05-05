@@ -136,6 +136,18 @@ You MUST read that file as well to understand the language you are working with.
 - **git log/history queries can be useful** for understanding when/why a feature was added or tracking down when a bug was introduced, but for locating code use grep_search or glob instead.
 - Architecture decisions: separation of frontend/parser, IR intermediate representation, multiple backends
 
+## Junie Agent Commitments
+These instructions apply specifically to the Junie agent:
+
+*   **Code Discovery and Navigation**: Use the `get_file_structure` tool to understand the API and structure of files before reading or editing them.
+*   **Symbol-Aware Searching**: Use the `search_project` tool as the primary method for finding symbol definitions (classes, methods, variables) across the project.
+*   **Project-Wide Refactoring**: Exclusively use the `rename_element` tool for any symbol renames to ensure all references, imports, and documentation are updated correctly.
+*   **Structured Test Execution**: Use the `run_test` tool for rapid, isolated verification of Kotlin logic changes.
+*   **Contextual Exploration**: Use the `open` tool with specific `line_number` parameters to navigate directly to relevant code sections.
+*   **Gradle Console Output**: Always use the `--console=plain` flag with `gradle` commands. Fancy console output (like progress bars) will mess up the coding agent's text interface.
+
+**Note on Terminal usage**: Junie uses `gradle` and terminal commands primarily for project lifecycle tasks (e.g., `gradle installdist` to re-embed standard library resources), manual compiler verification with `prog8c`, and full regression testing before submission. When using `gradle`, always append `--console=plain`.
+
 # Dev environment tips
 
 ## Development Workflows
@@ -154,9 +166,9 @@ You MUST read that file as well to understand the language you are working with.
 - use the system installed gradle command instead of the gradle wrapper.
 
 ### Quick compile check (NO tests)
-- **After changing compiler Kotlin source (.kt files)**: Use `gradle :compiler:compileKotlin` to quickly check for syntax/compile errors
+- **After changing compiler Kotlin source (.kt files)**: Use `gradle :compiler:compileKotlin --console=plain` to quickly check for syntax/compile errors
 - This compiles the compiler but **skips running tests**, this is much faster than `gradle build`
-- **Note:** This does NOT install the compiler - use `gradle installdist installshadowdist` after to actually use your changes
+- **Note:** This does NOT install the compiler - use `gradle installdist installshadowdist --console=plain` after to actually use your changes
 
 ### When you MUST rebuild AND reinstall the compiler
 
@@ -165,7 +177,7 @@ You MUST read that file as well to understand the language you are working with.
 2. **Standard library Prog8 files** (`compiler/res/prog8lib/**/*.p8`)
 3. **Standard library assembly files** (`compiler/res/prog8lib/**/*.asm`)
 
-**Run:** `gradle installdist installshadowdist`
+**Run:** `gradle installdist installshadowdist --console=plain`
 
 **Why:** The standard library files (.p8 and .asm) are embedded into the compiler JAR during the build. Changes to these files are NOT picked up by simply running `prog8c` - you MUST rebuild and reinstall for your changes to take effect.
 
@@ -181,10 +193,10 @@ You MUST read that file as well to understand the language you are working with.
 
 | Command | When to use | Time |
 |---------|-------------|------|
-| `gradle :compiler:compileKotlin` | Quick syntax check (no tests) | ~10-20s |
-| `gradle installdist installshadowdist` | After compiler changes (to use them) | ~10-20s |
-| `gradle build` | Before commits, after major changes | ~45-60s |
-| `gradle test --tests "*Name*"` | Run specific tests | ~5-30s |
+| `gradle :compiler:compileKotlin --console=plain` | Quick syntax check (no tests) | ~10-20s |
+| `gradle installdist installshadowdist --console=plain` | After compiler changes (to use them) | ~10-20s |
+| `gradle build --console=plain` | Before commits, after major changes | ~45-60s |
+| `gradle test --tests "*Name*" --console=plain` | Run specific tests | ~5-30s |
 
 **Note:** Use system `gradle` command, not wrapper. Run `gradle clean` if you suspect stale artifacts.
 
@@ -212,9 +224,10 @@ You MUST read that file as well to understand the language you are working with.
 ## Testing and Verification
 
 ### Automated Tests (gradle)
-- `gradle build` - Full build including all tests (about 50s)
-- `gradle :compiler:test` - Run only compiler tests (faster)
-- `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization"` - Run specific test class
+Always use the `--console=plain` flag with these commands to avoid messing up the agent's text interface.
+- `gradle build --console=plain` - Full build including all tests (about 50s)
+- `gradle :compiler:test --console=plain` - Run only compiler tests (faster)
+- `gradle :compiler:test --tests "prog8tests.compiler.TestOptimization" --console=plain` - Run specific test class
 
 Note: By default, Gradle only shows failed tests. Passed and skipped tests are silent.
 

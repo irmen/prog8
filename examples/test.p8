@@ -3,17 +3,18 @@
 
 main {
     sub start() {
-        struct Node {
-            ^^Node next
-            uword data
-        }
+        uword lv = 3000
+        ^^long longs = 4000
+        ^^long longsptr = memory("zzz", 2000, 0)        ; SHOULD BE CONST
+        const ^^long longsptr2 = memory("zzz2", 2000, 0)  ; is CONST, already works
 
-        ^^Node n = 4000
-        &^^Node n2 = 5000
-
-        n.data=9999
-        txt.print_uw(n.data)
-        n2.data=9999
-        txt.print_uw(n2.data)
+        txt.print_uwhex(lv, true)
+        txt.nl()
+        txt.print_uwhex(longs, true)
+        txt.nl()
+        txt.print_uwhex(longsptr, true)
+        txt.nl()
+        txt.print_uwhex(longsptr2, true)
+        txt.nl()
     }
 }

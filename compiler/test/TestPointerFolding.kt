@@ -13,6 +13,8 @@ import prog8.ast.expressions.Expression
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.NumericLiteral
 import prog8.ast.statements.FunctionCallStatement
+import prog8.ast.statements.VarDecl
+import prog8.ast.statements.VarDeclType
 import prog8.ast.walk.AstModification
 import prog8.ast.walk.AstWalker
 import prog8.code.target.VMTarget
@@ -142,5 +144,73 @@ class TestPointerFolding : FunSpec({
         val b2Addr = b2Read!!.addressExpression
         b2Addr shouldBe instanceOf<NumericLiteral>()
         (b2Addr as NumericLiteral).number shouldBe 12288.0
+    }
+
+    test("automatic conversion of non-const pointer to const") {
+        val src = """
+            %import textio
+            %import floats
+            main {
+                ^^ubyte modulePtr = ${'$'}1000
+                
+                sub start() {
+                    ^^uword localPtr1 = ${'$'}2000
+                    ^^float localPtr2
+                    localPtr2 = ${'$'}3000
+                    
+                    txt.print_ub(modulePtr[0])
+                    txt.print_uw(localPtr1[0])
+                    txt.print_f(localPtr2[0])
+                    
+                    ; subsequent pointer arithmetic on converted constants should also be folded
+                    uword p_math = localPtr1 + 5
+                    txt.print_uw(p_math)
+                }
+            }
+        """.trimIndent()
+
+        val errors = ErrorReporterForTests()
+        val result = compileText(VMTarget(), true, src, tempdir().toPath(), errors = errors)
+        withClue("Compiler errors: " + errors.errors.joinToString("\n")) {
+            result shouldNotBe null
+        }
+        val program = result!!.compilerAst
+        
+        val varDecls = mutableListOf<VarDecl>()
+        val allCalls = mutableListOf<IFunctionCall>()
+        val walker = object: AstWalker() {
+            override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
+                varDecls.add(decl)
+                return noModifications
+            }
+            override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification> {
+                allCalls.add(functionCallStatement)
+                return noModifications
+            }
+        }
+        walker.visit(program)
+
+        val mPtr = varDecls.find { it.name == "modulePtr" }!!
+        mPtr.type shouldBe VarDeclType.CONST
+
+        val lPtr1 = varDecls.find { it.name == "localPtr1" }!!
+        lPtr1.type shouldBe VarDeclType.CONST
+
+        val lPtr2 = varDecls.find { it.name == "localPtr2" }!!
+        lPtr2.type shouldBe VarDeclType.CONST
+        
+        // verify pointer arithmetic folding: localPtr1 ($2000) + 5*2 = $200a (8202)
+        val mathCalls = allCalls.filter { it.target.nameInSource.last() == "print_uw" }
+        // mathCalls[0] is print_uw(localPtr1[0]) -> peekw(8192)
+        // mathCalls[1] is print_uw(p_math) -> print_uw(8202)
+        val mathArg = mathCalls[1].args[0]
+        mathArg shouldBe instanceOf<NumericLiteral>()
+        (mathArg as NumericLiteral).number shouldBe 8202.0
+
+        // also verify that the indexing was folded to a peek with literal address
+        val indexingCall = mathCalls[0].args[0] as FunctionCallExpression
+        indexingCall.target.nameInSource.last() shouldBe "peekw"
+        indexingCall.args[0] shouldBe instanceOf<NumericLiteral>()
+        (indexingCall.args[0] as NumericLiteral).number shouldBe 8192.0
     }
 })

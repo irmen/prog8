@@ -218,7 +218,7 @@ main {
     }
 }"""
         val target = VMTarget()
-        val result = compileText(target, true, src, outputDir, writeAssembly = true)!!
+        val result = compileText(target, false, src, outputDir, writeAssembly = true)!!
         val start = result.compilerAst.entrypoint
         start.statements.size shouldBe 9
         ((start.statements[1] as Assignment).value as FunctionCallExpression).target.nameInSource shouldBe listOf("memory")
