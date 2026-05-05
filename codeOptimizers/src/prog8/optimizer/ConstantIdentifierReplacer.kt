@@ -50,11 +50,11 @@ class VarConstantValueTypeAdjuster(
                             || it.parent is ForLoop
                             || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
                 }
-
+    
             // If the address of the variable is taken, we cannot replace it with a constant.
             if (reads.any { it.parent is AddressOf })
                 return noModifications
-
+    
             var singleAssignment: Assignment? = null
             val singleWrite=writes.singleOrNull()
             if(singleWrite!=null) {
@@ -68,7 +68,7 @@ class VarConstantValueTypeAdjuster(
                     }
                 }
             }
-
+    
             if (singleAssignment == null) {
                 if (writes.isEmpty()) {
                     if(reads.isEmpty()) {
@@ -111,7 +111,7 @@ class VarConstantValueTypeAdjuster(
                             )
                         }
                     }
-
+    
                     // variable only has a single write, and it is the initialization value, so it can be replaced with a constant, but only IF the value is a constant
                     errors.info("variable '${decl.name}' is never written to and was replaced by a constant", decl.position)
                     val const = VarDecl.builder(decl.datatype, decl.position)
@@ -359,27 +359,21 @@ internal class ConstantIdentifierReplacer(
         }
 
         // handle const pointers
-        if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST) {
-            val pointerValue = targetNode.value?.constValue(program)!!
-            if (isPartOfPointerArithmetic(identifier, dt)) {
-                // pointer is part of pointer arithmetic expression, must evaluate it.
-                // TODO do we do this here, or postpone it to ConstantFoldingOptimizer?
-                val binexpr = identifier.parent as? BinaryExpression
-                if (binexpr != null) {
-                    val constLeft = binexpr.left.constValue(program)
-                    val constRight = binexpr.right.constValue(program)
-                    when(binexpr.operator) {
-                        "-" -> {
-                            println("TODO: try to const-evaluate pointer arithmetic on a const pointer identifier: $identifier at ${identifier.position} pointer arithmetic expression = ${binexpr}")
-                        }
-                        "+" -> {
-                            println("TODO: try to const-evaluate pointer arithmetic on a const pointer identifier: $identifier at ${identifier.position} pointer arithmetic expression = ${binexpr}")
-                        }
-                    }
+        if (dt.isPointer) {
+            if (isPartOfPointerArithmetic(identifier, dt))
+                return noModifications  // ConstantFoldingOptimizer will take care of this further
+
+            if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST) {
+                val pointerValue = targetNode.value?.constValue(program)
+                if (pointerValue != null) {
+                    return listOf(
+                        AstReplaceNode(
+                            identifier,
+                            NumericLiteral(BaseDataType.UWORD, pointerValue.number, identifier.position),
+                            parent
+                        )
+                    )
                 }
-            } else {
-                // pointer is not part of pointer arithmetic expression, can immediately replace it with its value
-                return listOf(AstReplaceNode(identifier, NumericLiteral(BaseDataType.UWORD, pointerValue.number, identifier.position), parent))
             }
         }
 
@@ -416,7 +410,7 @@ internal class ConstantIdentifierReplacer(
                 return listOf(
                     AstReplaceNode(
                         identifier,
-                        NumericLiteral(BaseDataType.UWORD, cval.number!!, identifier.position),
+                        NumericLiteral(BaseDataType.UWORD, cval.number, identifier.position),
                         identifier.parent
                     )
                 )

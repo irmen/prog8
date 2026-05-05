@@ -663,7 +663,7 @@ data class AddressOf(var identifier: IdentifierReference?, var arrayIndex: Array
                         if (index != null) {
                             address += when {
                                 target.datatype.isInteger -> index
-                                target.datatype.isArray -> program.memsizer.memorySize(targetVar.datatype, index)
+                                target.datatype.isPointer || target.datatype.isArray -> index * targetVar.datatype.size(program.memsizer)
                                 else -> throw FatalAstException("need array or ptr")
                             }
                         } else
@@ -889,6 +889,8 @@ class NumericLiteral(val type: BaseDataType,    // only numerical types allowed 
     }
 
     private fun internalCast(targettype: BaseDataType, implicit: Boolean): ValueAfterCast {
+        // NOTE: do not add targettype.isPointer checks to the other numeric types in the 'when' block below,
+        // like in the UBYTE case. It causes an endless loop in the compiler.
 
         // NOTE: this MAY convert a value into another when switching from singed to unsigned!!!
 

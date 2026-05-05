@@ -67,6 +67,18 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         return listOf(AstReplaceNode(expr, constValue, parent))
     }
 
+    private fun getPointerConstValue(expr: Expression): NumericLiteral? {
+        if (expr.inferType(program).isPointer) {
+            if (expr is IdentifierReference) {
+                val target = expr.definingScope.lookup(expr.nameInSource) as? VarDecl
+                if (target?.type == VarDeclType.CONST) {
+                    return target.value?.constValue(program)
+                }
+            }
+        }
+        return expr.constValue(program)
+    }
+
     /*
      * Try to constfold a binary expression.
      * Compile-time constant sub expressions will be evaluated on the spot.
@@ -87,6 +99,33 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
     override fun after(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
         if(expr.operator==".")
             return noModifications
+
+        val leftDt = expr.left.inferType(program)
+        val rightDt = expr.right.inferType(program)
+
+        // pointer arithmetic: ptr + offset, ptr - offset
+        if (leftDt.isPointer && (expr.operator == "+" || expr.operator == "-") && !rightDt.isPointer) {
+            val leftPtrConst = getPointerConstValue(expr.left)
+            val rightOffsetConst = expr.right.constValue(program)
+            if (leftPtrConst != null && rightOffsetConst != null) {
+                val scale = leftDt.getOrUndef().size(program.memsizer)
+                val offset = rightOffsetConst.number.toInt() * scale
+                val result = if (expr.operator == "+") leftPtrConst.number + offset else leftPtrConst.number - offset
+                return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))
+            }
+        }
+        // commutative pointer arithmetic: offset + ptr
+        if (rightDt.isPointer && expr.operator == "+" && !leftDt.isPointer) {
+            val rightPtrConst = getPointerConstValue(expr.right)
+            val leftOffsetConst = expr.left.constValue(program)
+            if (rightPtrConst != null && leftOffsetConst != null) {
+                val scale = rightDt.getOrUndef().size(program.memsizer)
+                val offset = leftOffsetConst.number.toInt() * scale
+                val result = rightPtrConst.number + offset
+                return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))
+            }
+        }
+
         val modifications = mutableListOf<AstModification>()
         val leftconst = expr.left.constValue(program)
         val rightconst = expr.right.constValue(program)

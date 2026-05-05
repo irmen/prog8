@@ -79,6 +79,7 @@ Libraries
 Optimizations
 -------------
 
+- Always do const-folding regardless of using -noopt or not. This will break A LOT of unit tests though
 - for const pointers: check that pointer arithmetic and indexing with constant index are const-folded
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
