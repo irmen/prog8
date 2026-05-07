@@ -25,7 +25,7 @@ class VarConstantValueTypeAdjuster(
     private fun getConstantInitializer(expr: Expression): Expression? {
         val cv = expr.constValue(program)
         if (cv != null) return cv
-        if (expr is IFunctionCall && expr.target.nameInSource == listOf("memory")) return expr
+        // TODO this doesn't work yet: if (expr is IFunctionCall && expr.target.nameInSource == listOf("memory")) return expr
         return null
     }
 
@@ -349,7 +349,8 @@ internal class ConstantIdentifierReplacer(
         val targetNode = identifier.definingScope.lookup(identifier.nameInSource)
         if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST &&
             targetNode.value is FunctionCallExpression &&
-            (targetNode.value as FunctionCallExpression).target.nameInSource == listOf("memory")
+            (targetNode.value as FunctionCallExpression).target.nameInSource == listOf("memory") &&
+            identifier.parent !is ArrayIndexedExpression
         ) {
             // Replace IdentifierReference with the memory() FunctionCallExpression
             // Update position to match the identifier's position (where it's used), not the original declaration

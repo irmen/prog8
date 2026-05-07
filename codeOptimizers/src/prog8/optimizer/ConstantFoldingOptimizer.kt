@@ -108,7 +108,9 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             val leftPtrConst = getPointerConstValue(expr.left)
             val rightOffsetConst = expr.right.constValue(program)
             if (leftPtrConst != null && rightOffsetConst != null) {
-                val scale = leftDt.getOrUndef().size(program.memsizer)
+                val ptrDt = leftDt.getOrUndef()
+                val subDt = ptrDt.sub
+                val scale = if(subDt is BaseDataType) program.memsizer.memorySize(subDt) else ptrDt.size(program.memsizer)
                 val offset = rightOffsetConst.number.toInt() * scale
                 val result = if (expr.operator == "+") leftPtrConst.number + offset else leftPtrConst.number - offset
                 return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))
@@ -119,7 +121,9 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
             val rightPtrConst = getPointerConstValue(expr.right)
             val leftOffsetConst = expr.left.constValue(program)
             if (rightPtrConst != null && leftOffsetConst != null) {
-                val scale = rightDt.getOrUndef().size(program.memsizer)
+                val ptrDt = rightDt.getOrUndef()
+                val subDt = ptrDt.sub
+                val scale = if(subDt is BaseDataType) program.memsizer.memorySize(subDt) else ptrDt.size(program.memsizer)
                 val offset = leftOffsetConst.number.toInt() * scale
                 val result = rightPtrConst.number + offset
                 return listOf(AstReplaceNode(expr, NumericLiteral(BaseDataType.UWORD, result, expr.position), parent))

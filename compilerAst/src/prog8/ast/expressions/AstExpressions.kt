@@ -452,8 +452,12 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
                 indexer = replacement
             }
             is Expression -> {
-                // Replacing just the index expression
-                indexer.indexExpr = replacement
+                if(node===indexer.indexExpr) {
+                    // Replacing just the index expression
+                    indexer.indexExpr = replacement
+                } else {
+                    throw FatalAstException("invalid replace: $node -> $replacement")
+                }
             }
             else -> throw FatalAstException("invalid replace: $node -> $replacement")
         }
@@ -461,18 +465,13 @@ class ArrayIndexedExpression(var plainarrayvar: IdentifierReference?,
     }
 
     override fun constValue(program: Program): NumericLiteral? {
-        // constant folding for pointer[constantIndex]
-        val deref = pointerderef
-        if (deref != null) {
-            val ptrConst = deref.constValue(program)
-            if (ptrConst != null) {
-                val constIndex = indexer.constIndex()
-                if (constIndex != null) {
-                    // Get the element size from the pointer type
-                    val ptrDt = deref.inferType(program).getOrUndef().base
-                    val elementSize = program.memsizer.memorySize(ptrDt)
-                    val address = ptrConst.number.toInt() + constIndex * elementSize
-                    return NumericLiteral(BaseDataType.UWORD, address.toDouble(), position)
+        val arrayVar = plainarrayvar?.targetVarDecl()
+        if (arrayVar != null && arrayVar.type == VarDeclType.CONST) {
+            val constIndex = indexer.constIndex()
+            if (constIndex != null) {
+                val arrayLiteral = arrayVar.value as? ArrayLiteral
+                if (arrayLiteral != null && constIndex in arrayLiteral.value.indices) {
+                    return arrayLiteral.value[constIndex].constValue(program)
                 }
             }
         }
@@ -1944,7 +1943,14 @@ class PtrDereference(
     override val isSimple = false
     override fun isIORead(target: ICompilationTarget) = false
     override fun copy(): PtrDereference = PtrDereference(chain.toList(), derefLast, position)
-    override fun constValue(program: Program): NumericLiteral? = null
+    override fun constValue(program: Program): NumericLiteral? {
+        if (derefLast) return null
+        val target = definingScope.lookup(chain) as? VarDecl
+        if (target?.type == VarDeclType.CONST) {
+            return target.value?.constValue(program)
+        }
+        return null
+    }
     override fun accept(visitor: IAstVisitor) = visitor.visit(this)
     override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
 

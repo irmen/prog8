@@ -26,6 +26,9 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
+- maybe change memory()  into a separate static allocation + actual const reference to it. Both 2 new Ast node types. First in SimpleAst but maybe even also in CompilerAst.
+  Should make code simpler that has to work with memory slabs, and may enable correct implementation of const optimizations for memory slab pointers 
+  (is now skipped because it doesn't work, see the bullet under 'optimizations')
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
@@ -94,3 +97,6 @@ Optimizations
   This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on
   Note that simple prioritization based on size (bytes first) yields WORSE results for many programs.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those 6502 only optimizations should probably be removed
+- Const-optimization of ``memory()`` variables: currently, variables initialized with a ``memory()`` call are not automatically 
+  promoted to constants. Furthermore, when such a variable is explicitly declared as ``const``, it is not replaced 
+  by its value (the ``memory()`` call) when used as the base of an array indexing expression.
