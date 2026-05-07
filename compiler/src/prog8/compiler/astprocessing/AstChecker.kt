@@ -1027,7 +1027,7 @@ internal class AstChecker(private val program: Program,
                     }
                     is IFunctionCall -> {
                         val call = decl.value as IFunctionCall
-                        if(decl.type==VarDeclType.CONST && call.target.nameInSource==listOf("memory")) {
+                        if(decl.type==VarDeclType.CONST && call.isMemoryCall) {
                             // memory() as a constant initializer is okay, it will end up being a constant address in the end
                         } else if (decl.type == VarDeclType.CONST) {
                             valueerr("const declaration needs a compile-time constant initializer value")
@@ -2536,7 +2536,7 @@ internal class AstChecker(private val program: Program,
                 is StaticStructInitializer -> it.structname.hashCode() and 0xffff
                 is FunctionCallExpression -> {
                     // Only "memory" builtin function is allowed as array element
-                    if(it.target.nameInSource == listOf("memory"))
+                    if(it.isMemoryCall)
                         it.args[0].toString().hashCode() and 0xffff  // hash of slab name for range check
                     else {
                         errors.err("only memory() function call is allowed as array element", it.position)
@@ -2569,7 +2569,7 @@ internal class AstChecker(private val program: Program,
         if (!correct) {
             if (value.parent is VarDecl && !value.value.all { 
                 it is NumericLiteral || it is AddressOf || it is StaticStructInitializer ||
-                (it is FunctionCallExpression && it.target.nameInSource == listOf("memory"))
+                (it is FunctionCallExpression && it.isMemoryCall)
             })
                 errors.err("initialization value contains non-constant elements", value.value[0].position)
             else
@@ -2681,7 +2681,7 @@ internal class AstChecker(private val program: Program,
             }
             if (!args.all { 
                 it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral) ||
-                (it is FunctionCallExpression && it.target.nameInSource == listOf("memory"))
+                (it is FunctionCallExpression && it.isMemoryCall)
             })
                 errors.err("initialization value contains non-constant elements", args[0].position)
             val struct = initializer.structname.targetStructDecl()

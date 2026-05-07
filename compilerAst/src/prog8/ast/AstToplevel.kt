@@ -33,6 +33,9 @@ interface IFunctionCall {
     var parent: Node             // will be linked correctly later (late init)
 }
 
+val IFunctionCall.isMemoryCall: Boolean
+    get() = target.nameInSource == listOf("memory")
+
 interface IStatementContainer {
     val statements: MutableList<Statement>
 

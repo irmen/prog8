@@ -3,6 +3,7 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.expressions.*
+import prog8.ast.isMemoryCall
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.INTERNED_STRINGS_MODULENAME
@@ -46,7 +47,7 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
         if(error!=null)
             errors.err(error.first, error.second)
         else {
-            if(functionCallExpr.target.nameInSource==listOf("memory")) {
+            if(functionCallExpr.isMemoryCall) {
                 val name = (functionCallExpr.args[0] as StringLiteral).value
                 val size = (functionCallExpr.args[1] as? NumericLiteral)?.number?.toInt()
                 val align = (functionCallExpr.args[2] as? NumericLiteral)?.number?.toInt()

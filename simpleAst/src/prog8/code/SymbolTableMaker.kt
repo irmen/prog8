@@ -159,15 +159,14 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     stVar.setOnetimeInitNumeric(initialNumeric)
                 stVar
             }
-            is PtFunctionCall if node.builtin -> {
-                if(node.name=="memory") {
-                    createMemorySlabFromCall(node, scope)
-                }
-                else if(node.name=="prog8_lib_structalloc") {
-                    val instance = handleStructAllocation(node, scope)
-                    if(instance!=null) {
-                        scope.first().add(instance)
-                    }
+            is PtFunctionCall if node.isMemoryCall -> {
+                createMemorySlabFromCall(node, scope)
+                null
+            }
+            is PtFunctionCall if node.builtin && node.name=="prog8_lib_structalloc" -> {
+                val instance = handleStructAllocation(node, scope)
+                if(instance!=null) {
+                    scope.first().add(instance)
                 }
                 null
             }
@@ -197,7 +196,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtBool -> StArrayElement.BoolValue(it.value)
                 is PtNumber -> StArrayElement.Number(it.number)
                 is PtFunctionCall -> {
-                    require(it.builtin && it.name == "memory") {
+                    require(it.isMemoryCall) {
                         "prog8_lib_structalloc() argument must be memory() call at ${it.position}"
                     }
                     val slabname = createMemorySlabFromCall(it, scope)
@@ -245,7 +244,7 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     require(it.builtin)
                     if(it.name=="prog8_lib_structalloc") {
                         handleStructallocAsArrayElement(it, scope)
-                    } else if(it.name=="memory") {
+                    } else if(it.isMemoryCall) {
                         val slabname = createMemorySlabFromCall(it, scope)
                         StArrayElement.MemorySlab(slabname)
                     } else

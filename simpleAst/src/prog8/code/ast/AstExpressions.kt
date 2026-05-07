@@ -291,6 +291,9 @@ class PtFunctionCall(val name: String,
     override fun copy() = PtFunctionCall(name, builtin, hasNoSideEffects, returntypes, position)
 }
 
+val PtFunctionCall.isMemoryCall: Boolean
+    get() = builtin && name == "memory"
+
 
 class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position) {
     override fun toString(): String {

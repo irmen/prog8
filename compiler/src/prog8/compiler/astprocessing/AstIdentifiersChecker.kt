@@ -6,6 +6,7 @@ import prog8.ast.Program
 import prog8.ast.expressions.FunctionCallExpression
 import prog8.ast.expressions.StaticStructInitializer
 import prog8.ast.expressions.StringLiteral
+import prog8.ast.isMemoryCall
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.BuiltinFunctions
@@ -241,7 +242,7 @@ internal class AstIdentifiersChecker(private val errors: IErrorReporter,
                         val pos = (if(call.args.any()) call.args[0] else (call as Node)).position
                         invalidNumberOfArgsError(pos, call.args.size, func.parameters.map {it.name })
                     }
-                    if(target.name=="memory") {
+                    if(call.isMemoryCall) {
                         val name = call.args[0] as? StringLiteral
                         if(name!=null) {
                             val processed = name.value.map {

@@ -8,6 +8,7 @@ import prog8.ast.FatalAstException
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.expressions.*
+import prog8.ast.isMemoryCall
 import prog8.ast.statements.*
 import prog8.code.StMemorySlab
 import prog8.code.ast.*
@@ -749,7 +750,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                         throw FatalAstException("const pointer address could not be computed at ${srcVar.position}")
                     }
                     is IFunctionCall -> {
-                        if(constVal.target.nameInSource == listOf("memory")) {
+                        if(constVal.isMemoryCall) {
                             val call = constVal
                             val slabname = (call.args[0] as StringLiteral).value
                             val size = (call.args[1] as NumericLiteral).number.toUInt()
@@ -843,7 +844,7 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
             val child = transformExpression(elt)
             require(child is PtAddressOf || child is PtBool || child is PtNumber || 
                     (child is PtFunctionCall && child.builtin && child.name=="prog8_lib_structalloc") ||
-                    (child is PtFunctionCall && child.name == "memory")) {"array element invalid type $child" }
+                    (child is PtFunctionCall && child.isMemoryCall)) {"array element invalid type $child" }
             arr.add(child)
         }
         return arr
