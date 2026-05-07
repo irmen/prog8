@@ -8,6 +8,7 @@ Written by Irmen de Jong (irmen@razorvine.net) - Code is in the Public Domain.
 Requirements: Pillow  (pip install pillow)
 """
 
+import argparse
 from PIL import Image, features
 from typing import TypeAlias, Tuple, Optional
 
@@ -179,7 +180,7 @@ class BitmapImage:
         elif bits_per_pixel == 4:
             num_colors = 15 if fixed_color_zero else 16
             if num_colors==16 and preserve_first_16_colors:
-                return self.quantize_to(default_colors[:16], 0)
+                return self.quantize_to(default_colors[:16], dither)
         elif bits_per_pixel == 2:
             assert preserve_first_16_colors==False, "bpp is too small for 16 default colors"
             num_colors = 3 if fixed_color_zero else 4
@@ -188,26 +189,29 @@ class BitmapImage:
             num_colors = 1 if fixed_color_zero else 2
         else:
             raise ValueError("only 8,4,2,1 bpp supported")
-        image = self.img.convert("RGB")
+        image_rgb = self.img.convert("RGB")
         quantize_method = Image.Quantize.MEDIANCUT
-        dither_method = Image.Dither.ORDERED
         if features.check_feature("libimagequant"):
             quantize_method = Image.Quantize.LIBIMAGEQUANT
-            dither_method = Image.Dither.FLOYDSTEINBERG
+            # constrain to 4-bit-per-channel only for palette creation so the quantizer works in 12-bit color space
+            image_for_palette = image_rgb.point(lambda x: channel_8to4(x) << 4 | channel_8to4(x))
             print("python PIL: yay, libimagequant is available, using it for high quality and fast conversion.")
         else:
+            image_for_palette = image_rgb
             print("python PIL: libimagequant not available, using mediancut+kmeans instead. This is a slightly less accurate conversion, and slow.")
-        palette_image = image.quantize(colors=num_colors, dither=dither_method, method=quantize_method, kmeans=10)
+        # palette creation needs dithering for good results; NONE would give a poor palette so fallback
+        dither_method = dither if dither != Image.Dither.NONE else Image.Dither.FLOYDSTEINBERG
+        palette_image = image_for_palette.quantize(colors=num_colors, dither=dither_method, method=quantize_method, kmeans=10)
         if len(palette_image.getpalette()) // 3 > num_colors:
-            palette_image = image.quantize(colors=num_colors - 1, dither=dither_method, method=quantize_method, kmeans=10)
+            palette_image = image_for_palette.quantize(colors=num_colors - 1, dither=dither_method, method=quantize_method, kmeans=10)
         palette_rgb = flat_palette_to_rgb(palette_image.getpalette())
-        palette_rgb = list(reversed(sorted(set(palette_8to4(palette_rgb)))))
+        palette_rgb = list(dict.fromkeys(palette_8to4(palette_rgb)))
         if preserve_first_16_colors:
             palette_rgb = default_colors[:16] + palette_rgb
         elif fixed_color_zero:
             assert fixed_color_zero[0]<16 and fixed_color_zero[1]<16 and fixed_color_zero[2]<16, "fixed color 0 must to be 4 bits per channel"
             palette_rgb = [fixed_color_zero] + palette_rgb
-        self.img = image
+        self.img = image_rgb
         self.quantize_to(palette_rgb, dither)
 
     def constrain_size(self, hires: bool = False) -> None:
@@ -291,3 +295,27 @@ def rgb_palette_to_vera(palette_rgb: RGBList) -> bytearray:
         data.append(g << 4 | b)
         data.append(r)
     return data
+
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description="Convert an image to 12-bit indexed color (Commander X16 / Amiga OCS format)")
+    ap.add_argument("input", help="input image file")
+    ap.add_argument("-o", "--output", default="output.png", help="output image file (default: output.png)")
+    ap.add_argument("-b", "--bpp", type=int, choices=[1, 2, 4, 8], default=8, help="bits per pixel (default: 8)")
+    ap.add_argument("-d", "--dither", choices=["floydsteinberg", "ordered", "none"], default="floydsteinberg",
+                    help="dither method (default: floydsteinberg)")
+    ap.add_argument("--preserve-default-16", action="store_true",
+                    help="keep first 16 palette entries as the X16 default palette")
+    args = ap.parse_args()
+
+    dither_map = {
+        "floydsteinberg": Image.Dither.FLOYDSTEINBERG,
+        "ordered": Image.Dither.ORDERED,
+        "none": Image.Dither.NONE,
+    }
+
+    bm = BitmapImage(args.input)
+    bm.constrain_size(hires=False)
+    bm.quantize(args.bpp, preserve_first_16_colors=args.preserve_default_16, dither=dither_map[args.dither])
+    bm.save(args.output)
+    print(f"saved to {args.output}  ({bm.width}x{bm.height}, {args.bpp}bpp, {len(bm.get_palette())} colors)")

@@ -26,7 +26,7 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- maybe change memory()  into a separate static allocation + actual const reference to it. Both 2 new Ast node types. First in SimpleAst but maybe even also in CompilerAst.
+- maybe change the Ast node that represents the builtin memory() function call into a separate static allocation + actual const reference to it. Both 2 new Ast node types, like MemorySlabReservation and MemorySlabRef. First implement and test in SimpleAst and IR codegen, then 6502 codegen, then also in CompilerAst to simplify all checks for builtin "memory" function calls all over the shop.
   Should make code simpler that has to work with memory slabs, and may enable correct implementation of const optimizations for memory slab pointers 
   (is now skipped because it doesn't work, see the bullet under 'optimizations')
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
