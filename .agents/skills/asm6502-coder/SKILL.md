@@ -1,5 +1,5 @@
 ---
-name: asm65-coder
+name: asm6502-coder
 description: Write 6502/65C02 assembly code using 64tass syntax, for use within Prog8 programs
 license: MIT
 compatibility: opencode

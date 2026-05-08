@@ -246,6 +246,6 @@ It contains the full language reference -- syntax rules, data types, standard li
 guidance, and common pitfalls.
 
 If you need to write inline assembly (``%asm {{ }}`` blocks or ``asmsub`` routines),
-also load the ``asm65-coder`` skill (``.agents/skills/asm65-coder/``) for
+also load the ``asm6502-coder`` skill (``.agents/skills/asm6502-coder/``) for
 64tass assembler syntax, register conventions, and symbol prefixing rules.  
 

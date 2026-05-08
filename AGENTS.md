@@ -53,7 +53,7 @@ Source → parseMainModule() → processAst() → optimizeAst() → postprocessA
 
 ### Target Differences
 - **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
-- When writing or understanding assembly code, load the `asm65-coder` skill for 64tass syntax and conventions.
+- When writing or understanding assembly code, load the `asm6502-coder` skill for 64tass syntax and conventions.
 
 
 ## DEBUGGING TIP: Use `-noopt` to isolate problems
