@@ -241,8 +241,11 @@ AI Assisted Development
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want to use an AI coding agent to help write Prog8 programs,
-make sure the agent is provided with the language-specific instructions found in the file ``AGENTS-PROG8-LANG.md`` in the project root.
-This file contains important details about Prog8 syntax, data types, builtin functions, and common pitfalls that the AI needs to know
-to understand and generate correct Prog8 code. It also lets the agent know about the 64tass asembly syntax that Prog8 uses.
-Without this context, AI agents is likely to  suggest invalid syntax or idioms from other languages (like C or Python) that do not apply to Prog8.  
+load the ``prog8-coder`` skill (located in ``.agents/skills/prog8-coder/``).
+It contains the full language reference -- syntax rules, data types, standard library
+guidance, and common pitfalls.
+
+If you need to write inline assembly (``%asm {{ }}`` blocks or ``asmsub`` routines),
+also load the ``asm65-coder`` skill (``.agents/skills/asm65-coder/``) for
+64tass assembler syntax, register conventions, and symbol prefixing rules.  
 

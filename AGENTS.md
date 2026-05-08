@@ -1,6 +1,23 @@
-# Agents.md
+# CRITICAL RULES - MUST FOLLOW
 
-Context and instructions for AI Agents to work on this project.
+## RESPONSES
+
+- Keep responses concise and to the point - unless the user asks otherwise
+
+## PLANNING MODE
+
+- Always ask clarifying questions
+- Never assume design, tech stack or features
+- Use deep-dive sub-agents to assist with research
+- Use deep-dive sub-agents to review the different aspects of your plan before presenting to the user
+
+## CHANGE / EDIT MODE
+
+- Never implement features yourself when possible - use sub-agents!
+- Identify changes from the plan that can be implemented in parallel, and use sub-agents to implement the features efficiently
+- When using sub-agents to implement features, act as a coordinator only
+- Use the best model for the task - premium models for complex tasks (like coding) and mid-tier models for simpler tasks, like documentation
+- After completing features (large or small), always run commands like lint, type check and next build to check code quality
 
 ## Project Overview
 - This project is a compiler for the Prog8 programming language.
@@ -36,6 +53,7 @@ Source → parseMainModule() → processAst() → optimizeAst() → postprocessA
 
 ### Target Differences
 - **CPU instruction set differences**: Only the CommanderX16 target (cx16) can use 65C02 instructions such as STZ. The other targets (C64, C128, PET32) can only use original 6502 instructions.
+- When writing or understanding assembly code, load the `asm65-coder` skill for 64tass syntax and conventions.
 
 
 ## DEBUGGING TIP: Use `-noopt` to isolate problems
@@ -111,8 +129,7 @@ Steps when encountering a compiler crash:
 
 ## Prog8 language information
 
-General Prog8 programming language instructions and feature hints can be found in the separate file [AGENTS-PROG8-LANG.md](AGENTS-PROG8-LANG.md). 
-You MUST read that file as well to understand the language you are working with.
+When the task involves writing or understanding `.p8` (Prog8 source) or `.p8ir` (Prog8 intermediate representation) files, **load the `prog8-coder` skill** — it contains the full language reference, syntax rules, and standard library guidance.
 
 ## Project Module Descriptions
 - `compiler` - Main compiler entrypoint (src/prog8/CompilerMain.kt)
@@ -223,6 +240,9 @@ These instructions apply specifically to the Junie agent:
 
 ## Testing and Verification
 
+- Never assume your changes simply work, always test!
+- If the project does not have any testing tools, scripts, MCP tools, skills, etc. available for testing, ask the user whether testing should be skipped.
+
 ### Automated Tests (gradle)
 Always use the `--console=plain` flag with these commands to avoid messing up the agent's text interface.
 - `gradle build --console=plain` - Full build including all tests (about 50s)
@@ -294,19 +314,19 @@ For high-fidelity functional verification of generated 6502 code without a full 
 
 **When renaming or moving git-tracked files, ALWAYS use `git mv`:**
 ```bash
-# ✅ CORRECT - preserves git history
+# CORRECT - preserves git history
 git mv old/path/File.kt new/path/File.kt
 
-# ❌ WRONG - git sees this as delete + add (loses history)
+# WRONG - git sees this as delete + add (loses history)
 mv old/path/File.kt new/path/File.kt
 ```
 
 **When deleting git-tracked files, ALWAYS use `git rm`:**
 ```bash
-# ✅ CORRECT - properly stages the deletion
+# CORRECT - properly stages the deletion
 git rm path/to/File.kt
 
-# ❌ WRONG - git sees this as unstaged deletion
+# WRONG - git sees this as unstaged deletion
 rm path/to/File.kt
 ```
 
