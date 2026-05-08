@@ -99,6 +99,32 @@ internal class ExpressionGen(private val codeGen: IRCodeGen) {
             is PtFunctionCall -> translate(expr)
             is PtContainmentCheck -> translate(expr)
             is PtPointerDeref -> translate(expr)
+            is PtConstant -> {
+                val name = expr.name
+                val slab = expr.memorySlab
+                // Check if the constant has a numeric value or is a memory slab reference
+                if(slab != null) {
+                    val code = IRCodeChunk(null, null)
+                    val resultReg = codeGen.registers.next(IRDataType.WORD)
+                    code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "${StMemorySlabBlockName}.${slab.name}")
+                    ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
+                } else if(expr.value != null) {
+                    TODO("didn't expect PtConstant to appear here ${expr.position}")
+//                    val vmDt = irType(expr.type)
+//                    val code = IRCodeChunk(null, null)
+//                    val resultRegister = codeGen.registers.next(vmDt)
+//                    code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, immediate = expr.value!!.toInt())
+//                    ExpressionCodeResult(code, vmDt, resultRegister, -1)
+                } else {
+                    // Regular constant reference - look up in symbol table
+                    TODO("didn't expect PtConstant to appear here ${expr.position}")
+//                    val vmDt = irType(expr.type)
+//                    val code = IRCodeChunk(null, null)
+//                    val resultRegister = codeGen.registers.next(vmDt)
+//                    code += IRInstruction(Opcode.LOAD, vmDt, reg1 = resultRegister, labelSymbol = name)
+//                    ExpressionCodeResult(code, vmDt, resultRegister, -1)
+                }
+            }
             is PtRange,
             is PtArray,
             is PtString -> throw AssemblyError("range/arrayliteral/string should no longer occur as expression")

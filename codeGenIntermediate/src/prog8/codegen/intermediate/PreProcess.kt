@@ -5,15 +5,33 @@ import prog8.code.ast.*
 
 internal fun makeAllNodenamesScoped(program: PtProgram) {
     val renames = mutableListOf<Pair<PtNamedNode, String>>()
+    val constRenames = mutableListOf<Pair<PtConstant, String>>()
+    fun computeScopedName(node: PtNode): String {
+        val name = if(node is PtNamedNode) node.name else (node as? PtConstant)?.name ?: return ""
+        var parent = node.parent
+        while(true) {
+            when(parent) {
+                is PtNamedNode -> return "${parent.scopedName}.$name"
+                is PtConstant -> return "${parent.name}.$name"
+                is PtProgram -> return name
+                else -> {}
+            }
+            parent = parent.parent
+        }
+    }
     fun recurse(node: PtNode) {
         node.children.forEach {
-            if(it is PtNamedNode)
-                renames.add(it to it.scopedName)
+            when(it) {
+                is PtNamedNode -> renames.add(it to it.scopedName)
+                is PtConstant -> constRenames.add(it to computeScopedName(it))
+                else -> {}
+            }
             recurse(it)
         }
     }
     recurse(program)
     renames.forEach { it.first.name = it.second }
+    constRenames.forEach { it.first.name = it.second }
 }
 
 internal fun moveAllNestedSubroutinesToBlockScope(program: PtProgram) {

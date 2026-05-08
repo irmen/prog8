@@ -1033,26 +1033,48 @@ internal class ProgramAndVarsGen(
                 }
             dt.isArray && (dt.elementType().isUnsignedWord || dt.elementType().isPointer) ->
                 array.map {
-                    val numValue = (it as? StArrayElement.Number)?.value 
-                        ?: throw AssemblyError("expected number for uword array")
-                    val number = numValue.toInt()
-                    "$" + number.toString(16).padStart(4, '0')
+                    when(it) {
+                        is StArrayElement.Number -> "$" + it.value.toInt().toString(16).padStart(4, '0')
+                        is StArrayElement.AddressOf -> {
+                            val symbol = symboltable.lookup(it.symbol)!!
+                            if(symbol is StStaticVariable && symbol.dt.isSplitWordArray)
+                                asmgen.asmSymbolName(it.symbol+"_lsb")
+                            else
+                                asmgen.asmSymbolName(it.symbol)
+                        }
+                        is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
+                        is StArrayElement.StructInstance -> {
+                            val prefix = if(it.uninitialized) "${StStructInstanceBlockName}_bss" else StStructInstanceBlockName
+                            asmgen.asmSymbolName("$prefix.${it.name}")
+                        }
+                        is StArrayElement.BoolValue -> throw AssemblyError("bool in word array")
+                    }
                 }
             dt.isSignedWordArray ->
                 array.map {
-                    val numValue = (it as? StArrayElement.Number)?.value 
-                        ?: throw AssemblyError("expected number for word array")
-                    val number = numValue.toInt()
-                    val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
-                    if(number>=0) "$$hexnum" else "-$$hexnum"
+                    when(it) {
+                        is StArrayElement.Number -> {
+                            val number = it.value.toInt()
+                            val hexnum = number.absoluteValue.toString(16).padStart(4, '0')
+                            if (number >= 0) "$$hexnum" else "-$$hexnum"
+                        }
+                        is StArrayElement.AddressOf -> asmgen.asmSymbolName(it.symbol)
+                        is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
+                        else -> throw AssemblyError("unexpected array element type for signed word array")
+                    }
                 }
             dt.isLongArray ->
                 array.map {
-                    val numValue = (it as? StArrayElement.Number)?.value 
-                        ?: throw AssemblyError("expected number for long array")
-                    val number = numValue.toInt()
-                    val hexnum = number.absoluteValue.toLongHex()
-                    if(number>=0) "$$hexnum" else "-$$hexnum"
+                    when(it) {
+                        is StArrayElement.Number -> {
+                            val number = it.value.toInt()
+                            val hexnum = number.absoluteValue.toLongHex()
+                            if (number >= 0) "$$hexnum" else "-$$hexnum"
+                        }
+                        is StArrayElement.AddressOf -> asmgen.asmSymbolName(it.symbol)
+                        is StArrayElement.MemorySlab -> asmgen.asmSymbolName("$StMemorySlabBlockName.${it.name}")
+                        else -> throw AssemblyError("unexpected array element type for long array")
+                    }
                 }
             else -> throw AssemblyError("invalid dt")
         }

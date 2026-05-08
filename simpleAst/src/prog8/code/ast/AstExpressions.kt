@@ -132,6 +132,7 @@ sealed class PtExpression(val type: DataType, position: Position) : PtNode(posit
             is PtTypeCast -> value.isSimple()
             is PtIfExpression -> condition.isSimple() && truevalue.isSimple() && falsevalue.isSimple()
             is PtBranchCondExpression -> truevalue.isSimple() && falsevalue.isSimple()
+            is PtConstant -> true
         }
     }
 
@@ -290,9 +291,6 @@ class PtFunctionCall(val name: String,
 
     override fun copy() = PtFunctionCall(name, builtin, hasNoSideEffects, returntypes, position)
 }
-
-val PtFunctionCall.isMemoryCall: Boolean
-    get() = builtin && name == "memory"
 
 
 class PtIdentifier(val name: String, type: DataType, position: Position) : PtExpression(type, position) {

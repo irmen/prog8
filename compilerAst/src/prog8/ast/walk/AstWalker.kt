@@ -215,6 +215,8 @@ abstract class AstWalker {
     open fun before(ongoto: OnGoto, parent: Node): Iterable<AstModification> = noModifications
     open fun before(swap: Swap, parent: Node): Iterable<AstModification> = noModifications
     open fun before(enum: Enumeration, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(reservation: MemorySlabReservation, parent: Node): Iterable<AstModification> = noModifications
+    open fun before(ref: MemorySlabRef, parent: Node): Iterable<AstModification> = noModifications
 
     open fun after(addressOf: AddressOf, parent: Node): Iterable<AstModification> = noModifications
     open fun after(array: ArrayLiteral, parent: Node): Iterable<AstModification> = noModifications
@@ -269,6 +271,8 @@ abstract class AstWalker {
     open fun after(ongoto: OnGoto, parent: Node): Iterable<AstModification> = noModifications
     open fun after(swap: Swap, parent: Node): Iterable<AstModification> = noModifications
     open fun after(enum: Enumeration, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(reservation: MemorySlabReservation, parent: Node): Iterable<AstModification> = noModifications
+    open fun after(ref: MemorySlabRef, parent: Node): Iterable<AstModification> = noModifications
 
     protected val modifications = mutableListOf<Triple<AstModification, Node, Node>>()
 
@@ -380,6 +384,16 @@ abstract class AstWalker {
         iniitializer.structname.accept(this, iniitializer)
         iniitializer.args.forEach { it.accept(this, iniitializer) }
         track(after(iniitializer, parent), iniitializer, parent)
+    }
+
+    fun visit(reservation: MemorySlabReservation, parent: Node) {
+        track(before(reservation, parent), reservation, parent)
+        track(after(reservation, parent), reservation, parent)
+    }
+
+    fun visit(ref: MemorySlabRef, parent: Node) {
+        track(before(ref, parent), ref, parent)
+        track(after(ref, parent), ref, parent)
     }
 
     fun visit(subroutine: Subroutine, parent: Node) {

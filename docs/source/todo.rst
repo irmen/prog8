@@ -2,10 +2,11 @@ TODO
 ====
 
 Regressions after the latest commit: 
-- examples/cx16/landscape.p8  is LARGER and BROKEN  after terrain was turned into a const
-- examples/cx16/charfade.p8   is  BROKEN  after palette was turned into a const   
+- examples/cx16/landscape.p8  is LARGER after terrain was turned into a const (see details at bottom)
+- examples/cx16/charfade.p8   is  BROKEN  after palette was turned into a const
 - examples/maze.p8  now is LARGER
 - examples/cx16/filesseek.p8 is LARGER
+- GOOD CHANGES: examples/cx16/life, examples/pointers/binarytree,hashtable,sortedlist all got SMALLER (and still work)
 
 
 Dead Code Elimination BUG in 64tass with nested subroutines
@@ -100,3 +101,9 @@ Optimizations
 - Const-optimization of ``memory()`` variables: currently, variables initialized with a ``memory()`` call are not automatically 
   promoted to constants. Furthermore, when such a variable is explicitly declared as ``const``, it is not replaced 
   by its value (the ``memory()`` call) when used as the base of an array indexing expression.
+- The ``SimplifiedAstMaker`` recombines ``PtVariable + PtAssignment(MemorySlabRef)`` back into ``PtConstant``.
+  This is correct semantically but creates a regression in the 6502 code generator: the original ``uword`` variable
+  would be stored in zeropage, allowing efficient ``lda (zp_var)`` access to the slab memory.
+  When turned into a constant, every access must load the slab label address from scratch, producing larger code.
+  Fix: either detect this in the 6502 codegen and re-introduce a zp variable for such constants, or
+  keep the variable as a zp pointer in ``VarDeclType.VAR`` case and only recombine ``CONST`` declarations.

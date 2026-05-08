@@ -25,7 +25,7 @@ class VarConstantValueTypeAdjuster(
     private fun getConstantInitializer(expr: Expression): Expression? {
         val cv = expr.constValue(program)
         if (cv != null) return cv
-        // TODO this doesn't work yet: if (expr is IFunctionCall && expr.isMemoryCall) return expr
+        if (expr is MemorySlabRef) return expr
         return null
     }
 
@@ -344,29 +344,34 @@ internal class ConstantIdentifierReplacer(
         if (!dt.isKnown || !(dt.isNumeric || dt.isBool || dt.isPointer))
             return noModifications
 
-        // Special case: CONST variable holding memory() call - replace with the FunctionCallExpression itself
+        // Special case: CONST variable holding memory() slab - replace with the MemorySlabRef itself
         // This must be checked BEFORE constValue() since memory() returns null from constValue()
+        // It also handles the pre-desugared state (memory() still as FunctionCallExpression)
+        // because CodeDesugarer runs after ConstantIdentifierReplacer in processAst.
         val targetNode = identifier.definingScope.lookup(identifier.nameInSource)
         if (targetNode is VarDecl && targetNode.type == VarDeclType.CONST &&
-            targetNode.value is FunctionCallExpression &&
-            (targetNode.value as FunctionCallExpression).isMemoryCall &&
             identifier.parent !is ArrayIndexedExpression
         ) {
-            // Replace IdentifierReference with the memory() FunctionCallExpression
-            // Update position to match the identifier's position (where it's used), not the original declaration
-            val memCall = targetNode.value as FunctionCallExpression
-            val memCallWithNewPos = FunctionCallExpression(
-                memCall.target.copy(),
-                memCall.args.map { it.copy() }.toMutableList(),
-                identifier.position  // Use the position where it's referenced, not where it was declared
-            )
-            return listOf(
-                AstReplaceNode(
-                    identifier,
-                    memCallWithNewPos,
-                    identifier.parent
+            val slabName = when (val value = targetNode.value) {
+                is MemorySlabRef -> value.slabName
+                is FunctionCallExpression -> {
+                    if (value.isMemoryCall) {
+                        val str = value.args[0] as? StringLiteral
+                        str?.value
+                    } else null
+                }
+                else -> null
+            }
+            if (slabName != null) {
+                val newVal = MemorySlabRef(slabName, identifier.position)
+                return listOf(
+                    AstReplaceNode(
+                        identifier,
+                        newVal,
+                        identifier.parent
+                    )
                 )
-            )
+            }
         }
 
         // handle const pointers

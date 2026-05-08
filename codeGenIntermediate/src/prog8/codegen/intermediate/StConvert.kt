@@ -145,11 +145,16 @@ fun convertStToIRSt(sourceSt: SymbolTable?): IRSymbolTable {
                     val constant = it.value as StConstant
                     // If the constant has a memory() slab, add the slab to the IR symbol table first
                     constant.memorySlab?.let { slab ->
-                        st.add(StToIrConverter.convert(slab))
+                        val converted = StToIrConverter.convert(slab)
+                        st.add(converted)
                     }
                     st.add(StToIrConverter.convert(constant))
                 }
-                StNodeType.MEMORYSLAB -> st.add(StToIrConverter.convert(it.value as StMemorySlab))
+                StNodeType.MEMORYSLAB -> {
+                    val slab = it.value as StMemorySlab
+                    val converted = StToIrConverter.convert(slab)
+                    st.add(converted)
+                }
                 StNodeType.STRUCTINSTANCE -> {
                     val instance = it.value as StStructInstance
                     val struct = sourceSt.lookup(instance.structName) as StStruct

@@ -58,6 +58,12 @@ interface IAstVisitor {
     fun visit(enum: Enumeration) {
     }
 
+    fun visit(reservation: MemorySlabReservation) {
+    }
+
+    fun visit(ref: MemorySlabRef) {
+    }
+
     fun visit(subroutine: Subroutine) {
         subroutine.asmAddress?.varbank?.accept(this)
         subroutine.statements.forEach { it.accept(this) }

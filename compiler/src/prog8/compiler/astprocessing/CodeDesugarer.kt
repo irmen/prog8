@@ -8,7 +8,6 @@ import prog8.code.core.*
 
 
 internal class CodeDesugarer(val program: Program, private val target: ICompilationTarget, private val errors: IErrorReporter) : AstWalker() {
-
     // Some more code shuffling to simplify the Ast that the codegenerator has to process.
     // Several changes have already been done by the StatementReorderer !
     // But the ones here are simpler and are repeated once again after all optimization steps
@@ -27,6 +26,22 @@ internal class CodeDesugarer(val program: Program, private val target: ICompilat
     // - replace ptr^^ by @(ptr) if ptr is just an uword.
     // - replace p1^^ = p2^^  by memcopy.
 
+    private val globalReservedSlabs = mutableSetOf<String>()
+
+    override fun before(program: Program): Iterable<AstModification> {
+        globalReservedSlabs.clear()
+        // Pre-collect existing reservations from the entire program to avoid duplicates in multiple passes
+        val collector = object : IAstVisitor {
+            override fun visit(reservation: MemorySlabReservation) {
+                globalReservedSlabs.add(reservation.slabName)
+            }
+        }
+        program.modules.forEach { module ->
+            module.statements.forEach { it.accept(collector) }
+        }
+        return super.before(program)
+    }
+    
     override fun before(breakStmt: Break, parent: Node): Iterable<AstModification> {
         fun jumpAfter(stmt: Statement): Iterable<AstModification> {
             val label = program.makeLabel("after", breakStmt.position)
@@ -240,6 +255,102 @@ _after:
         }
 
         return noModifications
+    }
+
+    private fun sanitizeSlabName(name: String): String {
+        return name.replace(Regex("[^a-zA-Z0-9_]"), "_")
+    }
+
+    override fun after(functionCallExpr: FunctionCallExpression, parent: Node): Iterable<AstModification> {
+        if (functionCallExpr.isMemoryCall) {
+            val str = functionCallExpr.args[0] as? StringLiteral
+            if (str == null) {
+                errors.err("memory name argument must be a string literal", functionCallExpr.args[0].position)
+                return noModifications
+            } else if (str.value.isEmpty()) {
+                errors.err("memory name argument cannot be empty string", functionCallExpr.args[0].position)
+                return noModifications
+            }
+
+            val sizeNum = (functionCallExpr.args[1] as? NumericLiteral)?.number?.toInt()
+            val alignNum = (functionCallExpr.args[2] as? NumericLiteral)?.number?.toInt()
+            if (sizeNum == null) {
+                errors.err("argument must be a constant", functionCallExpr.args[1].position)
+                return noModifications
+            }
+            if (alignNum == null) {
+                errors.err("argument must be a constant", functionCallExpr.args[2].position)
+                return noModifications
+            } else if (alignNum != 0 && (alignNum !in 0..256 || (alignNum and (alignNum - 1)) != 0)) {
+                errors.err("alignment must be 0 or a power of 2 (max 256)", functionCallExpr.args[2].position)
+                return noModifications
+            }
+
+            val slabName = sanitizeSlabName(str.value)
+            val size = sizeNum.toUInt()
+            val align = alignNum.toUInt()
+
+            val reservation = MemorySlabReservation(slabName, size, align, functionCallExpr.position)
+            val ref = MemorySlabRef(slabName, functionCallExpr.position)
+
+            val containingStmt = findContainingStatement(functionCallExpr)
+            val container = containingStmt.parent as IStatementContainer
+            
+            val mods = mutableListOf<AstModification>(AstReplaceNode(functionCallExpr, ref, parent))
+            if (slabName !in globalReservedSlabs) {
+                mods.add(AstInsert.before(containingStmt, reservation, container))
+                globalReservedSlabs.add(slabName)
+            }
+            return mods
+        }
+        return noModifications
+    }
+
+    override fun after(functionCallStatement: FunctionCallStatement, parent: Node): Iterable<AstModification> {
+        if (functionCallStatement.isMemoryCall) {
+            val str = functionCallStatement.args[0] as? StringLiteral
+            if (str == null) {
+                errors.err("memory name argument must be a string literal", functionCallStatement.args[0].position)
+                return noModifications
+            } else if (str.value.isEmpty()) {
+                errors.err("memory name argument cannot be empty string", functionCallStatement.args[0].position)
+                return noModifications
+            }
+
+            val sizeNum = (functionCallStatement.args[1] as? NumericLiteral)?.number?.toInt()
+            val alignNum = (functionCallStatement.args[2] as? NumericLiteral)?.number?.toInt()
+            if (sizeNum == null) {
+                errors.err("argument must be a constant", functionCallStatement.args[1].position)
+                return noModifications
+            }
+            if (alignNum == null) {
+                errors.err("argument must be a constant", functionCallStatement.args[2].position)
+                return noModifications
+            } else if (alignNum != 0 && (alignNum !in 0..256 || (alignNum and (alignNum - 1)) != 0)) {
+                errors.err("alignment must be 0 or a power of 2 (max 256)", functionCallStatement.args[2].position)
+                return noModifications
+            }
+
+            val slabName = sanitizeSlabName(str.value)
+            val size = sizeNum.toUInt()
+            val align = alignNum.toUInt()
+
+            val container = parent as IStatementContainer
+            return if (slabName in globalReservedSlabs) {
+                listOf(AstRemove(functionCallStatement, container))
+            } else {
+                globalReservedSlabs.add(slabName)
+                val reservation = MemorySlabReservation(slabName, size, align, functionCallStatement.position)
+                listOf(AstReplaceNode(functionCallStatement, reservation, parent))
+            }
+        }
+        return noModifications
+    }
+
+    private fun findContainingStatement(node: Node): Statement {
+        var n = node
+        while (n !is Statement) n = n.parent
+        return n
     }
 
     override fun after(repeatLoop: RepeatLoop, parent: Node): Iterable<AstModification> {

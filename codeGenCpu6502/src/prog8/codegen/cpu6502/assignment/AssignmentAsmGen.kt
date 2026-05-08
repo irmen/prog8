@@ -566,6 +566,12 @@ internal class AssignmentAsmGen(
             is PtIfExpression -> asmgen.assignIfExpression(assign.target, value)
             is PtBranchCondExpression -> asmgen.assignBranchCondExpression(assign.target, value)
             is PtPointerDeref -> pointergen.assignPointerDerefExpression(assign.target, value)
+            is PtConstant -> {
+                val slab = value.memorySlab
+                require(slab != null) { "remaining PtConstant in asmgen as assignment value can only be a memory slab reference at ${value.position}" }
+                val label = "$StMemorySlabBlockName.${slab.name}"
+                assignAddressOf(assign.target, label, false, DataType.UWORD, null)
+            }
             else -> throw AssemblyError("weird assignment value type $value")
         }
     }

@@ -39,6 +39,12 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
                                 "& ${txt(it.dereference!!)}"
                         }
                         is PtFunctionCall -> txt(it)
+                        is PtConstant -> {
+                            if(it.memorySlab!=null)
+                                "memory(${it.memorySlab.name})"
+                            else
+                                "#${it.value}"
+                        }
                         else -> "invalid array element $it"
                     }
                 }
@@ -190,6 +196,7 @@ fun printAst(root: PtNode, skipLibraries: Boolean, output: (text: String) -> Uni
             is PtIfExpression -> "<ifexpr>"
             is PtBranchCondExpression -> "<branchexpr> if_${node.condition.name.lowercase()}"
             is PtJmpTable -> "<jmptable>"
+            is PtMemorySlabReservation -> "mem_slab ${node.slabName} (size=${node.size}, align=${node.align})"
             is PtStructDecl -> {
                 "struct ${node.name} { " + node.fields.joinToString("  ") { "${it.first} ${it.second}" } + " }"
             }

@@ -397,12 +397,16 @@ internal class AstChecker(private val program: Program,
                 is Directive,
                 is Label,
                 is VarDecl,
+                is MemorySlabReservation,
+                is Subroutine,
                 is StructDecl,
                 is InlineAssembly,
                 is IStatementContainer -> true
                 is Assignment -> {
-                    val target = statement.target.identifier!!.targetStatement()
-                    target === statement.previousSibling()      // an initializer assignment is okay
+                    var prev = statement.previousSibling()
+                    while (prev is MemorySlabReservation) prev = prev.previousSibling()
+                    val target = statement.target.identifier?.targetStatement()
+                    target === prev      // an initializer assignment is okay
                 }
                 else -> false
             }
@@ -1025,11 +1029,11 @@ internal class AstChecker(private val program: Program,
                     is NumericLiteral -> {
                         checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteral)
                     }
+                    is MemorySlabRef -> {
+                        // memory() as an initializer is okay, it will end up being a constant address in the end
+                    }
                     is IFunctionCall -> {
-                        val call = decl.value as IFunctionCall
-                        if(decl.type==VarDeclType.CONST && call.isMemoryCall) {
-                            // memory() as a constant initializer is okay, it will end up being a constant address in the end
-                        } else if (decl.type == VarDeclType.CONST) {
+                        if (decl.type == VarDeclType.CONST) {
                             valueerr("const declaration needs a compile-time constant initializer value")
                             super.visit(decl)
                             return
@@ -1386,8 +1390,7 @@ internal class AstChecker(private val program: Program,
 
         if(array.parent is VarDecl) {
             if (!array.value.all { 
-                it is NumericLiteral || it is AddressOf || it is StaticStructInitializer ||
-                (it is FunctionCallExpression && it.target.nameInSource == listOf("memory"))
+                it is NumericLiteral || it is AddressOf || it is StaticStructInitializer || it is MemorySlabRef
             }) {
                 errors.err("initialization value contains non-constant elements", array.value[0].position)
             }
@@ -1847,17 +1850,16 @@ internal class AstChecker(private val program: Program,
         }
 
         if(builtinFunctionName=="memory") {
-            val str = functionCallExpr.args[0] as? StringLiteral
-            if(str==null)
-                errors.err("memory name argument must be a string literal", functionCallExpr.args[0].position)
-            else if(str.value.isEmpty())
-                errors.err("memory name argument cannot be empty string", functionCallExpr.args[0].position)
+            errors.err("memory() function call should have been desugared into dedicated AST nodes", functionCallExpr.position)
         }
 
         super.visit(functionCallExpr)
     }
 
     override fun visit(functionCallStatement: FunctionCallStatement) {
+        if(functionCallStatement.isMemoryCall) {
+            errors.err("memory() function call should have been desugared into dedicated AST nodes", functionCallStatement.position)
+        }
 
         if(functionCallStatement.target.nameInSource.size==1) {
             val functionName = functionCallStatement.target.nameInSource[0]
@@ -2534,15 +2536,7 @@ internal class AstChecker(private val program: Program,
                         cast.valueOrZero().number
                 }
                 is StaticStructInitializer -> it.structname.hashCode() and 0xffff
-                is FunctionCallExpression -> {
-                    // Only "memory" builtin function is allowed as array element
-                    if(it.isMemoryCall)
-                        it.args[0].toString().hashCode() and 0xffff  // hash of slab name for range check
-                    else {
-                        errors.err("only memory() function call is allowed as array element", it.position)
-                        -9999999  // invalid
-                    }
-                }
+                is MemorySlabRef -> it.slabName.hashCode() and 0xffff
                 else -> -9999999
             }
         }
@@ -2568,8 +2562,7 @@ internal class AstChecker(private val program: Program,
         }
         if (!correct) {
             if (value.parent is VarDecl && !value.value.all { 
-                it is NumericLiteral || it is AddressOf || it is StaticStructInitializer ||
-                (it is FunctionCallExpression && it.isMemoryCall)
+                it is NumericLiteral || it is AddressOf || it is StaticStructInitializer || it is MemorySlabRef
             })
                 errors.err("initialization value contains non-constant elements", value.value[0].position)
             else
@@ -2680,8 +2673,7 @@ internal class AstChecker(private val program: Program,
                 }
             }
             if (!args.all { 
-                it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral) ||
-                (it is FunctionCallExpression && it.isMemoryCall)
+                it is NumericLiteral || it is AddressOf || (it is TypecastExpression && it.expression is NumericLiteral) || it is MemorySlabRef 
             })
                 errors.err("initialization value contains non-constant elements", args[0].position)
             val struct = initializer.structname.targetStructDecl()

@@ -3,7 +3,6 @@ package prog8.compiler.astprocessing
 import prog8.ast.IFunctionCall
 import prog8.ast.Program
 import prog8.ast.expressions.*
-import prog8.ast.isMemoryCall
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.INTERNED_STRINGS_MODULENAME
@@ -42,23 +41,17 @@ internal class VerifyFunctionArgTypes(val program: Program, val options: Compila
     private class Slab(val name: String, val size: Int, val align: Int, val position: Position)
     private val memorySlabs = mutableListOf<Slab>()
 
+    override fun visit(reservation: MemorySlabReservation) {
+        memorySlabs.add(Slab(reservation.slabName, reservation.size.toInt(), reservation.align.toInt(), reservation.position))
+    }
+
+    override fun visit(ref: MemorySlabRef) {
+    }
+
     override fun visit(functionCallExpr: FunctionCallExpression) {
         val error = checkTypes(functionCallExpr as IFunctionCall, program)
         if(error!=null)
             errors.err(error.first, error.second)
-        else {
-            if(functionCallExpr.isMemoryCall) {
-                val name = (functionCallExpr.args[0] as StringLiteral).value
-                val size = (functionCallExpr.args[1] as? NumericLiteral)?.number?.toInt()
-                val align = (functionCallExpr.args[2] as? NumericLiteral)?.number?.toInt()
-                if(size==null)
-                    errors.err("argument must be a constant", functionCallExpr.args[1].position)
-                if(align==null)
-                    errors.err("argument must be a constant", functionCallExpr.args[2].position)
-                if(size!=null && align!=null)
-                    memorySlabs.add(Slab(name, size, align, functionCallExpr.position))
-            }
-        }
 
         super.visit(functionCallExpr)
     }

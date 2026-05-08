@@ -226,6 +226,7 @@ class IRCodeGen(
             is PtVariable -> emptyList() // var should be looked up via symbol table
             is PtMemMapped -> emptyList() // memmapped var should be looked up via symbol table
             is PtConstant -> emptyList() // constants have all been folded into the code
+            is PtMemorySlabReservation -> emptyList() // handled via symbol table
             is PtAssignment -> assignmentGen.translate(node)
             is PtAugmentedAssign -> assignmentGen.translate(node)
             is PtNodeGroup -> translateGroup(node.children)
@@ -1518,7 +1519,7 @@ class IRCodeGen(
             when(child) {
                 is PtNop -> { /* nothing */ }
                 is PtAssignment, is PtAugmentedAssign -> { /* global variable initialization is done elsewhere */ }
-                is PtVariable, is PtConstant, is PtMemMapped -> { /* vars should be looked up via symbol table */ }
+                is PtVariable, is PtConstant, is PtMemMapped, is PtMemorySlabReservation -> { /* vars should be looked up via symbol table */ }
                 is PtAlign -> TODO("ir support for inline %align  ${child.position}")
                 is PtSub -> {
                     val sub = IRSubroutine(child.name, translateParameters(child.signature.children), child.signature.returns, child.position)
@@ -1571,6 +1572,7 @@ class IRCodeGen(
                     }
                 }
                 is PtStructDecl -> { /* do nothing, should be found in the symbol table */ }
+                is PtMemorySlabReservation -> { /* do nothing, should be found in the symbol table */ }
                 else -> TODO("weird block child node $child  ${child.position}")
             }
         }

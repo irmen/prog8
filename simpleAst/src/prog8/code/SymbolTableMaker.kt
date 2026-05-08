@@ -49,28 +49,6 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
         return st
     }
 
-    // Helper function to create a memory slab from a memory() function call
-    private fun createMemorySlabFromCall(memCall: PtFunctionCall, scope: ArrayDeque<StNode>): String {
-        require(memCall.args[0] is PtString) {
-            "memory() first argument must be a string name at ${memCall.position}"
-        }
-        require(memCall.args[1] is PtNumber) {
-            "memory() second argument must be a number (size) at ${memCall.position}"
-        }
-        require(memCall.args[2] is PtNumber) {
-            "memory() third argument must be a number (alignment) at ${memCall.position}"
-        }
-        val slabname = (memCall.args[0] as PtString).value
-        val size = (memCall.args[1] as PtNumber).number.toUInt()
-        val align = (memCall.args[2] as PtNumber).number.toUInt()
-        val slab = StMemorySlab("memory_$slabname", size, align, memCall)
-        // Memory slabs are global memory regions, not scope-bound symbols.
-        // They must be added at the top level of the symbol table regardless of where
-        // the memory() call appears in the source code.
-        scope.first().add(slab)
-        return "memory_$slabname"
-    }
-
     private fun addToSt(node: PtNode, scope: ArrayDeque<StNode>) {
         val stNode = when(node) {
             is PtAsmSub -> {
@@ -112,6 +90,11 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
             is PtStructDecl -> {
                 val size = node.fields.sumOf { program.memsizer.memorySize(it.first, 1) }
                 StStruct(node.name, node.fields, size.toUInt(), node)
+            }
+            is PtMemorySlabReservation -> {
+                val slab = StMemorySlab("memory_${node.slabName}", node.size, node.align, node)
+                scope.first().add(slab)
+                null
             }
             is PtVariable -> {
                 val initialNumeric: Double?
@@ -159,10 +142,6 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                     stVar.setOnetimeInitNumeric(initialNumeric)
                 stVar
             }
-            is PtFunctionCall if node.isMemoryCall -> {
-                createMemorySlabFromCall(node, scope)
-                null
-            }
             is PtFunctionCall if node.builtin && node.name=="prog8_lib_structalloc" -> {
                 val instance = handleStructAllocation(node, scope)
                 if(instance!=null) {
@@ -195,12 +174,16 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 is PtAddressOf -> StArrayElement.AddressOf(it.identifier!!.name)
                 is PtBool -> StArrayElement.BoolValue(it.value)
                 is PtNumber -> StArrayElement.Number(it.number)
+                is PtConstant -> {
+                    val slab = it.memorySlab
+                        ?: throw InternalCompilerException(
+                            "prog8_lib_structalloc() argument must be memory() call at ${it.position}"
+                        )
+                    StArrayElement.MemorySlab(slab.name)
+                }
                 is PtFunctionCall -> {
-                    require(it.isMemoryCall) {
-                        "prog8_lib_structalloc() argument must be memory() call at ${it.position}"
-                    }
-                    val slabname = createMemorySlabFromCall(it, scope)
-                    StArrayElement.MemorySlab(slabname)
+                    if(it.builtin && it.name=="memory") throw InternalCompilerException("memory() call should have been desugared into dedicated nodes at ${it.position}")
+                    throw InternalCompilerException("Invalid argument type '${it::class.simpleName}' for prog8_lib_structalloc() at ${it.position}")
                 }
                 else -> throw InternalCompilerException(
                     "Invalid argument type '${it::class.simpleName}' for prog8_lib_structalloc() at ${it.position}"
@@ -240,13 +223,18 @@ class SymbolTableMaker(private val program: PtProgram, private val options: Comp
                 }
                 is PtNumber -> StArrayElement.Number(it.number)
                 is PtBool -> StArrayElement.BoolValue(it.value)
+                is PtConstant -> {
+                    val slab = it.memorySlab
+                        ?: throw InternalCompilerException(
+                            "Constant in array initial value must be a memory slab reference at ${it.position}"
+                        )
+                    StArrayElement.MemorySlab(slab.name)
+                }
                 is PtFunctionCall -> {
                     require(it.builtin)
+                    if(it.name=="memory") throw InternalCompilerException("memory() call should have been desugared into dedicated nodes at ${it.position}")
                     if(it.name=="prog8_lib_structalloc") {
                         handleStructallocAsArrayElement(it, scope)
-                    } else if(it.isMemoryCall) {
-                        val slabname = createMemorySlabFromCall(it, scope)
-                        StArrayElement.MemorySlab(slabname)
                     } else
                         TODO("support for initial array element via ${it.name}  ${it.position}")
                 }

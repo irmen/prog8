@@ -38,7 +38,6 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                 is PtAsmSub, is PtSub -> node.name = "p8s_${node.name}"
                 is PtBlock -> node.name = "p8b_${node.name}"
                 is PtLabel -> if(!node.name.startsWith(GENERATED_LABEL_PREFIX)) node.name = "p8l_${node.name}"   // only prefix user defined labels
-                is PtConstant -> node.name = "p8c_${node.name}"
                 is PtVariable, is PtMemMapped, is PtSubroutineParameter -> node.name = "p8v_${node.name}"
                 is PtStructDecl -> node.name = "p8t_${node.name}"
             }
@@ -101,7 +100,7 @@ class AsmGen6502(val prefixSymbols: Boolean, private val lastGeneratedLabelSeque
                     }
                 }
                 is PtBlock -> prefixNamedNode(node)
-                is PtConstant -> prefixNamedNode(node)
+                is PtConstant -> node.name = "p8c_${node.name}"
                 is PtLabel -> prefixNamedNode(node)
                 is PtMemMapped -> prefixNamedNode(node)
                 is PtSubroutineParameter -> prefixNamedNode(node)
@@ -239,6 +238,7 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
             when(elt) {
                 is PtBool -> newValue.add(elt)
                 is PtNumber -> newValue.add(elt)
+                is PtConstant -> newValue.add(elt)
                 is PtAddressOf -> {
                     if(elt.definingBlock()?.options?.noSymbolPrefixing==true)
                         newValue.add(elt)
@@ -252,12 +252,10 @@ private fun PtVariable.prefix(parent: PtNode, st: SymbolTable): PtVariable {
                     }
                 }
                 is PtFunctionCall if elt.builtin -> {
-                    // could be a struct instance or memory slab "allocation"
-                    if (elt.name != "prog8_lib_structalloc" && elt.name != "memory")
+                    if (elt.name != "prog8_lib_structalloc")
                         throw AssemblyError("weird array value element $elt")
-                    else {
+                    else
                         newValue.add(elt)
-                    }
                 }
                 else -> throw AssemblyError("weird array value element $elt")
             }
@@ -741,6 +739,7 @@ class AsmGen6502Internal (
             is PtNodeGroup -> stmt.children.forEach { translate(it) }
             is PtJmpTable -> translate(stmt)
             is PtSwap -> translate(stmt)
+            is PtMemorySlabReservation -> { /* handled via symbol table */ }
             is PtNop, is PtStructDecl, is PtSubSignature -> {}
             else -> throw AssemblyError("missing asm translation for $stmt")
         }

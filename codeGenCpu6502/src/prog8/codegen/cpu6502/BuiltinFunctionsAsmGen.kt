@@ -1,6 +1,5 @@
  package prog8.codegen.cpu6502
 
-import prog8.code.StMemorySlabBlockName
 import prog8.code.StStructInstanceBlockName
 import prog8.code.SymbolTable
 import prog8.code.ast.*
@@ -68,10 +67,6 @@ import prog8.codegen.cpu6502.assignment.*
             "ror2" -> funcRor2(fcall)
             "setlsb" -> funcSetLsbMsb(fcall, false)
             "setmsb" -> funcSetLsbMsb(fcall, true)
-            "memory" -> {
-                require(!discardResult) { "${fcall.position} should not discard result"}
-                funcMemory(fcall, firstReturnRegister ?: RegisterOrPair.AY)
-            }
             "peekw" -> funcPeekW(fcall, firstReturnRegister ?: RegisterOrPair.AY)
             "peekl" -> funcPeekL(fcall)
             "peekf" -> funcPeekF(fcall)
@@ -638,21 +633,6 @@ import prog8.codegen.cpu6502.assignment.*
 
         // there is no result value, the result is in the CPU's status bits
         return emptyArray()
-    }
-
-    private fun funcMemory(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {
-        val name = (fcall.args[0] as PtString).value
-        require(name.all { it.isLetterOrDigit() || it=='_' }) {"memory name should be a valid symbol name ${fcall.position}"}
-
-        val slabname = PtIdentifier("$StMemorySlabBlockName.memory_$name", DataType.UWORD, fcall.position)
-        val addressOf = PtAddressOf(DataType.pointer(BaseDataType.UBYTE), false, fcall.position)
-        addressOf.add(slabname)
-        addressOf.parent = fcall
-        val src = AsmAssignSource(SourceStorageKind.EXPRESSION, program, asmgen, DataType.UWORD, expression = addressOf)
-        val target = AsmAssignTarget.fromRegisters(resultReg, false, fcall.position, null, asmgen)
-        val assign = AsmAssignment(src, listOf(target), program.memsizer, fcall.position)
-        asmgen.translateNormalAssignment(assign, fcall.definingISub())
-        return arrayOf(resultReg)
     }
 
     private fun funcStructAlloc(fcall: PtFunctionCall, resultReg: RegisterOrPair): Array<RegisterOrPair> {

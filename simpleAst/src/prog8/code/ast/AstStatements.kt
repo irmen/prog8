@@ -387,13 +387,12 @@ class PtVariable(
 
 
 class PtConstant(
-    name: String,
-    override val type: DataType,
+    override var name: String,
+    type: DataType,
     val value: Double?,                 // either a constant number...
     val memorySlab: StMemorySlab?,     // .. or a memory() allocation
     position: Position
-) : PtNamedNode(name, position), IPtVariable {
-// note: a constant is a value but IS NOT a PtExpression node; all constants must have been replaced by their actual value
+) : PtExpression(type, position), IPtVariable {
 
     companion object {
         fun builder(name: String, type: DataType, position: Position) = Builder(name, type, position)
@@ -427,6 +426,11 @@ class PtMemMapped(name: String, override val type: DataType, val address: UInt, 
 
         fun build() = PtMemMapped(name, type, address, arraySize, position)
     }
+}
+
+
+class PtMemorySlabReservation(val slabName: String, val size: UInt, val align: UInt, position: Position) : PtNode(position) {
+    override fun copy() = PtMemorySlabReservation(slabName, size, align, position)
 }
 
 

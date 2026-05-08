@@ -1434,6 +1434,20 @@ class RangeExpression(var from: Expression,
     }
 }
 
+class MemorySlabRef(val slabName: String, override val position: Position) : Expression() {
+    override lateinit var parent: Node
+    override val isSimple = true
+    override fun copy() = MemorySlabRef(slabName, position)
+    override fun constValue(program: Program): NumericLiteral? = null
+    override fun inferType(program: Program): InferredTypes.InferredType = InferredTypes.knownFor(BaseDataType.UWORD)
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun linkParents(parent: Node) { this.parent = parent }
+    override fun replaceChildNode(node: Node, replacement: Node) {}
+    override fun referencesIdentifier(nameInSource: List<String>) = false
+    override fun isIORead(target: ICompilationTarget) = false
+}
+
 data class IdentifierReference(val nameInSource: List<String>, override val position: Position) : Expression() {
     override lateinit var parent: Node
 

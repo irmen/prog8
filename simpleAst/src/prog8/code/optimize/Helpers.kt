@@ -124,6 +124,7 @@ fun referencesIdentifier(node: PtNode, identifier: PtIdentifier): Boolean {
         is PtPrefix -> expr.children.any { referencesIdentifier(it, identifier) }
         is PtRange -> expr.children.any { referencesIdentifier(it, identifier) }
         is PtTypeCast -> expr.children.any { referencesIdentifier(it, identifier) }
+        is PtConstant -> false
     }
 
     return when(node) {

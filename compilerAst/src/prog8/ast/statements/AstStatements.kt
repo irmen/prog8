@@ -235,6 +235,22 @@ class Continue(override val position: Position) : Statement() {
 }
 
 
+class MemorySlabReservation(
+    val slabName: String,
+    val size: UInt,
+    val align: UInt,
+    override val position: Position
+) : Statement() {
+    override lateinit var parent: Node
+    override fun copy() = MemorySlabReservation(slabName, size, align, position)
+    override fun linkParents(parent: Node) { this.parent = parent }
+    override fun replaceChildNode(node: Node, replacement: Node) {}
+    override fun accept(visitor: IAstVisitor) = visitor.visit(this)
+    override fun accept(visitor: AstWalker, parent: Node) = visitor.visit(this, parent)
+    override fun referencesIdentifier(nameInSource: List<String>) = false
+}
+
+
 enum class VarDeclOrigin {
     USERCODE,
     SUBROUTINEPARAM,

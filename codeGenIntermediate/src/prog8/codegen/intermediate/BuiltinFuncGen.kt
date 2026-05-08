@@ -1,6 +1,5 @@
 package prog8.codegen.intermediate
 
-import prog8.code.StMemorySlabBlockName
 import prog8.code.StStructInstanceBlockName
 import prog8.code.SymbolTable
 import prog8.code.ast.*
@@ -34,7 +33,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "lsb" -> funcLsb(call, false)
             "lsb__long" -> funcLsb(call, true)
             "lmh" -> funcLmh(call)
-            "memory" -> funcMemory(call)
             "peek" -> funcPeek(call, IRDataType.BYTE)
             "peekbool" -> funcPeek(call, IRDataType.BYTE)
             "peekw" -> funcPeek(call, IRDataType.WORD)
@@ -669,14 +667,6 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
         }
     }
 
-
-    private fun funcMemory(call: PtFunctionCall): ExpressionCodeResult {
-        val name = (call.args[0] as PtString).value
-        val code = IRCodeChunk(null, null)
-        val resultReg = codeGen.registers.next(IRDataType.WORD)
-        code += IRInstruction(Opcode.LOAD, IRDataType.WORD, reg1=resultReg, labelSymbol = "$StMemorySlabBlockName.memory_$name")
-        return ExpressionCodeResult(code, IRDataType.WORD, resultReg, -1)
-    }
 
     private fun funcStructAlloc(call: PtFunctionCall): ExpressionCodeResult {
         val code = IRCodeChunk(null, null)
