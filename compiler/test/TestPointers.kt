@@ -696,15 +696,12 @@ main {
         compileText(C64Target(), false, src, outputDir) shouldNotBe null
     }
 
-    test("const pointer works correctly") {
+    test("const ubyte pointer works correctly") {
         val src="""
 main {
     sub start() {
-        const ^^uword cptr = 8192
         const ^^ubyte cbyteptr = 53248
 
-        ; test reading the pointers
-        cx16.r0 = cptr
         cx16.r1 = cbyteptr
     }
 }"""
@@ -2529,12 +2526,12 @@ main {
 
 cx16 {
       %option merge
-      const ^^word pword4 = &cx16.r4
+      const ^^byte pword4 = &cx16.r4
 }
 
 player {
       alias sxPtr = cx16.pword4
-      const ^^word zxPtr      = &cx16.r6
+      const ^^byte zxPtr      = &cx16.r6
 
   sub test() {
     sxPtr^^ = -99           ; aliased assignment 
@@ -2557,14 +2554,12 @@ player {
         val cond = ifCond.element as BinaryExpression
         val left = cond.left as TypecastExpression
         val right = cond.right as TypecastExpression
-        left.type shouldBe DataType.WORD
-        right.type shouldBe DataType.WORD
-        val leftpeek = left.expression as FunctionCallExpression
-        val rightpeek = right.expression as FunctionCallExpression
-        leftpeek.target.nameInSource shouldBe listOf("peekw")
-        rightpeek.target.nameInSource shouldBe listOf("peekw")
-        (leftpeek.args[0] as IdentifierReference).nameInSource shouldBe listOf("zxPtr")
-        (rightpeek.args[0] as IdentifierReference).nameInSource shouldBe listOf("cx16","pword4")
+        left.type shouldBe DataType.BYTE
+        right.type shouldBe DataType.BYTE
+        val leftpeek = left.expression as DirectMemoryRead
+        val rightpeek = right.expression as DirectMemoryRead
+        (leftpeek.addressExpression as IdentifierReference).nameInSource shouldBe listOf("zxPtr")
+        (rightpeek.addressExpression as IdentifierReference).nameInSource shouldBe listOf("cx16","pword4")
     }
 
     test("assigning field with same name should not confuse compiler") {
@@ -2817,7 +2812,7 @@ main {
             %import textio
             main {
                 const uword mp = memory("works", 100, 0)
-                const ^^long longs = memory("chunkoflongs", 2000, 0)
+                ^^long longs = memory("chunkoflongs", 2000, 0)
                 sub start() {
                     txt.print_uwhex(mp, true)
                     txt.print_uwhex(longs, true)

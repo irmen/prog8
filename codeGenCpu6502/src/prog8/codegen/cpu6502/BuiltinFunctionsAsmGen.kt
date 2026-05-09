@@ -102,7 +102,7 @@ import prog8.codegen.cpu6502.assignment.*
             "popw" -> funcPopW(firstReturnRegister ?: RegisterOrPair.AY)
             "popl" -> funcPopL()
             "popf" -> funcPopF()
-            else -> throw AssemblyError("missing asmgen for builtin func ${fcall.name}")
+            else -> throw AssemblyError("sizeof must have been replaced with a constant  ${fcall.position}")
         }
     }
 

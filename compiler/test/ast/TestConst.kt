@@ -7,8 +7,10 @@ import io.kotest.matchers.shouldNotBe
 import io.kotest.matchers.string.shouldContain
 import io.kotest.matchers.types.instanceOf
 import prog8.ast.expressions.*
-import prog8.ast.statements.*
 import prog8.ast.statements.Assignment
+import prog8.ast.statements.Return
+import prog8.ast.statements.VarDecl
+import prog8.ast.statements.VarDeclType
 import prog8.code.core.BaseDataType
 import prog8.code.core.Position
 import prog8.code.target.C64Target
@@ -726,10 +728,10 @@ main {
         compileText(C64Target(), false, src, outputDir, writeAssembly = true) shouldNotBe null
     }
 
-    test("const pointer arithmetic folding") {
+    test("const pointer arithmetic folding (byte type)") {
         val source = """
             main {
-                const ^^uword bptr = $2000
+                const ^^ubyte bptr = $2000
                 sub start() {
                     uword ptr2 = bptr + $10
                     cx16.r2 = ptr2
@@ -742,16 +744,14 @@ main {
         val value = vardecl.value
         value shouldNotBe null
         value shouldBe instanceOf<NumericLiteral>()
-        (value as NumericLiteral).number.toInt() shouldBe 0x2020  // Scaled: $2000 + $10*2 = $2020
+        (value as NumericLiteral).number.toInt() shouldBe 0x2010 
     }
 
-    test("const pointer indexing folding") {
+    test("const pointer indexing folding (byte type)") {
         val source = """
             main {
-                const ^^uword bptr = $2000
                 const ^^ubyte byteptr = $2000
                 sub start() {
-                    cx16.r0 = bptr[$1000]
                     cx16.r1L = byteptr[$1000]
                 }
             }
@@ -759,17 +759,6 @@ main {
         val result = compileText(Cx16Target(), true, source, outputDir, writeAssembly = false)!!
         val startSub = result.compilerAst.entrypoint
         val assignments = startSub.statements.filterIsInstance<Assignment>()
-
-        // cx16.r0 = bptr[$1000] -> should be peekw($4000)
-        val assign1 = assignments.find { (it.target.toExpression() as? IdentifierReference)?.nameInSource == listOf("cx16", "r0") }!!
-        var value1 = assign1.value
-        if (value1 is TypecastExpression) value1 = value1.expression
-        if (value1 is FunctionCallExpression) {
-            value1.target.nameInSource shouldBe listOf("peekw")
-            (value1.args[0] as NumericLiteral).number.toInt() shouldBe 0x4000
-        } else {
-            ((value1 as DirectMemoryRead).addressExpression as NumericLiteral).number.toInt() shouldBe 0x4000
-        }
 
         // cx16.r1L = byteptr[$1000] -> should be peek($3000)
         val assign2 = assignments.find { (it.target.toExpression() as? IdentifierReference)?.nameInSource == listOf("cx16", "r1L") }!!
@@ -783,10 +772,10 @@ main {
         }
     }
 
-    test("const pointer address-of folding") {
+    test("const pointer address-of folding (byte type)") {
         val source = """
             main {
-                const ^^uword bptr = $2000
+                const ^^ubyte bptr = $2000
                 sub start() {
                     uword addr = &bptr[$1000]
                     cx16.r2 = addr
@@ -799,7 +788,7 @@ main {
         val value = vardecl.value
         value shouldNotBe null
         value shouldBe instanceOf<NumericLiteral>()
-        (value as NumericLiteral).number.toInt() shouldBe 0x4000
+        (value as NumericLiteral).number.toInt() shouldBe 0x3000
     }
 })
 

@@ -26,6 +26,7 @@ class VarConstantValueTypeAdjuster(
         val cv = expr.constValue(program)
         if (cv != null) return cv
         if (expr is MemorySlabRef) return expr
+        if (expr is IFunctionCall && expr.isMemoryCall) return expr
         return null
     }
 
@@ -92,7 +93,7 @@ class VarConstantValueTypeAdjuster(
                         }
                     }
                     val declValue = if (decl.value != null) getConstantInitializer(decl.value!!) else null
-                    if (declValue != null) {
+                    if (declValue != null && canBeMadeConst(decl)) {
                         // variable is never written to, so it can be replaced with a constant, IF the value is a constant
                         errors.info("variable '${decl.name}' is never written to and was made const", decl.position)
                         val const = VarDecl.builder(decl.datatype, decl.position)
@@ -107,7 +108,7 @@ class VarConstantValueTypeAdjuster(
                     }
                 }
             } else {
-                if (singleAssignment.origin == AssignmentOrigin.VARINIT && isConstantInitializer(singleAssignment.value)) {
+                if (singleAssignment.origin == AssignmentOrigin.VARINIT && isConstantInitializer(singleAssignment.value) && canBeMadeConst(decl)) {
                     if(reads.isEmpty()) {
                         if(decl.names.size>1) {
                             errors.info("unused variable '${decl.name}'", decl.position)
@@ -139,6 +140,9 @@ class VarConstantValueTypeAdjuster(
 
         return noModifications
     }
+
+    private fun canBeMadeConst(decl: VarDecl): Boolean = 
+        if (decl.datatype.isPointer) decl.datatype.size(program.memsizer) <= 1 else true
 
     override fun after(range: RangeExpression, parent: Node): Iterable<AstModification> {
         val from = range.from.constValue(program)?.number

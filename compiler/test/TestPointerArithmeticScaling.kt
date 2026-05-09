@@ -33,69 +33,6 @@ class TestPointerArithmeticScaling : FunSpec({
         (assignments[2].value as NumericLiteral).number.toInt() shouldBe 0x100a
     }
 
-    test("const pointer arithmetic scaling - uword (scale 2)") {
-        val src = $$"""
-            %option no_sysinit
-            main {
-                const ^^uword p = $1000
-                sub start() {
-                    cx16.r0 = p + 5     ; should be $1000 + 5*2 = $100a
-                    cx16.r1 = p - 2     ; should be $1000 - 2*2 = $0ffc
-                    cx16.r2 = &p[10]    ; should be $1000 + 10*2 = $1014
-                }
-            }
-        """.trimIndent()
-        val result = compileText(Cx16Target(), true, src, outputDir)!!
-        val startSub = result.compilerAst.entrypoint
-        val assignments = startSub.statements.filterIsInstance<Assignment>()
-        
-        (assignments[0].value as NumericLiteral).number.toInt() shouldBe 0x100a
-        (assignments[1].value as NumericLiteral).number.toInt() shouldBe 0x0ffc
-        (assignments[2].value as NumericLiteral).number.toInt() shouldBe 0x1014
-    }
-
-    test("const pointer arithmetic scaling - long (scale 4)") {
-        val src = $$"""
-            %option no_sysinit
-            main {
-                const ^^long p = $1000
-                sub start() {
-                    cx16.r0 = p + 5     ; should be $1000 + 5*4 = $1014
-                    cx16.r1 = p - 2     ; should be $1000 - 2*4 = $0ff8
-                    cx16.r2 = &p[10]    ; should be $1000 + 10*4 = $1028
-                }
-            }
-        """.trimIndent()
-        val result = compileText(Cx16Target(), true, src, outputDir)!!
-        val startSub = result.compilerAst.entrypoint
-        val assignments = startSub.statements.filterIsInstance<Assignment>()
-        
-        (assignments[0].value as NumericLiteral).number.toInt() shouldBe 0x1014
-        (assignments[1].value as NumericLiteral).number.toInt() shouldBe 0x0ff8
-        (assignments[2].value as NumericLiteral).number.toInt() shouldBe 0x1028
-    }
-
-    test("const pointer arithmetic scaling - float (scale 5)") {
-        val src = $$"""
-            %option no_sysinit
-            main {
-                const ^^float p = $1000
-                sub start() {
-                    cx16.r0 = p + 3     ; should be $1000 + 3*5 = $100f
-                    cx16.r1 = p - 1     ; should be $1000 - 1*5 = $0ffb
-                    cx16.r2 = &p[3]     ; should be $1000 + 3*5 = $100f
-                }
-            }
-        """.trimIndent()
-        val result = compileText(Cx16Target(), true, src, outputDir)!!
-        val startSub = result.compilerAst.entrypoint
-        val assignments = startSub.statements.filterIsInstance<Assignment>()
-        
-        (assignments[0].value as NumericLiteral).number.toInt() shouldBe 0x100f
-        (assignments[1].value as NumericLiteral).number.toInt() shouldBe 0x0ffb
-        (assignments[2].value as NumericLiteral).number.toInt() shouldBe 0x100f
-    }
-
     test("non-const pointer arithmetic scaling - ubyte (scale 1)") {
         val src = $$"""
             %option no_sysinit

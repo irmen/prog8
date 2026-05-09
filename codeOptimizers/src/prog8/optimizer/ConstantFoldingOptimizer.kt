@@ -534,6 +534,13 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
     }
 
     override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
+        if (decl.type == VarDeclType.CONST && decl.datatype.isPointer) {
+            val sizer = program.memsizer
+            if (decl.datatype.size(sizer) > 1) {
+                errors.err("pointer variables with data type size > 1 cannot be const", decl.position)
+            }
+        }
+
         val numval = decl.value as? NumericLiteral
         if(decl.type== VarDeclType.CONST && numval!=null) {
             val valueDt = numval.inferType(program)

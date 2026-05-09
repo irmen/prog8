@@ -71,9 +71,9 @@ internal class BuiltinFuncGen(private val codeGen: IRCodeGen, private val exprGe
             "popw" -> funcPopW()
             "popl" -> funcPopL()
             "popf" -> funcPopF()
-            "sizeof" -> throw AssemblyError("sizeof must have been replaced with a constant")
-            "offsetof" -> throw AssemblyError("offsetof must have been replaced with a constant")
-            else -> throw AssemblyError("missing builtinfunc for ${call.name}")
+            "sizeof" -> throw AssemblyError("sizeof must have been replaced with a constant  ${call.position}")
+            "offsetof" -> throw AssemblyError("offsetof must have been replaced with a constant  ${call.position}")
+            else -> throw AssemblyError("missing builtinfunc for ${call.name}  ${call.position}")
         }
     }
 

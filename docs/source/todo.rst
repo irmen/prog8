@@ -1,6 +1,9 @@
 TODO
 ====
 
+add test case that checks the same things as todo.p8 regarding const pointers
+
+
 Regressions after the latest commit: 
 - examples/cx16/landscape.p8  is LARGER after terrain was turned into a const (see details at bottom)
 - examples/cx16/charfade.p8   is broken when the 'palette' pointer variable is a const (either by putting const in the source code or letting it be const-optimized)
