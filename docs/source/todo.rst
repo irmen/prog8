@@ -1,9 +1,6 @@
 TODO
 ====
 
-landscape.p8 no longer has previous optimizations active? (it has become larger again)
-
-
 Dead Code Elimination BUG in 64tass with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate

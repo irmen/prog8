@@ -532,6 +532,35 @@ class AsmGen6502Internal (
         return null
     }
 
+    fun getStaticAddressLowHigh(expr: PtExpression): Pair<String, String>? {
+        val e = unwrapCasts(expr)
+        if (e is PtIdentifier) {
+            val name = asmVariableName(e)
+            return Pair(name, "$name+1")
+        }
+        if (e is PtConstant) {
+            if (e.memorySlab != null) {
+                val label = "$StMemorySlabBlockName.${e.memorySlab!!.name}"
+                return Pair("#<$label", "#>$label")
+            } else if (e.value != null) {
+                val value = e.value!!.toInt()
+                return Pair("#<${(value and 0xff).toHex()}", "#>${((value shr 8) and 0xff).toHex()}")
+            }
+        }
+        if (e is PtNumber) {
+            val value = e.number.toInt()
+            return Pair("#<${(value and 0xff).toHex()}", "#>${((value shr 8) and 0xff).toHex()}")
+        }
+        if (e is PtAddressOf && e.identifier != null && !e.isFromArrayElement && e.dereference == null) {
+            var symbol = asmVariableName(e.identifier!!)
+            if (e.identifier!!.type.isSplitWordArray) {
+                symbol = if (e.isMsbForSplitArray) symbol + "_msb" else symbol + "_lsb"
+            }
+            return Pair("#<$symbol", "#>$symbol")
+        }
+        return null
+    }
+
     fun asmVariableName(st: StNode, scope: IPtSubroutine?): String {
         val name = asmVariableName(st.scopedNameString)
         if(scope==null)

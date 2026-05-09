@@ -1659,32 +1659,42 @@ internal class AssignmentAsmGen(
         } else if(dt.isWord || dt.isPointer) {
 
             fun doAddOrSubWordExpr() {
-                if(expr.operator=="+" && expr.left.type.isWord && expr.left is PtIdentifier) {
-                    val symname = asmgen.asmVariableName(expr.left as PtIdentifier)
+                val leftAddr = asmgen.getStaticAddressLowHigh(expr.left)
+                val rightAddr = asmgen.getStaticAddressLowHigh(expr.right)
+
+                if (expr.operator == "+" && leftAddr != null) {
                     assignExpressionToRegister(expr.right, RegisterOrPair.AY, expr.right.type.isSigned)
                     asmgen.out("""
                             clc
-                            adc  $symname
+                            adc  ${leftAddr.first}
                             tax
                             tya
-                            adc  $symname+1
+                            adc  ${leftAddr.second}
                             tay
                             txa""")
-                }
-                else if(expr.operator=="-" && expr.right.type.isWord && expr.right is PtIdentifier) {
-                    val symname = asmgen.asmVariableName(expr.right as PtIdentifier)
+                } else if (expr.operator == "+" && rightAddr != null) {
+                    assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type.isSigned)
+                    asmgen.out("""
+                            clc
+                            adc  ${rightAddr.first}
+                            tax
+                            tya
+                            adc  ${rightAddr.second}
+                            tay
+                            txa""")
+                } else if (expr.operator == "-" && rightAddr != null) {
                     assignExpressionToRegister(expr.left, RegisterOrPair.AY, expr.left.type.isSigned)
                     asmgen.out("""
                             sec
-                            sbc  $symname
+                            sbc  ${rightAddr.first}
                             tax
                             tya
-                            sbc  $symname+1
+                            sbc  ${rightAddr.second}
                             tay
                             txa""")
                 } else {
                     asmgen.assignWordOperandsToAYAndVar(expr.left, expr.right, "P8ZP_SCRATCH_W1")
-                    if(expr.operator=="+")
+                    if (expr.operator == "+")
                         asmgen.out("""
                                     clc
                                     adc  P8ZP_SCRATCH_W1
@@ -1822,6 +1832,34 @@ internal class AssignmentAsmGen(
                                 tay
                                 txa""")
                     assignRegisterpairWord(target, RegisterOrPair.AY)
+                    return true
+                }
+                is PtConstant -> {
+                    val addr = asmgen.getStaticAddressLowHigh(right)
+                    if (addr != null) {
+                        assignExpressionToRegister(left, RegisterOrPair.AY, dt.isSigned)
+                        if (expr.operator == "+")
+                            asmgen.out("""
+                                clc
+                                adc  ${addr.first}
+                                tax
+                                tya
+                                adc  ${addr.second}
+                                tay
+                                txa""")
+                        else
+                            asmgen.out("""
+                                sec
+                                sbc  ${addr.first}
+                                tax
+                                tya
+                                sbc  ${addr.second}
+                                tay
+                                txa""")
+                        assignRegisterpairWord(target, RegisterOrPair.AY)
+                        return true
+                    }
+                    doAddOrSubWordExpr()
                     return true
                 }
                 is PtNumber -> {
