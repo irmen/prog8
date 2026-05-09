@@ -772,6 +772,10 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 )
             }
             VarDeclType.CONST -> {
+                val cv = srcVar.value?.constValue(program)
+                if (cv != null) {
+                    return PtConstant(srcVar.name, srcVar.datatype, cv.number, null, srcVar.position)
+                }
                 when (val constVal = srcVar.value) {
                     is NumericLiteral -> {
                         return PtConstant(srcVar.name, srcVar.datatype, constVal.number, null, srcVar.position)
@@ -918,7 +922,9 @@ class SimplifiedAstMaker(private val program: Program, private val errors: IErro
                 else -> throw FatalAstException("unknown deref at ${srcExpr.position}")
             }
         } else {
-            if(srcExpr.left.inferType(program).isPointer || srcExpr.right.inferType(program).isPointer) {
+            val leftIsPtr = srcExpr.left.inferType(program).isPointer
+            val rightIsPtr = srcExpr.right.inferType(program).isPointer
+            if(leftIsPtr || rightIsPtr) {
                 if (srcExpr.operator == "+" || srcExpr.operator == "-") return transformWithPointerArithmetic(srcExpr)
                 else if (srcExpr.operator in ComparisonOperators) return transformWithPointerComparison(srcExpr)
             } else if(srcExpr.left.inferType(program).isPointer) {

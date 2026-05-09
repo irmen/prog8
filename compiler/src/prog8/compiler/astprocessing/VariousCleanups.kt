@@ -161,8 +161,9 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
         if (typecast.type.isBool) {
             val et = typecast.expression.inferType(program)
             if (et.isNumeric) {
-                if(typecast.expression is NumericLiteral) {
-                    val boolean = NumericLiteral.fromBoolean((typecast.expression as NumericLiteral).asBooleanValue, typecast.expression.position)
+                val ecv = typecast.expression.constValue(program)
+                if(ecv != null) {
+                    val boolean = NumericLiteral.fromBoolean(ecv.asBooleanValue, typecast.expression.position)
                     return listOf(AstReplaceNode(typecast, boolean, parent))
                 } else {
                     val zero = defaultZero(et.getOrUndef().base, typecast.position)
@@ -225,10 +226,11 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
     override fun before(expr: BinaryExpression, parent: Node): Iterable<AstModification> {
 
         if(expr.operator in ComparisonOperators) {
-            if((expr.right as? NumericLiteral)?.number?.toInt() in -128..255 && expr.right.inferType(program).isWords) {
+            val rightConst = expr.right.constValue(program)
+            if(rightConst != null && rightConst.number.toInt() in -128..255 && expr.right.inferType(program).isWords) {
                 val cast = expr.left as? TypecastExpression
                 if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
-                    val small = (expr.right as NumericLiteral).cast(cast.expression.inferType(program).getOrUndef().base, true)
+                    val small = rightConst.cast(cast.expression.inferType(program).getOrUndef().base, true)
                     if(small.isValid) {
                         return listOf(
                             AstReplaceNode(expr.left, cast.expression, expr),
@@ -237,15 +239,18 @@ internal class VariousCleanups(val program: Program, val errors: IErrorReporter,
                     }
                 }
             }
-            else if((expr.left as? NumericLiteral)?.number?.toInt() in -128..255 && expr.left.inferType(program).isWords) {
-                val cast = expr.right as? TypecastExpression
-                if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
-                    val small = (expr.left as NumericLiteral).cast(cast.expression.inferType(program).getOrUndef().base, true)
-                    if(small.isValid) {
-                        return listOf(
-                            AstReplaceNode(expr.right, cast.expression, expr),
-                            AstReplaceNode(expr.left, small.valueOrZero(), expr)
-                        )
+            else {
+                val leftConst = expr.left.constValue(program)
+                if(leftConst != null && leftConst.number.toInt() in -128..255 && expr.left.inferType(program).isWords) {
+                    val cast = expr.right as? TypecastExpression
+                    if(cast != null && cast.type.isWord && cast.expression.inferType(program).isBytes) {
+                        val small = leftConst.cast(cast.expression.inferType(program).getOrUndef().base, true)
+                        if(small.isValid) {
+                            return listOf(
+                                AstReplaceNode(expr.right, cast.expression, expr),
+                                AstReplaceNode(expr.left, small.valueOrZero(), expr)
+                            )
+                        }
                     }
                 }
             }

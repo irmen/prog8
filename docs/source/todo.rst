@@ -3,11 +3,10 @@ TODO
 
 Regressions after the latest commit: 
 - examples/cx16/landscape.p8  is LARGER after terrain was turned into a const (see details at bottom)
-- examples/cx16/charfade.p8   is  BROKEN  after palette was turned into a const
+- examples/cx16/charfade.p8   is broken when the 'palette' pointer variable is a const (either by putting const in the source code or letting it be const-optimized)
 - examples/maze.p8  now is LARGER
 - examples/cx16/filesseek.p8 is LARGER
 - GOOD CHANGES: examples/cx16/life, examples/pointers/binarytree,hashtable,sortedlist all got SMALLER (and still work)
-
 
 Dead Code Elimination BUG in 64tass with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -27,9 +26,6 @@ Weird Heisenbug
 
 Future Things and Ideas
 ^^^^^^^^^^^^^^^^^^^^^^^
-- maybe change the Ast node that represents the builtin memory() function call into a separate static allocation + actual const reference to it. Both 2 new Ast node types, like MemorySlabReservation and MemorySlabRef. First implement and test in SimpleAst and IR codegen, then 6502 codegen, then also in CompilerAst to simplify all checks for builtin "memory" function calls all over the shop.
-  Should make code simpler that has to work with memory slabs, and may enable correct implementation of const optimizations for memory slab pointers 
-  (is now skipped because it doesn't work, see the bullet under 'optimizations')
 - symboldump: some sort of javadocs generated from the p8 source files (instead of just the function signatures). Use markdown for formatting.
 - why are (interned) strings stored as initialization value in the SymbolTable AND as string nodes in the interned string block? Something seems redundant here?
 - when implementing unsigned longs: remove the (multiple?) "TODO "hack" to allow unsigned long constants to be used as values for signed longs, without needing a cast
@@ -98,12 +94,10 @@ Optimizations
   This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on
   Note that simple prioritization based on size (bytes first) yields WORSE results for many programs.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those 6502 only optimizations should probably be removed
-- Const-optimization of ``memory()`` variables: currently, variables initialized with a ``memory()`` call are not automatically 
-  promoted to constants. Furthermore, when such a variable is explicitly declared as ``const``, it is not replaced 
-  by its value (the ``memory()`` call) when used as the base of an array indexing expression.
-- The ``SimplifiedAstMaker`` recombines ``PtVariable + PtAssignment(MemorySlabRef)`` back into ``PtConstant``.
-  This is correct semantically but creates a regression in the 6502 code generator: the original ``uword`` variable
-  would be stored in zeropage, allowing efficient ``lda (zp_var)`` access to the slab memory.
-  When turned into a constant, every access must load the slab label address from scratch, producing larger code.
-  Fix: either detect this in the 6502 codegen and re-introduce a zp variable for such constants, or
-  keep the variable as a zp pointer in ``VarDeclType.VAR`` case and only recombine ``CONST`` declarations.
+- Const-optimization of ``memory()`` variables: variables initialized with a ``memory()`` call are automatically 
+  promoted to constants when they have at most 2 reads (``VarConstantValueTypeAdjuster`` + ``SimplifiedAstMaker``).
+  For variables with many reads, keeping them as regular variables is beneficial because the 6502 codegen can 
+  use a zeropage pointer for repeated slab access, saving code size.
+  When such a variable is explicitly declared as ``const`` and used as the base of an array indexing expression,
+  the ``ConstantIdentifierReplacer`` does skip replacement, but the ``CodeDesugarer`` and subsequent optimizer passes
+  still handle it correctly (no actual problem).

@@ -1029,6 +1029,18 @@ internal class AstChecker(private val program: Program,
                     is NumericLiteral -> {
                         checkValueTypeAndRange(decl.datatype, decl.value as NumericLiteral)
                     }
+                    is TypecastExpression -> {
+                        val cv = (decl.value as TypecastExpression).constValue(program)
+                        if (cv != null) {
+                            checkValueTypeAndRange(decl.datatype, cv)
+                        } else {
+                            if (decl.type == VarDeclType.CONST) {
+                                valueerr("const declaration needs a compile-time constant initializer value")
+                                super.visit(decl)
+                                return
+                            }
+                        }
+                    }
                     is MemorySlabRef -> {
                         // memory() as an initializer is okay, it will end up being a constant address in the end
                     }
@@ -1072,7 +1084,7 @@ internal class AstChecker(private val program: Program,
                         else -> {}
                     }
                 }
-                val numvalue = decl.value as? NumericLiteral
+                val numvalue = decl.value?.constValue(program)
                 if(numvalue!=null) {
                     if (!numvalue.type.isInteger || numvalue.number.toInt() < 0 || numvalue.number.toInt() > 65535) {
                         valueerr($$"memory address must be valid integer 0..$ffff")
@@ -1747,9 +1759,10 @@ internal class AstChecker(private val program: Program,
         if(!typecast.expression.inferType(program).isKnown)
             errors.err("this expression doesn't return a value", typecast.expression.position)
 
-        if(typecast.expression is NumericLiteral) {
+        val cv = typecast.expression.constValue(program)
+        if(cv != null) {
             if(typecast.type.isBasic) {
-                val castResult = (typecast.expression as NumericLiteral).cast(typecast.type.base, typecast.implicit)
+                val castResult = cv.cast(typecast.type.base, typecast.implicit)
                 if (castResult.isValid)
                     throw FatalAstException("cast should have been performed in const eval already")
                 errors.err(castResult.whyFailed!!, typecast.expression.position)
