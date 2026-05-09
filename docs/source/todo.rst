@@ -1,15 +1,8 @@
 TODO
 ====
 
-add test case that checks the same things as todo.p8 regarding const pointers
+landscape.p8 no longer has previous optimizations active? (it has become larger again)
 
-
-Regressions after the latest commit: 
-- examples/cx16/landscape.p8  is LARGER after terrain was turned into a const (see details at bottom)
-- examples/cx16/charfade.p8   is broken when the 'palette' pointer variable is a const (either by putting const in the source code or letting it be const-optimized)
-- examples/maze.p8  now is LARGER
-- examples/cx16/filesseek.p8 is LARGER
-- GOOD CHANGES: examples/cx16/life, examples/pointers/binarytree,hashtable,sortedlist all got SMALLER (and still work)
 
 Dead Code Elimination BUG in 64tass with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -84,6 +77,8 @@ Libraries
 - add a serialio library to interface with the serial/wifi card, see https://github.com/safiire/cx16_wget/blob/master/uart.s 
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support?
+- pet32 list_filenames() doesn't check filenames buffer size
+
 
 Optimizations
 -------------

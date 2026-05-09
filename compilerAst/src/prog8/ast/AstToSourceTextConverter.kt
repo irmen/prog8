@@ -179,11 +179,11 @@ class AstToSourceTextConverter(val output: (text: String) -> Unit, val program: 
     }
 
     override fun visit(reservation: MemorySlabReservation) {
-        output("memory(\"${reservation.slabName}\", ${reservation.size}, ${reservation.align})")
+        output("memory-slab-reservation(\"${reservation.slabName}\", ${reservation.size}, ${reservation.align})")
     }
 
     override fun visit(ref: MemorySlabRef) {
-        output("memory(\"${ref.slabName}\")")
+        output("memory-slab-ref(\"${ref.slabName}\")")
     }
 
     override fun visit(struct: StructDecl) {

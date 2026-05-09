@@ -183,6 +183,7 @@ io_error:
     sub list_filenames(str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
         ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against (case-sensitive).
+        ;    filenames_buf_size should be > 20!
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
         ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
         ;    Note: NO case-folding is done in this routine! (unlike DOS"$ which does case folding on the basic prompt)
@@ -190,6 +191,10 @@ io_error:
         ;    Note that no list of pointers of some form is returned, the names are just squashed together.
         ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
         ;    and registering when the next one starts after the 0-byte separator.
+
+        if filenames_buf_size<=20
+            return 0
+
         uword buffer_start = filenames_buffer
         ubyte files_found = 0
         filenames_buffer[0]=0

@@ -131,12 +131,12 @@ private fun builtinSizeof(args: List<Expression>, position: Position, program: P
     // 1 arg, type = anything, result type = ubyte or uword
     if(args.size!=1)
         throw SyntaxError("sizeof requires one argument", position)
-    if(args[0] !is IdentifierReference && args[0] !is NumericLiteral && args[0] !is AddressOf)
+    if(args[0] !is IdentifierReference && args[0] !is NumericLiteral && args[0] !is AddressOf && args[0] !is MemorySlabRef)
         throw CannotEvaluateException("sizeof","argument should be an identifier, number, or type name")
 
     val dt = args[0].inferType(program)
     if(dt.isKnown) {
-        if(args[0] is NumericLiteral || args[0] is AddressOf)
+        if(args[0] is NumericLiteral || args[0] is AddressOf || args[0] is MemorySlabRef)
             return NumericLiteral.optimalInteger(program.memsizer.memorySize(dt.getOrUndef(), null), position)
 
         val target = (args[0] as? IdentifierReference)?.targetStatement()

@@ -79,12 +79,16 @@ io_error:
     sub list_filenames(str pattern_ptr, uword filenames_buffer, uword filenames_buf_size) -> ubyte {
         ; -- fill the provided buffer with the names of the files on the disk (until buffer is full).
         ;    Files in the buffer are separated by a 0 byte. You can provide an optional pattern to match against.
+        ;    filenames_buf_size should be > 20!
         ;    After the last filename one additional 0 byte is placed to indicate the end of the list.
         ;    Returns number of files (it skips 'dir' entries i.e. subdirectories).
         ;    Also sets carry on exit: Carry clear = all files returned, Carry set = directory has more files that didn't fit in the buffer.
         ;    Note that no list of pointers of some form is returned, the names are just squashed together.
         ;    If you really need a list of pointers to the names, that is pretty straightforward to construct by iterating over the names
         ;    and registering when the next one starts after the 0-byte separator.
+
+        if filenames_buf_size<=20
+            return 0
 
         ubyte files_found = 0
         uword buf_ptr = filenames_buffer

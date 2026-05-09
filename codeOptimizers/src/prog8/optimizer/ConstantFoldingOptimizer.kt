@@ -537,7 +537,7 @@ class ConstantFoldingOptimizer(private val program: Program, private val errors:
         if (decl.type == VarDeclType.CONST && decl.datatype.isPointer) {
             val sizer = program.memsizer
             if (decl.datatype.size(sizer) > 1) {
-                errors.err("pointer variables with data type size > 1 cannot be const", decl.position)
+                errors.err("due to internal compiler complexity, currently pointer variables with data type size > 1 cannot be const", decl.position)
             }
         }
 
