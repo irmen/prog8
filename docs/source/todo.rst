@@ -1,6 +1,9 @@
 TODO
 ====
 
+excamples/cx16/landscape.p8 is now quite a few bytes BIGGER than before the const optimization of the 'terrain' pointer. Is there a way to prevent this? 
+  
+
 Dead Code Elimination BUG in 64tass with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
@@ -89,10 +92,3 @@ Optimizations
   This will probably need the register categorization from the IR explained there, for the old 6502 codegen there is not enough information to act on
   Note that simple prioritization based on size (bytes first) yields WORSE results for many programs.
 - various optimizers skip stuff if compTarget.name==VMTarget.NAME.  Once 6502-codegen is done from IR code, those 6502 only optimizations should probably be removed
-- Const-optimization of ``memory()`` variables: variables initialized with a ``memory()`` call are automatically 
-  promoted to constants when they have at most 2 reads (``VarConstantValueTypeAdjuster`` + ``SimplifiedAstMaker``).
-  For variables with many reads, keeping them as regular variables is beneficial because the 6502 codegen can 
-  use a zeropage pointer for repeated slab access, saving code size.
-  When such a variable is explicitly declared as ``const`` and used as the base of an array indexing expression,
-  the ``ConstantIdentifierReplacer`` does skip replacement, but the ``CodeDesugarer`` and subsequent optimizer passes
-  still handle it correctly (no actual problem).

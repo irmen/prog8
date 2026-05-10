@@ -3,10 +3,7 @@ package prog8.compiler
 import prog8.ast.Module
 import prog8.ast.Node
 import prog8.ast.Program
-import prog8.ast.expressions.AddressOf
-import prog8.ast.expressions.FunctionCallExpression
-import prog8.ast.expressions.IdentifierReference
-import prog8.ast.expressions.PtrDereference
+import prog8.ast.expressions.*
 import prog8.ast.statements.*
 import prog8.ast.walk.IAstVisitor
 import prog8.code.core.IErrorReporter
@@ -167,6 +164,21 @@ class CallGraph(private val program: Program) : IAstVisitor {
 
     override fun visit(deref: PtrDereference) {
         val chain = deref.chain.toMutableList()
+        while(chain.isNotEmpty()) {
+            val variable = deref.definingScope.lookup(chain)
+            if(variable is VarDecl) {
+                allIdentifiersAndTargets.add(deref to variable)
+            }
+            else if(variable is Subroutine) {
+                notCalledButReferenced += variable
+            }
+            chain.removeLastOrNull()
+        }
+        super.visit(deref)
+    }
+
+    override fun visit(deref: ArrayIndexedPtrDereference) {
+        val chain = deref.chain.map { it.first }.toMutableList()
         while(chain.isNotEmpty()) {
             val variable = deref.definingScope.lookup(chain)
             if(variable is VarDecl) {
