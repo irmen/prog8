@@ -13,37 +13,66 @@ import prog8tests.helpers.compileText
 class TestPointerConstPromotion : FunSpec({
     val outputDir = tempdir().toPath()
 
-    test("pointer constant promotion scenarios") {
+    test("pointer variable with 2 dereferences is promoted to const") {
         val src = """
-            %zeropage basicsafe
-            %option no_sysinit
+            %import textio
             main {
                 sub start() {
-                    ^^uword ptr1 = 4444         ; size 2 > 1, no promotion
-                    ^^ubyte ptr2 = 5555         ; size 1, promotion
-                    uword mem1 = memory("mem1", 10, 0)   ; not a pointer, promotion
-                    ^^uword mem1b  = memory("mem2", 10, 0) ; size 2 > 1, no promotion
-                    ^^ubyte mem3  = memory("mem3", 10, 0) ; size 1, promotion
-                    
-                    cx16.r0 = ptr1
-                    cx16.r1 = ptr2 as uword
-                    cx16.r2 = mem1
-                    cx16.r3 = mem1b
-                    cx16.r4 = mem3 as uword
+                    ^^ubyte ptr = 9999
+                    ubyte a = ptr^^
+                    ubyte b = ptr^^
+                    txt.print_ub(a)
+                    txt.print_ub(b)
                 }
             }
         """.trimIndent()
-        val result = compileText(VMTarget(), true, src, outputDir)!!
-        val mainSub = result.compilerAst.entrypoint
-        val decls = mainSub.statements.filterIsInstance<VarDecl>().associateBy { it.name }
-        
-        decls["ptr1"]?.type shouldBe VarDeclType.VAR
-        decls["ptr2"]?.type shouldBe VarDeclType.CONST
-        decls["mem1"]?.type shouldBe VarDeclType.CONST
-        decls["mem1b"]?.type shouldBe VarDeclType.VAR
-        decls["mem3"]?.type shouldBe VarDeclType.CONST
+        val result = compileText(VMTarget(), true, src, outputDir)
+        val mainBlock = result!!.compilerAst.allBlocks.first { it.name == "main" }
+        val startSub = mainBlock.subScope("start")!!
+        val ptrVar = startSub.lookup(listOf("ptr"))!!
+        (ptrVar as VarDecl).type shouldBe VarDeclType.CONST
     }
 
+    test("pointer variable with memory is notpromoted to const") {
+        val src = """
+            %import textio
+            main {
+                sub start() {
+                    ^^ubyte ptr = memory("slab", 10, 1)
+                    ubyte a = ptr^^
+                    txt.print_ub(a)
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, src, outputDir)
+        val mainBlock = result!!.compilerAst.allBlocks.first { it.name == "main" }
+        val startSub = mainBlock.subScope("start")!!
+        val ptrVar = startSub.lookup(listOf("ptr"))!!
+        (ptrVar as VarDecl).type shouldBe VarDeclType.VAR
+    }
+
+    test("pointer variable with 3 dereferences is NOT promoted to const") {
+        val src = """
+            %import textio
+            main {
+                sub start() {
+                    ^^ubyte ptr = 9999
+                    ubyte a = ptr^^
+                    ubyte b = ptr^^
+                    ubyte c = ptr^^
+                    txt.print_ub(a)
+                    txt.print_ub(b)
+                    txt.print_ub(c)
+                }
+            }
+        """.trimIndent()
+        val result = compileText(VMTarget(), true, src, outputDir)
+        val mainBlock = result!!.compilerAst.allBlocks.first { it.name == "main" }
+        val startSub = mainBlock.subScope("start")!!
+        val ptrVar = startSub.lookup(listOf("ptr"))!!
+        (ptrVar as VarDecl).type shouldBe VarDeclType.VAR
+    }
+    
     test("explicit const pointer to >1 byte type gives error") {
         val src = """
             main {

@@ -1846,7 +1846,7 @@ import prog8.codegen.cpu6502.assignment.*
             if(tryOptimizedLoopCopyWithY("", "$address")) 
                 return emptyArray()
             
-            asmgen.assignVariableToRegister(address.toString(), RegisterOrPair.R14R15, null, fcall.position)
+            asmgen.assignVariableToRegister(address.toString(), RegisterOrPair.R14R15, null, fcall.position, true)
             return arrayOf(RegisterOrPair.R14R15)
         }
 
@@ -1875,7 +1875,7 @@ import prog8.codegen.cpu6502.assignment.*
                 if(tryOptimizedLoopCopyWithY("lda  #<$varname+$offset |  sta  P8ZP_SCRATCH_W1 |  lda  #>$varname+$offset |  sta  P8ZP_SCRATCH_W1+1", "(P8ZP_SCRATCH_W1)")) 
                     return emptyArray()
 
-                asmgen.assignVariableToRegister("$varname+$offset", RegisterOrPair.R14R15, null, fcall.position)
+                asmgen.assignVariableToRegister("$varname+$offset", RegisterOrPair.R14R15, null, fcall.position, true)
                 return arrayOf(RegisterOrPair.R14R15)
             } else if(result.second is PtIdentifier) {
                 val offsetname = asmgen.asmVariableName(result.second as PtIdentifier)
