@@ -1,9 +1,6 @@
 TODO
 ====
 
-excamples/cx16/landscape.p8 is now quite a few bytes BIGGER than before the const optimization of the 'terrain' pointer. Is there a way to prevent this? 
-  
-
 Dead Code Elimination BUG in 64tass with nested subroutines
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 - When a subroutine contains a nested ``asmsub`` (or possibly a nested ``sub()``), 64tass cannot properly eliminate
@@ -83,6 +80,7 @@ Libraries
 Optimizations
 -------------
 
+- Sometimes explicit const pointers are better off being a variable (because they can be put into zero page like that etc) So devise a good way to "strip" the user-set const off such variables.
 - Always do const-folding regardless of using -noopt or not. This will break A LOT of unit tests though
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)

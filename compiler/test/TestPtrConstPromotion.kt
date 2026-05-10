@@ -17,7 +17,7 @@ class TestPtrConstPromotion : FunSpec({
             %import textio
             main {
                 sub start() {
-                    ^^ubyte ptr = memory("slab", 10, 1)
+                    ^^ubyte ptr = 9999
                     ubyte a = ptr^^
                     ubyte b = ptr^^
                     txt.print_ub(a)
@@ -32,18 +32,14 @@ class TestPtrConstPromotion : FunSpec({
         (ptrVar as VarDecl).type shouldBe VarDeclType.CONST
     }
 
-    test("pointer variable with 3 dereferences is NOT promoted to const") {
+    test("pointer variable with memory is notpromoted to const") {
         val src = """
             %import textio
             main {
                 sub start() {
                     ^^ubyte ptr = memory("slab", 10, 1)
                     ubyte a = ptr^^
-                    ubyte b = ptr^^
-                    ubyte c = ptr^^
                     txt.print_ub(a)
-                    txt.print_ub(b)
-                    txt.print_ub(c)
                 }
             }
         """.trimIndent()
@@ -52,17 +48,17 @@ class TestPtrConstPromotion : FunSpec({
         val startSub = mainBlock.subScope("start")!!
         val ptrVar = startSub.lookup(listOf("ptr"))!!
         (ptrVar as VarDecl).type shouldBe VarDeclType.VAR
-    }
+    }    
 
-    test("pointer variable with indexing dereferences is handled") {
+    test("pointer variable with 3 dereferences is NOT promoted to const") {
         val src = """
             %import textio
             main {
                 sub start() {
-                    ^^ubyte ptr = memory("slab", 10, 1)
-                    ubyte a = ptr[0]
-                    ubyte b = ptr[1]
-                    ubyte c = ptr[2]
+                    ^^ubyte ptr = 9999
+                    ubyte a = ptr^^
+                    ubyte b = ptr^^
+                    ubyte c = ptr^^
                     txt.print_ub(a)
                     txt.print_ub(b)
                     txt.print_ub(c)

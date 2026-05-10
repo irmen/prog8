@@ -32,6 +32,12 @@ class VarConstantValueTypeAdjuster(
 
     private fun isConstantInitializer(expr: Expression): Boolean = getConstantInitializer(expr) != null
 
+    private fun isMemorySlabInit(expr: Expression): Boolean =
+        expr is MemorySlabRef || (expr is IFunctionCall && expr.isMemoryCall)
+
+    private fun requiresZp(decl: VarDecl): Boolean =
+        decl.zeropage == ZeropageWish.REQUIRE_ZEROPAGE
+
     override fun after(decl: VarDecl, parent: Node): Iterable<AstModification> {
 
         if(decl.parent is AnonymousScope)
@@ -53,6 +59,8 @@ class VarConstantValueTypeAdjuster(
                 return noModifications
             if (decl.value != null && !isConstantInitializer(decl.value!!))
                 return noModifications
+            if (decl.value != null && isMemorySlabInit(decl.value!!))
+                return noModifications   //  a pointer to a memory slab is usually accessed often and/or in ways that benefit more from the pointer being an actual variable (preferrably in zeropage)
             val usages = callGraph.usages(decl)
             val (writes, reads) = usages
                 .partition {
@@ -93,7 +101,7 @@ class VarConstantValueTypeAdjuster(
                         }
                     }
                     val declValue = if (decl.value != null) getConstantInitializer(decl.value!!) else null
-                    if (declValue != null && canBeMadeConst(decl, usages)) {
+                    if (declValue != null && !requiresZp(decl) && canBeMadeConst(decl, usages)) {
                         // variable is never written to, so it can be replaced with a constant, IF the value is a constant
                         errors.info("variable '${decl.name}' is never written to and was made const", decl.position)
                         val const = VarDecl.builder(decl.datatype, decl.position)
@@ -108,7 +116,7 @@ class VarConstantValueTypeAdjuster(
                     }
                 }
             } else {
-                if (singleAssignment.origin == AssignmentOrigin.VARINIT && isConstantInitializer(singleAssignment.value) && canBeMadeConst(decl, usages)) {
+                if (singleAssignment.origin == AssignmentOrigin.VARINIT && isConstantInitializer(singleAssignment.value) && !isMemorySlabInit(singleAssignment.value) && !requiresZp(decl) && canBeMadeConst(decl, usages)) {
                     if(reads.isEmpty()) {
                         if(decl.names.size>1) {
                             errors.info("unused variable '${decl.name}'", decl.position)
@@ -151,10 +159,10 @@ class VarConstantValueTypeAdjuster(
                         || p is ArrayIndexedExpression || p is DirectMemoryRead || p is DirectMemoryWrite
                         || gp is DirectMemoryRead || gp is DirectMemoryWrite
             }
-            if (derefCount > 2) return false
+        if (derefCount > 2) return false
+            }
+            return true
         }
-        return true
-    }
 
     override fun after(range: RangeExpression, parent: Node): Iterable<AstModification> {
         val from = range.from.constValue(program)?.number
