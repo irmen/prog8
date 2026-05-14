@@ -61,8 +61,7 @@ life {
         math.rndseed(12345,9999)
         uword offset = STRIDE+1
         ubyte x
-        ubyte y
-        for y in 0 to HEIGHT-1 {
+        repeat HEIGHT {
             for x in 0 to WIDTH-1 {
                 active_world[offset+x] = math.rnd() & 1
             }

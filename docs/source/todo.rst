@@ -75,7 +75,7 @@ Libraries
 - Add split-word array sorting routines to sorting module?
 - make a list of all floats.* routines that the compiler expects for full float support?
 - pet32 list_filenames() doesn't check filenames buffer size
-
+- inplement the lineclip module (see ideas/lineclip/* code in C for now)
 
 Optimizations
 -------------
