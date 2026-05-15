@@ -210,9 +210,9 @@ class TestNumbers: FunSpec({
         val src="""
             main {
                 sub start() {
-                    uword uw1 = -32768
-                    uword uw = -1
-                    ubyte ub = -1
+                    uword @shared uw1 = -32768
+                    uword @shared uw = -1
+                    ubyte @shared ub = -1
                     uw = -2 as uword
                     ub = -2 as ubyte 
                 }

@@ -458,11 +458,11 @@ main {
             val src="""
 main {
     sub start() {
-        ubyte w
+        ubyte @shared w
 
         for w in 0 to 20 {
-            ubyte @zp x,y,z=13
-            ubyte q,r,s
+            ubyte @shared @zp x,y,z=13
+            ubyte @shared q,r,s
             x++
             y++
             z++
@@ -471,28 +471,6 @@ main {
 }"""
             val result = compileText(VMTarget(), optimize = false, src, outputDir, writeAssembly = false)!!
             val st = result.compilerAst.entrypoint.statements
-            /*
-        sub start () {
-            ubyte s
-            s = 0
-            ubyte r
-            r = 0
-            ubyte q
-            q = 0
-            ubyte @zp z
-            ubyte @zp y
-            ubyte @zp x
-            ubyte w
-            for w in 0 to 20 step 1  {
-                z = 13
-                y = 13
-                x = 13
-                x++
-                y++
-                z++
-            }
-        }
-             */
             val vars = st.filterIsInstance<VarDecl>()
             vars.size shouldBe 7
             vars.all { it.names.size<=1 } shouldBe true
@@ -724,8 +702,8 @@ main {
         val src="""
 main {
     sub start() {
-        ubyte shift = 10
-        uword value = 1<<shift
+        ubyte @shared shift = 10
+        uword @shared value = 1<<shift
         value++
         value = 1<<shift
         value++

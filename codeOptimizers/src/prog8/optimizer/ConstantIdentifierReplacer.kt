@@ -53,96 +53,94 @@ class VarConstantValueTypeAdjuster(
         }
 
         // replace variables by constants, if possible
-        if(options.optimize) {
-            if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE 
-                || !(decl.datatype.isNumericOrBool || decl.datatype.isPointer))
-                return noModifications
-            if (decl.value != null && !isConstantInitializer(decl.value!!))
-                return noModifications
-            if (decl.value != null && isMemorySlabInit(decl.value!!))
-                return noModifications   //  a pointer to a memory slab is usually accessed often and/or in ways that benefit more from the pointer being an actual variable (preferrably in zeropage)
-            val usages = callGraph.usages(decl)
-            val (writes, reads) = usages
-                .partition {
-                    it is InlineAssembly  // can't really tell if it's written to or only read, assume the worst
-                            || it.parent is AssignTarget
-                            || it.parent is ForLoop
-                            || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
-                }
-    
-            // If the address of the variable is taken, we cannot replace it with a constant.
-            if (reads.any { it.parent is AddressOf })
-                return noModifications
-    
-            var singleAssignment: Assignment? = null
-            val singleWrite=writes.singleOrNull()
-            if(singleWrite!=null) {
-                singleAssignment = singleWrite.parent as? Assignment
+        if (decl.sharedWithAsm || decl.type != VarDeclType.VAR || decl.origin != VarDeclOrigin.USERCODE 
+            || !(decl.datatype.isNumericOrBool || decl.datatype.isPointer))
+            return noModifications
+        if (decl.value != null && !isConstantInitializer(decl.value!!))
+            return noModifications
+        if (decl.value != null && isMemorySlabInit(decl.value!!))
+            return noModifications   //  a pointer to a memory slab is usually accessed often and/or in ways that benefit more from the pointer being an actual variable (preferrably in zeropage)
+        val usages = callGraph.usages(decl)
+        val (writes, reads) = usages
+            .partition {
+                it is InlineAssembly  // can't really tell if it's written to or only read, assume the worst
+                        || it.parent is AssignTarget
+                        || it.parent is ForLoop
+                        || (it.parent as? IFunctionCall)?.target?.nameInSource?.singleOrNull() in InplaceModifyingBuiltinFunctions
+            }
+
+        // If the address of the variable is taken, we cannot replace it with a constant.
+        if (reads.any { it.parent is AddressOf })
+            return noModifications
+
+        var singleAssignment: Assignment? = null
+        val singleWrite=writes.singleOrNull()
+        if(singleWrite!=null) {
+            singleAssignment = singleWrite.parent as? Assignment
+            if(singleAssignment==null) {
+                singleAssignment = singleWrite.parent.parent as? Assignment
                 if(singleAssignment==null) {
-                    singleAssignment = singleWrite.parent.parent as? Assignment
-                    if(singleAssignment==null) {
-                        // we could be part of a multi-assign
-                        if(singleWrite.parent is AssignTarget && singleWrite.parent.parent is AssignTarget)
-                            singleAssignment = singleWrite.parent.parent.parent as? Assignment
-                    }
+                    // we could be part of a multi-assign
+                    if(singleWrite.parent is AssignTarget && singleWrite.parent.parent is AssignTarget)
+                        singleAssignment = singleWrite.parent.parent.parent as? Assignment
                 }
             }
-    
-            if (singleAssignment == null) {
-                if (writes.isEmpty()) {
-                    if(reads.isEmpty()) {
-                        if(decl.names.size>1) {
-                            errors.info("unused variable '${decl.name}'", decl.position)
-                        } else {
-                            // variable is never used AT ALL so we just remove it altogether
-                            if ("ignore_unused" !in decl.definingBlock.options())
-                                errors.info("removing unused variable '${decl.name}'", decl.position)
-                            return listOf(AstRemove(decl, parent as IStatementContainer))
-                        }
-                    }
-                    val declValue = if (decl.value != null) getConstantInitializer(decl.value!!) else null
-                    if (declValue != null && !requiresZp(decl) && canBeMadeConst(decl, usages)) {
-                        // variable is never written to, so it can be replaced with a constant, IF the value is a constant
-                        errors.info("variable '${decl.name}' is never written to and was made const", decl.position)
-                        val const = VarDecl.builder(decl.datatype, decl.position)
-                            .copyFrom(decl)
-                            .type(VarDeclType.CONST)
-                            .value(declValue)
-                            .build()
-                        decl.value = null
-                        return listOf(
-                            AstReplaceNode(decl, const, parent)
-                        )
+        }
+
+        if (singleAssignment == null) {
+            if (writes.isEmpty()) {
+                if(reads.isEmpty()) {
+                    if(decl.names.size>1) {
+                        errors.info("unused variable '${decl.name}'", decl.position)
+                    } else {
+                        // variable is never used AT ALL so we just remove it altogether
+                        if ("ignore_unused" !in decl.definingBlock.options())
+                            errors.info("removing unused variable '${decl.name}'", decl.position)
+                        return listOf(AstRemove(decl, parent as IStatementContainer))
                     }
                 }
-            } else {
-                if (singleAssignment.origin == AssignmentOrigin.VARINIT && isConstantInitializer(singleAssignment.value) && !isMemorySlabInit(singleAssignment.value) && !requiresZp(decl) && canBeMadeConst(decl, usages)) {
-                    if(reads.isEmpty()) {
-                        if(decl.names.size>1) {
-                            errors.info("unused variable '${decl.name}'", decl.position)
-                        } else {
-                            // variable is never used AT ALL so we just remove it altogether, including the single assignment
-                            if("ignore_unused" !in decl.definingBlock.options())
-                                errors.info("removing unused variable '${decl.name}'", decl.position)
-                            return listOf(
-                                AstRemove(decl, parent as IStatementContainer),
-                                AstRemove(singleAssignment, singleAssignment.parent as IStatementContainer)
-                            )
-                        }
-                    }
-    
-                    // variable only has a single write, and it is the initialization value, so it can be replaced with a constant, but only IF the value is a constant
+                val declValue = if (decl.value != null) getConstantInitializer(decl.value!!) else null
+                if (declValue != null && !requiresZp(decl) && canBeMadeConst(decl, usages)) {
+                    // variable is never written to, so it can be replaced with a constant, IF the value is a constant
                     errors.info("variable '${decl.name}' is never written to and was made const", decl.position)
                     val const = VarDecl.builder(decl.datatype, decl.position)
                         .copyFrom(decl)
                         .type(VarDeclType.CONST)
-                        .value(singleAssignment.value)
+                        .value(declValue)
                         .build()
+                    decl.value = null
                     return listOf(
-                        AstReplaceNode(decl, const, parent),
-                        AstRemove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                        AstReplaceNode(decl, const, parent)
                     )
                 }
+            }
+        } else {
+            if (singleAssignment.origin == AssignmentOrigin.VARINIT && isConstantInitializer(singleAssignment.value) && !isMemorySlabInit(singleAssignment.value) && !requiresZp(decl) && canBeMadeConst(decl, usages)) {
+                if(reads.isEmpty()) {
+                    if(decl.names.size>1) {
+                        errors.info("unused variable '${decl.name}'", decl.position)
+                    } else {
+                        // variable is never used AT ALL so we just remove it altogether, including the single assignment
+                        if("ignore_unused" !in decl.definingBlock.options())
+                            errors.info("removing unused variable '${decl.name}'", decl.position)
+                        return listOf(
+                            AstRemove(decl, parent as IStatementContainer),
+                            AstRemove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                        )
+                    }
+                }
+
+                // variable only has a single write, and it is the initialization value, so it can be replaced with a constant, but only IF the value is a constant
+                errors.info("variable '${decl.name}' is never written to and was made const", decl.position)
+                val const = VarDecl.builder(decl.datatype, decl.position)
+                    .copyFrom(decl)
+                    .type(VarDeclType.CONST)
+                    .value(singleAssignment.value)
+                    .build()
+                return listOf(
+                    AstReplaceNode(decl, const, parent),
+                    AstRemove(singleAssignment, singleAssignment.parent as IStatementContainer)
+                )
             }
         }
 

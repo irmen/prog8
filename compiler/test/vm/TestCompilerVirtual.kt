@@ -375,7 +375,7 @@ main {
         val src = """
 main {
     sub start() {
-        bool flag = true
+        bool @shared flag = true
         cx16.r0L = if flag then 1 else 0
     }
 }"""
@@ -398,7 +398,7 @@ main {
         val src = """
 main {
     sub start() {
-        bool flag = true
+        bool @shared flag = true
         if flag {
             cx16.r0L = 1
         } else {

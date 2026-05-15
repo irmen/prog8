@@ -97,9 +97,9 @@ main {
 main {
     sub start() {
         uword[3] arr
-        ubyte i = 42
-        uword ww = peekw(arr[i])
-        ubyte xx = peek(arr[i])
+        ubyte @shared i = 42
+        uword @shared ww = peekw(arr[i])
+        ubyte @shared xx = peek(arr[i])
         xx = @(arr[i])
         
         @(arr[i]) = 42
@@ -114,7 +114,7 @@ main {
         val text="""
 main {
     sub start() {
-        uword factor1
+        uword @shared factor1
         ubyte[3] bytearray
         uword[3] wordarray
         @(factor1) = bytearray[0]
@@ -308,10 +308,10 @@ main
 {
     sub start()
     {
-        uword uw = 54321
-        ubyte ub = 123
-        word sw = -12345
-        byte sb = -123
+        uword @shared uw = 54321
+        ubyte @shared ub = 123
+        word @shared sw = -12345
+        byte @shared sb = -123
 
         func_uw(~ub as uword) 
         func_ub(~uw as ubyte) 

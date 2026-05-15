@@ -361,8 +361,8 @@ class TestStringEncodings: FunSpec({
                 str string1 = "default"
                 str string2 = petscii:"petscii"
             
-                ubyte char1 = 'd'
-                ubyte char2 = petscii:'p'
+                ubyte @shared char1 = 'd'
+                ubyte @shared char2 = petscii:'p'
             
                 sub start() {
                 }
@@ -389,8 +389,8 @@ class TestStringEncodings: FunSpec({
                 str string1 = "default"
                 str string2 = petscii:"petscii"
             
-                ubyte char1 = 'd'
-                ubyte char2 = petscii:'p'
+                ubyte @shared char1 = 'd'
+                ubyte @shared char2 = petscii:'p'
             
                 sub start() {
                 }

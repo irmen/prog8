@@ -317,7 +317,7 @@ class TestScoping: FunSpec({
         val text = """
             main {
                 sub start() {
-                    byte wrongaddress = 100
+                    byte @shared wrongaddress = 100
                     
                     goto wrongaddress   ; must be uword
                     goto main.routine   ; can't take args

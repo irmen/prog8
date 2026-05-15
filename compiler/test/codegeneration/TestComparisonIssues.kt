@@ -14,8 +14,8 @@ class TestComparisonIssues : FunSpec({
         val text = """
             main {
                 sub start() {
-                    long a = 1000
-                    long b = 2000
+                    long @shared a = 1000
+                    long @shared b = 2000
                     a += b
                 }
             }
@@ -30,8 +30,8 @@ class TestComparisonIssues : FunSpec({
         val text = """
             main {
                 sub start() {
-                    long a = 2000
-                    long b = 1000
+                    long @shared a = 2000
+                    long @shared b = 1000
                     a -= b
                 }
             }
@@ -46,7 +46,7 @@ class TestComparisonIssues : FunSpec({
         val text = """
             main {
                 sub start() {
-                    word w = -1
+                    word @shared w = -1
                     if w <= 0 {
                         cx16.r0 = 1
                     }
@@ -64,7 +64,7 @@ class TestComparisonIssues : FunSpec({
         val text = """
             main {
                 sub start() {
-                    word w = 1
+                    word @shared w = 1
                     if w > 0 {
                         cx16.r0 = 1
                     }
@@ -82,7 +82,7 @@ class TestComparisonIssues : FunSpec({
         val text = """
             main {
                 sub start() {
-                    uword uw = 0
+                    uword @shared uw = 0
                     if uw <= 0 {
                         cx16.r0 = 1
                     }
@@ -100,7 +100,7 @@ class TestComparisonIssues : FunSpec({
         val text = """
             main {
                 sub start() {
-                    word w = 1
+                    word @shared w = 1
                     if w <= 0 {
                         cx16.r0 = 1
                     } else {

@@ -28,10 +28,8 @@ class TestLookupSemantics: FunSpec({
 
     fun compileAndGetSymbolTable(source: String): SymbolTable {
         val errors = ErrorReporterForTests()
-        val result = compileText(C64Target(), false, source, outputDir, errors = errors, writeAssembly = true)
-        if(result == null) {
-            throw AssertionError("Compilation failed: ${errors.errors.joinToString("; ")}")
-        }
+        val result = compileText(C64Target(), false, source, outputDir, errors = errors)
+            ?: throw AssertionError("Compilation failed: ${errors.errors.joinToString("; ")}")
         return result.codegenSymboltable
             ?: throw AssertionError("No symbol table available")
     }
@@ -53,9 +51,9 @@ class TestLookupSemantics: FunSpec({
     test("qualified lookup always starts from root") {
         val src = """
             main {
-                uword value = 10
+                uword @shared value = 10
                 sub start() {
-                    uword result = main.value
+                    uword @shared result = main.value
                 }
             }
         """
@@ -66,9 +64,9 @@ class TestLookupSemantics: FunSpec({
     test("unqualified lookup walks parent chain") {
         val src = """
             main {
-                uword value = 10
+                uword @shared value = 10
                 sub start() {
-                    uword result = value
+                    uword @shared result = value
                 }
             }
         """
@@ -82,9 +80,9 @@ class TestLookupSemantics: FunSpec({
     test("qualified lookup with multiple path segments") {
         val src = """
             main {
-                uword deep = 100
+                uword @shared deep = 100
                 sub start() {
-                    uword result = main.deep
+                    uword @shared result = main.deep
                 }
             }
         """
@@ -99,10 +97,10 @@ class TestLookupSemantics: FunSpec({
     test("local variable shadows parent scope unqualified lookup") {
         val src = """
             main {
-                uword value = 10
+                uword @shared value = 10
                 sub start() {
-                    uword value = 5
-                    uword result = value
+                    uword @shared value = 5
+                    uword @shared result = value
                 }
             }
         """
@@ -114,10 +112,10 @@ class TestLookupSemantics: FunSpec({
     test("qualified lookup unaffected by shadowing") {
         val src = """
             main {
-                uword value = 10
+                uword @shared value = 10
                 sub start() {
-                    uword value = 5
-                    uword result = main.value
+                    uword @shared value = 5
+                    uword @shared result = main.value
                 }
             }
         """
@@ -129,11 +127,11 @@ class TestLookupSemantics: FunSpec({
     test("multiple levels of shadowing") {
         val src = """
             main {
-                uword value = 1
+                uword @shared value = 1
                 sub start() {
-                    uword value = 2
-                    uword v1 = value
-                    uword v2 = main.value
+                    uword @shared value = 2
+                    uword @shared v1 = value
+                    uword @shared v2 = main.value
                 }
             }
         """
@@ -149,11 +147,11 @@ class TestLookupSemantics: FunSpec({
     test("qualified lookup across modules") {
         val src = """
             module1 {
-                uword m1_var = 111
+                uword @shared m1_var = 111
             }
             main {
                 sub start() {
-                    uword result = module1.m1_var
+                    uword @shared result = module1.m1_var
                 }
             }
         """
@@ -178,9 +176,9 @@ class TestLookupSemantics: FunSpec({
     test("nested block can access outer module symbols") {
         val src = """
             main {
-                uword outer = 100
+                uword @shared outer = 100
                 sub start() {
-                    uword result = outer
+                    uword @shared result = outer
                 }
             }
         """
@@ -197,7 +195,7 @@ class TestLookupSemantics: FunSpec({
         val src = """
             main {
                 sub start() {
-                    uword result = abs(-5)
+                    uword @shared result = abs(-5)
                 }
             }
         """
@@ -209,8 +207,8 @@ class TestLookupSemantics: FunSpec({
         val src = """
             main {
                 sub start() {
-                    uword myabs = 10
-                    uword result = myabs
+                    uword @shared myabs = 10
+                    uword @shared result = myabs
                 }
             }
         """
@@ -232,7 +230,7 @@ class TestLookupSemantics: FunSpec({
                 }
                 sub start() {
                     ^^Point ptr
-                    word result = ptr.x
+                    word @shared result = ptr.x
                 }
             }
         """

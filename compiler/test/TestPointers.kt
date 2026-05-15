@@ -1213,9 +1213,9 @@ main {
             byte bb
         }
 
-        ^^List l1 = 2000
-        ^^List l2 = 3000
-        ^^Foo f1 = 4000
+        ^^List @shared l1 = 2000
+        ^^List @shared l2 = 3000
+        ^^Foo @shared f1 = 4000
 
         l1^^ = l2^^     ; memcpy1
         l1[3] = l2^^    ; memcpy2

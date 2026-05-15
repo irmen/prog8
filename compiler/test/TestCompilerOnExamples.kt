@@ -285,7 +285,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
     val bothCx16AndC64 = cartesianProduct(
         listOf(
             ExampleSizes("balls", c64SizeOptimized=885, c64SizeUnoptimized=919, cx16SizeOptimized=874, cx16SizeUnoptimized=1188),
-            ExampleSizes("boingball", c64SizeOptimized=1484, c64SizeUnoptimized=1544, cx16SizeOptimized=1486, cx16SizeUnoptimized=1962),
+            ExampleSizes("boingball", c64SizeOptimized=1484, c64SizeUnoptimized=1544, cx16SizeOptimized=1486, cx16SizeUnoptimized=1957),
             ExampleSizes("cube3d", c64SizeOptimized=2444, c64SizeUnoptimized=2509, cx16SizeOptimized=2381, cx16SizeUnoptimized=2712),
             ExampleSizes("cube3d-float", c64SizeOptimized=2619, c64SizeUnoptimized=2668, cx16SizeOptimized=2511, cx16SizeUnoptimized=2835),
             ExampleSizes("cube3d-gfx", c64SizeOptimized=3536, c64SizeUnoptimized=3589, cx16SizeOptimized=2206, cx16SizeUnoptimized=2522),
@@ -303,7 +303,7 @@ class TestCompilerOnExamplesBothC64andCx16: FunSpec({
             ExampleSizes("swirl", c64SizeOptimized=828, c64SizeUnoptimized=831, cx16SizeOptimized=923, cx16SizeUnoptimized=1208),
             ExampleSizes("swirl-float", c64SizeOptimized=708, c64SizeUnoptimized=735, cx16SizeOptimized=595, cx16SizeUnoptimized=906),
             ExampleSizes("tehtriz", c64SizeOptimized=4339, c64SizeUnoptimized=4504, cx16SizeOptimized=6211, cx16SizeUnoptimized=6742),
-            ExampleSizes("textelite", c64SizeOptimized=11440, c64SizeUnoptimized=12423, cx16SizeOptimized=10778, cx16SizeUnoptimized=13051),
+            ExampleSizes("textelite", c64SizeOptimized=11440, c64SizeUnoptimized=12423, cx16SizeOptimized=10778, cx16SizeUnoptimized=13046),
             ExampleSizes("pointers/animalgame", c64SizeOptimized=1570, c64SizeUnoptimized=2126, cx16SizeOptimized=1605, cx16SizeUnoptimized=2412),
             ExampleSizes("pointers/binarytree", c64SizeOptimized=2562, c64SizeUnoptimized=2640, cx16SizeOptimized=2085, cx16SizeUnoptimized=2389),
             ExampleSizes("pointers/hashtable", c64SizeOptimized=3294, c64SizeUnoptimized=4140, cx16SizeOptimized=2832, cx16SizeUnoptimized=3786),

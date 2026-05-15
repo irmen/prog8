@@ -918,9 +918,9 @@ class TestProg8Parser: FunSpec( {
             main {
                 sub start() {
                     str string = "\x00\xff\u0041"
-                    ubyte zero = '\x00'
-                    ubyte ff = '\xff'
-                    ubyte letter = '\u0041'
+                    ubyte @shared zero = '\x00'
+                    ubyte @shared ff = '\xff'
+                    ubyte @shared letter = '\u0041'
                 }
             }
         """
@@ -997,10 +997,10 @@ class TestProg8Parser: FunSpec( {
                 sub start() {
                     ubyte @zp @shared @requirezp var1
                     ubyte @shared @zp var2
-                    ubyte @zp var3
+                    ubyte @zp @shared var3
                     ubyte @shared var4
-                    ubyte @requirezp var5
-                    ubyte var6
+                    ubyte @requirezp @shared var5
+                    ubyte @shared var6
                 }
             }
         """
@@ -1014,16 +1014,16 @@ class TestProg8Parser: FunSpec( {
         var2.sharedWithAsm shouldBe true
         var2.zeropage shouldBe ZeropageWish.PREFER_ZEROPAGE
         val var3 = stmt[4] as VarDecl
-        var3.sharedWithAsm shouldBe false
+        var3.sharedWithAsm shouldBe true
         var3.zeropage shouldBe ZeropageWish.PREFER_ZEROPAGE
         val var4 = stmt[6] as VarDecl
         var4.sharedWithAsm shouldBe true
         var4.zeropage shouldBe ZeropageWish.DONTCARE
         val var5 = stmt[8] as VarDecl
-        var5.sharedWithAsm shouldBe false
+        var5.sharedWithAsm shouldBe true
         var5.zeropage shouldBe ZeropageWish.REQUIRE_ZEROPAGE
         val var6 = stmt[10] as VarDecl
-        var6.sharedWithAsm shouldBe false
+        var6.sharedWithAsm shouldBe true
         var6.zeropage shouldBe ZeropageWish.DONTCARE
     }
 
@@ -1089,10 +1089,10 @@ main {
 %option enable_floats
 main {
     sub start() {
-        uword w1 = 000_1234_5__
-        uword w2 = ${'$'}ff_ee
-        uword w3 = %11_0000_111111__0000
-        float fl = 3_000_001.141_592_654
+        uword @shared w1 = 000_1234_5__
+        uword @shared w2 = ${'$'}ff_ee
+        uword @shared w3 = %11_0000_111111__0000
+        float @shared fl = 3_000_001.141_592_654
     }
 }"""
         val result = compileText(VMTarget(),  false, src, outputDir, writeAssembly = false)!!

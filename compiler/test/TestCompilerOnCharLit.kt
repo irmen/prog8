@@ -65,7 +65,7 @@ class TestCompilerOnCharLit: FunSpec({
             main {
                 extsub $FFD2 = chrout(ubyte ch @ A)
                 sub start() {
-                    ubyte ch = '\n'
+                    ubyte @shared ch = '\n'
                     chrout(ch)
                 }
             }

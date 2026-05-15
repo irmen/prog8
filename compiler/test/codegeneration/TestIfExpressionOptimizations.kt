@@ -210,8 +210,8 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
             main {
                 word[10] @shared words
                 sub start() {
-                    ubyte i = 5
-                    ubyte result = if words[i] < 0 then 1 else 0
+                    ubyte @shared i = 5
+                    ubyte @shared result = if words[i] < 0 then 1 else 0
                     cx16.r1L = result
                 }
             }
@@ -228,8 +228,8 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
             main {
                 long[10] @shared longs
                 sub start() {
-                    ubyte i = 2
-                    ubyte result = if longs[i] > 0 then 1 else 0
+                    ubyte @shared i = 2
+                    ubyte @shared result = if longs[i] > 0 then 1 else 0
                     cx16.r1L = result
                 }
             }
@@ -279,8 +279,8 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
             main {
                 uword[10] @shared words
                 sub start() {
-                    ubyte i = 5
-                    ubyte result = if words[i] == 0 then 1 else 0
+                    ubyte @shared i = 5
+                    ubyte @shared result = if words[i] == 0 then 1 else 0
                     cx16.r1L = result
                 }
             }
@@ -295,8 +295,8 @@ test("if-expression bitwise AND optimization (BIT instruction)") {
             main {
                 word[10] @shared words
                 sub start() {
-                    ubyte i = 2
-                    ubyte result = if words[i] != 0 then 1 else 0
+                    ubyte @shared i = 2
+                    ubyte @shared result = if words[i] != 0 then 1 else 0
                     cx16.r1L = result
                 }
             }

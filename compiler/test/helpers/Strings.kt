@@ -11,7 +11,7 @@ fun String.shouldContainInOrder(vararg substrings: String) {
     for (substring in substrings) {
         val index = this.indexOf(substring, currentSearchIndex)
         if (index == -1) {
-            fail("Could not find '$substring' after index $currentSearchIndex in string:\n$this")
+            fail("Could not find '$substring' after index $currentSearchIndex")
         }
         currentSearchIndex = index + substring.length
     }

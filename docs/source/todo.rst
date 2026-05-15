@@ -80,8 +80,7 @@ Libraries
 Optimizations
 -------------
 
-- Sometimes explicit const pointers are better off being a variable (because they can be put into zero page like that etc) So devise a good way to "strip" the user-set const off such variables.
-- Always do const-folding regardless of using -noopt or not. This will break A LOT of unit tests though
+- Sometimes explicit const pointers are better off being a variable (because they can be put into zero page like that etc) So compe up with a way to identify such pointers to turn back into regular variables (silently)
 - inliner: extend multi-value return inlining to support parameterized subroutines. Currently only works for parameterless subroutines. (Void calls with parameters already work if the parameters are unused in the body.)
 - Port more benchmarks from https://thred.github.io/c-bench-64/  to prog8 and see how it stacks up. (see benchmark-c/ directory)
 - Compilation speed: try to join multiple modifications in 1 result in the AST processors instead of returning it straight away every time

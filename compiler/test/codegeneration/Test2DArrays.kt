@@ -1,5 +1,6 @@
 package prog8tests.codegeneration
 
+import io.kotest.assertions.fail
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.engine.spec.tempdir
 import io.kotest.matchers.shouldBe
@@ -24,7 +25,7 @@ class Test2DArrays: FunSpec({
                     ubyte[3][4] m
                     m[0][0] = 1
                     m[2][3] = 12
-                    ubyte v = m[0][0]
+                    ubyte @shared v = m[0][0]
                 }
             }""",
             // Variable indexing
@@ -32,10 +33,10 @@ class Test2DArrays: FunSpec({
             main {
                 sub start() {
                     ubyte[3][4] m
-                    ubyte r = 1
-                    ubyte c = 2
+                    ubyte @shared r = 1
+                    ubyte @shared c = 2
                     m[r][c] = 42
-                    ubyte v = m[r][c]
+                    ubyte @shared v = m[r][c]
                 }
             }""",
             // Used in expressions
@@ -45,7 +46,7 @@ class Test2DArrays: FunSpec({
                     ubyte[2][3] m
                     m[0][0] = 10
                     m[1][1] = 15
-                    ubyte s = m[0][0] + m[1][1]
+                    ubyte @shared s = m[0][0] + m[1][1]
                 }
             }""",
             // As function argument
@@ -73,8 +74,8 @@ class Test2DArrays: FunSpec({
             main {
                 ubyte[4][4] m
                 sub start() {
-                    ubyte r = 0
-                    ubyte c = 0
+                    ubyte @shared r = 0
+                    ubyte @shared c = 0
                     for r in 0 to 3 {
                         for c in 0 to 3 {
                             m[r][c] = r * c
@@ -87,13 +88,14 @@ class Test2DArrays: FunSpec({
             main {
                 sub start() {
                     ubyte[3][4] m
-                    uword addr = &m
+                    uword @shared addr = &m
                 }
             }"""
         )
         for(src in sources) {
-            compileText(VMTarget(), false, src, outputDir) shouldNotBe null
-            compileText(C64Target(), false, src, outputDir) shouldNotBe null
+            val result = compileText(VMTarget(), false, src, outputDir) ?: fail("Compilation failed for source:\n$src")
+            val resultc64 =
+                compileText(C64Target(), false, src, outputDir) ?: fail("Compilation failed for source:\n$src")
         }
         // Also verify optimized compilation
         compileText(VMTarget(), true, sources[0], outputDir) shouldNotBe null
