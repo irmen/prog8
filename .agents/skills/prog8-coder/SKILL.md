@@ -76,6 +76,11 @@ No call stack for variable storage — recursion overwrites locals. To handle it
 - CPU status flag branches: `if_cs`, `if_cc`, `if_z`, `if_nz` (compile to single 6502 branch instructions)
 - Use `when` with choice blocks instead of multiple `if`
 - If-expressions for simple value assignments based on a choice
+- **Optional braces in if/else**: when the `if` or `else` body is a single statement, the `{ }` can be omitted. Place the statement on the next line, indented. Example:
+  ```
+  if x < 5
+      txt.print("small")
+  ```
 - `defer` defers statement execution until scope exit
 - `goto`, labels, jump lists allowed
 - **Common mistake**: `and`/`or` for bitmasking — use `&`/`|` instead!

@@ -828,6 +828,25 @@ Read the :source:`graphics source code <compiler/res/prog8lib/c64/graphics.p8>`
 to see what's in there. (Note: slight variations for different compiler targets)
 
 
+lineclip
+^^^^^^^^
+.. index:: pair: Libraries; lineclip
+
+Line clipping using the Elite-inspired two-stage algorithm (BBC Micro, 6502).
+Based on the deep dive by Mark Moxon at https://elite.bbcelite.com/deep_dives/line-clipping.html
+
+All coordinates are signed words (``word``). The clipping rectangle is set via ``set_cliprect()``, then
+``clip()`` is called to clip a line segment. The algorithm handles lines that are fully inside,
+fully outside, or partially crossing the clipping rectangle.
+
+``sub set_cliprect(word x1, word y1, word x2, word y2)``
+    Set the clipping rectangle coordinates. The rectangle must have x1 < x2 and y1 < y2.
+
+``sub clip(word x1, word y1, word x2, word y2) -> bool, word, word, word, word``
+    Clip the line segment from (x1,y1) to (x2,y2) against the current clipping rectangle set by ``set_cliprect()``.
+    Returns ``visible`` (boolean), plus the clipped coordinates (or (0,0)-(0,0) if not visible).
+
+
 math
 ^^^^
 .. index:: pair: Libraries; math

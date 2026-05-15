@@ -49,6 +49,7 @@ You are writing **6502/65C02 assembly** using **64tass syntax**, in separate `*.
 - **CX16 target only**: can use 65C02 instructions — `stz`, `phx`, `plx`, `phy`, `ply`, `bra`, `trb`, `tsb`, `stp`, `wai`, `clr`, `ina`, `dea`, `cmp (zp)`, `dec`/`inc abs,x` etc.
 - **C64, C128, PET32 targets**: original 6502 only — no `stz`, no `phx`/`plx`/`phy`/`ply`, no `bra`
 - Check the target before using 65C02-specific instructions
+- **6502 / 65C02 instruction reference**: https://www.pagetable.com/c64ref/6502/?cpu=65c02&tab=2
 
 ## Calling Convention / Register Conventions
 - **Accumulator (A)**: 8-bit, used for most arithmetic, data movement, return values

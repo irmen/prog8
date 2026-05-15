@@ -154,13 +154,14 @@ class VarConstantValueTypeAdjuster(
                 val p = it.parent
                 val gp = p.parent
                 it is PtrDereference || it is ArrayIndexedPtrDereference
-                        || p is ArrayIndexedExpression || p is DirectMemoryRead || p is DirectMemoryWrite
-                        || gp is DirectMemoryRead || gp is DirectMemoryWrite
+                    || p is ArrayIndexedExpression || p is DirectMemoryRead || p is DirectMemoryWrite
+                    || gp is DirectMemoryRead || gp is DirectMemoryWrite
             }
-        if (derefCount > 2) return false
-            }
-            return true
+            if (derefCount > 2) return false
+            if (derefCount > 0 && (decl.zeropage==ZeropageWish.PREFER_ZEROPAGE || decl.zeropage==ZeropageWish.REQUIRE_ZEROPAGE)) return false
         }
+        return true
+    }
 
     override fun after(range: RangeExpression, parent: Node): Iterable<AstModification> {
         val from = range.from.constValue(program)?.number

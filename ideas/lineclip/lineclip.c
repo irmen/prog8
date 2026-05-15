@@ -1,21 +1,3 @@
-/* lineclip.c - Line clipping algorithms
- *
- * CURRENT implementation: optimized for SMALLNESS using C's native float.
- *
- * FUTURE constraints for a planned integer-only 6502 target implementation:
- * (These are NOT enforced in the current code!)
- * -----------------------------------------------------
- * 1. NO floating point arithmetic.
- * 2. NO signed modulo operator (%).
- * 3. Results MUST be strictly inside the clip window.
- * 4. Return true if visible, false if fully clipped.
- * 5. Parametric t is scaled by 256.
- * 6. Keep intermediates in int16_t; use int32_t only when necessary.
- *    Input coords are int16_t (-32767..32767). Clip window is [0,0]-[639,479].
- * 7. NO recursion — iterative only.
- * 8. 16-bit signed division IS available. No 32-bit/64-bit division.
- *    Division by 256 is a right shift.
- */
 #include "lineclip.h"
 #include <stdbool.h>
 #include <stddef.h>
@@ -96,6 +78,10 @@ static inline int _oc_after_y(int16_t x, int16_t cx1, int16_t cx2)
     if (x > cx2) c |= 2;
     return c;
 }
+
+/* ========================================================================== */
+/* Cohen-Sutherland: iterative region-code clipping, uses float for dx        */
+/* ========================================================================== */
 
 bool clip_cohen_sutherland(int16_t *x1, int16_t *y1, int16_t *x2, int16_t *y2,
                            int16_t cx1, int16_t cy1, int16_t cx2, int16_t cy2)
